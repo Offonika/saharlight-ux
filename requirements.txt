@@ -1,0 +1,7 @@
+# requirements.txt
+python-telegram-bot==20.4
+openai==1.74.0
+SQLAlchemy==1.4.46
+psycopg2-binary==2.9.6
+python-dotenv==1.0.1
+
