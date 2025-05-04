@@ -2,6 +2,7 @@
 import openai
 import os
 from config import OPENAI_API_KEY, OPENAI_ASSISTANT_ID, OPENAI_PROXY
+import logging
 
 os.environ["HTTP_PROXY"] = OPENAI_PROXY
 os.environ["HTTPS_PROXY"] = OPENAI_PROXY
@@ -15,9 +16,13 @@ def create_thread() -> str:
 def send_message(thread_id: str, content: str = None, image_path: str = None):
     # Если передаём изображение
     if image_path:
-        with open(image_path, "rb") as f:
-            file = client.files.create(file=f, purpose="vision")
-
+        try:
+            with open(image_path, "rb") as f:
+                file = client.files.create(file=f, purpose="vision")
+            logging.info(f"[OpenAI] Отправка файла: {image_path}, file_id={file.id}")
+        except Exception as e:
+            logging.error(f"[OpenAI] Ошибка при отправке файла {image_path}: {e}")
+            raise
         message = client.beta.threads.messages.create(
             thread_id=thread_id,
             role="user",
