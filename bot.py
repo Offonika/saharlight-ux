@@ -4,8 +4,11 @@ import re
 import asyncio
 import time
 import logging
-from datetime import datetime
+# bot.py  – верхняя часть (где уже есть import datetime)
+from datetime import datetime, timezone   # ← добавили timezone
 
+from gpt_command_parser import parse_command
+from telegram.ext import MessageHandler, filters
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler,
@@ -15,9 +18,14 @@ from db import SessionLocal, init_db, User, Profile, Entry
 from gpt_client import create_thread, send_message, client
 from functions import PatientProfile, calc_bolus
 from config import TELEGRAM_TOKEN
+from datetime import datetime
+from sqlalchemy import DateTime, func
+from db import SessionLocal, Entry, Profile, User, init_db
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from sqlalchemy import func          # уже нужен для фильтра по дате# ▸ bot.py  (положите рядом с остальными async‑хендлерами)
+from pathlib import Path
 
-# Состояния для пошагового ввода профиля и дозы
-# Состояния для пошагового ввода профиля и дозы
+
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET         = range(0, 3)    # 0,1,2
 DOSE_METHOD, DOSE_XE, DOSE_SUGAR, DOSE_CARBS    = range(3, 7)    # 3,4,5,6
 PHOTO_SUGAR                                     = 7              # после DOSE_CARBS
@@ -49,6 +57,101 @@ menu_keyboard = ReplyKeyboardMarkup(
 
 # В начале файла (после импортов) настройка логгера:
 logging.basicConfig(filename='gpt_responses.log', level=logging.INFO, format='%(asctime)s %(message)s')
+logger = logging.getLogger("bot")
+logger.setLevel(logging.INFO)
+
+
+
+
+
+# bot.py  (показываю целиком изменённую функцию)
+
+import re
+from datetime import datetime, time as dtime
+# ...
+
+# bot.py
+from datetime import datetime, time as dtime, timezone
+# … остальной импорт …
+
+# ──────────────────────────────────────────────────────────────
+async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    raw_text = update.message.text.strip()
+    user_id  = update.effective_user.id
+    logger.info(f"FREEFORM raw='{raw_text}'  user={user_id}")
+
+    parsed = await parse_command(raw_text)
+    logger.info(f"FREEFORM parsed={parsed}")
+
+    # если парсер не дал JSON‑команду — просто выходим
+    if not parsed or parsed.get("action") != "add_entry":
+        return
+
+    fields      = parsed["fields"]
+    entry_date  = parsed.get("entry_date")   # ISO‑строка или None
+    time_str    = parsed.get("time")         # "HH:MM" или None
+
+    # ── определяем event_time ─────────────────────────────────
+    if entry_date:
+        # полная дата уже указана GPT
+        try:
+            event_dt = datetime.fromisoformat(entry_date).replace(tzinfo=timezone.utc)
+        except ValueError:
+            # формат кривой — откатываемся к «сейчас»
+            event_dt = datetime.now(timezone.utc)
+       
+    elif time_str:
+        # время указано без даты – считаем, что это ЛОКАЛЬНОЕ время пользователя,
+        # поэтому НЕ задаём tzinfo
+        try:
+            hh, mm = map(int, time_str.split(":"))
+            today  = datetime.now().date()
+            event_dt = datetime.combine(today, dtime(hh, mm))   # ← без tzinfo
+        except Exception:
+            event_dt = datetime.now()
+
+
+
+    else:
+        # ничего не пришло → текущее время
+        event_dt = datetime.now(timezone.utc)
+
+    # ── создаём объект записи ─────────────────────────────────
+    entry = Entry(
+        telegram_id  = user_id,
+        event_time   = event_dt,
+        xe           = fields.get("xe"),
+        carbs_g      = fields.get("carbs_g"),
+        dose         = fields.get("dose"),
+        sugar_before = fields.get("sugar_before"),
+    )
+
+    # ── сохраняем в БД ────────────────────────────────────────
+    session = SessionLocal()
+    session.add(entry)
+    session.commit()
+
+    # копируем нужные поля, пока объект ещё привязан к сессии
+    evt_time   = entry.event_time.astimezone()   # локальная зона TG‑юзера
+    xe_val     = entry.xe
+    carbs_val  = entry.carbs_g
+    dose_val   = entry.dose
+    sugar_val  = entry.sugar_before
+    session.close()
+
+    # ── формируем ответ ───────────────────────────────────────
+    date_str   = evt_time.strftime("%d.%m %H:%M")
+    xe_part    = f"{xe_val} ХЕ"               if xe_val   is not None else ""
+    carb_part  = f"{carbs_val:.0f} г углеводов" if carbs_val is not None else ""
+    dose_part  = f"Инсулин: {dose_val} ед"    if dose_val is not None else ""
+    sugar_part = f"Сахар: {sugar_val} ммоль/л" if sugar_val is not None else ""
+
+    lines = "  \n- ".join(filter(None, [xe_part or carb_part,
+                                        dose_part,
+                                        sugar_part]))
+    reply = f"Записано:\n\n{date_str}  \n- {lines}"
+    await update.message.reply_text(reply, reply_markup=menu_keyboard)
+
 
 def extract_nutrition_info(text: str):
     """
@@ -83,6 +186,65 @@ def extract_nutrition_info(text: str):
                   float(rng.group(2).replace(",", "."))) / 2
 
     return carbs, xe
+
+# ▸ bot.py  (положите рядом с остальными async‑хендлерами)
+async def apply_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "edit_id" not in context.user_data:    # нет режима редактирования
+        return
+
+    text = update.message.text.lower()
+    parts = dict(re.findall(r"(\w+)\s*=\s*([\d.]+)", text))
+    if not parts:
+        await update.message.reply_text("Не вижу ни одного поля для изменения.")
+        return
+
+    with SessionLocal() as s:
+        entry = s.get(Entry, context.user_data["edit_id"])
+        if not entry:
+            await update.message.reply_text("Запись уже удалена.")
+            context.user_data.pop("edit_id")
+            return
+
+        # обновляем поля, если присутствуют
+        if "xe" in parts:    entry.xe           = float(parts["xe"])
+        if "carbs" in parts: entry.carbs_g      = float(parts["carbs"])
+        if "dose" in parts:  entry.dose         = float(parts["dose"])
+        if "сахар" in parts or "sugar" in parts:
+            entry.sugar_before = float(parts.get("сахар") or parts["sugar"])
+        entry.updated_at = datetime.utcnow()
+        s.commit()
+
+    context.user_data.pop("edit_id")
+    await update.message.reply_text("✅ Запись обновлена!")
+
+async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает inline‑кнопки из /history."""
+    query   = update.callback_query
+    await query.answer()                       # ← обязательный ACK
+    action, entry_id = query.data.split(":", 1)
+
+    with SessionLocal() as s:
+        entry = s.get(Entry, int(entry_id))
+        if not entry:
+            await query.edit_message_text("Запись не найдена (уже удалена).")
+            return
+
+        # ---- УДАЛЕНИЕ ----------------------------------------------------
+        if action == "del":
+            s.delete(entry)
+            s.commit()
+            await query.edit_message_text("❌ Запись удалена.")
+            return
+
+        # ---- РЕДАКТИРОВАНИЕ ----------------------------------------------
+        if action == "edit":
+            context.user_data["edit_id"] = entry.id
+            txt = (
+                "Отправьте новое сообщение в формате:\n"
+                "`сахар=<ммоль/л>  xe=<ХЕ>  carbs=<г>  dose=<ед>`\n"
+                "Можно указывать не все поля (что прописано — то и поменяется).",
+            )
+            await query.edit_message_text("\n".join(txt), parse_mode="Markdown")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
@@ -268,6 +430,13 @@ async def profile_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Отменено.", reply_markup=menu_keyboard)
     return ConversationHandler.END
 
+async def photo_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает нажатие кнопки '📷 Фото еды'"""
+    await update.message.reply_text(
+        "📸 Пожалуйста, отправьте фото блюда, и я оценю углеводы и ХЕ.",
+        reply_markup=menu_keyboard
+    )
+
 async def cancel_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Действие отменено.", reply_markup=menu_keyboard)
     return ConversationHandler.END
@@ -319,141 +488,103 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Сахар сохранён: {sugar} ммоль/л", reply_markup=menu_keyboard)
     return ConversationHandler.END
 
+# ──────────────────────────────────────────────────────────────
 async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Обработка сахара после ввода углеводов (фото/ручных/ХЕ)."""
+    # 1. Сахар
     try:
-        context.user_data['sugar'] = float(update.message.text)
-        # Проверяем, есть ли свежие углеводы с фото (меньше 10 минут назад)
-        last_carbs = context.user_data.get('last_carbs')
-        last_photo_time = context.user_data.get('last_photo_time')
-        now = time.time()
-        if last_carbs is not None and last_photo_time and now - last_photo_time < 600:
-            # Используем углеводы с фото, не спрашиваем повторно
-            sugar = context.user_data['sugar']
-            carbs = last_carbs
-            user_id = update.effective_user.id
-            session = SessionLocal()
-            profile = session.get(Profile, user_id)
-            if not profile:
-                await update.message.reply_text("Профиль не найден. Используйте /profile.")
-                return ConversationHandler.END
-            dose = calc_bolus(carbs, sugar, PatientProfile(profile.icr, profile.cf, profile.target_bg))
-            icr = profile.icr
-            cf = profile.cf
-            target_bg = profile.target_bg
-            entry = Entry(telegram_id=user_id, sugar_before=sugar, carbs_g=carbs, dose=dose)
-            session.add(entry)
-            session.commit()
-            session.close()
-            await update.message.reply_text(
-                f"Использую углеводы с последнего фото: {carbs} г.\nВаша доза: {dose} ЕД.\n"
-                f"(профиль: ИКХ {cf}, КЧ {icr}, целевой {target_bg})",
-                reply_markup=menu_keyboard
-            )
-            # Очищаем last_carbs, чтобы не использовать их повторно случайно
-            context.user_data['last_carbs'] = None
-            context.user_data['last_xe'] = None
-            context.user_data['last_photo_time'] = None
-            return ConversationHandler.END
-        # --- ДОБАВЛЕНО: если last_carbs нет, сообщаем об этом ---
+        sugar = float(update.message.text.replace(",", "."))
+        context.user_data["sugar"] = sugar
+    except ValueError:
+        await update.message.reply_text("Введите число.")
+        return DOSE_SUGAR
+
+    user_id = update.effective_user.id
+    session = SessionLocal()
+    profile = session.get(Profile, user_id)
+    if not profile:
+        session.close()
+        await update.message.reply_text("Профиль не найден. Используйте /profile.")
+        return ConversationHandler.END
+
+    # копируем поля профиля ДО закрытия session
+    icr, cf, target_bg = profile.icr, profile.cf, profile.target_bg
+
+    # 2. Определяем углеводы
+    last_carbs = context.user_data.get("last_carbs")
+    last_photo_time = context.user_data.get("last_photo_time")
+    now = time.time()
+
+    if last_carbs is not None and last_photo_time and now - last_photo_time < 600:
+        carbs, xe_val = last_carbs, None
+    elif context.user_data.get("xe") is not None:
+        xe_val = context.user_data["xe"]
+        carbs = xe_val * 12          # 1 ХЕ = 12 г
+    else:
+        session.close()
         await update.message.reply_text(
             "Нет данных о количестве углеводов. Сначала отправьте фото блюда или введите углеводы вручную.",
             reply_markup=menu_keyboard
         )
         return ConversationHandler.END
-    except ValueError:
-        await update.message.reply_text("Введите число.")
-        return DOSE_SUGAR
 
-async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Обрабатывает ввод количества углеводов:
-    – если это продолжение после фото (awaiting_carbs_after_photo=True),
-      сразу считает дозу и сохраняет запись по фото;
-    – иначе — обычный сценарий «/dose»: сахар уже записан, задаются углеводы.
-    """
-    try:
-        # Получаем введённый текст и пытаемся преобразовать в число
-        carbs_input = float(update.message.text)
-    except ValueError:
-        await update.message.reply_text("Пожалуйста, введите число граммов углеводов.")
-        return DOSE_CARBS
-
-    user_id = update.effective_user.id
-    session = SessionLocal()
-
-    # Сценарий: ввод после фото
-    if context.user_data.pop('awaiting_carbs_after_photo', False):
-        sugar     = context.user_data.pop('sugar')
-        photo_path = context.user_data.pop('photo_path', None)
-        xe        = context.user_data.pop('xe', None)
-
-        profile = session.get(Profile, user_id)
-        if not profile:
-            session.close()
-            await update.message.reply_text("Профиль не найден. Используйте /profile.", reply_markup=menu_keyboard)
-            return ConversationHandler.END
-
-        dose = calc_bolus(carbs_input, sugar,
-                          PatientProfile(profile.icr, profile.cf, profile.target_bg))
-
-        entry = Entry(
-            telegram_id   = user_id,
-            photo_path    = photo_path,
-            carbs_g       = carbs_input,
-            xe            = xe,
-            sugar_before  = sugar,
-            dose          = dose
-        )
-        session.add(entry)
-        session.commit()
-        session.close()
-
-        await update.message.reply_text(
-            f"💉 Рассчитанная доза: {dose} Ед\n"
-            f"(углеводы: {carbs_input} г, сахар: {sugar} ммоль/л)",
-            reply_markup=menu_keyboard
-        )
-        return ConversationHandler.END
-
-    # Обычный сценарий /dose: углеводы после ввода сахара
-    sugar = context.user_data.get('sugar')
-    if sugar is None:
-        session.close()
-        await update.message.reply_text(
-            "Сначала введите уровень сахара командой /dose или кнопкой «💉 Доза инсулина».",
-            reply_markup=menu_keyboard
-        )
-        return ConversationHandler.END
-
-    profile = session.get(Profile, user_id)
-    if not profile:
-        session.close()
-        await update.message.reply_text("Профиль не найден. Используйте /profile.", reply_markup=menu_keyboard)
-        return ConversationHandler.END
-
-    dose = calc_bolus(carbs_input, sugar,
-                      PatientProfile(profile.icr, profile.cf, profile.target_bg))
+    # 3. Расчёт дозы
+    dose = calc_bolus(carbs, sugar, PatientProfile(icr, cf, target_bg))
 
     entry = Entry(
-        telegram_id  = user_id,
-        sugar_before = sugar,
-        carbs_g      = carbs_input,
-        dose         = dose
+        telegram_id=user_id,
+        event_time=datetime.now(timezone.utc),
+        sugar_before=sugar,
+        carbs_g=carbs,
+        xe=xe_val,
+        dose=dose
     )
     session.add(entry)
     session.commit()
     session.close()
 
+    xe_info = f", ХЕ: {xe_val}" if xe_val is not None else ""
     await update.message.reply_text(
-        f"💉 Рассчитанная доза: {dose} Ед\n"
-        f"(углеводы: {carbs_input} г, сахар: {sugar} ммоль/л)",
+        f"💉 Рассчитанная доза: {dose:.1f} Ед\n"
+        f"(углеводы: {carbs:.0f} г{xe_info}, сахар: {sugar} ммоль/л)\n"
+        f"(профиль: ИКХ {icr}, КЧ {cf}, целевой {target_bg})",
         reply_markup=menu_keyboard
     )
-    return ConversationHandler.END
 
-async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Отменено.", reply_markup=menu_keyboard)
+    # очищаем временные данные
+    for k in ("last_carbs", "last_photo_time", "xe", "sugar"):
+        context.user_data.pop(k, None)
+
     return ConversationHandler.END
+# ──────────────────────────────────────────────────────────────
+
+
+# ──────────────────────────────────────────────────────────────
+# Обработчик ✏️ «Ввести углеводы (г)»
+async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Пользователь вводит углеводы вручную.
+      1. Сохраняем количество во временный контекст.
+      2. Просим ввести сахар (переход в DOSE_SUGAR).
+      3. Дозу рассчитает dose_sugar после ввода сахара.
+    """
+    try:
+        carbs_input = float(update.message.text.replace(",", "."))
+    except ValueError:
+        await update.message.reply_text("Пожалуйста, введите число граммов углеводов.")
+        return DOSE_CARBS
+
+    # сохраняем углеводы как «последние» и помечаем время (≤10 мин)
+    context.user_data["last_carbs"] = carbs_input
+    context.user_data["last_photo_time"] = time.time()
+
+    await update.message.reply_text(
+        "Введите текущий уровень сахара (ммоль/л):",
+        reply_markup=menu_keyboard
+    )
+    return DOSE_SUGAR
+# ──────────────────────────────────────────────────────────────
+
 
 async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
@@ -507,150 +638,125 @@ async def dose_xe_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Загружает фото, отправляет его в Assistant API,
-    ждёт текстовый ответ (GPT-4o), извлекает углеводы/ХЕ
-    и переводит пользователя к вводу сахара.
+    1. Скачивает фото и сохраняет на диск.
+    2. Отправляет в GPT (assistant API).
+    3. Извлекает углеводы / ХЕ из ответа.
+    4. Сохраняет временно в user_data (до ввода сахара) или
+       сразу создаёт запись, если сахар уже введён.
     """
     user_id = update.effective_user.id
-    # Скачиваем фото
-    photo = update.message.photo[-1]
-    file = await context.bot.get_file(photo.file_id)
-    os.makedirs("photos", exist_ok=True)
-    path = f"photos/{user_id}_{photo.file_unique_id}.jpg"
-    await file.download_to_drive(path)
 
-    # --- Формируем профиль пользователя ---
+        # ── 1. Скачиваем фото ───────────────────────────────────────
+    path = context.user_data.pop("__file_path", None)
+    if path is None:                          # обычный случай «фото»
+        photo = update.message.photo[-1]
+        file  = await context.bot.get_file(photo.file_id)
+        os.makedirs("photos", exist_ok=True)
+        path  = f"photos/{user_id}_{photo.file_unique_id}.jpg"
+        await file.download_to_drive(path)
+
+
+    # ── 2. Готовим промпт и отправляем в GPT ────────────────────
     session = SessionLocal()
-    user = session.get(User, user_id)
+    user    = session.get(User, user_id)
     profile = session.get(Profile, user_id)
     session.close()
 
-    profile_text = None
-    if profile:
-        profile_text = (
-            f"Профиль пользователя:\n"
-            f"- ИКХ: {profile.icr} г/ед\n"
-            f"- КЧ: {profile.cf} ммоль/л\n"
-            f"- Целевой сахар: {profile.target_bg} ммоль/л\n"
-        )
-        # sugar = context.user_data.get("sugar")
-        # if sugar is not None:
-        #     profile_text += f"- Текущий сахар: {sugar} ммоль/л\n"
-    else:
-        profile_text = "Профиль пользователя не найден."
+    profile_text = (
+        f"Профиль пользователя:\n"
+        f"- ИКХ: {profile.icr} г/ед\n"
+        f"- КЧ: {profile.cf} ммоль/л\n"
+        f"- Целевой сахар: {profile.target_bg} ммоль/л\n"
+    ) if profile else "Профиль пользователя не найден."
 
-    # --- Передаём и текст, и фото ---
     run = send_message(user.thread_id, content=profile_text, image_path=path)
+    await update.message.reply_text("Фото отправлено, подождите ответ ассистента…", reply_markup=menu_keyboard)
 
-    await update.message.reply_text(
-        "Фото отправлено, подождите ответ ассистента...",
-        reply_markup=menu_keyboard
-    )
-
-    # Ждём выполнения
-    while run.status in ["queued", "in_progress"]:
+    while run.status in ("queued", "in_progress"):
         run = client.beta.threads.runs.retrieve(thread_id=user.thread_id, run_id=run.id)
         await asyncio.sleep(1)
 
-    # Получаем САМОЕ СВЕЖЕЕ сообщение
-    msgs = client.beta.threads.messages.list(
-        thread_id=user.thread_id,
-        order="desc",
-        limit=1
-    ).data
+    # ── 3. Получили ответ GPT ───────────────────────────────────
+    msgs = client.beta.threads.messages.list(thread_id=user.thread_id, order="desc", limit=1).data
     if not msgs:
         await update.message.reply_text("❗ Нет ответа от ассистента.", reply_markup=menu_keyboard)
         return ConversationHandler.END
 
-    last = msgs[0]  # самое новое сообщение
-    blocks = getattr(last, "content", [])
-    response_text = None
-    for blk in blocks:
-        txt = getattr(blk, "text", None)
-        if txt:
-            response_text = txt.value
-            break
-
-    logging.info(f"user_id={user_id} response_text={response_text}")
-
-    if not response_text:
-        await update.message.reply_text(
-            "Ассистент прислал не-текстовый ответ. Попробуйте ещё раз.",
-            reply_markup=menu_keyboard
-        )
-        return ConversationHandler.END
-
-    # --- ВСЕГДА выводим ответ ассистента в чат ---
+    response_text = msgs[0].content[0].text.value
     await update.message.reply_text(response_text, reply_markup=menu_keyboard)
 
-    # После получения response_text:
-    if len(response_text.strip()) < 30 or response_text.strip().lower() in ["📷 фото еды", "что изображено на фото?", "пожалуйста, отправьте фото блюда — я помогу оценить углеводы и хлебные единицы (хе), а также рассчитать дозу инсулина, если известен ваш профиль и уровень сахара."]:
-        await update.message.reply_text(
-            "Ассистент не смог распознать блюдо. Попробуйте отправить другое фото или введите данные вручную.",
-            reply_markup=menu_keyboard
-        )
-        context.user_data[WAITING_GPT_FLAG] = False
+    # Простая проверка, удалось ли GPT распознать еду
+    if len(response_text.strip()) < 30:
+        await update.message.reply_text("Не удалось распознать блюдо. Попробуйте другое фото.", reply_markup=menu_keyboard)
         return ConversationHandler.END
 
-    # 5) Распознаём углеводы и ХЕ
+    # ── 4. Извлекаем углеводы / ХЕ ──────────────────────────────
     carbs, xe = extract_nutrition_info(response_text)
-    # Сохраняем для следующего шага
-    context.user_data["last_carbs"]      = carbs
-    context.user_data["last_xe"]         = xe
-    context.user_data["last_photo_time"] = time.time()
-    context.user_data["photo_path"]      = path
-    context.user_data["carbs"]           = carbs
-    context.user_data["xe"]              = xe
+    context.user_data.update({
+        "last_carbs":      carbs,
+        "last_xe":         xe,
+        "last_photo_time": time.time(),
+        "photo_path":      path,
+        "carbs":           carbs,
+        "xe":              xe,
+    })
 
-    # 6) Проверяем наличие профиля
-    session = SessionLocal()
-    user_id = update.effective_user.id
-    profile = session.get(Profile, user_id)
-    session.close()
+    # ── 5. Если сахар уже введён — сразу сохраняем запись ───────
+    sugar = context.user_data.get("sugar")
+    if carbs is not None and sugar is not None and profile:
+        dose = calc_bolus(carbs, sugar, PatientProfile(profile.icr, profile.cf, profile.target_bg))
 
-    # Если профиль есть, не пересылаем фразу GPT про ввод профиля, а сразу считаем дозу
-    if profile and carbs is not None:
-        sugar = context.user_data.get('sugar')
-        if sugar is not None:
-            dose = calc_bolus(carbs, sugar, PatientProfile(profile.icr, profile.cf, profile.target_bg))
-            entry = Entry(
-                telegram_id=user_id,
-                photo_path=path,
-                carbs_g=carbs,
-                xe=xe,
-                sugar_before=sugar,
-                dose=dose
-            )
-            session = SessionLocal()
-            session.add(entry)
-            session.commit()
-            session.close()
-            await update.message.reply_text(
-                f"💉 Ваша доза инсулина: {dose} Ед\n"
-                f"(углеводы: {carbs} г, сахар: {sugar} ммоль/л)",
-                reply_markup=menu_keyboard
-            )
-            return ConversationHandler.END
-        else:
-            # Если сахара нет, просим ввести сахар
-            await update.message.reply_text(
-                "Теперь введите текущий уровень сахара (ммоль/л):",
-                reply_markup=menu_keyboard
-            )
-            return PHOTO_SUGAR
-    else:
-        # Если профиля нет, просим ввести сахар
+        session = SessionLocal()
+        event_ts = update.message.date  # ← время съёмки фото (UTC)
+        entry = Entry(
+            telegram_id  = user_id,
+            event_time   = event_ts,
+            photo_path   = path,
+            carbs_g      = carbs,
+            xe           = xe,
+            sugar_before = sugar,
+            dose         = dose
+        )
+        session.add(entry)
+        session.commit()
+        session.close()
+
         await update.message.reply_text(
-            "Теперь введите текущий уровень сахара (ммоль/л):",
+            f"💉 Ваша доза: {dose} Ед  (углеводы: {carbs} г, сахар: {sugar} ммоль/л)",
             reply_markup=menu_keyboard
         )
-        return PHOTO_SUGAR
+        return ConversationHandler.END
 
-    context.user_data[WAITING_GPT_FLAG] = False
+    # ── 6. Иначе просим ввести сахар ────────────────────────────
+    await update.message.reply_text("Введите текущий уровень сахара (ммоль/л):", reply_markup=menu_keyboard)
+    return PHOTO_SUGAR
+async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Пользователь отправил изображение как «файл» (document‑image).
+    Скачиваем оригинал и передаём в общий photo‑flow.
+    """
+    document = update.message.document
+    # игнорируем, если вдруг пришёл pdf/zip
+    if not document or not document.mime_type.startswith("image/"):
+        return ConversationHandler.END
 
-    # В photo_handler после получения response_text:
-    logging.info(f"user_id={user_id} response={response_text}")
+    user_id = update.effective_user.id
+    # путь сохранения
+    ext  = Path(document.file_name).suffix or ".jpg"
+    path = f"photos/{user_id}_{document.file_unique_id}{ext}"
+    os.makedirs("photos", exist_ok=True)
 
+    file = await context.bot.get_file(document.file_id)
+    await file.download_to_drive(path)
+
+    # кладём путь и «псевдо‑фото» в update, чтобы дальше всё работало
+    context.user_data["__file_path"] = path
+    # чтобы код, который где‑то проверяет .photo, не упал
+             # пустой список‑заглушка
+
+    # переходим в обычный обработчик фото
+    return await photo_handler(update, context)
+# ────────────────────────────────────────────────────────────────
 async def photo_sugar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Обрабатывает ввод сахара после отправленного фото.
@@ -703,16 +809,22 @@ async def photo_sugar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     # 5) Иначе — расчёт дозы
     dose = calc_bolus(carbs, sugar, PatientProfile(profile.icr, profile.cf, profile.target_bg))
+    
+        # Устанавливаем время события
+    event_time = getattr(update.message, "date", None) or datetime.utcnow()
 
-    # 6) Сохраняем запись
     entry = Entry(
         telegram_id   = user_id,
+        event_time    = event_time,     # 👈 добавлено
         photo_path    = photo_path,
         carbs_g       = carbs,
         xe            = xe,
         sugar_before  = sugar,
         dose          = dose
     )
+
+
+
     session.add(entry)
     session.commit()
     session.close()
@@ -733,18 +845,64 @@ async def photo_sugar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def history_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /history                   – последние 5 записей
+    /history YYYY‑MM‑DD        – записи за конкретный день
+    """
     context.user_data.clear()
-    session = SessionLocal()
     user_id = update.effective_user.id
-    entries = session.query(Entry).filter_by(telegram_id=user_id).order_by(Entry.timestamp.desc()).limit(5).all()
-    session.close()
+
+    # ── аргумент‑дата (опционально) ──────────────────────────────
+    day = None
+    if context.args:
+        try:
+            day = datetime.fromisoformat(context.args[0]).date()
+        except ValueError:
+            await update.message.reply_text(
+                "❗ Формат даты: YYYY-MM-DD  (пример: /history 2025-05-05)"
+            )
+            return
+
+    with SessionLocal() as s:
+        query = s.query(Entry).filter_by(telegram_id=user_id)
+        if day:
+            query = query.filter(func.date(Entry.event_time) == day)
+
+        entries = (
+            query
+            .order_by(Entry.event_time.desc())
+            .limit(None if day else 5)
+            .all()
+        )
+
     if not entries:
         await update.message.reply_text("История пуста.")
         return
-    text = "Последние записи:\n"
+
+    header = "Записи за " + str(day) if day else "Последние записи"
+    await update.message.reply_text(f"📖 {header}:")
+
+    # ── выводим каждую запись отдельным сообщением ───────────────
     for e in entries:
-        text += f"\n{e.timestamp.strftime('%d.%m %H:%M')} — Сахар: {e.sugar_before or '-'} ммоль/л, Углеводы: {e.carbs_g or '-'} г, Доза: {e.dose or '-'} Ед"
-    await update.message.reply_text(text)
+        when   = e.event_time.astimezone().strftime("%d.%m %H:%M")
+        carbs  = f"{e.carbs_g:.0f} г" if e.carbs_g else f"{e.xe:.1f} ХЕ" if e.xe else "-"
+        dose   = f"{e.dose:.1f} ед"   if e.dose else "-"
+        sugar  = f"{e.sugar_before:.1f}" if e.sugar_before else "-"
+
+        text = (
+            f"🕒 {when}\n"
+            f"• Сахар: {sugar} ммоль/л\n"
+            f"• Углеводы: {carbs}\n"
+            f"• Доза: {dose}"
+        )
+
+        kb = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("✏️ Исправить", callback_data=f"edit:{e.id}"),
+                InlineKeyboardButton("🗑️ Удалить",   callback_data=f"del:{e.id}")
+            ]
+        ])
+        await update.message.reply_text(text, reply_markup=kb)
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -780,12 +938,18 @@ def main():
 )
 
     photo_conv = ConversationHandler(
-    entry_points=[MessageHandler(filters.PHOTO, photo_handler)],
-    states={
-        PHOTO_SUGAR: [MessageHandler(filters.TEXT & ~filters.COMMAND, photo_sugar_handler)],
-    },
-    fallbacks=[CommandHandler("cancel", cancel_handler)],
-)
+        entry_points=[
+            MessageHandler(filters.PHOTO,          photo_handler),  # было
+            MessageHandler(filters.Document.IMAGE, doc_handler),    # ← добавили
+        ],
+        states={
+            PHOTO_SUGAR: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, photo_sugar_handler)
+            ],
+        },
+        fallbacks=[CommandHandler("cancel", cancel_handler)],
+    )
+
 
 
     dose_conv = ConversationHandler(
@@ -799,7 +963,7 @@ def main():
         DOSE_SUGAR:  [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_sugar)],
         DOSE_CARBS:  [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_carbs)],
     },
-    fallbacks=[CommandHandler("cancel", dose_cancel)],
+    fallbacks=[CommandHandler("cancel", cancel_handler)],
 )
 
     
@@ -829,8 +993,15 @@ def main():
     app.add_handler(photo_conv)
     app.add_handler(profile_conv)
     app.add_handler(dose_conv)
-    
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat_with_gpt))
+    # Ловим нажатие кнопки «📷 Фото еды»
+    app.add_handler(MessageHandler(filters.Regex(r"^📷 Фото еды$"), photo_request))
+    app.add_handler(
+    MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
+)
+    from telegram.ext import CallbackQueryHandler
+    app.add_handler(CallbackQueryHandler(callback_router))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, apply_edit))
+
     app.run_polling()
 
 if __name__ == "__main__":
