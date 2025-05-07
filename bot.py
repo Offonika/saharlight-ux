@@ -8,7 +8,7 @@ import logging
 from datetime import datetime, timezone   # ← добавили timezone
 
 from gpt_command_parser import parse_command
-from telegram.ext import MessageHandler, filters
+from telegram.ext import MessageHandler, filters, CallbackQueryHandler
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler,
@@ -24,7 +24,20 @@ from db import SessionLocal, Entry, Profile, User, init_db
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import func          # уже нужен для фильтра по дате# ▸ bot.py  (положите рядом с остальными async‑хендлерами)
 from pathlib import Path
+import matplotlib.pyplot as plt
+import io
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import stringWidth
+import textwrap
 
+# Регистрация шрифтов для поддержки кириллицы и жирного начертания
+pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
 
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET         = range(0, 3)    # 0,1,2
 DOSE_METHOD, DOSE_XE, DOSE_SUGAR, DOSE_CARBS    = range(3, 7)    # 3,4,5,6
@@ -50,7 +63,7 @@ menu_keyboard = ReplyKeyboardMarkup(
         [KeyboardButton("📷 Фото еды")], 
         [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
         [KeyboardButton("📄 Мой профиль"), KeyboardButton("🔄 Изменить профиль")],
-        [KeyboardButton("🔁 Сброс"), KeyboardButton("ℹ️ Помощь")]
+        [KeyboardButton("📈 Отчёт"), KeyboardButton("🔁 Сброс"), KeyboardButton("ℹ️ Помощь")]
     ],
     resize_keyboard=True
 )
@@ -644,7 +657,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         carbs, xe_val = last_carbs, None
     elif context.user_data.get("xe") is not None:
         xe_val = context.user_data["xe"]
-        carbs = xe_val * 12          # 1 ХЕ = 12 г
+        carbs = xe_val * 12          # 1 ХЕ = 12 г
     else:
         session.close()
         await update.message.reply_text(
@@ -706,7 +719,7 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Пожалуйста, введите число граммов углеводов.")
         return DOSE_CARBS
 
-    # сохраняем углеводы как «последние» и помечаем время (≤10 мин)
+    # сохраняем углеводы как «последние» и помечаем время (≤10 мин)
     context.user_data["last_carbs"] = carbs_input
     context.user_data["last_photo_time"] = time.time()
 
@@ -1057,6 +1070,254 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
 
+async def report_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("Сегодня", callback_data="report_today"),
+         InlineKeyboardButton("Неделя", callback_data="report_week")],
+        [InlineKeyboardButton("Месяц", callback_data="report_month"),
+         InlineKeyboardButton("Указать дату", callback_data="report_custom")]
+    ])
+    await update.message.reply_text(
+        "📊 За какой период сделать отчёт?",
+        reply_markup=keyboard
+    )
+
+async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    from datetime import datetime, timedelta
+    user_id = update.effective_user.id
+    now = datetime.now()
+    if data == "report_today":
+        date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        period_label = "сегодня"
+    elif data == "report_week":
+        date_from = now - timedelta(days=7)
+        period_label = "неделю"
+    elif data == "report_month":
+        date_from = now - timedelta(days=30)
+        period_label = "месяц"
+    elif data == "report_custom":
+        await query.edit_message_text("Введите дату начала отчёта в формате YYYY-MM-DD:")
+        context.user_data['awaiting_report_date'] = True
+        return
+    else:
+        await query.edit_message_text("Неизвестный период.")
+        return
+    # Новое: сообщение-ожидание
+    await query.edit_message_text(f"⏳ Формирую отчёт за {period_label}, пожалуйста, подождите...")
+    await send_report(update, context, date_from, period_label, query=query)
+
+async def report_date_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get('awaiting_report_date'):
+        try:
+            from datetime import datetime
+            date_from = datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
+        except Exception:
+            await update.message.reply_text("❗ Формат даты: YYYY-MM-DD")
+            return
+        await send_report(update, context, date_from, "указанный период")
+        context.user_data.pop('awaiting_report_date', None)
+
+def clean_markdown(text):
+    """
+    Удаляет простую Markdown-разметку: **жирный**, # заголовки, * списки, 1. списки и т.д.
+    """
+    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # **жирный**
+    text = re.sub(r'#+\s*', '', text)                  # ### Заголовки
+    text = re.sub(r'^\s*\d+\.\s*', '', text, flags=re.MULTILINE)  # 1. списки
+    text = re.sub(r'^\s*\*\s*', '', text, flags=re.MULTILINE)      # * списки
+    text = re.sub(r'`([^`]+)`', r'\1', text)           # `код`
+    return text
+
+def split_text_by_width(text, font_name, font_size, max_width_mm):
+    """Разбивает строку так, чтобы она не выходила за max_width_mm."""
+    words = text.split()
+    lines = []
+    current_line = ""
+    for word in words:
+        test_line = (current_line + " " + word).strip()
+        width = stringWidth(test_line, font_name, font_size) / mm
+        if width > max_width_mm and current_line:
+            lines.append(current_line)
+            current_line = word
+        else:
+            current_line = test_line
+    if current_line:
+        lines.append(current_line)
+    return lines
+
+def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, buf_graph):
+    from io import BytesIO
+    pdf_buf = BytesIO()
+    c = canvas.Canvas(pdf_buf, pagesize=A4)
+    width, height = A4
+    y = height - 20*mm
+    c.setFont("DejaVuSans-Bold", 16)
+    c.drawString(20*mm, y, "Отчёт по диабетическому дневнику")
+    y -= 12*mm
+    c.setFont("DejaVuSans", 11)
+    for line in summary_lines:
+        c.drawString(20*mm, y, line)
+        y -= 7*mm
+    if errors:
+        y -= 5*mm
+        c.setFont("DejaVuSans-Bold", 11)
+        c.drawString(20*mm, y, "Ошибки и критические значения:")
+        y -= 7*mm
+        c.setFont("DejaVuSans", 11)
+        for line in errors:
+            c.drawString(22*mm, y, line)
+            y -= 6*mm
+    y -= 5*mm
+    c.setFont("DejaVuSans-Bold", 11)
+    c.drawString(20*mm, y, "Динамика по дням:")
+    y -= 7*mm
+    c.setFont("DejaVuSans", 11)
+    # Новый способ: используем TextObject для переноса строк по ширине и перехода на новую страницу
+    text_obj = c.beginText(22*mm, y)
+    text_obj.setFont("DejaVuSans", 11)
+    for line in clean_markdown(gpt_text).splitlines():
+        for subline in split_text_by_width(line, "DejaVuSans", 11, max_width_mm=170):
+            if text_obj.getY() < 30*mm:
+                c.drawText(text_obj)
+                c.showPage()
+                y = height - 20*mm
+                text_obj = c.beginText(22*mm, y)
+                text_obj.setFont("DejaVuSans", 11)
+            text_obj.textLine(subline)
+    c.drawText(text_obj)
+    y = text_obj.getY()  # обновляем y после вывода текста
+    if y < 30*mm:
+        c.showPage()
+        y = height - 20*mm
+    # Вставить график
+    if buf_graph:
+        y -= 10*mm
+        try:
+            c.drawImage(ImageReader(buf_graph), 20*mm, y-60*mm, width=170*mm, height=50*mm, preserveAspectRatio=True)
+            y -= 60*mm
+        except Exception:
+            pass
+    c.save()
+    pdf_buf.seek(0)
+    return pdf_buf
+
+async def send_report(update, context, date_from, period_label, query=None):
+    user_id = update.effective_user.id
+    from datetime import datetime
+    now = datetime.now()
+    with SessionLocal() as s:
+        entries = (
+            s.query(Entry)
+            .filter(Entry.telegram_id == user_id)
+            .filter(Entry.event_time >= date_from)
+            .order_by(Entry.event_time)
+            .all()
+        )
+    if not entries:
+        text = f"Нет записей за {period_label}."
+        if query:
+            await query.edit_message_text(text)
+        else:
+            await update.message.reply_text(text)
+        return
+    # --- Сводка ---
+    sugars = [e.sugar_before for e in entries if e.sugar_before is not None]
+    doses = [e.dose for e in entries if e.dose is not None]
+    carbs = [e.carbs_g for e in entries if e.carbs_g is not None]
+    avg_sugar = round(sum(sugars) / len(sugars), 1) if sugars else "-"
+    avg_dose = round(sum(doses) / len(doses), 1) if doses else "-"
+    avg_carbs = round(sum(carbs) / len(carbs), 1) if carbs else "-"
+    summary_lines = [
+        f"• Всего записей: {len(entries)}",
+        f"• Средний сахар: {avg_sugar} ммоль/л",
+        f"• Средняя доза: {avg_dose} Ед",
+        f"• Средние углеводы: {avg_carbs} г"
+    ]
+    # --- Ошибки и критические значения ---
+    errors = []
+    for e in entries:
+        if (e.sugar_before is not None and e.sugar_before < 0) or (e.carbs_g is not None and e.carbs_g < 0) or (e.dose is not None and e.dose < 0):
+            errors.append(f"{e.event_time.strftime('%d.%m %H:%M')}: отрицательные значения в записи")
+        if e.sugar_before is not None and e.sugar_before >= 14:
+            errors.append(f"⚠️ {e.event_time.strftime('%d.%m %H:%M')}: сахар {e.sugar_before} ммоль/л — критически высокий!")
+    # --- Динамика по дням ---
+    from collections import defaultdict
+    day_stats = defaultdict(list)
+    for e in entries:
+        day = e.event_time.strftime('%d.%m')
+        day_stats[day].append(e)
+    day_lines = []
+    for day, day_entries in sorted(day_stats.items()):
+        sugars_day = [e.sugar_before for e in day_entries if e.sugar_before is not None]
+        doses_day = [e.dose for e in day_entries if e.dose is not None]
+        carbs_day = [e.carbs_g for e in day_entries if e.carbs_g is not None]
+        min_sugar = min(sugars_day) if sugars_day else "-"
+        max_sugar = max(sugars_day) if sugars_day else "-"
+        sum_dose = sum(doses_day) if doses_day else "-"
+        sum_carbs = sum(carbs_day) if carbs_day else "-"
+        day_lines.append(f"{day}: сахар {min_sugar}–{max_sugar}, доза {sum_dose}, углеводы {sum_carbs}")
+    # --- График ---
+    plt.figure(figsize=(7, 3))
+    times = [e.event_time for e in entries if e.sugar_before is not None]
+    sugars_plot = [e.sugar_before for e in entries if e.sugar_before is not None]
+    plt.plot(times, sugars_plot, marker='o', label='Сахар (ммоль/л)')
+    plt.title(f'Динамика сахара за {period_label}')
+    plt.xlabel('Дата')
+    plt.ylabel('Сахар, ммоль/л')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    plt.close()
+    # --- Формируем summary для GPT ---
+    summary = []
+    for e in entries:
+        when = e.event_time.strftime('%Y-%m-%d %H:%M')
+        summary.append(
+            f"{when}: сахар={e.sugar_before or '-'} ммоль/л, углеводы={e.carbs_g or '-'} г, ХЕ={e.xe or '-'}, доза={e.dose or '-'}"
+        )
+    summary_text = "\n".join(summary)
+    gpt_prompt = (
+        f"Вот сводка по дневнику диабетика за {period_label}:\n"
+        + "\n".join(summary_lines) + "\n"
+        + ("\nОшибки и критические значения:\n" + "\n".join(errors) if errors else "")
+        + "\nДинамика по дням:\n" + "\n".join(day_lines) + "\n"
+        + "\nПодробные записи:\n" + summary_text + "\n\n"
+        "Сделай анализ, дай советы по контролю сахара и питанию, укажи возможные проблемы."
+    )
+    from gpt_client import client
+    gpt_response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "system", "content": "Ты — медицинский ассистент для диабетиков."},
+                  {"role": "user", "content": gpt_prompt}],
+        temperature=0.2,
+        max_tokens=600
+    )
+    gpt_text = gpt_response.choices[0].message.content.strip()
+    report_msg = (
+        f"<b>📈 Отчёт за {period_label}</b>\n\n"
+        + "\n".join(summary_lines) + "\n\n"
+        + ("<b>Ошибки и критические значения:</b>\n" + "\n".join(errors) + "\n\n" if errors else "")
+        + "<b>Динамика по дням:</b>\n" + "\n".join(day_lines) + "\n\n"
+        + f"<b>Анализ и рекомендации:</b>\n{gpt_text}\n\n"
+        "ℹ️ Для подробного разбора покажите этот отчёт врачу."
+    )
+    if query:
+        await query.edit_message_text(report_msg, parse_mode="HTML")
+        await query.message.reply_photo(buf, caption="График сахара за период")
+        pdf_buf = generate_pdf_report(summary_lines, errors, day_lines, gpt_text, buf)
+        await query.message.reply_document(pdf_buf, filename='diabetes_report.pdf', caption='PDF-отчёт для врача')
+    else:
+        await update.message.reply_text(report_msg, parse_mode="HTML")
+        await update.message.reply_photo(buf, caption="График сахара за период")
+        pdf_buf = generate_pdf_report(summary_lines, errors, day_lines, gpt_text, buf)
+        await update.message.reply_document(pdf_buf, filename='diabetes_report.pdf', caption='PDF-отчёт для врача')
+
 def main():
     init_db()
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
@@ -1129,10 +1390,11 @@ def main():
     app.add_handler(dose_conv)
     # Ловим нажатие кнопки «📷 Фото еды»
     app.add_handler(MessageHandler(filters.Regex(r"^📷 Фото еды$"), photo_request))
-    app.add_handler(
-    MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
-)
-    from telegram.ext import CallbackQueryHandler
+    app.add_handler(CommandHandler("report", report_handler))
+    app.add_handler(MessageHandler(filters.Regex("^📈 Отчёт$"), report_handler))
+    app.add_handler(CallbackQueryHandler(report_period_callback, pattern="^report_.*"))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, report_date_input))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler))
     app.add_handler(CallbackQueryHandler(callback_router))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, apply_edit))
     app.add_handler(CommandHandler("help", help_handler))
