@@ -1,0 +1,30 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# Virtual environment
+venv/
+.env/
+*.venv
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Project specific
+photos/
+assets/
+db.sqlite3
+.gpt_history/
+.gpt_cache/
+bot.log
+
+# dotenv files
+.env
+
+# Jupyter
+.ipynb_checkpoints/
