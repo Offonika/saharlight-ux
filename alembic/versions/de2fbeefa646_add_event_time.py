@@ -32,6 +32,12 @@ def upgrade() -> None:
     op.add_column('entries', sa.Column('updated_at', sa.TIMESTAMP(), nullable=True))
     op.drop_column('entries', 'timestamp')
 
+    # ✅ Выдаём права для роли diabetes_user
+    op.execute("GRANT USAGE ON SCHEMA public TO diabetes_user;")
+    op.execute("GRANT SELECT, DELETE ON TABLE public.users TO diabetes_user;")
+    op.execute("GRANT SELECT, DELETE ON TABLE public.profiles TO diabetes_user;")
+    op.execute("GRANT SELECT, DELETE ON TABLE public.entries TO diabetes_user;")
+
 
 def downgrade() -> None:
     """Downgrade schema."""

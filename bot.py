@@ -1,10 +1,35 @@
 # bot.py
+import logging
 import os
+
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler("bot.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger("bot")
+
+from config import OPENAI_PROXY
+#os.environ["HTTP_PROXY"] = OPENAI_PROXY
+#os.environ["HTTPS_PROXY"] = OPENAI_PROXY
+
 import re
 import asyncio
 import time
 import logging
-# bot.py  – верхняя часть (где уже есть import datetime)
+
+
+# Очищаем root‑логгер от сторонних библиотек
+for logger_name in ("httpcore", "httpx", "telegram", "telegram.ext"):
+    logging.getLogger(logger_name).setLevel(logging.WARNING)  # Только WARNING и выше
+
+
+
+logging.info("=== Bot started ===")
+print("Логгер настроен, бот запускается")
 from datetime import datetime, timezone   # ← добавили timezone
 
 from gpt_command_parser import parse_command
@@ -18,7 +43,7 @@ from db import SessionLocal, init_db, User, Profile, Entry
 from gpt_client import create_thread, send_message, client
 from functions import PatientProfile, calc_bolus
 from config import TELEGRAM_TOKEN
-from datetime import datetime
+
 from sqlalchemy import DateTime, func
 from db import SessionLocal, Entry, Profile, User, init_db
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -68,24 +93,7 @@ menu_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-# В начале файла (после импортов) настройка логгера:
-logging.basicConfig(filename='gpt_responses.log', level=logging.INFO, format='%(asctime)s %(message)s')
-logger = logging.getLogger("bot")
-logger.setLevel(logging.INFO)
 
-
-
-
-
-# bot.py  (показываю целиком изменённую функцию)
-
-import re
-from datetime import datetime, time as dtime
-# ...
-
-# bot.py
-from datetime import datetime, time as dtime, timezone
-# … остальной импорт …
 
 # ──────────────────────────────────────────────────────────────
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -95,13 +103,107 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id  = update.effective_user.id
     logger.info(f"FREEFORM raw='{raw_text}'  user={user_id}")
 
+    # --- report_date_input ---
+    if context.user_data.get('awaiting_report_date'):
+        try:
+            
+            date_from = datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
+        except Exception:
+            await update.message.reply_text("❗ Формат даты: YYYY-MM-DD")
+            return
+        await send_report(update, context, date_from, "указанный период")
+        context.user_data.pop('awaiting_report_date', None)
+        return
+
+    # --- apply_edit ---
+    if context.user_data.get('pending_entry') is not None and context.user_data.get('edit_id') is None:
+        entry = context.user_data['pending_entry']
+        only_sugar = (
+            entry.get('carbs_g') is None and entry.get('xe') is None and entry.get('dose') is None and entry.get('photo_path') is None
+        )
+        text = update.message.text.lower().strip()
+        if only_sugar:
+            try:
+                sugar = float(text.replace(",", "."))
+                entry['sugar_before'] = sugar
+            except ValueError:
+                await update.message.reply_text("Пожалуйста, введите число сахара в формате ммоль/л.")
+                return
+            keyboard = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
+                    InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
+                    InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
+                ]
+            ])
+            await update.message.reply_text(
+                f"Сохранить уровень сахара {sugar} ммоль/л в дневник?",
+                reply_markup=keyboard
+            )
+            return
+        parts = dict(re.findall(r"(\w+)\s*=\s*([\d.]+)", text))
+        if not parts:
+            await update.message.reply_text("Не вижу ни одного поля для изменения.")
+            return
+        if "xe" in parts:    entry['xe']           = float(parts["xe"])
+        if "carbs" in parts: entry['carbs_g']      = float(parts["carbs"])
+        if "dose" in parts:  entry['dose']         = float(parts["dose"])
+        if "сахар" in parts or "sugar" in parts:
+            entry['sugar_before'] = float(parts.get("сахар") or parts["sugar"])
+        carbs = entry.get('carbs_g')
+        xe = entry.get('xe')
+        sugar = entry.get('sugar_before')
+        dose = entry.get('dose')
+        xe_info = f", ХЕ: {xe}" if xe is not None else ""
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
+                InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
+                InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
+            ]
+        ])
+        await update.message.reply_text(
+            f"💉 Расчёт завершён:\n"
+            f"• Углеводы: {carbs} г{xe_info}\n"
+            f"• Сахар: {sugar} ммоль/л\n"
+            f"• Ваша доза: {dose} Ед\n\n"
+            f"Сохранить это в дневник?",
+            reply_markup=keyboard
+        )
+        return
+    if "edit_id" in context.user_data:
+        text = update.message.text.lower()
+        parts = dict(re.findall(r"(\w+)\s*=\s*([\d.]+)", text))
+        if not parts:
+            await update.message.reply_text("Не вижу ни одного поля для изменения.")
+            return
+        with SessionLocal() as s:
+            entry = s.get(Entry, context.user_data["edit_id"])
+            if not entry:
+                await update.message.reply_text("Запись уже удалена.")
+                context.user_data.pop("edit_id")
+                return
+            if "xe" in parts:    entry.xe           = float(parts["xe"])
+            if "carbs" in parts: entry.carbs_g      = float(parts["carbs"])
+            if "dose" in parts:  entry.dose         = float(parts["dose"])
+            if "сахар" in parts or "sugar" in parts:
+                entry.sugar_before = float(parts.get("сахар") or parts["sugar"])
+            entry.updated_at = datetime.utcnow()
+            s.commit()
+        context.user_data.pop("edit_id")
+        await update.message.reply_text("✅ Запись обновлена!")
+        return
+
+    # --- основной freeform ---
     parsed = await parse_command(raw_text)
     logger.info(f"FREEFORM parsed={parsed}")
 
-    # если парсер не дал JSON‑команду — просто выходим
+    # если парсер не увидел понятной команды — передаём в GPT‑чат
     if not parsed or parsed.get("action") != "add_entry":
+        await chat_with_gpt(update, context)
         return
 
+    # ...дальше текущая логика добавления записи...
     fields      = parsed["fields"]
     entry_date  = parsed.get("entry_date")   # ISO‑строка или None
     time_str    = parsed.get("time")         # "HH:MM" или None
@@ -122,7 +224,6 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         event_dt = datetime.now(timezone.utc)
 
-    # Сохраняем все данные во временный блок
     context.user_data['pending_entry'] = {
         'telegram_id': user_id,
         'event_time': event_dt,
@@ -133,7 +234,6 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'photo_path': None
     }
 
-    # Формируем текст для подтверждения
     xe_val     = fields.get('xe')
     carbs_val  = fields.get('carbs_g')
     dose_val   = fields.get('dose')
@@ -345,6 +445,22 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.edit_message_text("\n".join(txt), parse_mode="Markdown")
                 return
 
+async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    document = update.message.document
+    if not document or not document.mime_type.startswith("image/"):
+        return ConversationHandler.END
+
+    user_id = update.effective_user.id
+    ext      = Path(document.file_name).suffix or ".jpg"
+    file_path = f"photos/{user_id}_{document.file_unique_id}{ext}"
+    os.makedirs("photos", exist_ok=True)
+    file = await context.bot.get_file(document.file_id)
+    await file.download_to_drive(file_path)
+
+    # записываем путь и вызовем photo_handler
+    context.user_data["__file_path"] = file_path
+    return await photo_handler(update, context, demo=False)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     session = SessionLocal()
@@ -394,6 +510,7 @@ async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     session.query(Entry).filter_by(telegram_id=user_id).delete()
     session.query(Profile).filter_by(telegram_id=user_id).delete()
+    session.query(User).filter_by(telegram_id=user_id).delete()  # Теперь удаляем и пользователя
     session.commit()
     session.close()
     await update.message.reply_text("Профиль и история удалены. Вы можете начать заново.", reply_markup=menu_keyboard)
@@ -781,100 +898,99 @@ async def dose_xe_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return DOSE_XE
 
 
-async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    1. Скачивает фото и сохраняет на диск.
-    2. Отправляет в GPT (assistant API).
-    3. Извлекает углеводы / ХЕ из ответа.
-    4. Сохраняет временно в user_data (до ввода сахара) или
-       сразу создаёт запись, если сахар уже введён.
-    """
+
+async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False):
+    from gpt_client import client, send_message, create_thread
+    import time
+
+    message = update.message or update.callback_query.message
     user_id = update.effective_user.id
 
-        # ── 1. Скачиваем фото ───────────────────────────────────────
-    path = context.user_data.pop("__file_path", None)
-    if path is None:                          # обычный случай «фото»
-        photo = update.message.photo[-1]
-        file  = await context.bot.get_file(photo.file_id)
+    if context.user_data.get(WAITING_GPT_FLAG):
+        await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
+        return ConversationHandler.END
+    context.user_data[WAITING_GPT_FLAG] = True
+
+    # 1. Получение file_path
+    file_path = context.user_data.pop("__file_path", None)
+    if not file_path:
+        try:
+            photo = update.message.photo[-1]
+        except (AttributeError, IndexError):
+            await message.reply_text("❗ Файл не распознан как изображение.")
+            context.user_data.pop(WAITING_GPT_FLAG, None)
+            return ConversationHandler.END
+
         os.makedirs("photos", exist_ok=True)
-        path  = f"photos/{user_id}_{photo.file_unique_id}.jpg"
-        await file.download_to_drive(path)
+        file_path = f"photos/{user_id}_{photo.file_unique_id}.jpg"
+        file = await context.bot.get_file(photo.file_id)
+        await file.download_to_drive(file_path)
 
+    logging.info("[PHOTO] Saved to %s", file_path)
 
-    # ── 2. Готовим промпт и отправляем в GPT ────────────────────
-    session = SessionLocal()
-    user    = session.get(User, user_id)
-    profile = session.get(Profile, user_id)
-    session.close()
-
-    profile_text = (
-        f"Профиль пользователя:\n"
-        f"- ИКХ: {profile.icr} г/ед\n"
-        f"- КЧ: {profile.cf} ммоль/л\n"
-        f"- Целевой сахар: {profile.target_bg} ммоль/л\n"
-    ) if profile else "Профиль пользователя не найден."
-
-    run = send_message(user.thread_id, content=profile_text, image_path=path)
-    await update.message.reply_text("Фото отправлено, подождите ответ ассистента…", reply_markup=menu_keyboard)
-
-    while run.status in ("queued", "in_progress"):
-        run = client.beta.threads.runs.retrieve(thread_id=user.thread_id, run_id=run.id)
-        await asyncio.sleep(1)
-
-    # ── 3. Получили ответ GPT ───────────────────────────────────
-    msgs = client.beta.threads.messages.list(thread_id=user.thread_id, order="desc", limit=1).data
-    if not msgs:
-        await update.message.reply_text("❗ Нет ответа от ассистента.", reply_markup=menu_keyboard)
-        return ConversationHandler.END
-
-    response_text = msgs[0].content[0].text.value
-    await update.message.reply_text(response_text, reply_markup=menu_keyboard)
-
-    # Простая проверка, удалось ли GPT распознать еду
-    if len(response_text.strip()) < 30:
-        await update.message.reply_text("Не удалось распознать блюдо. Попробуйте другое фото.", reply_markup=menu_keyboard)
-        return ConversationHandler.END
-
-    # ── 4. Извлекаем углеводы / ХЕ ──────────────────────────────
-    carbs, xe = extract_nutrition_info(response_text)
-    context.user_data.update({
-        "last_carbs":      carbs,
-        "last_xe":         xe,
-        "last_photo_time": time.time(),
-        "photo_path":      path,
-        "carbs":           carbs,
-        "xe":              xe,
-    })
-
-    # ── 5. Если сахар уже введён — сразу сохраняем запись ───────
-    sugar = context.user_data.get("sugar")
-    if carbs is not None and sugar is not None and profile:
-        dose = calc_bolus(carbs, sugar, PatientProfile(profile.icr, profile.cf, profile.target_bg))
-
-        session = SessionLocal()
-        event_ts = update.message.date  # ← время съёмки фото (UTC)
-        entry = Entry(
-            telegram_id  = user_id,
-            event_time   = event_ts,
-            photo_path   = path,
-            carbs_g      = carbs,
-            xe           = xe,
-            sugar_before = sugar,
-            dose         = dose
+    try:
+        # 2. Запуск Vision run
+        thread_id = context.user_data.get("thread_id") or create_thread()
+        run = send_message(
+            thread_id=thread_id,
+            content="Определи количество углеводов и ХЕ на фото блюда. Используй формат из системных инструкций ассистента.",
+            image_path=file_path
         )
-        session.add(entry)
-        session.commit()
-        session.close()
+        await message.reply_text("🔍 Анализирую фото (это займёт 5‑10 с)…")
 
-        await update.message.reply_text(
-            f"💉 Ваша доза: {dose} Ед  (углеводы: {carbs} г, сахар: {sugar} ммоль/л)",
+        # 3. Ждать окончания run
+        while run.status not in ("completed", "failed", "cancelled", "expired"):
+            time.sleep(2)
+            run = client.beta.threads.runs.retrieve(thread_id=run.thread_id, run_id=run.id)
+
+        if run.status != "completed":
+            logging.error(f"[VISION][RUN_FAILED] run.status={run.status}")
+            await message.reply_text("⚠️ Vision не смог обработать фото.")
+            return ConversationHandler.END
+
+        # 4. Читать все сообщения в thread (и логировать)
+        messages = client.beta.threads.messages.list(thread_id=run.thread_id)
+        for m in messages.data:
+            logging.warning(f"[VISION][MSG] m.role={m.role}; content={m.content}")
+
+        # 5. Ищем ответ ассистента
+        vision_text = next((m.content[0].text.value for m in messages.data if m.role == "assistant" and m.content), "")
+        logging.warning(f"[VISION][RESPONSE] Ответ Vision для {file_path}:\n{vision_text}")
+
+        carbs_g, xe = extract_nutrition_info(vision_text)
+        if carbs_g is None and xe is None:
+            # ЛОГИРУЕМ ОТВЕТ Vision и файл
+            logging.warning(
+                "[VISION][NO_PARSE] Ответ ассистента: %r для файла: %s", vision_text, file_path
+            )
+            await message.reply_text(
+                "⚠️ Не смог разобрать углеводы на фото.\n\n"
+                f"Вот полный ответ Vision:\n<pre>{vision_text}</pre>\n"
+                "Введите /dose и укажите их вручную.",
+                parse_mode="HTML",
+                reply_markup=menu_keyboard
+            )
+            return ConversationHandler.END
+
+
+        # 6. Сохраняем и показываем
+        context.user_data.update({"carbs": carbs_g, "xe": xe, "photo_path": file_path})
+        await message.reply_text(
+            f"🍽️ На фото:\n{vision_text}\n\n"
+            "Введите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина.",
             reply_markup=menu_keyboard
         )
+        return PHOTO_SUGAR
+
+    except Exception as e:
+        logging.exception("[PHOTO] Vision failed: %s", e)
+        await message.reply_text("⚠️ Не удалось распознать фото. Попробуйте ещё раз.")
         return ConversationHandler.END
 
-    # ── 6. Иначе просим ввести сахар ────────────────────────────
-    await update.message.reply_text("Введите текущий уровень сахара (ммоль/л):", reply_markup=menu_keyboard)
-    return PHOTO_SUGAR
+    finally:
+        context.user_data.pop(WAITING_GPT_FLAG, None)
+
+
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Пользователь отправил изображение как «файл» (document‑image).
@@ -901,55 +1017,29 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # переходим в обычный обработчик фото
     return await photo_handler(update, context)
-# ────────────────────────────────────────────────────────────────
-async def photo_sugar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Сбросить старую pending_entry, если есть
-    context.user_data.pop('pending_entry', None)
-    if context.user_data.get(WAITING_GPT_FLAG):
-        await update.message.reply_text("Пожалуйста, дождитесь ответа по фото.")
-        return ConversationHandler.END
 
+async def photo_sugar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         sugar = float(update.message.text.replace(",", "."))
     except ValueError:
-        await update.message.reply_text("❗ Пожалуйста, введите число в формате ммоль/л.")
+        await update.message.reply_text("❗ Пожалуйста, введите число.")
         return PHOTO_SUGAR
 
-    carbs      = context.user_data.get("carbs")
-    xe         = context.user_data.get("xe")
+    user_id = update.effective_user.id
+    carbs = context.user_data.get("carbs")
+    xe = context.user_data.get("xe")
     photo_path = context.user_data.get("photo_path")
-    user_id    = update.effective_user.id
-
     session = SessionLocal()
     profile = session.get(Profile, user_id)
-    if not profile:
+    if not profile or carbs is None:
         session.close()
-        await update.message.reply_text(
-            "❗ Профиль не найден. Сначала задайте его командой /profile.",
-            reply_markup=menu_keyboard
-        )
-        return ConversationHandler.END
-
-    if carbs is None and xe is not None:
-        carbs = xe * profile.icr
-        xe_info = f" (расчёт по ХЕ: {xe} ХЕ × {profile.icr} г/ед.)"
-    else:
-        xe_info = ""
-
-    if carbs is None:
-        session.close()
-        await update.message.reply_text(
-            "⚠️ Не удалось определить углеводы на фото.\n"
-            "Пожалуйста, выберите '💉 Доза инсулина' или /dose и введите углеводы вручную:",
-            reply_markup=menu_keyboard
-        )
+        await update.message.reply_text("Нет данных для расчёта. Начните заново.", reply_markup=menu_keyboard)
         return ConversationHandler.END
 
     dose = calc_bolus(carbs, sugar, PatientProfile(profile.icr, profile.cf, profile.target_bg))
-    event_time = getattr(update.message, "date", None) or datetime.utcnow()
+    event_time = datetime.now(timezone.utc)
     session.close()
 
-    # Сохраняем все данные во временный блок
     context.user_data['pending_entry'] = {
         'telegram_id': user_id,
         'event_time': event_time,
@@ -960,7 +1050,7 @@ async def photo_sugar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         'dose': dose
     }
 
-    # Показываем пользователю подтверждение с inline-клавиатурой
+    xe_info = f", ХЕ: {xe}" if xe is not None else ""
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
@@ -976,8 +1066,11 @@ async def photo_sugar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"Сохранить это в дневник?",
         reply_markup=keyboard
     )
+    # очищаем временные данные, кроме pending_entry
+    for k in ("carbs", "xe", "photo_path"):
+        if k in context.user_data and k != 'pending_entry':
+            context.user_data.pop(k, None)
     return ConversationHandler.END
-
 
 async def history_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -1041,22 +1134,48 @@ async def history_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
-        return  # Игнорировать не-текстовые сообщения
-    session = SessionLocal()
-    user_id = update.effective_user.id
-    user = session.get(User, user_id)
+        return  # игнорируем не‑текст
+
+    session   = SessionLocal()
+    user_id   = update.effective_user.id
+    user      = session.get(User, user_id)
     session.close()
     if not user:
         await update.message.reply_text("Сначала используйте /start.")
         return
+
+    # 1) отправляем сообщение (или изображение) в GPT
     run = send_message(user.thread_id, content=update.message.text)
-    await update.message.reply_text("Ожидаем ответ от GPT...")
-    while run.status in ["queued", "in_progress"]:
-        run = client.beta.threads.runs.retrieve(thread_id=user.thread_id, run_id=run.id)
+    await update.message.reply_text("⏳ Жду ответ от GPT...")
+
+    # 2) ждём, пока Assistant закончит
+    while run.status not in ("completed", "failed", "cancelled", "expired"):
         await asyncio.sleep(2)
+        run = client.beta.threads.runs.retrieve(
+            thread_id=user.thread_id,
+            run_id=run.id
+        )
+
+    # 3) если не completed – сообщаем об ошибке и выходим
+    if run.status != "completed":
+        await update.message.reply_text(
+            f"⚠️ GPT не смог ответить (status={run.status}). Попробуйте позже."
+        )
+        logging.error(f"GPT run failed: {run}")
+        return
+
+    # 4) получаем последний ответ Assistant'а
     messages = client.beta.threads.messages.list(thread_id=user.thread_id)
-    reply = messages.data[0].content[0].text.value
-    await update.message.reply_text(reply)
+    reply_msg = next(
+        (m for m in messages.data if m.role == "assistant"), None
+    )
+
+    if not reply_msg:
+        await update.message.reply_text("⚠️ Ответ пустой.")
+        return
+
+    reply_text = reply_msg.content[0].text.value
+    await update.message.reply_text(reply_text)
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -1086,7 +1205,7 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     await query.answer()
     data = query.data
-    from datetime import datetime, timedelta
+    
     user_id = update.effective_user.id
     now = datetime.now()
     if data == "report_today":
@@ -1112,7 +1231,7 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
 async def report_date_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get('awaiting_report_date'):
         try:
-            from datetime import datetime
+            
             date_from = datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
         except Exception:
             await update.message.reply_text("❗ Формат даты: YYYY-MM-DD")
@@ -1206,7 +1325,7 @@ def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, buf_graph):
 
 async def send_report(update, context, date_from, period_label, query=None):
     user_id = update.effective_user.id
-    from datetime import datetime
+
     now = datetime.now()
     with SessionLocal() as s:
         entries = (
@@ -1318,36 +1437,139 @@ async def send_report(update, context, date_from, period_label, query=None):
         pdf_buf = generate_pdf_report(summary_lines, errors, day_lines, gpt_text, buf)
         await update.message.reply_document(pdf_buf, filename='diabetes_report.pdf', caption='PDF-отчёт для врача')
 
-def main():
-    init_db()
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+# 1. Константы для онбординга
+ONB_HELLO, ONB_PROFILE_ICR, ONB_PROFILE_CF, ONB_PROFILE_TARGET, ONB_DEMO = range(20, 25)
 
-    sugar_conv = ConversationHandler(
+# 2. Обработчики онбординга
+async def onb_hello(update, context):
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton("🚀 Начать", callback_data="onb:start")]])
+    await update.message.reply_text(
+        "👋 Привет! Я *Diabet Buddy* — твой ассистент по углеводам и инсулину.\n"
+        "Давай настроим профиль — это займёт <1 мин.",
+        reply_markup=kb, parse_mode="Markdown")
+    return ONB_HELLO
+
+async def onb_begin(update, context):
+    await update.callback_query.answer()
+    await update.callback_query.message.edit_text(
+        "📋 *Шаг 1 из 2*  \n"
+        "Введи *ИКХ* — сколько граммов углеводов «покрывает» 1 ед. инсулина.\n"
+        "_Например: 12_", parse_mode="Markdown")
+    return ONB_PROFILE_ICR
+
+async def onb_icr(update, context):
+    try:
+        context.user_data['icr'] = float(update.message.text)
+        await update.message.reply_text(
+            "📋 *Шаг 1 из 2*\nТеперь введи *КЧ* — на сколько ммоль/л 1 ед. инсулина снижает сахар.\n_Например: 2_",
+            parse_mode="Markdown")
+        return ONB_PROFILE_CF
+    except ValueError:
+        await update.message.reply_text("Пожалуйста, введите число.")
+        return ONB_PROFILE_ICR
+
+async def onb_cf(update, context):
+    try:
+        context.user_data['cf'] = float(update.message.text)
+        await update.message.reply_text(
+            "📋 *Шаг 1 из 2*\nТеперь введи *целевой сахар* (ммоль/л).\n_Например: 6_",
+            parse_mode="Markdown")
+        return ONB_PROFILE_TARGET
+    except ValueError:
+        await update.message.reply_text("Пожалуйста, введите число.")
+        return ONB_PROFILE_CF
+
+async def onb_target(update, context):
+    try:
+        context.user_data['target'] = float(update.message.text)
+        session = SessionLocal()
+        user_id = update.effective_user.id
+        prof = session.get(Profile, user_id)
+        if not prof:
+            prof = Profile(telegram_id=user_id)
+            session.add(prof)
+        prof.icr = context.user_data['icr']
+        prof.cf = context.user_data['cf']
+        prof.target_bg = context.user_data['target']
+        session.commit()
+        session.close()
+        img_path = "assets/demo.jpg"
+        with open(img_path, "rb") as f:
+            await update.message.reply_photo(
+                f, caption="📸 *Шаг 2 из 2*\nНажми «Оценить», и я покажу, как это работает!",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(
+                    [[InlineKeyboardButton("🔍 Оценить", callback_data="onb:demo")]]
+                )
+            )
+        return ONB_DEMO
+    except ValueError:
+        await update.message.reply_text("Пожалуйста, введите число.")
+        return ONB_PROFILE_TARGET
+
+async def onb_demo_run(update, context):
+    await update.callback_query.answer()
+    context.user_data["__file_path"] = "assets/demo.jpg"
+    context.user_data["demo"] = True
+    await photo_handler(update, context, demo=True)
+    await update.callback_query.message.reply_text(
+        '✨ *Что я умею*\n'
+        '• 📷  Распознавать еду с фото\n'
+        '• ✍️  Понимать свободный текст ( "5 ХЕ, сахар 9" )\n'
+        '• 💉  Считать дозу по твоему профилю\n'
+        '• 📊  Показывать историю и графики\n'
+        '• ⏰  Напоминать о замере сахара',
+        parse_mode="Markdown",
+        reply_markup=menu_keyboard
+    )
+    return ConversationHandler.END
+
+# 4. ConversationHandler для онбординга
+onboarding_conv = ConversationHandler(
+    entry_points=[CommandHandler("start", onb_hello)],
+    states={
+        ONB_HELLO: [CallbackQueryHandler(onb_begin, pattern="^onb:start$")],
+        ONB_PROFILE_ICR: [MessageHandler(filters.TEXT & ~filters.COMMAND, onb_icr)],
+        ONB_PROFILE_CF: [MessageHandler(filters.TEXT & ~filters.COMMAND, onb_cf)],
+        ONB_PROFILE_TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, onb_target)],
+        ONB_DEMO: [CallbackQueryHandler(onb_demo_run, pattern="^onb:demo$")],
+    },
+    fallbacks=[
+        CommandHandler("cancel", cancel_handler),
+        MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
+    ],
+)
+
+sugar_conv = ConversationHandler(
     entry_points=[
         CommandHandler("sugar", sugar_start),
     ],
     states={
         SUGAR_VAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, sugar_val)],
     },
-    fallbacks=[CommandHandler("cancel", cancel_handler)],
+    fallbacks=[
+        CommandHandler("cancel", cancel_handler),
+        MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
+    ],
 )
 
-    photo_conv = ConversationHandler(
-        entry_points=[
-            MessageHandler(filters.PHOTO,          photo_handler),  # было
-            MessageHandler(filters.Document.IMAGE, doc_handler),    # ← добавили
+photo_conv = ConversationHandler(
+    entry_points=[
+        MessageHandler(filters.PHOTO,          photo_handler),
+        MessageHandler(filters.Document.IMAGE, doc_handler),
+    ],
+    states={
+        PHOTO_SUGAR: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, photo_sugar_handler)
         ],
-        states={
-            PHOTO_SUGAR: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, photo_sugar_handler)
-            ],
-        },
-        fallbacks=[CommandHandler("cancel", cancel_handler)],
-    )
+    },
+    fallbacks=[
+        CommandHandler("cancel", cancel_handler),
+        MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
+    ],
+)
 
-
-
-    dose_conv = ConversationHandler(
+dose_conv = ConversationHandler(
     entry_points=[
         CommandHandler("dose", dose_start),
         MessageHandler(filters.Regex("^💉 Доза инсулина$"), dose_start),
@@ -1358,29 +1580,40 @@ def main():
         DOSE_SUGAR:  [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_sugar)],
         DOSE_CARBS:  [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_carbs)],
     },
-    fallbacks=[CommandHandler("cancel", cancel_handler)],
+    fallbacks=[
+        CommandHandler("cancel", cancel_handler),
+        MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
+    ],
 )
 
-    
+profile_conv = ConversationHandler(
+    entry_points=[
+        CommandHandler("profile", profile_start),
+        MessageHandler(filters.Regex(r"^🔄 Изменить профиль$"), profile_start)
+    ],
+    states={
+        PROFILE_ICR:    [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],
+        PROFILE_CF:     [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_cf)],
+        PROFILE_TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)],
+    },
+    fallbacks=[
+        CommandHandler("cancel", profile_cancel),
+        MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
+    ],
+)
 
-    profile_conv = ConversationHandler(
-        entry_points=[
-            CommandHandler("profile", profile_start),
-            MessageHandler(filters.Regex(r"^🔄 Изменить профиль$"), profile_start)
-        ],
-        states={
-            PROFILE_ICR:    [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],
-            PROFILE_CF:     [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_cf)],
-            PROFILE_TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)],
-        },
-        fallbacks=[CommandHandler("cancel", profile_cancel)],
-    )
+
+
+def main():
+    init_db()
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
+    app.add_handler(onboarding_conv)
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu_handler))
     app.add_handler(CommandHandler("reset", reset_handler))
     app.add_handler(CommandHandler("history", history_handler))
     app.add_handler(CommandHandler("profile", profile_command))
-    
     app.add_handler(MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_view))
     app.add_handler(MessageHandler(filters.Regex(r"^📊 История$"), history_handler))
     app.add_handler(MessageHandler(filters.Regex(r"^❓ Мой сахар$"), sugar_start))
@@ -1388,15 +1621,11 @@ def main():
     app.add_handler(photo_conv)
     app.add_handler(profile_conv)
     app.add_handler(dose_conv)
-    # Ловим нажатие кнопки «📷 Фото еды»
     app.add_handler(MessageHandler(filters.Regex(r"^📷 Фото еды$"), photo_request))
     app.add_handler(CommandHandler("report", report_handler))
     app.add_handler(MessageHandler(filters.Regex("^📈 Отчёт$"), report_handler))
-    app.add_handler(CallbackQueryHandler(report_period_callback, pattern="^report_.*"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, report_date_input))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler))
     app.add_handler(CallbackQueryHandler(callback_router))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, apply_edit))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler))
     app.add_handler(CommandHandler("help", help_handler))
 
     app.run_polling()
