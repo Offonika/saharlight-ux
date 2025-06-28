@@ -1,15 +1,28 @@
-# Python
+# Python bytecode and caches
 __pycache__/
-*.py[cod]
+*.py[codod]
+*.pyo
+*.pyd
+
+# Logs
 *.log
 
-# virtualenv / poetry / pipenv
+# Virtual environments
 venv/
-.env/
-*.venv
+.venv/
+env/
+.env
 
-# OS / editor
+# OS files
 .DS_Store
+
+# IDE/editor folders
 .idea/
 .vscode/
-.env
+
+# Bot data
+.cursor/
+photos/
+
+# Temporary/test files
+test123.txt
