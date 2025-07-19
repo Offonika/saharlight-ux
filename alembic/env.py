@@ -12,8 +12,8 @@ load_dotenv(".env")
 sys.path.append(os.getcwd())
 
 # Импорт конфигурации проекта
-from db import Base
-from config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+from diabetes.db import Base
+from diabetes.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 # Alembic Config
 config = context.config

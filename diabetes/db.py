@@ -1,3 +1,4 @@
+# functions.py
 # db.py  ← полный и единственный источник моделей
 
 from datetime import datetime
@@ -8,7 +9,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
-from config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+from diabetes.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 
 # ────────────────── подключение к Postgres ──────────────────

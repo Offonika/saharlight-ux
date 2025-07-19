@@ -1,6 +1,6 @@
 import os, json, logging
 from openai import OpenAI
-from config import OPENAI_API_KEY, OPENAI_PROXY
+from diabetes.config import OPENAI_API_KEY, OPENAI_PROXY
 
 # 1️⃣ СРАЗУ ставим переменные окружения — до создания клиента!
 os.environ["HTTP_PROXY"]  = OPENAI_PROXY
