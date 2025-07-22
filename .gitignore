@@ -26,3 +26,4 @@ photos/
 
 # Temporary/test files
 test123.txt
+.pytest_cache/
