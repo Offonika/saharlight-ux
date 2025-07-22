@@ -96,7 +96,7 @@ def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf):
             img_reader = io.BytesIO(plot_buf.read())
             c.drawImage(img_reader, x_margin, y - 65*mm, width=160*mm, height=55*mm, preserveAspectRatio=True)
             y -= 65 * mm
-        except Exception as e:
+        except Exception:
             pass
 
     # Анализ и рекомендации
