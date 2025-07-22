@@ -1,5 +1,5 @@
 import pytest
-from bot import extract_nutrition_info
+from bot_stub import extract_nutrition_info
 from functions import calc_bolus, PatientProfile
 
 @pytest.mark.parametrize("text, expected_carbs, expected_xe", [
@@ -22,4 +22,4 @@ def test_calc_bolus():
     # без коррекции
     assert calc_bolus(30, 6, profile) == 3.0
     # сахар ниже целевого — коррекция не добавляется
-    assert calc_bolus(24, 4, profile) == 2.4 
+    assert calc_bolus(24, 4, profile) == 2.4
