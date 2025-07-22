@@ -330,21 +330,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.edit_message_text("\n".join(txt), parse_mode="Markdown")
                 return
 
-async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    document = update.message.document
-    if not document or not document.mime_type.startswith("image/"):
-        return ConversationHandler.END
-
-    user_id = update.effective_user.id
-    ext      = Path(document.file_name).suffix or ".jpg"
-    file_path = f"photos/{user_id}_{document.file_unique_id}{ext}"
-    os.makedirs("photos", exist_ok=True)
-    file = await context.bot.get_file(document.file_id)
-    await file.download_to_drive(file_path)
-
-    # записываем путь и вызовем photo_handler
-    context.user_data["__file_path"] = file_path
-    return await photo_handler(update, context, demo=False)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
