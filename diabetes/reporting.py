@@ -7,7 +7,6 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase.pdfmetrics import stringWidth
 import textwrap
 
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
