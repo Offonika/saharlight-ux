@@ -9,10 +9,7 @@ import time
 from datetime import datetime, timezone, timedelta, time
 from pathlib import Path
 
-from telegram import (
-    Update, ReplyKeyboardMarkup, KeyboardButton,
-    InlineKeyboardButton, InlineKeyboardMarkup,
-)
+
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
     ConversationHandler, ContextTypes, filters,
@@ -29,8 +26,10 @@ from diabetes.gpt_client import create_thread, send_message, client
 from diabetes.gpt_command_parser import parse_command
 from diabetes.reporting import make_sugar_plot, generate_pdf_report
 
+from diabetes.ui import menu_keyboard, dose_keyboard, confirm_keyboard
 
-
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 
@@ -41,27 +40,6 @@ SUGAR_VAL                                       = 8              # конвер�
 # (подтверждение/переопределение дозы при желании  можно сделать 9 и 10)
 
 WAITING_GPT_FLAG = "waiting_gpt_response"
-
-# Клавиатура для выбора метода ввода
-dose_keyboard = ReplyKeyboardMarkup(
-    [
-        [KeyboardButton("📷 Фото для оценки")],
-        [KeyboardButton("✏️ Ввести углеводы (г)")],
-        [KeyboardButton("🔢 Ввести ХЕ")],
-        [KeyboardButton("❌ Отмена")],
-    ],
-    resize_keyboard=True
-)
-
-menu_keyboard = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton("📷 Фото еды")], 
-        [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
-        [KeyboardButton("📄 Мой профиль"), KeyboardButton("🔄 Изменить профиль")],
-        [KeyboardButton("📈 Отчёт"), KeyboardButton("🔁 Сброс"), KeyboardButton("ℹ️ Помощь")]
-    ],
-    resize_keyboard=True
-)
 
 
 
@@ -99,16 +77,10 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except ValueError:
                 await update.message.reply_text("Пожалуйста, введите число сахара в формате ммоль/л.")
                 return
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
-                    InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
-                    InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
-                ]
-            ])
+            
             await update.message.reply_text(
                 f"Сохранить уровень сахара {sugar} ммоль/л в дневник?",
-                reply_markup=keyboard
+                reply_markup=confirm_keyboard()
             )
             return
         parts = dict(re.findall(r"(\w+)\s*=\s*([\d.]+)", text))
@@ -125,20 +97,14 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sugar = entry.get('sugar_before')
         dose = entry.get('dose')
         xe_info = f", ХЕ: {xe}" if xe is not None else ""
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
-                InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
-                InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
-            ]
-        ])
+        
         await update.message.reply_text(
             f"💉 Расчёт завершён:\n"
             f"• Углеводы: {carbs} г{xe_info}\n"
             f"• Сахар: {sugar} ммоль/л\n"
             f"• Ваша доза: {dose} Ед\n\n"
             f"Сохранить это в дневник?",
-            reply_markup=keyboard
+            reply_markup=confirm_keyboard()
         )
         return
     if "edit_id" in context.user_data:
@@ -216,15 +182,9 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sugar_part = f"Сахар: {sugar_val} ммоль/л" if sugar_val is not None else ""
     lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
 
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
-            InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
-            InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
-        ]
-    ])
+   
     reply = f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
-    await update.message.reply_text(reply, reply_markup=keyboard)
+    await update.message.reply_text(reply, reply_markup=confirm_keyboard())
     return ConversationHandler.END
 
 
@@ -247,16 +207,10 @@ async def apply_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("Пожалуйста, введите число сахара в формате ммоль/л.")
                 return
             # Показываем подтверждение
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
-                    InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
-                    InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
-                ]
-            ])
+            
             await update.message.reply_text(
                 f"Сохранить уровень сахара {sugar} ммоль/л в дневник?",
-                reply_markup=keyboard
+                reply_markup=confirm_keyboard()
             )
             return
         # Обычный режим: ожидаем поля в формате key=value
@@ -275,20 +229,14 @@ async def apply_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sugar = entry.get('sugar_before')
         dose = entry.get('dose')
         xe_info = f", ХЕ: {xe}" if xe is not None else ""
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
-                InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
-                InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
-            ]
-        ])
+      
         await update.message.reply_text(
             f"💉 Расчёт завершён:\n"
             f"• Углеводы: {carbs} г{xe_info}\n"
             f"• Сахар: {sugar} ммоль/л\n"
             f"• Ваша доза: {dose} Ед\n\n"
             f"Сохранить это в дневник?",
-            reply_markup=keyboard
+            reply_markup=confirm_keyboard()
         )
         return
     # --- Старый режим: редактирование уже существующей записи ---
@@ -669,16 +617,10 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'sugar_before': sugar,
         'dose': None
     }
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
-            InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
-            InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
-        ]
-    ])
+   
     await update.message.reply_text(
         f"Сохранить уровень сахара {sugar} ммоль/л в дневник?",
-        reply_markup=keyboard
+        reply_markup=confirm_keyboard()
     )
     return ConversationHandler.END
 
@@ -736,20 +678,14 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     }
 
     xe_info = f", ХЕ: {xe_val}" if xe_val is not None else ""
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
-            InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
-            InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
-        ]
-    ])
+   
     await update.message.reply_text(
         f"💉 Расчёт завершён:\n"
         f"• Углеводы: {carbs} г{xe_info}\n"
         f"• Сахар: {sugar} ммоль/л\n"
         f"• Ваша доза: {dose} Ед\n\n"
         f"Сохранить это в дневник?",
-        reply_markup=keyboard
+        reply_markup=confirm_keyboard()
     )
     # очищаем временные данные, кроме pending_entry
     for k in ("last_carbs", "last_photo_time", "xe", "sugar", "photo_path"):
@@ -988,20 +924,14 @@ async def photo_sugar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     }
 
     xe_info = f", ХЕ: {xe}" if xe is not None else ""
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
-            InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
-            InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
-        ]
-    ])
+   
     await update.message.reply_text(
         f"💉 Расчёт завершён:\n"
         f"• Углеводы: {carbs} г{xe_info}\n"
         f"• Сахар: {sugar} ммоль/л\n"
         f"• Ваша доза: {dose} Ед\n\n"
         f"Сохранить это в дневник?",
-        reply_markup=keyboard
+        reply_markup=confirm_keyboard()
     )
     # очищаем временные данные, кроме pending_entry
     for k in ("carbs", "xe", "photo_path"):
@@ -1061,13 +991,9 @@ async def history_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"• Доза: {dose}"
         )
 
-        kb = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("✏️ Исправить", callback_data=f"edit:{e.id}"),
-                InlineKeyboardButton("🗑️ Удалить",   callback_data=f"del:{e.id}")
-            ]
-        ])
-        await update.message.reply_text(text, reply_markup=kb)
+      
+        await update.message.reply_text(text, reply_markup=menu_keyboard)
+
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
@@ -1126,23 +1052,31 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="HTML"
     )
 
-async def report_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("Сегодня", callback_data="report_today"),
-         InlineKeyboardButton("Неделя", callback_data="report_week")],
-        [InlineKeyboardButton("Месяц", callback_data="report_month"),
-         InlineKeyboardButton("Указать дату", callback_data="report_custom")]
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+
+def report_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("Сегодня", callback_data="report_today")],
+        [InlineKeyboardButton("Неделя", callback_data="report_week")],
+        [InlineKeyboardButton("Месяц", callback_data="report_month")],
+        [InlineKeyboardButton("Произвольно", callback_data="report_custom")],
+        [InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")],
     ])
+
+async def report_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📊 За какой период сделать отчёт?",
-        reply_markup=keyboard
+        reply_markup=report_keyboard()
     )
 
 async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
-    
+    if data == "cancel_entry":
+        await query.edit_message_text("❌ Запрос отменён.", reply_markup=menu_keyboard)
+        context.user_data.pop('awaiting_report_date', None)
+        return
     user_id = update.effective_user.id
     now = datetime.now()
     if data == "report_today":
