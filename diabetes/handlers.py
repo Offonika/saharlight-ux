@@ -11,20 +11,18 @@ from pathlib import Path
 
 
 from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler,
+    CommandHandler, MessageHandler, CallbackQueryHandler,
     ConversationHandler, ContextTypes, filters,
 )
 
 from sqlalchemy import func
 
-from diabetes.config import TELEGRAM_TOKEN, OPENAI_PROXY
-from diabetes.db import SessionLocal, init_db, User, Profile, Entry
+from diabetes.db import SessionLocal, User, Profile, Entry
 from diabetes.functions import (
     PatientProfile, calc_bolus, extract_nutrition_info,
 )
 from diabetes.gpt_client import create_thread, send_message, client
 from diabetes.gpt_command_parser import parse_command
-from diabetes.reporting import make_sugar_plot, generate_pdf_report
 
 from diabetes.ui import menu_keyboard, dose_keyboard, confirm_keyboard
 
@@ -330,21 +328,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.edit_message_text("\n".join(txt), parse_mode="Markdown")
                 return
 
-async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    document = update.message.document
-    if not document or not document.mime_type.startswith("image/"):
-        return ConversationHandler.END
-
-    user_id = update.effective_user.id
-    ext      = Path(document.file_name).suffix or ".jpg"
-    file_path = f"photos/{user_id}_{document.file_unique_id}{ext}"
-    os.makedirs("photos", exist_ok=True)
-    file = await context.bot.get_file(document.file_id)
-    await file.download_to_drive(file_path)
-
-    # записываем путь и вызовем photo_handler
-    context.user_data["__file_path"] = file_path
-    return await photo_handler(update, context, demo=False)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
@@ -483,12 +466,10 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cf = float(args[1])
         target = float(args[2])
 
-        # Флаги подозрения
-        suspicious = False
+        # Предупреждение, если параметры выглядят странно
         warning_msg = ""
 
         if icr > 8 or cf < 3:
-            suspicious = True
             warning_msg = (
                 "\n⚠️ Проверьте, пожалуйста: возможно, вы перепутали местами ИКХ и КЧ.\n"
                 f"• Вы ввели ИКХ = {icr} ммоль/л (высоковато)\n"
@@ -1077,7 +1058,6 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
         await query.edit_message_text("❌ Запрос отменён.", reply_markup=menu_keyboard)
         context.user_data.pop('awaiting_report_date', None)
         return
-    user_id = update.effective_user.id
     now = datetime.now()
     if data == "report_today":
         date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1118,7 +1098,6 @@ async def report_date_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def send_report(update, context, date_from, period_label, query=None):
     user_id = update.effective_user.id
 
-    now = datetime.now()
     with SessionLocal() as s:
         entries = (
             s.query(Entry)
