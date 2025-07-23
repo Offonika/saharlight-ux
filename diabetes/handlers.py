@@ -485,8 +485,8 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             prof = Profile(telegram_id=user_id)
             session.add(prof)
 
-        prof.icr = cf  # г/ед
-        prof.cf = icr  # ммоль/л
+        prof.icr = icr  # г/ед
+        prof.cf = cf   # ммоль/л
         prof.target_bg = target
         session.commit()
         session.close()
