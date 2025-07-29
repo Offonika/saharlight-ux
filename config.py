@@ -14,4 +14,4 @@ DB_NAME     = os.getenv('DB_NAME', 'diabetes_bot')
 DB_USER     = os.getenv('DB_USER', 'diabetes_user')
 DB_PASSWORD = os.getenv('DB_PASSWORD', '')
 
-OPENAI_PROXY = "http://user150107:dx4a5m@102.129.178.65:6517"
+OPENAI_PROXY = os.getenv('OPENAI_PROXY')
