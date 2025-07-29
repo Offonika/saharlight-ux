@@ -24,7 +24,7 @@
 - `OPENAI_PROXY` – опциональный прокси для запросов к OpenAI
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` – настройки базы данных
 
-3. Установите зависимости:
+3. Установите зависимости из файла `requirements.txt`:
    ```bash
    pip install -r requirements.txt
    ```
