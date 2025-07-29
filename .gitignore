@@ -28,3 +28,9 @@ bot.log
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Local fonts
+fonts/
+
+# Test placeholder
+test123.txt
