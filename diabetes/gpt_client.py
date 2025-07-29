@@ -20,6 +20,7 @@ def create_thread() -> str:
     thread = client.beta.threads.create()
     return thread.id
 
+
 def send_message(thread_id: str, content: str | None = None, image_path: str | None = None):
     """
     Отправляет текст или (изображение + текст) в thread

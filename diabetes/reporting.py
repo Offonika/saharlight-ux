@@ -13,6 +13,7 @@ import textwrap
 pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
 pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
 
+
 def make_sugar_plot(entries, period_label):
     """
     Генерирует график сахара за период. Возвращает BytesIO с PNG.
@@ -34,6 +35,7 @@ def make_sugar_plot(entries, period_label):
     plt.close()
     return buf
 
+
 def wrap_text(text, width=100):
     """
     Переносит строки по длине для PDF.
@@ -42,6 +44,7 @@ def wrap_text(text, width=100):
     for line in text.splitlines():
         lines += textwrap.wrap(line, width=width) or [""]
     return lines
+
 
 def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf):
     """

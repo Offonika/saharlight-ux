@@ -38,6 +38,7 @@ dose_keyboard = ReplyKeyboardMarkup(
 
 # ─────────────── Inline-клавиатуры (обрабатываются callback-ами) ───────────────
 
+
 def confirm_keyboard(back_cb: str | None = None) -> InlineKeyboardMarkup:
     """
     Стандартная клавиатура подтверждения:
