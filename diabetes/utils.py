@@ -4,6 +4,7 @@ import re
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib.units import mm
 
+
 def clean_markdown(text):
     """
     Удаляет простую Markdown-разметку: **жирный**, # заголовки, * списки, 1. списки и т.д.
@@ -14,6 +15,7 @@ def clean_markdown(text):
     text = re.sub(r'^\s*\*\s*', '', text, flags=re.MULTILINE)      # * списки
     text = re.sub(r'`([^`]+)`', r'\1', text)           # `код`
     return text
+
 
 def split_text_by_width(text, font_name, font_size, max_width_mm):
     """

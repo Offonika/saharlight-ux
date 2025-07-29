@@ -1,4 +1,6 @@
-import os, json, logging
+import os
+import json
+import logging
 from openai import OpenAI
 from diabetes.config import OPENAI_API_KEY, OPENAI_PROXY
 

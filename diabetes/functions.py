@@ -3,11 +3,13 @@
 from dataclasses import dataclass
 import re
 
+
 @dataclass
 class PatientProfile:
     icr: float
     cf: float
     target_bg: float
+
 
 def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> float:
     """
@@ -16,6 +18,7 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
     meal = carbs_g / profile.icr
     correction = max(0, (current_bg - profile.target_bg) / profile.cf)
     return round(meal + correction, 1)
+
 
 def extract_nutrition_info(text: str):
     carbs = xe = None
