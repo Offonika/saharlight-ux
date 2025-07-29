@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta, time
 from pathlib import Path
 
 
+from telegram import Update
 from telegram.ext import (
     CommandHandler, MessageHandler, CallbackQueryHandler,
     ConversationHandler, ContextTypes, filters,
