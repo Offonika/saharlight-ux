@@ -1,5 +1,5 @@
 import pytest
-from bot_stub import extract_nutrition_info
+from stubs.bot_stub import extract_nutrition_info
 from functions import calc_bolus, PatientProfile
 
 @pytest.mark.parametrize("text, expected_carbs, expected_xe", [
