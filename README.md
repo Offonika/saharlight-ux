@@ -23,3 +23,29 @@
 - `OPENAI_ASSISTANT_ID` – ID ассистента OpenAI
 - `OPENAI_PROXY` – опциональный прокси для запросов к OpenAI
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` – настройки базы данных
+
+3. Установите зависимости:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Запустите миграции базы данных:
+   ```bash
+   alembic upgrade head
+   ```
+
+## Запуск
+
+- Телеграм-бот:
+  ```bash
+  python bot.py
+  ```
+- REST API:
+  ```bash
+  uvicorn api:app --reload
+  ```
+
+## Примеры использования
+
+После запуска бота отправьте фото еды в личный чат – бот вернёт карточку с
+подсчётом углеводов и кнопку «Протокол». Подробнее см. сценарии из
+[tests/manual_test_cases.md](tests/manual_test_cases.md).
