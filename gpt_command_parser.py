@@ -1,6 +1,8 @@
 import os, json, logging
 from openai import OpenAI
-from config import OPENAI_API_KEY, OPENAI_PROXY
+from config import OPENAI_API_KEY, OPENAI_PROXY, validate_tokens
+
+validate_tokens()
 
 # 1️⃣ СРАЗУ ставим переменные окружения — до создания клиента!
 if OPENAI_PROXY is not None:

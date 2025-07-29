@@ -13,7 +13,9 @@ sys.path.append(os.getcwd())
 
 # Импорт конфигурации проекта
 from db import Base
-from config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+from config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, validate_tokens
+
+validate_tokens()
 
 # Alembic Config
 config = context.config

@@ -3,7 +3,14 @@
 import openai
 import os
 import logging
-from config import OPENAI_API_KEY, OPENAI_ASSISTANT_ID, OPENAI_PROXY
+from config import (
+    OPENAI_API_KEY,
+    OPENAI_ASSISTANT_ID,
+    OPENAI_PROXY,
+    validate_tokens,
+)
+
+validate_tokens()
 
 # --- Только здесь прописываем прокси ---
 if OPENAI_PROXY is not None:

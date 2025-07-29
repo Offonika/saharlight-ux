@@ -12,7 +12,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger("bot")
 
-from config import OPENAI_PROXY
+from config import OPENAI_PROXY, validate_tokens
+
+validate_tokens()
 #os.environ["HTTP_PROXY"] = OPENAI_PROXY
 #os.environ["HTTPS_PROXY"] = OPENAI_PROXY
 
