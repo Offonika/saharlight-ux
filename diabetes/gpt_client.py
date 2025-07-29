@@ -6,8 +6,9 @@ import logging
 from diabetes.config import OPENAI_API_KEY, OPENAI_ASSISTANT_ID, OPENAI_PROXY
 
 # --- Только здесь прописываем прокси ---
-os.environ["HTTP_PROXY"]  = OPENAI_PROXY
-os.environ["HTTPS_PROXY"] = OPENAI_PROXY
+if OPENAI_PROXY:
+    os.environ["HTTP_PROXY"] = OPENAI_PROXY
+    os.environ["HTTPS_PROXY"] = OPENAI_PROXY
 
 client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
