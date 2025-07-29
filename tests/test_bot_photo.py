@@ -3,7 +3,7 @@ import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-from bot_stub import photo_handler, PHOTO_SUGAR
+from stubs.bot_stub import photo_handler, PHOTO_SUGAR
 
 
 def test_photo_handler_mock_mode(tmp_path):
