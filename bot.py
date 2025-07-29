@@ -1,7 +1,9 @@
 import logging
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ConversationHandler, filters
 
-from config import TELEGRAM_TOKEN
+from config import TELEGRAM_TOKEN, validate_tokens
+
+validate_tokens()
 from db import init_db
 from handlers import (
     onboarding_conv,
