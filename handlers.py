@@ -19,7 +19,6 @@ from config import OPENAI_PROXY
 import re
 import asyncio
 import time
-import logging
 
 
 # Очищаем root‑логгер от сторонних библиотек
@@ -44,12 +43,9 @@ from gpt_client import create_thread, send_message, client
 from functions import PatientProfile, calc_bolus
 from config import TELEGRAM_TOKEN
 
-from sqlalchemy import DateTime, func
-from db import SessionLocal, Entry, Profile, User, init_db
+from sqlalchemy import func
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from sqlalchemy import func          # уже нужен для фильтра по дате# ▸ bot.py  (положите рядом с остальными async‑хендлерами)
 from pathlib import Path
-import textwrap
 
 from report import send_report
 
@@ -866,7 +862,6 @@ async def dose_xe_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False):
     from gpt_client import client, send_message, create_thread
-    import time
 
     message = update.message or update.callback_query.message
     user_id = update.effective_user.id
