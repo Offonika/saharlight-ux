@@ -52,12 +52,16 @@
 
 ## Тестирование и линтинг
 
+Перед запуском тестов убедитесь, что установлены все зависимости из
+`requirements.txt` (например, FastAPI используется в модуле `api`).
+
 1. Создайте виртуальное окружение и установите зависимости:
    ```bash
    python -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
-   pip install pytest
+   # зависимости для тестов, включая pytest и pytest-asyncio
+   pip install -r requirements-test.txt
    ```
 2. Запустите проверки:
    ```bash
