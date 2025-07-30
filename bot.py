@@ -1,16 +1,16 @@
-import logging
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ConversationHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 
-from config import TELEGRAM_TOKEN, validate_tokens
-
-validate_tokens()
+from config import TELEGRAM_TOKEN
 from db import init_db
-from handlers import (
+from bot.startup import setup
+from bot.conversations import (
     onboarding_conv,
     sugar_conv,
     photo_conv,
     dose_conv,
     profile_conv,
+)
+from bot.handlers import (
     start,
     menu_handler,
     reset_handler,
@@ -26,8 +26,7 @@ from handlers import (
 )
 
 
-logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
-logger = logging.getLogger("bot")
+logger = setup()
 
 
 def main() -> None:

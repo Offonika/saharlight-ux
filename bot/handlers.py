@@ -1,53 +1,23 @@
-# bot.py
 import logging
-import os
-
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-    handlers=[
-        logging.FileHandler("bot.log"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger("bot")
-
-from config import OPENAI_PROXY, validate_tokens
-
-validate_tokens()
-#os.environ["HTTP_PROXY"] = OPENAI_PROXY
-#os.environ["HTTPS_PROXY"] = OPENAI_PROXY
-
 import re
 import asyncio
 import time
+from datetime import datetime, timezone
 
-
-# Очищаем root‑логгер от сторонних библиотек
-for logger_name in ("httpcore", "httpx", "telegram", "telegram.ext"):
-    logging.getLogger(logger_name).setLevel(logging.WARNING)  # Только WARNING и выше
-
-
-
-logging.info("=== Bot started ===")
-logger.info("Логгер настроен, бот запускается")
-from datetime import datetime, timezone   # ← добавили timezone
+logger = logging.getLogger("bot")
 
 from gpt_command_parser import parse_command
-from telegram.ext import MessageHandler, filters, CallbackQueryHandler
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler, MessageHandler, ConversationHandler,
-    ContextTypes, filters
-)
-from db import SessionLocal, init_db, User, Profile, Entry
+from telegram.ext import ConversationHandler, ContextTypes
+from db import SessionLocal, User, Profile, Entry
 from gpt_client import create_thread, send_message, client
 from functions import PatientProfile, calc_bolus
-from config import TELEGRAM_TOKEN
 
 from sqlalchemy import func
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from pathlib import Path
+
+from .utils import extract_nutrition_info
 
 from report import send_report
 
@@ -245,39 +215,6 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-def extract_nutrition_info(text: str):
-    """
-    Ищет в тексте:
-      • «Углеводы: 37 г ± 3 г»  → carbs = 37
-      • «ХЕ: 3,1 ± 0,2»         → xe    = 3.1
-      • диапазон «20–25 г»      → carbs = среднее
-      • диапазон «3–4 ХЕ»       → xe    = среднее
-    Возвращает (carbs_g, xe)
-    """
-    carbs = xe = None
-    # --- новый строгий формат со знаком ± ---
-    m = re.search(r"углевод[^\d]*:\s*([\d.,]+)\s*г", text, re.IGNORECASE)
-    if m:
-        carbs = float(m.group(1).replace(",", "."))
-
-    m = re.search(r"\bх[еe][^\d]*:\s*([\d.,]+)", text, re.IGNORECASE)
-    if m:
-        xe = float(m.group(1).replace(",", "."))
-
-    # --- диапазоны «20–25 г» / «3–4 ХЕ» ---
-    if carbs is None:
-        rng = re.search(r"(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)\s*г", text, re.IGNORECASE)
-        if rng:
-            carbs = (float(rng.group(1).replace(",", ".")) +
-                     float(rng.group(2).replace(",", "."))) / 2
-
-    if xe is None:
-        rng = re.search(r"(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)\s*(?:ХЕ|XE)", text, re.IGNORECASE)
-        if rng:
-            xe = (float(rng.group(1).replace(",", ".")) +
-                  float(rng.group(2).replace(",", "."))) / 2
-
-    return carbs, xe
 
 # ▸ bot.py  (положите рядом с остальными async‑хендлерами)
 async def apply_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1287,109 +1224,4 @@ async def onb_demo_run(update, context):
     )
     return ConversationHandler.END
 
-# 4. ConversationHandler для онбординга
-onboarding_conv = ConversationHandler(
-    entry_points=[CommandHandler("start", onb_hello)],
-    states={
-        ONB_HELLO: [CallbackQueryHandler(onb_begin, pattern="^onb:start$")],
-        ONB_PROFILE_ICR: [MessageHandler(filters.TEXT & ~filters.COMMAND, onb_icr)],
-        ONB_PROFILE_CF: [MessageHandler(filters.TEXT & ~filters.COMMAND, onb_cf)],
-        ONB_PROFILE_TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, onb_target)],
-        ONB_DEMO: [CallbackQueryHandler(onb_demo_run, pattern="^onb:demo$")],
-    },
-    fallbacks=[
-        CommandHandler("cancel", cancel_handler),
-        MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
-    ],
-)
-
-sugar_conv = ConversationHandler(
-    entry_points=[
-        CommandHandler("sugar", sugar_start),
-    ],
-    states={
-        SUGAR_VAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, sugar_val)],
-    },
-    fallbacks=[
-        CommandHandler("cancel", cancel_handler),
-        MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
-    ],
-)
-
-photo_conv = ConversationHandler(
-    entry_points=[
-        MessageHandler(filters.PHOTO,          photo_handler),
-        MessageHandler(filters.Document.IMAGE, doc_handler),
-    ],
-    states={
-        PHOTO_SUGAR: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, photo_sugar_handler)
-        ],
-    },
-    fallbacks=[
-        CommandHandler("cancel", cancel_handler),
-        MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
-    ],
-)
-
-dose_conv = ConversationHandler(
-    entry_points=[
-        CommandHandler("dose", dose_start),
-        MessageHandler(filters.Regex("^💉 Доза инсулина$"), dose_start),
-    ],
-    states={
-        DOSE_METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
-        DOSE_XE:     [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_xe_handler)],
-        DOSE_SUGAR:  [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_sugar)],
-        DOSE_CARBS:  [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_carbs)],
-    },
-    fallbacks=[
-        CommandHandler("cancel", cancel_handler),
-        MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
-    ],
-)
-
-profile_conv = ConversationHandler(
-    entry_points=[
-        CommandHandler("profile", profile_start),
-        MessageHandler(filters.Regex(r"^🔄 Изменить профиль$"), profile_start)
-    ],
-    states={
-        PROFILE_ICR:    [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],
-        PROFILE_CF:     [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_cf)],
-        PROFILE_TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)],
-    },
-    fallbacks=[
-        CommandHandler("cancel", profile_cancel),
-        MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
-    ],
-)
-
-
-
-def main():
-    init_db()
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-
-    app.add_handler(onboarding_conv)
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("menu", menu_handler))
-    app.add_handler(CommandHandler("reset", reset_handler))
-    app.add_handler(CommandHandler("history", history_handler))
-    app.add_handler(CommandHandler("profile", profile_command))
-    app.add_handler(MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_view))
-    app.add_handler(MessageHandler(filters.Regex(r"^📊 История$"), history_handler))
-    app.add_handler(MessageHandler(filters.Regex(r"^❓ Мой сахар$"), sugar_start))
-    app.add_handler(sugar_conv)
-    app.add_handler(photo_conv)
-    app.add_handler(profile_conv)
-    app.add_handler(dose_conv)
-    app.add_handler(MessageHandler(filters.Regex(r"^📷 Фото еды$"), photo_request))
-    app.add_handler(CommandHandler("report", report_handler))
-    app.add_handler(MessageHandler(filters.Regex("^📈 Отчёт$"), report_handler))
-    app.add_handler(CallbackQueryHandler(callback_router))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler))
-    app.add_handler(CommandHandler("help", help_handler))
-
-    app.run_polling()
 
