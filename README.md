@@ -49,3 +49,18 @@
 После запуска бота отправьте фото еды в личный чат – бот вернёт карточку с
 подсчётом углеводов и кнопку «Протокол». Подробнее см. сценарии из
 [tests/manual_test_cases.md](tests/manual_test_cases.md).
+
+## Тестирование и линтинг
+
+1. Создайте виртуальное окружение и установите зависимости:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   pip install pytest
+   ```
+2. Запустите проверки:
+   ```bash
+   flake8
+   pytest
+   ```
