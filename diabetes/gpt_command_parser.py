@@ -47,6 +47,21 @@ SYSTEM_PROMPT = (
 )
 
 
+def _extract_first_json(text: str) -> dict | None:
+    """Return the first JSON object found in *text* or ``None`` if absent."""
+    decoder = json.JSONDecoder()
+    idx = 0
+    while True:
+        start = text.find("{", idx)
+        if start == -1:
+            return None
+        try:
+            obj, end = decoder.raw_decode(text, start)
+            return obj
+        except json.JSONDecodeError:
+            idx = start + 1
+
+
 async def parse_command(text: str, timeout: float = 10) -> dict | None:
     try:
         response = await asyncio.wait_for(
@@ -63,8 +78,12 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
             timeout=timeout,
         )
         content = response.choices[0].message.content.strip()
-        logging.info(f"GPT parse response: {content}")
-        return json.loads(content)
+        logging.info(f"GPT raw response: {content}")
+        parsed = _extract_first_json(content)
+        if parsed is None:
+            logging.error("No JSON object found in response")
+            return None
+        return parsed
     except asyncio.TimeoutError:
         logging.error("Command parsing timed out")
         return None
