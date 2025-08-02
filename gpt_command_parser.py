@@ -65,7 +65,11 @@ async def parse_command(text: str) -> dict | None:
             temperature=0,
             max_tokens=256
         )
-        content = response.choices[0].message.content.strip()
+        choices = getattr(response, "choices", [])
+        if not choices:
+            logging.error("OpenAI completion returned no choices")
+            return None
+        content = choices[0].message.content.strip()
         logging.info(f"GPT parse response: {content}")
         return json.loads(content)
     except Exception as e:
