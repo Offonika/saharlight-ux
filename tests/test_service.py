@@ -10,3 +10,7 @@ def test_find_protocol_not_found():
     assert find_protocol_by_diagnosis("Неизвестный диагноз") is None
 
 
+def test_find_protocol_trims_whitespace():
+    assert find_protocol_by_diagnosis("  Диабет 2 типа  ") == "standard protocol"
+
+
