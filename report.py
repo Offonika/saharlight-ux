@@ -123,11 +123,17 @@ def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, buf_graph):
     if buf_graph:
         y -= 10 * mm
         try:
-            c.drawImage(ImageReader(buf_graph), 20 * mm, y - 60 * mm,
-                        width=170 * mm, height=50 * mm, preserveAspectRatio=True)
+            c.drawImage(
+                ImageReader(buf_graph),
+                20 * mm,
+                y - 60 * mm,
+                width=170 * mm,
+                height=50 * mm,
+                preserveAspectRatio=True,
+            )
             y -= 60 * mm
         except Exception:
-            pass
+            logging.exception("Failed to render graph in PDF report")
     c.save()
     pdf_buf.seek(0)
     return pdf_buf
