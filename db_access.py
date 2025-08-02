@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import List
 from db import SessionLocal, Profile, Entry
@@ -27,6 +28,7 @@ def add_entry(entry_data: dict) -> None:
         try:
             session.commit()
         except Exception:
+            logging.exception("Failed to add entry")
             session.rollback()
             raise
 
