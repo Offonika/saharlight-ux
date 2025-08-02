@@ -28,6 +28,18 @@ def test_calc_bolus_invalid_cf():
     with pytest.raises(ValueError, match="cf"):
         calc_bolus(carbs_g=30, current_bg=5, profile=profile)
 
+
+def test_calc_bolus_negative_carbs():
+    profile = PatientProfile(icr=10, cf=2, target_bg=6)
+    with pytest.raises(ValueError, match="carbs_g"):
+        calc_bolus(carbs_g=-5, current_bg=5, profile=profile)
+
+
+def test_calc_bolus_negative_current_bg():
+    profile = PatientProfile(icr=10, cf=2, target_bg=6)
+    with pytest.raises(ValueError, match="current_bg"):
+        calc_bolus(carbs_g=30, current_bg=-1, profile=profile)
+
 def test_extract_nutrition_info_simple():
     text = "углеводы: 45 г, ХЕ: 3.5"
     carbs, xe = extract_nutrition_info(text)
