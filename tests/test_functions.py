@@ -1,5 +1,7 @@
 # test_functions.py
 
+import pytest
+
 from diabetes.functions import calc_bolus, PatientProfile, extract_nutrition_info
 
 def test_calc_bolus_basic():
@@ -13,6 +15,18 @@ def test_calc_bolus_no_correction():
     result = calc_bolus(carbs_g=30, current_bg=5, profile=profile)
     # meal=3, correction=max(0, (5-6)/2)=0, total=3.0
     assert result == 3.0
+
+
+def test_calc_bolus_invalid_icr():
+    profile = PatientProfile(icr=0, cf=2, target_bg=6)
+    with pytest.raises(ValueError, match="icr"):
+        calc_bolus(carbs_g=30, current_bg=5, profile=profile)
+
+
+def test_calc_bolus_invalid_cf():
+    profile = PatientProfile(icr=10, cf=-1, target_bg=6)
+    with pytest.raises(ValueError, match="cf"):
+        calc_bolus(carbs_g=30, current_bg=5, profile=profile)
 
 def test_extract_nutrition_info_simple():
     text = "углеводы: 45 г, ХЕ: 3.5"

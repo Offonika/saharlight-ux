@@ -15,6 +15,10 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
     """
     Расчёт болюса (дозы инсулина) по углеводам и сахару.
     """
+    if profile.icr <= 0:
+        raise ValueError("Profile icr must be greater than 0")
+    if profile.cf <= 0:
+        raise ValueError("Profile cf must be greater than 0")
     meal = carbs_g / profile.icr
     correction = max(0, (current_bg - profile.target_bg) / profile.cf)
     return round(meal + correction, 1)
