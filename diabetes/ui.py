@@ -52,11 +52,11 @@ def confirm_keyboard(back_cb: str | None = None) -> InlineKeyboardMarkup:
     """
     rows = [
         [
-            InlineKeyboardButton("✅ Подтвердить", callback_data="confirm_ok"),
-            InlineKeyboardButton("✏️ Исправить",  callback_data="confirm_edit"),
+            InlineKeyboardButton("✅ Подтвердить", callback_data="confirm_entry"),
+            InlineKeyboardButton("✏️ Исправить",  callback_data="edit_entry"),
         ],
         [
-            InlineKeyboardButton("❌ Отмена", callback_data="confirm_cancel"),
+            InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry"),
         ],
     ]
     if back_cb:
