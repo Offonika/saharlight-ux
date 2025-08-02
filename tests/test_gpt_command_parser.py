@@ -30,3 +30,37 @@ async def test_parse_command_timeout_non_blocking(monkeypatch):
 
     assert result is None
     assert elapsed < 0.5
+
+
+@pytest.mark.asyncio
+async def test_parse_command_with_explanatory_text(monkeypatch):
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {
+                    "message": type(
+                        "Msg",
+                        (),
+                        {
+                            "content": (
+                                "Вот ответ: {\"action\":\"add_entry\","
+                                "\"time\":\"09:00\",\"fields\":{}}"
+                                " Дополнительный текст"
+                            )
+                        },
+                    )()
+                },
+            )
+        ]
+
+    monkeypatch.setattr(
+        gpt_command_parser.client.chat.completions,
+        "create",
+        lambda *args, **kwargs: FakeResponse(),
+    )
+
+    result = await gpt_command_parser.parse_command("test")
+
+    assert result == {"action": "add_entry", "time": "09:00", "fields": {}}
