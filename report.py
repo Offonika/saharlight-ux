@@ -253,6 +253,7 @@ async def send_report(update, context, date_from, period_label, query=None):
     if query:
         await query.edit_message_text(report_msg, parse_mode="HTML")
         await query.message.reply_photo(buf, caption="График сахара за период")
+        buf.seek(0)
         pdf_buf = generate_pdf_report(summary_lines, errors, day_lines, gpt_text, buf)
         await query.message.reply_document(
             pdf_buf, filename='diabetes_report.pdf', caption='PDF-отчёт для врача'
@@ -260,6 +261,7 @@ async def send_report(update, context, date_from, period_label, query=None):
     else:
         await update.message.reply_text(report_msg, parse_mode="HTML")
         await update.message.reply_photo(buf, caption="График сахара за период")
+        buf.seek(0)
         pdf_buf = generate_pdf_report(summary_lines, errors, day_lines, gpt_text, buf)
         await update.message.reply_document(
             pdf_buf, filename='diabetes_report.pdf', caption='PDF-отчёт для врача'
