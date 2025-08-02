@@ -2,9 +2,11 @@
 
 import matplotlib.pyplot as plt
 import io
+import logging
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import textwrap
@@ -94,13 +96,12 @@ def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf):
     if plot_buf:
         try:
             y -= 10 * mm
-            img_reader = None
             plot_buf.seek(0)
-            img_reader = io.BytesIO(plot_buf.read())
+            img_reader = ImageReader(plot_buf)
             c.drawImage(img_reader, x_margin, y - 65*mm, width=160*mm, height=55*mm, preserveAspectRatio=True)
             y -= 65 * mm
-        except Exception:
-            pass
+        except Exception as e:
+            logging.exception("[PDF] Failed to draw plot image: %s", e)
 
     # Анализ и рекомендации
     y -= 8 * mm
