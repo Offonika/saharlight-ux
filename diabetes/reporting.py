@@ -57,6 +57,13 @@ def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf):
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
+    def check_page_break(y_pos, font_name, font_size):
+        if y_pos < 25 * mm:
+            c.showPage()
+            y_pos = height - 25 * mm
+            c.setFont(font_name, font_size)
+        return y_pos
+
     x_margin = 20 * mm
     y = height - 30 * mm
 
@@ -67,30 +74,39 @@ def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf):
 
     # Summary
     c.setFont("DejaVuSans-Bold", 13)
+    y = check_page_break(y, "DejaVuSans-Bold", 13)
     c.drawString(x_margin, y, "Сводка:")
     y -= 7 * mm
     c.setFont("DejaVuSans", 11)
+    y = check_page_break(y, "DejaVuSans", 11)
     for line in summary_lines:
         c.drawString(x_margin, y, line)
         y -= 6 * mm
+        y = check_page_break(y, "DejaVuSans", 11)
 
     if errors:
         c.setFont("DejaVuSans-Bold", 13)
+        y = check_page_break(y, "DejaVuSans-Bold", 13)
         c.drawString(x_margin, y, "Ошибки и критические значения:")
         y -= 7 * mm
         c.setFont("DejaVuSans", 11)
+        y = check_page_break(y, "DejaVuSans", 11)
         for err in errors:
             c.drawString(x_margin, y, err)
             y -= 6 * mm
+            y = check_page_break(y, "DejaVuSans", 11)
 
     if day_lines:
         c.setFont("DejaVuSans-Bold", 13)
+        y = check_page_break(y, "DejaVuSans-Bold", 13)
         c.drawString(x_margin, y, "Динамика по дням:")
         y -= 7 * mm
         c.setFont("DejaVuSans", 11)
+        y = check_page_break(y, "DejaVuSans", 11)
         for line in day_lines:
             c.drawString(x_margin, y, line)
             y -= 6 * mm
+            y = check_page_break(y, "DejaVuSans", 11)
 
     # Вставка графика
     if plot_buf:
@@ -112,10 +128,7 @@ def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf):
     for line in wrap_text(gpt_text, width=100):
         c.drawString(x_margin, y, line)
         y -= 6 * mm
-        if y < 25 * mm:
-            c.showPage()
-            y = height - 25 * mm
-            c.setFont("DejaVuSans", 11)
+        y = check_page_break(y, "DejaVuSans", 11)
     c.save()
     buffer.seek(0)
     return buffer

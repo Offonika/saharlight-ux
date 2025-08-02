@@ -1,6 +1,12 @@
 # test_reporting.py
 
+import datetime
+
+import pytest
+from PyPDF2 import PdfReader
+
 from diabetes.reporting import make_sugar_plot, generate_pdf_report
+
 
 class DummyEntry:
     def __init__(self, event_time, sugar_before, carbs_g, xe, dose):
@@ -9,8 +15,6 @@ class DummyEntry:
         self.carbs_g = carbs_g
         self.xe = xe
         self.dose = dose
-
-import datetime
 
 def test_make_sugar_plot():
     entries = [
@@ -37,3 +41,14 @@ def test_generate_pdf_report():
     assert hasattr(pdf_buf, 'read')
     pdf_buf.seek(0)
     assert len(pdf_buf.read()) > 1000
+
+
+@pytest.mark.parametrize("block", ["summary_lines", "errors", "day_lines"])
+def test_generate_pdf_report_page_breaks(block):
+    long_lines = [f"line {i}" for i in range(100)]
+    kwargs = {"summary_lines": [], "errors": [], "day_lines": []}
+    kwargs[block] = long_lines
+    pdf_buf = generate_pdf_report(gpt_text="", plot_buf=None, **kwargs)
+    pdf_buf.seek(0)
+    reader = PdfReader(pdf_buf)
+    assert len(reader.pages) > 1
