@@ -4,6 +4,6 @@ PROTOCOLS = {
 }
 
 def find_protocol_by_diagnosis(diagnosis: str) -> str | None:
-    diagnosis = diagnosis.lower()
+    diagnosis = diagnosis.strip().lower()
     return PROTOCOLS.get(diagnosis)
 
