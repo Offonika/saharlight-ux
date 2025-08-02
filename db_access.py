@@ -21,11 +21,14 @@ def get_profile(user_id: int) -> Profile | None:
 
 
 def add_entry(entry_data: dict) -> None:
-    session = SessionLocal()
-    entry = Entry(**entry_data)
-    session.add(entry)
-    session.commit()
-    session.close()
+    with SessionLocal() as session:
+        entry = Entry(**entry_data)
+        session.add(entry)
+        try:
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
 
 
 def get_entries_since(user_id: int, date_from: datetime) -> List[Entry]:
