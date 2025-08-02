@@ -10,7 +10,7 @@ def clean_markdown(text):
     Удаляет простую Markdown-разметку: **жирный**, # заголовки, * списки, 1. списки и т.д.
     """
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # **жирный**
-    text = re.sub(r'#+\s*', '', text)                  # ### Заголовки
+    text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)  # ### Заголовки
     text = re.sub(r'^\s*\d+\.\s*', '', text, flags=re.MULTILINE)  # 1. списки
     text = re.sub(r'^\s*\*\s*', '', text, flags=re.MULTILINE)      # * списки
     text = re.sub(r'`([^`]+)`', r'\1', text)           # `код`
