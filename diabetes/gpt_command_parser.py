@@ -2,7 +2,7 @@ import asyncio
 import os
 import json
 import logging
-from openai import OpenAI
+from openai import OpenAI, OpenAIError
 from diabetes.config import OPENAI_API_KEY, OPENAI_PROXY
 
 # 1️⃣ СРАЗУ ставим переменные окружения — до создания клиента!
@@ -87,6 +87,6 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
     except asyncio.TimeoutError:
         logging.error("Command parsing timed out")
         return None
-    except Exception as e:
-        logging.error(f"Command parsing failed: {e}")
+    except OpenAIError:
+        logging.exception("Command parsing failed")
         return None
