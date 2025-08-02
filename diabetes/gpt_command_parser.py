@@ -2,6 +2,7 @@ import asyncio
 import os
 import json
 import logging
+import re
 from openai import OpenAI, OpenAIError
 from diabetes.config import OPENAI_API_KEY, OPENAI_PROXY
 
@@ -52,6 +53,11 @@ SYSTEM_PROMPT = (
 )
 
 
+def _sanitize_sensitive_data(text: str) -> str:
+    """Mask potentially sensitive tokens in *text* before logging."""
+    return re.sub(r"[A-Za-z0-9]{32,}", "[REDACTED]", text)
+
+
 def _extract_first_json(text: str) -> dict | None:
     """Return the first JSON object found in *text* or ``None`` if absent."""
     decoder = json.JSONDecoder()
@@ -83,7 +89,8 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
             timeout=timeout,
         )
         content = response.choices[0].message.content.strip()
-        logging.info(f"GPT raw response: {content}")
+        safe_content = _sanitize_sensitive_data(content)
+        logging.info("GPT raw response: %s", safe_content[:200])
         parsed = _extract_first_json(content)
         if parsed is None:
             logging.error("No JSON object found in response")
