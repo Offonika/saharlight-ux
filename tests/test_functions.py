@@ -57,3 +57,17 @@ def test_extract_nutrition_info_missing():
     carbs, xe = extract_nutrition_info(text)
     assert carbs is None
     assert xe is None
+
+
+def test_extract_nutrition_info_invalid_carbs():
+    text = "углеводы: 5..2 г, ХЕ: 3"
+    carbs, xe = extract_nutrition_info(text)
+    assert carbs is None
+    assert xe == 3
+
+
+def test_extract_nutrition_info_invalid_xe():
+    text = "углеводы: 45 г, ХЕ: 1..2"
+    carbs, xe = extract_nutrition_info(text)
+    assert carbs == 45
+    assert xe is None
