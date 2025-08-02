@@ -755,7 +755,6 @@ async def dose_xe_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False):
-    from diabetes.gpt_client import client, send_message, create_thread
 
     message = update.message or update.callback_query.message
     user_id = update.effective_user.id
