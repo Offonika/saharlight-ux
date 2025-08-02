@@ -19,6 +19,10 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
         raise ValueError("Profile icr must be greater than 0")
     if profile.cf <= 0:
         raise ValueError("Profile cf must be greater than 0")
+    if carbs_g < 0:
+        raise ValueError("carbs_g must be non-negative")
+    if current_bg < 0:
+        raise ValueError("current_bg must be non-negative")
     meal = carbs_g / profile.icr
     correction = max(0, (current_bg - profile.target_bg) / profile.cf)
     return round(meal + correction, 1)
