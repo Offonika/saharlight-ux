@@ -35,3 +35,14 @@ def test_calc_bolus_invalid_profile(icr, cf):
     profile = PatientProfile(icr=icr, cf=cf, target_bg=6)
     with pytest.raises(ValueError):
         calc_bolus(50, 10, profile)
+
+
+@pytest.mark.parametrize("carbs_g, current_bg", [
+    (-1, 5),
+    (10, -1),
+    (-5, -1),
+])
+def test_calc_bolus_negative_inputs(carbs_g, current_bg):
+    profile = PatientProfile(icr=10, cf=2, target_bg=6)
+    with pytest.raises(ValueError):
+        calc_bolus(carbs_g, current_bg, profile)

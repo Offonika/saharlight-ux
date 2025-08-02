@@ -22,11 +22,15 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
         Recommended bolus rounded to one decimal place.
 
     Raises:
-        ValueError: If ``profile.icr`` or ``profile.cf`` are not positive.
+        ValueError: If ``profile.icr`` or ``profile.cf`` are not positive,
+            or ``carbs_g`` or ``current_bg`` are negative.
     """
 
     if profile.icr <= 0 or profile.cf <= 0:
         raise ValueError("icr and cf must be positive values")
+
+    if carbs_g < 0 or current_bg < 0:
+        raise ValueError("carbs_g and current_bg must be non-negative values")
 
     meal = carbs_g / profile.icr
     correction = max(0, (current_bg - profile.target_bg) / profile.cf)
