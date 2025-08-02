@@ -29,6 +29,12 @@ def test_calc_bolus_invalid_cf():
         calc_bolus(carbs_g=30, current_bg=5, profile=profile)
 
 
+def test_calc_bolus_invalid_target_bg():
+    profile = PatientProfile(icr=10, cf=2, target_bg=-1)
+    with pytest.raises(ValueError, match="target_bg"):
+        calc_bolus(carbs_g=30, current_bg=5, profile=profile)
+
+
 def test_calc_bolus_negative_carbs():
     profile = PatientProfile(icr=10, cf=2, target_bg=6)
     with pytest.raises(ValueError, match="carbs_g"):
