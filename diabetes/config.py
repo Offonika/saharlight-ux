@@ -10,7 +10,7 @@ OPENAI_ASSISTANT_ID = os.getenv('OPENAI_ASSISTANT_ID')
 OPENAI_PROXY = os.getenv('OPENAI_PROXY')
 
 DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5432')
+DB_PORT = int(os.getenv("DB_PORT", 5432))
 DB_NAME = os.getenv('DB_NAME', 'diabetes_bot')
 DB_USER = os.getenv('DB_USER', 'diabetes_user')
 DB_PASSWORD = os.getenv('DB_PASSWORD', '')
