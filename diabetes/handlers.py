@@ -1256,6 +1256,7 @@ onboarding_conv = ConversationHandler(
 sugar_conv = ConversationHandler(
     entry_points=[
         CommandHandler("sugar", sugar_start),
+        MessageHandler(filters.Regex("^❓ Мой сахар$"), sugar_start),
     ],
     states={
         SUGAR_VAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, sugar_val)],
@@ -1325,7 +1326,6 @@ def register_handlers(app):
     app.add_handler(CommandHandler("profile", profile_command))
     app.add_handler(MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_view))
     app.add_handler(MessageHandler(filters.Regex(r"^📊 История$"), history_handler))
-    app.add_handler(MessageHandler(filters.Regex(r"^❓ Мой сахар$"), sugar_start))
     app.add_handler(sugar_conv)
     app.add_handler(photo_conv)
     app.add_handler(profile_conv)
