@@ -23,3 +23,15 @@ def test_calc_bolus():
     assert calc_bolus(30, 6, profile) == 3.0
     # сахар ниже целевого — коррекция не добавляется
     assert calc_bolus(24, 4, profile) == 2.4
+
+
+@pytest.mark.parametrize("icr, cf", [
+    (0, 2),
+    (-1, 2),
+    (10, 0),
+    (10, -1),
+])
+def test_calc_bolus_invalid_profile(icr, cf):
+    profile = PatientProfile(icr=icr, cf=cf, target_bg=6)
+    with pytest.raises(ValueError):
+        calc_bolus(50, 10, profile)
