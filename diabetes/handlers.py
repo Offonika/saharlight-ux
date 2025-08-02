@@ -279,11 +279,10 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not entry_data:
             await query.edit_message_text("❗ Нет данных для сохранения.")
             return
-        session = SessionLocal()
-        entry = Entry(**entry_data)
-        session.add(entry)
-        session.commit()
-        session.close()
+        with SessionLocal() as session:
+            entry = Entry(**entry_data)
+            session.add(entry)
+            session.commit()
         await query.edit_message_text("✅ Запись сохранена в дневник!")
         return
     if data == "edit_entry":
@@ -332,17 +331,15 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
-    session = SessionLocal()
     user_id = update.effective_user.id
-    user = session.get(User, user_id)
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
 
-    if not user:
-        thread_id = create_thread()
-        user = User(telegram_id=user_id, thread_id=thread_id)
-        session.add(user)
-        session.commit()
-
-    session.close()
+        if not user:
+            thread_id = create_thread()
+            user = User(telegram_id=user_id, thread_id=thread_id)
+            session.add(user)
+            session.commit()
 
     await update.message.reply_text(
         "👋 <b>Привет, рад снова тебя видеть!</b>\n"
@@ -375,21 +372,19 @@ async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
-    session = SessionLocal()
     user_id = update.effective_user.id
-    session.query(Entry).filter_by(telegram_id=user_id).delete()
-    session.query(Profile).filter_by(telegram_id=user_id).delete()
-    session.query(User).filter_by(telegram_id=user_id).delete()  # Теперь удаляем и пользователя
-    session.commit()
-    session.close()
+    with SessionLocal() as session:
+        session.query(Entry).filter_by(telegram_id=user_id).delete()
+        session.query(Profile).filter_by(telegram_id=user_id).delete()
+        session.query(User).filter_by(telegram_id=user_id).delete()  # Теперь удаляем и пользователя
+        session.commit()
     await update.message.reply_text("Профиль и история удалены. Вы можете начать заново.", reply_markup=menu_keyboard)
 
 # === Профиль ===
 async def profile_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    session = SessionLocal()
     user_id = update.effective_user.id
-    profile = session.get(Profile, user_id)
-    session.close()
+    with SessionLocal() as session:
+        profile = session.get(Profile, user_id)
     
     current_value = f"(текущее: {profile.icr} г/ед.)" if profile and profile.icr else ""
     await update.message.reply_text(
@@ -401,9 +396,8 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         context.user_data['icr'] = float(update.message.text)
         
-        session = SessionLocal()
-        profile = session.get(Profile, update.effective_user.id)
-        session.close()
+        with SessionLocal() as session:
+            profile = session.get(Profile, update.effective_user.id)
 
         current_value = f"(текущее: {profile.cf} ммоль/л)" if profile and profile.cf else ""
         await update.message.reply_text(
@@ -418,9 +412,8 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         context.user_data['cf'] = float(update.message.text)
 
-        session = SessionLocal()
-        profile = session.get(Profile, update.effective_user.id)
-        session.close()
+        with SessionLocal() as session:
+            profile = session.get(Profile, update.effective_user.id)
 
         current_value = f"(текущее: {profile.target_bg} ммоль/л)" if profile and profile.target_bg else ""
         await update.message.reply_text(
@@ -434,17 +427,16 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         context.user_data['target'] = float(update.message.text)
-        session = SessionLocal()
         user_id = update.effective_user.id
-        prof = session.get(Profile, user_id)
-        if not prof:
-            prof = Profile(telegram_id=user_id)
-            session.add(prof)
-        prof.icr = context.user_data['icr']
-        prof.cf = context.user_data['cf']
-        prof.target_bg = context.user_data['target']
-        session.commit()
-        session.close()
+        with SessionLocal() as session:
+            prof = session.get(Profile, user_id)
+            if not prof:
+                prof = Profile(telegram_id=user_id)
+                session.add(prof)
+            prof.icr = context.user_data['icr']
+            prof.cf = context.user_data['cf']
+            prof.target_bg = context.user_data['target']
+            session.commit()
         await update.message.reply_text("✅ Профиль сохранён.", reply_markup=menu_keyboard)
         return ConversationHandler.END
     except ValueError:
@@ -479,18 +471,17 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"/profile {cf} {icr} {target}\n"
             )
 
-        session = SessionLocal()
         user_id = update.effective_user.id
-        prof = session.get(Profile, user_id)
-        if not prof:
-            prof = Profile(telegram_id=user_id)
-            session.add(prof)
+        with SessionLocal() as session:
+            prof = session.get(Profile, user_id)
+            if not prof:
+                prof = Profile(telegram_id=user_id)
+                session.add(prof)
 
-        prof.icr = icr  # г/ед
-        prof.cf = cf   # ммоль/л
-        prof.target_bg = target
-        session.commit()
-        session.close()
+            prof.icr = icr  # г/ед
+            prof.cf = cf   # ммоль/л
+            prof.target_bg = target
+            session.commit()
 
         await update.message.reply_text(
             f"✅ Профиль обновлён:\n"
@@ -509,10 +500,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
-    session = SessionLocal()
     user_id = update.effective_user.id
-    profile = session.get(Profile, user_id)
-    session.close()
+    with SessionLocal() as session:
+        profile = session.get(Profile, user_id)
 
     if not profile:
         await update.message.reply_text(
@@ -565,9 +555,10 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             sugar = float(context.args[0].replace(",", "."))
             # Записываем в БД
-            session = SessionLocal()
-            entry = Entry(telegram_id=update.effective_user.id, sugar_before=sugar)
-            session.add(entry); session.commit(); session.close()
+            with SessionLocal() as session:
+                entry = Entry(telegram_id=update.effective_user.id, sugar_before=sugar)
+                session.add(entry)
+                session.commit()
             await update.message.reply_text(f"✅ Уровень сахара сохранён: {sugar} ммоль/л", reply_markup=menu_keyboard)
             return ConversationHandler.END
         except ValueError:
@@ -618,10 +609,10 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return DOSE_SUGAR
 
     user_id = update.effective_user.id
-    session = SessionLocal()
-    profile = session.get(Profile, user_id)
+    with SessionLocal() as session:
+        profile = session.get(Profile, user_id)
+
     if not profile:
-        session.close()
         await update.message.reply_text("Профиль не найден. Используйте /profile.")
         return ConversationHandler.END
 
@@ -637,7 +628,6 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         xe_val = context.user_data["xe"]
         carbs = xe_val * 12          # 1 ХЕ = 12 г
     else:
-        session.close()
         await update.message.reply_text(
             "Нет данных о количестве углеводов. Сначала отправьте фото блюда или введите углеводы вручную.",
             reply_markup=menu_keyboard
@@ -646,7 +636,6 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     dose = calc_bolus(carbs, sugar, PatientProfile(icr, cf, target_bg))
     event_time = datetime.datetime.now(datetime.timezone.utc)
-    session.close()
 
     # Сохраняем все данные во временный блок
     context.user_data['pending_entry'] = {
@@ -882,16 +871,15 @@ async def photo_sugar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
     carbs = context.user_data.get("carbs")
     xe = context.user_data.get("xe")
     photo_path = context.user_data.get("photo_path")
-    session = SessionLocal()
-    profile = session.get(Profile, user_id)
+    with SessionLocal() as session:
+        profile = session.get(Profile, user_id)
+
     if not profile or carbs is None:
-        session.close()
         await update.message.reply_text("Нет данных для расчёта. Начните заново.", reply_markup=menu_keyboard)
         return ConversationHandler.END
 
     dose = calc_bolus(carbs, sugar, PatientProfile(profile.icr, profile.cf, profile.target_bg))
     event_time = datetime.datetime.now(datetime.timezone.utc)
-    session.close()
 
     context.user_data['pending_entry'] = {
         'telegram_id': user_id,
@@ -979,10 +967,9 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return  # игнорируем не‑текст
 
-    session   = SessionLocal()
     user_id   = update.effective_user.id
-    user      = session.get(User, user_id)
-    session.close()
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
     if not user:
         await update.message.reply_text("Сначала используйте /start.")
         return
@@ -1186,17 +1173,16 @@ async def onb_cf(update, context):
 async def onb_target(update, context):
     try:
         context.user_data['target'] = float(update.message.text)
-        session = SessionLocal()
         user_id = update.effective_user.id
-        prof = session.get(Profile, user_id)
-        if not prof:
-            prof = Profile(telegram_id=user_id)
-            session.add(prof)
-        prof.icr = context.user_data['icr']
-        prof.cf = context.user_data['cf']
-        prof.target_bg = context.user_data['target']
-        session.commit()
-        session.close()
+        with SessionLocal() as session:
+            prof = session.get(Profile, user_id)
+            if not prof:
+                prof = Profile(telegram_id=user_id)
+                session.add(prof)
+            prof.icr = context.user_data['icr']
+            prof.cf = context.user_data['cf']
+            prof.target_bg = context.user_data['target']
+            session.commit()
         img_path = "assets/demo.jpg"
         with open(img_path, "rb") as f:
             await update.message.reply_photo(
