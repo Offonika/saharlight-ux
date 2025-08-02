@@ -10,6 +10,11 @@ if OPENAI_PROXY:
     os.environ["HTTP_PROXY"] = OPENAI_PROXY
     os.environ["HTTPS_PROXY"] = OPENAI_PROXY
 
+if not OPENAI_API_KEY:
+    message = "OPENAI_API_KEY is not set"
+    logging.error("[OpenAI] %s", message)
+    raise RuntimeError(message)
+
 # 2️⃣ Создаём обычный клиент OpenAI — без extra‑аргументов,
 #    он возьмёт прокси из env автоматически.
 client = OpenAI(api_key=OPENAI_API_KEY)
