@@ -394,7 +394,7 @@ async def profile_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        context.user_data['icr'] = float(update.message.text)
+        context.user_data['icr'] = float(update.message.text.replace(",", "."))
         
         with SessionLocal() as session:
             profile = session.get(Profile, update.effective_user.id)
@@ -410,7 +410,7 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        context.user_data['cf'] = float(update.message.text)
+        context.user_data['cf'] = float(update.message.text.replace(",", "."))
 
         with SessionLocal() as session:
             profile = session.get(Profile, update.effective_user.id)
@@ -426,7 +426,7 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        context.user_data['target'] = float(update.message.text)
+        context.user_data['target'] = float(update.message.text.replace(",", "."))
         user_id = update.effective_user.id
         with SessionLocal() as session:
             prof = session.get(Profile, user_id)
@@ -455,9 +455,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        icr = float(args[0])
-        cf = float(args[1])
-        target = float(args[2])
+        icr = float(args[0].replace(",", "."))
+        cf = float(args[1].replace(",", "."))
+        target = float(args[2].replace(",", "."))
 
         # Предупреждение, если параметры выглядят странно
         warning_msg = ""
@@ -1150,7 +1150,7 @@ async def onb_begin(update, context):
 
 async def onb_icr(update, context):
     try:
-        context.user_data['icr'] = float(update.message.text)
+        context.user_data['icr'] = float(update.message.text.replace(",", "."))
         await update.message.reply_text(
             "📋 *Шаг 1 из 2*\nТеперь введи *КЧ* — на сколько ммоль/л 1 ед. инсулина снижает сахар.\n_Например: 2_",
             parse_mode="Markdown")
@@ -1161,7 +1161,7 @@ async def onb_icr(update, context):
 
 async def onb_cf(update, context):
     try:
-        context.user_data['cf'] = float(update.message.text)
+        context.user_data['cf'] = float(update.message.text.replace(",", "."))
         await update.message.reply_text(
             "📋 *Шаг 1 из 2*\nТеперь введи *целевой сахар* (ммоль/л).\n_Например: 6_",
             parse_mode="Markdown")
@@ -1172,7 +1172,7 @@ async def onb_cf(update, context):
 
 async def onb_target(update, context):
     try:
-        context.user_data['target'] = float(update.message.text)
+        context.user_data['target'] = float(update.message.text.replace(",", "."))
         user_id = update.effective_user.id
         with SessionLocal() as session:
             prof = session.get(Profile, user_id)
