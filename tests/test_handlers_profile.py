@@ -14,8 +14,15 @@ class DummyMessage:
         self.texts.append(text)
 
 
+@pytest.mark.parametrize(
+    "args, expected_icr, expected_cf, expected_target",
+    [
+        (["8", "3", "6"], "8.0", "3.0", "6.0"),
+        (["8,5", "3,1", "6,7"], "8.5", "3.1", "6.7"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_profile_command_and_view(monkeypatch):
+async def test_profile_command_and_view(monkeypatch, args, expected_icr, expected_cf, expected_target):
     import os
     os.environ["OPENAI_API_KEY"] = "test"
     import diabetes.handlers as handlers
@@ -32,16 +39,18 @@ async def test_profile_command_and_view(monkeypatch):
 
     message = DummyMessage()
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=123))
-    context = SimpleNamespace(args=["8", "3", "6"], user_data={})
+    context = SimpleNamespace(args=args, user_data={})
 
     await handlers.profile_command(update, context)
-    assert "ИКХ: 8.0 г/ед." in message.texts[0]
-    assert "КЧ: 3.0 ммоль/л" in message.texts[0]
+    assert f"ИКХ: {expected_icr} г/ед." in message.texts[0]
+    assert f"КЧ: {expected_cf} ммоль/л" in message.texts[0]
+    assert f"Целевой сахар: {expected_target} ммоль/л" in message.texts[0]
 
     message2 = DummyMessage()
     update2 = SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=123))
     context2 = SimpleNamespace(user_data={})
 
     await handlers.profile_view(update2, context2)
-    assert "ИКХ: 8.0 г/ед." in message2.texts[0]
-    assert "КЧ: 3.0 ммоль/л" in message2.texts[0]
+    assert f"ИКХ: {expected_icr} г/ед." in message2.texts[0]
+    assert f"КЧ: {expected_cf} ммоль/л" in message2.texts[0]
+    assert f"Целевой сахар: {expected_target} ммоль/л" in message2.texts[0]
