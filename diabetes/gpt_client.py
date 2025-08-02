@@ -26,6 +26,8 @@ def send_message(thread_id: str, content: str | None = None, image_path: str | N
     Отправляет текст или (изображение + текст) в thread
     и запускает run с ассистентом.  Возвращает объект run.
     """
+    if content is None and image_path is None:
+        raise ValueError("Either 'content' or 'image_path' must be provided")
     # 1. Подготовка контента
     if image_path:
         try:
