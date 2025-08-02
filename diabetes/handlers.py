@@ -456,8 +456,8 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(args) != 3:
         await update.message.reply_text(
             "❗ Формат команды:\n"
-            "/profile <ИКХ> <КЧ> <целевой>\n"
-            "Пример: /profile 2 10 6",
+            "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой>\n"
+            "Пример: /profile 10 2 6",
             parse_mode="Markdown"
         )
         return
@@ -473,8 +473,8 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if icr > 8 or cf < 3:
             warning_msg = (
                 "\n⚠️ Проверьте, пожалуйста: возможно, вы перепутали местами ИКХ и КЧ.\n"
-                f"• Вы ввели ИКХ = {icr} ммоль/л (высоковато)\n"
-                f"• КЧ = {cf} г/ед. (низковато)\n\n"
+                f"• Вы ввели ИКХ = {icr} г/ед. (высоковато)\n"
+                f"• КЧ = {cf} ммоль/л (низковато)\n\n"
                 "Если вы хотели ввести наоборот, отправьте:\n"
                 f"/profile {cf} {icr} {target}\n"
             )
@@ -494,8 +494,8 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text(
             f"✅ Профиль обновлён:\n"
-            f"• ИКХ: {icr} ммоль/л\n"
-            f"• КЧ: {cf} г/ед.\n"
+            f"• ИКХ: {icr} г/ед.\n"
+            f"• КЧ: {cf} ммоль/л\n"
             f"• Целевой сахар: {target} ммоль/л"
             + warning_msg,
             parse_mode="Markdown"
@@ -503,7 +503,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except ValueError:
         await update.message.reply_text(
-            "❗ Пожалуйста, введите корректные числа. Пример:\n/profile 2 10 6",
+            "❗ Пожалуйста, введите корректные числа. Пример:\n/profile 10 2 6",
             parse_mode="Markdown"
         )
 
@@ -518,16 +518,16 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "Ваш профиль пока не настроен.\n\n"
             "Чтобы настроить профиль, введите команду:\n"
-            "/profile <ИКХ> <КЧ> <целевой>\n"
-            "Пример: /profile 2 10 6",
+            "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой>\n"
+            "Пример: /profile 10 2 6",
             parse_mode="Markdown"
         )
         return
 
     msg = (
         f"📄 Ваш профиль:\n"
-        f"• ИКХ: {profile.cf} ммоль/л\n"
-        f"• КЧ: {profile.icr} г/ед.\n"
+        f"• ИКХ: {profile.icr} г/ед.\n"
+        f"• КЧ: {profile.cf} ммоль/л\n"
         f"• Целевой сахар: {profile.target_bg} ммоль/л"
     )
     await update.message.reply_text(msg)
