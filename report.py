@@ -1,4 +1,6 @@
+import asyncio
 import io
+import logging
 import re
 from datetime import datetime
 import matplotlib.pyplot as plt
@@ -192,16 +194,21 @@ async def send_report(update, context, date_from, period_label, query=None):
         + "Сделай анализ, дай советы по контролю сахара и питанию, укажи возможные проблемы."
     )
 
-    gpt_response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "Ты — медицинский ассистент для диабетиков."},
-            {"role": "user", "content": gpt_prompt},
-        ],
-        temperature=0.2,
-        max_tokens=600,
-    )
-    gpt_text = gpt_response.choices[0].message.content.strip()
+    try:
+        gpt_response = await asyncio.to_thread(
+            client.chat.completions.create,
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Ты — медицинский ассистент для диабетиков."},
+                {"role": "user", "content": gpt_prompt},
+            ],
+            temperature=0.2,
+            max_tokens=600,
+        )
+        gpt_text = gpt_response.choices[0].message.content.strip()
+    except Exception as e:
+        logging.error(f"Report generation failed: {e}")
+        gpt_text = "Не удалось получить рекомендации."
 
     report_msg = (
         f"<b>📈 Отчёт за {period_label}</b>\n\n"
