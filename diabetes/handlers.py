@@ -28,7 +28,6 @@ from diabetes.gpt_command_parser import parse_command
 from diabetes.ui import menu_keyboard, dose_keyboard, confirm_keyboard
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 

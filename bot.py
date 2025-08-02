@@ -7,12 +7,20 @@ from telegram.ext import ApplicationBuilder
 import logging
 import sys
 
-logging.basicConfig(level=logging.INFO)
-logging.info("=== Bot started ===")
+logger = logging.getLogger(__name__)
+
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    logger.info("=== Bot started ===")
+
     if not TELEGRAM_TOKEN:
-        logging.error("TELEGRAM_TOKEN is not set. Please provide the environment variable.")
+        logger.error(
+            "TELEGRAM_TOKEN is not set. Please provide the environment variable."
+        )
         sys.exit(1)
 
     init_db()
