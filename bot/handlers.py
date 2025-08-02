@@ -340,7 +340,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if data == "cancel_entry":
         context.user_data.pop('pending_entry', None)
-        await query.edit_message_text("❌ Запись отменена.", reply_markup=menu_keyboard)
+        await query.edit_message_text("❌ Запись отменена.", reply_markup=None)
+        await query.message.reply_text("Пожалуйста, выберите действие:", reply_markup=menu_keyboard)
         return
 
     # --- Старый код: обработка истории ---
