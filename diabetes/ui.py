@@ -20,9 +20,9 @@ __all__ = ("menu_keyboard", "dose_keyboard", "confirm_keyboard")
 
 menu_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton("📷 Фото"), KeyboardButton("🩸 Сахар")],
-        [KeyboardButton("💉 Доза"), KeyboardButton("📜 История")],
-        [KeyboardButton("📊 Отчёт")],
+        [KeyboardButton("📷 Фото еды"), KeyboardButton("❓ Мой сахар")],
+        [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
+        [KeyboardButton("📈 Отчёт"), KeyboardButton("📄 Мой профиль")],
     ],
     resize_keyboard=True,
     one_time_keyboard=False,
