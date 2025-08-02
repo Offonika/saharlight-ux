@@ -3,17 +3,22 @@
 
 from sqlalchemy import (
     create_engine, Column, Integer, BigInteger, String,
-    Float, Text, TIMESTAMP, ForeignKey, func
+    Float, Text, TIMESTAMP, ForeignKey, func,
 )
+from sqlalchemy.engine import URL
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 from diabetes.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 
 # ────────────────── подключение к Postgres ──────────────────
-DATABASE_URL = (
-    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/"
-    f"{DB_NAME}"
+DATABASE_URL = URL.create(
+    "postgresql",
+    username=DB_USER,
+    password=DB_PASSWORD,
+    host=DB_HOST,
+    port=DB_PORT,
+    database=DB_NAME,
 )
 
 engine = create_engine(DATABASE_URL)
