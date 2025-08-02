@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import io
 import logging
+import os
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
@@ -10,10 +11,34 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import textwrap
+from diabetes.config import FONT_DIR
 
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
-pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
-pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+DEFAULT_FONT_DIR = '/usr/share/fonts/truetype/dejavu'
+_font_dir = FONT_DIR or DEFAULT_FONT_DIR
+
+
+def _register_font(name, filename):
+    path = os.path.join(_font_dir, filename)
+    try:
+        pdfmetrics.registerFont(TTFont(name, path))
+    except Exception as e:
+        logging.warning("[PDF] Cannot register font %s at %s: %s", name, path, e)
+        if _font_dir != DEFAULT_FONT_DIR:
+            fallback = os.path.join(DEFAULT_FONT_DIR, filename)
+            try:
+                pdfmetrics.registerFont(TTFont(name, fallback))
+            except Exception as e2:
+                logging.exception(
+                    "[PDF] Failed to register default font %s at %s: %s",
+                    name,
+                    fallback,
+                    e2,
+                )
+
+
+_register_font('DejaVuSans', 'DejaVuSans.ttf')
+_register_font('DejaVuSans-Bold', 'DejaVuSans-Bold.ttf')
 
 
 def make_sugar_plot(entries, period_label):
