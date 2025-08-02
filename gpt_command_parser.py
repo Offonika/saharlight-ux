@@ -1,4 +1,4 @@
-import os, json, logging
+import os, json, logging, asyncio
 from openai import OpenAI
 from config import OPENAI_API_KEY, OPENAI_PROXY, validate_tokens
 
@@ -47,8 +47,16 @@ SYSTEM_PROMPT = (
 
 
 async def parse_command(text: str) -> dict | None:
+    """Parse user's free-form text into a structured command.
+
+    The OpenAI client call is executed in a background thread to avoid
+    blocking the event loop.
+    """
     try:
-        response = client.chat.completions.create(
+        # Run the blocking client call in a separate thread so the event loop
+        # remains responsive.
+        response = await asyncio.to_thread(
+            client.chat.completions.create,
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
