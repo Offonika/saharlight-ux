@@ -769,7 +769,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
     if not file_path:
         try:
             photo = update.message.photo[-1]
-        except (AttributeError, IndexError):
+        except (AttributeError, IndexError, TypeError):
             await message.reply_text("❗ Файл не распознан как изображение.")
             context.user_data.pop(WAITING_GPT_FLAG, None)
             return ConversationHandler.END
@@ -865,8 +865,8 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # кладём путь и «псевдо‑фото» в update, чтобы дальше всё работало
     context.user_data["__file_path"] = path
-    # чтобы код, который где‑то проверяет .photo, не упал
-             # пустой список‑заглушка
+    update.message.photo = []  # чтобы код, который где‑то проверяет .photo, не упал
+    # пустой список‑заглушка
 
     # переходим в обычный обработчик фото
     return await photo_handler(update, context)
