@@ -31,7 +31,11 @@ def send_message(thread_id: str, content: str | None = None, image_path: str | N
     """
     Отправляет текст или (изображение + текст) в thread
     и запускает run с ассистентом.  Возвращает объект run.
+    Требует хотя бы один из параметров: content или image_path.
     """
+    if content is None and image_path is None:
+        logging.warning("[OpenAI] send_message called without content or image_path")
+        raise ValueError("Either content or image_path must be provided")
     # 1. Подготовка контента
     if image_path:
         try:
