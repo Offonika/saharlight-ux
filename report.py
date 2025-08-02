@@ -1,6 +1,7 @@
 import asyncio
 import io
 import logging
+import os
 import re
 from datetime import datetime
 import matplotlib.pyplot as plt
@@ -12,9 +13,38 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
-# register fonts for cyrillic
-pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
-pdfmetrics.registerFont(TTFont('DejaVuSans-Bold', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
+DEFAULT_FONT = "Helvetica"
+DEFAULT_FONT_BOLD = "Helvetica-Bold"
+
+
+def _register_fonts() -> tuple[str, str]:
+    """Register DejaVu fonts if available, else return defaults.
+
+    The font paths can be overridden via ``FONT_PATH`` and ``FONT_BOLD_PATH``
+    environment variables. If the files are not found, built-in Helvetica
+    fonts are used as a fallback.
+    """
+    regular_path = os.getenv(
+        "FONT_PATH", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    )
+    bold_path = os.getenv(
+        "FONT_BOLD_PATH", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    )
+
+    if os.path.exists(regular_path) and os.path.exists(bold_path):
+        pdfmetrics.registerFont(TTFont("DejaVuSans", regular_path))
+        pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", bold_path))
+        return "DejaVuSans", "DejaVuSans-Bold"
+
+    logging.warning(
+        "DejaVu fonts not found; using default fonts %s and %s",
+        DEFAULT_FONT,
+        DEFAULT_FONT_BOLD,
+    )
+    return DEFAULT_FONT, DEFAULT_FONT_BOLD
+
+
+FONT_REGULAR, FONT_BOLD = _register_fonts()
 
 from db_access import get_entries_since
 from gpt_client import client
@@ -53,37 +83,37 @@ def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, buf_graph):
     c = canvas.Canvas(pdf_buf, pagesize=A4)
     width, height = A4
     y = height - 20 * mm
-    c.setFont("DejaVuSans-Bold", 16)
+    c.setFont(FONT_BOLD, 16)
     c.drawString(20 * mm, y, "Отчёт по диабетическому дневнику")
     y -= 12 * mm
-    c.setFont("DejaVuSans", 11)
+    c.setFont(FONT_REGULAR, 11)
     for line in summary_lines:
         c.drawString(20 * mm, y, line)
         y -= 7 * mm
     if errors:
         y -= 5 * mm
-        c.setFont("DejaVuSans-Bold", 11)
+        c.setFont(FONT_BOLD, 11)
         c.drawString(20 * mm, y, "Ошибки и критические значения:")
         y -= 7 * mm
-        c.setFont("DejaVuSans", 11)
+        c.setFont(FONT_REGULAR, 11)
         for line in errors:
             c.drawString(22 * mm, y, line)
             y -= 6 * mm
     y -= 5 * mm
-    c.setFont("DejaVuSans-Bold", 11)
+    c.setFont(FONT_BOLD, 11)
     c.drawString(20 * mm, y, "Динамика по дням:")
     y -= 7 * mm
-    c.setFont("DejaVuSans", 11)
+    c.setFont(FONT_REGULAR, 11)
     text_obj = c.beginText(22 * mm, y)
-    text_obj.setFont("DejaVuSans", 11)
+    text_obj.setFont(FONT_REGULAR, 11)
     for line in clean_markdown(gpt_text).splitlines():
-        for sub in split_text_by_width(line, "DejaVuSans", 11, max_width_mm=170):
+        for sub in split_text_by_width(line, FONT_REGULAR, 11, max_width_mm=170):
             if text_obj.getY() < 30 * mm:
                 c.drawText(text_obj)
                 c.showPage()
                 y = height - 20 * mm
                 text_obj = c.beginText(22 * mm, y)
-                text_obj.setFont("DejaVuSans", 11)
+                text_obj.setFont(FONT_REGULAR, 11)
             text_obj.textLine(sub)
     c.drawText(text_obj)
     y = text_obj.getY()
