@@ -2,11 +2,11 @@
 
 # handlers.py — «чистый» блок импорта
 import asyncio
+import datetime
 import logging
 import os
 import re
 import time
-from datetime import datetime, timezone, timedelta, time
 from pathlib import Path
 
 
@@ -54,7 +54,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get('awaiting_report_date'):
         try:
             
-            date_from = datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
+            date_from = datetime.datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
         except Exception:
             await update.message.reply_text("❗ Формат даты: YYYY-MM-DD")
             return
@@ -123,7 +123,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if "dose" in parts:  entry.dose         = float(parts["dose"])
             if "сахар" in parts or "sugar" in parts:
                 entry.sugar_before = float(parts.get("сахар") or parts["sugar"])
-            entry.updated_at = datetime.utcnow()
+            entry.updated_at = datetime.datetime.utcnow()
             s.commit()
         context.user_data.pop("edit_id")
         await update.message.reply_text("✅ Запись обновлена!")
@@ -146,19 +146,19 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── определяем event_time ─────────────────────────────────
     if entry_date:
         try:
-            event_dt = datetime.fromisoformat(entry_date).replace(tzinfo=timezone.utc)
+            event_dt = datetime.datetime.fromisoformat(entry_date).replace(tzinfo=datetime.timezone.utc)
         except ValueError:
-            event_dt = datetime.now(timezone.utc)
+            event_dt = datetime.datetime.now(datetime.timezone.utc)
     elif time_str:
         try:
             hh, mm = map(int, time_str.split(":"))
-            today  = datetime.now().date()
-            event_dt = datetime.combine(today, time(hh, mm))
+            today  = datetime.datetime.now().date()
+            event_dt = datetime.datetime.combine(today, datetime.time(hh, mm))
 
         except Exception:
-            event_dt = datetime.now()
+            event_dt = datetime.datetime.now()
     else:
-        event_dt = datetime.now(timezone.utc)
+        event_dt = datetime.datetime.now(datetime.timezone.utc)
 
     context.user_data['pending_entry'] = {
         'telegram_id': user_id,
@@ -261,7 +261,7 @@ async def apply_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if "dose" in parts:  entry.dose         = float(parts["dose"])
         if "сахар" in parts or "sugar" in parts:
             entry.sugar_before = float(parts.get("сахар") or parts["sugar"])
-        entry.updated_at = datetime.utcnow()
+        entry.updated_at = datetime.datetime.utcnow()
         s.commit()
 
     context.user_data.pop("edit_id")
@@ -588,7 +588,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return SUGAR_VAL
 
     user_id = update.effective_user.id
-    event_time = datetime.now(timezone.utc)
+    event_time = datetime.datetime.now(datetime.timezone.utc)
     # Сохраняем все данные во временный блок
     context.user_data['pending_entry'] = {
         'telegram_id': user_id,
@@ -645,7 +645,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
     dose = calc_bolus(carbs, sugar, PatientProfile(icr, cf, target_bg))
-    event_time = datetime.now(timezone.utc)
+    event_time = datetime.datetime.now(datetime.timezone.utc)
     session.close()
 
     # Сохраняем все данные во временный блок
@@ -892,7 +892,7 @@ async def photo_sugar_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         return ConversationHandler.END
 
     dose = calc_bolus(carbs, sugar, PatientProfile(profile.icr, profile.cf, profile.target_bg))
-    event_time = datetime.now(timezone.utc)
+    event_time = datetime.datetime.now(datetime.timezone.utc)
     session.close()
 
     context.user_data['pending_entry'] = {
@@ -933,7 +933,7 @@ async def history_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     day = None
     if context.args:
         try:
-            day = datetime.fromisoformat(context.args[0]).date()
+            day = datetime.datetime.fromisoformat(context.args[0]).date()
         except ValueError:
             await update.message.reply_text(
                 "❗ Формат даты: YYYY-MM-DD  (пример: /history 2025-05-05)"
@@ -1059,15 +1059,15 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
         await query.edit_message_text("❌ Запрос отменён.", reply_markup=menu_keyboard)
         context.user_data.pop('awaiting_report_date', None)
         return
-    now = datetime.now()
+    now = datetime.datetime.now()
     if data == "report_today":
         date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
         period_label = "сегодня"
     elif data == "report_week":
-        date_from = now - timedelta(days=7)
+        date_from = now - datetime.timedelta(days=7)
         period_label = "неделю"
     elif data == "report_month":
-        date_from = now - timedelta(days=30)
+        date_from = now - datetime.timedelta(days=30)
         period_label = "месяц"
     elif data == "report_custom":
         await query.edit_message_text("Введите дату начала отчёта в формате YYYY-MM-DD:")
@@ -1084,7 +1084,7 @@ async def report_date_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get('awaiting_report_date'):
         try:
             
-            date_from = datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
+            date_from = datetime.datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
         except Exception:
             await update.message.reply_text("❗ Формат даты: YYYY-MM-DD")
             return
