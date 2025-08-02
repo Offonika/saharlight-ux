@@ -53,10 +53,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- report_date_input ---
     if context.user_data.get('awaiting_report_date'):
         try:
-            
-            date_from = datetime.datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
-        except Exception:
-            await update.message.reply_text("❗ Формат даты: YYYY-MM-DD")
+            date_from = datetime.datetime.strptime(
+                update.message.text.strip(), "%Y-%m-%d"
+            )
+        except ValueError:
+            await update.message.reply_text(
+                "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
+            )
             return
         await send_report(update, context, date_from, "указанный период")
         context.user_data.pop('awaiting_report_date', None)
@@ -152,10 +155,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif time_str:
         try:
             hh, mm = map(int, time_str.split(":"))
-            today  = datetime.datetime.now().date()
+            today = datetime.datetime.now().date()
             event_dt = datetime.datetime.combine(today, datetime.time(hh, mm))
-
-        except Exception:
+        except (ValueError, TypeError):
+            await update.message.reply_text(
+                "⏰ Неверный формат времени. Использую текущее время."
+            )
             event_dt = datetime.datetime.now()
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
@@ -765,8 +770,16 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
 
         os.makedirs("photos", exist_ok=True)
         file_path = f"photos/{user_id}_{photo.file_unique_id}.jpg"
-        file = await context.bot.get_file(photo.file_id)
-        await file.download_to_drive(file_path)
+        try:
+            file = await context.bot.get_file(photo.file_id)
+            await file.download_to_drive(file_path)
+        except OSError as e:
+            logging.exception("[PHOTO] Failed to save photo: %s", e)
+            await message.reply_text(
+                "⚠️ Не удалось сохранить фото. Попробуйте ещё раз."
+            )
+            context.user_data.pop(WAITING_GPT_FLAG, None)
+            return ConversationHandler.END
 
     logging.info("[PHOTO] Saved to %s", file_path)
 
@@ -824,9 +837,17 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         )
         return PHOTO_SUGAR
 
+    except OSError as e:
+        logging.exception("[PHOTO] File processing error: %s", e)
+        await message.reply_text(
+            "⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз."
+        )
+        return ConversationHandler.END
     except Exception as e:
         logging.exception("[PHOTO] Vision failed: %s", e)
-        await message.reply_text("⚠️ Не удалось распознать фото. Попробуйте ещё раз.")
+        await message.reply_text(
+            "⚠️ Не удалось распознать фото. Попробуйте ещё раз."
+        )
         return ConversationHandler.END
 
     finally:
@@ -1068,10 +1089,13 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
 async def report_date_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get('awaiting_report_date'):
         try:
-            
-            date_from = datetime.datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
-        except Exception:
-            await update.message.reply_text("❗ Формат даты: YYYY-MM-DD")
+            date_from = datetime.datetime.strptime(
+                update.message.text.strip(), "%Y-%m-%d"
+            )
+        except ValueError:
+            await update.message.reply_text(
+                "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
+            )
             return
         await send_report(update, context, date_from, "указанный период")
         context.user_data.pop('awaiting_report_date', None)
