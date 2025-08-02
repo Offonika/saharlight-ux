@@ -756,7 +756,6 @@ async def dose_xe_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False):
     from diabetes.gpt_client import client, send_message, create_thread
-    import time
 
     message = update.message or update.callback_query.message
     user_id = update.effective_user.id
@@ -795,7 +794,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
 
         # 3. Ждать окончания run
         while run.status not in ("completed", "failed", "cancelled", "expired"):
-            time.sleep(2)
+            await asyncio.sleep(2)
             run = client.beta.threads.runs.retrieve(thread_id=run.thread_id, run_id=run.id)
 
         if run.status != "completed":
