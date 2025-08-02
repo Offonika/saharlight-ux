@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import logging
@@ -46,20 +47,27 @@ SYSTEM_PROMPT = (
 )
 
 
-async def parse_command(text: str) -> dict | None:
+async def parse_command(text: str, timeout: float = 10) -> dict | None:
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user",   "content": text}
-            ],
-            temperature=0,
-            max_tokens=256
+        response = await asyncio.wait_for(
+            asyncio.to_thread(
+                client.chat.completions.create,
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": text},
+                ],
+                temperature=0,
+                max_tokens=256,
+            ),
+            timeout=timeout,
         )
         content = response.choices[0].message.content.strip()
         logging.info(f"GPT parse response: {content}")
         return json.loads(content)
+    except asyncio.TimeoutError:
+        logging.error("Command parsing timed out")
+        return None
     except Exception as e:
         logging.error(f"Command parsing failed: {e}")
         return None
