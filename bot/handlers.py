@@ -73,7 +73,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop('awaiting_report_date', None)
         return
 
-    # --- apply_edit ---
+    # --- ручное редактирование pending_entry ---
     if context.user_data.get('pending_entry') is not None and context.user_data.get('edit_id') is None:
         entry = context.user_data['pending_entry']
         only_sugar = (
@@ -216,98 +216,6 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
-# ▸ bot.py  (положите рядом с остальными async‑хендлерами)
-async def apply_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Если редактируем pending_entry (ещё не сохранено в БД)
-    if context.user_data.get('pending_entry') is not None and context.user_data.get('edit_id') is None:
-        entry = context.user_data['pending_entry']
-        # Проверяем: если это только сахар
-        only_sugar = (
-            entry.get('carbs_g') is None and entry.get('xe') is None and entry.get('dose') is None and entry.get('photo_path') is None
-        )
-        text = update.message.text.lower().strip()
-        if only_sugar:
-            # Ожидаем только новое значение сахара
-            try:
-                sugar = float(text.replace(",", "."))
-                entry['sugar_before'] = sugar
-            except ValueError:
-                await update.message.reply_text("Пожалуйста, введите число сахара в формате ммоль/л.")
-                return
-            # Показываем подтверждение
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
-                    InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
-                    InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
-                ]
-            ])
-            await update.message.reply_text(
-                f"Сохранить уровень сахара {sugar} ммоль/л в дневник?",
-                reply_markup=keyboard
-            )
-            return
-        # Обычный режим: ожидаем поля в формате key=value
-        parts = dict(re.findall(r"(\w+)\s*=\s*([\d.]+)", text))
-        if not parts:
-            await update.message.reply_text("Не вижу ни одного поля для изменения.")
-            return
-        if "xe" in parts:    entry['xe']           = float(parts["xe"])
-        if "carbs" in parts: entry['carbs_g']      = float(parts["carbs"])
-        if "dose" in parts:  entry['dose']         = float(parts["dose"])
-        if "сахар" in parts or "sugar" in parts:
-            entry['sugar_before'] = float(parts.get("сахар") or parts["sugar"])
-        # После редактирования снова показать подтверждение
-        carbs = entry.get('carbs_g')
-        xe = entry.get('xe')
-        sugar = entry.get('sugar_before')
-        dose = entry.get('dose')
-        xe_info = f", ХЕ: {xe}" if xe is not None else ""
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("✅ Да", callback_data="confirm_entry"),
-                InlineKeyboardButton("✏️ Изменить", callback_data="edit_entry"),
-                InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry")
-            ]
-        ])
-        await update.message.reply_text(
-            f"💉 Расчёт завершён:\n"
-            f"• Углеводы: {carbs} г{xe_info}\n"
-            f"• Сахар: {sugar} ммоль/л\n"
-            f"• Ваша доза: {dose} Ед\n\n"
-            f"Сохранить это в дневник?",
-            reply_markup=keyboard
-        )
-        return
-    # --- Старый режим: редактирование уже существующей записи ---
-    if "edit_id" not in context.user_data:    # нет режима редактирования
-        return
-
-    text = update.message.text.lower()
-    parts = dict(re.findall(r"(\w+)\s*=\s*([\d.]+)", text))
-    if not parts:
-        await update.message.reply_text("Не вижу ни одного поля для изменения.")
-        return
-
-    with SessionLocal() as s:
-        entry = s.get(Entry, context.user_data["edit_id"])
-        if not entry:
-            await update.message.reply_text("Запись уже удалена.")
-            context.user_data.pop("edit_id")
-            return
-
-        # обновляем поля, если присутствуют
-        if "xe" in parts:    entry.xe           = float(parts["xe"])
-        if "carbs" in parts: entry.carbs_g      = float(parts["carbs"])
-        if "dose" in parts:  entry.dose         = float(parts["dose"])
-        if "сахар" in parts or "sugar" in parts:
-            entry.sugar_before = float(parts.get("сахар") or parts["sugar"])
-        entry.updated_at = datetime.utcnow()
-        s.commit()
-
-    context.user_data.pop("edit_id")
-    await update.message.reply_text("✅ Запись обновлена!")
-
 async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Обрабатывает inline‑кнопки из /history и подтверждения записи."""
     query = update.callback_query
@@ -328,7 +236,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not entry_data:
             await query.edit_message_text("❗ Нет данных для редактирования.")
             return
-        # Переводим в режим ручного редактирования (apply_edit)
+        # Переводим в режим ручного редактирования (обрабатывается freeform_handler)
         context.user_data['edit_id'] = None  # Можно реализовать редактирование pending_entry через текст
         await query.edit_message_text(
             "Отправьте новое сообщение в формате:\n"
@@ -336,7 +244,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Можно указывать не все поля (что прописано — то и поменяется).",
             parse_mode="Markdown"
         )
-        # Далее пользователь отправляет текст, и apply_edit должен обработать pending_entry
+        # Далее пользователь отправляет текст, и freeform_handler обработает pending_entry
         return
     if data == "cancel_entry":
         context.user_data.pop('pending_entry', None)
