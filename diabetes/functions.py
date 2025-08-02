@@ -4,6 +4,13 @@ from dataclasses import dataclass
 import re
 
 
+def _safe_float(value: str) -> float | None:
+    try:
+        return float(value.replace(",", "."))
+    except ValueError:
+        return None
+
+
 @dataclass
 class PatientProfile:
     icr: float
@@ -28,32 +35,54 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
     return round(meal + correction, 1)
 
 
-def extract_nutrition_info(text: str):
+def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
     carbs = xe = None
     # Парсим углеводы (carbs)
     m = re.search(r"углевод[^\d]*:\s*([\d.,]+)\s*г", text, re.IGNORECASE)
     if m:
-        carbs = float(m.group(1).replace(",", "."))
+        carbs = _safe_float(m.group(1))
     # Диапазон XE c двоеточием (например XE: 2–3)
-    rng = re.search(r"\b(?:[хx][еe]|xe)\s*:\s*(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)", text, re.IGNORECASE)
+    rng = re.search(
+        r"\b(?:[хx][еe]|xe)\s*:\s*(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)",
+        text,
+        re.IGNORECASE,
+    )
     if rng:
-        xe = (float(rng.group(1).replace(",", ".")) +
-              float(rng.group(2).replace(",", "."))) / 2
+        first = _safe_float(rng.group(1))
+        second = _safe_float(rng.group(2))
+        if first is not None and second is not None:
+            xe = (first + second) / 2
     else:
         # Одинарное значение XE: 3.1
-        m = re.search(r"\b(?:[хx][еe]|xe)\s*:\s*([\d.,]+)", text, re.IGNORECASE)
+        m = re.search(
+            r"\b(?:[хx][еe]|xe)\s*:\s*([\d.,]+)",
+            text,
+            re.IGNORECASE,
+        )
         if m:
-            xe = float(m.group(1).replace(",", "."))
+            xe = _safe_float(m.group(1))
         # Диапазон XE без двоеточия (например 2–3 ХЕ)
         if xe is None:
-            rng = re.search(r"(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)\s*(?:[хx][еe]|xe)", text, re.IGNORECASE)
+            rng = re.search(
+                r"(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)\s*(?:[хx][еe]|xe)",
+                text,
+                re.IGNORECASE,
+            )
             if rng:
-                xe = (float(rng.group(1).replace(",", ".")) +
-                      float(rng.group(2).replace(",", "."))) / 2
+                first = _safe_float(rng.group(1))
+                second = _safe_float(rng.group(2))
+                if first is not None and second is not None:
+                    xe = (first + second) / 2
     # Диапазон углеводов (carbs) если не найдено
     if carbs is None:
-        rng = re.search(r"(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)\s*г", text, re.IGNORECASE)
+        rng = re.search(
+            r"(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)\s*г",
+            text,
+            re.IGNORECASE,
+        )
         if rng:
-            carbs = (float(rng.group(1).replace(",", ".")) +
-                     float(rng.group(2).replace(",", "."))) / 2
+            first = _safe_float(rng.group(1))
+            second = _safe_float(rng.group(2))
+            if first is not None and second is not None:
+                carbs = (first + second) / 2
     return carbs, xe
