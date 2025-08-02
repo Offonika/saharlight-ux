@@ -739,10 +739,11 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
     try:
         # 2. Запуск Vision run
         thread_id = context.user_data.get("thread_id") or create_thread()
-        run = send_message(
+        run = await asyncio.to_thread(
+            send_message,
             thread_id=thread_id,
             content="Определи количество углеводов и ХЕ на фото блюда. Используй формат из системных инструкций ассистента.",
-            image_path=file_path
+            image_path=file_path,
         )
         await message.reply_text("🔍 Анализирую фото (это займёт 5‑10 с)…")
 
@@ -953,7 +954,11 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # 1) отправляем сообщение (или изображение) в GPT
-    run = send_message(user.thread_id, content=update.message.text)
+    run = await asyncio.to_thread(
+        send_message,
+        user.thread_id,
+        content=update.message.text,
+    )
     await update.message.reply_text("⏳ Жду ответ от GPT...")
 
     # 2) ждём, пока Assistant закончит
