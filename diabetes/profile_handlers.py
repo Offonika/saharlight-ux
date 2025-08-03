@@ -28,41 +28,49 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         icr = float(args[0].replace(",", "."))
         cf = float(args[1].replace(",", "."))
         target = float(args[2].replace(",", "."))
-
-        warning_msg = ""
-        if icr > 8 or cf < 3:
-            warning_msg = (
-                "\n⚠️ Проверьте, пожалуйста: возможно, вы перепутали местами ИКХ и КЧ.\n"
-                f"• Вы ввели ИКХ = {icr} г/ед. (высоковато)\n"
-                f"• КЧ = {cf} ммоль/л (низковато)\n\n"
-                "Если вы хотели ввести наоборот, отправьте:\n"
-                f"/profile {cf} {icr} {target}\n"
-            )
-
-        user_id = update.effective_user.id
-        with SessionLocal() as session:
-            prof = session.get(Profile, user_id)
-            if not prof:
-                prof = Profile(telegram_id=user_id)
-                session.add(prof)
-
-            prof.icr = icr
-            prof.cf = cf
-            prof.target_bg = target
-            commit_session(session)
-
-        await update.message.reply_text(
-            f"✅ Профиль обновлён:\n"
-            f"• ИКХ: {icr} г/ед.\n"
-            f"• КЧ: {cf} ммоль/л\n"
-            f"• Целевой сахар: {target} ммоль/л" + warning_msg,
-            parse_mode="Markdown",
-        )
     except ValueError:
         await update.message.reply_text(
             "❗ Пожалуйста, введите корректные числа. Пример:\n/profile 10 2 6",
             parse_mode="Markdown",
         )
+        return
+
+    if icr <= 0 or cf <= 0 or target <= 0:
+        await update.message.reply_text(
+            "❗ Все значения должны быть больше 0. Пример:\n/profile 10 2 6",
+            parse_mode="Markdown",
+        )
+        return
+
+    warning_msg = ""
+    if icr > 8 or cf < 3:
+        warning_msg = (
+            "\n⚠️ Проверьте, пожалуйста: возможно, вы перепутали местами ИКХ и КЧ.\n"
+            f"• Вы ввели ИКХ = {icr} г/ед. (высоковато)\n"
+            f"• КЧ = {cf} ммоль/л (низковато)\n\n"
+            "Если вы хотели ввести наоборот, отправьте:\n"
+            f"/profile {cf} {icr} {target}\n"
+        )
+
+    user_id = update.effective_user.id
+    with SessionLocal() as session:
+        prof = session.get(Profile, user_id)
+        if not prof:
+            prof = Profile(telegram_id=user_id)
+            session.add(prof)
+
+        prof.icr = icr
+        prof.cf = cf
+        prof.target_bg = target
+        commit_session(session)
+
+    await update.message.reply_text(
+        f"✅ Профиль обновлён:\n"
+        f"• ИКХ: {icr} г/ед.\n"
+        f"• КЧ: {cf} ммоль/л\n"
+        f"• Целевой сахар: {target} ммоль/л" + warning_msg,
+        parse_mode="Markdown",
+    )
 
 
 async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
