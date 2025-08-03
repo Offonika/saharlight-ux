@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
 
-from diabetes.db import Base, User
+from diabetes.db import Base, User, Profile
 
 
 class DummyMessage:
@@ -90,3 +90,33 @@ async def test_profile_command_invalid_values(monkeypatch, args):
     assert commit_mock.call_count == 0
     assert session_local_mock.call_count == 0
     assert any("больше 0" in t for t in message.texts)
+
+
+@pytest.mark.asyncio
+async def test_profile_view_preserves_user_data(monkeypatch):
+    import os
+
+    os.environ["OPENAI_API_KEY"] = "test"
+    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    import diabetes.openai_utils as openai_utils  # noqa: F401
+    import diabetes.profile_handlers as handlers
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="tid"))
+        session.add(Profile(telegram_id=1, icr=10, cf=2, target_bg=6))
+        session.commit()
+
+    message = DummyMessage()
+    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(user_data={"thread_id": "tid", "foo": "bar"})
+
+    await handlers.profile_view(update, context)
+
+    assert context.user_data["thread_id"] == "tid"
+    assert context.user_data["foo"] == "bar"
