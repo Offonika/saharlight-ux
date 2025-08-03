@@ -1,6 +1,7 @@
 # gpt_client.py
 
 import logging
+import os
 import threading
 
 from diabetes.config import OPENAI_ASSISTANT_ID
@@ -34,6 +35,7 @@ def send_message(thread_id: str, content: str | None = None, image_path: str | N
         raise ValueError("Either 'content' or 'image_path' must be provided")
     # 1. Подготовка контента
     if image_path:
+        upload_succeeded = False
         try:
             with open(image_path, "rb") as f:
                 file = _get_client().files.create(file=f, purpose="vision")
@@ -42,9 +44,18 @@ def send_message(thread_id: str, content: str | None = None, image_path: str | N
                 {"type": "image_file", "image_file": {"file_id": file.id}},
                 {"type": "text",       "text": content or "Что изображено на фото?"}
             ]
+            upload_succeeded = True
         except Exception as e:
             logging.exception("[OpenAI] Failed to upload %s: %s", image_path, e)
             raise
+        finally:
+            if upload_succeeded:
+                try:
+                    os.remove(image_path)
+                except OSError as e:
+                    logging.warning(
+                        "[OpenAI] Failed to delete %s: %s", image_path, e
+                    )
     else:
         content_block = content
 
