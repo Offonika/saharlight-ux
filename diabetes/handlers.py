@@ -1249,6 +1249,7 @@ onboarding_conv = ConversationHandler(
         CommandHandler("cancel", cancel_handler),
         MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
     ],
+    per_message=True,
 )
 
 sugar_conv = ConversationHandler(
@@ -1263,6 +1264,7 @@ sugar_conv = ConversationHandler(
         CommandHandler("cancel", cancel_handler),
         MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
     ],
+    per_message=True,
 )
 
 photo_conv = ConversationHandler(
@@ -1279,6 +1281,7 @@ photo_conv = ConversationHandler(
         CommandHandler("cancel", cancel_handler),
         MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
     ],
+    per_message=True,
 )
 
 dose_conv = ConversationHandler(
@@ -1296,6 +1299,7 @@ dose_conv = ConversationHandler(
         CommandHandler("cancel", cancel_handler),
         MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
     ],
+    per_message=True,
 )
 
 profile_conv = ConversationHandler(
@@ -1312,6 +1316,7 @@ profile_conv = ConversationHandler(
         CommandHandler("cancel", profile_cancel),
         MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler)
     ],
+    per_message=True,
 )
 
 
