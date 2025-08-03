@@ -1,8 +1,8 @@
 # reporting.py
 
-import matplotlib.pyplot as plt
 import io
 import logging
+import matplotlib.pyplot as plt
 import os
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
