@@ -26,13 +26,34 @@ def create_thread() -> str:
     return thread.id
 
 
-def send_message(thread_id: str, content: str | None = None, image_path: str | None = None):
-    """
-    Отправляет текст или (изображение + текст) в thread
-    и запускает run с ассистентом.  Возвращает объект run.
+def send_message(
+    thread_id: str,
+    content: str | None = None,
+    image_path: str | None = None,
+    *,
+    keep_image: bool = False,
+):
+    """Send text or (image + text) to the thread and start a run.
+
+    Parameters
+    ----------
+    thread_id: str
+        Target thread identifier.
+    content: str | None
+        Text message to send.  Must be provided if ``image_path`` is ``None``.
+    image_path: str | None
+        Path to an image to upload alongside the text.
+    keep_image: bool, default ``False``
+        If ``True`` the local file will not be removed after a successful upload.
+
+    Returns
+    -------
+    run
+        The created run object.
     """
     if content is None and image_path is None:
         raise ValueError("Either 'content' or 'image_path' must be provided")
+
     # 1. Подготовка контента
     if image_path:
         upload_succeeded = False
@@ -42,14 +63,14 @@ def send_message(thread_id: str, content: str | None = None, image_path: str | N
             logging.info("[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id)
             content_block = [
                 {"type": "image_file", "image_file": {"file_id": file.id}},
-                {"type": "text",       "text": content or "Что изображено на фото?"}
+                {"type": "text", "text": content or "Что изображено на фото?"},
             ]
             upload_succeeded = True
         except Exception as e:
             logging.exception("[OpenAI] Failed to upload %s: %s", image_path, e)
             raise
         finally:
-            if upload_succeeded:
+            if upload_succeeded and not keep_image:
                 try:
                     os.remove(image_path)
                 except OSError as e:

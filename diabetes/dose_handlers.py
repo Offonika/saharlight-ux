@@ -232,6 +232,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 "Используй формат из системных инструкций ассистента."
             ),
             image_path=file_path,
+            keep_image=True,
         )
         await message.reply_text("🔍 Анализирую фото (это займёт 5‑10 с)…")
 
