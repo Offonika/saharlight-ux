@@ -1,4 +1,5 @@
 import pytest
+from pathlib import Path
 from types import SimpleNamespace
 
 import diabetes.dose_handlers as handlers
@@ -88,3 +89,68 @@ async def test_photo_handler_handles_typeerror():
     assert message.texts == ["❗ Файл не распознан как изображение."]
     assert result == handlers.ConversationHandler.END
     assert handlers.WAITING_GPT_FLAG not in context.user_data
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_preserves_file(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+
+    class DummyPhoto:
+        file_id = "fid"
+        file_unique_id = "uid"
+
+    async def reply_text(*args, **kwargs):
+        pass
+
+    message = SimpleNamespace(photo=[DummyPhoto()], reply_text=reply_text)
+    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+
+    class DummyFile:
+        async def download_to_drive(self, path):
+            Path(path).write_bytes(b"img")
+
+    async def fake_get_file(file_id):
+        return DummyFile()
+
+    dummy_bot = SimpleNamespace(get_file=fake_get_file)
+    context = SimpleNamespace(bot=dummy_bot, user_data={"thread_id": "tid"})
+
+    call = {}
+
+    def fake_send_message(**kwargs):
+        call.update(kwargs)
+
+        class Run:
+            status = "completed"
+            thread_id = kwargs["thread_id"]
+            id = "runid"
+
+        return Run()
+
+    class DummyClient:
+        beta = SimpleNamespace(
+            threads=SimpleNamespace(
+                runs=SimpleNamespace(
+                    retrieve=lambda thread_id, run_id: SimpleNamespace(
+                        status="completed", thread_id=thread_id, id=run_id
+                    )
+                ),
+                messages=SimpleNamespace(list=lambda thread_id: SimpleNamespace(data=[])),
+            )
+        )
+
+    monkeypatch.setattr(handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
+    monkeypatch.setattr(handlers, "menu_keyboard", None)
+    monkeypatch.setattr(
+        handlers.os,
+        "makedirs",
+        lambda path, **kwargs: Path(path).mkdir(parents=True, exist_ok=True),
+    )
+
+    result = await handlers.photo_handler(update, context)
+
+    assert call["keep_image"] is True
+    assert Path(call["image_path"]).exists()
+    assert result == handlers.PHOTO_SUGAR
