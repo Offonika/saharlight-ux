@@ -2,15 +2,17 @@
 
 import io
 import logging
-import matplotlib.pyplot as plt
 import os
+import textwrap
+
+import matplotlib.pyplot as plt
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-import textwrap
+from reportlab.pdfgen import canvas
+
 from diabetes.config import FONT_DIR
 
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
