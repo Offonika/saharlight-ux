@@ -1,6 +1,8 @@
 import asyncio
 import os
 import time
+from types import SimpleNamespace
+
 import pytest
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
@@ -17,11 +19,10 @@ async def test_parse_command_timeout_non_blocking(monkeypatch):
             choices = [type("Choice", (), {"message": type("Msg", (), {"content": "{}"})()})]
         return FakeResponse()
 
-    monkeypatch.setattr(
-        gpt_command_parser.client.chat.completions,
-        "create",
-        slow_create,
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=slow_create))
     )
+    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
 
     start = time.perf_counter()
     result, _ = await asyncio.gather(
@@ -57,11 +58,14 @@ async def test_parse_command_with_explanatory_text(monkeypatch):
             )
         ]
 
-    monkeypatch.setattr(
-        gpt_command_parser.client.chat.completions,
-        "create",
-        lambda *args, **kwargs: FakeResponse(),
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(
+                create=lambda *args, **kwargs: FakeResponse()
+            )
+        )
     )
+    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
 
     result = await gpt_command_parser.parse_command("test")
 
