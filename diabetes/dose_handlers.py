@@ -43,7 +43,9 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if context.user_data.get("awaiting_report_date"):
         try:
-            date_from = datetime.datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
+            date_from = datetime.datetime.strptime(
+                update.message.text.strip(), "%Y-%m-%d"
+            ).replace(tzinfo=datetime.timezone.utc)
         except ValueError:
             await update.message.reply_text("❗ Некорректная дата. Используйте формат YYYY-MM-DD.")
             return
