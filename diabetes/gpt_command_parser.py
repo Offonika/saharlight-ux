@@ -80,7 +80,11 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
             ),
             timeout=timeout,
         )
-        content = response.choices[0].message.content.strip()
+        choices = getattr(response, "choices", None)
+        if not choices:
+            logging.error("No choices in GPT response")
+            return None
+        content = choices[0].message.content.strip()
         safe_content = _sanitize_sensitive_data(content)
         logging.info("GPT raw response: %s", safe_content[:200])
         parsed = _extract_first_json(content)
