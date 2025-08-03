@@ -4,6 +4,7 @@ from diabetes.common_handlers import register_handlers
 from diabetes.db import init_db
 from diabetes.config import TELEGRAM_TOKEN
 from telegram.ext import ApplicationBuilder
+from sqlalchemy.exc import SQLAlchemyError
 import logging
 import sys
 
@@ -23,11 +24,16 @@ def main():
         )
         sys.exit(1)
 
-    init_db()
+    try:
+        init_db()
+    except SQLAlchemyError:
+        logger.exception("Failed to initialize the database")
+        sys.exit(1)
+
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     register_handlers(app)
     app.run_polling()
 
+
 if __name__ == "__main__":
     main()
-
