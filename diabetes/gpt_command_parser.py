@@ -41,7 +41,13 @@ SYSTEM_PROMPT = (
 
 def _sanitize_sensitive_data(text: str) -> str:
     """Mask potentially sensitive tokens in *text* before logging."""
-    return re.sub(r"[A-Za-z0-9]{32,}", "[REDACTED]", text)
+    api_key_pattern = (
+        r"\b(?=[A-Za-z0-9_-]*[a-z])"
+        r"(?=[A-Za-z0-9_-]*[A-Z])"
+        r"(?=[A-Za-z0-9_-]*\d)"
+        r"[A-Za-z0-9_-]{40,}\b"
+    )
+    return re.sub(api_key_pattern, "[REDACTED]", text)
 
 
 def _extract_first_json(text: str) -> dict | None:
