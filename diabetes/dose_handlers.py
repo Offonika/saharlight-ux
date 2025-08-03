@@ -17,7 +17,7 @@ from diabetes.db import SessionLocal, User, Entry
 from diabetes.functions import extract_nutrition_info
 from diabetes.gpt_client import create_thread, send_message, _get_client
 from diabetes.gpt_command_parser import parse_command
-from diabetes.ui import menu_keyboard, confirm_keyboard
+from diabetes.ui import menu_keyboard, confirm_keyboard, dose_keyboard
 from .common_handlers import commit_session
 from .reporting_handlers import send_report
 
@@ -33,6 +33,37 @@ def _sanitize(text: str, max_len: int = 200) -> str:
 
 PHOTO_SUGAR = 7
 WAITING_GPT_FLAG = "waiting_gpt_response"
+
+
+async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Prompt user to send a food photo for analysis."""
+    await update.message.reply_text(
+        "📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard
+    )
+
+
+async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Ask for current sugar level and prepare a pending entry."""
+    context.user_data["pending_entry"] = {
+        "telegram_id": update.effective_user.id,
+        "event_time": datetime.datetime.now(datetime.timezone.utc),
+    }
+    await update.message.reply_text(
+        "Введите текущий уровень сахара (ммоль/л).", reply_markup=menu_keyboard
+    )
+
+
+async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Start dialog for insulin dose calculation."""
+    context.user_data.pop("pending_entry", None)
+    context.user_data.pop("edit_id", None)
+    await update.message.reply_text(
+        "Отправьте сообщение в формате:\n"
+        "`сахар=<ммоль/л>  xe=<ХЕ>  carbs=<г>`\n"
+        "Можно указать не все поля.",
+        parse_mode="Markdown",
+        reply_markup=dose_keyboard,
+    )
 
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -409,6 +440,9 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 __all__ = [
     "PHOTO_SUGAR",
     "WAITING_GPT_FLAG",
+    "photo_prompt",
+    "sugar_start",
+    "dose_start",
     "freeform_handler",
     "photo_handler",
     "doc_handler",
