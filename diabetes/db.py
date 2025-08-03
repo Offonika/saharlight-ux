@@ -32,7 +32,7 @@ class User(Base):
 
     telegram_id = Column(BigInteger, primary_key=True, index=True)
     thread_id = Column(String, nullable=False)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
 class Profile(Base):
@@ -55,9 +55,9 @@ class Entry(Base):
     id = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"))
 
-    event_time = Column(TIMESTAMP, nullable=False)  # время приёма
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, onupdate=func.now())
+    event_time = Column(TIMESTAMP(timezone=True), nullable=False)  # время приёма
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at = Column(TIMESTAMP(timezone=True), onupdate=func.now())
 
     photo_path = Column(String)
     carbs_g = Column(Float)
