@@ -39,6 +39,7 @@ def _sanitize(text: str, max_len: int = 200) -> str:
 
 DOSE_METHOD, DOSE_XE, DOSE_CARBS, DOSE_SUGAR = range(3, 7)
 PHOTO_SUGAR = 7
+SUGAR_VAL = 8
 WAITING_GPT_FLAG = "waiting_gpt_response"
 
 
@@ -49,8 +50,9 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
 
 
-async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Ask for current sugar level and prepare a pending entry."""
+async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Prompt user for current sugar level."""
+    context.user_data.pop("pending_entry", None)
     context.user_data["pending_entry"] = {
         "telegram_id": update.effective_user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -58,6 +60,35 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await update.message.reply_text(
         "Введите текущий уровень сахара (ммоль/л).", reply_markup=menu_keyboard
     )
+    return SUGAR_VAL
+
+
+async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Store the provided sugar level to the diary."""
+    text = update.message.text.strip().replace(",", ".")
+    if text.lower() == "↩️ назад":
+        return await dose_cancel(update, context)
+    try:
+        sugar = float(text)
+    except ValueError:
+        await update.message.reply_text("Введите сахар числом в ммоль/л.")
+        return SUGAR_VAL
+    entry_data = context.user_data.pop("pending_entry", None) or {
+        "telegram_id": update.effective_user.id,
+        "event_time": datetime.datetime.now(datetime.timezone.utc),
+    }
+    entry_data["sugar_before"] = sugar
+    with SessionLocal() as session:
+        entry = Entry(**entry_data)
+        session.add(entry)
+        if not commit_session(session):
+            await update.message.reply_text("⚠️ Не удалось сохранить запись.")
+            return ConversationHandler.END
+    await update.message.reply_text(
+        f"✅ Уровень сахара {sugar} ммоль/л сохранён.",
+        reply_markup=menu_keyboard,
+    )
+    return ConversationHandler.END
 
 
 async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -566,6 +597,17 @@ prompt_photo = photo_prompt
 prompt_sugar = sugar_start
 prompt_dose = dose_start
 
+sugar_conv = ConversationHandler(
+    entry_points=[
+        CommandHandler("sugar", sugar_start),
+        MessageHandler(filters.Regex("^❓ Мой сахар$"), sugar_start),
+    ],
+    states={
+        SUGAR_VAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, sugar_val)],
+    },
+    fallbacks=[MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel)],
+)
+
 dose_conv = ConversationHandler(
     entry_points=[
         CommandHandler("dose", dose_start),
@@ -587,14 +629,18 @@ __all__ = [
     "DOSE_CARBS",
     "DOSE_SUGAR",
     "PHOTO_SUGAR",
+    "SUGAR_VAL",
     "WAITING_GPT_FLAG",
 
     "photo_prompt",
     "sugar_start",
+    "sugar_val",
     "dose_start",
     "prompt_photo",
     "prompt_sugar",
     "prompt_dose",
+
+    "sugar_conv",
 
     "freeform_handler",
     "photo_handler",

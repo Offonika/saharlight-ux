@@ -49,12 +49,19 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
 
     conv_handlers = [h for h in handlers if isinstance(h, ConversationHandler)]
     assert dose_handlers.dose_conv in conv_handlers
+    assert dose_handlers.sugar_conv in conv_handlers
     conv_cmds = [
         ep
         for ep in dose_handlers.dose_conv.entry_points
         if isinstance(ep, CommandHandler)
     ]
     assert conv_cmds and "dose" in conv_cmds[0].commands
+    sugar_conv_cmds = [
+        ep
+        for ep in dose_handlers.sugar_conv.entry_points
+        if isinstance(ep, CommandHandler)
+    ]
+    assert sugar_conv_cmds and "sugar" in sugar_conv_cmds[0].commands
 
     text_handlers = [
         h
@@ -85,12 +92,12 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     ]
     assert photo_prompt_handlers
 
-    sugar_handlers = [
+    sugar_cmd = [
         h
         for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is dose_handlers.sugar_start
+        if isinstance(h, CommandHandler) and h.callback is dose_handlers.sugar_start
     ]
-    assert sugar_handlers
+    assert sugar_cmd and "sugar" in sugar_cmd[0].commands
 
     profile_view_handlers = [
         h
