@@ -75,7 +75,6 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display current patient profile."""
-    context.user_data.clear()
     user_id = update.effective_user.id
     with SessionLocal() as session:
         profile = session.get(Profile, user_id)
