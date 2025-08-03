@@ -52,6 +52,32 @@ async def test_doc_handler_calls_photo_handler(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_doc_handler_skips_non_images(monkeypatch):
+    called = SimpleNamespace(flag=False)
+
+    async def fake_photo_handler(update, context):
+        called.flag = True
+
+    document = SimpleNamespace(
+        file_name="file.bin",
+        file_unique_id="uid",
+        file_id="fid",
+        mime_type=None,
+    )
+    message = SimpleNamespace(document=document, photo=None)
+    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(user_data={})
+
+    monkeypatch.setattr(handlers, "photo_handler", fake_photo_handler)
+
+    result = await handlers.doc_handler(update, context)
+
+    assert result == handlers.ConversationHandler.END
+    assert not called.flag
+    assert "__file_path" not in context.user_data
+
+
+@pytest.mark.asyncio
 async def test_photo_handler_handles_typeerror():
     message = DummyMessage(photo=None)
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))

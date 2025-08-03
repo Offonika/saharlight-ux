@@ -317,7 +317,11 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle images sent as documents."""
     document = update.message.document
-    if not document or not document.mime_type.startswith("image/"):
+    if not document:
+        return ConversationHandler.END
+
+    mime_type = document.mime_type
+    if not mime_type or not mime_type.startswith("image/"):
         return ConversationHandler.END
 
     user_id = update.effective_user.id
