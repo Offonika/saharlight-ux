@@ -1,5 +1,10 @@
+import logging
 import threading
 import time
+from types import SimpleNamespace
+
+import pytest
+from openai import OpenAIError
 
 from diabetes import gpt_client
 
@@ -29,3 +34,25 @@ def test_get_client_thread_safe(monkeypatch):
 
     assert call_count == 1
     assert all(r is fake_client for r in results)
+
+
+def test_send_message_openaierror(monkeypatch, caplog):
+    def raise_error(**kwargs):
+        raise OpenAIError("boom")
+
+    fake_client = SimpleNamespace(
+        beta=SimpleNamespace(
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(create=raise_error),
+                runs=SimpleNamespace(create=lambda **kwargs: None),
+            )
+        )
+    )
+
+    monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(OpenAIError):
+            gpt_client.send_message(thread_id="t", content="hi")
+
+    assert any("Failed to create message" in r.message for r in caplog.records)
