@@ -55,8 +55,6 @@ menu_keyboard = ReplyKeyboardMarkup(
 
 # ──────────────────────────────────────────────────────────────
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Сбросить старую pending_entry, если есть
-    context.user_data.pop('pending_entry', None)
     raw_text = update.message.text.strip()
     user_id  = update.effective_user.id
     logger.info(f"FREEFORM raw='{raw_text}'  user={user_id}")
@@ -149,8 +147,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             entry.updated_at = datetime.utcnow()
             s.commit()
         context.user_data.pop("edit_id")
+        context.user_data.pop('pending_entry', None)
         await update.message.reply_text("✅ Запись обновлена!")
         return
+
+    # Сбросить старую pending_entry, если начинаем новую запись
+    context.user_data.pop('pending_entry', None)
 
     # --- основной freeform ---
     parsed = await parse_command(raw_text)
