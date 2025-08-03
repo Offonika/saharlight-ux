@@ -9,7 +9,14 @@ from __future__ import annotations
 import logging
 
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
 from sqlalchemy.exc import SQLAlchemyError
 
 from diabetes.db import SessionLocal, Entry
@@ -112,14 +119,34 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 return
 
 
-def register_handlers(app) -> None:
-    """Register bot handlers (placeholder)."""
-    # Actual handler registration lives elsewhere.
-    return
+def register_handlers(app: Application) -> None:
+    """Register bot handlers on the provided ``Application`` instance.
+
+    Parameters
+    ----------
+    app: :class:`telegram.ext.Application`
+        The application to which handlers will be attached.
+    """
+
+    # Import inside the function to avoid heavy imports at module import time
+    # (for example OpenAI client initialization).
+    from . import dose_handlers, profile_handlers
+
+    app.add_handler(CommandHandler("profile", profile_handlers.profile_command))
+    app.add_handler(CommandHandler("dose", dose_handlers.freeform_handler))
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, dose_handlers.freeform_handler)
+    )
+    app.add_handler(MessageHandler(filters.PHOTO, dose_handlers.photo_handler))
+    app.add_handler(
+        MessageHandler(filters.Document.IMAGE, dose_handlers.doc_handler)
+    )
+    app.add_handler(CallbackQueryHandler(callback_router))
 
 
 __all__ = [
     "commit_session",
     "callback_router",
     "menu_keyboard",
+    "register_handlers",
 ]
