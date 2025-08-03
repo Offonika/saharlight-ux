@@ -185,6 +185,7 @@ def register_handlers(app: Application) -> None:
         MessageHandler(filters.Regex("^📊 История$"), reporting_handlers.history_view)
     )
     app.add_handler(
+
         MessageHandler(filters.Regex("^📷 Фото еды$"), dose_handlers.photo_prompt)
     )
     app.add_handler(
@@ -192,7 +193,7 @@ def register_handlers(app: Application) -> None:
     )
     app.add_handler(
         MessageHandler(filters.Regex("^💉 Доза инсулина$"), dose_handlers.dose_start)
-    )
+
     app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, dose_handlers.freeform_handler)
     )

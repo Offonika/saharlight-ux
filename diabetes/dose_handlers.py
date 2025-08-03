@@ -63,6 +63,7 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         "Можно указать не все поля.",
         parse_mode="Markdown",
         reply_markup=dose_keyboard,
+
     )
 
 
@@ -440,9 +441,11 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 __all__ = [
     "PHOTO_SUGAR",
     "WAITING_GPT_FLAG",
+
     "photo_prompt",
     "sugar_start",
     "dose_start",
+
     "freeform_handler",
     "photo_handler",
     "doc_handler",
