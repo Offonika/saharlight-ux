@@ -21,9 +21,7 @@ from diabetes.ui import menu_keyboard, confirm_keyboard
 from .common_handlers import commit_session
 from .reporting_handlers import send_report
 
-DOSE_METHOD, DOSE_XE, DOSE_SUGAR, DOSE_CARBS = range(3, 7)
 PHOTO_SUGAR = 7
-SUGAR_VAL = 8
 WAITING_GPT_FLAG = "waiting_gpt_response"
 
 
@@ -333,12 +331,7 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 __all__ = [
-    "DOSE_METHOD",
-    "DOSE_XE",
-    "DOSE_SUGAR",
-    "DOSE_CARBS",
     "PHOTO_SUGAR",
-    "SUGAR_VAL",
     "WAITING_GPT_FLAG",
     "freeform_handler",
     "photo_handler",
