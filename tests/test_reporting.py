@@ -16,6 +16,7 @@ class DummyEntry:
         self.xe = xe
         self.dose = dose
 
+
 def test_make_sugar_plot():
     entries = [
         DummyEntry(
@@ -37,6 +38,23 @@ def test_make_sugar_plot():
     assert hasattr(buf, 'read')
     buf.seek(0)
     assert len(buf.read()) > 1000  # есть содержимое
+
+
+def test_make_sugar_plot_no_data():
+    entries = [
+        DummyEntry(
+            datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
+            None,
+            40,
+            3.3,
+            6,
+        )
+    ]
+    buf = make_sugar_plot(entries, "тестовый период")
+    assert hasattr(buf, "read")
+    buf.seek(0)
+    assert len(buf.read()) > 1000
+
 
 def test_generate_pdf_report():
     entries = [

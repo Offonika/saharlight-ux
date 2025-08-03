@@ -44,9 +44,27 @@ _register_font('DejaVuSans-Bold', 'DejaVuSans-Bold.ttf')
 def make_sugar_plot(entries, period_label):
     """
     Генерирует график сахара за период. Возвращает BytesIO с PNG.
+    Если данных нет, возвращает изображение с сообщением об отсутствии данных.
     """
     times = [e.event_time for e in entries if e.sugar_before is not None]
     sugars_plot = [e.sugar_before for e in entries if e.sugar_before is not None]
+
+    if not sugars_plot:
+        buf = io.BytesIO()
+        plt.figure(figsize=(7, 3))
+        plt.text(
+            0.5,
+            0.5,
+            "Нет данных для построения графика",
+            ha="center",
+            va="center",
+        )
+        plt.axis("off")
+        plt.tight_layout()
+        plt.savefig(buf, format="png")
+        buf.seek(0)
+        plt.close()
+        return buf
 
     plt.figure(figsize=(7, 3))
     plt.plot(times, sugars_plot, marker='o', label='Сахар (ммоль/л)')
