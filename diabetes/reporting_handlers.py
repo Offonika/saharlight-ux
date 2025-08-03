@@ -47,7 +47,13 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text("\n".join(lines))
 
 
-async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE, date_from, period_label, query=None) -> None:
+async def send_report(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    date_from,
+    period_label,
+    query=None,
+) -> None:
     """Generate and send a PDF report for entries after ``date_from``."""
     user_id = update.effective_user.id
 
@@ -92,12 +98,26 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE, date_f
     pdf_buf.seek(0)
     if query:
         await query.edit_message_text(report_msg, parse_mode="HTML")
-        await query.message.reply_photo(plot_buf, caption="График сахара за период")
-        await query.message.reply_document(pdf_buf, filename="diabetes_report.pdf", caption="PDF-отчёт для врача")
+        await query.message.reply_photo(
+            plot_buf,
+            caption="График сахара за период",
+        )
+        await query.message.reply_document(
+            pdf_buf,
+            filename="diabetes_report.pdf",
+            caption="PDF-отчёт для врача",
+        )
     else:
         await update.message.reply_text(report_msg, parse_mode="HTML")
-        await update.message.reply_photo(plot_buf, caption="График сахара за период")
-        await update.message.reply_document(pdf_buf, filename="diabetes_report.pdf", caption="PDF-отчёт для врача")
+        await update.message.reply_photo(
+            plot_buf,
+            caption="График сахара за период",
+        )
+        await update.message.reply_document(
+            pdf_buf,
+            filename="diabetes_report.pdf",
+            caption="PDF-отчёт для врача",
+        )
 
 
 __all__ = ["send_report", "report_request", "history_view"]

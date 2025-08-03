@@ -53,8 +53,10 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop("awaiting_report_date", None)
         return
 
-    if context.user_data.get("pending_entry") is not None and context.user_data.get("edit_id") is None:
-        entry = context.user_data["pending_entry"]
+    pending_entry = context.user_data.get("pending_entry")
+    edit_id = context.user_data.get("edit_id")
+    if pending_entry is not None and edit_id is None:
+        entry = pending_entry
         text = update.message.text.lower().strip()
         if re.fullmatch(r"-?\d+(?:[.,]\d+)?", text) and entry.get("sugar_before") is None:
             try:
