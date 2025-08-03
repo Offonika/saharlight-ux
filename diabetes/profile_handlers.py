@@ -9,8 +9,6 @@ from diabetes.db import SessionLocal, Profile
 from diabetes.ui import menu_keyboard
 from .common_handlers import commit_session
 
-PROFILE_ICR, PROFILE_CF, PROFILE_TARGET = range(0, 3)
-
 
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Set patient profile coefficients via ``/profile`` command."""
@@ -107,9 +105,6 @@ async def profile_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 __all__ = [
-    "PROFILE_ICR",
-    "PROFILE_CF",
-    "PROFILE_TARGET",
     "profile_command",
     "profile_view",
     "profile_cancel",
