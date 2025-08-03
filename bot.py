@@ -1,4 +1,12 @@
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
 
 from config import TELEGRAM_TOKEN
 from db import init_db
@@ -29,10 +37,23 @@ from bot.handlers import (
 logger = setup()
 
 
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log the error and send a notification to the user."""
+    logger.error("Exception while handling an update:", exc_info=context.error)
+
+    if update and update.effective_chat:
+        try:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="Произошла непредвиденная ошибка. Попробуйте еще раз позже.",
+            )
+        except Exception:  # pragma: no cover - best effort to notify
+            logger.exception("Failed to send error message to user")
+
 def main() -> None:
     init_db()
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-
+    app.add_error_handler(error_handler)
     app.add_handler(onboarding_conv)
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", menu_handler))
