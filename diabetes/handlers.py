@@ -913,7 +913,8 @@ async def history_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     /history                   – последние 5 записей
     /history YYYY‑MM‑DD        – записи за конкретный день
     """
-    context.user_data.clear()
+    for key in ("pending_entry", "awaiting_report_date", "edit_id"):
+        context.user_data.pop(key, None)
     user_id = update.effective_user.id
 
     # ── аргумент‑дата (опционально) ──────────────────────────────
