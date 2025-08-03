@@ -349,7 +349,14 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             )
             return ConversationHandler.END
 
-        context.user_data.update({"carbs": carbs_g, "xe": xe, "photo_path": file_path})
+        pending_entry = context.user_data.get("pending_entry") or {
+            "telegram_id": user_id,
+            "event_time": datetime.datetime.now(datetime.timezone.utc),
+        }
+        pending_entry.update(
+            {"carbs_g": carbs_g, "xe": xe, "photo_path": file_path}
+        )
+        context.user_data["pending_entry"] = pending_entry
         await message.reply_text(
             f"🍽️ На фото:\n{vision_text}\n\n"
             "Введите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина.",
