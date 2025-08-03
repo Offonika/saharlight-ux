@@ -157,7 +157,14 @@ def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf):
             y -= 10 * mm
             plot_buf.seek(0)
             img_reader = ImageReader(plot_buf)
-            c.drawImage(img_reader, x_margin, y - 65*mm, width=160*mm, height=55*mm, preserveAspectRatio=True)
+            c.drawImage(
+                img_reader,
+                x_margin,
+                y - 65 * mm,
+                width=160 * mm,
+                height=55 * mm,
+                preserveAspectRatio=True,
+            )
             y -= 65 * mm
         except Exception as e:
             logging.exception("[PDF] Failed to draw plot image: %s", e)
