@@ -1,7 +1,8 @@
 # Software Requirements Specification
 
 ## Telegram-бот
-- /start, /photo, /sugar, /dose, /history, /profile, /reset
+- /start — приветствие и основное меню
+- /photo, /sugar, /dose, /history, /profile, /reset
 - Фото еды → ХЕ, доза → запись в БД
 - Поддержка голосового ввода
 

@@ -19,7 +19,7 @@ from telegram.ext import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 
-from diabetes.db import SessionLocal, Entry
+from diabetes.db import SessionLocal, Entry, User
 from diabetes.ui import menu_keyboard
 
 logger = logging.getLogger(__name__)
@@ -119,6 +119,45 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await query.edit_message_text("Команда не распознана")
 
 
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Greet the user and ensure basic profile data exists.
+
+    Creates a :class:`~diabetes.db.User` with a fresh OpenAI thread if the
+    user is interacting with the bot for the first time.  Afterwards a greeting
+    along with the main menu keyboard is sent.
+    """
+    user_id = update.effective_user.id
+    first_name = update.effective_user.first_name or ""
+
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        if not user:
+            from .gpt_client import create_thread
+
+            try:
+                thread_id = create_thread()
+            except Exception:  # pragma: no cover - network errors
+                logger.exception("Failed to create thread for user %s", user_id)
+                await update.message.reply_text(
+                    "⚠️ Не удалось инициализировать профиль. Попробуйте позже."
+                )
+                return
+            session.add(User(telegram_id=user_id, thread_id=thread_id))
+            if not commit_session(session):
+                await update.message.reply_text(
+                    "⚠️ Не удалось сохранить профиль пользователя."
+                )
+                return
+            context.user_data["thread_id"] = thread_id
+        else:
+            context.user_data.setdefault("thread_id", user.thread_id)
+
+    greeting = f"👋 Привет, {first_name}!" if first_name else "👋 Привет!"
+    await update.message.reply_text(
+        f"{greeting}\n\n📋 Выберите действие:", reply_markup=menu_keyboard
+    )
+
+
 def register_handlers(app: Application) -> None:
     """Register bot handlers on the provided ``Application`` instance.
 
@@ -132,6 +171,7 @@ def register_handlers(app: Application) -> None:
     # (for example OpenAI client initialization).
     from . import dose_handlers, profile_handlers, reporting_handlers
 
+    app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("profile", profile_handlers.profile_command))
     app.add_handler(CommandHandler("dose", dose_handlers.freeform_handler))
     app.add_handler(CommandHandler("report", reporting_handlers.report_request))
@@ -158,5 +198,6 @@ __all__ = [
     "commit_session",
     "callback_router",
     "menu_keyboard",
+    "start_command",
     "register_handlers",
 ]

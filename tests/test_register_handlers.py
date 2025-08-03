@@ -1,8 +1,13 @@
 import os
 
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    MessageHandler,
+)
 
-from diabetes.common_handlers import register_handlers, callback_router
+from diabetes.common_handlers import register_handlers, callback_router, start_command
 
 
 def test_register_handlers_attaches_expected_handlers(monkeypatch):
@@ -17,6 +22,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     handlers = app.handlers[0]
     callbacks = [h.callback for h in handlers]
 
+    assert start_command in callbacks
     assert profile_handlers.profile_command in callbacks
     assert dose_handlers.freeform_handler in callbacks
     assert dose_handlers.photo_handler in callbacks
@@ -26,8 +32,15 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     assert reporting_handlers.report_request in callbacks
     assert reporting_handlers.history_view in callbacks
 
+    start_cmd = [
+        h for h in handlers if isinstance(h, CommandHandler) and h.callback is start_command
+    ]
+    assert start_cmd and "start" in start_cmd[0].commands
+
     profile_cmd = [
-        h for h in handlers if isinstance(h, CommandHandler) and h.callback is profile_handlers.profile_command
+        h
+        for h in handlers
+        if isinstance(h, CommandHandler) and h.callback is profile_handlers.profile_command
     ]
     assert profile_cmd and "profile" in profile_cmd[0].commands
 
