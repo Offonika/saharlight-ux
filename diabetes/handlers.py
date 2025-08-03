@@ -135,7 +135,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if "dose" in parts:  entry.dose         = float(parts["dose"])
             if "сахар" in parts or "sugar" in parts:
                 entry.sugar_before = float(parts.get("сахар") or parts["sugar"])
-            entry.updated_at = datetime.datetime.utcnow()
+            entry.updated_at = datetime.datetime.now(datetime.timezone.utc)
             commit_session(s)
         context.user_data.pop("edit_id")
         await update.message.reply_text("✅ Запись обновлена!")
@@ -1017,7 +1017,7 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
         )
         context.user_data.pop('awaiting_report_date', None)
         return
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(datetime.timezone.utc)
     if data == "report_today":
         date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
         period_label = "сегодня"
