@@ -27,6 +27,9 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     assert dose_handlers.freeform_handler in callbacks
     assert dose_handlers.photo_handler in callbacks
     assert dose_handlers.doc_handler in callbacks
+    assert dose_handlers.prompt_photo in callbacks
+    assert dose_handlers.prompt_sugar in callbacks
+    assert dose_handlers.prompt_dose in callbacks
     assert callback_router in callbacks
     assert profile_handlers.profile_view in callbacks
     assert reporting_handlers.report_request in callbacks
@@ -69,6 +72,27 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
         if isinstance(h, MessageHandler) and h.callback is dose_handlers.doc_handler
     ]
     assert doc_handlers
+
+    prompt_photo_handlers = [
+        h
+        for h in handlers
+        if isinstance(h, MessageHandler) and h.callback is dose_handlers.prompt_photo
+    ]
+    assert prompt_photo_handlers
+
+    prompt_sugar_handlers = [
+        h
+        for h in handlers
+        if isinstance(h, MessageHandler) and h.callback is dose_handlers.prompt_sugar
+    ]
+    assert prompt_sugar_handlers
+
+    prompt_dose_handlers = [
+        h
+        for h in handlers
+        if isinstance(h, MessageHandler) and h.callback is dose_handlers.prompt_dose
+    ]
+    assert prompt_dose_handlers
 
     profile_view_handlers = [
         h

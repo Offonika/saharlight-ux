@@ -1,0 +1,41 @@
+import os
+from types import SimpleNamespace
+
+import pytest
+
+os.environ.setdefault("OPENAI_API_KEY", "test")
+os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
+import diabetes.openai_utils as openai_utils  # noqa: F401
+from diabetes import dose_handlers
+
+
+class DummyMessage:
+    def __init__(self):
+        self.texts = []
+
+    async def reply_text(self, text, **kwargs):
+        self.texts.append(text)
+
+
+@pytest.mark.asyncio
+async def test_prompt_photo_sends_message():
+    message = DummyMessage()
+    update = SimpleNamespace(message=message)
+    await dose_handlers.prompt_photo(update, SimpleNamespace())
+    assert any("фото" in t.lower() for t in message.texts)
+
+
+@pytest.mark.asyncio
+async def test_prompt_sugar_sends_message():
+    message = DummyMessage()
+    update = SimpleNamespace(message=message)
+    await dose_handlers.prompt_sugar(update, SimpleNamespace())
+    assert any("сахар" in t.lower() for t in message.texts)
+
+
+@pytest.mark.asyncio
+async def test_prompt_dose_sends_message():
+    message = DummyMessage()
+    update = SimpleNamespace(message=message)
+    await dose_handlers.prompt_dose(update, SimpleNamespace())
+    assert any("доз" in t.lower() for t in message.texts)

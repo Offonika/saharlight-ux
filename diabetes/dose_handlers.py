@@ -35,6 +35,36 @@ PHOTO_SUGAR = 7
 WAITING_GPT_FLAG = "waiting_gpt_response"
 
 
+async def prompt_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Prompt the user to send a meal photo for analysis."""
+
+    await update.message.reply_text(
+        "📷 Отправьте фото блюда — я помогу оценить углеводы и ХЕ.",
+        reply_markup=menu_keyboard,
+    )
+
+
+async def prompt_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Ask the user to enter current blood sugar level."""
+
+    await update.message.reply_text(
+        "Введите текущий уровень сахара (ммоль/л).",
+        reply_markup=menu_keyboard,
+    )
+
+
+async def prompt_dose(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Explain how to use the dose calculation."""
+
+    await update.message.reply_text(
+        "Укажите сахар, ХЕ или углеводы в сообщении, например:\n"
+        "`сахар=5.5 xe=1 carbs=60`\n"
+        "и я помогу рассчитать дозу.",
+        parse_mode="Markdown",
+        reply_markup=menu_keyboard,
+    )
+
+
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle freeform text commands for adding diary entries."""
     raw_text = update.message.text.strip()
@@ -409,6 +439,9 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 __all__ = [
     "PHOTO_SUGAR",
     "WAITING_GPT_FLAG",
+    "prompt_photo",
+    "prompt_sugar",
+    "prompt_dose",
     "freeform_handler",
     "photo_handler",
     "doc_handler",
