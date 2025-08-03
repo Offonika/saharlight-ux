@@ -8,6 +8,9 @@ from telegram.ext import ContextTypes
 from diabetes.db import SessionLocal, Entry
 from diabetes.reporting import make_sugar_plot, generate_pdf_report
 
+LOW_SUGAR_THRESHOLD = 3.0
+HIGH_SUGAR_THRESHOLD = 13.0
+
 
 async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE, date_from, period_label, query=None) -> None:
     """Generate and send a PDF report for entries after ``date_from``."""
@@ -39,6 +42,11 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE, date_f
         dose = entry.dose if entry.dose is not None else "—"
         line = f"{day_str}: сахар {sugar}, углеводы {carbs}, доза {dose}"
         day_lines.append(line)
+        if entry.sugar_before is not None:
+            if entry.sugar_before < LOW_SUGAR_THRESHOLD:
+                errors.append(f"{day_str}: низкий сахар {entry.sugar_before}")
+            elif entry.sugar_before > HIGH_SUGAR_THRESHOLD:
+                errors.append(f"{day_str}: высокий сахар {entry.sugar_before}")
 
     gpt_text = "Ваши данные проанализированы. Рекомендации GPT могут быть добавлены тут."
     report_msg = "<b>Отчёт сформирован</b>\n\n" + "\n".join(summary_lines + day_lines)
