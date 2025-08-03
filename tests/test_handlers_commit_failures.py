@@ -1,10 +1,13 @@
 import datetime
+import datetime
 import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
+import diabetes.profile_handlers as profile_handlers
+import diabetes.common_handlers as common_handlers
 
 
 class DummyMessage:
@@ -34,7 +37,6 @@ async def test_profile_command_commit_failure(monkeypatch, caplog):
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import diabetes.openai_utils  # noqa: F401
-    import diabetes.handlers as handlers
 
     session = MagicMock()
     session.__enter__.return_value = session
@@ -44,7 +46,7 @@ async def test_profile_command_commit_failure(monkeypatch, caplog):
     session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
 
-    monkeypatch.setattr(handlers, "SessionLocal", lambda: session)
+    monkeypatch.setattr(profile_handlers, "SessionLocal", lambda: session)
 
     message = DummyMessage()
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
@@ -52,7 +54,7 @@ async def test_profile_command_commit_failure(monkeypatch, caplog):
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(SQLAlchemyError):
-            await handlers.profile_command(update, context)
+            await profile_handlers.profile_command(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
@@ -65,7 +67,6 @@ async def test_callback_router_commit_failure(monkeypatch, caplog):
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import diabetes.openai_utils  # noqa: F401
-    import diabetes.handlers as handlers
 
     session = MagicMock()
     session.__enter__.return_value = session
@@ -74,7 +75,7 @@ async def test_callback_router_commit_failure(monkeypatch, caplog):
     session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
 
-    monkeypatch.setattr(handlers, "SessionLocal", lambda: session)
+    monkeypatch.setattr(common_handlers, "SessionLocal", lambda: session)
 
     pending_entry = {
         "telegram_id": 1,
@@ -86,7 +87,7 @@ async def test_callback_router_commit_failure(monkeypatch, caplog):
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(SQLAlchemyError):
-            await handlers.callback_router(update, context)
+            await common_handlers.callback_router(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text

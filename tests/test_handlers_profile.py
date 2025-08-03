@@ -27,7 +27,7 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import diabetes.openai_utils as openai_utils  # noqa: F401
-    import diabetes.handlers as handlers
+    import diabetes.profile_handlers as handlers
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
