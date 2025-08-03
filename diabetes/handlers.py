@@ -42,6 +42,15 @@ WAITING_GPT_FLAG = "waiting_gpt_response"
 
 
 
+# Helper to commit with rollback on error
+def commit_session(session):
+    try:
+        session.commit()
+    except Exception as e:  # pragma: no cover - logging only
+        session.rollback()
+        logger.error("DB commit failed: %s", e)
+
+
 # ──────────────────────────────────────────────────────────────
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Сбросить старую pending_entry, если есть
@@ -127,7 +136,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if "сахар" in parts or "sugar" in parts:
                 entry.sugar_before = float(parts.get("сахар") or parts["sugar"])
             entry.updated_at = datetime.datetime.utcnow()
-            s.commit()
+            commit_session(s)
         context.user_data.pop("edit_id")
         await update.message.reply_text("✅ Запись обновлена!")
         return
@@ -275,7 +284,7 @@ async def apply_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if "сахар" in parts or "sugar" in parts:
             entry.sugar_before = float(parts.get("сахар") or parts["sugar"])
         entry.updated_at = datetime.datetime.utcnow()
-        s.commit()
+        commit_session(s)
 
     context.user_data.pop("edit_id")
     await update.message.reply_text("✅ Запись обновлена!")
@@ -295,7 +304,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with SessionLocal() as session:
             entry = Entry(**entry_data)
             session.add(entry)
-            session.commit()
+            commit_session(session)
         await query.edit_message_text("✅ Запись сохранена в дневник!")
         return
     if data == "edit_entry":
@@ -328,7 +337,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             if action == "del":
                 s.delete(entry)
-                s.commit()
+                commit_session(s)
                 await query.edit_message_text("❌ Запись удалена.")
                 return
             if action == "edit":
@@ -352,7 +361,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             thread_id = create_thread()
             user = User(telegram_id=user_id, thread_id=thread_id)
             session.add(user)
-            session.commit()
+            commit_session(session)
 
     await update.message.reply_text(
         "👋 <b>Привет, рад снова тебя видеть!</b>\n"
@@ -390,7 +399,7 @@ async def reset_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session.query(Entry).filter_by(telegram_id=user_id).delete()
         session.query(Profile).filter_by(telegram_id=user_id).delete()
         session.query(User).filter_by(telegram_id=user_id).delete()  # Теперь удаляем и пользователя
-        session.commit()
+        commit_session(session)
     await update.message.reply_text("Профиль и история удалены. Вы можете начать заново.", reply_markup=menu_keyboard)
 
 # === Профиль ===
@@ -449,7 +458,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE):
             prof.icr = context.user_data['icr']
             prof.cf = context.user_data['cf']
             prof.target_bg = context.user_data['target']
-            session.commit()
+            commit_session(session)
         await update.message.reply_text("✅ Профиль сохранён.", reply_markup=menu_keyboard)
         return ConversationHandler.END
     except ValueError:
@@ -494,7 +503,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             prof.icr = icr  # г/ед
             prof.cf = cf   # ммоль/л
             prof.target_bg = target
-            session.commit()
+            commit_session(session)
 
         await update.message.reply_text(
             f"✅ Профиль обновлён:\n"
@@ -571,7 +580,7 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with SessionLocal() as session:
                 entry = Entry(telegram_id=update.effective_user.id, sugar_before=sugar)
                 session.add(entry)
-                session.commit()
+                commit_session(session)
             await update.message.reply_text(f"✅ Уровень сахара сохранён: {sugar} ммоль/л", reply_markup=menu_keyboard)
             return ConversationHandler.END
         except ValueError:
@@ -1223,7 +1232,7 @@ async def onb_target(update, context):
             prof.icr = context.user_data['icr']
             prof.cf = context.user_data['cf']
             prof.target_bg = context.user_data['target']
-            session.commit()
+            commit_session(session)
         img_path = "assets/demo.jpg"
         with open(img_path, "rb") as f:
             await update.message.reply_photo(
