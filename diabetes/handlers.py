@@ -23,7 +23,7 @@ from diabetes.db import SessionLocal, User, Profile, Entry
 from diabetes.functions import (
     PatientProfile, calc_bolus, extract_nutrition_info,
 )
-from diabetes.gpt_client import create_thread, send_message, client
+from diabetes.gpt_client import create_thread, send_message, _get_client
 from diabetes.gpt_command_parser import parse_command
 
 from diabetes.ui import menu_keyboard, dose_keyboard, confirm_keyboard
@@ -736,7 +736,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         # 3. Ждать окончания run
         while run.status not in ("completed", "failed", "cancelled", "expired"):
             await asyncio.sleep(2)
-            run = client.beta.threads.runs.retrieve(thread_id=run.thread_id, run_id=run.id)
+            run = _get_client().beta.threads.runs.retrieve(thread_id=run.thread_id, run_id=run.id)
 
         if run.status != "completed":
             logging.error(f"[VISION][RUN_FAILED] run.status={run.status}")
@@ -744,7 +744,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             return ConversationHandler.END
 
         # 4. Читать все сообщения в thread (и логировать)
-        messages = client.beta.threads.messages.list(thread_id=run.thread_id)
+        messages = _get_client().beta.threads.messages.list(thread_id=run.thread_id)
         for m in messages.data:
             logging.warning(f"[VISION][MSG] m.role={m.role}; content={m.content}")
 
@@ -951,7 +951,7 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 2) ждём, пока Assistant закончит
     while run.status not in ("completed", "failed", "cancelled", "expired"):
         await asyncio.sleep(2)
-        run = client.beta.threads.runs.retrieve(
+        run = _get_client().beta.threads.runs.retrieve(
             thread_id=user.thread_id,
             run_id=run.id
         )
@@ -965,7 +965,7 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # 4) получаем последний ответ Assistant'а
-    messages = client.beta.threads.messages.list(thread_id=user.thread_id)
+    messages = _get_client().beta.threads.messages.list(thread_id=user.thread_id)
     reply_msg = next(
         (m for m in messages.data if m.role == "assistant"), None
     )
