@@ -31,6 +31,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     assert dose_handlers.prompt_photo in callbacks
     assert dose_handlers.prompt_sugar in callbacks
     assert callback_router in callbacks
+    assert reporting_handlers.report_period_callback in callbacks
     assert profile_handlers.profile_view in callbacks
     assert reporting_handlers.report_request in callbacks
     assert reporting_handlers.history_view in callbacks
@@ -133,3 +134,10 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
         if isinstance(h, CallbackQueryHandler) and h.callback is callback_router
     ]
     assert cb_handlers
+    report_cb_handlers = [
+        h
+        for h in handlers
+        if isinstance(h, CallbackQueryHandler)
+        and h.callback is reporting_handlers.report_period_callback
+    ]
+    assert report_cb_handlers
