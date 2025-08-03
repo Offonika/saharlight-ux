@@ -4,9 +4,7 @@ import logging
 import re
 from openai import OpenAIError
 
-from diabetes.openai_utils import get_openai_client
-
-client = get_openai_client()
+from diabetes.gpt_client import _get_client
 
 # gpt_command_parser.py  ← замените весь блок SYSTEM_PROMPT
 SYSTEM_PROMPT = (
@@ -65,7 +63,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
     try:
         response = await asyncio.wait_for(
             asyncio.to_thread(
-                client.chat.completions.create,
+                _get_client().chat.completions.create,
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
