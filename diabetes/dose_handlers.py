@@ -21,6 +21,16 @@ from diabetes.ui import menu_keyboard, confirm_keyboard
 from .common_handlers import commit_session
 from .reporting_handlers import send_report
 
+
+logger = logging.getLogger(__name__)
+
+
+def _sanitize(text: str, max_len: int = 200) -> str:
+    """Strip control chars and truncate for safe logging."""
+    cleaned = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", str(text))
+    return cleaned[:max_len]
+
+
 PHOTO_SUGAR = 7
 WAITING_GPT_FLAG = "waiting_gpt_response"
 
@@ -251,7 +261,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             )
 
         if run.status not in ("completed", "failed", "cancelled", "expired"):
-            logging.warning("[VISION][TIMEOUT] run.id=%s", run.id)
+            logger.warning("[VISION][TIMEOUT] run.id=%s", run.id)
             await message.reply_text("⚠️ Время ожидания Vision истекло. Попробуйте позже.")
             return ConversationHandler.END
 
@@ -262,19 +272,24 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
 
         messages = _get_client().beta.threads.messages.list(thread_id=run.thread_id)
         for m in messages.data:
-            logging.warning("[VISION][MSG] m.role=%s; content=%s", m.role, m.content)
+            content = _sanitize(m.content)
+            logger.debug("[VISION][MSG] m.role=%s; content=%s", m.role, content)
 
         vision_text = next(
             (m.content[0].text.value for m in messages.data if m.role == "assistant" and m.content),
             "",
         )
-        logging.warning("[VISION][RESPONSE] Ответ Vision для %s:\n%s", file_path, vision_text)
+        logger.debug(
+            "[VISION][RESPONSE] Ответ Vision для %s:\n%s",
+            file_path,
+            _sanitize(vision_text),
+        )
 
         carbs_g, xe = extract_nutrition_info(vision_text)
         if carbs_g is None and xe is None:
-            logging.warning(
+            logger.debug(
                 "[VISION][NO_PARSE] Ответ ассистента: %r для файла: %s",
-                vision_text,
+                _sanitize(vision_text),
                 file_path,
             )
             await message.reply_text(
