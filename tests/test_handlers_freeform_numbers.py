@@ -2,7 +2,9 @@ import re
 
 
 def parse_values(text: str) -> dict[str, float]:
-    parts = dict(re.findall(r"(\w+)\s*=\s*([\d.,-]+)", text))
+    parts = dict(
+        re.findall(r"(\w+)\s*=\s*(-?\d+(?:[.,]\d+)?)(?=\s|$)", text)
+    )
     result = {}
     if "xe" in parts:
         result["xe"] = float(parts["xe"].replace(",", "."))
@@ -37,4 +39,16 @@ def test_parse_negative_numbers():
         "xe": -1.0,
         "sugar": -4.2,
     }
+
+
+def test_parse_ignores_invalid_subtraction():
+    text = "xe=1-2 carbs=3"
+    parsed = parse_values(text)
+    assert parsed == {"carbs": 3.0}
+
+
+def test_parse_invalid_input_returns_empty():
+    text = "xe=1-2"
+    parsed = parse_values(text)
+    assert parsed == {}
 

@@ -56,12 +56,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("pending_entry") is not None and context.user_data.get("edit_id") is None:
         entry = context.user_data["pending_entry"]
         text = update.message.text.lower().strip()
-        if re.fullmatch(r"[\d.,-]+", text) and entry.get("sugar_before") is None:
+        if re.fullmatch(r"-?\d+(?:[.,]\d+)?", text) and entry.get("sugar_before") is None:
             try:
                 sugar = float(text.replace(",", "."))
             except ValueError:
                 await update.message.reply_text(
-                    "Пожалуйста, введите число сахара в формате ммоль/л."
+                    "Некорректное числовое значение."
                 )
                 return
             entry["sugar_before"] = sugar
@@ -70,19 +70,37 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=confirm_keyboard(),
             )
             return
-        parts = dict(re.findall(r"(\w+)\s*=\s*([\d.,-]+)", text))
+        parts = dict(
+            re.findall(r"(\w+)\s*=\s*(-?\d+(?:[.,]\d+)?)(?=\s|$)", text)
+        )
         if not parts:
             await update.message.reply_text("Не вижу ни одного поля для изменения.")
             return
         if "xe" in parts:
-            entry["xe"] = float(parts["xe"].replace(",", "."))
+            try:
+                entry["xe"] = float(parts["xe"].replace(",", "."))
+            except ValueError:
+                await update.message.reply_text("Некорректное числовое значение.")
+                return
         if "carbs" in parts:
-            entry["carbs_g"] = float(parts["carbs"].replace(",", "."))
+            try:
+                entry["carbs_g"] = float(parts["carbs"].replace(",", "."))
+            except ValueError:
+                await update.message.reply_text("Некорректное числовое значение.")
+                return
         if "dose" in parts:
-            entry["dose"] = float(parts["dose"].replace(",", "."))
+            try:
+                entry["dose"] = float(parts["dose"].replace(",", "."))
+            except ValueError:
+                await update.message.reply_text("Некорректное числовое значение.")
+                return
         if "сахар" in parts or "sugar" in parts:
             sugar_value = parts.get("сахар") or parts["sugar"]
-            entry["sugar_before"] = float(sugar_value.replace(",", "."))
+            try:
+                entry["sugar_before"] = float(sugar_value.replace(",", "."))
+            except ValueError:
+                await update.message.reply_text("Некорректное числовое значение.")
+                return
         carbs = entry.get("carbs_g")
         xe = entry.get("xe")
         sugar = entry.get("sugar_before")
@@ -100,7 +118,9 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if "edit_id" in context.user_data:
         text = update.message.text.lower()
-        parts = dict(re.findall(r"(\w+)\s*=\s*([\d.,-]+)", text))
+        parts = dict(
+            re.findall(r"(\w+)\s*=\s*(-?\d+(?:[.,]\d+)?)(?=\s|$)", text)
+        )
         if not parts:
             await update.message.reply_text("Не вижу ни одного поля для изменения.")
             return
@@ -111,14 +131,38 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data.pop("edit_id")
                 return
             if "xe" in parts:
-                entry.xe = float(parts["xe"].replace(",", "."))
+                try:
+                    entry.xe = float(parts["xe"].replace(",", "."))
+                except ValueError:
+                    await update.message.reply_text(
+                        "Некорректное числовое значение."
+                    )
+                    return
             if "carbs" in parts:
-                entry.carbs_g = float(parts["carbs"].replace(",", "."))
+                try:
+                    entry.carbs_g = float(parts["carbs"].replace(",", "."))
+                except ValueError:
+                    await update.message.reply_text(
+                        "Некорректное числовое значение."
+                    )
+                    return
             if "dose" in parts:
-                entry.dose = float(parts["dose"].replace(",", "."))
+                try:
+                    entry.dose = float(parts["dose"].replace(",", "."))
+                except ValueError:
+                    await update.message.reply_text(
+                        "Некорректное числовое значение."
+                    )
+                    return
             if "сахар" in parts or "sugar" in parts:
                 sugar_value = parts.get("сахар") or parts["sugar"]
-                entry.sugar_before = float(sugar_value.replace(",", "."))
+                try:
+                    entry.sugar_before = float(sugar_value.replace(",", "."))
+                except ValueError:
+                    await update.message.reply_text(
+                        "Некорректное числовое значение."
+                    )
+                    return
             entry.updated_at = datetime.datetime.now(datetime.timezone.utc)
             if not commit_session(session):
                 await update.message.reply_text("⚠️ Не удалось обновить запись.")
