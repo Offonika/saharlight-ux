@@ -73,26 +73,28 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     ]
     assert doc_handlers
 
-    prompt_photo_handlers = [
-        h
-        for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is dose_handlers.prompt_photo
-    ]
-    assert prompt_photo_handlers
 
-    prompt_sugar_handlers = [
+    photo_prompt_handlers = [
         h
         for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is dose_handlers.prompt_sugar
+        if isinstance(h, MessageHandler) and h.callback is dose_handlers.photo_prompt
     ]
-    assert prompt_sugar_handlers
+    assert photo_prompt_handlers
 
-    prompt_dose_handlers = [
+    sugar_handlers = [
         h
         for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is dose_handlers.prompt_dose
+        if isinstance(h, MessageHandler) and h.callback is dose_handlers.sugar_start
     ]
-    assert prompt_dose_handlers
+    assert sugar_handlers
+
+    dose_start_handlers = [
+        h
+        for h in handlers
+        if isinstance(h, MessageHandler) and h.callback is dose_handlers.dose_start
+    ]
+    assert dose_start_handlers
+
 
     profile_view_handlers = [
         h
