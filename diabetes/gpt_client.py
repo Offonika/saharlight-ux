@@ -5,12 +5,19 @@ import logging
 from diabetes.config import OPENAI_ASSISTANT_ID
 from diabetes.openai_utils import get_openai_client
 
-client = get_openai_client()
+_client = None
+
+
+def _get_client():
+    global _client
+    if _client is None:
+        _client = get_openai_client()
+    return _client
 
 
 def create_thread() -> str:
     """Создаём пустой thread (ассистент задаётся позже, в runs.create)."""
-    thread = client.beta.threads.create()
+    thread = _get_client().beta.threads.create()
     return thread.id
 
 
@@ -25,7 +32,7 @@ def send_message(thread_id: str, content: str | None = None, image_path: str | N
     if image_path:
         try:
             with open(image_path, "rb") as f:
-                file = client.files.create(file=f, purpose="vision")
+                file = _get_client().files.create(file=f, purpose="vision")
             logging.info("[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id)
             content_block = [
                 {"type": "image_file", "image_file": {"file_id": file.id}},
@@ -38,14 +45,14 @@ def send_message(thread_id: str, content: str | None = None, image_path: str | N
         content_block = content
 
     # 2. Создаём сообщение в thread
-    client.beta.threads.messages.create(
+    _get_client().beta.threads.messages.create(
         thread_id=thread_id,
         role="user",
         content=content_block
     )
 
     # 3. Запускаем ассистента
-    run = client.beta.threads.runs.create(
+    run = _get_client().beta.threads.runs.create(
         thread_id=thread_id,
         assistant_id=OPENAI_ASSISTANT_ID
     )
