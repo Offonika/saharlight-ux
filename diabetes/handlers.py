@@ -966,48 +966,61 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Сначала используйте /start.")
         return
 
-    # 1) отправляем сообщение (или изображение) в GPT
-    run = send_message(user.thread_id, content=update.message.text)
-    await update.message.reply_text("⏳ Жду ответ от GPT...")
+    try:
+        # 1) отправляем сообщение (или изображение) в GPT
+        run = send_message(user.thread_id, content=update.message.text)
+        await update.message.reply_text("⏳ Жду ответ от GPT...")
 
-    # 2) ждём, пока Assistant закончит (но ограничено по времени)
-    max_attempts = 15
-    for _ in range(max_attempts):
-        if run.status in ("completed", "failed", "cancelled", "expired"):
-            break
-        await asyncio.sleep(2)
-        run = _get_client().beta.threads.runs.retrieve(
-            thread_id=user.thread_id,
-            run_id=run.id,
+        # 2) ждём, пока Assistant закончит (но ограничено по времени)
+        max_attempts = 15
+        for _ in range(max_attempts):
+            if run.status in ("completed", "failed", "cancelled", "expired"):
+                break
+            await asyncio.sleep(2)
+            run = _get_client().beta.threads.runs.retrieve(
+                thread_id=user.thread_id,
+                run_id=run.id,
+            )
+
+        if run.status not in ("completed", "failed", "cancelled", "expired"):
+            logging.warning("[GPT][TIMEOUT] run.id=%s", run.id)
+            await update.message.reply_text(
+                "⚠️ Время ожидания GPT истекло. Попробуйте позже.",
+            )
+            return
+
+        # 3) если не completed – сообщаем об ошибке и выходим
+        if run.status != "completed":
+            await update.message.reply_text(
+                f"⚠️ GPT не смог ответить (status={run.status}). Попробуйте позже."
+            )
+            logging.error(f"GPT run failed: {run}")
+            return
+
+        # 4) получаем последний ответ Assistant'а
+        messages = _get_client().beta.threads.messages.list(thread_id=user.thread_id)
+        reply_msg = next(
+            (m for m in messages.data if m.role == "assistant"), None
         )
 
-    if run.status not in ("completed", "failed", "cancelled", "expired"):
-        logging.warning("[GPT][TIMEOUT] run.id=%s", run.id)
+        if not reply_msg:
+            await update.message.reply_text("⚠️ Ответ пустой.")
+            return
+
+        reply_text = reply_msg.content[0].text.value
+        await update.message.reply_text(reply_text)
+    except OpenAIError as e:
+        logging.exception("[GPT] OpenAI API error: %s", e)
         await update.message.reply_text(
-            "⚠️ Время ожидания GPT истекло. Попробуйте позже.",
+            "⚠️ Ошибка при обращении к GPT. Попробуйте позже."
         )
         return
-
-    # 3) если не completed – сообщаем об ошибке и выходим
-    if run.status != "completed":
+    except Exception as e:
+        logging.exception("[GPT] Unexpected error: %s", e)
         await update.message.reply_text(
-            f"⚠️ GPT не смог ответить (status={run.status}). Попробуйте позже."
+            "⚠️ Произошла непредвиденная ошибка. Попробуйте позже."
         )
-        logging.error(f"GPT run failed: {run}")
         return
-
-    # 4) получаем последний ответ Assistant'а
-    messages = _get_client().beta.threads.messages.list(thread_id=user.thread_id)
-    reply_msg = next(
-        (m for m in messages.data if m.role == "assistant"), None
-    )
-
-    if not reply_msg:
-        await update.message.reply_text("⚠️ Ответ пустой.")
-        return
-
-    reply_text = reply_msg.content[0].text.value
-    await update.message.reply_text(reply_text)
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
