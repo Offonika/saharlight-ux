@@ -134,6 +134,7 @@ def register_handlers(app: Application) -> None:
 
     app.add_handler(CommandHandler("profile", profile_handlers.profile_command))
     app.add_handler(CommandHandler("dose", dose_handlers.freeform_handler))
+    app.add_handler(CommandHandler("report", reporting_handlers.report_request))
     app.add_handler(
         MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_handlers.profile_view)
     )

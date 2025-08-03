@@ -71,6 +71,13 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     ]
     assert report_handlers
 
+    report_cmd = [
+        h
+        for h in handlers
+        if isinstance(h, CommandHandler) and h.callback is reporting_handlers.report_request
+    ]
+    assert report_cmd and "report" in report_cmd[0].commands
+
     history_handlers = [
         h
         for h in handlers
