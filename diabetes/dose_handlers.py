@@ -11,10 +11,16 @@ from pathlib import Path
 
 from openai import OpenAIError
 from telegram import Update
-from telegram.ext import ConversationHandler, ContextTypes
+from telegram.ext import (
+    CommandHandler,
+    ConversationHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
 
-from diabetes.db import SessionLocal, User, Entry
-from diabetes.functions import extract_nutrition_info
+from diabetes.db import SessionLocal, User, Entry, Profile
+from diabetes.functions import extract_nutrition_info, calc_bolus, PatientProfile
 from diabetes.gpt_client import create_thread, send_message, _get_client
 from diabetes.gpt_command_parser import parse_command
 from diabetes.ui import menu_keyboard, confirm_keyboard, dose_keyboard
@@ -31,6 +37,7 @@ def _sanitize(text: str, max_len: int = 200) -> str:
     return cleaned[:max_len]
 
 
+DOSE_METHOD, DOSE_XE, DOSE_CARBS, DOSE_SUGAR = range(3, 7)
 PHOTO_SUGAR = 7
 WAITING_GPT_FLAG = "waiting_gpt_response"
 
@@ -53,18 +60,135 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     )
 
 
-async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Start dialog for insulin dose calculation."""
+async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Entry point for dose calculation conversation."""
     context.user_data.pop("pending_entry", None)
     context.user_data.pop("edit_id", None)
+    context.user_data.pop("dose_method", None)
     await update.message.reply_text(
-        "Отправьте сообщение в формате:\n"
-        "`сахар=<ммоль/л>  xe=<ХЕ>  carbs=<г>`\n"
-        "Можно указать не все поля.",
-        parse_mode="Markdown",
+        "💉 Как рассчитать дозу? Выберите метод:",
         reply_markup=dose_keyboard,
-
     )
+    return DOSE_METHOD
+
+
+async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle method selection for dose calculation."""
+    text = update.message.text.lower()
+    if "назад" in text:
+        return await dose_cancel(update, context)
+    if "углев" in text:
+        context.user_data["dose_method"] = "carbs"
+        await update.message.reply_text("Введите количество углеводов (г).")
+        return DOSE_CARBS
+    if "xe" in text or "хе" in text:
+        context.user_data["dose_method"] = "xe"
+        await update.message.reply_text("Введите количество ХЕ.")
+        return DOSE_XE
+    await update.message.reply_text(
+        "Пожалуйста, выберите метод: ХЕ или углеводы.",
+        reply_markup=dose_keyboard,
+    )
+    return DOSE_METHOD
+
+
+async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Capture XE amount from user."""
+    text = update.message.text.strip().replace(",", ".")
+    if text.lower() == "↩️ назад":
+        return await dose_cancel(update, context)
+    try:
+        xe = float(text)
+    except ValueError:
+        await update.message.reply_text("Введите число ХЕ.")
+        return DOSE_XE
+    context.user_data["pending_entry"] = {
+        "telegram_id": update.effective_user.id,
+        "event_time": datetime.datetime.now(datetime.timezone.utc),
+        "xe": xe,
+    }
+    await update.message.reply_text("Введите текущий сахар (ммоль/л).")
+    return DOSE_SUGAR
+
+
+async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Capture carbohydrates in grams."""
+    text = update.message.text.strip().replace(",", ".")
+    if text.lower() == "↩️ назад":
+        return await dose_cancel(update, context)
+    try:
+        carbs = float(text)
+    except ValueError:
+        await update.message.reply_text("Введите углеводы числом в граммах.")
+        return DOSE_CARBS
+    context.user_data["pending_entry"] = {
+        "telegram_id": update.effective_user.id,
+        "event_time": datetime.datetime.now(datetime.timezone.utc),
+        "carbs_g": carbs,
+    }
+    await update.message.reply_text("Введите текущий сахар (ммоль/л).")
+    return DOSE_SUGAR
+
+
+async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Finalize dose calculation after receiving sugar level."""
+    text = update.message.text.strip().replace(",", ".")
+    if text.lower() == "↩️ назад":
+        return await dose_cancel(update, context)
+    try:
+        sugar = float(text)
+    except ValueError:
+        await update.message.reply_text("Введите сахар числом в ммоль/л.")
+        return DOSE_SUGAR
+
+    entry = context.user_data.get("pending_entry", {})
+    entry["sugar_before"] = sugar
+    xe = entry.get("xe")
+    carbs_g = entry.get("carbs_g")
+    if carbs_g is None and xe is not None:
+        carbs_g = xe * 12
+        entry["carbs_g"] = carbs_g
+
+    user_id = update.effective_user.id
+    with SessionLocal() as session:
+        profile = session.get(Profile, user_id)
+
+    if not profile or None in (profile.icr, profile.cf, profile.target_bg):
+        await update.message.reply_text(
+            "Профиль не настроен. Установите коэффициенты через /profile.",
+            reply_markup=menu_keyboard,
+        )
+        context.user_data.pop("pending_entry", None)
+        return ConversationHandler.END
+
+    patient = PatientProfile(
+        icr=profile.icr,
+        cf=profile.cf,
+        target_bg=profile.target_bg,
+    )
+    dose = calc_bolus(carbs_g, sugar, patient)
+    entry["dose"] = dose
+
+    context.user_data["pending_entry"] = entry
+
+    xe_info = f", ХЕ: {xe}" if xe is not None else ""
+    await update.message.reply_text(
+        f"💉 Расчёт завершён:\n"
+        f"• Углеводы: {carbs_g} г{xe_info}\n"
+        f"• Сахар: {sugar} ммоль/л\n"
+        f"• Ваша доза: {dose} Ед\n\n"
+        "Сохранить это в дневник?",
+        reply_markup=confirm_keyboard(),
+    )
+    return ConversationHandler.END
+
+
+async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Cancel dose calculation conversation."""
+    await update.message.reply_text("Отменено.", reply_markup=menu_keyboard)
+    context.user_data.pop("pending_entry", None)
+    context.user_data.pop("dose_method", None)
+    return ConversationHandler.END
 
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -438,16 +562,43 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return await photo_handler(update, context)
 
 
+prompt_photo = photo_prompt
+prompt_sugar = sugar_start
+prompt_dose = dose_start
+
+dose_conv = ConversationHandler(
+    entry_points=[
+        CommandHandler("dose", dose_start),
+        MessageHandler(filters.Regex("^💉 Доза инсулина$"), dose_start),
+    ],
+    states={
+        DOSE_METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
+        DOSE_XE: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_xe)],
+        DOSE_CARBS: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_carbs)],
+        DOSE_SUGAR: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_sugar)],
+    },
+    fallbacks=[MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel)],
+)
+
+
 __all__ = [
+    "DOSE_METHOD",
+    "DOSE_XE",
+    "DOSE_CARBS",
+    "DOSE_SUGAR",
     "PHOTO_SUGAR",
     "WAITING_GPT_FLAG",
 
     "photo_prompt",
     "sugar_start",
     "dose_start",
+    "prompt_photo",
+    "prompt_sugar",
+    "prompt_dose",
 
     "freeform_handler",
     "photo_handler",
     "doc_handler",
+    "dose_conv",
     "ConversationHandler",
 ]

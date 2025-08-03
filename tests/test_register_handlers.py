@@ -4,6 +4,7 @@ from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
     CommandHandler,
+    ConversationHandler,
     MessageHandler,
 )
 
@@ -20,7 +21,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     register_handlers(app)
 
     handlers = app.handlers[0]
-    callbacks = [h.callback for h in handlers]
+    callbacks = [getattr(h, "callback", None) for h in handlers]
 
     assert start_command in callbacks
     assert profile_handlers.profile_command in callbacks
@@ -29,7 +30,6 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     assert dose_handlers.doc_handler in callbacks
     assert dose_handlers.prompt_photo in callbacks
     assert dose_handlers.prompt_sugar in callbacks
-    assert dose_handlers.prompt_dose in callbacks
     assert callback_router in callbacks
     assert profile_handlers.profile_view in callbacks
     assert reporting_handlers.report_request in callbacks
@@ -47,10 +47,14 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     ]
     assert profile_cmd and "profile" in profile_cmd[0].commands
 
-    dose_cmd = [
-        h for h in handlers if isinstance(h, CommandHandler) and h.callback is dose_handlers.freeform_handler
+    conv_handlers = [h for h in handlers if isinstance(h, ConversationHandler)]
+    assert dose_handlers.dose_conv in conv_handlers
+    conv_cmds = [
+        ep
+        for ep in dose_handlers.dose_conv.entry_points
+        if isinstance(ep, CommandHandler)
     ]
-    assert dose_cmd and "dose" in dose_cmd[0].commands
+    assert conv_cmds and "dose" in conv_cmds[0].commands
 
     text_handlers = [
         h
@@ -87,14 +91,6 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
         if isinstance(h, MessageHandler) and h.callback is dose_handlers.sugar_start
     ]
     assert sugar_handlers
-
-    dose_start_handlers = [
-        h
-        for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is dose_handlers.dose_start
-    ]
-    assert dose_start_handlers
-
 
     profile_view_handlers = [
         h
