@@ -5,8 +5,10 @@ import re
 
 
 def _safe_float(value: str) -> float | None:
+    if not isinstance(value, str):
+        return None
     try:
-        return float(value.replace(",", "."))
+        return float(value.strip().replace(",", "."))
     except ValueError:
         return None
 

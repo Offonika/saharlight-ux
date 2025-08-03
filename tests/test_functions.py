@@ -2,7 +2,21 @@
 
 import pytest
 
-from diabetes.functions import calc_bolus, PatientProfile, extract_nutrition_info
+from diabetes.functions import (
+    _safe_float,
+    calc_bolus,
+    PatientProfile,
+    extract_nutrition_info,
+)
+
+
+def test_safe_float_with_spaces():
+    assert _safe_float(" 1,5 ") == 1.5
+
+
+def test_safe_float_none():
+    assert _safe_float(None) is None
+
 
 def test_calc_bolus_basic():
     profile = PatientProfile(icr=12, cf=2, target_bg=6)
