@@ -1,17 +1,21 @@
 # gpt_client.py
 
 import logging
+import threading
 
 from diabetes.config import OPENAI_ASSISTANT_ID
 from diabetes.openai_utils import get_openai_client
 
 _client = None
+_client_lock = threading.Lock()
 
 
 def _get_client():
     global _client
     if _client is None:
-        _client = get_openai_client()
+        with _client_lock:
+            if _client is None:
+                _client = get_openai_client()
     return _client
 
 
