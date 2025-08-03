@@ -91,7 +91,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     msg = (
         "📄 Ваш профиль:\n"
-        f"• ИКХ: {profile.icr} г/ед.\n"
+        f"• ИКХ: {profile.icr} г/ед.\n"  # Инсулин-карб коэффициент
         f"• КЧ: {profile.cf} ммоль/л\n"
         f"• Целевой сахар: {profile.target_bg} ммоль/л"
     )
