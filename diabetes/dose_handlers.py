@@ -18,7 +18,7 @@ from diabetes.functions import extract_nutrition_info
 from diabetes.gpt_client import create_thread, send_message, _get_client
 from diabetes.gpt_command_parser import parse_command
 from diabetes.ui import menu_keyboard, confirm_keyboard
-from .common_handlers import CommitError, commit_session
+from .common_handlers import commit_session
 from .reporting_handlers import send_report
 
 PHOTO_SUGAR = 7
@@ -108,9 +108,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 sugar_value = parts.get("сахар") or parts["sugar"]
                 entry.sugar_before = float(sugar_value.replace(",", "."))
             entry.updated_at = datetime.datetime.now(datetime.timezone.utc)
-            try:
-                commit_session(session)
-            except CommitError:
+            if not commit_session(session):
                 await update.message.reply_text("⚠️ Не удалось обновить запись.")
                 return
         context.user_data.pop("edit_id")
@@ -224,9 +222,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 else:
                     thread_id = create_thread()
                     session.add(User(telegram_id=user_id, thread_id=thread_id))
-                    try:
-                        commit_session(session)
-                    except CommitError:
+                    if not commit_session(session):
                         await message.reply_text(
                             "⚠️ Не удалось сохранить данные пользователя."
                         )

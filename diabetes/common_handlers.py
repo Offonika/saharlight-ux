@@ -18,11 +18,7 @@ from diabetes.ui import menu_keyboard
 logger = logging.getLogger(__name__)
 
 
-class CommitError(RuntimeError):
-    """Raised when a database session commit fails."""
-
-
-def commit_session(session) -> None:
+def commit_session(session) -> bool:
     """Commit an SQLAlchemy session.
 
     Parameters
@@ -30,18 +26,19 @@ def commit_session(session) -> None:
     session: Session
         Active SQLAlchemy session.
 
-    Raises
-    ------
-    CommitError
-        If the commit fails; the session is rolled back and ``CommitError`` is
-        raised with the original ``SQLAlchemyError`` chained.
+    Returns
+    -------
+    bool
+        ``True`` if the commit succeeded. If an error occurs the session is
+        rolled back, the error is logged and ``False`` is returned.
     """
     try:
         session.commit()
+        return True
     except SQLAlchemyError as exc:  # pragma: no cover - logging only
         session.rollback()
         logger.error("DB commit failed: %s", exc)
-        raise CommitError("Database commit failed") from exc
+        return False
 
 
 async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -58,9 +55,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         with SessionLocal() as session:
             entry = Entry(**entry_data)
             session.add(entry)
-            try:
-                commit_session(session)
-            except CommitError:
+            if not commit_session(session):
                 await query.edit_message_text("⚠️ Не удалось сохранить запись.")
                 return
         await query.edit_message_text("✅ Запись сохранена в дневник!")
@@ -95,9 +90,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 return
             if action == "del":
                 session.delete(entry)
-                try:
-                    commit_session(session)
-                except CommitError:
+                if not commit_session(session):
                     await query.edit_message_text("⚠️ Не удалось удалить запись.")
                     return
                 await query.edit_message_text("❌ Запись удалена.")
@@ -123,5 +116,4 @@ __all__ = [
     "commit_session",
     "callback_router",
     "menu_keyboard",
-    "CommitError",
 ]
