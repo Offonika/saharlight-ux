@@ -744,10 +744,21 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         )
         await message.reply_text("🔍 Анализирую фото (это займёт 5‑10 с)…")
 
-        # 3. Ждать окончания run
-        while run.status not in ("completed", "failed", "cancelled", "expired"):
+        # 3. Ждём окончания run, но не бесконечно
+        max_attempts = 15
+        for _ in range(max_attempts):
+            if run.status in ("completed", "failed", "cancelled", "expired"):
+                break
             await asyncio.sleep(2)
-            run = _get_client().beta.threads.runs.retrieve(thread_id=run.thread_id, run_id=run.id)
+            run = _get_client().beta.threads.runs.retrieve(
+                thread_id=run.thread_id,
+                run_id=run.id,
+            )
+
+        if run.status not in ("completed", "failed", "cancelled", "expired"):
+            logging.warning("[VISION][TIMEOUT] run.id=%s", run.id)
+            await message.reply_text("⚠️ Время ожидания Vision истекло. Попробуйте позже.")
+            return ConversationHandler.END
 
         if run.status != "completed":
             logging.error(f"[VISION][RUN_FAILED] run.status={run.status}")
@@ -959,13 +970,23 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE):
     run = send_message(user.thread_id, content=update.message.text)
     await update.message.reply_text("⏳ Жду ответ от GPT...")
 
-    # 2) ждём, пока Assistant закончит
-    while run.status not in ("completed", "failed", "cancelled", "expired"):
+    # 2) ждём, пока Assistant закончит (но ограничено по времени)
+    max_attempts = 15
+    for _ in range(max_attempts):
+        if run.status in ("completed", "failed", "cancelled", "expired"):
+            break
         await asyncio.sleep(2)
         run = _get_client().beta.threads.runs.retrieve(
             thread_id=user.thread_id,
-            run_id=run.id
+            run_id=run.id,
         )
+
+    if run.status not in ("completed", "failed", "cancelled", "expired"):
+        logging.warning("[GPT][TIMEOUT] run.id=%s", run.id)
+        await update.message.reply_text(
+            "⚠️ Время ожидания GPT истекло. Попробуйте позже.",
+        )
+        return
 
     # 3) если не completed – сообщаем об ошибке и выходим
     if run.status != "completed":
