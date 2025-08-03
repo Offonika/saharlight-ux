@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from telegram import Update
+import datetime
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from diabetes.db import SessionLocal, Entry
@@ -12,11 +14,33 @@ LOW_SUGAR_THRESHOLD = 3.0
 HIGH_SUGAR_THRESHOLD = 13.0
 
 
+def report_keyboard() -> InlineKeyboardMarkup:
+    """Keyboard for selecting report period."""
+    rows = [
+        [
+            InlineKeyboardButton(
+                "Сегодня", callback_data="report_period:today"
+            ),
+            InlineKeyboardButton(
+                "Неделя", callback_data="report_period:week"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "Месяц", callback_data="report_period:month"
+            ),
+            InlineKeyboardButton(
+                "Произвольно", callback_data="report_period:custom"
+            ),
+        ],
+    ]
+    return InlineKeyboardMarkup(rows)
+
+
 async def report_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Prompt the user for a report date and set waiting flag."""
-    context.user_data["awaiting_report_date"] = True
+    """Prompt the user to select a report period."""
     await update.message.reply_text(
-        "Введите дату начала отчёта в формате YYYY-MM-DD",
+        "Выберите период отчёта:", reply_markup=report_keyboard()
     )
 
 
@@ -45,6 +69,36 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             f"{day_str}: сахар {sugar}, углеводы {carbs} г ({xe} ХЕ), доза {dose}",
         )
     await update.message.reply_text("\n".join(lines))
+
+
+async def report_period_callback(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Handle report period selection via inline buttons."""
+    query = update.callback_query
+    await query.answer()
+    period = query.data.split(":", 1)[1]
+    now = datetime.datetime.now(datetime.timezone.utc)
+    if period == "today":
+        date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        await send_report(update, context, date_from, "сегодня", query=query)
+    elif period == "week":
+        date_from = (now - datetime.timedelta(days=7)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        await send_report(update, context, date_from, "последнюю неделю", query=query)
+    elif period == "month":
+        date_from = (now - datetime.timedelta(days=30)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        await send_report(update, context, date_from, "последний месяц", query=query)
+    elif period == "custom":
+        context.user_data["awaiting_report_date"] = True
+        await query.edit_message_text(
+            "Введите дату начала отчёта в формате YYYY-MM-DD"
+        )
+    else:  # pragma: no cover - defensive
+        await query.edit_message_text("Команда не распознана")
 
 
 async def send_report(
@@ -120,4 +174,10 @@ async def send_report(
         )
 
 
-__all__ = ["send_report", "report_request", "history_view"]
+__all__ = [
+    "send_report",
+    "report_request",
+    "history_view",
+    "report_keyboard",
+    "report_period_callback",
+]
