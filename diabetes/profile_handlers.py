@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 
 from diabetes.db import SessionLocal, Profile
 from diabetes.ui import menu_keyboard
-from .common_handlers import commit_session
+from .common_handlers import CommitError, commit_session
 
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET = range(0, 3)
 
@@ -62,7 +62,11 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         prof.icr = icr
         prof.cf = cf
         prof.target_bg = target
-        commit_session(session)
+        try:
+            commit_session(session)
+        except CommitError:
+            await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
+            return
 
     await update.message.reply_text(
         f"✅ Профиль обновлён:\n"

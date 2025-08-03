@@ -52,11 +52,11 @@ async def test_profile_command_commit_failure(monkeypatch, caplog):
     context = SimpleNamespace(args=["10", "2", "6"], user_data={})
 
     with caplog.at_level(logging.ERROR):
-        with pytest.raises(SQLAlchemyError):
-            await profile_handlers.profile_command(update, context)
+        await profile_handlers.profile_command(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
+    assert message.texts == ["⚠️ Не удалось сохранить профиль."]
 
 
 @pytest.mark.asyncio
@@ -85,9 +85,8 @@ async def test_callback_router_commit_failure(monkeypatch, caplog):
     context = SimpleNamespace(user_data={"pending_entry": pending_entry})
 
     with caplog.at_level(logging.ERROR):
-        with pytest.raises(SQLAlchemyError):
-            await common_handlers.callback_router(update, context)
+        await common_handlers.callback_router(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
-    assert not query.edited  # message was not edited due to failure
+    assert query.edited == ["⚠️ Не удалось сохранить запись."]

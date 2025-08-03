@@ -18,26 +18,30 @@ from diabetes.ui import menu_keyboard
 logger = logging.getLogger(__name__)
 
 
-def commit_session(session) -> bool:
-    """Commit SQLAlchemy session and rollback on error.
+class CommitError(RuntimeError):
+    """Raised when a database session commit fails."""
+
+
+def commit_session(session) -> None:
+    """Commit an SQLAlchemy session.
 
     Parameters
     ----------
     session: Session
         Active SQLAlchemy session.
 
-    Returns
-    -------
-    bool
-        ``True`` if the commit succeeded.
+    Raises
+    ------
+    CommitError
+        If the commit fails; the session is rolled back and ``CommitError`` is
+        raised with the original ``SQLAlchemyError`` chained.
     """
     try:
         session.commit()
-        return True
     except SQLAlchemyError as exc:  # pragma: no cover - logging only
         session.rollback()
         logger.error("DB commit failed: %s", exc)
-        raise
+        raise CommitError("Database commit failed") from exc
 
 
 async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -54,7 +58,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         with SessionLocal() as session:
             entry = Entry(**entry_data)
             session.add(entry)
-            commit_session(session)
+            try:
+                commit_session(session)
+            except CommitError:
+                await query.edit_message_text("⚠️ Не удалось сохранить запись.")
+                return
         await query.edit_message_text("✅ Запись сохранена в дневник!")
         return
 
@@ -87,7 +95,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 return
             if action == "del":
                 session.delete(entry)
-                commit_session(session)
+                try:
+                    commit_session(session)
+                except CommitError:
+                    await query.edit_message_text("⚠️ Не удалось удалить запись.")
+                    return
                 await query.edit_message_text("❌ Запись удалена.")
                 return
             if action == "edit":
@@ -111,4 +123,5 @@ __all__ = [
     "commit_session",
     "callback_router",
     "menu_keyboard",
+    "CommitError",
 ]
