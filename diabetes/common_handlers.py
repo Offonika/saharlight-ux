@@ -67,8 +67,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 return
         await query.edit_message_text("✅ Запись сохранена в дневник!")
         return
-
-    if data == "edit_entry":
+    elif data == "edit_entry":
         entry_data = context.user_data.get("pending_entry")
         if not entry_data:
             await query.edit_message_text("❗ Нет данных для редактирования.")
@@ -81,14 +80,12 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             parse_mode="Markdown",
         )
         return
-
-    if data == "cancel_entry":
+    elif data == "cancel_entry":
         context.user_data.pop("pending_entry", None)
         await query.edit_message_text("❌ Запись отменена.")
         await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
         return
-
-    if ":" in data:
+    elif ":" in data:
         action, entry_id = data.split(":", 1)
         try:
             entry_id = int(entry_id)
@@ -117,6 +114,9 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 )
                 await query.edit_message_text("\n".join(text), parse_mode="Markdown")
                 return
+    else:
+        logger.warning("Unrecognized callback data: %s", data)
+        await query.edit_message_text("Команда не распознана")
 
 
 def register_handlers(app: Application) -> None:

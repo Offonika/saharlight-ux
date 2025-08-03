@@ -65,3 +65,21 @@ async def test_callback_router_invalid_entry_id(caplog):
 
     assert query.edited == ["Некорректный идентификатор записи."]
     assert "Invalid entry_id in callback data" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_callback_router_unknown_data(caplog):
+    os.environ["OPENAI_API_KEY"] = "test"
+    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    import diabetes.openai_utils  # noqa: F401
+    import diabetes.common_handlers as handlers
+
+    query = DummyQuery("foo")
+    update = SimpleNamespace(callback_query=query)
+    context = SimpleNamespace(user_data={})
+
+    with caplog.at_level(logging.WARNING):
+        await handlers.callback_router(update, context)
+
+    assert query.edited == ["Команда не распознана"]
+    assert "Unrecognized callback data" in caplog.text
