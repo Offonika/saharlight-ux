@@ -1,24 +1,12 @@
 import asyncio
-import os
 import json
 import logging
 import re
-from openai import OpenAI, OpenAIError
-from diabetes.config import OPENAI_API_KEY, OPENAI_PROXY
+from openai import OpenAIError
 
-# 1️⃣ СРАЗУ ставим переменные окружения — до создания клиента!
-if OPENAI_PROXY:
-    os.environ["HTTP_PROXY"] = OPENAI_PROXY
-    os.environ["HTTPS_PROXY"] = OPENAI_PROXY
+from diabetes.openai_utils import get_openai_client
 
-if not OPENAI_API_KEY:
-    message = "OPENAI_API_KEY is not set"
-    logging.error("[OpenAI] %s", message)
-    raise RuntimeError(message)
-
-# 2️⃣ Создаём обычный клиент OpenAI — без extra‑аргументов,
-#    он возьмёт прокси из env автоматически.
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = get_openai_client()
 
 # gpt_command_parser.py  ← замените весь блок SYSTEM_PROMPT
 SYSTEM_PROMPT = (

@@ -25,6 +25,8 @@ class DummyMessage:
 async def test_profile_command_and_view(monkeypatch, args, expected_icr, expected_cf, expected_target):
     import os
     os.environ["OPENAI_API_KEY"] = "test"
+    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    import diabetes.openai_utils as openai_utils  # noqa: F401
     import diabetes.handlers as handlers
 
     engine = create_engine("sqlite:///:memory:")
