@@ -324,7 +324,10 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if data == "cancel_entry":
         context.user_data.pop('pending_entry', None)
-        await query.edit_message_text("❌ Запись отменена.", reply_markup=menu_keyboard)
+        await query.edit_message_text("❌ Запись отменена.")
+        await query.message.reply_text(
+            "📋 Выберите действие:", reply_markup=menu_keyboard
+        )
         return
 
     # --- Старый код: обработка истории ---
@@ -1088,7 +1091,10 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
     data = query.data
     if data == "cancel_entry":
-        await query.edit_message_text("❌ Запрос отменён.", reply_markup=menu_keyboard)
+        await query.edit_message_text("❌ Запрос отменён.")
+        await query.message.reply_text(
+            "📋 Выберите действие:", reply_markup=menu_keyboard
+        )
         context.user_data.pop('awaiting_report_date', None)
         return
     now = datetime.datetime.now()
