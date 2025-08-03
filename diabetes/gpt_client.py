@@ -1,27 +1,11 @@
 # gpt_client.py
 
-import openai
-import os
 import logging
-from diabetes.config import OPENAI_API_KEY, OPENAI_ASSISTANT_ID, OPENAI_PROXY
 
-# --- Только здесь прописываем прокси ---
-if OPENAI_PROXY:
-    os.environ["HTTP_PROXY"] = OPENAI_PROXY
-    os.environ["HTTPS_PROXY"] = OPENAI_PROXY
+from diabetes.config import OPENAI_ASSISTANT_ID
+from diabetes.openai_utils import get_openai_client
 
-if not OPENAI_API_KEY:
-    message = "OPENAI_API_KEY is not set"
-    logging.error("[OpenAI] %s", message)
-    raise RuntimeError(message)
-if not OPENAI_ASSISTANT_ID:
-    message = "OPENAI_ASSISTANT_ID is not set"
-    logging.error("[OpenAI] %s", message)
-    raise RuntimeError(message)
-
-client = openai.OpenAI(api_key=OPENAI_API_KEY)
-
-logging.info("[OpenAI] Using assistant: %s", OPENAI_ASSISTANT_ID)
+client = get_openai_client()
 
 
 def create_thread() -> str:
