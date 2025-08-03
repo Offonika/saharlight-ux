@@ -173,8 +173,8 @@ def register_handlers(app: Application) -> None:
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("profile", profile_handlers.profile_command))
-    app.add_handler(CommandHandler("dose", dose_handlers.freeform_handler))
     app.add_handler(CommandHandler("report", reporting_handlers.report_request))
+    app.add_handler(dose_handlers.dose_conv)
     app.add_handler(
         MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_handlers.profile_view)
     )
@@ -185,15 +185,11 @@ def register_handlers(app: Application) -> None:
         MessageHandler(filters.Regex("^📊 История$"), reporting_handlers.history_view)
     )
     app.add_handler(
-
         MessageHandler(filters.Regex("^📷 Фото еды$"), dose_handlers.photo_prompt)
     )
     app.add_handler(
         MessageHandler(filters.Regex("^❓ Мой сахар$"), dose_handlers.sugar_start)
     )
-    app.add_handler(
-        MessageHandler(filters.Regex("^💉 Доза инсулина$"), dose_handlers.dose_start)
-
     app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, dose_handlers.freeform_handler)
     )

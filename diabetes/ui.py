@@ -30,10 +30,13 @@ menu_keyboard = ReplyKeyboardMarkup(
 )
 
 dose_keyboard = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton("↩️ Назад")]],
+    keyboard=[
+        [KeyboardButton("ХЕ"), KeyboardButton("Углеводы")],
+        [KeyboardButton("↩️ Назад")],
+    ],
     resize_keyboard=True,
     one_time_keyboard=True,
-    input_field_placeholder="Введите значение или вернитесь назад…",
+    input_field_placeholder="Выберите метод расчёта…",
 )
 
 # ─────────────── Inline-клавиатуры (обрабатываются callback-ами) ───────────────
