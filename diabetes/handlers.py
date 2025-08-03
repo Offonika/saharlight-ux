@@ -103,15 +103,19 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=confirm_keyboard()
             )
             return
-        parts = dict(re.findall(r"(\w+)\s*=\s*([\d.]+)", text))
+        parts = dict(re.findall(r"(\w+)\s*=\s*([\d.,-]+)", text))
         if not parts:
             await update.message.reply_text("Не вижу ни одного поля для изменения.")
             return
-        if "xe" in parts:    entry['xe']           = float(parts["xe"])
-        if "carbs" in parts: entry['carbs_g']      = float(parts["carbs"])
-        if "dose" in parts:  entry['dose']         = float(parts["dose"])
+        if "xe" in parts:
+            entry['xe'] = float(parts["xe"].replace(",", "."))
+        if "carbs" in parts:
+            entry['carbs_g'] = float(parts["carbs"].replace(",", "."))
+        if "dose" in parts:
+            entry['dose'] = float(parts["dose"].replace(",", "."))
         if "сахар" in parts or "sugar" in parts:
-            entry['sugar_before'] = float(parts.get("сахар") or parts["sugar"])
+            sugar_value = parts.get("сахар") or parts["sugar"]
+            entry['sugar_before'] = float(sugar_value.replace(",", "."))
         carbs = entry.get('carbs_g')
         xe = entry.get('xe')
         sugar = entry.get('sugar_before')
@@ -129,7 +133,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if "edit_id" in context.user_data:
         text = update.message.text.lower()
-        parts = dict(re.findall(r"(\w+)\s*=\s*([\d.]+)", text))
+        parts = dict(re.findall(r"(\w+)\s*=\s*([\d.,-]+)", text))
         if not parts:
             await update.message.reply_text("Не вижу ни одного поля для изменения.")
             return
@@ -139,11 +143,15 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("Запись уже удалена.")
                 context.user_data.pop("edit_id")
                 return
-            if "xe" in parts:    entry.xe           = float(parts["xe"])
-            if "carbs" in parts: entry.carbs_g      = float(parts["carbs"])
-            if "dose" in parts:  entry.dose         = float(parts["dose"])
+            if "xe" in parts:
+                entry.xe = float(parts["xe"].replace(",", "."))
+            if "carbs" in parts:
+                entry.carbs_g = float(parts["carbs"].replace(",", "."))
+            if "dose" in parts:
+                entry.dose = float(parts["dose"].replace(",", "."))
             if "сахар" in parts or "sugar" in parts:
-                entry.sugar_before = float(parts.get("сахар") or parts["sugar"])
+                sugar_value = parts.get("сахар") or parts["sugar"]
+                entry.sugar_before = float(sugar_value.replace(",", "."))
             entry.updated_at = datetime.datetime.now(datetime.timezone.utc)
             commit_session(s)
         context.user_data.pop("edit_id")
