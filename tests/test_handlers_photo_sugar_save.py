@@ -1,0 +1,146 @@
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+import diabetes.dose_handlers as dose_handlers
+import diabetes.common_handlers as common_handlers
+
+
+class DummyMessage:
+    def __init__(self, text=None, photo=None):
+        self.text = text
+        self.photo = photo
+        self.replies = []
+
+    async def reply_text(self, text, **kwargs):
+        self.replies.append((text, kwargs))
+
+
+class DummyQuery:
+    def __init__(self, data):
+        self.data = data
+        self.edited = []
+
+    async def answer(self):
+        pass
+
+    async def edit_message_text(self, text, **kwargs):
+        self.edited.append(text)
+
+
+class DummyPhoto:
+    file_id = "fid"
+    file_unique_id = "uid"
+
+
+@pytest.mark.asyncio
+async def test_photo_flow_saves_entry(monkeypatch, tmp_path):
+    async def fake_parse_command(text):
+        return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
+
+    monkeypatch.setattr(dose_handlers, "parse_command", fake_parse_command)
+    monkeypatch.setattr(dose_handlers, "confirm_keyboard", lambda: None)
+    monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
+
+    msg_start = DummyMessage("/dose")
+    update_start = SimpleNamespace(
+        message=msg_start, effective_user=SimpleNamespace(id=1)
+    )
+    context = SimpleNamespace(user_data={})
+    await dose_handlers.freeform_handler(update_start, context)
+
+    monkeypatch.chdir(tmp_path)
+
+    async def fake_get_file(file_id):
+        class File:
+            async def download_to_drive(self, path):
+                Path(path).write_bytes(b"img")
+
+        return File()
+
+    context.bot = SimpleNamespace(get_file=fake_get_file)
+
+    class Run:
+        status = "completed"
+        thread_id = "tid"
+        id = "runid"
+
+    def fake_send_message(**kwargs):
+        return Run()
+
+    class DummyClient:
+        beta = SimpleNamespace(
+            threads=SimpleNamespace(
+                runs=SimpleNamespace(
+                    retrieve=lambda thread_id, run_id: Run()
+                ),
+                messages=SimpleNamespace(
+                    list=lambda thread_id: SimpleNamespace(
+                        data=[
+                            SimpleNamespace(
+                                role="assistant",
+                                content=[
+                                    SimpleNamespace(
+                                        text=SimpleNamespace(value="carbs 30g xe 2")
+                                    )
+                                ],
+                            )
+                        ]
+                    )
+                ),
+            )
+        )
+
+    monkeypatch.setattr(dose_handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(dose_handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(dose_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0))
+    context.user_data["thread_id"] = "tid"
+
+    msg_photo = DummyMessage(photo=[DummyPhoto()])
+    update_photo = SimpleNamespace(
+        message=msg_photo, effective_user=SimpleNamespace(id=1)
+    )
+    await dose_handlers.photo_handler(update_photo, context)
+
+    entry = context.user_data["pending_entry"]
+    assert entry["carbs_g"] == 30.0
+    assert entry["xe"] == 2.0
+    assert entry["photo_path"].endswith("uid.jpg")
+
+    msg_sugar = DummyMessage("5.5")
+    update_sugar = SimpleNamespace(
+        message=msg_sugar, effective_user=SimpleNamespace(id=1)
+    )
+    await dose_handlers.freeform_handler(update_sugar, context)
+    assert context.user_data["pending_entry"]["sugar_before"] == 5.5
+
+    class DummySession:
+        def __init__(self):
+            self.added = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+        def add(self, obj):
+            self.added.append(obj)
+
+        def commit(self):
+            pass
+
+    session = DummySession()
+    monkeypatch.setattr(common_handlers, "SessionLocal", lambda: session)
+
+    query = DummyQuery("confirm_entry")
+    update_confirm = SimpleNamespace(callback_query=query)
+    await common_handlers.callback_router(update_confirm, context)
+
+    assert len(session.added) == 1
+    saved = session.added[0]
+    assert saved.carbs_g == 30.0
+    assert saved.sugar_before == 5.5
+    assert "pending_entry" not in context.user_data
+    assert query.edited == ["✅ Запись сохранена в дневник!"]
