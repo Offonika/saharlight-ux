@@ -29,7 +29,6 @@ WAITING_GPT_FLAG = "waiting_gpt_response"
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle freeform text commands for adding diary entries."""
-    context.user_data.pop("pending_entry", None)
     raw_text = update.message.text.strip()
     user_id = update.effective_user.id
     logging.info("FREEFORM raw='%s'  user=%s", raw_text, user_id)
@@ -46,21 +45,16 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if context.user_data.get("pending_entry") is not None and context.user_data.get("edit_id") is None:
         entry = context.user_data["pending_entry"]
-        only_sugar = (
-            entry.get("carbs_g") is None
-            and entry.get("xe") is None
-            and entry.get("dose") is None
-            and entry.get("photo_path") is None
-        )
         text = update.message.text.lower().strip()
-        if only_sugar:
+        if re.fullmatch(r"[\d.,-]+", text) and entry.get("sugar_before") is None:
             try:
                 sugar = float(text.replace(",", "."))
-                entry["sugar_before"] = sugar
             except ValueError:
-                await update.message.reply_text("Пожалуйста, введите число сахара в формате ммоль/л.")
+                await update.message.reply_text(
+                    "Пожалуйста, введите число сахара в формате ммоль/л."
+                )
                 return
-
+            entry["sugar_before"] = sugar
             await update.message.reply_text(
                 f"Сохранить уровень сахара {sugar} ммоль/л в дневник?",
                 reply_markup=confirm_keyboard(),
@@ -154,7 +148,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             event_dt = datetime.datetime.now(datetime.timezone.utc)
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
-
+    context.user_data.pop("pending_entry", None)
     context.user_data["pending_entry"] = {
         "telegram_id": user_id,
         "event_time": event_dt,
