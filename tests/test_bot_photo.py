@@ -1,4 +1,5 @@
 import pytest
+
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -23,6 +24,3 @@ async def test_photo_handler_mock_mode(tmp_path):
 
     message.reply_text.assert_any_call("🔍 Анализирую фото (это займёт 5‑10 с)…")
     assert result == PHOTO_SUGAR
-
-
-
