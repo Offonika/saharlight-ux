@@ -725,7 +725,18 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
 
     try:
         # 2. Запуск Vision run
-        thread_id = context.user_data.get("thread_id") or create_thread()
+        thread_id = context.user_data.get("thread_id")
+        if not thread_id:
+            with SessionLocal() as session:
+                user = session.get(User, user_id)
+                if user:
+                    thread_id = user.thread_id
+                else:
+                    thread_id = create_thread()
+                    session.add(User(telegram_id=user_id, thread_id=thread_id))
+                    commit_session(session)
+            context.user_data["thread_id"] = thread_id
+
         run = send_message(
             thread_id=thread_id,
             content="Определи количество углеводов и ХЕ на фото блюда. Используй формат из системных инструкций ассистента.",
