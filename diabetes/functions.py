@@ -1,10 +1,25 @@
-# functions.py
+"""Утилиты для расчёта болюса и разбора пищевой информации."""
 
 from dataclasses import dataclass
 import re
 
 
 def _safe_float(value: str) -> float | None:
+    """Возвращает число из строки.
+
+    Принимает запятую или точку как разделитель. Если передана не строка
+    или число не удаётся распознать, возвращается ``None``.
+
+    Args:
+        value: Строка с числом, например ``"1,5"`` или ``"2.0"``.
+
+    Returns:
+        Число с плавающей точкой или ``None``.
+
+    Examples:
+        >>> _safe_float("1,5")
+        1.5
+    """
     if not isinstance(value, str):
         return None
     try:
@@ -15,14 +30,34 @@ def _safe_float(value: str) -> float | None:
 
 @dataclass
 class PatientProfile:
+    """Профиль пациента для расчёта болюса.
+
+    Attributes:
+        icr: Коэффициент чувствительности к углеводам.
+        cf: Коррекционный фактор для сахара крови.
+        target_bg: Целевой уровень сахара.
+    """
+
     icr: float
     cf: float
     target_bg: float
 
 
 def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> float:
-    """
-    Расчёт болюса (дозы инсулина) по углеводам и сахару.
+    """Рассчитывает дозу инсулина по углеводам и сахару.
+
+    Args:
+        carbs_g: Количество углеводов в граммах.
+        current_bg: Текущий уровень сахара в крови.
+        profile: Настройки пациента с коэффициентами.
+
+    Returns:
+        Округлённый болюс в единицах инсулина.
+
+    Examples:
+        >>> profile = PatientProfile(icr=10, cf=50, target_bg=5.5)
+        >>> calc_bolus(60, 7.0, profile)
+        6.1
     """
     if profile.icr <= 0:
         raise ValueError("Profile icr must be greater than 0")
@@ -40,6 +75,23 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
 
 
 def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
+    """Извлекает углеводы и ХЕ из произвольной строки.
+
+    Поддерживаются варианты: ``"углеводы: 30 г"``, ``"XE: 2-3"`` или
+    ``"2–3 ХЕ"``. Десятичная часть может быть отделена запятой.
+
+    Args:
+        text: Строка с описанием продукта или блюда.
+
+    Returns:
+        Кортеж ``(carbs, xe)``, где значения могут быть ``None``.
+
+    Examples:
+        >>> extract_nutrition_info("углеводы: 30 г, XE: 2")
+        (30.0, 2.0)
+        >>> extract_nutrition_info("2–3 ХЕ")
+        (None, 2.5)
+    """
     carbs = xe = None
     # Парсим углеводы (carbs)
     m = re.search(r"углевод[^\d]*:\s*([\d.,]+)\s*г", text, re.IGNORECASE)
