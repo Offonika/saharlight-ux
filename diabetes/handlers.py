@@ -18,6 +18,7 @@ from telegram.ext import (
 )
 
 from sqlalchemy import func
+from sqlalchemy.exc import SQLAlchemyError
 
 from diabetes.db import SessionLocal, User, Profile, Entry
 from diabetes.functions import (
@@ -44,11 +45,19 @@ WAITING_GPT_FLAG = "waiting_gpt_response"
 
 # Helper to commit with rollback on error
 def commit_session(session):
+    """Commit SQLAlchemy session and rollback on error.
+
+    Returns True if commit succeeded. If a SQLAlchemyError occurs, the
+    transaction is rolled back, the error is logged and re-raised so the
+    caller can react accordingly.
+    """
     try:
         session.commit()
-    except Exception as e:  # pragma: no cover - logging only
+        return True
+    except SQLAlchemyError as e:  # pragma: no cover - logging only
         session.rollback()
         logger.error("DB commit failed: %s", e)
+        raise
 
 
 # ──────────────────────────────────────────────────────────────

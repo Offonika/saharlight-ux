@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 
 class DummyMessage:
@@ -40,7 +41,7 @@ async def test_profile_command_commit_failure(monkeypatch, caplog):
     session.__exit__.return_value = None
     session.get.return_value = None
     session.add = MagicMock()
-    session.commit.side_effect = Exception("fail")
+    session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
 
     monkeypatch.setattr(handlers, "SessionLocal", lambda: session)
@@ -50,7 +51,8 @@ async def test_profile_command_commit_failure(monkeypatch, caplog):
     context = SimpleNamespace(args=["10", "2", "6"], user_data={})
 
     with caplog.at_level(logging.ERROR):
-        await handlers.profile_command(update, context)
+        with pytest.raises(SQLAlchemyError):
+            await handlers.profile_command(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
@@ -69,7 +71,7 @@ async def test_callback_router_commit_failure(monkeypatch, caplog):
     session.__enter__.return_value = session
     session.__exit__.return_value = None
     session.add = MagicMock()
-    session.commit.side_effect = Exception("fail")
+    session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
 
     monkeypatch.setattr(handlers, "SessionLocal", lambda: session)
@@ -83,8 +85,9 @@ async def test_callback_router_commit_failure(monkeypatch, caplog):
     context = SimpleNamespace(user_data={"pending_entry": pending_entry})
 
     with caplog.at_level(logging.ERROR):
-        await handlers.callback_router(update, context)
+        with pytest.raises(SQLAlchemyError):
+            await handlers.callback_router(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
-    assert query.edited  # message was edited despite failure
+    assert not query.edited  # message was not edited due to failure
