@@ -130,10 +130,19 @@ def register_handlers(app: Application) -> None:
 
     # Import inside the function to avoid heavy imports at module import time
     # (for example OpenAI client initialization).
-    from . import dose_handlers, profile_handlers
+    from . import dose_handlers, profile_handlers, reporting_handlers
 
     app.add_handler(CommandHandler("profile", profile_handlers.profile_command))
     app.add_handler(CommandHandler("dose", dose_handlers.freeform_handler))
+    app.add_handler(
+        MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_handlers.profile_view)
+    )
+    app.add_handler(
+        MessageHandler(filters.Regex("^📈 Отчёт$"), reporting_handlers.report_request)
+    )
+    app.add_handler(
+        MessageHandler(filters.Regex("^📊 История$"), reporting_handlers.history_view)
+    )
     app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, dose_handlers.freeform_handler)
     )
