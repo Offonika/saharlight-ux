@@ -34,7 +34,10 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE, date_f
     day_lines = []
     for entry in entries:
         day_str = entry.event_time.strftime("%d.%m")
-        line = f"{day_str}: сахар {entry.sugar_before}, углеводы {entry.carbs_g}, доза {entry.dose}"
+        sugar = entry.sugar_before if entry.sugar_before is not None else "—"
+        carbs = entry.carbs_g if entry.carbs_g is not None else "—"
+        dose = entry.dose if entry.dose is not None else "—"
+        line = f"{day_str}: сахар {sugar}, углеводы {carbs}, доза {dose}"
         day_lines.append(line)
 
     gpt_text = "Ваши данные проанализированы. Рекомендации GPT могут быть добавлены тут."
