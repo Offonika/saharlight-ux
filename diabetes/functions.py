@@ -77,8 +77,11 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
 def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
     """Извлекает углеводы и ХЕ из произвольной строки.
 
-    Поддерживаются варианты: ``"углеводы: 30 г"``, ``"XE: 2-3"`` или
-    ``"2–3 ХЕ"``. Десятичная часть может быть отделена запятой.
+    Поддерживаются варианты: ``"углеводы: 30 г"``, ``"XE: 2-3"``,
+    ``"2–3 ХЕ"`` и записи с погрешностью ``"a ± b"``.
+    Десятичная часть может быть отделена запятой. При указании
+    ``"a ± b"`` возвращается центральное значение ``a``, а ``b``
+    игнорируется.
 
     Args:
         text: Строка с описанием продукта или блюда.
@@ -91,6 +94,8 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
         (30.0, 2.0)
         >>> extract_nutrition_info("2–3 ХЕ")
         (None, 2.5)
+        >>> extract_nutrition_info("углеводы: 45 ± 5 г")
+        (45.0, None)
     """
     carbs = xe = None
     # Парсим углеводы (carbs)
@@ -103,7 +108,9 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
         first = _safe_float(m.group(1))
         second = _safe_float(m.group(2))
         if first is not None and second is not None:
-            carbs = (first - second + first + second) / 2
+            # В формате "a ± b" возвращаем центральное значение "a"
+            # Погрешность "b" пока игнорируется
+            carbs = first
     else:
         m = re.search(r"углевод[^\d]*:\s*([\d.,]+)\s*г", text, re.IGNORECASE)
         if m:
@@ -118,7 +125,8 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
         first = _safe_float(rng.group(1))
         second = _safe_float(rng.group(2))
         if first is not None and second is not None:
-            xe = (first - second + first + second) / 2
+            # Возвращаем центральное значение "a" из записи "a ± b"
+            xe = first
     else:
         rng = re.search(
             r"\b(?:[хx][еe]|xe)\s*:\s*(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)",
@@ -150,7 +158,8 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
                     first = _safe_float(rng.group(1))
                     second = _safe_float(rng.group(2))
                     if first is not None and second is not None:
-                        xe = (first - second + first + second) / 2
+                        # Погрешность игнорируется, берём только значение "a"
+                        xe = first
             if xe is None:
                 rng = re.search(
                     r"(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)\s*(?:[хx][еe]|xe)",
@@ -173,7 +182,8 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
             first = _safe_float(rng.group(1))
             second = _safe_float(rng.group(2))
             if first is not None and second is not None:
-                carbs = (first - second + first + second) / 2
+                # Центральное значение при указании "a ± b"
+                carbs = first
     if carbs is None:
         rng = re.search(
             r"(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)\s*г",

@@ -86,6 +86,13 @@ def test_extract_nutrition_info_plus_minus_no_colon():
     assert carbs == 30
     assert xe == 2
 
+
+def test_extract_nutrition_info_plus_minus_with_comma():
+    text = "углеводы: 10,5 г ± 0,5 г, ХЕ: 2,5 ± 0,5"
+    carbs, xe = extract_nutrition_info(text)
+    assert carbs == pytest.approx(10.5)
+    assert xe == pytest.approx(2.5)
+
 def test_extract_nutrition_info_missing():
     text = "Нет данных"
     carbs, xe = extract_nutrition_info(text)
