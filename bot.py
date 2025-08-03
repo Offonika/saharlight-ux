@@ -1,6 +1,6 @@
 # bot.py
 
-from diabetes.handlers import register_handlers
+from diabetes.common_handlers import register_handlers
 from diabetes.db import init_db
 from diabetes.config import TELEGRAM_TOKEN
 from telegram.ext import ApplicationBuilder

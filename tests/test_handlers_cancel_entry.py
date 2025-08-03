@@ -32,7 +32,7 @@ async def test_callback_router_cancel_entry_sends_menu():
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import diabetes.openai_utils  # noqa: F401
-    import diabetes.handlers as handlers
+    import diabetes.common_handlers as handlers
 
     query = DummyQuery("cancel_entry")
     update = SimpleNamespace(callback_query=query)
