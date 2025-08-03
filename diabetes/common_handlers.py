@@ -83,8 +83,14 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if ":" in data:
         action, entry_id = data.split(":", 1)
+        try:
+            entry_id = int(entry_id)
+        except ValueError:
+            logger.warning("Invalid entry_id in callback data: %s", entry_id)
+            await query.edit_message_text("Некорректный идентификатор записи.")
+            return
         with SessionLocal() as session:
-            entry = session.get(Entry, int(entry_id))
+            entry = session.get(Entry, entry_id)
             if not entry:
                 await query.edit_message_text("Запись не найдена (уже удалена).")
                 return

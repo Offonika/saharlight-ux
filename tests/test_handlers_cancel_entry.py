@@ -1,4 +1,5 @@
 import os
+import logging
 from types import SimpleNamespace
 
 import pytest
@@ -46,3 +47,21 @@ async def test_callback_router_cancel_entry_sends_menu():
     text, kwargs = query.message.replies[0]
     assert kwargs["reply_markup"] == handlers.menu_keyboard
     assert "pending_entry" not in context.user_data
+
+
+@pytest.mark.asyncio
+async def test_callback_router_invalid_entry_id(caplog):
+    os.environ["OPENAI_API_KEY"] = "test"
+    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    import diabetes.openai_utils  # noqa: F401
+    import diabetes.common_handlers as handlers
+
+    query = DummyQuery("del:abc")
+    update = SimpleNamespace(callback_query=query)
+    context = SimpleNamespace(user_data={})
+
+    with caplog.at_level(logging.WARNING):
+        await handlers.callback_router(update, context)
+
+    assert query.edited == ["Некорректный идентификатор записи."]
+    assert "Invalid entry_id in callback data" in caplog.text
