@@ -3,7 +3,7 @@
 import datetime
 
 import pytest
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 
 from diabetes.reporting import make_sugar_plot, generate_pdf_report
 
