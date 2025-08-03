@@ -42,7 +42,7 @@ def test_generate_pdf_report():
     entries = [
         DummyEntry(
             datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
-            7.0,
+            15.0,
             40,
             3.3,
             6,
@@ -51,14 +51,16 @@ def test_generate_pdf_report():
     plot_buf = make_sugar_plot(entries, "тест")
     pdf_buf = generate_pdf_report(
         summary_lines=["Всего записей: 1"],
-        errors=[],
-        day_lines=["01.07: сахар 7.0–7.0, доза 6, углеводы 40"],
+        errors=["01.07: высокий сахар 15.0"],
+        day_lines=["01.07: сахар 15.0, доза 6, углеводы 40"],
         gpt_text="Всё хорошо.",
         plot_buf=plot_buf
     )
     assert hasattr(pdf_buf, 'read')
     pdf_buf.seek(0)
-    assert len(pdf_buf.read()) > 1000
+    reader = PdfReader(pdf_buf)
+    text = "".join(page.extract_text() for page in reader.pages)
+    assert "высокий сахар 15.0" in text
 
 
 @pytest.mark.parametrize("block", ["summary_lines", "errors", "day_lines"])
