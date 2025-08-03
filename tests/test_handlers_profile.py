@@ -31,7 +31,7 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
     monkeypatch.setattr(handlers, "SessionLocal", TestSession)
 
