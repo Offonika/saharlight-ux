@@ -4,6 +4,8 @@ import logging
 import os
 import threading
 
+from openai import OpenAIError
+
 from diabetes.config import OPENAI_ASSISTANT_ID
 from diabetes.openai_utils import get_openai_client
 
@@ -81,16 +83,24 @@ def send_message(
         content_block = content
 
     # 2. Создаём сообщение в thread
-    _get_client().beta.threads.messages.create(
-        thread_id=thread_id,
-        role="user",
-        content=content_block
-    )
+    try:
+        _get_client().beta.threads.messages.create(
+            thread_id=thread_id,
+            role="user",
+            content=content_block,
+        )
+    except OpenAIError as exc:
+        logging.exception("[OpenAI] Failed to create message: %s", exc)
+        raise
 
     # 3. Запускаем ассистента
-    run = _get_client().beta.threads.runs.create(
-        thread_id=thread_id,
-        assistant_id=OPENAI_ASSISTANT_ID
-    )
+    try:
+        run = _get_client().beta.threads.runs.create(
+            thread_id=thread_id,
+            assistant_id=OPENAI_ASSISTANT_ID,
+        )
+    except OpenAIError as exc:
+        logging.exception("[OpenAI] Failed to create run: %s", exc)
+        raise
     logging.debug("[OpenAI] Run %s started (thread %s)", run.id, thread_id)
     return run
