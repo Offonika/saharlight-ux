@@ -72,6 +72,20 @@ def test_extract_nutrition_info_ranges():
     assert carbs == 40  # (30+50)/2
     assert xe == 2.5    # (2+3)/2
 
+
+def test_extract_nutrition_info_plus_minus():
+    text = "углеводы: 45 г ± 5 г, XE: 3 ± 0.5"
+    carbs, xe = extract_nutrition_info(text)
+    assert carbs == 45
+    assert xe == 3
+
+
+def test_extract_nutrition_info_plus_minus_no_colon():
+    text = "В блюде 30 г ± 10 г углеводов и 2 ± 1 ХЕ"
+    carbs, xe = extract_nutrition_info(text)
+    assert carbs == 30
+    assert xe == 2
+
 def test_extract_nutrition_info_missing():
     text = "Нет данных"
     carbs, xe = extract_nutrition_info(text)
