@@ -18,8 +18,20 @@ class DummyEntry:
 
 def test_make_sugar_plot():
     entries = [
-        DummyEntry(datetime.datetime(2025, 7, 1, 9), 7.0, 40, 3.3, 6),
-        DummyEntry(datetime.datetime(2025, 7, 1, 14), 9.0, 50, 4.1, 8),
+        DummyEntry(
+            datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
+            7.0,
+            40,
+            3.3,
+            6,
+        ),
+        DummyEntry(
+            datetime.datetime(2025, 7, 1, 14, tzinfo=datetime.timezone.utc),
+            9.0,
+            50,
+            4.1,
+            8,
+        ),
     ]
     buf = make_sugar_plot(entries, "тестовый период")
     assert hasattr(buf, 'read')
@@ -28,7 +40,13 @@ def test_make_sugar_plot():
 
 def test_generate_pdf_report():
     entries = [
-        DummyEntry(datetime.datetime(2025, 7, 1, 9), 7.0, 40, 3.3, 6),
+        DummyEntry(
+            datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
+            7.0,
+            40,
+            3.3,
+            6,
+        ),
     ]
     plot_buf = make_sugar_plot(entries, "тест")
     pdf_buf = generate_pdf_report(
