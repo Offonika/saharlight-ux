@@ -149,19 +149,27 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── определяем event_time ─────────────────────────────────
     if entry_date:
         try:
-            event_dt = datetime.datetime.fromisoformat(entry_date).replace(tzinfo=datetime.timezone.utc)
+            event_dt = datetime.datetime.fromisoformat(entry_date)
+            if event_dt.tzinfo is None:
+                event_dt = event_dt.replace(tzinfo=datetime.timezone.utc)
+            else:
+                event_dt = event_dt.astimezone(datetime.timezone.utc)
         except ValueError:
             event_dt = datetime.datetime.now(datetime.timezone.utc)
     elif time_str:
         try:
             hh, mm = map(int, time_str.split(":"))
-            today = datetime.datetime.now().date()
-            event_dt = datetime.datetime.combine(today, datetime.time(hh, mm))
+            today = datetime.datetime.now(datetime.timezone.utc).date()
+            event_dt = datetime.datetime.combine(
+                today,
+                datetime.time(hh, mm),
+                tzinfo=datetime.timezone.utc,
+            )
         except (ValueError, TypeError):
             await update.message.reply_text(
                 "⏰ Неверный формат времени. Использую текущее время."
             )
-            event_dt = datetime.datetime.now()
+            event_dt = datetime.datetime.now(datetime.timezone.utc)
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
 
