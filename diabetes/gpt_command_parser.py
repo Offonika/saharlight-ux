@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import re
+
 from openai import OpenAIError
 
 from diabetes.gpt_client import _get_client
