@@ -90,6 +90,12 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 return
         else:
             reminder = None
+        if len(args) <= idx + 1:
+            if message:
+                await message.reply_text(
+                    "Формат: /addreminder [id] <type> <time|interval>",
+                )
+            return
         rtype = args[idx]
         val = args[idx + 1]
         if reminder is None:

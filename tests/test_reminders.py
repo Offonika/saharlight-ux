@@ -94,6 +94,29 @@ async def test_create_update_delete_reminder(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_add_reminder_missing_value(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="23:00"))
+        session.commit()
+
+    msg = DummyMessage()
+    update = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(args=["1", "sugar"], job_queue=DummyJobQueue())
+
+    result = await handlers.add_reminder(update, context)
+
+    assert result is None
+    assert msg.texts == ["Формат: /addreminder [id] <type> <time|interval>"]
+
+
+@pytest.mark.asyncio
 async def test_trigger_job_logs(monkeypatch):
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
