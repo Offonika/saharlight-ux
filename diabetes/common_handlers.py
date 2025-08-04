@@ -49,6 +49,8 @@ def commit_session(session) -> bool:
         return False
 
 
+
+
 from .onboarding_handlers import (  # noqa: E402
     start_command,
     onboarding_conv,
@@ -73,6 +75,10 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if not commit_session(session):
                 await query.edit_message_text("⚠️ Не удалось сохранить запись.")
                 return
+        sugar = entry_data.get("sugar_before")
+        if sugar is not None:
+            from .alert_handlers import check_alert
+            await check_alert(update, context, sugar)
         await query.edit_message_text("✅ Запись сохранена в дневник!")
         from . import reminder_handlers
 

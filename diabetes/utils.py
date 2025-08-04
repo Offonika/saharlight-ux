@@ -1,6 +1,8 @@
 # utils.py
 
+import json
 import re
+from urllib.request import urlopen
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib.units import mm
 
@@ -15,6 +17,22 @@ def clean_markdown(text: str) -> str:
     text = re.sub(r'^\s*\*\s*', '', text, flags=re.MULTILINE)      # * списки
     text = re.sub(r'`([^`]+)`', r'\1', text)           # `код`
     return text
+
+
+def get_coords_and_link() -> tuple[str, str]:
+    """Return approximate coordinates and Google Maps link based on IP."""
+    try:
+        with urlopen("https://ipinfo.io/json", timeout=5) as resp:
+            data = json.load(resp)
+            loc = data.get("loc")
+            if loc:
+                lat, lon = loc.split(",")
+                coords = f"{lat},{lon}"
+                link = f"https://maps.google.com/?q={lat},{lon}"
+                return coords, link
+    except Exception:  # pragma: no cover - network failures
+        pass
+    return "0.0,0.0", "https://maps.google.com/?q=0.0,0.0"
 
 
 def split_text_by_width(

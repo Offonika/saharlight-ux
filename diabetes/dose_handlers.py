@@ -31,6 +31,7 @@ from diabetes.gpt_client import create_thread, send_message, _get_client
 from diabetes.gpt_command_parser import parse_command
 from diabetes.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from .common_handlers import commit_session, menu_command
+from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry
 from .profile_handlers import profile_view
 
@@ -89,6 +90,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         if not commit_session(session):
             await update.message.reply_text("⚠️ Не удалось сохранить запись.")
             return ConversationHandler.END
+    await check_alert(update, context, sugar)
     await update.message.reply_text(
         f"✅ Уровень сахара {sugar} ммоль/л сохранён.",
         reply_markup=menu_keyboard,
@@ -307,9 +309,11 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "⚠️ Не удалось сохранить запись."
                 )
                 return
+        sugar = pending_entry.get("sugar_before")
+        if sugar is not None:
+            await check_alert(update, context, sugar)
         context.user_data.pop("pending_entry", None)
         context.user_data.pop("pending_fields", None)
-        sugar = pending_entry.get("sugar_before")
         xe = pending_entry.get("xe")
         dose = pending_entry.get("dose")
         xe_info = f", ХЕ {xe}" if xe is not None else ""
@@ -403,6 +407,8 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("⚠️ Не удалось обновить запись.")
                 return
             session.refresh(entry)
+            if field == "sugar":
+                await check_alert(update, context, value)
             render_text = render_entry(entry)
         edit_info = context.user_data.get("edit_entry", {})
         markup = InlineKeyboardMarkup(
@@ -474,6 +480,8 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         "⚠️ Не удалось сохранить запись."
                     )
                     return
+            if sugar is not None:
+                await check_alert(update, context, sugar)
             await update.message.reply_text(
                 f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
                 reply_markup=menu_keyboard,

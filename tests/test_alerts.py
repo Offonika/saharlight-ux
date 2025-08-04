@@ -105,3 +105,44 @@ async def test_normal_reading_resolves_alert():
         alert = session.query(Alert).filter_by(user_id=1).first()
         assert alert.resolved
     assert job_queue.jobs[0].removed
+
+
+@pytest.mark.asyncio
+async def test_three_alerts_notify(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t1"))
+        session.add(Profile(
+            telegram_id=1,
+            low_threshold=4,
+            high_threshold=8,
+            sos_contact="2",
+        ))
+        session.commit()
+
+    class DummyBot:
+        def __init__(self):
+            self.sent = []
+
+        async def send_message(self, chat_id, text):
+            self.sent.append((chat_id, text))
+
+    update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
+    context = SimpleNamespace(bot=DummyBot())
+    monkeypatch.setattr(handlers, "get_coords_and_link", lambda: ("0,0", "link"))
+
+    for _ in range(2):
+        await handlers.check_alert(update, context, 3)
+    assert context.bot.sent == []
+    await handlers.check_alert(update, context, 3)
+    assert len(context.bot.sent) == 2
+    assert context.bot.sent[0][0] == 1
+    assert context.bot.sent[1][0] == "2"
+    with TestSession() as session:
+        alerts = session.query(Alert).all()
+        assert all(a.resolved for a in alerts)
