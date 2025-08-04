@@ -232,12 +232,21 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logging.info("FREEFORM raw='%s'  user=%s", raw_text, user_id)
 
     if context.user_data.get("awaiting_report_date"):
+        text = update.message.text.strip().lower()
+        if "назад" in text or text == "/cancel":
+            context.user_data.pop("awaiting_report_date", None)
+            await update.message.reply_text(
+                "📋 Выберите действие:", reply_markup=menu_keyboard
+            )
+            return
         try:
             date_from = datetime.datetime.strptime(
                 update.message.text.strip(), "%Y-%m-%d"
             ).replace(tzinfo=datetime.timezone.utc)
         except ValueError:
-            await update.message.reply_text("❗ Некорректная дата. Используйте формат YYYY-MM-DD.")
+            await update.message.reply_text(
+                "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
+            )
             return
         await send_report(update, context, date_from, "указанный период")
         context.user_data.pop("awaiting_report_date", None)
