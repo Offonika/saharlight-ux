@@ -246,12 +246,12 @@ def smart_input(message: str) -> dict[str, float | None]:
     ):
         raise ValueError("mismatched unit for sugar")
     if re.search(
-        r"\b(?:xe|хе)\s*[:=]?\s*\d+[.,]?\d*\s*(?:ммоль/?л|mmol/?l|ед)\b(?![=:])",
+        r"\b(?:xe|хе)\s*[:=]?\s*\d+[.,]?\d*\s*(?:ммоль(?:/л)?|mmol(?:/l)?|ед)\b(?![=:])",
         text,
     ):
         raise ValueError("mismatched unit for xe")
     if re.search(
-        r"\b(?:dose|доза|болюс)\s*[:=]?\s*\d+[.,]?\d*\s*(?:ммоль/?л|mmol/?l|xe|хе)\b(?![=:])",
+        r"\b(?:dose|доза|болюс)\s*[:=]?\s*\d+[.,]?\d*\s*(?:ммоль(?:/л)?|mmol(?:/l)?|xe|хе)\b(?![=:])",
         text,
     ):
         raise ValueError("mismatched unit for dose")

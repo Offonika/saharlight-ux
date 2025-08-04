@@ -439,7 +439,23 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         quick = smart_input(raw_text)
     except ValueError as exc:
-        await update.message.reply_text(f"❗ Ошибка: {exc}")
+        msg = str(exc)
+        if "mismatched unit for sugar" in msg:
+            await update.message.reply_text(
+                "❗ Сахар указывается в ммоль/л, не в XE."
+            )
+        elif "mismatched unit for dose" in msg:
+            await update.message.reply_text(
+                "❗ Доза указывается в ед., не в ммоль."
+            )
+        elif "mismatched unit for xe" in msg:
+            await update.message.reply_text(
+                "❗ ХЕ указываются числом, без ммоль/л и ед."
+            )
+        else:
+            await update.message.reply_text(
+                "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2"
+            )
         return
     if any(v is not None for v in quick.values()):
         sugar = quick["sugar"]
