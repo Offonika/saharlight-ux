@@ -12,10 +12,11 @@ from telegram.ext import (
     filters,
 )
 
-from diabetes.db import SessionLocal, Profile, Alert
+from diabetes.db import SessionLocal, Profile, Alert, Reminder
 from diabetes.alert_handlers import evaluate_sugar
 from diabetes.ui import menu_keyboard, back_keyboard
 from .common_handlers import commit_session
+import diabetes.reminder_handlers as reminder_handlers
 
 
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH = range(5)
@@ -232,6 +233,10 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         elif action == "toggle_sos":
             profile.sos_alerts_enabled = not profile.sos_alerts_enabled
             changed = True
+        elif action == "add":
+            await reminder_handlers.add_reminder(update, context)
+        elif action == "del":
+            await reminder_handlers.delete_reminder(update, context)
 
         if changed:
             commit_session(session)
@@ -247,11 +252,20 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         low = profile.low_threshold or 0
         high = profile.high_threshold or 0
         sos = "вкл" if profile.sos_alerts_enabled else "выкл"
+        rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
+        rem_text = (
+            "\n".join(
+                f"{r.id}. {reminder_handlers._describe(r)}" for r in rems
+            )
+            if rems
+            else "нет"
+        )
         text = (
             "🔐 Настройки безопасности:\n"
             f"Низкий порог: {low:.1f} ммоль/л\n"
             f"Высокий порог: {high:.1f} ммоль/л\n"
-            f"SOS-уведомления: {sos}"
+            f"SOS-уведомления: {sos}\n\n"
+            f"⏰ Напоминания:\n{rem_text}"
         )
         keyboard = InlineKeyboardMarkup(
             [
@@ -268,6 +282,14 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                         f"SOS-уведомления: {'off' if profile.sos_alerts_enabled else 'on'}",
                         callback_data="profile_security:toggle_sos",
                     )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "➕ Добавить", callback_data="profile_security:add"
+                    ),
+                    InlineKeyboardButton(
+                        "🗑 Удалить", callback_data="profile_security:del"
+                    ),
                 ],
                 [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
             ]

@@ -68,11 +68,13 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    args = context.args
+    args = getattr(context, "args", [])
+    message = update.message or (update.callback_query.message if update.callback_query else None)
     if not args or len(args) < 2:
-        await update.message.reply_text(
-            "Формат: /addreminder [id] <type> <time|interval>",
-        )
+        if message:
+            await message.reply_text(
+                "Формат: /addreminder [id] <type> <time|interval>",
+            )
         return
     idx = 0
     rtype: str
@@ -83,7 +85,8 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             idx = 1
             reminder = session.get(Reminder, rid)
             if not reminder:
-                await update.message.reply_text("Напоминание не найдено.")
+                if message:
+                    await message.reply_text("Напоминание не найдено.")
                 return
         else:
             reminder = None
@@ -96,9 +99,10 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 .count()
             )
             if count >= MAX_REMINDERS:
-                await update.message.reply_text(
-                    "Можно создать не более 5 напоминаний.",
-                )
+                if message:
+                    await message.reply_text(
+                        "Можно создать не более 5 напоминаний.",
+                    )
                 return
             reminder = Reminder(telegram_id=user_id, type=rtype)
             session.add(reminder)
@@ -120,24 +124,30 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
         job.schedule_removal()
     schedule_reminder(reminder, context.job_queue)
-    await update.message.reply_text(f"Сохранено: {_describe(reminder)}")
+    if message:
+        await message.reply_text(f"Сохранено: {_describe(reminder)}")
 
 
 async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not context.args:
-        await update.message.reply_text("Укажите ID: /delreminder <id>")
+    message = update.message or (update.callback_query.message if update.callback_query else None)
+    args = getattr(context, "args", [])
+    if not args:
+        if message:
+            await message.reply_text("Укажите ID: /delreminder <id>")
         return
-    rid = int(context.args[0])
+    rid = int(args[0])
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
         if not rem:
-            await update.message.reply_text("Не найдено")
+            if message:
+                await message.reply_text("Не найдено")
             return
         session.delete(rem)
         commit_session(session)
     for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
         job.schedule_removal()
-    await update.message.reply_text("Удалено")
+    if message:
+        await message.reply_text("Удалено")
 
 
 async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
