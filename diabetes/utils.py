@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import re
 from urllib.request import urlopen
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -38,8 +39,8 @@ async def get_coords_and_link() -> tuple[str, str]:
         result = await asyncio.to_thread(_fetch)
         if result:
             return result
-    except Exception:  # pragma: no cover - network failures
-        pass
+    except Exception as exc:  # pragma: no cover - network failures
+        logging.warning("Failed to fetch coordinates: %s", exc)
     return "0.0,0.0", "https://maps.google.com/?q=0.0,0.0"
 
 
