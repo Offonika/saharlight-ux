@@ -247,6 +247,11 @@ profile_conv = ConversationHandler(
         MessageHandler(filters.Regex("^↩️ Назад$"), profile_cancel),
         CommandHandler("cancel", profile_cancel),
     ],
+    # `per_message` stays False: state transitions rely on MessageHandlers, and
+    # enabling `per_message=True` would require all handlers to be
+    # `CallbackQueryHandler`, breaking the flow of text replies. The conversation
+    # only handles one profile edit at a time, so per-chat tracking is sufficient.
+    per_message=False,
 )
 
 
