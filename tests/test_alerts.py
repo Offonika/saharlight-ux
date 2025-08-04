@@ -135,7 +135,10 @@ async def test_three_alerts_notify(monkeypatch):
 
     update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
     context = SimpleNamespace(bot=DummyBot())
-    monkeypatch.setattr(handlers, "get_coords_and_link", lambda: ("0,0", "link"))
+    async def fake_get_coords_and_link():
+        return ("0,0", "link")
+
+    monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
 
     for _ in range(2):
         await handlers.check_alert(update, context, 3)

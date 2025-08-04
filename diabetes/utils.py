@@ -1,5 +1,6 @@
 # utils.py
 
+import asyncio
 import json
 import re
 from urllib.request import urlopen
@@ -19,9 +20,10 @@ def clean_markdown(text: str) -> str:
     return text
 
 
-def get_coords_and_link() -> tuple[str, str]:
+async def get_coords_and_link() -> tuple[str, str]:
     """Return approximate coordinates and Google Maps link based on IP."""
-    try:
+
+    def _fetch() -> tuple[str, str] | None:
         with urlopen("https://ipinfo.io/json", timeout=5) as resp:
             data = json.load(resp)
             loc = data.get("loc")
@@ -30,6 +32,12 @@ def get_coords_and_link() -> tuple[str, str]:
                 coords = f"{lat},{lon}"
                 link = f"https://maps.google.com/?q={lat},{lon}"
                 return coords, link
+        return None
+
+    try:
+        result = await asyncio.to_thread(_fetch)
+        if result:
+            return result
     except Exception:  # pragma: no cover - network failures
         pass
     return "0.0,0.0", "https://maps.google.com/?q=0.0,0.0"

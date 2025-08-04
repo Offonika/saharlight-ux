@@ -71,7 +71,10 @@ async def test_alert_notifies_user_and_contact(test_session, monkeypatch):
     context = SimpleNamespace(bot=SimpleNamespace())
     send_mock = AsyncMock()
     monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
-    monkeypatch.setattr(alert_handlers, "get_coords_and_link", lambda: ("0,0", "link"))
+    async def fake_get_coords_and_link():
+        return ("0,0", "link")
+
+    monkeypatch.setattr(alert_handlers, "get_coords_and_link", fake_get_coords_and_link)
 
     for _ in range(3):
         await alert_handlers.check_alert(update_alert, context, 3)

@@ -74,7 +74,7 @@ async def check_alert(update, context: ContextTypes.DEFAULT_TYPE, sugar: float) 
                 .all()
             )
             if len(alerts) == 3 and all(a.type == atype for a in alerts):
-                coords, link = get_coords_and_link()
+                coords, link = await get_coords_and_link()
                 first_name = update.effective_user.first_name or ""
                 msg = (
                     f"⚠️ У {first_name} критический сахар {sugar} ммоль/л. {coords} {link}"
