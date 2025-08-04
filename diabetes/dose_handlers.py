@@ -21,7 +21,12 @@ from telegram.ext import (
 )
 
 from diabetes.db import SessionLocal, User, Entry, Profile
-from diabetes.functions import extract_nutrition_info, calc_bolus, PatientProfile
+from diabetes.functions import (
+    extract_nutrition_info,
+    calc_bolus,
+    PatientProfile,
+    smart_input,
+)
 from diabetes.gpt_client import create_thread, send_message, _get_client
 from diabetes.gpt_command_parser import parse_command
 from diabetes.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
@@ -254,7 +259,65 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     pending_entry = context.user_data.get("pending_entry")
+    pending_fields = context.user_data.get("pending_fields")
     edit_id = context.user_data.get("edit_id")
+    if pending_entry is not None and edit_id is None and pending_fields:
+        field = pending_fields[0]
+        text = update.message.text.strip().replace(",", ".")
+        try:
+            value = float(text)
+        except ValueError:
+            if field == "sugar":
+                await update.message.reply_text(
+                    "Введите сахар числом в ммоль/л."
+                )
+            elif field == "xe":
+                await update.message.reply_text("Введите число ХЕ.")
+            else:
+                await update.message.reply_text(
+                    "Введите дозу инсулина числом."
+                )
+            return
+        if field == "sugar":
+            pending_entry["sugar_before"] = value
+        elif field == "xe":
+            pending_entry["xe"] = value
+            pending_entry["carbs_g"] = value * 12
+        else:
+            pending_entry["dose"] = value
+        pending_fields.pop(0)
+        if pending_fields:
+            next_field = pending_fields[0]
+            if next_field == "sugar":
+                await update.message.reply_text(
+                    "Введите уровень сахара (ммоль/л)."
+                )
+            elif next_field == "xe":
+                await update.message.reply_text("Введите количество ХЕ.")
+            else:
+                await update.message.reply_text(
+                    "Введите дозу инсулина (ед.)."
+                )
+            return
+        with SessionLocal() as session:
+            entry = Entry(**pending_entry)
+            session.add(entry)
+            if not commit_session(session):
+                await update.message.reply_text(
+                    "⚠️ Не удалось сохранить запись."
+                )
+                return
+        context.user_data.pop("pending_entry", None)
+        context.user_data.pop("pending_fields", None)
+        sugar = pending_entry.get("sugar_before")
+        xe = pending_entry.get("xe")
+        dose = pending_entry.get("dose")
+        xe_info = f", ХЕ {xe}" if xe is not None else ""
+        await update.message.reply_text(
+            f"✅ Запись сохранена: сахар {sugar} ммоль/л{xe_info}, доза {dose} Ед.",
+            reply_markup=menu_keyboard,
+        )
+        return
     if pending_entry is not None and edit_id is None:
         entry = pending_entry
         text = update.message.text.lower().strip()
@@ -371,6 +434,49 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
         context.user_data.pop("edit_id")
         await update.message.reply_text("✅ Запись обновлена!")
+        return
+
+    try:
+        quick = smart_input(raw_text)
+    except ValueError as exc:
+        await update.message.reply_text(f"❗ Ошибка: {exc}")
+        return
+    if any(v is not None for v in quick.values()):
+        sugar = quick["sugar"]
+        xe = quick["xe"]
+        dose = quick["dose"]
+        entry_data = {
+            "telegram_id": user_id,
+            "event_time": datetime.datetime.now(datetime.timezone.utc),
+            "sugar_before": sugar,
+            "xe": xe,
+            "dose": dose,
+            "carbs_g": xe * 12 if xe is not None else None,
+        }
+        missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
+        if not missing:
+            with SessionLocal() as session:
+                entry = Entry(**entry_data)
+                session.add(entry)
+                if not commit_session(session):
+                    await update.message.reply_text(
+                        "⚠️ Не удалось сохранить запись."
+                    )
+                    return
+            await update.message.reply_text(
+                f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
+                reply_markup=menu_keyboard,
+            )
+            return
+        context.user_data["pending_entry"] = entry_data
+        context.user_data["pending_fields"] = missing
+        next_field = missing[0]
+        if next_field == "sugar":
+            await update.message.reply_text("Введите уровень сахара (ммоль/л).")
+        elif next_field == "xe":
+            await update.message.reply_text("Введите количество ХЕ.")
+        else:
+            await update.message.reply_text("Введите дозу инсулина (ед.).")
         return
 
     parsed = await parse_command(raw_text)
