@@ -49,7 +49,7 @@ async def test_profile_command_commit_failure(monkeypatch, caplog):
 
     message = DummyMessage()
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(args=["10", "2", "6"], user_data={})
+    context = SimpleNamespace(args=["10", "2", "6", "4", "9"], user_data={})
 
     with caplog.at_level(logging.ERROR):
         await profile_handlers.profile_command(update, context)

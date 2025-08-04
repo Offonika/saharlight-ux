@@ -47,6 +47,8 @@ class Profile(Base):
     icr = Column(Float)  # г углеводов на 1 Е инсулина
     cf = Column(Float)  # коэффициент коррекции
     target_bg = Column(Float)  # целевой сахар
+    low_threshold = Column(Float)  # нижний порог сахара
+    high_threshold = Column(Float)  # верхний порог сахара
     user = relationship("User")
 
 
