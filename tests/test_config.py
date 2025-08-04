@@ -6,11 +6,21 @@ import sys
 import pytest
 
 
-def test_empty_db_password_raises(monkeypatch):
-    monkeypatch.setenv('DB_PASSWORD', '')
-    if 'diabetes.config' in sys.modules:
-        del sys.modules['diabetes.config']
+def _reload(module: str):
+    if module in sys.modules:
+        del sys.modules[module]
+    return importlib.import_module(module)
+
+
+def test_import_config_without_db_password(monkeypatch):
+    monkeypatch.delenv("DB_PASSWORD", raising=False)
+    _reload("diabetes.config")  # should not raise
+
+
+def test_init_db_raises_when_no_password(monkeypatch):
+    monkeypatch.delenv("DB_PASSWORD", raising=False)
+    _reload("diabetes.config")
+    db = _reload("diabetes.db")
     with pytest.raises(ValueError):
-        importlib.import_module('diabetes.config')
-    if 'diabetes.config' in sys.modules:
-        del sys.modules['diabetes.config']
+        db.init_db()
+

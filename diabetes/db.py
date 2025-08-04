@@ -70,4 +70,6 @@ class Entry(Base):
 # ────────────────────── инициализация ────────────────────────
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
+    if not DB_PASSWORD:
+        raise ValueError("DB_PASSWORD environment variable must be set")
     Base.metadata.create_all(bind=engine)
