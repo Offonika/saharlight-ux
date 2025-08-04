@@ -153,3 +153,8 @@ def test_smart_input_unit_mixup():
 def test_smart_input_unit_mixup_xe():
     with pytest.raises(ValueError):
         smart_input("xe 5 ммоль/л")
+
+
+def test_smart_input_unit_mixup_dose():
+    with pytest.raises(ValueError):
+        smart_input("доза 7 ммоль")
