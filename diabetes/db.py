@@ -70,6 +70,18 @@ class Entry(Base):
     gpt_summary = Column(Text)
 
 
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id"))
+    sugar = Column(Float)
+    type = Column(String)
+    ts = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    resolved = Column(Boolean, default=False)
+    user = relationship("User")
+
+
 class Reminder(Base):
     __tablename__ = "reminders"
 
