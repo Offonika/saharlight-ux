@@ -63,25 +63,23 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     schedule_alert(user_id, context.job_queue, count=count + 1)
 
 
-async def alert_stats(update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show counts of hypo/hyper alerts for last 7 days."""
+async def alert_stats(update, context) -> None:
+    """Отправить статистику предупреждений за последние 7 дней."""
     user_id = update.effective_user.id
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(tz=datetime.timezone.utc)
     week_ago = now - datetime.timedelta(days=7)
+
     with SessionLocal() as session:
-        hypo = (
+        alerts = (
             session.query(Alert)
-            .filter_by(user_id=user_id, type="hypo")
-            .filter(Alert.ts >= week_ago)
-            .count()
+            .filter(Alert.user_id == user_id, Alert.ts >= week_ago)
+            .all()
         )
-        hyper = (
-            session.query(Alert)
-            .filter_by(user_id=user_id, type="hyper")
-            .filter(Alert.ts >= week_ago)
-            .count()
-        )
-    await update.message.reply_text(
-        f"За 7\u202Fдн.: гипо\u202F{hypo}, гипер\u202F{hyper}"
-    )
+
+    hypo = sum(1 for a in alerts if a.type == "hypo")
+    hyper = sum(1 for a in alerts if a.type == "hyper")
+
+    text = f"За 7\u202Fдн.: гипо\u202F{hypo}, гипер\u202F{hyper}"
+    await update.message.reply_text(text)
+
 
