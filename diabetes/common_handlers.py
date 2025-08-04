@@ -232,7 +232,7 @@ def register_handlers(app: Application) -> None:
 
     # Import inside the function to avoid heavy imports at module import time
     # (for example OpenAI client initialization).
-    from . import dose_handlers, profile_handlers, reporting_handlers, reminder_handlers
+    from . import dose_handlers, profile_handlers, reporting_handlers, reminder_handlers, alert_handlers
 
     app.add_handler(onboarding_conv)
     app.add_handler(CommandHandler("menu", menu_command))
@@ -247,6 +247,7 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CommandHandler("reminders", reminder_handlers.reminders_list))
     app.add_handler(CommandHandler("addreminder", reminder_handlers.add_reminder))
     app.add_handler(CommandHandler("delreminder", reminder_handlers.delete_reminder))
+    app.add_handler(CommandHandler("alertstats", alert_handlers.alert_stats))
     app.add_handler(PollAnswerHandler(onboarding_poll_answer))
     app.add_handler(
         MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_handlers.profile_view)
