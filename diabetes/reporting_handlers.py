@@ -24,6 +24,21 @@ LOW_SUGAR_THRESHOLD = 3.0
 HIGH_SUGAR_THRESHOLD = 13.0
 
 
+def render_entry(entry: Entry) -> str:
+    """Render a single diary entry as HTML-formatted text."""
+    day_str = entry.event_time.strftime("%d.%m %H:%M")
+    sugar = entry.sugar_before if entry.sugar_before is not None else "—"
+    carbs = entry.carbs_g if entry.carbs_g is not None else "—"
+    xe = entry.xe if entry.xe is not None else "—"
+    dose = entry.dose if entry.dose is not None else "—"
+    return (
+        f"<b>{day_str}</b>\n"
+        f"🍭 Сахар: <b>{sugar}</b>\n"
+        f"🍞 Углеводы: <b>{carbs} г ({xe} ХЕ)</b>\n"
+        f"💉 Доза: <b>{dose}</b>"
+    )
+
+
 def report_keyboard() -> InlineKeyboardMarkup:
     """Keyboard for selecting report period."""
     rows = [
@@ -72,17 +87,7 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     await update.message.reply_text("📊 Последние записи:")
     for entry in entries:
-        day_str = entry.event_time.strftime("%d.%m %H:%M")
-        sugar = entry.sugar_before if entry.sugar_before is not None else "—"
-        carbs = entry.carbs_g if entry.carbs_g is not None else "—"
-        xe = entry.xe if entry.xe is not None else "—"
-        dose = entry.dose if entry.dose is not None else "—"
-        text = (
-            f"<b>{day_str}</b>\n"
-            f"🍭 Сахар: <b>{sugar}</b>\n"
-            f"🍞 Углеводы: <b>{carbs} г ({xe} ХЕ)</b>\n"
-            f"💉 Доза: <b>{dose}</b>"
-        )
+        text = render_entry(entry)
         markup = InlineKeyboardMarkup(
             [
                 [

@@ -12,8 +12,10 @@ from diabetes.db import Base, User, Entry
 
 
 class DummyMessage:
-    def __init__(self, text: str = ""):
+    def __init__(self, text: str = "", chat_id: int = 1, message_id: int = 1):
         self.text = text
+        self.chat_id = chat_id
+        self.message_id = message_id
         self.replies: list[tuple[str, dict]] = []
 
     async def reply_text(self, text, **kwargs):
@@ -21,15 +23,25 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str):
+    def __init__(self, data: str, message: DummyMessage | None = None):
         self.data = data
-        self.edited: list[str] = []
+        self.message = message or DummyMessage()
+        self.markups = []
+        self.answer_texts = []
 
-    async def answer(self):
-        pass
+    async def answer(self, text=None):
+        self.answer_texts.append(text)
 
-    async def edit_message_text(self, text, **kwargs):
-        self.edited.append(text)
+    async def edit_message_reply_markup(self, reply_markup=None, **kwargs):
+        self.markups.append(reply_markup)
+
+
+class DummyBot:
+    def __init__(self):
+        self.edited: list[tuple[str, int, int, dict]] = []
+
+    async def edit_message_text(self, text, chat_id, message_id, **kwargs):
+        self.edited.append((text, chat_id, message_id, kwargs))
 
 
 @pytest.mark.asyncio
@@ -131,25 +143,53 @@ async def test_edit_flow(monkeypatch):
         session.commit()
         entry_id = entry.id
 
-    query = DummyQuery(f"edit:{entry_id}")
-    update_cb = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    entry_message = DummyMessage(chat_id=42, message_id=24)
+    query = DummyQuery(f"edit:{entry_id}", message=entry_message)
+    update_cb = SimpleNamespace(
+        callback_query=query, effective_user=SimpleNamespace(id=1)
+    )
+    context = SimpleNamespace(user_data={}, bot=DummyBot())
 
     await common_handlers.callback_router(update_cb, context)
-    assert context.user_data.get("edit_id") == entry_id
-    assert any("формате" in t for t in query.edited)
+    assert context.user_data["edit_entry"] == {
+        "id": entry_id,
+        "chat_id": 42,
+        "message_id": 24,
+    }
+    markup = query.markups[-1]
+    buttons = [b.callback_data for row in markup.inline_keyboard for b in row]
+    assert f"edit_field:{entry_id}:sugar" in buttons
+    assert f"edit_field:{entry_id}:xe" in buttons
+    assert f"edit_field:{entry_id}:dose" in buttons
 
-    msg = DummyMessage(text="xe=3 carbs=30 dose=1 sugar=6")
-    update_msg = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    field_query = DummyQuery(f"edit_field:{entry_id}:xe", message=entry_message)
+    update_cb2 = SimpleNamespace(
+        callback_query=field_query, effective_user=SimpleNamespace(id=1)
+    )
+    await common_handlers.callback_router(update_cb2, context)
+    assert context.user_data["edit_id"] == entry_id
+    assert context.user_data["edit_field"] == "xe"
+    assert context.user_data["edit_query"] is field_query
+    assert any("Введите" in t for t, _ in entry_message.replies)
 
+    reply_msg = DummyMessage(text="3")
+    update_msg = SimpleNamespace(
+        message=reply_msg, effective_user=SimpleNamespace(id=1)
+    )
     await dose_handlers.freeform_handler(update_msg, context)
 
     with TestSession() as session:
         updated = session.get(Entry, entry_id)
         assert updated.xe == 3
-        assert updated.carbs_g == 30
-        assert updated.dose == 1
-        assert updated.sugar_before == 6
+        assert updated.carbs_g == 10
+        assert updated.dose == 2
+        assert updated.sugar_before == 5
 
-    assert "edit_id" not in context.user_data
-    assert any("обновлена" in t[0] for t in msg.replies)
+    assert field_query.answer_texts[-1] == "Изменено"
+    assert not any(
+        k in context.user_data for k in ("edit_id", "edit_field", "edit_entry", "edit_query")
+    )
+    edited_text, chat_id, message_id, kwargs = context.bot.edited[0]
+    assert chat_id == 42 and message_id == 24
+    buttons = [b.callback_data for row in kwargs["reply_markup"].inline_keyboard for b in row]
+    assert f"edit:{entry_id}" in buttons and f"del:{entry_id}" in buttons
