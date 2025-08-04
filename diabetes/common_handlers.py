@@ -158,6 +158,37 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     )
 
 
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Return the main menu keyboard."""
+    await update.message.reply_text(
+        "📋 Выберите действие:", reply_markup=menu_keyboard
+    )
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show available commands and menu buttons."""
+
+    text = (
+        "📚 Доступные команды:\n"
+        "/start - запустить бота\n"
+        "/menu - главное меню\n"
+        "/profile - мой профиль\n"
+        "/report - отчёт\n"
+        "/sugar - расчёт сахара\n"
+        "/cancel - отменить ввод\n"
+        "/help - справка\n\n"
+        "📲 Кнопки меню:\n"
+        "📷 Фото еды\n"
+        "❓ Мой сахар\n"
+        "💉 Доза инсулина\n"
+        "📊 История\n"
+        "📈 Отчёт\n"
+        "📄 Мой профиль\n"
+        "ℹ️ Помощь"
+    )
+    await update.message.reply_text(text, reply_markup=menu_keyboard)
+
+
 def register_handlers(app: Application) -> None:
     """Register bot handlers on the provided ``Application`` instance.
 
@@ -172,12 +203,14 @@ def register_handlers(app: Application) -> None:
     from . import dose_handlers, profile_handlers, reporting_handlers
 
     app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CommandHandler("menu", menu_command))
     app.add_handler(CommandHandler("profile", profile_handlers.profile_command))
     app.add_handler(CommandHandler("report", reporting_handlers.report_request))
     app.add_handler(dose_handlers.dose_conv)
     app.add_handler(dose_handlers.sugar_conv)
     app.add_handler(CommandHandler("sugar", dose_handlers.sugar_start))
     app.add_handler(CommandHandler("cancel", dose_handlers.dose_cancel))
+    app.add_handler(CommandHandler("help", help_command))
     app.add_handler(
         MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_handlers.profile_view)
     )
@@ -189,6 +222,9 @@ def register_handlers(app: Application) -> None:
     )
     app.add_handler(
         MessageHandler(filters.Regex("^📷 Фото еды$"), dose_handlers.photo_prompt)
+    )
+    app.add_handler(
+        MessageHandler(filters.Regex("^ℹ️ Помощь$"), help_command)
     )
     app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, dose_handlers.freeform_handler)
@@ -210,5 +246,7 @@ __all__ = [
     "callback_router",
     "menu_keyboard",
     "start_command",
+    "menu_command",
+    "help_command",
     "register_handlers",
 ]
