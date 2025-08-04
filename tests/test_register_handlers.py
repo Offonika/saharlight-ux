@@ -9,6 +9,7 @@ from telegram.ext import (
 )
 
 from diabetes.common_handlers import register_handlers, callback_router, start_command
+from diabetes import security_handlers
 
 
 def test_register_handlers_attaches_expected_handlers(monkeypatch):
@@ -36,6 +37,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     assert reporting_handlers.report_request in callbacks
     assert reporting_handlers.history_view in callbacks
     assert dose_handlers.chat_with_gpt in callbacks
+    assert security_handlers.hypo_alert_faq in callbacks
 
     onb_conv = [
         h
