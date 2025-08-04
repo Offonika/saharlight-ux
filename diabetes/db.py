@@ -105,17 +105,17 @@ def init_db() -> None:
 
     if not config.DB_PASSWORD:
         raise ValueError("DB_PASSWORD environment variable must be set")
+    database_url = URL.create(
+        "postgresql",
+        username=DB_USER,
+        password=config.DB_PASSWORD,
+        host=DB_HOST,
+        port=int(DB_PORT),
+        database=DB_NAME,
+    )
 
     global engine
-    if engine is None or engine.url.password != config.DB_PASSWORD:
-        database_url = URL.create(
-            "postgresql",
-            username=DB_USER,
-            password=config.DB_PASSWORD,
-            host=DB_HOST,
-            port=int(DB_PORT),
-            database=DB_NAME,
-        )
+    if engine is None or engine.url != database_url:
         if engine is not None:
             engine.dispose()
         engine = create_engine(database_url)
