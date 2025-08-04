@@ -99,9 +99,10 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
     """
     if not isinstance(text, str):
         return (None, None)
-    # Если ответ начинается с названия блюда, игнорируем первую строку
+    # Если первая строка не содержит цифр или ключевых слов,
+    # считаем её названием блюда и игнорируем
     lines = text.splitlines()
-    if len(lines) > 1:
+    if len(lines) > 1 and not re.search(r"\d|углевод|[хx][еe]", lines[0], re.IGNORECASE):
         text = "\n".join(lines[1:])
 
     carbs = xe = None
