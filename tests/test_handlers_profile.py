@@ -25,17 +25,17 @@ class DummyMessage:
 
 
 @pytest.mark.parametrize(
-    "args, expected_icr, expected_cf, expected_target",
+    "args, expected_icr, expected_cf, expected_target, expected_low, expected_high",
     [
-        (["8", "3", "6"], "8.0", "3.0", "6.0"),
-        (["8,5", "3,1", "6,7"], "8.5", "3.1", "6.7"),
-        (["icr=8", "cf=3", "target=6"], "8.0", "3.0", "6.0"),
-        (["target=6", "icr=8", "cf=3"], "8.0", "3.0", "6.0"),
-        (["i=8", "c=3", "t=6"], "8.0", "3.0", "6.0"),
+        (["8", "3", "6", "4", "9"], "8.0", "3.0", "6.0", "4.0", "9.0"),
+        (["8,5", "3,1", "6,7", "3,2", "8,2"], "8.5", "3.1", "6.7", "3.2", "8.2"),
+        (["icr=8", "cf=3", "target=6", "low=4", "high=9"], "8.0", "3.0", "6.0", "4.0", "9.0"),
+        (["target=6", "icr=8", "cf=3", "low=4", "high=9"], "8.0", "3.0", "6.0", "4.0", "9.0"),
+        (["i=8", "c=3", "t=6", "l=4", "h=9"], "8.0", "3.0", "6.0", "4.0", "9.0"),
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_and_view(monkeypatch, args, expected_icr, expected_cf, expected_target):
+async def test_profile_command_and_view(monkeypatch, args, expected_icr, expected_cf, expected_target, expected_low, expected_high):
     import os
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
@@ -61,6 +61,8 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     assert f"• ИКХ: {expected_icr} г/ед." in message.texts[0]
     assert f"• КЧ: {expected_cf} ммоль/л" in message.texts[0]
     assert f"• Целевой сахар: {expected_target} ммоль/л" in message.texts[0]
+    assert f"• Низкий порог: {expected_low} ммоль/л" in message.texts[0]
+    assert f"• Высокий порог: {expected_high} ммоль/л" in message.texts[0]
 
     message2 = DummyMessage()
     update2 = SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=123))
@@ -70,6 +72,8 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     assert f"• ИКХ: {expected_icr} г/ед." in message2.texts[0]
     assert f"• КЧ: {expected_cf} ммоль/л" in message2.texts[0]
     assert f"• Целевой сахар: {expected_target} ммоль/л" in message2.texts[0]
+    assert f"• Низкий порог: {expected_low} ммоль/л" in message2.texts[0]
+    assert f"• Высокий порог: {expected_high} ммоль/л" in message2.texts[0]
     markup = message2.markups[0]
     assert isinstance(markup, InlineKeyboardMarkup)
     buttons = [b for row in markup.inline_keyboard for b in row]
@@ -81,9 +85,11 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
 @pytest.mark.parametrize(
     "args",
     [
-        ["0", "3", "6"],
-        ["8", "0", "6"],
-        ["8", "3", "-1"],
+        ["0", "3", "6", "4", "9"],
+        ["8", "0", "6", "4", "9"],
+        ["8", "3", "-1", "4", "9"],
+        ["8", "3", "6", "-1", "9"],
+        ["8", "3", "6", "4", "3"],
     ],
 )
 @pytest.mark.asyncio

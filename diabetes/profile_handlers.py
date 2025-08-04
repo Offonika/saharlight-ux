@@ -17,7 +17,7 @@ from diabetes.ui import menu_keyboard, back_keyboard
 from .common_handlers import commit_session
 
 
-PROFILE_ICR, PROFILE_CF, PROFILE_TARGET = range(3)
+PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH = range(5)
 
 
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -32,9 +32,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     help_text = (
         "❗ Формат команды:\n"
-        "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой>\n"
-        "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой>\n"
-        "Пример: /profile icr=10 cf=2 target=6"
+        "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой> <низкий> <высокий>\n"
+        "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой> low=<низкий> high=<высокий>\n"
+        "Пример: /profile icr=10 cf=2 target=6 low=4 high=9"
     )
 
     if len(args) == 1 and args[0].lower() == "help":
@@ -49,8 +49,14 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return PROFILE_ICR
 
     values: dict[str, str] | None = None
-    if len(args) == 3 and all("=" not in a for a in args):
-        values = {"icr": args[0], "cf": args[1], "target": args[2]}
+    if len(args) == 5 and all("=" not in a for a in args):
+        values = {
+            "icr": args[0],
+            "cf": args[1],
+            "target": args[2],
+            "low": args[3],
+            "high": args[4],
+        }
     else:
         parsed: dict[str, str] = {}
         for arg in args:
@@ -60,7 +66,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             key, val = arg.split("=", 1)
             key = key.lower()
             match = None
-            for full in ("icr", "cf", "target"):
+            for full in ("icr", "cf", "target", "low", "high"):
                 if full.startswith(key):
                     match = full
                     break
@@ -69,7 +75,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 break
             parsed[match] = val
         else:
-            if set(parsed) == {"icr", "cf", "target"}:
+            if set(parsed) == {"icr", "cf", "target", "low", "high"}:
                 values = parsed
 
     if values is None:
@@ -80,15 +86,24 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         icr = float(values["icr"].replace(",", "."))
         cf = float(values["cf"].replace(",", "."))
         target = float(values["target"].replace(",", "."))
+        low = float(values["low"].replace(",", "."))
+        high = float(values["high"].replace(",", "."))
     except ValueError:
         await update.message.reply_text(
             "❗ Пожалуйста, введите корректные числа. Справка: /profile help"
         )
         return ConversationHandler.END
 
-    if icr <= 0 or cf <= 0 or target <= 0:
+    if (
+        icr <= 0
+        or cf <= 0
+        or target <= 0
+        or low <= 0
+        or high <= 0
+        or low >= high
+    ):
         await update.message.reply_text(
-            "❗ Все значения должны быть больше 0. Справка: /profile help"
+            "❗ Все значения должны быть больше 0, низкий порог < высокий. Справка: /profile help"
         )
         return ConversationHandler.END
 
@@ -99,7 +114,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             f"• Вы ввели ИКХ = {icr} г/ед. (высоковато)\n"
             f"• КЧ = {cf} ммоль/л (низковато)\n\n"
             "Если вы хотели ввести наоборот, отправьте:\n"
-            f"/profile {cf} {icr} {target}\n"
+            f"/profile {cf} {icr} {target} {low} {high}\n"
         )
 
     user_id = update.effective_user.id
@@ -112,6 +127,8 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         prof.icr = icr
         prof.cf = cf
         prof.target_bg = target
+        prof.low_threshold = low
+        prof.high_threshold = high
         if not commit_session(session):
             await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
             return
@@ -120,7 +137,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"✅ Профиль обновлён:\n"
         f"• ИКХ: {icr} г/ед.\n"
         f"• КЧ: {cf} ммоль/л\n"
-        f"• Целевой сахар: {target} ммоль/л" + warning_msg,
+        f"• Целевой сахар: {target} ммоль/л\n"
+        f"• Низкий порог: {low} ммоль/л\n"
+        f"• Высокий порог: {high} ммоль/л" + warning_msg,
         parse_mode="Markdown",
         reply_markup=menu_keyboard,
     )
@@ -137,9 +156,9 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text(
             "Ваш профиль пока не настроен.\n\n"
             "Чтобы настроить профиль, введите команду:\n"
-            "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой>\n"
-            "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой>\n"
-            "Пример: /profile icr=10 cf=2 target=6",
+            "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой> <низкий> <высокий>\n"
+            "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой> low=<низкий> high=<высокий>\n"
+            "Пример: /profile icr=10 cf=2 target=6 low=4 high=9",
             parse_mode="Markdown",
         )
         return
@@ -148,7 +167,9 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "📄 Ваш профиль:\n"
         f"• ИКХ: {profile.icr} г/ед.\n"  # Инсулин-карб коэффициент
         f"• КЧ: {profile.cf} ммоль/л\n"
-        f"• Целевой сахар: {profile.target_bg} ммоль/л"
+        f"• Целевой сахар: {profile.target_bg} ммоль/л\n"
+        f"• Низкий порог: {profile.low_threshold} ммоль/л\n"
+        f"• Высокий порог: {profile.high_threshold} ммоль/л"
     )
     keyboard = InlineKeyboardMarkup(
         [
@@ -234,7 +255,7 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handle target BG input and save profile."""
+    """Handle target BG input."""
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
@@ -255,8 +276,72 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "Целевой сахар должен быть больше 0.", reply_markup=back_keyboard
         )
         return PROFILE_TARGET
+    context.user_data["profile_target"] = target
+    await update.message.reply_text(
+        "Введите нижний порог сахара (ммоль/л).",
+        reply_markup=back_keyboard,
+    )
+    return PROFILE_LOW
+
+
+async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle low threshold input."""
+    raw_text = update.message.text.strip()
+    if "назад" in raw_text.lower():
+        await update.message.reply_text(
+            "Введите целевой уровень сахара (ммоль/л).",
+            reply_markup=back_keyboard,
+        )
+        return PROFILE_TARGET
+    text = raw_text.replace(",", ".")
+    try:
+        low = float(text)
+    except ValueError:
+        await update.message.reply_text(
+            "Введите нижний порог числом.", reply_markup=back_keyboard
+        )
+        return PROFILE_LOW
+    if low <= 0:
+        await update.message.reply_text(
+            "Нижний порог должен быть больше 0.", reply_markup=back_keyboard
+        )
+        return PROFILE_LOW
+    context.user_data["profile_low"] = low
+    await update.message.reply_text(
+        "Введите верхний порог сахара (ммоль/л).",
+        reply_markup=back_keyboard,
+    )
+    return PROFILE_HIGH
+
+
+async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle high threshold input and save profile."""
+    raw_text = update.message.text.strip()
+    if "назад" in raw_text.lower():
+        await update.message.reply_text(
+            "Введите нижний порог сахара (ммоль/л).",
+            reply_markup=back_keyboard,
+        )
+        return PROFILE_LOW
+    text = raw_text.replace(",", ".")
+    try:
+        high = float(text)
+    except ValueError:
+        await update.message.reply_text(
+            "Введите верхний порог числом.", reply_markup=back_keyboard
+        )
+        return PROFILE_HIGH
+    low = context.user_data.get("profile_low")
+    if high <= 0 or low is None or high <= low:
+        await update.message.reply_text(
+            "Верхний порог должен быть больше нижнего и больше 0.",
+            reply_markup=back_keyboard,
+        )
+        return PROFILE_HIGH
     icr = context.user_data.pop("profile_icr")
     cf = context.user_data.pop("profile_cf")
+    target = context.user_data.pop("profile_target")
+    context.user_data.pop("profile_low")
     user_id = update.effective_user.id
     with SessionLocal() as session:
         prof = session.get(Profile, user_id)
@@ -266,14 +351,27 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         prof.icr = icr
         prof.cf = cf
         prof.target_bg = target
+        prof.low_threshold = low
+        prof.high_threshold = high
         if not commit_session(session):
             await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
             return ConversationHandler.END
+    warning_msg = ""
+    if icr > 8 or cf < 3:
+        warning_msg = (
+            "\n⚠️ Проверьте, пожалуйста: возможно, вы перепутали местами ИКХ и КЧ.\n"
+            f"• Вы ввели ИКХ = {icr} г/ед. (высоковато)\n"
+            f"• КЧ = {cf} ммоль/л (низковато)\n\n"
+            "Если вы хотели ввести наоборот, отправьте:\n"
+            f"/profile {cf} {icr} {target} {low} {high}\n"
+        )
     await update.message.reply_text(
         "✅ Профиль обновлён:\n"
         f"• ИКХ: {icr} г/ед.\n"
         f"• КЧ: {cf} ммоль/л\n"
-        f"• Целевой сахар: {target} ммоль/л",
+        f"• Целевой сахар: {target} ммоль/л\n"
+        f"• Низкий порог: {low} ммоль/л\n"
+        f"• Высокий порог: {high} ммоль/л" + warning_msg,
         reply_markup=menu_keyboard,
     )
     return ConversationHandler.END
@@ -289,6 +387,12 @@ profile_conv = ConversationHandler(
         PROFILE_CF: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_cf)],
         PROFILE_TARGET: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)
+        ],
+        PROFILE_LOW: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, profile_low)
+        ],
+        PROFILE_HIGH: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, profile_high)
         ],
     },
     fallbacks=[
