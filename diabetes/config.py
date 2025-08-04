@@ -6,7 +6,8 @@ import os
 from dotenv import load_dotenv
 
 
-load_dotenv()  # Загрузка переменных из .env файла
+if not os.getenv("SKIP_DOTENV"):
+    load_dotenv()  # Загрузка переменных из .env файла
 
 
 def _read_log_level() -> int:

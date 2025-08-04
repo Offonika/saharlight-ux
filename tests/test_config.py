@@ -19,8 +19,10 @@ def test_import_config_without_db_password(monkeypatch):
 
 def test_init_db_raises_when_no_password(monkeypatch):
     monkeypatch.delenv("DB_PASSWORD", raising=False)
-    _reload("diabetes.config")
+    monkeypatch.setenv("SKIP_DOTENV", "1")
+    config = _reload("diabetes.config")
     db = _reload("diabetes.db")
+    assert config.DB_PASSWORD is None
     with pytest.raises(ValueError):
         db.init_db()
 
