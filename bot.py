@@ -4,7 +4,7 @@ from diabetes.common_handlers import register_handlers
 from diabetes.db import init_db
 from diabetes.config import LOG_LEVEL, TELEGRAM_TOKEN
 from telegram import BotCommand
-from telegram.ext import ApplicationBuilder
+from telegram.ext import Application
 from sqlalchemy.exc import SQLAlchemyError
 import asyncio
 import logging
@@ -21,9 +21,10 @@ async def main() -> None:
     )
     logger.info("=== Bot started ===")
 
-    if not TELEGRAM_TOKEN:
+    BOT_TOKEN = TELEGRAM_TOKEN
+    if not BOT_TOKEN:
         logger.error(
-            "TELEGRAM_TOKEN is not set. Please provide the environment variable."
+            "BOT_TOKEN is not set. Please provide the environment variable."
         )
         sys.exit(1)
 
@@ -33,8 +34,8 @@ async def main() -> None:
         logger.exception("Failed to initialize the database")
         sys.exit(1)
 
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    register_handlers(app)
+    application = Application.builder().token(BOT_TOKEN).build()
+    register_handlers(application)
 
     commands = [
         BotCommand("start", "Запустить бота"),
@@ -48,9 +49,15 @@ async def main() -> None:
         BotCommand("delreminder", "Удалить напоминание"),
         BotCommand("help", "Справка"),
     ]
-    await app.bot.set_my_commands(commands)
+    await application.bot.set_my_commands(commands)
 
-    await app.run_polling()
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling()
+    await application.updater.idle()
+
+    await application.stop()
+    await application.shutdown()
 
 if __name__ == "__main__":
     asyncio.run(main())
