@@ -7,6 +7,7 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler,
 )
+from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
 from diabetes.common_handlers import register_handlers, callback_router, start_command
 from diabetes import security_handlers
@@ -81,7 +82,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     profile_conv_cb = [
         ep
         for ep in profile_handlers.profile_conv.entry_points
-        if isinstance(ep, CallbackQueryHandler)
+        if isinstance(ep, CallbackQueryNoWarnHandler)
         and ep.callback is profile_handlers.profile_edit
     ]
     assert profile_conv_cb
