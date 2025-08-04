@@ -177,6 +177,7 @@ def register_handlers(app: Application) -> None:
     app.add_handler(dose_handlers.dose_conv)
     app.add_handler(dose_handlers.sugar_conv)
     app.add_handler(CommandHandler("sugar", dose_handlers.sugar_start))
+    app.add_handler(CommandHandler("cancel", dose_handlers.dose_cancel))
     app.add_handler(
         MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_handlers.profile_view)
     )
