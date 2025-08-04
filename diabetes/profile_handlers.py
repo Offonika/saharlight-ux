@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
-from telegram import Update
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    filters,
+)
 
 from diabetes.db import SessionLocal, Profile
 from diabetes.ui import menu_keyboard
 from .common_handlers import commit_session
+
+
+PROFILE_ICR, PROFILE_CF, PROFILE_TARGET = range(3)
 
 
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -95,7 +105,13 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         f"• КЧ: {profile.cf} ммоль/л\n"
         f"• Целевой сахар: {profile.target_bg} ммоль/л"
     )
-    await update.message.reply_text(msg)
+    keyboard = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("✏️ Изменить", callback_data="profile_edit")],
+            [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
+        ]
+    )
+    await update.message.reply_text(msg, reply_markup=keyboard)
 
 
 async def profile_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -104,8 +120,107 @@ async def profile_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     return ConversationHandler.END
 
 
+async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Return to main menu from profile view."""
+    query = update.callback_query
+    await query.answer()
+    await query.message.delete()
+    await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
+
+
+async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Start step-by-step profile setup."""
+    query = update.callback_query
+    await query.answer()
+    await query.message.edit_text("Введите коэффициент ИКХ (г/ед.):")
+    return PROFILE_ICR
+
+
+async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle ICR input."""
+    text = update.message.text.strip().replace(",", ".")
+    try:
+        icr = float(text)
+    except ValueError:
+        await update.message.reply_text("Введите ИКХ числом.")
+        return PROFILE_ICR
+    if icr <= 0:
+        await update.message.reply_text("ИКХ должен быть больше 0.")
+        return PROFILE_ICR
+    context.user_data["profile_icr"] = icr
+    await update.message.reply_text("Введите коэффициент чувствительности (КЧ) ммоль/л.")
+    return PROFILE_CF
+
+
+async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle CF input."""
+    text = update.message.text.strip().replace(",", ".")
+    try:
+        cf = float(text)
+    except ValueError:
+        await update.message.reply_text("Введите КЧ числом.")
+        return PROFILE_CF
+    if cf <= 0:
+        await update.message.reply_text("КЧ должен быть больше 0.")
+        return PROFILE_CF
+    context.user_data["profile_cf"] = cf
+    await update.message.reply_text("Введите целевой уровень сахара (ммоль/л).")
+    return PROFILE_TARGET
+
+
+async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle target BG input and save profile."""
+    text = update.message.text.strip().replace(",", ".")
+    try:
+        target = float(text)
+    except ValueError:
+        await update.message.reply_text("Введите целевой сахар числом.")
+        return PROFILE_TARGET
+    if target <= 0:
+        await update.message.reply_text("Целевой сахар должен быть больше 0.")
+        return PROFILE_TARGET
+    icr = context.user_data.pop("profile_icr")
+    cf = context.user_data.pop("profile_cf")
+    user_id = update.effective_user.id
+    with SessionLocal() as session:
+        prof = session.get(Profile, user_id)
+        if not prof:
+            prof = Profile(telegram_id=user_id)
+            session.add(prof)
+        prof.icr = icr
+        prof.cf = cf
+        prof.target_bg = target
+        if not commit_session(session):
+            await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
+            return ConversationHandler.END
+    await update.message.reply_text(
+        "✅ Профиль обновлён:\n"
+        f"• ИКХ: {icr} г/ед.\n"
+        f"• КЧ: {cf} ммоль/л\n"
+        f"• Целевой сахар: {target} ммоль/л",
+        reply_markup=menu_keyboard,
+    )
+    return ConversationHandler.END
+
+
+profile_conv = ConversationHandler(
+    entry_points=[CallbackQueryHandler(profile_edit, pattern="^profile_edit$")],
+    states={
+        PROFILE_ICR: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],
+        PROFILE_CF: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_cf)],
+        PROFILE_TARGET: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)
+        ],
+    },
+    fallbacks=[CommandHandler("cancel", profile_cancel)],
+)
+
+
 __all__ = [
     "profile_command",
     "profile_view",
     "profile_cancel",
+    "profile_back",
+    "profile_edit",
+    "profile_conv",
 ]

@@ -34,6 +34,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     assert callback_router in callbacks
     assert reporting_handlers.report_period_callback in callbacks
     assert profile_handlers.profile_view in callbacks
+    assert profile_handlers.profile_back in callbacks
     assert reporting_handlers.report_request in callbacks
     assert reporting_handlers.history_view in callbacks
 
@@ -52,6 +53,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     conv_handlers = [h for h in handlers if isinstance(h, ConversationHandler)]
     assert dose_handlers.dose_conv in conv_handlers
     assert dose_handlers.sugar_conv in conv_handlers
+    assert profile_handlers.profile_conv in conv_handlers
     conv_cmds = [
         ep
         for ep in dose_handlers.dose_conv.entry_points
@@ -64,6 +66,13 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
         if isinstance(ep, CommandHandler)
     ]
     assert sugar_conv_cmds and "sugar" in sugar_conv_cmds[0].commands
+    profile_conv_cb = [
+        ep
+        for ep in profile_handlers.profile_conv.entry_points
+        if isinstance(ep, CallbackQueryHandler)
+        and ep.callback is profile_handlers.profile_edit
+    ]
+    assert profile_conv_cb
 
     text_handlers = [
         h
@@ -149,3 +158,10 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
         and h.callback is reporting_handlers.report_period_callback
     ]
     assert report_cb_handlers
+    profile_back_handlers = [
+        h
+        for h in handlers
+        if isinstance(h, CallbackQueryHandler)
+        and h.callback is profile_handlers.profile_back
+    ]
+    assert profile_back_handlers
