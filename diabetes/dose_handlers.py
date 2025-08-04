@@ -25,7 +25,8 @@ from diabetes.gpt_client import create_thread, send_message, _get_client
 from diabetes.gpt_command_parser import parse_command
 from diabetes.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from .common_handlers import commit_session
-from .reporting_handlers import send_report
+from .reporting_handlers import send_report, history_view, report_request
+from .profile_handlers import profile_view
 
 
 logger = logging.getLogger(__name__)
@@ -220,6 +221,16 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     context.user_data.pop("pending_entry", None)
     context.user_data.pop("dose_method", None)
     return ConversationHandler.END
+
+
+def _cancel_then(handler):
+    """Return a wrapper calling ``dose_cancel`` before ``handler``."""
+
+    async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await dose_cancel(update, context)
+        return await handler(update, context)
+
+    return wrapped
 
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -619,7 +630,14 @@ dose_conv = ConversationHandler(
         DOSE_CARBS: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_carbs)],
         DOSE_SUGAR: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_sugar)],
     },
-    fallbacks=[MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel)],
+    fallbacks=[
+        MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), _cancel_then(photo_prompt)),
+        MessageHandler(filters.Regex("^❓ Мой сахар$"), _cancel_then(sugar_start)),
+        MessageHandler(filters.Regex("^📊 История$"), _cancel_then(history_view)),
+        MessageHandler(filters.Regex("^📈 Отчёт$"), _cancel_then(report_request)),
+        MessageHandler(filters.Regex("^📄 Мой профиль$"), _cancel_then(profile_view)),
+    ],
 )
 
 
