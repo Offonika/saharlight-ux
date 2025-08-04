@@ -3,6 +3,7 @@
 import asyncio
 import io
 import time
+import logging
 
 import pytest
 
@@ -47,3 +48,18 @@ async def test_get_coords_and_link_non_blocking(monkeypatch):
     elapsed = time.perf_counter() - start
     assert elapsed < 0.2
     assert await task == ("1,2", "https://maps.google.com/?q=1,2")
+
+
+@pytest.mark.asyncio
+async def test_get_coords_and_link_logs_warning(monkeypatch, caplog):
+    def failing_urlopen(*args, **kwargs):
+        raise OSError("network down")
+
+    monkeypatch.setattr(utils, "urlopen", failing_urlopen)
+
+    with caplog.at_level(logging.WARNING):
+        coords, link = await utils.get_coords_and_link()
+
+    assert coords == "0.0,0.0"
+    assert link == "https://maps.google.com/?q=0.0,0.0"
+    assert any("Failed to fetch coordinates" in msg for msg in caplog.messages)
