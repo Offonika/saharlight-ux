@@ -179,7 +179,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/help - справка\n\n"
         "📲 Кнопки меню:\n"
         "📷 Фото еды\n"
-        "❓ Мой сахар\n"
+        "🩸 Уровень сахара\n"
         "💉 Доза инсулина\n"
         "📊 История\n"
         "📈 Отчёт\n"

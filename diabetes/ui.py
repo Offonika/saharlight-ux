@@ -20,7 +20,7 @@ __all__ = ("menu_keyboard", "dose_keyboard", "sugar_keyboard", "confirm_keyboard
 
 menu_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton("📷 Фото еды"), KeyboardButton("❓ Мой сахар")],
+        [KeyboardButton("📷 Фото еды"), KeyboardButton("🩸 Уровень сахара")],
         [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
         [KeyboardButton("📈 Отчёт"), KeyboardButton("📄 Мой профиль")],
         [KeyboardButton("ℹ️ Помощь")],
