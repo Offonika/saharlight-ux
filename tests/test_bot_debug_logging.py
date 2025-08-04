@@ -21,7 +21,13 @@ def test_log_level_debug(monkeypatch):
     # Stub external interactions
     monkeypatch.setattr(bot, "init_db", lambda: None)
 
+    class DummyBot:
+        async def set_my_commands(self, commands):
+            return None
+
     class DummyApp:
+        bot = DummyBot()
+
         def run_polling(self):
             return None
 
