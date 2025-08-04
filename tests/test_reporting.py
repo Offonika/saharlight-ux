@@ -1,9 +1,16 @@
 # test_reporting.py
 
 import datetime
+import io
+import os
+from types import SimpleNamespace
 
 import pytest
 from pypdf import PdfReader
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+os.environ.setdefault("DB_PASSWORD", "test")
 
 from diabetes.reporting import make_sugar_plot, generate_pdf_report
 
@@ -90,3 +97,97 @@ def test_generate_pdf_report_page_breaks(block):
     pdf_buf.seek(0)
     reader = PdfReader(pdf_buf)
     assert len(reader.pages) > 1
+
+
+@pytest.mark.asyncio
+async def test_send_report_uses_gpt(monkeypatch):
+    os.environ.setdefault("OPENAI_API_KEY", "test")
+    os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst")
+    os.environ.setdefault("DB_PASSWORD", "pwd")
+
+    import diabetes.reporting_handlers as handlers
+    from diabetes.db import Base, Entry, User
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="tid"))
+        session.add(
+            Entry(
+                telegram_id=1,
+                event_time=datetime.datetime(2025, 7, 1, tzinfo=datetime.timezone.utc),
+                sugar_before=6.0,
+                carbs_g=30.0,
+                dose=5.0,
+            )
+        )
+        session.commit()
+
+    class DummyMessage:
+        def __init__(self):
+            self.docs = []
+
+        async def reply_text(self, *args, **kwargs):
+            pass
+
+        async def reply_photo(self, *args, **kwargs):
+            pass
+
+        async def reply_document(self, document, **kwargs):
+            self.docs.append(document)
+
+    message = DummyMessage()
+    update = SimpleNamespace(
+        message=message, effective_user=SimpleNamespace(id=1)
+    )
+    context = SimpleNamespace(user_data={"thread_id": "tid"})
+
+    class Run:
+        status = "completed"
+        thread_id = "tid"
+        id = "rid"
+
+    def fake_send_message(**kwargs):
+        return Run()
+
+    class DummyClient:
+        beta = SimpleNamespace(
+            threads=SimpleNamespace(
+                runs=SimpleNamespace(retrieve=lambda **kw: Run()),
+                messages=SimpleNamespace(
+                    list=lambda **kw: SimpleNamespace(
+                        data=[
+                            SimpleNamespace(
+                                role="assistant",
+                                content=[
+                                    SimpleNamespace(
+                                        text=SimpleNamespace(
+                                            value="Совет: пейте больше воды."
+                                        )
+                                    )
+                                ],
+                            )
+                        ]
+                    )
+                ),
+            )
+        )
+
+    monkeypatch.setattr(handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(
+        handlers, "make_sugar_plot", lambda entries, period_label: io.BytesIO(b"img")
+    )
+
+    await handlers.send_report(
+        update, context, datetime.datetime(2025, 6, 1, tzinfo=datetime.timezone.utc), "период"
+    )
+
+    assert message.docs
+    pdf_buf = message.docs[0]
+    pdf_buf.seek(0)
+    text = "".join(page.extract_text() for page in PdfReader(pdf_buf).pages)
+    assert "пейте больше воды" in text
