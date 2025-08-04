@@ -14,7 +14,7 @@ from telegram import (
     KeyboardButton,
 )
 
-__all__ = ("menu_keyboard", "dose_keyboard", "confirm_keyboard")
+__all__ = ("menu_keyboard", "dose_keyboard", "sugar_keyboard", "confirm_keyboard")
 
 # ─────────────── Reply-клавиатуры (отображаются на экране чата) ───────────────
 
@@ -37,6 +37,13 @@ dose_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True,
     one_time_keyboard=True,
     input_field_placeholder="Выберите метод расчёта…",
+)
+
+sugar_keyboard = ReplyKeyboardMarkup(
+    keyboard=[[KeyboardButton("↩️ Назад")]],
+    resize_keyboard=True,
+    one_time_keyboard=True,
+    input_field_placeholder="Введите уровень сахара…",
 )
 
 # ─────────────── Inline-клавиатуры (обрабатываются callback-ами) ───────────────

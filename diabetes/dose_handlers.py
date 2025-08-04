@@ -23,7 +23,7 @@ from diabetes.db import SessionLocal, User, Entry, Profile
 from diabetes.functions import extract_nutrition_info, calc_bolus, PatientProfile
 from diabetes.gpt_client import create_thread, send_message, _get_client
 from diabetes.gpt_command_parser import parse_command
-from diabetes.ui import menu_keyboard, confirm_keyboard, dose_keyboard
+from diabetes.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from .common_handlers import commit_session
 from .reporting_handlers import send_report
 
@@ -58,7 +58,7 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
     await update.message.reply_text(
-        "Введите текущий уровень сахара (ммоль/л).", reply_markup=menu_keyboard
+        "Введите текущий уровень сахара (ммоль/л).", reply_markup=sugar_keyboard
     )
     return SUGAR_VAL
 
