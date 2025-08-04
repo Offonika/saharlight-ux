@@ -320,7 +320,9 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CallbackQueryHandler(callback_router))
 
     try:  # pragma: no cover - best effort scheduling
-        reminder_handlers.schedule_all(app.job_queue)
+        job_queue = getattr(app, "_job_queue", None)
+        if job_queue:
+            reminder_handlers.schedule_all(job_queue)
     except Exception:  # pragma: no cover
         logger.exception("Failed to schedule reminders")
 
