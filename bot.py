@@ -3,8 +3,10 @@
 from diabetes.common_handlers import register_handlers
 from diabetes.db import init_db
 from diabetes.config import LOG_LEVEL, TELEGRAM_TOKEN
+from telegram import BotCommand
 from telegram.ext import ApplicationBuilder
 from sqlalchemy.exc import SQLAlchemyError
+import asyncio
 import logging
 import sys
 
@@ -32,6 +34,21 @@ def main():
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     register_handlers(app)
+
+    commands = [
+        BotCommand("start", "Запустить бота"),
+        BotCommand("menu", "Главное меню"),
+        BotCommand("profile", "Мой профиль"),
+        BotCommand("report", "Отчёт"),
+        BotCommand("sugar", "Расчёт сахара"),
+        BotCommand("gpt", "Чат с GPT"),
+        BotCommand("reminders", "Список напоминаний"),
+        BotCommand("addreminder", "Добавить напоминание"),
+        BotCommand("delreminder", "Удалить напоминание"),
+        BotCommand("help", "Справка"),
+    ]
+    asyncio.run(app.bot.set_my_commands(commands))
+
     app.run_polling()
 
 
