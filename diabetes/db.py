@@ -49,6 +49,7 @@ class Profile(Base):
     target_bg = Column(Float)  # целевой сахар
     low_threshold = Column(Float)  # нижний порог сахара
     high_threshold = Column(Float)  # верхний порог сахара
+    sos_contact = Column(String)  # контакт для экстренной связи
     user = relationship("User")
 
 
