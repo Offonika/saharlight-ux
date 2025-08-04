@@ -23,29 +23,56 @@ PROFILE_ICR, PROFILE_CF, PROFILE_TARGET = range(3)
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Set patient profile coefficients via ``/profile`` command."""
     args = context.args
-    if len(args) != 3:
-        await update.message.reply_text(
-            "❗ Формат команды:\n"
-            "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой>\n"
-            "Пример: /profile 10 2 6",
-            parse_mode="Markdown",
-        )
+
+    help_text = (
+        "❗ Формат команды:\n"
+        "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой>\n"
+        "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой>\n"
+        "Пример: /profile icr=10 cf=2 target=6"
+    )
+
+    values: dict[str, str] | None = None
+    if len(args) == 3 and all("=" not in a for a in args):
+        values = {"icr": args[0], "cf": args[1], "target": args[2]}
+    else:
+        parsed: dict[str, str] = {}
+        for arg in args:
+            if "=" not in arg:
+                values = None
+                break
+            key, val = arg.split("=", 1)
+            key = key.lower()
+            match = None
+            for full in ("icr", "cf", "target"):
+                if full.startswith(key):
+                    match = full
+                    break
+            if not match:
+                values = None
+                break
+            parsed[match] = val
+        else:
+            if set(parsed) == {"icr", "cf", "target"}:
+                values = parsed
+
+    if values is None:
+        await update.message.reply_text(help_text, parse_mode="Markdown")
         return
 
     try:
-        icr = float(args[0].replace(",", "."))
-        cf = float(args[1].replace(",", "."))
-        target = float(args[2].replace(",", "."))
+        icr = float(values["icr"].replace(",", "."))
+        cf = float(values["cf"].replace(",", "."))
+        target = float(values["target"].replace(",", "."))
     except ValueError:
         await update.message.reply_text(
-            "❗ Пожалуйста, введите корректные числа. Пример:\n/profile 10 2 6",
+            "❗ Пожалуйста, введите корректные числа.\n" + help_text,
             parse_mode="Markdown",
         )
         return
 
     if icr <= 0 or cf <= 0 or target <= 0:
         await update.message.reply_text(
-            "❗ Все значения должны быть больше 0. Пример:\n/profile 10 2 6",
+            "❗ Все значения должны быть больше 0.\n" + help_text,
             parse_mode="Markdown",
         )
         return
@@ -95,7 +122,8 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             "Ваш профиль пока не настроен.\n\n"
             "Чтобы настроить профиль, введите команду:\n"
             "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой>\n"
-            "Пример: /profile 10 2 6",
+            "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой>\n"
+            "Пример: /profile icr=10 cf=2 target=6",
             parse_mode="Markdown",
         )
         return
