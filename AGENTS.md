@@ -55,8 +55,8 @@
     ```
 - **Линтинг**: PEP8-стиль
     ```bash
-    pip install flake8
-    flake8 diabetes/
+    pip install -r requirements-dev.txt
+    ruff diabetes tests
     ```
 
 ---
@@ -75,7 +75,7 @@
 - **Покрытие тестами:**  
   _Add pytest unit tests for diabetes/functions.py, cover all calculation logic._
 - **CI и линтинг:**  
-  _Run flake8 on diabetes/, fix all PEP8/style issues. Add pre-commit hook if needed._
+  _Run ruff on diabetes/ and tests/, fix all style issues. Add a pre-commit hook if needed._
 - **Документация:**  
   _Generate and update code documentation. Add docstrings to all public functions._
 - **Безопасность:**  
