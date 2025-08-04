@@ -13,7 +13,7 @@ from telegram.ext import (
 )
 
 from diabetes.db import SessionLocal, Profile
-from diabetes.ui import menu_keyboard
+from diabetes.ui import menu_keyboard, back_keyboard
 from .common_handlers import commit_session
 
 
@@ -132,52 +132,83 @@ async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     """Start step-by-step profile setup."""
     query = update.callback_query
     await query.answer()
-    await query.message.edit_text("Введите коэффициент ИКХ (г/ед.):")
+    await query.message.delete()
+    await query.message.reply_text(
+        "Введите коэффициент ИКХ (г/ед.):",
+        reply_markup=back_keyboard,
+    )
     return PROFILE_ICR
 
 
 async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
-    text = update.message.text.strip().replace(",", ".")
+    raw_text = update.message.text.strip()
+    if "назад" in raw_text.lower():
+        return await profile_cancel(update, context)
+    text = raw_text.replace(",", ".")
     try:
         icr = float(text)
     except ValueError:
-        await update.message.reply_text("Введите ИКХ числом.")
+        await update.message.reply_text("Введите ИКХ числом.", reply_markup=back_keyboard)
         return PROFILE_ICR
     if icr <= 0:
-        await update.message.reply_text("ИКХ должен быть больше 0.")
+        await update.message.reply_text("ИКХ должен быть больше 0.", reply_markup=back_keyboard)
         return PROFILE_ICR
     context.user_data["profile_icr"] = icr
-    await update.message.reply_text("Введите коэффициент чувствительности (КЧ) ммоль/л.")
+    await update.message.reply_text(
+        "Введите коэффициент чувствительности (КЧ) ммоль/л.",
+        reply_markup=back_keyboard,
+    )
     return PROFILE_CF
 
 
 async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
-    text = update.message.text.strip().replace(",", ".")
+    raw_text = update.message.text.strip()
+    if "назад" in raw_text.lower():
+        await update.message.reply_text(
+            "Введите коэффициент ИКХ (г/ед.):",
+            reply_markup=back_keyboard,
+        )
+        return PROFILE_ICR
+    text = raw_text.replace(",", ".")
     try:
         cf = float(text)
     except ValueError:
-        await update.message.reply_text("Введите КЧ числом.")
+        await update.message.reply_text("Введите КЧ числом.", reply_markup=back_keyboard)
         return PROFILE_CF
     if cf <= 0:
-        await update.message.reply_text("КЧ должен быть больше 0.")
+        await update.message.reply_text("КЧ должен быть больше 0.", reply_markup=back_keyboard)
         return PROFILE_CF
     context.user_data["profile_cf"] = cf
-    await update.message.reply_text("Введите целевой уровень сахара (ммоль/л).")
+    await update.message.reply_text(
+        "Введите целевой уровень сахара (ммоль/л).",
+        reply_markup=back_keyboard,
+    )
     return PROFILE_TARGET
 
 
 async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input and save profile."""
-    text = update.message.text.strip().replace(",", ".")
+    raw_text = update.message.text.strip()
+    if "назад" in raw_text.lower():
+        await update.message.reply_text(
+            "Введите коэффициент чувствительности (КЧ) ммоль/л.",
+            reply_markup=back_keyboard,
+        )
+        return PROFILE_CF
+    text = raw_text.replace(",", ".")
     try:
         target = float(text)
     except ValueError:
-        await update.message.reply_text("Введите целевой сахар числом.")
+        await update.message.reply_text(
+            "Введите целевой сахар числом.", reply_markup=back_keyboard
+        )
         return PROFILE_TARGET
     if target <= 0:
-        await update.message.reply_text("Целевой сахар должен быть больше 0.")
+        await update.message.reply_text(
+            "Целевой сахар должен быть больше 0.", reply_markup=back_keyboard
+        )
         return PROFILE_TARGET
     icr = context.user_data.pop("profile_icr")
     cf = context.user_data.pop("profile_cf")
@@ -212,7 +243,10 @@ profile_conv = ConversationHandler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)
         ],
     },
-    fallbacks=[CommandHandler("cancel", profile_cancel)],
+    fallbacks=[
+        MessageHandler(filters.Regex("^↩️ Назад$"), profile_cancel),
+        CommandHandler("cancel", profile_cancel),
+    ],
 )
 
 
