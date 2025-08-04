@@ -97,6 +97,12 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
         >>> extract_nutrition_info("углеводы: 45 ± 5 г")
         (45.0, None)
     """
+    # Если ответ начинается с названия блюда, игнорируем первую строку
+    if isinstance(text, str):
+        lines = text.splitlines()
+        if len(lines) > 1:
+            text = "\n".join(lines[1:])
+
     carbs = xe = None
     # Парсим углеводы (carbs)
     m = re.search(

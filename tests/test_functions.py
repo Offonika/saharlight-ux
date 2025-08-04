@@ -116,3 +116,10 @@ def test_extract_nutrition_info_invalid_xe():
     carbs, xe = extract_nutrition_info(text)
     assert carbs == 45
     assert xe is None
+
+
+def test_extract_nutrition_info_ignores_title_line():
+    text = "Борщ\nУглеводы: 25 г\nХЕ: 2"
+    carbs, xe = extract_nutrition_info(text)
+    assert carbs == 25
+    assert xe == 2
