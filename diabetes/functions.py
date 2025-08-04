@@ -203,3 +203,92 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
             if first is not None and second is not None:
                 carbs = (first + second) / 2
     return carbs, xe
+
+
+def smart_input(message: str) -> dict[str, float | None]:
+    """Парсит сырое сообщение с показателями сахара, ХЕ и дозы инсулина.
+
+    Функция пытается распознать значения сахара крови, хлебных единиц и дозы
+    инсулина из произвольного текста. Поддерживаются числовые значения с
+    разделителем ``","`` или ``".`` и локализованные термины вроде
+    ``"сахар"`` и ``"доза"``. Если после названия показателя указаны
+    единицы, не соответствующие ему (например, ``"сахар 7 XE"``), будет
+    вызван ``ValueError``.
+
+    Args:
+        message: Исходное сообщение пользователя.
+
+    Returns:
+        Словарь с ключами ``"sugar"``, ``"xe"`` и ``"dose"``. Отсутствующие
+        значения возвращаются как ``None``.
+
+    Examples:
+        >>> smart_input("sugar=7 xe=3 dose=4")
+        {'sugar': 7.0, 'xe': 3.0, 'dose': 4.0}
+        >>> smart_input("7 ммоль/л, 3 XE")
+        {'sugar': 7.0, 'xe': 3.0, 'dose': None}
+        >>> smart_input("сахар 7 XE")
+        Traceback (most recent call last):
+        ...
+        ValueError: mismatched unit for sugar
+    """
+
+    if not isinstance(message, str):
+        raise ValueError("message must be a string")
+
+    text = message.lower()
+    result: dict[str, float | None] = {"sugar": None, "xe": None, "dose": None}
+
+    # Проверка на неверные единицы измерения после явных названий показателей
+    if re.search(
+        r"\b(?:sugar|сахар)\s*[:=]?\s*\d+[.,]?\d*\s*(?:xe|хе|ед)\b(?![=:])",
+        text,
+    ):
+        raise ValueError("mismatched unit for sugar")
+    if re.search(
+        r"\b(?:xe|хе)\s*[:=]?\s*\d+[.,]?\d*\s*(?:ммоль/?л|mmol/?l|ед)\b(?![=:])",
+        text,
+    ):
+        raise ValueError("mismatched unit for xe")
+    if re.search(
+        r"\b(?:dose|доза|болюс)\s*[:=]?\s*\d+[.,]?\d*\s*(?:ммоль/?л|mmol/?l|xe|хе)\b(?![=:])",
+        text,
+    ):
+        raise ValueError("mismatched unit for dose")
+
+    # --- Sugar ---
+    m = re.search(
+        r"\b(?:sugar|сахар)\s*[:=]?\s*(\d+[.,]?\d*)(?:\s*(ммоль/?л|mmol/?l))?",
+        text,
+    )
+    if m:
+        result["sugar"] = _safe_float(m.group(1))
+    else:
+        m = re.search(r"\b(\d+[.,]?\d*)\s*(ммоль/?л|mmol/?l)\b", text)
+        if m:
+            result["sugar"] = _safe_float(m.group(1))
+
+    # --- XE ---
+    m = re.search(r"\b(?:xe|хе)\s*[:=]?\s*(\d+[.,]?\d*)", text)
+    if m:
+        result["xe"] = _safe_float(m.group(1))
+    else:
+        m = re.search(r"\b(\d+[.,]?\d*)\s*(?:xe|хе)\b", text)
+        if m:
+            result["xe"] = _safe_float(m.group(1))
+
+    # --- Dose ---
+    m = re.search(r"\b(?:dose|доза|болюс)\s*[:=]?\s*(\d+[.,]?\d*)", text)
+    if m:
+        result["dose"] = _safe_float(m.group(1))
+    else:
+        m = re.search(r"\b(\d+[.,]?\d*)\s*(?:ед\.?|units?|u)\b", text)
+        if m:
+            result["dose"] = _safe_float(m.group(1))
+
+    if all(v is None for v in result.values()):
+        m = re.fullmatch(r"\s*(\d+[.,]?\d*)\s*", text)
+        if m:
+            result["sugar"] = _safe_float(m.group(1))
+
+    return result

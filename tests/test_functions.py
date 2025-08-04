@@ -7,6 +7,7 @@ from diabetes.functions import (
     _safe_float,
     calc_bolus,
     extract_nutrition_info,
+    smart_input,
 )
 
 
@@ -127,3 +128,28 @@ def test_extract_nutrition_info_ignores_title_line():
 
 def test_extract_nutrition_info_non_string():
     assert extract_nutrition_info(123) == (None, None)
+
+
+def test_smart_input_basic():
+    msg = "sugar=7 xe=3 dose=4"
+    assert smart_input(msg) == {"sugar": 7.0, "xe": 3.0, "dose": 4.0}
+
+
+def test_smart_input_units_without_labels():
+    msg = "7 ммоль/л, 3 XE, 4 ед"
+    assert smart_input(msg) == {"sugar": 7.0, "xe": 3.0, "dose": 4.0}
+
+
+def test_smart_input_localized_terms():
+    msg = "сахар:5,5 доза=2,5"
+    assert smart_input(msg) == {"sugar": pytest.approx(5.5), "xe": None, "dose": pytest.approx(2.5)}
+
+
+def test_smart_input_unit_mixup():
+    with pytest.raises(ValueError):
+        smart_input("сахар 7 XE")
+
+
+def test_smart_input_unit_mixup_xe():
+    with pytest.raises(ValueError):
+        smart_input("xe 5 ммоль/л")
