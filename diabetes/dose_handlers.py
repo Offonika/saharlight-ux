@@ -24,7 +24,7 @@ from diabetes.functions import extract_nutrition_info, calc_bolus, PatientProfil
 from diabetes.gpt_client import create_thread, send_message, _get_client
 from diabetes.gpt_command_parser import parse_command
 from diabetes.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
-from .common_handlers import commit_session
+from .common_handlers import commit_session, menu_command
 from .reporting_handlers import send_report, history_view, report_request
 from .profile_handlers import profile_view
 
@@ -67,8 +67,6 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the provided sugar level to the diary."""
     text = update.message.text.strip().replace(",", ".")
-    if text.lower() == "↩️ назад":
-        return await dose_cancel(update, context)
     try:
         sugar = float(text)
     except ValueError:
@@ -127,8 +125,6 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture XE amount from user."""
     text = update.message.text.strip().replace(",", ".")
-    if text.lower() == "↩️ назад":
-        return await dose_cancel(update, context)
     try:
         xe = float(text)
     except ValueError:
@@ -146,8 +142,6 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture carbohydrates in grams."""
     text = update.message.text.strip().replace(",", ".")
-    if text.lower() == "↩️ назад":
-        return await dose_cancel(update, context)
     try:
         carbs = float(text)
     except ValueError:
@@ -165,8 +159,6 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Finalize dose calculation after receiving sugar level."""
     text = update.message.text.strip().replace(",", ".")
-    if text.lower() == "↩️ назад":
-        return await dose_cancel(update, context)
     try:
         sugar = float(text)
     except ValueError:
@@ -614,9 +606,16 @@ sugar_conv = ConversationHandler(
         MessageHandler(filters.Regex("^🩸 Уровень сахара$"), sugar_start),
     ],
     states={
-        SUGAR_VAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, sugar_val)],
+        SUGAR_VAL: [
+            MessageHandler(
+                filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), sugar_val
+            )
+        ],
     },
-    fallbacks=[MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel)],
+    fallbacks=[
+        MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
+        CommandHandler("menu", _cancel_then(menu_command)),
+    ],
 )
 
 dose_conv = ConversationHandler(
@@ -626,12 +625,19 @@ dose_conv = ConversationHandler(
     ],
     states={
         DOSE_METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
-        DOSE_XE: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_xe)],
-        DOSE_CARBS: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_carbs)],
-        DOSE_SUGAR: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_sugar)],
+        DOSE_XE: [
+            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)
+        ],
+        DOSE_CARBS: [
+            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)
+        ],
+        DOSE_SUGAR: [
+            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)
+        ],
     },
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
+        CommandHandler("menu", _cancel_then(menu_command)),
         MessageHandler(filters.Regex("^📷 Фото еды$"), _cancel_then(photo_prompt)),
         MessageHandler(filters.Regex("^🩸 Уровень сахара$"), _cancel_then(sugar_start)),
         MessageHandler(filters.Regex("^📊 История$"), _cancel_then(history_view)),

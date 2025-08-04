@@ -22,11 +22,18 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_sugar_val_back_cancels():
+async def test_sugar_back_fallback_cancels():
+    handler = next(
+        h
+        for h in dose_handlers.sugar_conv.fallbacks
+        if isinstance(h, MessageHandler)
+        and getattr(getattr(h, "filters", None), "pattern", None).pattern
+        == "^↩️ Назад$"
+    )
     message = DummyMessage("↩️ Назад")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}})
-    result = await dose_handlers.sugar_val(update, context)
+    result = await handler.callback(update, context)
     assert result == ConversationHandler.END
     assert message.replies and message.replies[-1] == "Отменено."
     assert context.user_data == {}
@@ -51,4 +58,3 @@ def test_sugar_conv_has_back_fallback():
         and getattr(getattr(h, "filters", None), "pattern", None).pattern == "^↩️ Назад$"
         for h in fallbacks
     )
-
