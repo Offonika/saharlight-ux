@@ -244,7 +244,6 @@ def register_handlers(app: Application) -> None:
 
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("menu", menu_command))
-    app.add_handler(CommandHandler("profile", profile_handlers.profile_command))
     app.add_handler(CommandHandler("report", reporting_handlers.report_request))
     app.add_handler(dose_handlers.dose_conv)
     app.add_handler(dose_handlers.sugar_conv)

@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
 from telegram import InlineKeyboardMarkup
+from telegram.ext import ConversationHandler
 
 from diabetes.ui import menu_keyboard
 
@@ -108,6 +109,33 @@ async def test_profile_command_invalid_values(monkeypatch, args):
     assert commit_mock.call_count == 0
     assert session_local_mock.call_count == 0
     assert any("больше 0" in t for t in message.texts)
+
+
+@pytest.mark.asyncio
+async def test_profile_command_help_and_dialog(monkeypatch):
+    import os
+
+    os.environ["OPENAI_API_KEY"] = "test"
+    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    import diabetes.openai_utils as openai_utils  # noqa: F401
+    import diabetes.profile_handlers as handlers
+
+    # Test /profile help
+    help_msg = DummyMessage()
+    update = SimpleNamespace(message=help_msg, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(args=["help"], user_data={})
+    result = await handlers.profile_command(update, context)
+    assert result == ConversationHandler.END
+    assert "Формат команды" in help_msg.texts[0]
+
+    # Test starting dialog with empty args
+    dialog_msg = DummyMessage()
+    update2 = SimpleNamespace(message=dialog_msg, effective_user=SimpleNamespace(id=1))
+    context2 = SimpleNamespace(args=[], user_data={})
+    result2 = await handlers.profile_command(update2, context2)
+    assert result2 == handlers.PROFILE_ICR
+    assert dialog_msg.texts[0].startswith("Введите коэффициент ИКХ")
+    assert dialog_msg.markups[0] is handlers.back_keyboard
 
 
 @pytest.mark.asyncio
