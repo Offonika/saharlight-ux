@@ -196,6 +196,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/profile - мой профиль\n"
         "/report - отчёт\n"
         "/sugar - расчёт сахара\n"
+        "/gpt - чат с GPT\n"
         "/cancel - отменить ввод\n"
         "/help - справка\n\n"
         "📲 Кнопки меню:\n"
@@ -233,6 +234,7 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CommandHandler("sugar", dose_handlers.sugar_start))
     app.add_handler(CommandHandler("cancel", dose_handlers.dose_cancel))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("gpt", dose_handlers.chat_with_gpt))
     app.add_handler(
         MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_handlers.profile_view)
     )

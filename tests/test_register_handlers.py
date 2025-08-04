@@ -37,6 +37,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     assert profile_handlers.profile_back in callbacks
     assert reporting_handlers.report_request in callbacks
     assert reporting_handlers.history_view in callbacks
+    assert dose_handlers.chat_with_gpt in callbacks
 
     start_cmd = [
         h for h in handlers if isinstance(h, CommandHandler) and h.callback is start_command
@@ -137,6 +138,13 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
         if isinstance(h, CommandHandler) and h.callback is reporting_handlers.report_request
     ]
     assert report_cmd and "report" in report_cmd[0].commands
+
+    gpt_cmd = [
+        h
+        for h in handlers
+        if isinstance(h, CommandHandler) and h.callback is dose_handlers.chat_with_gpt
+    ]
+    assert gpt_cmd and "gpt" in gpt_cmd[0].commands
 
     history_handlers = [
         h
