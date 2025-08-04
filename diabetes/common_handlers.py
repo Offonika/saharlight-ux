@@ -300,6 +300,11 @@ def register_handlers(app: Application) -> None:
         )
     )
     app.add_handler(
+        CallbackQueryHandler(
+            profile_handlers.profile_security, pattern="^profile_security$"
+        )
+    )
+    app.add_handler(
         CallbackQueryHandler(profile_handlers.profile_back, pattern="^profile_back$")
     )
     app.add_handler(CallbackQueryHandler(reminder_handlers.reminder_callback, pattern="^remind_"))

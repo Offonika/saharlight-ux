@@ -174,6 +174,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     keyboard = InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("✏️ Изменить", callback_data="profile_edit")],
+            [InlineKeyboardButton("🔔 Безопасность", callback_data="profile_security")],
             [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
         ]
     )
@@ -192,6 +193,19 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.answer()
     await query.message.delete()
     await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
+
+
+async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Open security settings menu."""
+    query = update.callback_query
+    await query.answer()
+    await query.message.delete()
+    keyboard = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🔙 Назад", callback_data="profile_back")]]
+    )
+    await query.message.reply_text(
+        "🔐 Настройки безопасности (в разработке)", reply_markup=keyboard
+    )
 
 
 async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -411,6 +425,7 @@ __all__ = [
     "profile_view",
     "profile_cancel",
     "profile_back",
+    "profile_security",
     "profile_edit",
     "profile_conv",
 ]
