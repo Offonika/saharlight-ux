@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
+from telegram import InlineKeyboardMarkup
 
 from diabetes.db import Base, User, Profile
 
@@ -10,9 +11,14 @@ from diabetes.db import Base, User, Profile
 class DummyMessage:
     def __init__(self):
         self.texts = []
+        self.markups = []
 
     async def reply_text(self, text, **kwargs):
         self.texts.append(text)
+        self.markups.append(kwargs.get("reply_markup"))
+
+    async def delete(self):
+        pass
 
 
 @pytest.mark.parametrize(
@@ -57,6 +63,12 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     assert f"• ИКХ: {expected_icr} г/ед." in message2.texts[0]
     assert f"• КЧ: {expected_cf} ммоль/л" in message2.texts[0]
     assert f"• Целевой сахар: {expected_target} ммоль/л" in message2.texts[0]
+    markup = message2.markups[0]
+    assert isinstance(markup, InlineKeyboardMarkup)
+    buttons = [b for row in markup.inline_keyboard for b in row]
+    callbacks = {b.text: b.callback_data for b in buttons}
+    assert callbacks["✏️ Изменить"] == "profile_edit"
+    assert callbacks["🔙 Назад"] == "profile_back"
 
 
 @pytest.mark.parametrize(

@@ -208,6 +208,7 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CommandHandler("report", reporting_handlers.report_request))
     app.add_handler(dose_handlers.dose_conv)
     app.add_handler(dose_handlers.sugar_conv)
+    app.add_handler(profile_handlers.profile_conv)
     app.add_handler(CommandHandler("sugar", dose_handlers.sugar_start))
     app.add_handler(CommandHandler("cancel", dose_handlers.dose_cancel))
     app.add_handler(CommandHandler("help", help_command))
@@ -242,6 +243,9 @@ def register_handlers(app: Application) -> None:
         CallbackQueryHandler(
             reporting_handlers.report_period_callback, pattern="^report_period:"
         )
+    )
+    app.add_handler(
+        CallbackQueryHandler(profile_handlers.profile_back, pattern="^profile_back$")
     )
     app.add_handler(CallbackQueryHandler(callback_router))
 
