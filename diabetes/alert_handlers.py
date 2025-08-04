@@ -1,6 +1,8 @@
 
 from __future__ import annotations
 
+import datetime
+
 from telegram.ext import ContextTypes
 
 from diabetes.db import SessionLocal, Alert, Profile
@@ -59,4 +61,27 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     if count >= MAX_REPEATS:
         return
     schedule_alert(user_id, context.job_queue, count=count + 1)
+
+
+async def alert_stats(update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show counts of hypo/hyper alerts for last 7 days."""
+    user_id = update.effective_user.id
+    now = datetime.datetime.now(datetime.timezone.utc)
+    week_ago = now - datetime.timedelta(days=7)
+    with SessionLocal() as session:
+        hypo = (
+            session.query(Alert)
+            .filter_by(user_id=user_id, type="hypo")
+            .filter(Alert.ts >= week_ago)
+            .count()
+        )
+        hyper = (
+            session.query(Alert)
+            .filter_by(user_id=user_id, type="hyper")
+            .filter(Alert.ts >= week_ago)
+            .count()
+        )
+    await update.message.reply_text(
+        f"За 7\u202Fдн.: гипо\u202F{hypo}, гипер\u202F{hyper}"
+    )
 
