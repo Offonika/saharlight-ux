@@ -289,6 +289,11 @@ def register_handlers(app: Application) -> None:
         MessageHandler(filters.Regex("^🕹 Быстрый ввод$"), smart_input_help)
     )
     app.add_handler(
+        MessageHandler(
+            filters.Regex("^⏰ Напоминания$"), reminder_handlers.reminders_list
+        )
+    )
+    app.add_handler(
         MessageHandler(filters.Regex("^ℹ️ Помощь$"), help_command)
     )
     app.add_handler(
