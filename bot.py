@@ -2,7 +2,7 @@
 
 from diabetes.common_handlers import register_handlers
 from diabetes.db import init_db
-from diabetes.config import TELEGRAM_TOKEN
+from diabetes.config import LOG_LEVEL, TELEGRAM_TOKEN
 from telegram.ext import ApplicationBuilder
 from sqlalchemy.exc import SQLAlchemyError
 import logging
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     logging.basicConfig(
-        level=logging.INFO,
+        level=LOG_LEVEL,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     logger.info("=== Bot started ===")
