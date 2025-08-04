@@ -30,3 +30,21 @@ async def test_help_includes_new_features():
     assert "• ✨ Мастер настройки при первом запуске\n" in text
     assert "• 🕹 Быстрый ввод (smart-input)\n" in text
     assert "• ✏️ Редактирование записей\n\n" in text
+
+
+@pytest.mark.asyncio
+async def test_help_includes_security_block():
+    """Ensure /help mentions security settings."""
+
+    message = DummyMessage()
+    update = SimpleNamespace(message=message)
+    context = SimpleNamespace()
+
+    await handlers.help_command(update, context)
+
+    text = message.replies[0]
+    assert "🔔 Безопасность:\n" in text
+    assert "Пороги" in text
+    assert "SOS-уведомления" in text
+    assert "Напоминания" in text
+    assert "/profile" in text
