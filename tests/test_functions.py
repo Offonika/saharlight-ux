@@ -126,6 +126,20 @@ def test_extract_nutrition_info_ignores_title_line():
     assert xe == 2
 
 
+def test_extract_nutrition_info_first_line_with_data():
+    text = "Углеводы: 25 г\nХЕ: 2"
+    carbs, xe = extract_nutrition_info(text)
+    assert carbs == 25
+    assert xe == 2
+
+
+def test_extract_nutrition_info_first_line_xe_only():
+    text = "ХЕ: 3\nПрочее"
+    carbs, xe = extract_nutrition_info(text)
+    assert carbs is None
+    assert xe == 3
+
+
 def test_extract_nutrition_info_non_string():
     assert extract_nutrition_info(123) == (None, None)
 
