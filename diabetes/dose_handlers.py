@@ -492,8 +492,10 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         run = send_message(
             thread_id=thread_id,
             content=(
-                "Определи количество углеводов и ХЕ на фото блюда. "
-                "Используй формат из системных инструкций ассистента."
+                "Определи **название** блюда и количество углеводов/ХЕ. Ответ:\n"
+                "<название блюда>\n"
+                "Углеводы: <...>\n"
+                "ХЕ: <...>"
             ),
             image_path=file_path,
             keep_image=True,
