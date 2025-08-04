@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import datetime
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+)
 from telegram.ext import ContextTypes
 
 from diabetes.db import SessionLocal, Entry
@@ -121,8 +127,18 @@ async def report_period_callback(
     elif period == "custom":
         context.user_data["awaiting_report_date"] = True
         await query.edit_message_text(
-            "Введите дату начала отчёта в формате YYYY-MM-DD"
+            "Введите дату начала отчёта в формате YYYY-MM-DD\n"
+            "Отправьте «назад» для отмены."
         )
+        if getattr(query, "message", None):
+            await query.message.reply_text(
+                "Ожидаю дату…",
+                reply_markup=ReplyKeyboardMarkup(
+                    [[KeyboardButton("↩️ Назад")]],
+                    resize_keyboard=True,
+                    one_time_keyboard=True,
+                ),
+            )
     else:  # pragma: no cover - defensive
         await query.edit_message_text("Команда не распознана")
 
