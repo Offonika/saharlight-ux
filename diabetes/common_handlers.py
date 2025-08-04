@@ -85,7 +85,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await query.edit_message_text("❌ Запись отменена.")
         await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
         return
-    elif ":" in data:
+    elif data.startswith("edit:") or data.startswith("del:"):
         action, entry_id = data.split(":", 1)
         try:
             entry_id = int(entry_id)

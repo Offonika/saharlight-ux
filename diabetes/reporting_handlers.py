@@ -47,7 +47,7 @@ async def report_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Display recent diary entries."""
+    """Display recent diary entries as separate messages with action buttons."""
     user_id = update.effective_user.id
     with SessionLocal() as session:
         entries = (
@@ -60,17 +60,35 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if not entries:
         await update.message.reply_text("В дневнике пока нет записей.")
         return
-    lines = ["📊 Последние записи:"]
+
+    await update.message.reply_text("📊 Последние записи:")
     for entry in entries:
         day_str = entry.event_time.strftime("%d.%m %H:%M")
         sugar = entry.sugar_before if entry.sugar_before is not None else "—"
         carbs = entry.carbs_g if entry.carbs_g is not None else "—"
         xe = entry.xe if entry.xe is not None else "—"
         dose = entry.dose if entry.dose is not None else "—"
-        lines.append(
-            f"{day_str}: сахар {sugar}, углеводы {carbs} г ({xe} ХЕ), доза {dose}",
+        text = (
+            f"{day_str}: сахар {sugar}, углеводы {carbs} г ({xe} ХЕ), доза {dose}"
         )
-    await update.message.reply_text("\n".join(lines))
+        markup = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "✏️ Изменить", callback_data=f"edit:{entry.id}"
+                    ),
+                    InlineKeyboardButton(
+                        "🗑 Удалить", callback_data=f"del:{entry.id}"
+                    ),
+                ]
+            ]
+        )
+        await update.message.reply_text(text, reply_markup=markup)
+
+    back_markup = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🔙 Назад", callback_data="report_back")]]
+    )
+    await update.message.reply_text("Готово.", reply_markup=back_markup)
 
 
 async def report_period_callback(
