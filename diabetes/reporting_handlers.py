@@ -75,7 +75,10 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         xe = entry.xe if entry.xe is not None else "—"
         dose = entry.dose if entry.dose is not None else "—"
         text = (
-            f"{day_str}: сахар {sugar}, углеводы {carbs} г ({xe} ХЕ), доза {dose}"
+            f"<b>{day_str}</b>\n"
+            f"🍭 Сахар: <b>{sugar}</b>\n"
+            f"🍞 Углеводы: <b>{carbs} г ({xe} ХЕ)</b>\n"
+            f"💉 Доза: <b>{dose}</b>"
         )
         markup = InlineKeyboardMarkup(
             [
@@ -89,7 +92,9 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 ]
             ]
         )
-        await update.message.reply_text(text, reply_markup=markup)
+        await update.message.reply_text(
+            text, parse_mode="HTML", reply_markup=markup
+        )
 
     back_markup = InlineKeyboardMarkup(
         [[InlineKeyboardButton("🔙 Назад", callback_data="report_back")]]
