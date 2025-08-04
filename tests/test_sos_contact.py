@@ -1,5 +1,7 @@
 import pytest
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, call
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -16,14 +18,6 @@ class DummyMessage:
 
     async def reply_text(self, text, **kwargs):
         self.replies.append(text)
-
-
-class DummyBot:
-    def __init__(self):
-        self.sent = []
-
-    async def send_message(self, chat_id, text):
-        self.sent.append((chat_id, text))
 
 
 @pytest.fixture
@@ -71,15 +65,19 @@ async def test_alert_notifies_user_and_contact(test_session, monkeypatch):
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     await sos_handlers.sos_contact_save(update, SimpleNamespace())
 
-    bot = DummyBot()
     update_alert = SimpleNamespace(
         effective_user=SimpleNamespace(id=1, first_name="Ivan")
     )
-    context = SimpleNamespace(bot=bot)
+    context = SimpleNamespace(bot=SimpleNamespace())
+    send_mock = AsyncMock()
+    monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
     monkeypatch.setattr(alert_handlers, "get_coords_and_link", lambda: ("0,0", "link"))
 
     for _ in range(3):
         await alert_handlers.check_alert(update_alert, context, 3)
 
     msg = "⚠️ У Ivan критический сахар 3 ммоль/л. 0,0 link"
-    assert bot.sent == [(1, msg), ("@alice", msg)]
+    assert send_mock.await_args_list == [
+        call(chat_id=1, text=msg),
+        call(chat_id="@alice", text=msg),
+    ]
