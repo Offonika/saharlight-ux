@@ -159,19 +159,19 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Return the main menu keyboard."""
+    """Display the main menu keyboard using ``menu_keyboard``."""
     await update.message.reply_text(
         "📋 Выберите действие:", reply_markup=menu_keyboard
     )
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show available commands and menu buttons."""
+    """Show available commands, including :command:`/menu`, and menu buttons."""
 
     text = (
         "📚 Доступные команды:\n"
         "/start - запустить бота\n"
-        "/menu - главное меню\n"
+        "/menu - главное меню (вернуться к кнопкам)\n"
         "/profile - мой профиль\n"
         "/report - отчёт\n"
         "/sugar - расчёт сахара\n"
