@@ -80,7 +80,7 @@ def send_message(
                         "[OpenAI] Failed to delete %s: %s", image_path, e
                     )
     else:
-        content_block = content
+        content_block = [{"type": "text", "text": content}]
 
     # 2. Создаём сообщение в thread
     try:
