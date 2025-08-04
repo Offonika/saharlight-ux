@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from telegram.ext import ContextTypes
@@ -58,3 +59,4 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     if count >= MAX_REPEATS:
         return
     schedule_alert(user_id, context.job_queue, count=count + 1)
+
