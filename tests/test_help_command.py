@@ -49,3 +49,20 @@ async def test_help_includes_security_block():
     assert "Напоминания" in text
     assert "/hypoalert" in text
     assert "/profile" in text
+
+
+@pytest.mark.asyncio
+async def test_help_lists_reminder_commands_and_menu_button():
+    """Ensure reminder commands and menu button are documented."""
+
+    message = DummyMessage()
+    update = SimpleNamespace(message=message)
+    context = SimpleNamespace()
+
+    await handlers.help_command(update, context)
+
+    text = message.replies[0]
+    assert "/reminders - список напоминаний\n" in text
+    assert "/addreminder - добавить напоминание\n" in text
+    assert "/delreminder - удалить напоминание\n" in text
+    assert "⏰ Напоминания\n" in text
