@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
     ConversationHandler,
     MessageHandler,
     filters,
 )
+from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
 from diabetes.db import SessionLocal, Profile, Alert, Reminder
 from diabetes.alert_handlers import evaluate_sugar
@@ -483,7 +483,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 profile_conv = ConversationHandler(
     entry_points=[
         CommandHandler("profile", profile_command),
-        CallbackQueryHandler(profile_edit, pattern="^profile_edit$"),
+        CallbackQueryNoWarnHandler(profile_edit, pattern="^profile_edit$"),
     ],
     states={
         PROFILE_ICR: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],

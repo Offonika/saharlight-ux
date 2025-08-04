@@ -21,13 +21,13 @@ from telegram import (
     Update,
 )
 from telegram.ext import (
-    CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
     ConversationHandler,
     MessageHandler,
     filters,
 )
+from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
 from diabetes.db import SessionLocal, User, Profile
 from diabetes.ui import menu_keyboard
@@ -292,23 +292,23 @@ onboarding_conv = ConversationHandler(
     states={
         ONB_PROFILE_ICR: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_icr),
-            CallbackQueryHandler(onboarding_skip, pattern="^onb_skip$"),
+            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
         ONB_PROFILE_CF: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_cf),
-            CallbackQueryHandler(onboarding_skip, pattern="^onb_skip$"),
+            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
         ONB_PROFILE_TARGET: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_target),
-            CallbackQueryHandler(onboarding_skip, pattern="^onb_skip$"),
+            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
         ONB_DEMO: [
-            CallbackQueryHandler(onboarding_demo_next, pattern="^onb_next$"),
-            CallbackQueryHandler(onboarding_skip, pattern="^onb_skip$"),
+            CallbackQueryNoWarnHandler(onboarding_demo_next, pattern="^onb_next$"),
+            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
         ONB_REMINDERS: [
-            CallbackQueryHandler(onboarding_reminders, pattern="^onb_rem_(yes|no)$"),
-            CallbackQueryHandler(onboarding_skip, pattern="^onb_skip$"),
+            CallbackQueryNoWarnHandler(onboarding_reminders, pattern="^onb_rem_(yes|no)$"),
+            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
     },
     fallbacks=[CommandHandler("cancel", onboarding_skip)],
