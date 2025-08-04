@@ -48,6 +48,7 @@ async def test_start_command_shows_profile_hint_only_once(monkeypatch):
         assert user is not None
     assert len(message.texts) == 2
     assert message.kwargs[0]["reply_markup"] == "MK"
+    assert "Рада видеть" in message.texts[0]
     assert "/profile" in message.texts[1]
 
     # Second call should not repeat the hint
@@ -87,3 +88,4 @@ async def test_start_command_without_hint_when_profile_complete(monkeypatch):
     assert len(message.texts) == 1
     assert "/profile" not in message.texts[0]
     assert message.kwargs[0]["reply_markup"] == "MK"
+    assert "Рада видеть" in message.texts[0]

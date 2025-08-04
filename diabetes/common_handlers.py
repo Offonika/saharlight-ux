@@ -157,7 +157,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         else:
             context.user_data.setdefault("thread_id", user.thread_id)
 
-    greeting = f"👋 Привет, {first_name}!" if first_name else "👋 Привет!"
+    if first_name:
+        greeting = (
+            f"👋 Привет, {first_name}! Рада видеть тебя. "
+            "Надеюсь, у тебя сегодня всё отлично. Чем могу помочь?"
+        )
+    else:
+        greeting = (
+            "👋 Привет! Рада видеть тебя. "
+            "Надеюсь, у тебя сегодня всё отлично. Чем могу помочь?"
+        )
     await update.message.reply_text(
         f"{greeting}\n\n📋 Выберите действие:", reply_markup=menu_keyboard
     )
