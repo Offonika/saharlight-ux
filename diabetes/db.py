@@ -8,21 +8,12 @@ from sqlalchemy import (
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
-from diabetes.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+from diabetes.config import DB_HOST, DB_PORT, DB_NAME, DB_USER
 
 
 # ────────────────── подключение к Postgres ──────────────────
-DATABASE_URL = URL.create(
-    "postgresql",
-    username=DB_USER,
-    password=DB_PASSWORD,
-    host=DB_HOST,
-    port=int(DB_PORT),
-    database=DB_NAME,
-)
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+engine = None
+SessionLocal = sessionmaker(autoflush=False, autocommit=False)
 Base = declarative_base()
 
 
@@ -110,6 +101,24 @@ class ReminderLog(Base):
 # ────────────────────── инициализация ────────────────────────
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
-    if not DB_PASSWORD:
+    from diabetes import config
+
+    if not config.DB_PASSWORD:
         raise ValueError("DB_PASSWORD environment variable must be set")
+
+    global engine
+    if engine is None or engine.url.password != config.DB_PASSWORD:
+        database_url = URL.create(
+            "postgresql",
+            username=DB_USER,
+            password=config.DB_PASSWORD,
+            host=DB_HOST,
+            port=int(DB_PORT),
+            database=DB_NAME,
+        )
+        if engine is not None:
+            engine.dispose()
+        engine = create_engine(database_url)
+        SessionLocal.configure(bind=engine)
+
     Base.metadata.create_all(bind=engine)
