@@ -20,8 +20,14 @@ from .common_handlers import commit_session
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET = range(3)
 
 
-async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Set patient profile coefficients via ``/profile`` command."""
+async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle ``/profile`` command.
+
+    * ``/profile`` → start step-by-step profile setup (conversation)
+    * ``/profile help`` → show usage instructions
+    * ``/profile <args>`` → set profile directly
+    """
+
     args = context.args
 
     help_text = (
@@ -30,6 +36,17 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой>\n"
         "Пример: /profile icr=10 cf=2 target=6"
     )
+
+    if len(args) == 1 and args[0].lower() == "help":
+        await update.message.reply_text(help_text, parse_mode="Markdown")
+        return ConversationHandler.END
+
+    if not args:
+        await update.message.reply_text(
+            "Введите коэффициент ИКХ (г/ед.):",
+            reply_markup=back_keyboard,
+        )
+        return PROFILE_ICR
 
     values: dict[str, str] | None = None
     if len(args) == 3 and all("=" not in a for a in args):
@@ -56,8 +73,8 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 values = parsed
 
     if values is None:
-        await update.message.reply_text(help_text, parse_mode="Markdown")
-        return
+        await update.message.reply_text("❗ Неверный формат. Справка: /profile help")
+        return ConversationHandler.END
 
     try:
         icr = float(values["icr"].replace(",", "."))
@@ -65,17 +82,15 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         target = float(values["target"].replace(",", "."))
     except ValueError:
         await update.message.reply_text(
-            "❗ Пожалуйста, введите корректные числа.\n" + help_text,
-            parse_mode="Markdown",
+            "❗ Пожалуйста, введите корректные числа. Справка: /profile help"
         )
-        return
+        return ConversationHandler.END
 
     if icr <= 0 or cf <= 0 or target <= 0:
         await update.message.reply_text(
-            "❗ Все значения должны быть больше 0.\n" + help_text,
-            parse_mode="Markdown",
+            "❗ Все значения должны быть больше 0. Справка: /profile help"
         )
-        return
+        return ConversationHandler.END
 
     warning_msg = ""
     if icr > 8 or cf < 3:
@@ -109,6 +124,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         parse_mode="Markdown",
         reply_markup=menu_keyboard,
     )
+    return ConversationHandler.END
 
 
 async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -264,7 +280,10 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 profile_conv = ConversationHandler(
-    entry_points=[CallbackQueryHandler(profile_edit, pattern="^profile_edit$")],
+    entry_points=[
+        CommandHandler("profile", profile_command),
+        CallbackQueryHandler(profile_edit, pattern="^profile_edit$"),
+    ],
     states={
         PROFILE_ICR: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],
         PROFILE_CF: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_cf)],
@@ -276,8 +295,7 @@ profile_conv = ConversationHandler(
         MessageHandler(filters.Regex("^↩️ Назад$"), profile_cancel),
         CommandHandler("cancel", profile_cancel),
     ],
-    # Although the entry point is a ``CallbackQueryHandler``, subsequent steps
-    # depend on ``MessageHandler`` for text inputs.  Enabling
+    # Subsequent steps depend on ``MessageHandler`` for text inputs. Enabling
     # ``per_message=True`` would store state per message and reset the
     # conversation after each reply, so we keep per-chat tracking.
     per_message=False,

@@ -24,7 +24,6 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     callbacks = [getattr(h, "callback", None) for h in handlers]
 
     assert start_command in callbacks
-    assert profile_handlers.profile_command in callbacks
     assert dose_handlers.freeform_handler in callbacks
     assert dose_handlers.photo_handler in callbacks
     assert dose_handlers.doc_handler in callbacks
@@ -44,12 +43,6 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     ]
     assert start_cmd and "start" in start_cmd[0].commands
 
-    profile_cmd = [
-        h
-        for h in handlers
-        if isinstance(h, CommandHandler) and h.callback is profile_handlers.profile_command
-    ]
-    assert profile_cmd and "profile" in profile_cmd[0].commands
 
     conv_handlers = [h for h in handlers if isinstance(h, ConversationHandler)]
     assert dose_handlers.dose_conv in conv_handlers
@@ -67,6 +60,14 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
         if isinstance(ep, CommandHandler)
     ]
     assert sugar_conv_cmds and "sugar" in sugar_conv_cmds[0].commands
+    profile_conv_cmd = [
+        ep
+        for ep in profile_handlers.profile_conv.entry_points
+        if isinstance(ep, CommandHandler)
+        and ep.callback is profile_handlers.profile_command
+        and "profile" in ep.commands
+    ]
+    assert profile_conv_cmd
     profile_conv_cb = [
         ep
         for ep in profile_handlers.profile_conv.entry_points
