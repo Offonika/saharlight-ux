@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -19,7 +19,7 @@ from telegram.ext import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 
-from diabetes.db import SessionLocal, Entry, User
+from diabetes.db import Entry, Profile, SessionLocal, User
 from diabetes.ui import menu_keyboard
 
 logger = logging.getLogger(__name__)
@@ -156,6 +156,27 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text(
         f"{greeting}\n\n📋 Выберите действие:", reply_markup=menu_keyboard
     )
+
+    with SessionLocal() as session:
+        profile = session.get(Profile, user_id)
+
+    if (
+        not profile
+        or profile.icr is None
+        or profile.cf is None
+        or profile.target_bg is None
+    ) and not context.user_data.get("profile_hint_sent"):
+        context.user_data["profile_hint_sent"] = True
+        keyboard = InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton("✏️ Заполнить профиль", callback_data="profile_edit")]
+            ]
+        )
+        await update.message.reply_text(
+            "Чтобы бот мог рассчитывать дозу, заполните профиль:\n"
+            "/profile <ИКХ> <КЧ> <целевой>",
+            reply_markup=keyboard,
+        )
 
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
