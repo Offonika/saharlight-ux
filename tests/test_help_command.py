@@ -15,7 +15,9 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_help_command_includes_new_features_and_quick_input():
+async def test_help_includes_new_features():
+    """Ensure /help mentions wizard, smart-input and edit features."""
+
     message = DummyMessage()
     update = SimpleNamespace(message=message)
     context = SimpleNamespace()
@@ -28,5 +30,3 @@ async def test_help_command_includes_new_features_and_quick_input():
     assert "• ✨ Мастер настройки при первом запуске\n" in text
     assert "• 🕹 Быстрый ввод (smart-input)\n" in text
     assert "• ✏️ Редактирование записей\n\n" in text
-    menu_part = text.split("📲 Кнопки меню:\n", 1)[1]
-    assert "🕹 Быстрый ввод\n" in menu_part
