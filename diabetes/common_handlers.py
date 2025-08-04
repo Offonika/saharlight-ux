@@ -198,7 +198,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/sugar - расчёт сахара\n"
         "/gpt - чат с GPT\n"
         "/cancel - отменить ввод\n"
-        "/help - справка\n\n"
+        "/help - справка\n"
+        "/hypoalert - FAQ по гипогликемии\n\n"
         "🆕 Новые возможности:\n"
         "• ✨ Мастер настройки при первом запуске\n"
         "• 🕹 Быстрый ввод (smart-input)\n"
@@ -207,6 +208,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "• Пороги низкого и высокого сахара\n"
         "• SOS-уведомления\n"
         "• ⏰ Напоминания\n"
+        "• FAQ по гипогликемии: /hypoalert\n"
         "Настройки: /profile → «🔔 Безопасность»\n\n"
         "📲 Кнопки меню:\n"
         "🕹 Быстрый ввод\n"
@@ -250,6 +252,7 @@ def register_handlers(app: Application) -> None:
         reminder_handlers,
         alert_handlers,
         sos_handlers,
+        security_handlers,
     )
 
     app.add_handler(onboarding_conv)
@@ -268,6 +271,7 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CommandHandler("addreminder", reminder_handlers.add_reminder))
     app.add_handler(CommandHandler("delreminder", reminder_handlers.delete_reminder))
     app.add_handler(CommandHandler("alertstats", alert_handlers.alert_stats))
+    app.add_handler(CommandHandler("hypoalert", security_handlers.hypo_alert_faq))
     app.add_handler(PollAnswerHandler(onboarding_poll_answer))
     app.add_handler(
         MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_handlers.profile_view)

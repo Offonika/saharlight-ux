@@ -47,4 +47,5 @@ async def test_help_includes_security_block():
     assert "Пороги" in text
     assert "SOS-уведомления" in text
     assert "Напоминания" in text
+    assert "/hypoalert" in text
     assert "/profile" in text
