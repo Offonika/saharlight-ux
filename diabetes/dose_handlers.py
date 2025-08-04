@@ -11,6 +11,7 @@ from pathlib import Path
 
 from openai import OpenAIError
 from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import (
     CommandHandler,
     ConversationHandler,
@@ -497,10 +498,26 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             image_path=file_path,
             keep_image=True,
         )
-        await message.reply_text("🔍 Анализирую фото (это займёт 5‑10 с)…")
+        status_message = await message.reply_text(
+            "🔍 Анализирую фото (это займёт 5‑10 с)…"
+        )
+        chat_id = getattr(message, "chat_id", None)
+
+        async def send_typing_action() -> None:
+            if not chat_id:
+                return
+            try:
+                await context.bot.send_chat_action(
+                    chat_id=chat_id, action=ChatAction.TYPING
+                )
+            except Exception:
+                pass
+
+        await send_typing_action()
 
         max_attempts = 15
-        for _ in range(max_attempts):
+        warn_after = 5
+        for attempt in range(max_attempts):
             if run.status in ("completed", "failed", "cancelled", "expired"):
                 break
             await asyncio.sleep(2)
@@ -508,15 +525,39 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 thread_id=run.thread_id,
                 run_id=run.id,
             )
+            if attempt == warn_after and status_message and hasattr(
+                status_message, "edit_text"
+            ):
+                try:
+                    await status_message.edit_text("🔍 Всё ещё анализирую фото…")
+                except Exception:
+                    pass
+            await send_typing_action()
 
         if run.status not in ("completed", "failed", "cancelled", "expired"):
             logger.warning("[VISION][TIMEOUT] run.id=%s", run.id)
-            await message.reply_text("⚠️ Время ожидания Vision истекло. Попробуйте позже.")
+            if status_message and hasattr(status_message, "edit_text"):
+                try:
+                    await status_message.edit_text(
+                        "⚠️ Время ожидания Vision истекло. Попробуйте позже."
+                    )
+                except Exception:
+                    pass
+            else:
+                await message.reply_text(
+                    "⚠️ Время ожидания Vision истекло. Попробуйте позже."
+                )
             return ConversationHandler.END
 
         if run.status != "completed":
             logging.error("[VISION][RUN_FAILED] run.status=%s", run.status)
-            await message.reply_text("⚠️ Vision не смог обработать фото.")
+            if status_message and hasattr(status_message, "edit_text"):
+                try:
+                    await status_message.edit_text("⚠️ Vision не смог обработать фото.")
+                except Exception:
+                    pass
+            else:
+                await message.reply_text("⚠️ Vision не смог обработать фото.")
             return ConversationHandler.END
 
         messages = _get_client().beta.threads.messages.list(thread_id=run.thread_id)
@@ -558,6 +599,11 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             {"carbs_g": carbs_g, "xe": xe, "photo_path": file_path}
         )
         context.user_data["pending_entry"] = pending_entry
+        if status_message and hasattr(status_message, "delete"):
+            try:
+                await status_message.delete()
+            except Exception:
+                pass
         await message.reply_text(
             f"🍽️ На фото:\n{vision_text}\n\n"
             "Введите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина.",
