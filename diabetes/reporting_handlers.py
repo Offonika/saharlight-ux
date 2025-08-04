@@ -9,6 +9,7 @@ from telegram.ext import ContextTypes
 
 from diabetes.db import SessionLocal, Entry
 from diabetes.reporting import make_sugar_plot, generate_pdf_report
+from diabetes.ui import menu_keyboard
 
 LOW_SUGAR_THRESHOLD = 3.0
 HIGH_SUGAR_THRESHOLD = 13.0
@@ -33,6 +34,7 @@ def report_keyboard() -> InlineKeyboardMarkup:
                 "Произвольно", callback_data="report_period:custom"
             ),
         ],
+        [InlineKeyboardButton("↩️ Назад", callback_data="report_back")],
     ]
     return InlineKeyboardMarkup(rows)
 
@@ -77,6 +79,12 @@ async def report_period_callback(
     """Handle report period selection via inline buttons."""
     query = update.callback_query
     await query.answer()
+    if query.data == "report_back":
+        await query.message.delete()
+        await query.message.reply_text(
+            "📋 Выберите действие:", reply_markup=menu_keyboard
+        )
+        return
     period = query.data.split(":", 1)[1]
     now = datetime.datetime.now(datetime.timezone.utc)
     if period == "today":
