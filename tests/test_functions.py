@@ -3,9 +3,9 @@
 import pytest
 
 from diabetes.functions import (
+    PatientProfile,
     _safe_float,
     calc_bolus,
-    PatientProfile,
     extract_nutrition_info,
 )
 
@@ -23,6 +23,7 @@ def test_calc_bolus_basic():
     result = calc_bolus(carbs_g=60, current_bg=8, profile=profile)
     # meal=60/12=5, correction=(8-6)/2=1, total=6.0
     assert result == 6.0
+
 
 def test_calc_bolus_no_correction():
     profile = PatientProfile(icr=10, cf=2, target_bg=6)
@@ -60,11 +61,13 @@ def test_calc_bolus_negative_current_bg():
     with pytest.raises(ValueError, match="current_bg"):
         calc_bolus(carbs_g=30, current_bg=-1, profile=profile)
 
+
 def test_extract_nutrition_info_simple():
     text = "углеводы: 45 г, ХЕ: 3.5"
     carbs, xe = extract_nutrition_info(text)
     assert carbs == 45
     assert xe == 3.5
+
 
 def test_extract_nutrition_info_ranges():
     text = "Углеводы: 30–50 г, XE: 2–3"
@@ -92,6 +95,7 @@ def test_extract_nutrition_info_plus_minus_with_comma():
     carbs, xe = extract_nutrition_info(text)
     assert carbs == pytest.approx(10.5)
     assert xe == pytest.approx(2.5)
+
 
 def test_extract_nutrition_info_missing():
     text = "Нет данных"
