@@ -6,14 +6,14 @@ from diabetes.config import LOG_LEVEL, TELEGRAM_TOKEN
 from telegram import BotCommand
 from telegram.ext import ApplicationBuilder
 from sqlalchemy.exc import SQLAlchemyError
-import asyncio
 import logging
 import sys
+import asyncio
 
 logger = logging.getLogger(__name__)
 
 
-def main():
+async def main():
     logging.basicConfig(
         level=LOG_LEVEL,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -47,10 +47,10 @@ def main():
         BotCommand("delreminder", "Удалить напоминание"),
         BotCommand("help", "Справка"),
     ]
-    asyncio.run(app.bot.set_my_commands(commands))
+    await app.bot.set_my_commands(commands)
 
-    app.run_polling()
+    await app.run_polling()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

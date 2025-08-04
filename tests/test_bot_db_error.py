@@ -1,6 +1,7 @@
 import logging
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
+import asyncio
 
 import bot
 
@@ -15,7 +16,7 @@ def test_main_logs_db_error(monkeypatch, caplog):
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(SystemExit) as exc:
-            bot.main()
+            asyncio.run(bot.main())
 
     assert exc.value.code == 1
     assert any(
