@@ -26,10 +26,27 @@ def test_log_level_debug(monkeypatch):
         async def set_my_commands(self, commands):
             return None
 
+    class DummyUpdater:
+        async def start_polling(self):
+            return None
+
+        async def idle(self):
+            return None
+
     class DummyApp:
         bot = DummyBot()
+        updater = DummyUpdater()
 
-        async def run_polling(self):
+        async def initialize(self):
+            return None
+
+        async def start(self):
+            return None
+
+        async def stop(self):
+            return None
+
+        async def shutdown(self):
             return None
 
     class DummyBuilder:
@@ -39,7 +56,12 @@ def test_log_level_debug(monkeypatch):
         def build(self):
             return DummyApp()
 
-    monkeypatch.setattr(bot, "ApplicationBuilder", DummyBuilder)
+    class DummyApplication:
+        @staticmethod
+        def builder():
+            return DummyBuilder()
+
+    monkeypatch.setattr(bot, "Application", DummyApplication)
     monkeypatch.setattr(bot, "register_handlers", lambda app: None)
 
     # Reset and capture logging configuration
