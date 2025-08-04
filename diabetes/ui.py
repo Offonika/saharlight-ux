@@ -23,6 +23,7 @@ menu_keyboard = ReplyKeyboardMarkup(
         [KeyboardButton("📷 Фото еды"), KeyboardButton("❓ Мой сахар")],
         [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
         [KeyboardButton("📈 Отчёт"), KeyboardButton("📄 Мой профиль")],
+        [KeyboardButton("ℹ️ Помощь")],
     ],
     resize_keyboard=True,
     one_time_keyboard=False,
