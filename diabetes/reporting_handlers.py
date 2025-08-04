@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import datetime
+import logging
 
 from telegram import (
     Update,
@@ -14,6 +16,7 @@ from telegram import (
 from telegram.ext import ContextTypes
 
 from diabetes.db import SessionLocal, Entry
+from diabetes.gpt_client import send_message, _get_client
 from diabetes.reporting import make_sugar_plot, generate_pdf_report
 from diabetes.ui import menu_keyboard
 
@@ -189,8 +192,49 @@ async def send_report(
                 errors.append(f"{day_str}: низкий сахар {entry.sugar_before}")
             elif entry.sugar_before > HIGH_SUGAR_THRESHOLD:
                 errors.append(f"{day_str}: высокий сахар {entry.sugar_before}")
+    summary_text = "\n".join(summary_lines)
+    errors_text = "\n".join(errors) if errors else "нет"
+    days_text = "\n".join(day_lines)
 
-    gpt_text = "Ваши данные проанализированы. Рекомендации GPT могут быть добавлены тут."
+    prompt = (
+        "Проанализируй дневник диабета пользователя и предложи краткие рекомендации."
+        "\n\nСводка:\n{summary}\n\nОшибки и критические значения:\n{errors}"
+        "\n\nДанные по дням:\n{days}\n"
+    ).format(summary=summary_text, errors=errors_text, days=days_text)
+
+    default_gpt_text = "Не удалось получить рекомендации."
+    gpt_text = default_gpt_text
+    thread_id = context.user_data.get("thread_id")
+    if thread_id:
+        try:
+            run = send_message(thread_id=thread_id, content=prompt)
+            max_attempts = 15
+            for _ in range(max_attempts):
+                if run.status in ("completed", "failed", "cancelled", "expired"):
+                    break
+                await asyncio.sleep(2)
+                run = _get_client().beta.threads.runs.retrieve(
+                    thread_id=run.thread_id,
+                    run_id=run.id,
+                )
+            if run.status == "completed":
+                messages = _get_client().beta.threads.messages.list(
+                    thread_id=run.thread_id
+                )
+                gpt_text = next(
+                    (
+                        m.content[0].text.value
+                        for m in messages.data
+                        if m.role == "assistant" and m.content
+                    ),
+                    default_gpt_text,
+                )
+            else:
+                logging.error("[GPT][RUN_FAILED] status=%s", run.status)
+        except Exception:
+            logging.exception("[GPT] Failed to get recommendations")
+    else:
+        logging.warning("[GPT] thread_id missing for user %s", user_id)
     report_msg = "<b>Отчёт сформирован</b>\n\n" + "\n".join(summary_lines + day_lines)
 
     plot_buf = make_sugar_plot(entries, period_label)
