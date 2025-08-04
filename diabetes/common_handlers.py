@@ -98,6 +98,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if not entry:
                 await query.edit_message_text("Запись не найдена (уже удалена).")
                 return
+            if entry.telegram_id != update.effective_user.id:
+                await query.edit_message_text(
+                    "⚠️ Эта запись принадлежит другому пользователю."
+                )
+                return
             if action == "del":
                 session.delete(entry)
                 if not commit_session(session):
