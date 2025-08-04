@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 
 from openai import OpenAIError
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatAction
 from telegram.ext import (
     CommandHandler,
@@ -31,7 +31,7 @@ from diabetes.gpt_client import create_thread, send_message, _get_client
 from diabetes.gpt_command_parser import parse_command
 from diabetes.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from .common_handlers import commit_session, menu_command
-from .reporting_handlers import send_report, history_view, report_request
+from .reporting_handlers import send_report, history_view, report_request, render_entry
 from .profile_handlers import profile_view
 
 
@@ -382,58 +382,53 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     if "edit_id" in context.user_data:
-        text = update.message.text.lower()
-        parts = dict(
-            re.findall(r"(\w+)\s*=\s*(-?\d+(?:[.,]\d+)?)(?=\s|$)", text)
-        )
-        if not parts:
-            await update.message.reply_text("Не вижу ни одного поля для изменения.")
+        field = context.user_data.get("edit_field")
+        text = update.message.text.strip().replace(",", ".")
+        try:
+            value = float(text)
+        except ValueError:
+            await update.message.reply_text("Некорректное числовое значение.")
             return
         with SessionLocal() as session:
             entry = session.get(Entry, context.user_data["edit_id"])
             if not entry:
                 await update.message.reply_text("Запись уже удалена.")
-                context.user_data.pop("edit_id")
+                for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
+                    context.user_data.pop(key, None)
                 return
-            if "xe" in parts:
-                try:
-                    entry.xe = float(parts["xe"].replace(",", "."))
-                except ValueError:
-                    await update.message.reply_text(
-                        "Некорректное числовое значение."
-                    )
-                    return
-            if "carbs" in parts:
-                try:
-                    entry.carbs_g = float(parts["carbs"].replace(",", "."))
-                except ValueError:
-                    await update.message.reply_text(
-                        "Некорректное числовое значение."
-                    )
-                    return
-            if "dose" in parts:
-                try:
-                    entry.dose = float(parts["dose"].replace(",", "."))
-                except ValueError:
-                    await update.message.reply_text(
-                        "Некорректное числовое значение."
-                    )
-                    return
-            if "сахар" in parts or "sugar" in parts:
-                sugar_value = parts.get("сахар") or parts["sugar"]
-                try:
-                    entry.sugar_before = float(sugar_value.replace(",", "."))
-                except ValueError:
-                    await update.message.reply_text(
-                        "Некорректное числовое значение."
-                    )
-                    return
+            field_map = {"sugar": "sugar_before", "xe": "xe", "dose": "dose"}
+            setattr(entry, field_map[field], value)
             entry.updated_at = datetime.datetime.now(datetime.timezone.utc)
             if not commit_session(session):
                 await update.message.reply_text("⚠️ Не удалось обновить запись.")
                 return
-        context.user_data.pop("edit_id")
-        await update.message.reply_text("✅ Запись обновлена!")
+            session.refresh(entry)
+            render_text = render_entry(entry)
+        edit_info = context.user_data.get("edit_entry", {})
+        markup = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "✏️ Изменить", callback_data=f"edit:{context.user_data['edit_id']}"
+                    ),
+                    InlineKeyboardButton(
+                        "🗑 Удалить", callback_data=f"del:{context.user_data['edit_id']}"
+                    ),
+                ]
+            ]
+        )
+        await context.bot.edit_message_text(
+            render_text,
+            chat_id=edit_info.get("chat_id"),
+            message_id=edit_info.get("message_id"),
+            parse_mode="HTML",
+            reply_markup=markup,
+        )
+        query = context.user_data.get("edit_query")
+        if query:
+            await query.answer("Изменено")
+        for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
+            context.user_data.pop(key, None)
         return
 
     try:

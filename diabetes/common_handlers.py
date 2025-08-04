@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -119,14 +119,50 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await query.edit_message_text("❌ Запись удалена.")
                 return
             if action == "edit":
-                context.user_data["edit_id"] = entry.id
-                text = (
-                    "Отправьте новое сообщение в формате:\n"
-                    "`сахар=<ммоль/л>  xe=<ХЕ>  carbs=<г>  dose=<ед>`\n"
-                    "Можно указывать не все поля (что прописано — то и поменяется).",
+                context.user_data["edit_entry"] = {
+                    "id": entry.id,
+                    "chat_id": query.message.chat_id,
+                    "message_id": query.message.message_id,
+                }
+                keyboard = InlineKeyboardMarkup(
+                    [
+                        [
+                            InlineKeyboardButton(
+                                "сахар", callback_data=f"edit_field:{entry.id}:sugar"
+                            )
+                        ],
+                        [
+                            InlineKeyboardButton(
+                                "xe", callback_data=f"edit_field:{entry.id}:xe"
+                            )
+                        ],
+                        [
+                            InlineKeyboardButton(
+                                "dose", callback_data=f"edit_field:{entry.id}:dose"
+                            )
+                        ],
+                    ]
                 )
-                await query.edit_message_text("\n".join(text), parse_mode="Markdown")
+                await query.edit_message_reply_markup(reply_markup=keyboard)
                 return
+    elif data.startswith("edit_field:"):
+        try:
+            _, entry_id_str, field = data.split(":")
+            entry_id = int(entry_id_str)
+        except ValueError:
+            logger.warning("Invalid edit_field data: %s", data)
+            await query.edit_message_text("Некорректные данные для редактирования.")
+            return
+        context.user_data["edit_id"] = entry_id
+        context.user_data["edit_field"] = field
+        context.user_data["edit_query"] = query
+        prompt = {
+            "sugar": "Введите уровень сахара (ммоль/л).",
+            "xe": "Введите количество ХЕ.",
+            "dose": "Введите дозу инсулина (ед.).",
+        }.get(field, "Введите значение")
+        await query.message.reply_text(prompt, reply_markup=ForceReply(selective=True))
+        return
     else:
         logger.warning("Unrecognized callback data: %s", data)
         await query.edit_message_text("Команда не распознана")
