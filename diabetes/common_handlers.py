@@ -74,6 +74,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await query.edit_message_text("⚠️ Не удалось сохранить запись.")
                 return
         await query.edit_message_text("✅ Запись сохранена в дневник!")
+        from . import reminder_handlers
+
+        job_queue = getattr(context, "job_queue", None)
+        if job_queue:
+            reminder_handlers.schedule_after_meal(update.effective_user.id, job_queue)
         return
     elif data == "edit_entry":
         entry_data = context.user_data.get("pending_entry")
@@ -227,7 +232,7 @@ def register_handlers(app: Application) -> None:
 
     # Import inside the function to avoid heavy imports at module import time
     # (for example OpenAI client initialization).
-    from . import dose_handlers, profile_handlers, reporting_handlers
+    from . import dose_handlers, profile_handlers, reporting_handlers, reminder_handlers
 
     app.add_handler(onboarding_conv)
     app.add_handler(CommandHandler("menu", menu_command))
@@ -239,6 +244,9 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CommandHandler("cancel", dose_handlers.dose_cancel))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("gpt", dose_handlers.chat_with_gpt))
+    app.add_handler(CommandHandler("reminders", reminder_handlers.reminders_list))
+    app.add_handler(CommandHandler("addreminder", reminder_handlers.add_reminder))
+    app.add_handler(CommandHandler("delreminder", reminder_handlers.delete_reminder))
     app.add_handler(PollAnswerHandler(onboarding_poll_answer))
     app.add_handler(
         MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_handlers.profile_view)
@@ -278,7 +286,13 @@ def register_handlers(app: Application) -> None:
     app.add_handler(
         CallbackQueryHandler(profile_handlers.profile_back, pattern="^profile_back$")
     )
+    app.add_handler(CallbackQueryHandler(reminder_handlers.reminder_callback, pattern="^remind_"))
     app.add_handler(CallbackQueryHandler(callback_router))
+
+    try:  # pragma: no cover - best effort scheduling
+        reminder_handlers.schedule_all(app.job_queue)
+    except Exception:  # pragma: no cover
+        logger.exception("Failed to schedule reminders")
 
 
 __all__ = [

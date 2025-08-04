@@ -68,6 +68,29 @@ class Entry(Base):
     gpt_summary = Column(Text)
 
 
+class Reminder(Base):
+    __tablename__ = "reminders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"))
+    type = Column(String, nullable=False)
+    time = Column(String)  # HH:MM format for daily reminders
+    interval_hours = Column(Integer)  # for repeating reminders
+    minutes_after = Column(Integer)  # for after-meal reminders
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    user = relationship("User")
+
+
+class ReminderLog(Base):
+    __tablename__ = "reminder_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    reminder_id = Column(Integer, ForeignKey("reminders.id"))
+    telegram_id = Column(BigInteger)
+    action = Column(String)  # triggered, snoozed, cancelled
+    event_time = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+
 # ────────────────────── инициализация ────────────────────────
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
