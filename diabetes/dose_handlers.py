@@ -375,7 +375,9 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     parsed = await parse_command(raw_text)
     logging.info("FREEFORM parsed=%s", parsed)
     if not parsed or parsed.get("action") != "add_entry":
-        await chat_with_gpt(update, context)
+        await update.message.reply_text(
+            "Не понял, воспользуйтесь /help или кнопками меню"
+        )
         return
 
     fields = parsed["fields"]
