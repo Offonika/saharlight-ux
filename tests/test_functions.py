@@ -123,3 +123,7 @@ def test_extract_nutrition_info_ignores_title_line():
     carbs, xe = extract_nutrition_info(text)
     assert carbs == 25
     assert xe == 2
+
+
+def test_extract_nutrition_info_non_string():
+    assert extract_nutrition_info(123) == (None, None)
