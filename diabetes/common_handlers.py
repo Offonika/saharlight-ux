@@ -235,6 +235,11 @@ def register_handlers(app: Application) -> None:
     )
     app.add_handler(
         CallbackQueryHandler(
+            reporting_handlers.report_period_callback, pattern="^report_back$"
+        )
+    )
+    app.add_handler(
+        CallbackQueryHandler(
             reporting_handlers.report_period_callback, pattern="^report_period:"
         )
     )
