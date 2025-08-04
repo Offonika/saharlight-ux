@@ -7,6 +7,7 @@ from telegram.ext import ContextTypes
 
 from diabetes.db import SessionLocal, Alert, Profile
 from diabetes.common_handlers import commit_session
+from diabetes.utils import get_coords_and_link
 
 MAX_REPEATS = 3
 
@@ -44,6 +45,51 @@ def evaluate_sugar(user_id: int, sugar: float, job_queue) -> None:
             commit_session(session)
             for job in job_queue.get_jobs_by_name(f"alert_{user_id}"):
                 job.schedule_removal()
+
+
+async def check_alert(update, context: ContextTypes.DEFAULT_TYPE, sugar: float) -> None:
+    """Evaluate sugar reading, record alerts, and notify if needed."""
+    user_id = update.effective_user.id
+    with SessionLocal() as session:
+        profile = session.get(Profile, user_id)
+        if not profile:
+            return
+        low = profile.low_threshold
+        high = profile.high_threshold
+        atype = None
+        if low is not None and sugar < low:
+            atype = "hypo"
+        elif high is not None and sugar > high:
+            atype = "hyper"
+        if atype:
+            alert = Alert(user_id=user_id, sugar=sugar, type=atype)
+            session.add(alert)
+            if not commit_session(session):
+                return
+            alerts = (
+                session.query(Alert)
+                .filter_by(user_id=user_id, resolved=False)
+                .order_by(Alert.ts.desc())
+                .limit(3)
+                .all()
+            )
+            if len(alerts) == 3 and all(a.type == atype for a in alerts):
+                coords, link = get_coords_and_link()
+                first_name = update.effective_user.first_name or ""
+                msg = (
+                    f"⚠️ У {first_name} критический сахар {sugar} ммоль/л. {coords} {link}"
+                )
+                await context.bot.send_message(chat_id=user_id, text=msg)
+                if profile.sos_contact:
+                    await context.bot.send_message(chat_id=profile.sos_contact, text=msg)
+                for a in alerts:
+                    a.resolved = True
+                commit_session(session)
+        else:
+            session.query(Alert).filter_by(user_id=user_id, resolved=False).update(
+                {"resolved": True}
+            )
+            commit_session(session)
 
 
 async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:

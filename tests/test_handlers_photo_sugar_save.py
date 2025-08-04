@@ -133,6 +133,12 @@ async def test_photo_flow_saves_entry(monkeypatch, tmp_path):
 
     session = DummySession()
     monkeypatch.setattr(common_handlers, "SessionLocal", lambda: session)
+    import diabetes.alert_handlers as alert_handlers
+
+    async def noop(*a, **k):
+        return None
+
+    monkeypatch.setattr(alert_handlers, "check_alert", noop)
 
     query = DummyQuery("confirm_entry")
     update_confirm = SimpleNamespace(callback_query=query)
