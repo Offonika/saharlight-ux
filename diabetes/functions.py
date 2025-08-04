@@ -212,8 +212,9 @@ def smart_input(message: str) -> dict[str, float | None]:
     инсулина из произвольного текста. Поддерживаются числовые значения с
     разделителем ``","`` или ``".`` и локализованные термины вроде
     ``"сахар"`` и ``"доза"``. Если после названия показателя указаны
-    единицы, не соответствующие ему (например, ``"сахар 7 XE"``), будет
-    вызван ``ValueError``.
+    единицы, не соответствующие ему (например, ``"сахар 7 XE"``), или
+    вместо числа идёт произвольный текст (``"доза=abc"``), будет вызван
+    ``ValueError``.
 
     Args:
         message: Исходное сообщение пользователя.
@@ -241,7 +242,7 @@ def smart_input(message: str) -> dict[str, float | None]:
 
     # Проверка на неверные единицы измерения после явных названий показателей
     if re.search(
-        r"\b(?:sugar|сахар)\s*[:=]?\s*\d+[.,]?\d*\s*(?:xe|хе|ед)\b(?![=:])",
+        r"\b(?:sugar|сахар)\s*[:=]?\s*\d+[.,]?\d*\s*(?:xe|хе|ед)\b(?!\s*[\d=:])",
         text,
     ):
         raise ValueError("mismatched unit for sugar")
@@ -290,5 +291,14 @@ def smart_input(message: str) -> dict[str, float | None]:
         m = re.fullmatch(r"\s*(\d+[.,]?\d*)\s*", text)
         if m:
             result["sugar"] = _safe_float(m.group(1))
+
+    # Явное упоминание показателя без числового значения считается ошибкой.
+    for key, pattern in [
+        ("sugar", r"\b(?:sugar|сахар)\b"),
+        ("xe", r"\b(?:xe|хе)\b"),
+        ("dose", r"\b(?:dose|доза|болюс)\b"),
+    ]:
+        if re.search(pattern, text) and result[key] is None:
+            raise ValueError(f"invalid number for {key}")
 
     return result
