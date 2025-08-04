@@ -30,6 +30,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     assert dose_handlers.doc_handler in callbacks
     assert dose_handlers.prompt_photo in callbacks
     assert dose_handlers.prompt_sugar in callbacks
+    assert dose_handlers.dose_cancel in callbacks
     assert callback_router in callbacks
     assert reporting_handlers.report_period_callback in callbacks
     assert profile_handlers.profile_view in callbacks
@@ -99,6 +100,13 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
         if isinstance(h, CommandHandler) and h.callback is dose_handlers.sugar_start
     ]
     assert sugar_cmd and "sugar" in sugar_cmd[0].commands
+
+    cancel_cmd = [
+        h
+        for h in handlers
+        if isinstance(h, CommandHandler) and h.callback is dose_handlers.dose_cancel
+    ]
+    assert cancel_cmd and "cancel" in cancel_cmd[0].commands
 
     profile_view_handlers = [
         h
