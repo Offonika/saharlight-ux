@@ -5,6 +5,8 @@ from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
 from telegram import InlineKeyboardMarkup
 
+from diabetes.ui import menu_keyboard
+
 from diabetes.db import Base, User, Profile
 
 
@@ -51,6 +53,7 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     context = SimpleNamespace(args=args, user_data={})
 
     await handlers.profile_command(update, context)
+    assert message.markups[0] is menu_keyboard
     assert f"• ИКХ: {expected_icr} г/ед." in message.texts[0]
     assert f"• КЧ: {expected_cf} ммоль/л" in message.texts[0]
     assert f"• Целевой сахар: {expected_target} ммоль/л" in message.texts[0]

@@ -80,6 +80,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"• КЧ: {cf} ммоль/л\n"
         f"• Целевой сахар: {target} ммоль/л" + warning_msg,
         parse_mode="Markdown",
+        reply_markup=menu_keyboard,
     )
 
 
