@@ -35,8 +35,6 @@ DB_PORT = int(os.getenv("DB_PORT", 5432))
 DB_NAME = os.getenv("DB_NAME", "diabetes_bot")
 DB_USER = os.getenv("DB_USER", "diabetes_user")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
-if not DB_PASSWORD:
-    raise ValueError("DB_PASSWORD environment variable must be set")
 
 # Optional directory containing custom fonts for PDF reports
 FONT_DIR = os.getenv("FONT_DIR")
