@@ -16,7 +16,9 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_smart_input_help_responds_with_hint():
+async def test_quick_input_help_button():
+    """Simulate the "🕹 Быстрый ввод" menu button and verify the hint."""
+
     message = DummyMessage("🕹 Быстрый ввод")
     update = SimpleNamespace(message=message)
     context = SimpleNamespace()
