@@ -82,3 +82,4 @@ async def alert_stats(update, context) -> None:
     text = f"За 7\u202Fдн.: гипо\u202F{hypo}, гипер\u202F{hyper}"
     await update.message.reply_text(text)
 
+
