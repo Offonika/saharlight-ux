@@ -197,6 +197,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/report - отчёт\n"
         "/sugar - расчёт сахара\n"
         "/gpt - чат с GPT\n"
+        "/reminders - список напоминаний\n"
+        "/addreminder - добавить напоминание\n"
+        "/delreminder - удалить напоминание\n"
         "/cancel - отменить ввод\n"
         "/help - справка\n"
         "/hypoalert - FAQ по гипогликемии\n\n"
@@ -218,6 +221,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "📊 История\n"
         "📈 Отчёт\n"
         "📄 Мой профиль\n"
+        "⏰ Напоминания\n"
         "ℹ️ Помощь"
     )
     await update.message.reply_text(text, reply_markup=menu_keyboard)
