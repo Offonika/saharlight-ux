@@ -205,6 +205,17 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text(text, reply_markup=menu_keyboard)
 
 
+async def smart_input_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Explain the smart-input syntax for quick diary entries."""
+
+    text = (
+        "🕹 Быстрый ввод позволяет записать сахар, ХЕ и дозу в одном сообщении.\n"
+        "Используйте формат: `сахар=<ммоль/л> xe=<ХЕ> dose=<ед>` или свободный текст,\n"
+        "например: `5 ммоль/л 3хе 2ед`. Можно указывать только нужные значения."
+    )
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+
 def register_handlers(app: Application) -> None:
     """Register bot handlers on the provided ``Application`` instance.
 
@@ -242,6 +253,9 @@ def register_handlers(app: Application) -> None:
         MessageHandler(filters.Regex("^📷 Фото еды$"), dose_handlers.photo_prompt)
     )
     app.add_handler(
+        MessageHandler(filters.Regex("^🕹 Быстрый ввод$"), smart_input_help)
+    )
+    app.add_handler(
         MessageHandler(filters.Regex("^ℹ️ Помощь$"), help_command)
     )
     app.add_handler(
@@ -274,5 +288,6 @@ __all__ = [
     "start_command",
     "menu_command",
     "help_command",
+    "smart_input_help",
     "register_handlers",
 ]
