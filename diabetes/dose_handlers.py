@@ -611,7 +611,7 @@ prompt_dose = dose_start
 sugar_conv = ConversationHandler(
     entry_points=[
         CommandHandler("sugar", sugar_start),
-        MessageHandler(filters.Regex("^❓ Мой сахар$"), sugar_start),
+        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), sugar_start),
     ],
     states={
         SUGAR_VAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, sugar_val)],
@@ -633,7 +633,7 @@ dose_conv = ConversationHandler(
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
         MessageHandler(filters.Regex("^📷 Фото еды$"), _cancel_then(photo_prompt)),
-        MessageHandler(filters.Regex("^❓ Мой сахар$"), _cancel_then(sugar_start)),
+        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), _cancel_then(sugar_start)),
         MessageHandler(filters.Regex("^📊 История$"), _cancel_then(history_view)),
         MessageHandler(filters.Regex("^📈 Отчёт$"), _cancel_then(report_request)),
         MessageHandler(filters.Regex("^📄 Мой профиль$"), _cancel_then(profile_view)),
