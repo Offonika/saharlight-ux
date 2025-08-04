@@ -12,7 +12,8 @@ from telegram.ext import (
     filters,
 )
 
-from diabetes.db import SessionLocal, Profile
+from diabetes.db import SessionLocal, Profile, Alert
+from diabetes.alert_handlers import evaluate_sugar
 from diabetes.ui import menu_keyboard, back_keyboard
 from .common_handlers import commit_session
 
@@ -196,16 +197,82 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Open security settings menu."""
+    """Display and modify security settings."""
     query = update.callback_query
     await query.answer()
-    await query.message.delete()
-    keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🔙 Назад", callback_data="profile_back")]]
-    )
-    await query.message.reply_text(
-        "🔐 Настройки безопасности (в разработке)", reply_markup=keyboard
-    )
+    user_id = update.effective_user.id
+    action = query.data.split(":", 1)[1] if ":" in query.data else None
+
+    with SessionLocal() as session:
+        profile = session.get(Profile, user_id)
+        if not profile:
+            await query.edit_message_text("Профиль не найден.")
+            return
+
+        changed = False
+        if action == "low_inc":
+            new = (profile.low_threshold or 0) + 0.5
+            if profile.high_threshold is None or new < profile.high_threshold:
+                profile.low_threshold = new
+                changed = True
+        elif action == "low_dec":
+            new = (profile.low_threshold or 0) - 0.5
+            if new > 0:
+                profile.low_threshold = new
+                changed = True
+        elif action == "high_inc":
+            new = (profile.high_threshold or 0) + 0.5
+            profile.high_threshold = new
+            changed = True
+        elif action == "high_dec":
+            new = (profile.high_threshold or 0) - 0.5
+            if profile.low_threshold is None or new > profile.low_threshold:
+                profile.high_threshold = new
+                changed = True
+        elif action == "toggle_sos":
+            profile.sos_alerts_enabled = not profile.sos_alerts_enabled
+            changed = True
+
+        if changed:
+            commit_session(session)
+            alert = (
+                session.query(Alert)
+                .filter_by(user_id=user_id)
+                .order_by(Alert.ts.desc())
+                .first()
+            )
+            if alert:
+                evaluate_sugar(user_id, alert.sugar, context.application.job_queue)
+
+        low = profile.low_threshold or 0
+        high = profile.high_threshold or 0
+        sos = "вкл" if profile.sos_alerts_enabled else "выкл"
+        text = (
+            "🔐 Настройки безопасности:\n"
+            f"Низкий порог: {low:.1f} ммоль/л\n"
+            f"Высокий порог: {high:.1f} ммоль/л\n"
+            f"SOS-уведомления: {sos}"
+        )
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("Низкий -0.5", callback_data="profile_security:low_dec"),
+                    InlineKeyboardButton("Низкий +0.5", callback_data="profile_security:low_inc"),
+                ],
+                [
+                    InlineKeyboardButton("Высокий -0.5", callback_data="profile_security:high_dec"),
+                    InlineKeyboardButton("Высокий +0.5", callback_data="profile_security:high_inc"),
+                ],
+                [
+                    InlineKeyboardButton(
+                        f"SOS-уведомления: {'off' if profile.sos_alerts_enabled else 'on'}",
+                        callback_data="profile_security:toggle_sos",
+                    )
+                ],
+                [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
+            ]
+        )
+    await query.edit_message_text(text, reply_markup=keyboard)
 
 
 async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

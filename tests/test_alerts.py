@@ -40,9 +40,9 @@ async def test_threshold_evaluation():
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t1"))
-        session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8))
+        session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8, sos_alerts_enabled=True))
         session.add(User(telegram_id=2, thread_id="t2"))
-        session.add(Profile(telegram_id=2, low_threshold=4, high_threshold=8))
+        session.add(Profile(telegram_id=2, low_threshold=4, high_threshold=8, sos_alerts_enabled=True))
         session.commit()
 
     job_queue_low = DummyJobQueue()
@@ -70,7 +70,7 @@ async def test_repeat_logic():
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
-        session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8))
+        session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8, sos_alerts_enabled=True))
         session.commit()
 
     job_queue = DummyJobQueue()
@@ -93,7 +93,7 @@ async def test_normal_reading_resolves_alert():
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
-        session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8))
+        session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8, sos_alerts_enabled=True))
         session.commit()
 
     job_queue = DummyJobQueue()
@@ -122,6 +122,7 @@ async def test_three_alerts_notify(monkeypatch):
             low_threshold=4,
             high_threshold=8,
             sos_contact="2",
+            sos_alerts_enabled=True,
         ))
         session.commit()
 

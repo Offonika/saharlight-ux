@@ -80,7 +80,7 @@ async def check_alert(update, context: ContextTypes.DEFAULT_TYPE, sugar: float) 
                     f"⚠️ У {first_name} критический сахар {sugar} ммоль/л. {coords} {link}"
                 )
                 await context.bot.send_message(chat_id=user_id, text=msg)
-                if profile.sos_contact:
+                if profile.sos_contact and profile.sos_alerts_enabled:
                     await context.bot.send_message(chat_id=profile.sos_contact, text=msg)
                 for a in alerts:
                     a.resolved = True

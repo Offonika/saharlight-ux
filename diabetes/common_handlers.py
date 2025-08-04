@@ -301,7 +301,7 @@ def register_handlers(app: Application) -> None:
     )
     app.add_handler(
         CallbackQueryHandler(
-            profile_handlers.profile_security, pattern="^profile_security$"
+            profile_handlers.profile_security, pattern="^profile_security"
         )
     )
     app.add_handler(
