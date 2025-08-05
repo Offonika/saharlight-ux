@@ -191,6 +191,13 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     entry["sugar_before"] = sugar
     xe = entry.get("xe")
     carbs_g = entry.get("carbs_g")
+    if carbs_g is None and xe is None:
+        await update.message.reply_text(
+            "Не указаны углеводы или ХЕ. Расчёт невозможен.",
+            reply_markup=menu_keyboard,
+        )
+        context.user_data.pop("pending_entry", None)
+        return ConversationHandler.END
     if carbs_g is None and xe is not None:
         carbs_g = xe * 12
         entry["carbs_g"] = carbs_g
