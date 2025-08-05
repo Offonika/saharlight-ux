@@ -48,6 +48,17 @@ async def test_freeform_handler_adds_sugar_to_photo_entry():
         "sugar_before": None,
         "photo_path": "photos/img.jpg",
     }
+    class DummySession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            pass
+
+        def get(self, model, user_id):
+            return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
+
+    handlers.SessionLocal = lambda: DummySession()
     message = DummyMessage("5,6")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={"pending_entry": entry})

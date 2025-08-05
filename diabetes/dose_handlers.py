@@ -375,10 +375,48 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 return
             entry["sugar_before"] = sugar
-            await update.message.reply_text(
-                f"Сохранить уровень сахара {sugar} ммоль/л в дневник?",
-                reply_markup=confirm_keyboard(),
-            )
+            if entry.get("carbs_g") is not None or entry.get("xe") is not None:
+                xe = entry.get("xe")
+                carbs_g = entry.get("carbs_g")
+                if carbs_g is None and xe is not None:
+                    carbs_g = xe * 12
+                    entry["carbs_g"] = carbs_g
+                user_id = update.effective_user.id
+                with SessionLocal() as session:
+                    profile = session.get(Profile, user_id)
+                if not profile or None in (
+                    profile.icr,
+                    profile.cf,
+                    profile.target_bg,
+                ):
+                    await update.message.reply_text(
+                        "Профиль не настроен. Установите коэффициенты через /profile.",
+                        reply_markup=menu_keyboard,
+                    )
+                    context.user_data.pop("pending_entry", None)
+                    return
+                patient = PatientProfile(
+                    icr=profile.icr,
+                    cf=profile.cf,
+                    target_bg=profile.target_bg,
+                )
+                dose = calc_bolus(carbs_g, sugar, patient)
+                entry["dose"] = dose
+                context.user_data["pending_entry"] = entry
+                xe_info = f", ХЕ: {xe}" if xe is not None else ""
+                await update.message.reply_text(
+                    f"💉 Расчёт завершён:\n"
+                    f"• Углеводы: {carbs_g} г{xe_info}\n"
+                    f"• Сахар: {sugar} ммоль/л\n"
+                    f"• Ваша доза: {dose} Ед\n\n"
+                    "Сохранить это в дневник?",
+                    reply_markup=confirm_keyboard(),
+                )
+            else:
+                await update.message.reply_text(
+                    f"Сохранить уровень сахара {sugar} ммоль/л в дневник?",
+                    reply_markup=confirm_keyboard(),
+                )
             return
         parts = dict(
             re.findall(r"(\w+)\s*=\s*(-?\d+(?:[.,]\d+)?)(?=\s|$)", text)

@@ -34,6 +34,29 @@ class DummyPhoto:
     file_unique_id = "uid"
 
 
+class DummySession:
+    def __init__(self):
+        self.added = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        pass
+
+    def add(self, obj):
+        self.added.append(obj)
+
+    def commit(self):
+        pass
+
+    def get(self, model, user_id):
+        return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
+
+
+session = DummySession()
+
+
 @pytest.mark.asyncio
 async def test_photo_flow_saves_entry(monkeypatch, tmp_path):
     async def fake_parse_command(text):
@@ -112,26 +135,10 @@ async def test_photo_flow_saves_entry(monkeypatch, tmp_path):
     update_sugar = SimpleNamespace(
         message=msg_sugar, effective_user=SimpleNamespace(id=1)
     )
+    dose_handlers.SessionLocal = lambda: session
     await dose_handlers.freeform_handler(update_sugar, context)
     assert context.user_data["pending_entry"]["sugar_before"] == 5.5
 
-    class DummySession:
-        def __init__(self):
-            self.added = []
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            pass
-
-        def add(self, obj):
-            self.added.append(obj)
-
-        def commit(self):
-            pass
-
-    session = DummySession()
     monkeypatch.setattr(common_handlers, "SessionLocal", lambda: session)
     import diabetes.alert_handlers as alert_handlers
 
@@ -150,3 +157,4 @@ async def test_photo_flow_saves_entry(monkeypatch, tmp_path):
     assert saved.sugar_before == 5.5
     assert "pending_entry" not in context.user_data
     assert query.edited == ["✅ Запись сохранена в дневник!"]
+
