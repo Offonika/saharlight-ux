@@ -345,8 +345,9 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         xe = pending_entry.get("xe")
         dose = pending_entry.get("dose")
         xe_info = f", ХЕ {xe}" if xe is not None else ""
+        dose_info = f", доза {dose} Ед." if dose is not None else ", доза — Ед."
         await update.message.reply_text(
-            f"✅ Запись сохранена: сахар {sugar} ммоль/л{xe_info}, доза {dose} Ед.",
+            f"✅ Запись сохранена: сахар {sugar} ммоль/л{xe_info}{dose_info}",
             reply_markup=menu_keyboard,
         )
         return
