@@ -12,18 +12,27 @@ class DummyMessage:
     def __init__(self, text=None):
         self.text = text
         self.texts = []
+        self.edited = None
 
     async def reply_text(self, text, **kwargs):
         self.texts.append(text)
+
+    async def edit_text(self, text, **kwargs):
+        self.edited = (text, kwargs)
 
 
 class DummyCallbackQuery:
     def __init__(self, data, message):
         self.data = data
         self.message = message
+        self.answers = []
+        self.edited = None
 
-    async def answer(self):
-        pass
+    async def answer(self, text=None, **kwargs):
+        self.answers.append(text)
+
+    async def edit_message_text(self, text, **kwargs):
+        self.edited = (text, kwargs)
 
 
 class DummyBot:
@@ -217,6 +226,99 @@ async def test_add_reminder_cancel(monkeypatch):
     assert end_state == handlers.ConversationHandler.END
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
+
+
+@pytest.mark.asyncio
+async def test_toggle_reminder_cb(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
+        session.commit()
+
+    job_queue = DummyJobQueue()
+    with TestSession() as session:
+        rem = session.get(Reminder, 1)
+        handlers.schedule_reminder(rem, job_queue)
+
+    query = DummyCallbackQuery("toggle:1", DummyMessage())
+    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(job_queue=job_queue)
+    await handlers.toggle_reminder_cb(update, context)
+
+    with TestSession() as session:
+        assert not session.get(Reminder, 1).is_enabled
+    assert job_queue.get_jobs_by_name("reminder_1")[0].removed
+
+
+@pytest.mark.asyncio
+async def test_delete_reminder_cb(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00"))
+        session.commit()
+
+    job_queue = DummyJobQueue()
+    with TestSession() as session:
+        rem = session.get(Reminder, 1)
+        handlers.schedule_reminder(rem, job_queue)
+
+    query = DummyCallbackQuery("del:1", DummyMessage())
+    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(job_queue=job_queue)
+    await handlers.delete_reminder_cb(update, context)
+
+    with TestSession() as session:
+        assert session.query(Reminder).count() == 0
+    assert job_queue.get_jobs_by_name("reminder_1")[0].removed
+
+
+@pytest.mark.asyncio
+async def test_edit_reminder(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="medicine", time="08:00"))
+        session.commit()
+
+    job_queue = DummyJobQueue()
+    with TestSession() as session:
+        rem = session.get(Reminder, 1)
+        handlers.schedule_reminder(rem, job_queue)
+
+    query = DummyCallbackQuery("edit:1", DummyMessage())
+    context = SimpleNamespace(user_data={}, job_queue=job_queue)
+    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    state = await handlers.edit_reminder(update, context)
+    assert state == handlers.REMINDER_VALUE
+
+    msg = DummyMessage(text="09:00")
+    update2 = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    state2 = await handlers.add_reminder_value(update2, context)
+    assert state2 == handlers.ConversationHandler.END
+
+    with TestSession() as session:
+        assert session.get(Reminder, 1).time == "09:00"
+    jobs = job_queue.get_jobs_by_name("reminder_1")
+    assert len(jobs) == 2
+    assert jobs[0].removed is True
+    assert jobs[1].removed is False
 
 @pytest.mark.asyncio
 async def test_trigger_job_logs(monkeypatch):
