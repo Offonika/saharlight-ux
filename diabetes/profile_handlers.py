@@ -492,6 +492,13 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     return ConversationHandler.END
 
 
+async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from .dose_handlers import _cancel_then, photo_prompt
+
+    handler = _cancel_then(photo_prompt)
+    return await handler(update, context)
+
+
 profile_conv = ConversationHandler(
     entry_points=[
         CommandHandler("profile", profile_command),
@@ -513,6 +520,7 @@ profile_conv = ConversationHandler(
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), profile_cancel),
         CommandHandler("cancel", profile_cancel),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), _photo_fallback),
     ],
     # Subsequent steps depend on ``MessageHandler`` for text inputs. Enabling
     # ``per_message=True`` would store state per message and reset the

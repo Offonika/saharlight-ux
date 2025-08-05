@@ -957,6 +957,7 @@ sugar_conv = ConversationHandler(
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
         CommandHandler("menu", _cancel_then(menu_command)),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), _cancel_then(photo_prompt)),
     ],
 )
 
