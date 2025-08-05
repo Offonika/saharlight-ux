@@ -9,8 +9,9 @@ from diabetes.common_handlers import commit_session
 
 
 class DummyJob:
-    def __init__(self, callback, data, name):
+    def __init__(self, callback, when, data, name):
         self.callback = callback
+        self.when = when
         self.data = data
         self.name = name
         self.removed = False
@@ -24,7 +25,7 @@ class DummyJobQueue:
         self.jobs = []
 
     def run_once(self, callback, when, data=None, name=None):
-        self.jobs.append(DummyJob(callback, data, name))
+        self.jobs.append(DummyJob(callback, when, data, name))
 
     def get_jobs_by_name(self, name):
         return [j for j in self.jobs if j.name == name]
@@ -51,6 +52,7 @@ async def test_threshold_evaluation():
         alert = session.query(Alert).filter_by(user_id=1).first()
         assert alert.type == "hypo"
     assert job_queue_low.get_jobs_by_name("alert_1")
+    assert job_queue_low.jobs[0].when == handlers.ALERT_REPEAT_DELAY
 
     job_queue_high = DummyJobQueue()
     handlers.evaluate_sugar(2, 9, job_queue_high)
