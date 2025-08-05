@@ -13,7 +13,7 @@ import sys
 logger = logging.getLogger(__name__)
 
 
-def main() -> None:
+async def main() -> None:
     """Configure and run the bot."""
     logging.basicConfig(
         level=LOG_LEVEL,
@@ -49,10 +49,10 @@ def main() -> None:
         BotCommand("delreminder", "Удалить напоминание"),
         BotCommand("help", "Справка"),
     ]
-    asyncio.run(application.bot.set_my_commands(commands))
+    await application.bot.set_my_commands(commands)
 
-    application.run_polling()
+    await application.run_polling()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
