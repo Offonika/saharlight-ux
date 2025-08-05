@@ -637,8 +637,11 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 await context.bot.send_chat_action(
                     chat_id=chat_id, action=ChatAction.TYPING
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning(
+                    "[PHOTO][TYPING_ACTION] Failed to send typing action: %s",
+                    exc,
+                )
 
         await send_typing_action()
 
@@ -657,8 +660,11 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             ):
                 try:
                     await status_message.edit_text("🔍 Всё ещё анализирую фото…")
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.warning(
+                        "[PHOTO][STATUS_EDIT] Failed to update status message: %s",
+                        exc,
+                    )
             await send_typing_action()
 
         if run.status not in ("completed", "failed", "cancelled", "expired"):
@@ -668,8 +674,11 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                     await status_message.edit_text(
                         "⚠️ Время ожидания Vision истекло. Попробуйте позже."
                     )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.warning(
+                        "[PHOTO][TIMEOUT_EDIT] Failed to send timeout notice: %s",
+                        exc,
+                    )
             else:
                 await message.reply_text(
                     "⚠️ Время ожидания Vision истекло. Попробуйте позже."
@@ -680,9 +689,14 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             logging.error("[VISION][RUN_FAILED] run.status=%s", run.status)
             if status_message and hasattr(status_message, "edit_text"):
                 try:
-                    await status_message.edit_text("⚠️ Vision не смог обработать фото.")
-                except Exception:
-                    pass
+                    await status_message.edit_text(
+                        "⚠️ Vision не смог обработать фото."
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "[PHOTO][RUN_FAILED_EDIT] Failed to send Vision failure notice: %s",
+                        exc,
+                    )
             else:
                 await message.reply_text("⚠️ Vision не смог обработать фото.")
             return ConversationHandler.END
@@ -729,8 +743,11 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         if status_message and hasattr(status_message, "delete"):
             try:
                 await status_message.delete()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning(
+                    "[PHOTO][DELETE_STATUS] Failed to delete status message: %s",
+                    exc,
+                )
         await message.reply_text(
             f"🍽️ На фото:\n{vision_text}\n\n"
             "Введите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина.",
