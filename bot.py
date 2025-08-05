@@ -1,5 +1,6 @@
-from telegram import Update
+from telegram import BotCommand, Update
 from telegram.ext import (
+    Application,
     ApplicationBuilder,
     CallbackQueryHandler,
     CommandHandler,
@@ -50,31 +51,48 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         except Exception:  # pragma: no cover - best effort to notify
             logger.exception("Failed to send error message to user")
 
+
+async def post_init(application: Application) -> None:
+    """Configure bot commands after the application is initialized."""
+    await application.bot.set_my_commands(
+        [
+            BotCommand("start", "Запустить бота"),
+            BotCommand("menu", "Главное меню"),
+            BotCommand("reset", "Сбросить разговор"),
+            BotCommand("history", "История сахара"),
+            BotCommand("profile", "Профиль"),
+            BotCommand("report", "Отчёт"),
+            BotCommand("help", "Помощь"),
+        ]
+    )
+
 def main() -> None:
     init_db()
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    app.add_error_handler(error_handler)
-    app.add_handler(onboarding_conv)
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("menu", menu_handler))
-    app.add_handler(CommandHandler("reset", reset_handler))
-    app.add_handler(CommandHandler("history", history_handler))
-    app.add_handler(CommandHandler("profile", profile_command))
-    app.add_handler(MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_view))
-    app.add_handler(MessageHandler(filters.Regex(r"^📊 История$"), history_handler))
-    app.add_handler(MessageHandler(filters.Regex(r"^❓ Мой сахар$"), sugar_start))
-    app.add_handler(sugar_conv)
-    app.add_handler(photo_conv)
-    app.add_handler(profile_conv)
-    app.add_handler(dose_conv)
-    app.add_handler(MessageHandler(filters.Regex(r"^📷 Фото еды$"), photo_request))
-    app.add_handler(CommandHandler("report", report_handler))
-    app.add_handler(MessageHandler(filters.Regex("^📈 Отчёт$"), report_handler))
-    app.add_handler(CallbackQueryHandler(callback_router))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler))
-    app.add_handler(CommandHandler("help", help_handler))
+    application = (
+        ApplicationBuilder().token(TELEGRAM_TOKEN).post_init(post_init).build()
+    )
+    application.add_error_handler(error_handler)
+    application.add_handler(onboarding_conv)
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("menu", menu_handler))
+    application.add_handler(CommandHandler("reset", reset_handler))
+    application.add_handler(CommandHandler("history", history_handler))
+    application.add_handler(CommandHandler("profile", profile_command))
+    application.add_handler(MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_view))
+    application.add_handler(MessageHandler(filters.Regex(r"^📊 История$"), history_handler))
+    application.add_handler(MessageHandler(filters.Regex(r"^❓ Мой сахар$"), sugar_start))
+    application.add_handler(sugar_conv)
+    application.add_handler(photo_conv)
+    application.add_handler(profile_conv)
+    application.add_handler(dose_conv)
+    application.add_handler(MessageHandler(filters.Regex(r"^📷 Фото еды$"), photo_request))
+    application.add_handler(CommandHandler("report", report_handler))
+    application.add_handler(MessageHandler(filters.Regex("^📈 Отчёт$"), report_handler))
+    application.add_handler(CallbackQueryHandler(callback_router))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, freeform_handler))
+    application.add_handler(CommandHandler("help", help_handler))
 
-    app.run_polling()
+    application.run_polling()
 
 
 if __name__ == "__main__":
