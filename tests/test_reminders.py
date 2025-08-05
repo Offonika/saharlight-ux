@@ -106,6 +106,60 @@ async def test_add_reminder_conversation_success(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_add_multiple_reminders_sequential(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    job_queue = DummyJobQueue()
+    context = SimpleNamespace(user_data={}, job_queue=job_queue)
+
+    # First reminder
+    msg1 = DummyMessage()
+    update1 = SimpleNamespace(message=msg1, effective_user=SimpleNamespace(id=1))
+    state = await handlers.add_reminder_start(update1, context)
+    assert state == handlers.REMINDER_TYPE
+
+    cq1 = DummyCallbackQuery("rem_type:sugar", DummyMessage())
+    update2 = SimpleNamespace(callback_query=cq1, effective_user=SimpleNamespace(id=1))
+    state = await handlers.add_reminder_type(update2, context)
+    assert state == handlers.REMINDER_VALUE
+
+    msg_val1 = DummyMessage(text="08:00")
+    update3 = SimpleNamespace(message=msg_val1, effective_user=SimpleNamespace(id=1))
+    state = await handlers.add_reminder_value(update3, context)
+    assert state == handlers.ConversationHandler.END
+    assert "добавить ещё" in msg_val1.texts[0].lower()
+
+    # Second reminder
+    msg4 = DummyMessage()
+    update4 = SimpleNamespace(message=msg4, effective_user=SimpleNamespace(id=1))
+    state = await handlers.add_reminder_start(update4, context)
+    assert state == handlers.REMINDER_TYPE
+
+    cq2 = DummyCallbackQuery("rem_type:medicine", DummyMessage())
+    update5 = SimpleNamespace(callback_query=cq2, effective_user=SimpleNamespace(id=1))
+    state = await handlers.add_reminder_type(update5, context)
+    assert state == handlers.REMINDER_VALUE
+
+    msg_val2 = DummyMessage(text="09:00")
+    update6 = SimpleNamespace(message=msg_val2, effective_user=SimpleNamespace(id=1))
+    state = await handlers.add_reminder_value(update6, context)
+    assert state == handlers.ConversationHandler.END
+    assert "добавить ещё" in msg_val2.texts[0].lower()
+
+    with TestSession() as session:
+        rems = session.query(Reminder).filter_by(telegram_id=1).all()
+        assert len(rems) == 2
+
+
+@pytest.mark.asyncio
 async def test_add_reminder_invalid_input(monkeypatch):
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
