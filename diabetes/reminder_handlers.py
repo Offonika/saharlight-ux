@@ -19,6 +19,14 @@ from .common_handlers import commit_session
 
 MAX_REMINDERS = 5
 
+# Map reminder type codes to display names
+REMINDER_NAMES = {
+    "sugar": "Сахар",  # noqa: RUF001
+    "long_insulin": "Длинный инсулин",  # noqa: RUF001
+    "medicine": "Лекарство",  # noqa: RUF001
+    "xe_after": "Проверить ХЕ после еды",  # noqa: RUF001
+}
+
 # Conversation states
 REMINDER_TYPE, REMINDER_VALUE = range(2)
 
@@ -76,6 +84,59 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await update.message.reply_text("\n".join(lines))
 
 
+async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Add a reminder using command arguments."""
+    user_id = update.effective_user.id
+    args = getattr(context, "args", [])
+    if len(args) < 2:
+        await update.message.reply_text(
+            "Использование: /addreminder <type> <value>"  # noqa: RUF001
+        )
+        return
+    rtype, value = args[0], args[1]
+    reminder = Reminder(telegram_id=user_id, type=rtype)
+    if rtype == "sugar":
+        if ":" in value:
+            reminder.time = value
+        else:
+            try:
+                reminder.interval_hours = int(value)
+            except ValueError:
+                await update.message.reply_text("Интервал должен быть числом.")
+                return
+    elif rtype in {"long_insulin", "medicine"}:
+        reminder.time = value
+    elif rtype == "xe_after":
+        try:
+            reminder.minutes_after = int(value)
+        except ValueError:
+            await update.message.reply_text("Значение должно быть числом.")
+            return
+    else:
+        await update.message.reply_text("Неизвестный тип напоминания.")
+        return
+
+    with SessionLocal() as session:
+        count = session.query(Reminder).filter_by(telegram_id=user_id).count()
+        if count >= MAX_REMINDERS:
+            await update.message.reply_text(
+                "Можно создать не более 5 напоминаний."  # noqa: RUF001
+            )
+            return
+        session.add(reminder)
+        if not commit_session(session):
+            await update.message.reply_text(
+                "⚠️ Не удалось сохранить напоминание."
+            )
+            return
+        rid = reminder.id
+
+    for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
+        job.schedule_removal()
+    schedule_reminder(reminder, context.job_queue)
+    await update.message.reply_text(f"Сохранено: {_describe(reminder)}")
+
+
 async def add_reminder_start(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
@@ -91,14 +152,21 @@ async def add_reminder_start(
     keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("sugar", callback_data="rem_type:sugar"),
                 InlineKeyboardButton(
-                    "long_insulin", callback_data="rem_type:long_insulin"
+                    REMINDER_NAMES["sugar"], callback_data="rem_type:sugar"
+                ),
+                InlineKeyboardButton(
+                    REMINDER_NAMES["long_insulin"],
+                    callback_data="rem_type:long_insulin",
                 ),
             ],
             [
-                InlineKeyboardButton("medicine", callback_data="rem_type:medicine"),
-                InlineKeyboardButton("xe_after", callback_data="rem_type:xe_after"),
+                InlineKeyboardButton(
+                    REMINDER_NAMES["medicine"], callback_data="rem_type:medicine"
+                ),
+                InlineKeyboardButton(
+                    REMINDER_NAMES["xe_after"], callback_data="rem_type:xe_after"
+                ),
             ],
         ]
     )
@@ -116,14 +184,17 @@ async def add_reminder_type(
     await query.answer()
     rtype = query.data.split(":", 1)[1]
     context.user_data["rem_type"] = rtype
+    rname = REMINDER_NAMES.get(rtype, rtype)
     if rtype == "sugar":
         prompt = (
-            "Вы выбрали sugar. Введите время ЧЧ:ММ или интервал в часах."  # noqa: RUF001
+            f"Вы выбрали {rname}. Введите время ЧЧ:ММ или интервал в часах."  # noqa: RUF001
         )
     elif rtype in {"long_insulin", "medicine"}:
-        prompt = f"Вы выбрали {rtype}. Введите время ЧЧ:ММ."
+        prompt = f"Вы выбрали {rname}. Введите время ЧЧ:ММ."
     else:
-        prompt = "Вы выбрали xe_after. Введите минуты после еды."  # noqa: RUF001
+        prompt = (
+            f"Вы выбрали {rname}. Введите минуты после еды."  # noqa: RUF001
+        )
     await query.message.reply_text(prompt)
     return REMINDER_VALUE
 
