@@ -37,7 +37,7 @@ def evaluate_sugar(user_id: int, sugar: float, job_queue) -> None:
         )
 
         if (low is not None and sugar < low) or (high is not None and sugar > high):
-            atype = "low" if low is not None and sugar < low else "high"
+            atype = "hypo" if low is not None and sugar < low else "hyper"
             alert = Alert(user_id=user_id, sugar=sugar, type=atype)
             session.add(alert)
             commit_session(session)
