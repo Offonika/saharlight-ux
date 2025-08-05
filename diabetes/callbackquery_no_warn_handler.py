@@ -1,7 +1,7 @@
 import re
 from typing import Optional
 
-from telegram import Update
+from telegram import CallbackQuery, Update
 from telegram.ext import BaseHandler
 
 
@@ -12,7 +12,7 @@ class CallbackQueryNoWarnHandler(BaseHandler):
         super().__init__(callback)
         self.pattern: Optional[re.Pattern[str]] = re.compile(pattern) if pattern else None
 
-    def check_update(self, update: object) -> Optional[Update]:
+    def check_update(self, update: object) -> Optional[CallbackQuery]:
         if isinstance(update, Update) and update.callback_query:
             data = update.callback_query.data or ""
             if self.pattern is None or self.pattern.match(data):
