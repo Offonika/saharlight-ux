@@ -350,7 +350,7 @@ async def test_trigger_job_logs(monkeypatch):
         job_queue=job_queue,
     )
     await handlers.reminder_job(context)
-    assert bot.messages[0][1].startswith("Замерить сахар")
+    assert bot.messages[0][1].startswith("🔔 Замерить сахар")
     with TestSession() as session:
         log = session.query(ReminderLog).first()
         assert log.action == "trigger"

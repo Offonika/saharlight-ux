@@ -40,21 +40,23 @@ REMINDER_TYPE, REMINDER_VALUE = range(2)
 
 
 def _describe(rem: Reminder) -> str:
-    if rem.type == "sugar":
-        if rem.time:
-            return f"Замерить сахар {rem.time}"
-        return f"Замерить сахар каждые {rem.interval_hours} ч"
-    if rem.type == "long_insulin":
-        return f"Длинный инсулин {rem.time}"
-    if rem.type == "medicine":
-        return f"Таблетки/лекарство {rem.time}"
-    if rem.type == "xe_after":
-        return f"Проверить ХЕ через {rem.minutes_after} мин"
-    return rem.type
+    """Return human readable reminder description with status and schedule."""
+
+    status = "🔔" if rem.is_enabled else "🔕"
+    action = REMINDER_ACTIONS.get(rem.type, rem.type)
+    if rem.time:
+        type_icon = "⏰"
+    elif rem.interval_hours:
+        type_icon = "⏱"
+    else:
+        type_icon = "📸"
+    schedule = _schedule_with_next(rem)
+    return f"{status} {action} {type_icon} {schedule}".strip()
 
 
 def _schedule_with_next(rem: Reminder) -> str:
     """Return schedule string with next run time."""
+
     now = datetime.now()
     next_dt: datetime | None
     if rem.time:
@@ -73,14 +75,12 @@ def _schedule_with_next(rem: Reminder) -> str:
         next_dt = None
         base = ""
     if next_dt:
-        return f"{base} (след. — {next_dt:%H:%M})"  # noqa: RUF001
+        if next_dt.date() == now.date():
+            next_str = next_dt.strftime("%H:%M")
+        else:
+            next_str = next_dt.strftime("%d.%m %H:%M")
+        return f"{base} (next {next_str})"
     return base
-
-
-def _format_reminder_line(rem: Reminder) -> str:
-    action = REMINDER_ACTIONS.get(rem.type, rem.type)
-    schedule = _schedule_with_next(rem)
-    return f"{action} {schedule}".strip()
 
 
 def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
@@ -98,12 +98,12 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     by_photo: list[tuple[str, list[InlineKeyboardButton]]] = []
 
     for r in rems:
-        icon = "🔔" if r.is_enabled else "🔕"
-        line = f"{icon} {r.id}. {_format_reminder_line(r)}"
+        line = f"{r.id}. {_describe(r)}"
+        status_icon = "🔔" if r.is_enabled else "🔕"
         row = [
             InlineKeyboardButton("✏️", callback_data=f"edit:{r.id}"),
             InlineKeyboardButton("🗑️", callback_data=f"del:{r.id}"),
-            InlineKeyboardButton(icon, callback_data=f"toggle:{r.id}"),
+            InlineKeyboardButton(status_icon, callback_data=f"toggle:{r.id}"),
         ]
         if r.time:
             by_time.append((line, row))
