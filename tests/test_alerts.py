@@ -49,14 +49,14 @@ async def test_threshold_evaluation():
     handlers.evaluate_sugar(1, 3, job_queue_low)
     with TestSession() as session:
         alert = session.query(Alert).filter_by(user_id=1).first()
-        assert alert.type == "low"
+        assert alert.type == "hypo"
     assert job_queue_low.get_jobs_by_name("alert_1")
 
     job_queue_high = DummyJobQueue()
     handlers.evaluate_sugar(2, 9, job_queue_high)
     with TestSession() as session:
         alert2 = session.query(Alert).filter_by(user_id=2).first()
-        assert alert2.type == "high"
+        assert alert2.type == "hyper"
     assert job_queue_high.get_jobs_by_name("alert_2")
 
 
