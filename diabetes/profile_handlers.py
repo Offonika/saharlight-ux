@@ -32,6 +32,16 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     args = context.args
 
+    # Ensure no pending sugar logging conversation captures profile input
+    from .dose_handlers import sugar_conv
+
+    try:  # update may lack chat info in some testing scenarios
+        key = sugar_conv._get_key(update)
+    except AttributeError:
+        key = None
+    if key is not None:
+        sugar_conv._update_state(ConversationHandler.END, key)
+
     help_text = (
         "❗ Формат команды:\n"
         "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой ммоль/л> <низкий ммоль/л> <высокий ммоль/л>\n"
