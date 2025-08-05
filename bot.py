@@ -31,9 +31,11 @@ def main() -> None:
 
     try:
         init_db()
-    except SQLAlchemyError:
-        logger.exception("Failed to initialize the database")
-        sys.exit(1)
+    except (SQLAlchemyError, ValueError) as err:
+        logger.exception("Failed to initialize the database: %s", err)
+        sys.exit(
+            "Database initialization failed. Please check your configuration and try again."
+        )
 
     commands = [
         BotCommand("start", "Запустить бота"),
