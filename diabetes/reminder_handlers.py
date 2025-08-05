@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -28,6 +28,13 @@ REMINDER_NAMES = {
     "xe_after": "Проверить ХЕ после еды",  # noqa: RUF001
 }
 
+REMINDER_ACTIONS = {
+    "sugar": "Замерить сахар",  # noqa: RUF001
+    "long_insulin": "Длинный инсулин",  # noqa: RUF001
+    "medicine": "Таблетки/лекарство",  # noqa: RUF001
+    "xe_after": "Проверить ХЕ",  # noqa: RUF001
+}
+
 # Conversation states
 REMINDER_TYPE, REMINDER_VALUE = range(2)
 
@@ -46,6 +53,36 @@ def _describe(rem: Reminder) -> str:
     return rem.type
 
 
+def _schedule_with_next(rem: Reminder) -> str:
+    """Return schedule string with next run time."""
+    now = datetime.now()
+    next_dt: datetime | None
+    if rem.time:
+        hh, mm = map(int, rem.time.split(":"))
+        next_dt = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+        if next_dt <= now:
+            next_dt += timedelta(days=1)
+        base = rem.time
+    elif rem.interval_hours:
+        next_dt = now + timedelta(hours=rem.interval_hours)
+        base = f"q {rem.interval_hours} ч"
+    elif rem.minutes_after:
+        next_dt = now + timedelta(minutes=rem.minutes_after)
+        base = f"{rem.minutes_after} мин"
+    else:
+        next_dt = None
+        base = ""
+    if next_dt:
+        return f"{base} (след. — {next_dt:%H:%M})"  # noqa: RUF001
+    return base
+
+
+def _format_reminder_line(rem: Reminder) -> str:
+    action = REMINDER_ACTIONS.get(rem.type, rem.type)
+    schedule = _schedule_with_next(rem)
+    return f"{action} {schedule}".strip()
+
+
 def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     with SessionLocal() as session:
         rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
@@ -55,18 +92,43 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
             "У вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
         )
         return text, InlineKeyboardMarkup([add_button])
-    lines: list[str] = []
-    buttons: list[list[InlineKeyboardButton]] = []
+
+    by_time: list[tuple[str, list[InlineKeyboardButton]]] = []
+    by_interval: list[tuple[str, list[InlineKeyboardButton]]] = []
+    by_photo: list[tuple[str, list[InlineKeyboardButton]]] = []
+
     for r in rems:
         icon = "🔔" if r.is_enabled else "🔕"
-        lines.append(f"{icon} {r.id}. {_describe(r)}")
-        buttons.append(
-            [
-                InlineKeyboardButton("✏️", callback_data=f"edit:{r.id}"),
-                InlineKeyboardButton("🗑️", callback_data=f"del:{r.id}"),
-                InlineKeyboardButton(icon, callback_data=f"toggle:{r.id}"),
-            ]
-        )
+        line = f"{icon} {r.id}. {_format_reminder_line(r)}"
+        row = [
+            InlineKeyboardButton("✏️", callback_data=f"edit:{r.id}"),
+            InlineKeyboardButton("🗑️", callback_data=f"del:{r.id}"),
+            InlineKeyboardButton(icon, callback_data=f"toggle:{r.id}"),
+        ]
+        if r.time:
+            by_time.append((line, row))
+        elif r.interval_hours:
+            by_interval.append((line, row))
+        else:
+            by_photo.append((line, row))
+
+    lines: list[str] = []
+    buttons: list[list[InlineKeyboardButton]] = []
+
+    def extend(section: str, items: list[tuple[str, list[InlineKeyboardButton]]]) -> None:
+        if not items:
+            return
+        if lines:
+            lines.append("")
+        lines.append(section)
+        for line_text, b in items:
+            lines.append(line_text)
+            buttons.append(b)
+
+    extend("⏰ По времени", by_time)
+    extend("⏱ Интервал", by_interval)
+    extend("📸 После фото", by_photo)
+
     buttons.append(add_button)
     text = "Ваши напоминания:\n" + "\n".join(lines)
     return text, InlineKeyboardMarkup(buttons)
