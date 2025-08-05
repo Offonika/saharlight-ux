@@ -1,4 +1,7 @@
-"""Bot entry point and configuration."""
+# bot.py
+"""
+Bot entry point and configuration.
+"""
 
 from diabetes.common_handlers import register_handlers
 from diabetes.db import init_db
@@ -6,14 +9,12 @@ from diabetes.config import LOG_LEVEL, TELEGRAM_TOKEN
 from telegram import BotCommand
 from telegram.ext import Application
 from sqlalchemy.exc import SQLAlchemyError
-import asyncio
 import logging
 import sys
 
 logger = logging.getLogger(__name__)
 
-
-async def main() -> None:
+def main() -> None:
     """Configure and run the bot."""
     logging.basicConfig(
         level=LOG_LEVEL,
@@ -49,10 +50,9 @@ async def main() -> None:
         BotCommand("delreminder", "Удалить напоминание"),
         BotCommand("help", "Справка"),
     ]
-    await application.bot.set_my_commands(commands)
-
-    await application.run_polling()
-
+    # Синхронный вызов, не await!
+    application.bot.set_my_commands(commands)
+    application.run_polling()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
