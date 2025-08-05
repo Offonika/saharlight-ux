@@ -50,8 +50,10 @@ def main() -> None:
         BotCommand("delreminder", "Удалить напоминание"),
         BotCommand("help", "Справка"),
     ]
-    # Синхронный вызов, не await!
-    application.bot.set_my_commands(commands)
+    async def post_init(app: Application) -> None:
+        await app.bot.set_my_commands(commands)
+
+    application.post_init.append(post_init)
     application.run_polling()
 
 if __name__ == "__main__":
