@@ -47,43 +47,44 @@ def _describe(rem: Reminder) -> str:
 
     status = "🔔" if rem.is_enabled else "🔕"
     action = REMINDER_ACTIONS.get(rem.type, rem.type)
-    if rem.time:
-        type_icon = "⏰"
-    elif rem.interval_hours:
-        type_icon = "⏱"
-    else:
-        type_icon = "📸"
-    schedule = _schedule_with_next(rem)
+    type_icon, schedule = _schedule_with_next(rem)
     return f"{status} {action} {type_icon} {schedule}".strip()
 
 
-def _schedule_with_next(rem: Reminder) -> str:
-    """Return schedule string with next run time."""
+def _schedule_with_next(rem: Reminder) -> tuple[str, str]:
+    """Return type icon and schedule string with next run time."""
 
     now = datetime.now()
     next_dt: datetime | None
     if rem.time:
+        type_icon = "⏰"
         hh, mm = map(int, rem.time.split(":"))
         next_dt = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
         if next_dt <= now:
             next_dt += timedelta(days=1)
         base = rem.time
     elif rem.interval_hours:
+        type_icon = "⏱"
         next_dt = now + timedelta(hours=rem.interval_hours)
-        base = f"q {rem.interval_hours} ч"
+        base = f"q {rem.interval_hours} ч"
     elif rem.minutes_after:
+        type_icon = "📸"
         next_dt = now + timedelta(minutes=rem.minutes_after)
         base = f"{rem.minutes_after} мин"
     else:
+        type_icon = "🕘"
         next_dt = None
         base = ""
+
     if next_dt:
         if next_dt.date() == now.date():
             next_str = next_dt.strftime("%H:%M")
         else:
             next_str = next_dt.strftime("%d.%m %H:%M")
-        return f"{base} (next {next_str})"
-    return base
+        schedule = f"{base} (next {next_str})" if base else f"next {next_str}"
+    else:
+        schedule = base
+    return type_icon, schedule
 
 
 def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
