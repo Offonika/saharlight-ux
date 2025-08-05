@@ -13,12 +13,13 @@ from diabetes.utils import get_coords_and_link
 logger = logging.getLogger(__name__)
 
 MAX_REPEATS = 3
+ALERT_REPEAT_DELAY = datetime.timedelta(minutes=5)
 
 
 def schedule_alert(user_id: int, job_queue, count: int = 1) -> None:
     job_queue.run_once(
         alert_job,
-        when=0,
+        when=ALERT_REPEAT_DELAY,
         data={"user_id": user_id, "count": count},
         name=f"alert_{user_id}",
     )
