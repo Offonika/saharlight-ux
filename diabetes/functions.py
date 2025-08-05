@@ -57,7 +57,7 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
     Examples:
         >>> profile = PatientProfile(icr=10, cf=50, target_bg=5.5)
         >>> calc_bolus(60, 7.0, profile)
-        6.1
+        6.0
     """
     if profile.icr <= 0:
         raise ValueError("Profile icr must be greater than 0")
