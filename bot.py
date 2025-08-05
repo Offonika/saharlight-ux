@@ -50,9 +50,8 @@ def main() -> None:
     async def post_init(app: Application) -> None:
         await app.bot.set_my_commands(commands)
 
-    application = (
-        Application.builder().token(BOT_TOKEN).post_init(post_init).build()
-    )
+    application = Application.builder().token(BOT_TOKEN).build()
+    application.post_init.append(post_init)
     register_handlers(application)
     application.run_polling()
 
