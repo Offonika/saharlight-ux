@@ -135,7 +135,10 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 if message:
                     await message.reply_text("Значение должно быть числом.")
                 return
-        commit_session(session)
+        if not commit_session(session):
+            if message:
+                await message.reply_text("⚠️ Не удалось сохранить напоминание.")
+            return
         rid = reminder.id
     for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
         job.schedule_removal()

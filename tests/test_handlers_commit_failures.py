@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy.exc import SQLAlchemyError
 import diabetes.profile_handlers as profile_handlers
 import diabetes.common_handlers as common_handlers
+import diabetes.reminder_handlers as reminder_handlers
 
 
 class DummyMessage:
@@ -90,3 +91,37 @@ async def test_callback_router_commit_failure(monkeypatch, caplog):
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
     assert query.edited == ["⚠️ Не удалось сохранить запись."]
+
+
+@pytest.mark.asyncio
+async def test_add_reminder_commit_failure(monkeypatch, caplog):
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = None
+    session.add = MagicMock()
+    query_mock = MagicMock()
+    filter_mock = MagicMock()
+    filter_mock.count.return_value = 0
+    query_mock.filter_by.return_value = filter_mock
+    session.query.return_value = query_mock
+    session.commit.side_effect = SQLAlchemyError("fail")
+    session.rollback = MagicMock()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
+    schedule_mock = MagicMock()
+    monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
+
+    message = DummyMessage()
+    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(
+        args=["sugar", "23:00"],
+        job_queue=SimpleNamespace(get_jobs_by_name=lambda name: []),
+    )
+
+    with caplog.at_level(logging.ERROR):
+        await reminder_handlers.add_reminder(update, context)
+
+    assert session.rollback.called
+    assert "DB commit failed" in caplog.text
+    assert message.texts == ["⚠️ Не удалось сохранить напоминание."]
+    assert not schedule_mock.called
