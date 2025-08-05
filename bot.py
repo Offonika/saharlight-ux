@@ -35,9 +35,6 @@ def main() -> None:
         logger.exception("Failed to initialize the database")
         sys.exit(1)
 
-    application = Application.builder().token(BOT_TOKEN).build()
-    register_handlers(application)
-
     commands = [
         BotCommand("start", "Запустить бота"),
         BotCommand("menu", "Главное меню"),
@@ -53,7 +50,10 @@ def main() -> None:
     async def post_init(app: Application) -> None:
         await app.bot.set_my_commands(commands)
 
-    application.post_init.append(post_init)
+    application = (
+        Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    )
+    register_handlers(application)
     application.run_polling()
 
 if __name__ == "__main__":
