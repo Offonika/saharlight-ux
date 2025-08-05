@@ -121,7 +121,7 @@ async def test_three_alerts_notify(monkeypatch):
             telegram_id=1,
             low_threshold=4,
             high_threshold=8,
-            sos_contact="2",
+            sos_contact="@alice",
             sos_alerts_enabled=True,
         ))
         session.commit()
@@ -146,7 +146,7 @@ async def test_three_alerts_notify(monkeypatch):
     await handlers.check_alert(update, context, 3)
     assert len(context.bot.sent) == 2
     assert context.bot.sent[0][0] == 1
-    assert context.bot.sent[1][0] == "2"
+    assert context.bot.sent[1][0] == "@alice"
     with TestSession() as session:
         alerts = session.query(Alert).all()
         assert all(a.resolved for a in alerts)
