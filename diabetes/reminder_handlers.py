@@ -258,7 +258,10 @@ async def add_reminder_value(
         job.schedule_removal()
     schedule_reminder(reminder, context.job_queue)
     context.user_data.pop("rem_type", None)
-    await update.message.reply_text(f"Сохранено: {_describe(reminder)}")
+    await update.message.reply_text(
+        f"Сохранено: {_describe(reminder)}. "
+        "Отправьте /addreminder, чтобы добавить ещё."
+    )
     return ConversationHandler.END
 
 
@@ -282,6 +285,7 @@ add_reminder_conv = ConversationHandler(
     },
     fallbacks=[CommandHandler("cancel", add_reminder_cancel)],
     per_message=False,
+    allow_reentry=True,
 )
 
 
