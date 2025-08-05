@@ -120,11 +120,21 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             if ":" in val:
                 reminder.time = val
             else:
-                reminder.interval_hours = int(val)
+                try:
+                    reminder.interval_hours = int(val)
+                except ValueError:
+                    if message:
+                        await message.reply_text("Интервал должен быть числом.")
+                    return
         elif rtype in {"long_insulin", "medicine"}:
             reminder.time = val
         elif rtype == "xe_after":
-            reminder.minutes_after = int(val)
+            try:
+                reminder.minutes_after = int(val)
+            except ValueError:
+                if message:
+                    await message.reply_text("Значение должно быть числом.")
+                return
         commit_session(session)
         rid = reminder.id
     for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
