@@ -195,7 +195,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/menu - главное меню (вернуться к кнопкам)\n"
         "/profile - мой профиль\n"
         "/report - отчёт\n"
-        "/sugar - расчёт сахара\n"
+        "/sugar - уровень сахара\n"
         "/gpt - чат с GPT\n"
         "/reminders - список напоминаний\n"
         "/addreminder - добавить напоминание\n"
