@@ -180,11 +180,12 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     keyboard = InlineKeyboardMarkup(
         [[InlineKeyboardButton("Далее", callback_data="onb_next")]]
     )
-    await update.message.reply_photo(
-        photo=open("assets/demo.jpg", "rb"),
-        caption="2/3. Вот пример распознавания еды.",
-        reply_markup=keyboard,
-    )
+    with open("assets/demo.jpg", "rb") as photo:
+        await update.message.reply_photo(
+            photo=photo,
+            caption="2/3. Вот пример распознавания еды.",
+            reply_markup=keyboard,
+        )
     return ONB_DEMO
 
 
