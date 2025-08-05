@@ -27,7 +27,6 @@ def test_log_level_debug(monkeypatch):
 
     class DummyApp:
         bot = DummyBot()
-        post_init = []
 
         def run_polling(self):
             return None
