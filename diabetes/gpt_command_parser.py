@@ -1,7 +1,7 @@
-import asyncio
 import json
 import logging
 import re
+import asyncio
 
 from openai import OpenAIError
 
