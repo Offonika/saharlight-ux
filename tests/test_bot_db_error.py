@@ -18,7 +18,13 @@ def test_main_logs_db_error(monkeypatch, caplog):
         with pytest.raises(SystemExit) as exc:
             asyncio.run(bot.main())
 
-    assert exc.value.code == 1
+    assert (
+        exc.value.code
+        == (
+            "Database initialization failed. Please check your configuration "
+            "and try again."
+        )
+    )
     assert any(
         "Failed to initialize the database" in record.getMessage()
         for record in caplog.records
