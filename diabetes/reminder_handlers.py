@@ -151,7 +151,12 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if message:
             await message.reply_text("Укажите ID: /delreminder <id>")
         return
-    rid = int(args[0])
+    try:
+        rid = int(args[0])
+    except ValueError:
+        if message:
+            await message.reply_text("ID должен быть числом: /delreminder <id>")
+        return
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
         if not rem:
