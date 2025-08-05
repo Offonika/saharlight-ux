@@ -77,11 +77,21 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_id = update.effective_user.id
     with SessionLocal() as session:
         rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
+    keyboard = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("➕ Добавить", callback_data="add_reminder")]]
+    )
     if not rems:
-        await update.message.reply_text("У вас нет напоминаний.")
+        await update.message.reply_text(
+            "У вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder.",
+            reply_markup=keyboard,
+        )
         return
     lines = [f"{r.id}. {_describe(r)}" for r in rems]
-    await update.message.reply_text("\n".join(lines))
+    text = (
+        "Ваши напоминания (нажмите кнопку ниже, чтобы добавить новое):\n"
+        + "\n".join(lines)
+    )
+    await update.message.reply_text(text, reply_markup=keyboard)
 
 
 async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -142,12 +152,14 @@ async def add_reminder_start(
 ) -> int:
     """Start reminder creation and ask for type."""
     user_id = update.effective_user.id
+    query = getattr(update, "callback_query", None)
+    message = update.message or (query.message if query else None)
+    if query:
+        await query.answer()
     with SessionLocal() as session:
-        count = (
-            session.query(Reminder).filter_by(telegram_id=user_id).count()
-        )
+        count = session.query(Reminder).filter_by(telegram_id=user_id).count()
     if count >= MAX_REMINDERS:
-        await update.message.reply_text("Можно создать не более 5 напоминаний.")
+        await message.reply_text("Можно создать не более 5 напоминаний.")
         return ConversationHandler.END
     keyboard = InlineKeyboardMarkup(
         [
@@ -170,7 +182,7 @@ async def add_reminder_start(
             ],
         ]
     )
-    await update.message.reply_text(
+    await message.reply_text(
         "Выберите тип напоминания:", reply_markup=keyboard
     )
     return REMINDER_TYPE
@@ -260,7 +272,10 @@ async def add_reminder_cancel(
 
 
 add_reminder_conv = ConversationHandler(
-    entry_points=[CommandHandler("addreminder", add_reminder_start)],
+    entry_points=[
+        CommandHandler("addreminder", add_reminder_start),
+        CallbackQueryHandler(add_reminder_start, pattern="^add_reminder$")
+    ],
     states={
         REMINDER_TYPE: [CallbackQueryHandler(add_reminder_type, pattern="^rem_type:")],
         REMINDER_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_reminder_value)],
