@@ -3,7 +3,6 @@
 import importlib
 import logging
 import sys
-import asyncio
 
 
 def test_log_level_debug(monkeypatch):
@@ -26,27 +25,10 @@ def test_log_level_debug(monkeypatch):
         async def set_my_commands(self, commands):
             return None
 
-    class DummyUpdater:
-        async def start_polling(self):
-            return None
-
-        async def idle(self):
-            return None
-
     class DummyApp:
         bot = DummyBot()
-        updater = DummyUpdater()
 
-        async def initialize(self):
-            return None
-
-        async def start(self):
-            return None
-
-        async def stop(self):
-            return None
-
-        async def shutdown(self):
+        def run_polling(self):
             return None
 
     class DummyBuilder:
@@ -71,7 +53,7 @@ def test_log_level_debug(monkeypatch):
     root.handlers.clear()
 
     try:
-        asyncio.run(bot.main())
+        bot.main()
         assert root.level == logging.DEBUG
     finally:
         root.handlers[:] = previous_handlers

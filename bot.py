@@ -1,4 +1,4 @@
-# bot.py
+"""Bot entry point and configuration."""
 
 from diabetes.common_handlers import register_handlers
 from diabetes.db import init_db
@@ -13,8 +13,8 @@ import sys
 logger = logging.getLogger(__name__)
 
 
-async def main() -> None:
-    """Configure and start the bot."""
+def main() -> None:
+    """Configure and run the bot."""
     logging.basicConfig(
         level=LOG_LEVEL,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -24,7 +24,7 @@ async def main() -> None:
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:
         logger.error(
-            "BOT_TOKEN is not set. Please provide the environment variable."
+            "BOT_TOKEN is not set. Please provide the environment variable.",
         )
         sys.exit(1)
 
@@ -49,15 +49,10 @@ async def main() -> None:
         BotCommand("delreminder", "Удалить напоминание"),
         BotCommand("help", "Справка"),
     ]
-    await application.bot.set_my_commands(commands)
+    asyncio.run(application.bot.set_my_commands(commands))
 
-    await application.initialize()
-    await application.start()
-    await application.updater.start_polling()
-    await application.updater.idle()
+    application.run_polling()
 
-    await application.stop()
-    await application.shutdown()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
