@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import datetime
+import logging
 
 from telegram.ext import ContextTypes
 
 from diabetes.db import SessionLocal, Alert, Profile
 from diabetes.common_handlers import commit_session
 from diabetes.utils import get_coords_and_link
+
+logger = logging.getLogger(__name__)
 
 MAX_REPEATS = 3
 
@@ -81,7 +84,15 @@ async def check_alert(update, context: ContextTypes.DEFAULT_TYPE, sugar: float) 
                 )
                 await context.bot.send_message(chat_id=user_id, text=msg)
                 if profile.sos_contact and profile.sos_alerts_enabled:
-                    await context.bot.send_message(chat_id=profile.sos_contact, text=msg)
+                    if profile.sos_contact.startswith("@"):
+                        await context.bot.send_message(
+                            chat_id=profile.sos_contact, text=msg
+                        )
+                    else:
+                        logger.info(
+                            "SOS contact '%s' is not a Telegram username; skipping",
+                            profile.sos_contact,
+                        )
                 for a in alerts:
                     a.resolved = True
                 commit_session(session)

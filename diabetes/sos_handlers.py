@@ -25,17 +25,16 @@ async def sos_contact_start(
 ) -> int:
     """Prompt user to enter emergency contact."""
     await update.message.reply_text(
-        "Введите контакт в Telegram (@username) или телефон.",
+        "Введите контакт в Telegram (@username). Телефоны не поддерживаются.",
         reply_markup=back_keyboard,
     )
     return SOS_CONTACT
 
 
 def _is_valid_contact(text: str) -> bool:
-    """Validate telegram username or phone number."""
+    """Validate telegram username."""
     username = re.fullmatch(r"@\w{5,32}", text)
-    phone = re.fullmatch(r"\+?\d{5,15}", text)
-    return bool(username or phone)
+    return bool(username)
 
 
 async def sos_contact_save(
@@ -45,7 +44,7 @@ async def sos_contact_save(
     contact = update.message.text.strip()
     if not _is_valid_contact(contact):
         await update.message.reply_text(
-            "❗ Укажите @username или телефон в международном формате.",
+            "❗ Укажите @username. Телефоны не поддерживаются.",
             reply_markup=back_keyboard,
         )
         return SOS_CONTACT
