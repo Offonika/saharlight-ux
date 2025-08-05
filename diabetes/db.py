@@ -84,6 +84,7 @@ class Reminder(Base):
     time = Column(String)  # HH:MM format for daily reminders
     interval_hours = Column(Integer)  # for repeating reminders
     minutes_after = Column(Integer)  # for after-meal reminders
+    is_enabled = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     user = relationship("User")
 

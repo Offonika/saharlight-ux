@@ -46,7 +46,33 @@ def _describe(rem: Reminder) -> str:
     return rem.type
 
 
+def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
+    with SessionLocal() as session:
+        rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
+    add_button = [InlineKeyboardButton("➕ Добавить", callback_data="add_reminder")]
+    if not rems:
+        text = (
+            "У вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
+        )
+        return text, InlineKeyboardMarkup([add_button])
+    lines = []
+    buttons = []
+    for r in rems:
+        icon = "🔔" if r.is_enabled else "🔕"
+        lines.append(f"{icon} {r.id}. {_describe(r)}")
+        buttons.append(
+            [InlineKeyboardButton(f"{icon} {r.id}", callback_data=f"toggle:{r.id}")]
+        )
+    buttons.append(add_button)
+    text = (
+        "Ваши напоминания (нажмите, чтобы переключить):\n" + "\n".join(lines)
+    )
+    return text, InlineKeyboardMarkup(buttons)
+
+
 def schedule_reminder(rem: Reminder, job_queue) -> None:
+    if not rem.is_enabled:
+        return
     name = f"reminder_{rem.id}"
     if rem.type in {"sugar", "long_insulin", "medicine"}:
         if rem.time:
@@ -76,22 +102,7 @@ def schedule_all(job_queue) -> None:
 
 async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    with SessionLocal() as session:
-        rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
-    keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("➕ Добавить", callback_data="add_reminder")]]
-    )
-    if not rems:
-        await update.message.reply_text(
-            "У вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder.",
-            reply_markup=keyboard,
-        )
-        return
-    lines = [f"{r.id}. {_describe(r)}" for r in rems]
-    text = (
-        "Ваши напоминания (нажмите кнопку ниже, чтобы добавить новое):\n"
-        + "\n".join(lines)
-    )
+    text, keyboard = _render_reminders(user_id)
     await update.message.reply_text(text, reply_markup=keyboard)
 
 
@@ -395,11 +406,40 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await query.edit_message_text("❌ Напоминание отменено")
 
 
+async def toggle_reminder_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    rid_str = query.data.split(":", 1)[1]
+    try:
+        rid = int(rid_str)
+    except ValueError:
+        await query.answer("Некорректный ID", show_alert=True)
+        return
+    user_id = update.effective_user.id
+    with SessionLocal() as session:
+        rem = session.get(Reminder, rid)
+        if not rem or rem.telegram_id != user_id:
+            await query.answer("Не найдено", show_alert=True)
+            return
+        rem.is_enabled = not rem.is_enabled
+        commit_session(session)
+        session.refresh(rem)
+    if rem.is_enabled:
+        schedule_reminder(rem, context.job_queue)
+        for_text = "🔔 Включено"
+    else:
+        for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
+            job.schedule_removal()
+        for_text = "🔕 Отключено"
+    text, keyboard = _render_reminders(user_id)
+    await query.edit_message_text(text, reply_markup=keyboard)
+    await query.answer(for_text)
+
+
 def schedule_after_meal(user_id: int, job_queue) -> None:
     with SessionLocal() as session:
         rems = (
             session.query(Reminder)
-            .filter_by(telegram_id=user_id, type="xe_after")
+            .filter_by(telegram_id=user_id, type="xe_after", is_enabled=True)
             .all()
         )
     for rem in rems:

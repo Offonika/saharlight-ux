@@ -333,6 +333,7 @@ def register_handlers(app: Application) -> None:
         CallbackQueryHandler(profile_handlers.profile_back, pattern="^profile_back$")
     )
     app.add_handler(CallbackQueryHandler(reminder_handlers.reminder_callback, pattern="^remind_"))
+    app.add_handler(CallbackQueryHandler(reminder_handlers.toggle_reminder_cb, pattern="^toggle:"))
     app.add_handler(CallbackQueryHandler(callback_router))
 
     job_queue = app.job_queue
