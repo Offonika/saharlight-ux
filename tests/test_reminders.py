@@ -100,7 +100,12 @@ async def test_add_reminder_conversation_success(monkeypatch):
     msg3 = DummyMessage(text="23:00")
     update3 = SimpleNamespace(message=msg3, effective_user=SimpleNamespace(id=1))
     state3 = await handlers.add_reminder_value(update3, context)
-    assert state3 == handlers.ConversationHandler.END
+    assert state3 == handlers.REMINDER_CONFIRM
+
+    cq_save = DummyCallbackQuery("rem_confirm:save", DummyMessage())
+    update_conf = SimpleNamespace(callback_query=cq_save, effective_user=SimpleNamespace(id=1))
+    state4 = await handlers.add_reminder_confirm(update_conf, context)
+    assert state4 == handlers.ConversationHandler.END
 
     with TestSession() as session:
         rem = session.query(Reminder).first()
@@ -143,8 +148,12 @@ async def test_add_multiple_reminders_sequential(monkeypatch):
     msg_val1 = DummyMessage(text="08:00")
     update3 = SimpleNamespace(message=msg_val1, effective_user=SimpleNamespace(id=1))
     state = await handlers.add_reminder_value(update3, context)
+    assert state == handlers.REMINDER_CONFIRM
+    cq_save1 = DummyCallbackQuery("rem_confirm:save", DummyMessage())
+    update_conf1 = SimpleNamespace(callback_query=cq_save1, effective_user=SimpleNamespace(id=1))
+    state = await handlers.add_reminder_confirm(update_conf1, context)
     assert state == handlers.ConversationHandler.END
-    assert "добавить ещё" in msg_val1.texts[0].lower()
+    assert "добавить ещё" in cq_save1.message.edited[0].lower()
 
     # Second reminder
     msg4 = DummyMessage()
@@ -160,8 +169,12 @@ async def test_add_multiple_reminders_sequential(monkeypatch):
     msg_val2 = DummyMessage(text="09:00")
     update6 = SimpleNamespace(message=msg_val2, effective_user=SimpleNamespace(id=1))
     state = await handlers.add_reminder_value(update6, context)
+    assert state == handlers.REMINDER_CONFIRM
+    cq_save2 = DummyCallbackQuery("rem_confirm:save", DummyMessage())
+    update_conf2 = SimpleNamespace(callback_query=cq_save2, effective_user=SimpleNamespace(id=1))
+    state = await handlers.add_reminder_confirm(update_conf2, context)
     assert state == handlers.ConversationHandler.END
-    assert "добавить ещё" in msg_val2.texts[0].lower()
+    assert "добавить ещё" in cq_save2.message.edited[0].lower()
 
     with TestSession() as session:
         rems = session.query(Reminder).filter_by(telegram_id=1).all()
@@ -311,7 +324,12 @@ async def test_edit_reminder(monkeypatch):
     msg = DummyMessage(text="09:00")
     update2 = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
     state2 = await handlers.add_reminder_value(update2, context)
-    assert state2 == handlers.ConversationHandler.END
+    assert state2 == handlers.REMINDER_CONFIRM
+
+    cq_save = DummyCallbackQuery("rem_confirm:save", DummyMessage())
+    update_conf = SimpleNamespace(callback_query=cq_save, effective_user=SimpleNamespace(id=1))
+    state3 = await handlers.add_reminder_confirm(update_conf, context)
+    assert state3 == handlers.ConversationHandler.END
 
     with TestSession() as session:
         assert session.get(Reminder, 1).time == "09:00"
