@@ -288,6 +288,13 @@ async def onboarding_poll_answer(
     logger.info("Onboarding poll result from %s: %s", user_id, option)
 
 
+async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from .dose_handlers import _cancel_then, photo_prompt
+
+    handler = _cancel_then(photo_prompt)
+    return await handler(update, context)
+
+
 onboarding_conv = ConversationHandler(
     entry_points=[CommandHandler("start", start_command)],
     states={
@@ -312,7 +319,10 @@ onboarding_conv = ConversationHandler(
             CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
     },
-    fallbacks=[CommandHandler("cancel", onboarding_skip)],
+    fallbacks=[
+        CommandHandler("cancel", onboarding_skip),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), _photo_fallback),
+    ],
     per_message=False,
 )
 

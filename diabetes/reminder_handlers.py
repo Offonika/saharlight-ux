@@ -274,6 +274,13 @@ async def add_reminder_cancel(
     return ConversationHandler.END
 
 
+async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from .dose_handlers import _cancel_then, photo_prompt
+
+    handler = _cancel_then(photo_prompt)
+    return await handler(update, context)
+
+
 add_reminder_conv = ConversationHandler(
     entry_points=[
         CommandHandler("addreminder", add_reminder_start),
@@ -283,7 +290,10 @@ add_reminder_conv = ConversationHandler(
         REMINDER_TYPE: [CallbackQueryHandler(add_reminder_type, pattern="^rem_type:")],
         REMINDER_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_reminder_value)],
     },
-    fallbacks=[CommandHandler("cancel", add_reminder_cancel)],
+    fallbacks=[
+        CommandHandler("cancel", add_reminder_cancel),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), _photo_fallback),
+    ],
     per_message=False,
     allow_reentry=True,
 )

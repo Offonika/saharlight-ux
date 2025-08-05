@@ -16,6 +16,8 @@ from telegram.ext import (
 from diabetes.db import SessionLocal, Profile
 from diabetes.ui import back_keyboard, menu_keyboard
 from .common_handlers import commit_session
+from . import dose_handlers
+from .dose_handlers import _cancel_then
 
 SOS_CONTACT, = range(1)
 
@@ -84,6 +86,10 @@ sos_contact_conv = ConversationHandler(
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), sos_contact_cancel),
         CommandHandler("cancel", sos_contact_cancel),
+        MessageHandler(
+            filters.Regex("^📷 Фото еды$"),
+            _cancel_then(dose_handlers.photo_prompt),
+        ),
     ],
     per_message=False,
 )
