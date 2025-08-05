@@ -9,11 +9,21 @@ from diabetes.common_handlers import commit_session
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self, text=None):
+        self.text = text
         self.texts = []
 
     async def reply_text(self, text, **kwargs):
         self.texts.append(text)
+
+
+class DummyCallbackQuery:
+    def __init__(self, data, message):
+        self.data = data
+        self.message = message
+
+    async def answer(self):
+        pass
 
 
 class DummyBot:
@@ -53,7 +63,7 @@ class DummyJobQueue:
 
 
 @pytest.mark.asyncio
-async def test_create_update_delete_reminder(monkeypatch):
+async def test_add_reminder_conversation_success(monkeypatch):
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -65,36 +75,38 @@ async def test_create_update_delete_reminder(monkeypatch):
         session.commit()
 
     job_queue = DummyJobQueue()
+    context = SimpleNamespace(user_data={}, job_queue=job_queue)
 
     msg = DummyMessage()
     update = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(args=["sugar", "23:00"], job_queue=job_queue)
-    await handlers.add_reminder(update, context)
-    assert "Сохранено" in msg.texts[0]
-
-    with TestSession() as session:
-        rems = session.query(Reminder).all()
-        assert len(rems) == 1
-        rid = rems[0].id
+    state = await handlers.add_reminder_start(update, context)
+    assert state == handlers.REMINDER_TYPE
 
     msg2 = DummyMessage()
-    update2 = SimpleNamespace(message=msg2, effective_user=SimpleNamespace(id=1))
-    context2 = SimpleNamespace(args=[str(rid), "sugar", "6"], job_queue=job_queue)
-    await handlers.add_reminder(update2, context2)
-    with TestSession() as session:
-        rem = session.get(Reminder, rid)
-        assert rem.interval_hours == 6
+    cq = DummyCallbackQuery("rem_type:sugar", msg2)
+    update2 = SimpleNamespace(callback_query=cq, effective_user=SimpleNamespace(id=1))
+    state2 = await handlers.add_reminder_type(update2, context)
+    assert state2 == handlers.REMINDER_VALUE
 
-    msg3 = DummyMessage()
+    msg3 = DummyMessage(text="23:00")
     update3 = SimpleNamespace(message=msg3, effective_user=SimpleNamespace(id=1))
-    context3 = SimpleNamespace(args=[str(rid)], job_queue=job_queue)
-    await handlers.delete_reminder(update3, context3)
+    state3 = await handlers.add_reminder_value(update3, context)
+    assert state3 == handlers.ConversationHandler.END
+
+    with TestSession() as session:
+        rem = session.query(Reminder).first()
+        rid = rem.id
+
+    msg_del = DummyMessage()
+    update_del = SimpleNamespace(message=msg_del, effective_user=SimpleNamespace(id=1))
+    context_del = SimpleNamespace(args=[str(rid)], job_queue=job_queue)
+    await handlers.delete_reminder(update_del, context_del)
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_missing_value(monkeypatch):
+async def test_add_reminder_invalid_input(monkeypatch):
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -103,18 +115,54 @@ async def test_add_reminder_missing_value(monkeypatch):
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="23:00"))
         session.commit()
+
+    job_queue = DummyJobQueue()
+    context = SimpleNamespace(user_data={}, job_queue=job_queue)
 
     msg = DummyMessage()
     update = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(args=["1", "sugar"], job_queue=DummyJobQueue())
+    await handlers.add_reminder_start(update, context)
 
-    result = await handlers.add_reminder(update, context)
+    cq = DummyCallbackQuery("rem_type:sugar", DummyMessage())
+    update2 = SimpleNamespace(callback_query=cq, effective_user=SimpleNamespace(id=1))
+    await handlers.add_reminder_type(update2, context)
 
-    assert result is None
-    assert msg.texts == ["Формат: /addreminder [id] <type> <time|interval>"]
+    msg_bad = DummyMessage(text="abc")
+    update_bad = SimpleNamespace(message=msg_bad, effective_user=SimpleNamespace(id=1))
+    state = await handlers.add_reminder_value(update_bad, context)
+    assert state == handlers.REMINDER_VALUE
+    assert msg_bad.texts == ["Интервал должен быть числом."]
+    with TestSession() as session:
+        assert session.query(Reminder).count() == 0
 
+
+@pytest.mark.asyncio
+async def test_add_reminder_cancel(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    job_queue = DummyJobQueue()
+    context = SimpleNamespace(user_data={}, job_queue=job_queue)
+
+    msg = DummyMessage()
+    update = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    state = await handlers.add_reminder_start(update, context)
+    assert state == handlers.REMINDER_TYPE
+
+    cancel_msg = DummyMessage()
+    cancel_update = SimpleNamespace(message=cancel_msg, effective_user=SimpleNamespace(id=1))
+    end_state = await handlers.add_reminder_cancel(cancel_update, context)
+    assert end_state == handlers.ConversationHandler.END
+    with TestSession() as session:
+        assert session.query(Reminder).count() == 0
 
 @pytest.mark.asyncio
 async def test_trigger_job_logs(monkeypatch):
