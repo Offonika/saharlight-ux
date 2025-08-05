@@ -506,7 +506,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    fields = parsed["fields"]
+    fields = parsed.get("fields")
+    if not isinstance(fields, dict):
+        await update.message.reply_text(
+            "Не удалось распознать данные, попробуйте ещё раз."
+        )
+        return
     entry_date = parsed.get("entry_date")
     time_str = parsed.get("time")
 
