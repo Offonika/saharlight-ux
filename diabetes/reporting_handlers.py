@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+import time
 
 from telegram import (
     Update,
@@ -212,30 +213,34 @@ async def send_report(
     thread_id = context.user_data.get("thread_id")
     if thread_id:
         try:
-            run = send_message(thread_id=thread_id, content=prompt)
-            max_attempts = 15
-            for _ in range(max_attempts):
-                if run.status in ("completed", "failed", "cancelled", "expired"):
-                    break
-                await asyncio.sleep(2)
-                run = _get_client().beta.threads.runs.retrieve(
-                    thread_id=run.thread_id,
-                    run_id=run.id,
-                )
-            if run.status == "completed":
-                messages = _get_client().beta.threads.messages.list(
-                    thread_id=run.thread_id
-                )
-                gpt_text = next(
-                    (
-                        m.content[0].text.value
-                        for m in messages.data
-                        if m.role == "assistant" and m.content
-                    ),
-                    default_gpt_text,
-                )
-            else:
+            def _fetch_recommendations() -> str:
+                run = send_message(thread_id=thread_id, content=prompt)
+                max_attempts = 15
+                for _ in range(max_attempts):
+                    if run.status in ("completed", "failed", "cancelled", "expired"):
+                        break
+                    time.sleep(2)
+                    run = _get_client().beta.threads.runs.retrieve(
+                        thread_id=run.thread_id,
+                        run_id=run.id,
+                    )
+                if run.status == "completed":
+                    messages = _get_client().beta.threads.messages.list(
+                        thread_id=run.thread_id
+                    )
+                    return next(
+                        (
+                            m.content[0].text.value
+                            for m in messages.data
+                            if m.role == "assistant" and m.content
+                        ),
+                        default_gpt_text,
+                    )
                 logging.error("[GPT][RUN_FAILED] status=%s", run.status)
+                return default_gpt_text
+
+            gpt_task = asyncio.to_thread(_fetch_recommendations)
+            gpt_text = await gpt_task
         except Exception:
             logging.exception("[GPT] Failed to get recommendations")
     else:
