@@ -116,7 +116,7 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return ONB_PROFILE_ICR
     context.user_data["profile_icr"] = icr
     await update.message.reply_text(
-        "1/3. Введите коэффициент чувствительности (КЧ) ммоль/л.",
+        "2/3. Введите коэффициент чувствительности (КЧ) ммоль/л.",
         reply_markup=_skip_markup(),
     )
     return ONB_PROFILE_CF
@@ -139,7 +139,7 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         return ONB_PROFILE_CF
     context.user_data["profile_cf"] = cf
     await update.message.reply_text(
-        "1/3. Введите целевой уровень сахара (ммоль/л).",
+        "3/3. Введите целевой уровень сахара (ммоль/л).",
         reply_markup=_skip_markup(),
     )
     return ONB_PROFILE_TARGET
