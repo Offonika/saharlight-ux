@@ -34,9 +34,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     help_text = (
         "❗ Формат команды:\n"
-        "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой> <низкий> <высокий>\n"
+        "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой ммоль/л> <низкий ммоль/л> <высокий ммоль/л>\n"
         "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой> low=<низкий> high=<высокий>\n"
-        "Пример: /profile icr=10 cf=2 target=6 low=4 high=9"
+        "Пример: /profile 10 2 6 4 9 — ИКХ 10 г/ед., КЧ 2 ммоль/л, целевой 6 ммоль/л, низкий 4 ммоль/л, высокий 9 ммоль/л"
     )
 
     if len(args) == 1 and args[0].lower() == "help":
@@ -45,7 +45,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if not args:
         await update.message.reply_text(
-            "Введите коэффициент ИКХ (г/ед.):",
+            "Введите коэффициент ИКХ (г/ед.) — сколько граммов углеводов покрывает 1 ед. быстрого инсулина:",
             reply_markup=back_keyboard,
         )
         return PROFILE_ICR
@@ -117,6 +117,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             f"• КЧ = {cf} ммоль/л (низковато)\n\n"
             "Если вы хотели ввести наоборот, отправьте:\n"
             f"/profile {cf} {icr} {target} {low} {high}\n"
+            f"(ИКХ {cf}, КЧ {icr}, целевой {target}, низкий {low}, высокий {high})\n"
         )
 
     user_id = update.effective_user.id
@@ -158,9 +159,9 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text(
             "Ваш профиль пока не настроен.\n\n"
             "Чтобы настроить профиль, введите команду:\n"
-            "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой> <низкий> <высокий>\n"
+            "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой ммоль/л> <низкий ммоль/л> <высокий ммоль/л>\n"
             "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой> low=<низкий> high=<высокий>\n"
-            "Пример: /profile icr=10 cf=2 target=6 low=4 high=9",
+            "Пример: /profile 10 2 6 4 9 — ИКХ 10 г/ед., КЧ 2 ммоль/л, целевой 6 ммоль/л, низкий 4 ммоль/л, высокий 9 ммоль/л",
             parse_mode="Markdown",
         )
         return
@@ -303,7 +304,7 @@ async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     await query.answer()
     await query.message.delete()
     await query.message.reply_text(
-        "Введите коэффициент ИКХ (г/ед.):",
+        "Введите коэффициент ИКХ (г/ед.) — сколько граммов углеводов покрывает 1 ед. быстрого инсулина:",
         reply_markup=back_keyboard,
     )
     return PROFILE_ICR
@@ -325,7 +326,7 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         return PROFILE_ICR
     context.user_data["profile_icr"] = icr
     await update.message.reply_text(
-        "Введите коэффициент чувствительности (КЧ) ммоль/л.",
+        "Введите коэффициент чувствительности (КЧ) ммоль/л — на сколько ммоль/л 1 ед. инсулина снижает сахар:",
         reply_markup=back_keyboard,
     )
     return PROFILE_CF
@@ -336,7 +337,7 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
-            "Введите коэффициент ИКХ (г/ед.):",
+            "Введите коэффициент ИКХ (г/ед.) — сколько граммов углеводов покрывает 1 ед. быстрого инсулина:",
             reply_markup=back_keyboard,
         )
         return PROFILE_ICR
@@ -351,7 +352,7 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return PROFILE_CF
     context.user_data["profile_cf"] = cf
     await update.message.reply_text(
-        "Введите целевой уровень сахара (ммоль/л).",
+        "Введите целевой уровень сахара (ммоль/л) — к какому значению вы стремитесь:",
         reply_markup=back_keyboard,
     )
     return PROFILE_TARGET
@@ -362,7 +363,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
-            "Введите коэффициент чувствительности (КЧ) ммоль/л.",
+            "Введите коэффициент чувствительности (КЧ) ммоль/л — на сколько ммоль/л 1 ед. инсулина снижает сахар:",
             reply_markup=back_keyboard,
         )
         return PROFILE_CF
@@ -381,7 +382,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return PROFILE_TARGET
     context.user_data["profile_target"] = target
     await update.message.reply_text(
-        "Введите нижний порог сахара (ммоль/л).",
+        "Введите нижний порог сахара (ммоль/л) — ниже него бот предупредит о гипогликемии:",
         reply_markup=back_keyboard,
     )
     return PROFILE_LOW
@@ -392,7 +393,7 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
-            "Введите целевой уровень сахара (ммоль/л).",
+            "Введите целевой уровень сахара (ммоль/л) — к какому значению вы стремитесь:",
             reply_markup=back_keyboard,
         )
         return PROFILE_TARGET
@@ -411,7 +412,7 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         return PROFILE_LOW
     context.user_data["profile_low"] = low
     await update.message.reply_text(
-        "Введите верхний порог сахара (ммоль/л).",
+        "Введите верхний порог сахара (ммоль/л) — выше него бот предупредит о гипергликемии:",
         reply_markup=back_keyboard,
     )
     return PROFILE_HIGH
@@ -422,7 +423,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
-            "Введите нижний порог сахара (ммоль/л).",
+            "Введите нижний порог сахара (ммоль/л) — ниже него бот предупредит о гипогликемии:",
             reply_markup=back_keyboard,
         )
         return PROFILE_LOW
@@ -467,6 +468,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             f"• КЧ = {cf} ммоль/л (низковато)\n\n"
             "Если вы хотели ввести наоборот, отправьте:\n"
             f"/profile {cf} {icr} {target} {low} {high}\n"
+            f"(ИКХ {cf}, КЧ {icr}, целевой {target}, низкий {low}, высокий {high})\n"
         )
     await update.message.reply_text(
         "✅ Профиль обновлён:\n"
