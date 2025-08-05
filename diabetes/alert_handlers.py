@@ -41,12 +41,14 @@ def evaluate_sugar(user_id: int, sugar: float, job_queue) -> None:
             atype = "hypo" if low is not None and sugar < low else "hyper"
             alert = Alert(user_id=user_id, sugar=sugar, type=atype)
             session.add(alert)
-            commit_session(session)
+            if not commit_session(session):
+                return
             schedule_alert(user_id, job_queue)
         else:
             for a in active:
                 a.resolved = True
-            commit_session(session)
+            if not commit_session(session):
+                return
             for job in job_queue.get_jobs_by_name(f"alert_{user_id}"):
                 job.schedule_removal()
 
