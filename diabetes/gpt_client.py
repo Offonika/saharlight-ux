@@ -24,7 +24,11 @@ def _get_client():
 
 def create_thread() -> str:
     """Создаём пустой thread (ассистент задаётся позже, в runs.create)."""
-    thread = _get_client().beta.threads.create()
+    try:
+        thread = _get_client().beta.threads.create()
+    except OpenAIError as exc:
+        logging.exception("[OpenAI] Failed to create thread: %s", exc)
+        raise
     return thread.id
 
 
