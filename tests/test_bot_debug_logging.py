@@ -36,6 +36,9 @@ def test_log_level_debug(monkeypatch):
         def token(self, _):
             return self
 
+        def post_init(self, _):
+            return self
+
         def build(self):
             return DummyApp()
 
