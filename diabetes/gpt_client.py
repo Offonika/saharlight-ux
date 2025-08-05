@@ -68,8 +68,11 @@ def send_message(
                 {"type": "text", "text": content or "Что изображено на фото?"},
             ]
             upload_succeeded = True
-        except Exception as e:
-            logging.exception("[OpenAI] Failed to upload %s: %s", image_path, e)
+        except OSError as exc:
+            logging.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
+            raise
+        except OpenAIError as exc:
+            logging.exception("[OpenAI] Failed to upload %s: %s", image_path, exc)
             raise
         finally:
             if upload_succeeded and not keep_image:
