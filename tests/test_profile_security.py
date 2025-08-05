@@ -185,7 +185,7 @@ async def test_profile_security_shows_reminders(monkeypatch):
     await handlers.profile_security(update, context)
 
     text, _ = query.edits[0]
-    assert "1. Замерить сахар 08:00" in text
+    assert "1. 🔔 Замерить сахар ⏰ 08:00" in text
 
 
 @pytest.mark.asyncio
