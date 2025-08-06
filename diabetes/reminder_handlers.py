@@ -650,5 +650,5 @@ reminder_action_handler = CallbackQueryHandler(
     reminder_action_cb, pattern="^(edit|del|toggle):"
 )
 reminder_edit_handler = MessageHandler(
-    filters.REPLY & filters.TEXT, reminder_edit_reply
+    filters.REPLY & filters.Regex(r"^([0-9]{1,2}:[0-9]{2}|[0-9]+[hd])$"), reminder_edit_reply
 )
