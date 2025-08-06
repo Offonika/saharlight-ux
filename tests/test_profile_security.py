@@ -7,6 +7,7 @@ from diabetes.db import Base, User, Profile, Alert, Reminder
 import diabetes.profile_handlers as handlers
 from diabetes.common_handlers import commit_session
 import diabetes.reminder_handlers as reminder_handlers
+import diabetes.sos_handlers as sos_handlers
 
 
 class DummyMessage:
@@ -224,3 +225,32 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch):
 
     await handlers.profile_security(update_del, context)
     assert called["del"] is True
+
+
+@pytest.mark.asyncio
+async def test_profile_security_sos_contact_calls_handler(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(handlers, "commit_session", commit_session)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Profile(telegram_id=1, icr=10, cf=2, target_bg=6))
+        session.commit()
+
+    called = False
+
+    async def fake_sos(update, context):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(sos_handlers, "sos_contact_start", fake_sos)
+
+    query = DummyQuery("profile_security:sos_contact")
+    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
+
+    await handlers.profile_security(update, context)
+    assert called is True
