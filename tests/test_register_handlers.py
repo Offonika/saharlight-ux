@@ -39,8 +39,8 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     assert reporting_handlers.history_view in callbacks
     assert dose_handlers.chat_with_gpt in callbacks
     assert security_handlers.hypo_alert_faq in callbacks
-    assert reminder_handlers.toggle_reminder_cb in callbacks
-    assert reminder_handlers.delete_reminder_cb in callbacks
+    assert reminder_handlers.reminder_action_cb in callbacks
+    assert reminder_handlers.reminder_edit_reply in callbacks
 
     onb_conv = [
         h

@@ -261,12 +261,13 @@ async def test_toggle_reminder_cb(monkeypatch):
 
     query = DummyCallbackQuery("toggle:1", DummyMessage())
     update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue)
-    await handlers.toggle_reminder_cb(update, context)
+    context = SimpleNamespace(job_queue=job_queue, user_data={})
+    await handlers.reminder_action_cb(update, context)
 
     with TestSession() as session:
         assert not session.get(Reminder, 1).is_enabled
     assert job_queue.get_jobs_by_name("reminder_1")[0].removed
+    assert query.answers[-1] == "Готово ✅"
 
 
 @pytest.mark.asyncio
@@ -289,12 +290,13 @@ async def test_delete_reminder_cb(monkeypatch):
 
     query = DummyCallbackQuery("del:1", DummyMessage())
     update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue)
-    await handlers.delete_reminder_cb(update, context)
+    context = SimpleNamespace(job_queue=job_queue, user_data={})
+    await handlers.reminder_action_cb(update, context)
 
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
     assert job_queue.get_jobs_by_name("reminder_1")[0].removed
+    assert query.answers[-1] == "Готово ✅"
 
 
 @pytest.mark.asyncio
@@ -318,18 +320,12 @@ async def test_edit_reminder(monkeypatch):
     query = DummyCallbackQuery("edit:1", DummyMessage())
     context = SimpleNamespace(user_data={}, job_queue=job_queue)
     update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    state = await handlers.edit_reminder(update, context)
-    assert state == handlers.REMINDER_VALUE
+    await handlers.reminder_action_cb(update, context)
+    assert query.answers[-1] == "Готово ✅"
 
     msg = DummyMessage(text="09:00")
     update2 = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
-    state2 = await handlers.add_reminder_value(update2, context)
-    assert state2 == handlers.REMINDER_CONFIRM
-
-    cq_save = DummyCallbackQuery("rem_confirm:save", DummyMessage())
-    update_conf = SimpleNamespace(callback_query=cq_save, effective_user=SimpleNamespace(id=1))
-    state3 = await handlers.add_reminder_confirm(update_conf, context)
-    assert state3 == handlers.ConversationHandler.END
+    await handlers.reminder_edit_reply(update2, context)
 
     with TestSession() as session:
         assert session.get(Reminder, 1).time == "09:00"
