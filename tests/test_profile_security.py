@@ -209,7 +209,7 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch):
     async def fake_del(update, context):
         called["del"] = True
 
-    monkeypatch.setattr(reminder_handlers, "add_reminder", fake_add)
+    monkeypatch.setattr(reminder_handlers, "add_reminder_start", fake_add)
     monkeypatch.setattr(reminder_handlers, "delete_reminder", fake_del)
 
     query_add = DummyQuery("profile_security:add")
