@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, time, timedelta
+import logging
 
 from diabetes.utils import parse_time_interval
 
@@ -19,6 +20,8 @@ from telegram.ext import (
 
 from diabetes.db import Reminder, ReminderLog, SessionLocal, User
 from .common_handlers import commit_session
+
+logger = logging.getLogger(__name__)
 
 PLAN_LIMITS = {"free": 5, "pro": 10}
 
@@ -156,11 +159,25 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
 
 def schedule_reminder(rem: Reminder, job_queue) -> None:
     if not rem.is_enabled:
+        logger.debug(
+            "Reminder %s disabled, skipping (type=%s, time=%s, interval=%s)",
+            rem.id,
+            rem.type,
+            rem.time,
+            rem.interval_hours,
+        )
         return
     name = f"reminder_{rem.id}"
     if rem.type in {"sugar", "long_insulin", "medicine"}:
         if rem.time:
             hh, mm = map(int, rem.time.split(":"))
+            logger.debug(
+                "Scheduling daily reminder %s at %02d:%02d (type=%s)",
+                rem.id,
+                hh,
+                mm,
+                rem.type,
+            )
             job_queue.run_daily(
                 reminder_job,
                 time=time(hour=hh, minute=mm),
@@ -168,6 +185,12 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
                 name=name,
             )
         elif rem.interval_hours:
+            logger.debug(
+                "Scheduling repeating reminder %s every %s hours (type=%s)",
+                rem.id,
+                rem.interval_hours,
+                rem.type,
+            )
             job_queue.run_repeating(
                 reminder_job,
                 interval=timedelta(hours=rem.interval_hours),
@@ -178,8 +201,12 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
 
 
 def schedule_all(job_queue) -> None:
+    if job_queue is None:
+        logger.warning("schedule_all called without job_queue")
+        return
     with SessionLocal() as session:
         reminders = session.query(Reminder).all()
+    logger.debug("Found %d reminders to schedule", len(reminders))
     for rem in reminders:
         schedule_reminder(rem, job_queue)
 
