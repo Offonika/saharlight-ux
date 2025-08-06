@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta, time
 import logging
 
 from diabetes.utils import parse_time_interval
