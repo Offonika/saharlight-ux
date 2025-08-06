@@ -511,31 +511,36 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "Введите новое время ЧЧ:ММ или новый интервал (5h / 3d)",
             reply_markup=ForceReply(selective=True),
         )
-    else:
-        with SessionLocal() as session:
-            rem = session.get(Reminder, rid)
-            if not rem or rem.telegram_id != user_id:
-                await query.answer("Не найдено", show_alert=True)
-                return
-            if action == "del":
-                session.delete(rem)
-            elif action == "toggle":
-                rem.is_enabled = not rem.is_enabled
-            commit_session(session)
-            if action != "del":
-                session.refresh(rem)
-        if action == "toggle":
-            if rem.is_enabled:
-                schedule_reminder(rem, context.job_queue)
-            else:
-                for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
-                    job.schedule_removal()
-        elif action == "del":
+        await query.answer("Готово ✅")
+        return
+
+    with SessionLocal() as session:
+        rem = session.get(Reminder, rid)
+        if not rem or rem.telegram_id != user_id:
+            await query.answer("Не найдено", show_alert=True)
+            return
+        if action == "del":
+            session.delete(rem)
+        elif action == "toggle":
+            rem.is_enabled = not rem.is_enabled
+        commit_session(session)
+        if action != "del":
+            session.refresh(rem)
+
+    if action == "toggle":
+        if rem.is_enabled:
+            schedule_reminder(rem, context.job_queue)
+        else:
             for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()
-    text, keyboard = _render_reminders(user_id)
-    await query.edit_message_text(text, reply_markup=keyboard, parse_mode="HTML")
-    await query.answer("Готово ✅")
+    elif action == "del":
+        for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
+            job.schedule_removal()
+
+    if action in {"del", "toggle"}:
+        text, keyboard = _render_reminders(user_id)
+        await query.edit_message_text(text, reply_markup=keyboard, parse_mode="HTML")
+        await query.answer("Готово ✅")
 
 
 async def reminder_edit_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
