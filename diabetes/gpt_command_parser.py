@@ -55,15 +55,19 @@ def _extract_first_json(text: str) -> dict | None:
     """Return the first JSON object found in *text* or ``None`` if absent."""
     decoder = json.JSONDecoder()
     idx = 0
-    while True:
-        start = text.find("{", idx)
-        if start == -1:
+    while idx < len(text):
+        match = re.search(r"[\[{]", text[idx:])
+        if not match:
             return None
+        start = idx + match.start()
         try:
             obj, end = decoder.raw_decode(text, start)
-            return obj
+            if isinstance(obj, dict):
+                return obj
+            idx = end
         except json.JSONDecodeError:
             idx = start + 1
+    return None
 
 
 async def parse_command(text: str, timeout: float = 10) -> dict | None:
