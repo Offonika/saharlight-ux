@@ -161,11 +161,12 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
 def schedule_reminder(rem: Reminder, job_queue) -> None:
     if not rem.is_enabled:
         logger.debug(
-            "Reminder %s disabled, skipping (type=%s, time=%s, interval=%s)",
+            "Reminder %s disabled, skipping (type=%s, time=%s, interval=%s, minutes_after=%s)",
             rem.id,
             rem.type,
             rem.time,
             rem.interval_hours,
+            rem.minutes_after,
         )
         return
     name = f"reminder_{rem.id}"
@@ -173,11 +174,12 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
         if rem.time:
             hh, mm = map(int, rem.time.split(":"))
             logger.debug(
-                "Scheduling daily reminder %s at %02d:%02d (type=%s)",
+                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
                 rem.id,
-                hh,
-                mm,
                 rem.type,
+                rem.time,
+                rem.interval_hours,
+                rem.minutes_after,
             )
             job_queue.run_daily(
                 reminder_job,
@@ -187,10 +189,12 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
             )
         elif rem.interval_hours:
             logger.debug(
-                "Scheduling repeating reminder %s every %s hours (type=%s)",
+                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
                 rem.id,
-                rem.interval_hours,
                 rem.type,
+                rem.time,
+                rem.interval_hours,
+                rem.minutes_after,
             )
             job_queue.run_repeating(
                 reminder_job,
@@ -199,6 +203,14 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
                 name=name,
             )
     # xe_after reminders are scheduled when entry is logged
+    logger.debug(
+        "Finished scheduling reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+        rem.id,
+        rem.type,
+        rem.time,
+        rem.interval_hours,
+        rem.minutes_after,
+    )
 
 
 def schedule_all(job_queue) -> None:
@@ -207,9 +219,11 @@ def schedule_all(job_queue) -> None:
         return
     with SessionLocal() as session:
         reminders = session.query(Reminder).all()
-    logger.debug("Found %d reminders to schedule", len(reminders))
+    count = len(reminders)
+    logger.debug("Found %d reminders to schedule", count)
     for rem in reminders:
         schedule_reminder(rem, job_queue)
+    logger.debug("Scheduled %d reminders", count)
 
 
 async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
