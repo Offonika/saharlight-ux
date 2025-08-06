@@ -111,10 +111,17 @@ def parse_time_interval(text: str) -> tuple[str | None, int | None]:
 def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     with SessionLocal() as session:
         rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
-    add_button = [InlineKeyboardButton("➕ Добавить", callback_data="add_reminder")]
+        user = session.query(User).filter_by(telegram_id=user_id).first()
+    limit = _limit_for(user)
+    active_count = sum(1 for r in rems if r.is_enabled)
+    header = f"Ваши напоминания  ({active_count} / {limit} 🔔)"
+    if active_count > limit:
+        header += " ⚠️"
+    add_button = [InlineKeyboardButton("➕ Добавить", callback_data="add_new")]
     if not rems:
         text = (
-            "У вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
+            header
+            + "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
         )
         return text, InlineKeyboardMarkup([add_button])
 
@@ -123,9 +130,10 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     by_photo: list[tuple[str, list[InlineKeyboardButton]]] = []
 
     for r in rems:
-        line = f"{r.id}. {_describe(r)}"
+        title = _describe(r)
         if not r.is_enabled:
-            line = f"<s>{line}</s>"
+            title = f"<s>{title}</s>"
+        line = f"{r.id}. {title}"
         status_icon = "🔔" if r.is_enabled else "🔕"
         row = [
             InlineKeyboardButton("✏️", callback_data=f"edit:{r.id}"),
@@ -154,10 +162,10 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
 
     extend("⏰ По времени", by_time)
     extend("⏱ Интервал", by_interval)
-    extend("📸 После фото", by_photo)
+    extend("📸 Триггер-фото", by_photo)
 
     buttons.append(add_button)
-    text = "Ваши напоминания:\n" + "\n".join(lines)
+    text = header + "\n" + "\n".join(lines)
     return text, InlineKeyboardMarkup(buttons)
 
 
@@ -381,7 +389,7 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 add_reminder_conv = ConversationHandler(
     entry_points=[
         CommandHandler("addreminder", add_reminder_start),
-        CallbackQueryHandler(add_reminder_start, pattern="^add_reminder$"),
+        CallbackQueryHandler(add_reminder_start, pattern="^add_new$"),
     ],
     states={
         REMINDER_TYPE: [

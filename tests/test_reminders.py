@@ -71,6 +71,45 @@ class DummyJobQueue:
         return [j for j in self.jobs if j.name == name]
 
 
+def test_render_reminders_formatting(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    monkeypatch.setattr(handlers, "_limit_for", lambda u: 1)
+    monkeypatch.setattr(handlers, "_describe", lambda r: f"title{r.id}")
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add_all(
+            [
+                Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True),
+                Reminder(
+                    id=2,
+                    telegram_id=1,
+                    type="sugar",
+                    interval_hours=3,
+                    is_enabled=False,
+                ),
+                Reminder(
+                    id=3,
+                    telegram_id=1,
+                    type="xe_after",
+                    minutes_after=15,
+                    is_enabled=True,
+                ),
+            ]
+        )
+        session.commit()
+    text, markup = handlers._render_reminders(1)
+    header, *rest = text.splitlines()
+    assert header == "Ваши напоминания  (2 / 1 🔔) ⚠️"
+    assert "⏰ По времени" in text
+    assert "⏱ Интервал" in text
+    assert "📸 Триггер-фото" in text
+    assert "2. <s>title2</s>" in text
+    assert markup.inline_keyboard[-1][0].callback_data == "add_new"
+
+
 @pytest.mark.asyncio
 async def test_toggle_reminder_cb(monkeypatch):
     engine = create_engine("sqlite:///:memory:")
