@@ -73,6 +73,27 @@ class DummyJobQueue:
         return [j for j in self.jobs if j.name == name]
 
 
+def test_schedule_reminder_replaces_existing_job():
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True)
+        )
+        session.commit()
+    job_queue = DummyJobQueue()
+    with TestSession() as session:
+        rem = session.get(Reminder, 1)
+        handlers.schedule_reminder(rem, job_queue)
+        handlers.schedule_reminder(rem, job_queue)
+    jobs = job_queue.get_jobs_by_name("reminder_1")
+    active_jobs = [j for j in jobs if not j.removed]
+    assert len(active_jobs) == 1
+
+
 def test_render_reminders_formatting(monkeypatch):
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

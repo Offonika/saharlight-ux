@@ -41,10 +41,24 @@ class DummyJobQueue:
         self.jobs = []
 
     def run_daily(self, callback, time, data=None, name=None):
-        self.jobs.append((callback, data, name))
+        self.jobs.append(DummyJob(callback, data, name))
 
     def run_repeating(self, callback, interval, data=None, name=None):
-        self.jobs.append((callback, data, name))
+        self.jobs.append(DummyJob(callback, data, name))
+
+    def get_jobs_by_name(self, name):
+        return [j for j in self.jobs if j.name == name]
+
+
+class DummyJob:
+    def __init__(self, callback, data, name):
+        self.callback = callback
+        self.data = data
+        self.name = name
+        self.removed = False
+
+    def schedule_removal(self):
+        self.removed = True
 
 
 @pytest.mark.asyncio
