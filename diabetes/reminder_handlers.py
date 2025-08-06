@@ -16,6 +16,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from telegram.error import BadRequest
 
 from diabetes.db import Reminder, ReminderLog, SessionLocal, User
 from .common_handlers import commit_session
@@ -490,9 +491,21 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             data={"reminder_id": rid, "chat_id": chat_id},
             name=f"reminder_{rid}",
         )
-        await query.edit_message_text("⏰ Отложено на 10 минут")
+        try:
+            await query.edit_message_text("⏰ Отложено на 10 минут")
+        except BadRequest as exc:
+            if "Message is not modified" in str(exc):
+                await query.answer()
+            else:
+                raise
     else:
-        await query.edit_message_text("❌ Напоминание отменено")
+        try:
+            await query.edit_message_text("❌ Напоминание отменено")
+        except BadRequest as exc:
+            if "Message is not modified" in str(exc):
+                await query.answer()
+            else:
+                raise
 
 
 async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -539,8 +552,15 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if action in {"del", "toggle"}:
         text, keyboard = _render_reminders(user_id)
-        await query.edit_message_text(text, reply_markup=keyboard, parse_mode="HTML")
-        await query.answer("Готово ✅")
+        try:
+            await query.edit_message_text(text, reply_markup=keyboard, parse_mode="HTML")
+        except BadRequest as exc:
+            if "Message is not modified" in str(exc):
+                await query.answer()
+            else:
+                raise
+        else:
+            await query.answer("Готово ✅")
 
 
 async def reminder_edit_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -572,7 +592,13 @@ async def reminder_edit_reply(update: Update, context: ContextTypes.DEFAULT_TYPE
         job.schedule_removal()
     schedule_reminder(rem, context.job_queue)
     text_list, keyboard = _render_reminders(user_id)
-    await msg.edit_text(text_list, reply_markup=keyboard, parse_mode="HTML")
+    try:
+        await msg.edit_text(text_list, reply_markup=keyboard, parse_mode="HTML")
+    except BadRequest as exc:
+        if "Message is not modified" in str(exc):
+            pass
+        else:
+            raise
     context.user_data.pop("edit_reminder_id", None)
     context.user_data.pop("reminders_msg", None)
 
