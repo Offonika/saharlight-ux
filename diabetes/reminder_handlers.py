@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, time
+import datetime
+from datetime import timedelta, time, timezone
 import logging
 
 from diabetes.utils import parse_time_interval
@@ -65,8 +66,12 @@ def _describe(rem: Reminder) -> str:
 def _schedule_with_next(rem: Reminder) -> tuple[str, str]:
     """Return type icon and schedule string with next run time."""
 
-    now = datetime.now()
-    next_dt: datetime | None
+    dt_cls = getattr(datetime, "datetime", datetime)
+    try:
+        now = dt_cls.now(timezone.utc)
+    except TypeError:
+        now = dt_cls.now().replace(tzinfo=timezone.utc)
+    next_dt: datetime.datetime | None
     if rem.time:
         type_icon = "⏰"
         hh, mm = map(int, rem.time.split(":"))
