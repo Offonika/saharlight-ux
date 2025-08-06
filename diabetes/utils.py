@@ -6,6 +6,7 @@ import logging
 import re
 from datetime import datetime, time, timedelta
 from urllib.request import urlopen
+
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib.units import mm
 
