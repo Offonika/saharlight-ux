@@ -35,7 +35,7 @@ async def sos_contact_start(
 
 def _is_valid_contact(text: str) -> bool:
     """Validate telegram username."""
-    username = re.fullmatch(r"@\w{5,32}", text)
+    username = re.fullmatch(r"@[A-Za-z][A-Za-z0-9_]{4,31}", text)
     return bool(username)
 
 
