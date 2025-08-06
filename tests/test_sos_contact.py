@@ -1,14 +1,19 @@
+import os
+import re
 import pytest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, call
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from telegram.ext import ApplicationBuilder, MessageHandler
 
 from diabetes.db import Base, User, Profile
 import diabetes.sos_handlers as sos_handlers
 import diabetes.alert_handlers as alert_handlers
+import diabetes.common_handlers as handlers
 from diabetes.common_handlers import commit_session
+from diabetes.ui import menu_keyboard
 
 
 class DummyMessage:
@@ -118,3 +123,33 @@ async def test_alert_skips_phone_contact(test_session, monkeypatch):
 
     msg = "⚠️ У Ivan критический сахар 3 ммоль/л. 0,0 link"
     assert send_mock.await_args_list == [call(chat_id=1, text=msg)]
+
+
+@pytest.mark.asyncio
+async def test_sos_contact_menu_button_starts_conv(monkeypatch):
+    os.environ.setdefault("OPENAI_API_KEY", "test")
+    os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
+    import diabetes.openai_utils as openai_utils  # noqa: F401
+
+    button_texts = [btn.text for row in menu_keyboard.keyboard for btn in row]
+    assert "🆘 SOS контакт" in button_texts
+
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+    handlers.register_handlers(app)
+    sos_handler = next(
+        h
+        for h in app.handlers[0]
+        if isinstance(h, MessageHandler) and h.callback is sos_handlers.sos_contact_start
+    )
+    pattern = sos_handler.filters.pattern.pattern
+    assert re.fullmatch(pattern, "🆘 SOS контакт")
+
+    message = DummyMessage("🆘 SOS контакт")
+    update = SimpleNamespace(message=message)
+    context = SimpleNamespace()
+    state = await sos_handler.callback(update, context)
+
+    assert state == sos_handlers.SOS_CONTACT
+    assert message.replies == [
+        "Введите контакт в Telegram (@username). Телефоны не поддерживаются."
+    ]

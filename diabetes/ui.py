@@ -30,7 +30,7 @@ menu_keyboard = ReplyKeyboardMarkup(
         [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
         [KeyboardButton("📈 Отчёт"), KeyboardButton("📄 Мой профиль")],
         [KeyboardButton("🕹 Быстрый ввод"), KeyboardButton("ℹ️ Помощь")],
-        [KeyboardButton("⏰ Напоминания")],
+        [KeyboardButton("⏰ Напоминания"), KeyboardButton("🆘 SOS контакт")],
     ],
     resize_keyboard=True,
     one_time_keyboard=False,
