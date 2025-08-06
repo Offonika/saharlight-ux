@@ -339,7 +339,10 @@ def register_handlers(app: Application) -> None:
 
     job_queue = app.job_queue
     if job_queue:
-        reminder_handlers.schedule_all(job_queue)
+        try:
+            reminder_handlers.schedule_all(job_queue)
+        except SQLAlchemyError:
+            logger.exception("Failed to schedule reminders")
 
 
 __all__ = [
