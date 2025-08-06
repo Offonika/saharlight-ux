@@ -83,3 +83,20 @@ async def test_callback_router_unknown_data(caplog):
 
     assert query.edited == ["Команда не распознана"]
     assert "Unrecognized callback data" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_callback_router_ignores_reminder_action():
+    os.environ["OPENAI_API_KEY"] = "test"
+    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    import diabetes.openai_utils  # noqa: F401
+    import diabetes.common_handlers as handlers
+
+    query = DummyQuery("rem_toggle:1")
+    update = SimpleNamespace(callback_query=query)
+    context = SimpleNamespace(user_data={"pending_entry": {}})
+
+    await handlers.callback_router(update, context)
+
+    assert query.edited == []
+    assert "pending_entry" in context.user_data

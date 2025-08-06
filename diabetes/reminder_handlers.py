@@ -125,9 +125,9 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
         line = f"{r.id}. {title}"
         status_icon = "🔔" if r.is_enabled else "🔕"
         row = [
-            InlineKeyboardButton("✏️", callback_data=f"edit:{r.id}"),
-            InlineKeyboardButton("🗑️", callback_data=f"del:{r.id}"),
-            InlineKeyboardButton(status_icon, callback_data=f"toggle:{r.id}"),
+            InlineKeyboardButton("✏️", callback_data=f"rem_edit:{r.id}"),
+            InlineKeyboardButton("🗑️", callback_data=f"rem_del:{r.id}"),
+            InlineKeyboardButton(status_icon, callback_data=f"rem_toggle:{r.id}"),
         ]
         if r.time:
             by_time.append((line, row))
@@ -551,7 +551,11 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    action, rid_str = query.data.split(":", 1)
+    action_raw, rid_str = query.data.split(":", 1)
+    if not action_raw.startswith("rem_"):
+        await query.answer("Некорректное действие", show_alert=True)
+        return
+    action = action_raw.removeprefix("rem_")
     try:
         rid = int(rid_str)
     except ValueError:
@@ -661,7 +665,7 @@ def schedule_after_meal(user_id: int, job_queue) -> None:
 
 
 reminder_action_handler = CallbackQueryHandler(
-    reminder_action_cb, pattern="^(edit|del|toggle):"
+    reminder_action_cb, pattern="^rem_(edit|del|toggle):"
 )
 reminder_edit_handler = MessageHandler(
     filters.REPLY & filters.Regex(r"^([0-9]{1,2}:[0-9]{2}|[0-9]+[hd])$"), reminder_edit_reply

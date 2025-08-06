@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from diabetes.db import Base, User, Reminder, ReminderLog
 import diabetes.reminder_handlers as handlers
+import diabetes.common_handlers as common_handlers
 from diabetes.common_handlers import commit_session
 from diabetes.utils import parse_time_interval
 
@@ -134,15 +135,17 @@ async def test_toggle_reminder_cb(monkeypatch):
         rem = session.get(Reminder, 1)
         handlers.schedule_reminder(rem, job_queue)
 
-    query = DummyCallbackQuery("toggle:1", DummyMessage())
+    query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
     update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue, user_data={})
+    context = SimpleNamespace(job_queue=job_queue, user_data={"pending_entry": {}})
     await handlers.reminder_action_cb(update, context)
+    await common_handlers.callback_router(update, context)
 
     with TestSession() as session:
         assert not session.get(Reminder, 1).is_enabled
     assert job_queue.get_jobs_by_name("reminder_1")[0].removed
-    assert query.answers[-1] == "Готово ✅"
+    assert query.answers[0] == "Готово ✅"
+    assert "pending_entry" in context.user_data
 
 
 @pytest.mark.asyncio
@@ -163,7 +166,7 @@ async def test_delete_reminder_cb(monkeypatch):
         rem = session.get(Reminder, 1)
         handlers.schedule_reminder(rem, job_queue)
 
-    query = DummyCallbackQuery("del:1", DummyMessage())
+    query = DummyCallbackQuery("rem_del:1", DummyMessage())
     update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(job_queue=job_queue, user_data={})
     await handlers.reminder_action_cb(update, context)
@@ -192,7 +195,7 @@ async def test_edit_reminder(monkeypatch):
         rem = session.get(Reminder, 1)
         handlers.schedule_reminder(rem, job_queue)
 
-    query = DummyCallbackQuery("edit:1", DummyMessage())
+    query = DummyCallbackQuery("rem_edit:1", DummyMessage())
     context = SimpleNamespace(user_data={}, job_queue=job_queue)
     update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
     await handlers.reminder_action_cb(update, context)
