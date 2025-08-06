@@ -7,6 +7,7 @@ import datetime
 import logging
 import time
 
+from openai import OpenAIError
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -241,8 +242,10 @@ async def send_report(
 
             gpt_task = asyncio.to_thread(_fetch_recommendations)
             gpt_text = await gpt_task
-        except Exception:
+        except OpenAIError:
             logging.exception("[GPT] Failed to get recommendations")
+        except Exception:  # pragma: no cover - unexpected errors
+            logging.exception("[GPT] Unexpected error while getting recommendations")
     else:
         logging.warning("[GPT] thread_id missing for user %s", user_id)
     report_msg = "<b>Отчёт сформирован</b>\n\n" + "\n".join(summary_lines + day_lines)
