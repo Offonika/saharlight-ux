@@ -66,3 +66,17 @@ async def test_help_lists_reminder_commands_and_menu_button():
     assert "/addreminder - добавить напоминание\n" in text
     assert "/delreminder - удалить напоминание\n" in text
     assert "⏰ Напоминания\n" in text
+
+
+@pytest.mark.asyncio
+async def test_help_lists_sos_contact_command():
+    """Ensure /help documents SOS contact configuration."""
+
+    message = DummyMessage()
+    update = SimpleNamespace(message=message)
+    context = SimpleNamespace()
+
+    await handlers.help_command(update, context)
+
+    text = message.replies[0]
+    assert "/soscontact — настроить контакт для SOS-уведомлений\n" in text
