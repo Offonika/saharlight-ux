@@ -311,6 +311,11 @@ def register_handlers(app: Application) -> None:
     app.add_handler(
         MessageHandler(filters.Regex("^ℹ️ Помощь$"), help_command)
     )
+    app.add_handler(
+        MessageHandler(
+            filters.Regex("^🆘 SOS контакт$"), sos_handlers.sos_contact_start
+        )
+    )
     # Reminder edit conversation should run before generic free-form handler
     app.add_handler(reminder_handlers.reminder_edit_conv)
     app.add_handler(
