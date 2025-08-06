@@ -7,12 +7,28 @@ from diabetes.common_handlers import register_handlers
 from diabetes.db import init_db
 from diabetes.config import LOG_LEVEL, TELEGRAM_TOKEN
 from telegram import BotCommand
-from telegram.ext import Application
+from telegram.ext import Application, ContextTypes
 from sqlalchemy.exc import SQLAlchemyError
 import logging
+import os
 import sys
 
 logger = logging.getLogger(__name__)
+MAINTAINER_CHAT_ID = os.getenv("MAINTAINER_CHAT_ID")
+
+
+async def error_handler(update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log errors and optionally notify maintainers."""
+    logger.exception(
+        "Exception while handling update %s", update, exc_info=context.error
+    )
+    if MAINTAINER_CHAT_ID:
+        try:
+            await context.bot.send_message(
+                chat_id=MAINTAINER_CHAT_ID, text=f"⚠️ Exception: {context.error}"
+            )
+        except Exception:  # pragma: no cover - logging only
+            logger.exception("Failed to notify maintainer")
 
 def main() -> None:
     """Configure and run the bot."""
@@ -58,6 +74,7 @@ def main() -> None:
         .post_init(post_init)  # registers post-init handler
         .build()
     )
+    application.add_error_handler(error_handler)
     register_handlers(application)
     application.run_polling()
 
