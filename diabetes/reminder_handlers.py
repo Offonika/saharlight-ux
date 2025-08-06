@@ -74,7 +74,7 @@ def _schedule_with_next(rem: Reminder) -> tuple[str, str]:
     elif rem.interval_hours:
         type_icon = "⏱"
         next_dt = now + timedelta(hours=rem.interval_hours)
-        base = f"q {rem.interval_hours} ч"
+        base = f"каждые {rem.interval_hours} ч"
     elif rem.minutes_after:
         type_icon = "📸"
         next_dt = now + timedelta(minutes=rem.minutes_after)
