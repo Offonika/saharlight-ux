@@ -76,6 +76,56 @@ async def test_parse_command_with_explanatory_text(monkeypatch):
     assert result == {"action": "add_entry", "time": "09:00", "fields": {}}
 
 
+@pytest.mark.asyncio
+async def test_parse_command_with_array_response(monkeypatch):
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {"message": type("Msg", (), {"content": "[{\"action\":\"add_entry\"}]"})()},
+            )
+        ]
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(
+                create=lambda *args, **kwargs: FakeResponse()
+            )
+        )
+    )
+    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+
+    result = await gpt_command_parser.parse_command("test")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_parse_command_with_scalar_response(monkeypatch):
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {"message": type("Msg", (), {"content": "42"})()},
+            )
+        ]
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(
+                create=lambda *args, **kwargs: FakeResponse()
+            )
+        )
+    )
+    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+
+    result = await gpt_command_parser.parse_command("test")
+
+    assert result is None
+
+
 @pytest.mark.parametrize(
     "token",
     [
