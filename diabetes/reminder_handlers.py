@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from datetime import datetime, time, timedelta
 
+from diabetes.utils import parse_time_interval
+
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     CallbackQueryHandler,
@@ -89,23 +91,6 @@ def _schedule_with_next(rem: Reminder) -> tuple[str, str]:
     return type_icon, schedule
 
 
-def parse_time_interval(text: str) -> tuple[str | None, int | None]:
-    """Parse HH:MM or intervals like 5h / 3d."""
-
-    text = text.strip()
-    if ":" in text:
-        try:
-            datetime.strptime(text, "%H:%M")
-        except ValueError:
-            return None, None
-        return text, None
-    match = re.fullmatch(r"(\d+)([hd])", text)
-    if not match:
-        return None, None
-    value = int(match.group(1))
-    unit = match.group(2)
-    hours = value if unit == "h" else value * 24
-    return None, hours
 
 
 def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
@@ -324,13 +309,18 @@ async def add_reminder_time(
     """Validate time/interval and create reminder."""
     rtype = context.user_data.get("rem_type")
     text = update.message.text.strip()
-    time_str, interval_hours = parse_time_interval(text)
-    if time_str is None and interval_hours is None:
-        await update.message.reply_text(
-            "Неверный формат. Используйте ЧЧ:ММ или 5h / 3d"
-        )
+    try:
+        parsed = parse_time_interval(text)
+    except ValueError as exc:
+        await update.message.reply_text(str(exc))
         return REMINDER_TIME
-    if rtype in {"long_insulin", "medicine"} and interval_hours is not None:
+    if isinstance(parsed, time):
+        time_str = parsed.strftime("%H:%M")
+        interval_hours = None
+    else:
+        time_str = None
+        interval_hours = int(parsed.total_seconds() // 3600)
+    if rtype in {"long_insulin", "medicine"} and isinstance(parsed, timedelta):
         await update.message.reply_text("Только формат ЧЧ:ММ")
         return REMINDER_TIME
     user_id = update.effective_user.id
@@ -534,11 +524,10 @@ async def reminder_edit_reply(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not rid or not msg:
         return
     text = update.message.text.strip()
-    time_str, interval_hours = parse_time_interval(text)
-    if time_str is None and interval_hours is None:
-        await update.message.reply_text(
-            "Неверный формат. Используйте ЧЧ:ММ или 5h / 3d"
-        )
+    try:
+        parsed = parse_time_interval(text)
+    except ValueError as exc:
+        await update.message.reply_text(str(exc))
         return
     user_id = update.effective_user.id
     with SessionLocal() as session:
@@ -546,8 +535,12 @@ async def reminder_edit_reply(update: Update, context: ContextTypes.DEFAULT_TYPE
         if not rem or rem.telegram_id != user_id:
             await update.message.reply_text("Не найдено")
             return
-        rem.time = time_str
-        rem.interval_hours = interval_hours
+        if isinstance(parsed, time):
+            rem.time = parsed.strftime("%H:%M")
+            rem.interval_hours = None
+        else:
+            rem.time = None
+            rem.interval_hours = int(parsed.total_seconds() // 3600)
         commit_session(session)
         session.refresh(rem)
     for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):

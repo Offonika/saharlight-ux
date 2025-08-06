@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import re
+from datetime import datetime, time, timedelta
 from urllib.request import urlopen
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib.units import mm
@@ -19,6 +20,24 @@ def clean_markdown(text: str) -> str:
     text = re.sub(r'^\s*\*\s*', '', text, flags=re.MULTILINE)      # * списки
     text = re.sub(r'`([^`]+)`', r'\1', text)           # `код`
     return text
+
+
+INVALID_TIME_MSG = "❌ Неверный формат. Примеры: 22:30 | 6:00 | 5h | 3d"
+
+
+def parse_time_interval(value: str) -> time | timedelta:
+    """Convert strings like 'HH:MM', 'H:MM', 'Nh' or 'Nd' to time or timedelta."""
+
+    value = value.strip()
+    try:
+        return datetime.strptime(value, "%H:%M").time()
+    except ValueError:
+        match = re.fullmatch(r"(\d+)([hd])", value)
+        if match:
+            num, unit = match.groups()
+            amount = int(num)
+            return timedelta(hours=amount) if unit == "h" else timedelta(days=amount)
+        raise ValueError(INVALID_TIME_MSG)
 
 
 async def get_coords_and_link() -> tuple[str, str]:
