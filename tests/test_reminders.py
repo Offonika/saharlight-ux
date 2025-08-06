@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime
 from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -92,6 +93,21 @@ def test_schedule_reminder_replaces_existing_job():
     jobs = job_queue.get_jobs_by_name("reminder_1")
     active_jobs = [j for j in jobs if not j.removed]
     assert len(active_jobs) == 1
+
+
+def test_schedule_with_next_interval(monkeypatch):
+    now = datetime(2024, 1, 1, 10, 0)
+
+    class DummyDatetime(datetime):
+        @classmethod
+        def now(cls):  # type: ignore[override]
+            return now
+
+    monkeypatch.setattr(handlers, "datetime", DummyDatetime)
+    rem = Reminder(telegram_id=1, type="sugar", interval_hours=2, is_enabled=True)
+    icon, schedule = handlers._schedule_with_next(rem)
+    assert icon == "⏱"
+    assert schedule == "каждые 2 ч (next 12:00)"
 
 
 def test_render_reminders_formatting(monkeypatch):
