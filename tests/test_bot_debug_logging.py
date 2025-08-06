@@ -28,6 +28,9 @@ def test_log_level_debug(monkeypatch):
     class DummyApp:
         bot = DummyBot()
 
+        def add_error_handler(self, _):
+            return None
+
         def run_polling(self):
             return None
 
