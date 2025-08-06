@@ -244,6 +244,10 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         elif action == "toggle_sos":
             profile.sos_alerts_enabled = not profile.sos_alerts_enabled
             changed = True
+        elif action == "sos_contact":
+            from diabetes import sos_handlers
+
+            await sos_handlers.sos_contact_start(update.callback_query, context)
         elif action == "add":
             await reminder_handlers.add_reminder_start(update, context)
         elif action == "del":
@@ -292,6 +296,11 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     InlineKeyboardButton(
                         f"SOS-уведомления: {'off' if profile.sos_alerts_enabled else 'on'}",
                         callback_data="profile_security:toggle_sos",
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "SOS контакт", callback_data="profile_security:sos_contact"
                     )
                 ],
                 [
