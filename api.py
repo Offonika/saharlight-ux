@@ -11,7 +11,7 @@ class DiagnoseResponse(BaseModel):
     protocol: str | None
 
 @app.post("/v1/ai/diagnose", response_model=DiagnoseResponse)
-async def ai_diagnose(req: DiagnoseRequest):
+async def ai_diagnose(req: DiagnoseRequest) -> DiagnoseResponse:
     protocol = find_protocol_by_diagnosis(req.diagnosis)
-    return {"protocol": protocol}
+    return DiagnoseResponse(protocol=protocol)
 
