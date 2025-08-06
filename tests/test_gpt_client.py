@@ -87,3 +87,32 @@ def test_send_message_upload_error_removes_file(tmp_path, monkeypatch):
         gpt_client.send_message(thread_id="t", image_path=str(img))
 
     assert not img.exists()
+
+
+def test_send_message_empty_string_preserved(tmp_path, monkeypatch):
+    img = tmp_path / "img.jpg"
+    img.write_bytes(b"data")
+
+    captured = {}
+
+    def fake_files_create(file, purpose):
+        return SimpleNamespace(id="f1")
+
+    def fake_messages_create(*, thread_id, role, content):
+        captured["content"] = content
+
+    fake_client = SimpleNamespace(
+        files=SimpleNamespace(create=fake_files_create),
+        beta=SimpleNamespace(
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(create=fake_messages_create),
+                runs=SimpleNamespace(create=lambda **kwargs: SimpleNamespace(id="r1")),
+            )
+        ),
+    )
+
+    monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+
+    gpt_client.send_message(thread_id="t", content="", image_path=str(img))
+
+    assert captured["content"][1]["text"] == ""

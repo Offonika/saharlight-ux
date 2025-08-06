@@ -61,6 +61,10 @@ def send_message(
         raise ValueError("Either 'content' or 'image_path' must be provided")
 
     # 1. Подготовка контента
+    text_block = {
+        "type": "text",
+        "text": content if content is not None else "Что изображено на фото?",
+    }
     if image_path:
         try:
             with open(image_path, "rb") as f:
@@ -68,7 +72,7 @@ def send_message(
             logging.info("[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id)
             content_block = [
                 {"type": "image_file", "image_file": {"file_id": file.id}},
-                {"type": "text", "text": content or "Что изображено на фото?"},
+                text_block,
             ]
         except OSError as exc:
             logging.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
@@ -85,7 +89,7 @@ def send_message(
                         "[OpenAI] Failed to delete %s: %s", image_path, e
                     )
     else:
-        content_block = [{"type": "text", "text": content}]
+        content_block = [text_block]
 
     # 2. Создаём сообщение в thread
     try:
