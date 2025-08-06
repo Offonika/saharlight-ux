@@ -170,6 +170,8 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
         )
         return
     name = f"reminder_{rem.id}"
+    for job in job_queue.get_jobs_by_name(name):
+        job.schedule_removal()
     if rem.type in {"sugar", "long_insulin", "medicine"}:
         if rem.time:
             hh, mm = map(int, rem.time.split(":"))
