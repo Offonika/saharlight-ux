@@ -50,7 +50,7 @@ def send_message(
     image_path: str | None
         Path to an image to upload alongside the text.
     keep_image: bool, default ``False``
-        If ``True`` the local file will not be removed after a successful upload.
+        If ``True`` the local file will not be removed after attempting the upload.
 
     Returns
     -------
@@ -62,7 +62,6 @@ def send_message(
 
     # 1. Подготовка контента
     if image_path:
-        upload_succeeded = False
         try:
             with open(image_path, "rb") as f:
                 file = _get_client().files.create(file=f, purpose="vision")
@@ -71,7 +70,6 @@ def send_message(
                 {"type": "image_file", "image_file": {"file_id": file.id}},
                 {"type": "text", "text": content or "Что изображено на фото?"},
             ]
-            upload_succeeded = True
         except OSError as exc:
             logging.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
             raise
@@ -79,7 +77,7 @@ def send_message(
             logging.exception("[OpenAI] Failed to upload %s: %s", image_path, exc)
             raise
         finally:
-            if upload_succeeded and not keep_image:
+            if not keep_image:
                 try:
                     os.remove(image_path)
                 except OSError as e:
