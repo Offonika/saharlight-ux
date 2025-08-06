@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from diabetes.db import Base, User, Reminder, ReminderLog
 import diabetes.reminder_handlers as handlers
 from diabetes.common_handlers import commit_session
+from diabetes.utils import parse_time_interval
 
 
 class DummyMessage:
@@ -77,7 +78,12 @@ def test_render_reminders_formatting(monkeypatch):
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
     monkeypatch.setattr(handlers, "_limit_for", lambda u: 1)
-    monkeypatch.setattr(handlers, "_describe", lambda r: f"title{r.id}")
+    # Make _describe deterministic and include status icon to test strikethrough
+    monkeypatch.setattr(
+        handlers,
+        "_describe",
+        lambda r: f"{'🔔' if r.is_enabled else '🔕'}title{r.id}",
+    )
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add_all(
@@ -106,7 +112,7 @@ def test_render_reminders_formatting(monkeypatch):
     assert "⏰ По времени" in text
     assert "⏱ Интервал" in text
     assert "📸 Триггер-фото" in text
-    assert "2. <s>title2</s>" in text
+    assert "2. <s>🔕title2</s>" in text
     assert markup.inline_keyboard[-1][0].callback_data == "add_new"
 
 
@@ -197,7 +203,8 @@ async def test_edit_reminder(monkeypatch):
     await handlers.reminder_edit_reply(update2, context)
 
     with TestSession() as session:
-        assert session.get(Reminder, 1).time == "09:00"
+        parsed = parse_time_interval("09:00")
+        assert session.get(Reminder, 1).time == parsed.strftime("%H:%M")
     jobs = job_queue.get_jobs_by_name("reminder_1")
     assert len(jobs) == 2
     assert jobs[0].removed is True
@@ -234,6 +241,34 @@ async def test_trigger_job_logs(monkeypatch):
     )
     await handlers.reminder_job(context)
     assert bot.messages[0][1].startswith("🔔 Замерить сахар")
+    keyboard = bot.messages[0][2]["reply_markup"].inline_keyboard[0]
+    assert keyboard[0].callback_data == "remind_snooze:1"
+    assert keyboard[1].callback_data == "remind_cancel:1"
     with TestSession() as session:
         log = session.query(ReminderLog).first()
         assert log.action == "trigger"
+
+
+@pytest.mark.asyncio
+async def test_cancel_callback(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00"))
+        session.commit()
+
+    query = DummyCallbackQuery("remind_cancel:1", DummyMessage())
+    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot())
+    await handlers.reminder_callback(update, context)
+
+    assert query.edited[0] == "❌ Напоминание отменено"
+    assert query.answers == [None]
+    with TestSession() as session:
+        log = session.query(ReminderLog).first()
+        assert log.action == "remind_cancel"
