@@ -4,11 +4,14 @@ import asyncio
 import io
 import time
 import logging
+from datetime import timedelta
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 import pytest
 
 from diabetes import utils
-from diabetes.utils import clean_markdown, split_text_by_width
+from diabetes.utils import clean_markdown, parse_time_interval, split_text_by_width
 
 def test_clean_markdown():
     text = "**Жирный**\n# Заголовок\n* элемент\n1. Первый"
@@ -21,6 +24,7 @@ def test_clean_markdown():
 
 def test_split_text_by_width_simple():
     text = "Это короткая строка"
+    pdfmetrics.registerFont(TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
     lines = split_text_by_width(text, "DejaVuSans", 12, 50)
     assert isinstance(lines, list)
     assert all(isinstance(line, str) for line in lines)
@@ -63,3 +67,14 @@ async def test_get_coords_and_link_logs_warning(monkeypatch, caplog):
     assert coords == "0.0,0.0"
     assert link == "https://maps.google.com/?q=0.0,0.0"
     assert any("Failed to fetch coordinates" in msg for msg in caplog.messages)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("5H", timedelta(hours=5)),
+        ("3D", timedelta(days=3)),
+    ],
+)
+def test_parse_interval_uppercase(text, expected):
+    assert parse_time_interval(text) == expected

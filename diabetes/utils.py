@@ -33,9 +33,10 @@ def parse_time_interval(value: str) -> time | timedelta:
     try:
         return datetime.strptime(value, "%H:%M").time()
     except ValueError:
-        match = re.fullmatch(r"(\d+)([hd])", value)
+        match = re.fullmatch(r"(\d+)([hd])", value, re.IGNORECASE)
         if match:
             num, unit = match.groups()
+            unit = unit.lower()
             amount = int(num)
             return timedelta(hours=amount) if unit == "h" else timedelta(days=amount)
         raise ValueError(INVALID_TIME_MSG)
