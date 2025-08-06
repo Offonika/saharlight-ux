@@ -1,7 +1,7 @@
 
 from __future__ import annotations
 
-import datetime  # for scheduling delays and stats
+import datetime
 import logging
 
 from telegram.ext import ContextTypes
