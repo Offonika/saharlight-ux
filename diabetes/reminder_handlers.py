@@ -256,13 +256,18 @@ async def add_reminder_start(
     if query:
         await query.answer()
     with SessionLocal() as session:
-        count = session.query(Reminder).filter_by(telegram_id=user_id).count()
+        count = (
+            session.query(Reminder)
+            .filter_by(telegram_id=user_id, is_enabled=True)
+            .count()
+        )
         user = session.get(User, user_id)
-    limit = _limit_for(user)
+        plan = getattr(user, "plan", "free").lower()
+        limit = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
     if count >= limit:
         await message.reply_text(
-            f"У вас уже {count} активных из {limit}. "
-            "Отключите одно или Апгрейд до Pro, чтобы поднять лимит до 10",
+            f"У вас уже {limit} активных (лимит {plan.upper()}). "
+            "Отключите одно или откройте PRO.",
         )
         return ConversationHandler.END
     keyboard = InlineKeyboardMarkup(
@@ -324,14 +329,29 @@ async def add_reminder_time(
         await update.message.reply_text("Только формат ЧЧ:ММ")
         return REMINDER_TIME
     user_id = update.effective_user.id
-    reminder = Reminder(
-        telegram_id=user_id,
-        type=rtype,
-        time=time_str,
-        interval_hours=interval_hours,
-        is_enabled=True,
-    )
     with SessionLocal() as session:
+        count = (
+            session.query(Reminder)
+            .filter_by(telegram_id=user_id, is_enabled=True)
+            .count()
+        )
+        user = session.get(User, user_id)
+        plan = getattr(user, "plan", "free").lower()
+        limit = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
+        if count >= limit:
+            await update.message.reply_text(
+                f"У вас уже {limit} активных (лимит {plan.upper()}). "
+                "Отключите одно или откройте PRO.",
+            )
+            context.user_data.pop("rem_type", None)
+            return ConversationHandler.END
+        reminder = Reminder(
+            telegram_id=user_id,
+            type=rtype,
+            time=time_str,
+            interval_hours=interval_hours,
+            is_enabled=True,
+        )
         session.add(reminder)
         if not commit_session(session):
             await update.message.reply_text(
