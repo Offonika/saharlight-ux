@@ -245,7 +245,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             profile.sos_alerts_enabled = not profile.sos_alerts_enabled
             changed = True
         elif action == "add":
-            await reminder_handlers.add_reminder(update, context)
+            await reminder_handlers.add_reminder_start(update, context)
         elif action == "del":
             await reminder_handlers.delete_reminder(update, context)
 
