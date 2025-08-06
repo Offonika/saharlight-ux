@@ -1,8 +1,8 @@
 # reporting.py
 
+import os
 import io
 import logging
-import os
 import textwrap
 
 import matplotlib.pyplot as plt
@@ -52,6 +52,7 @@ def make_sugar_plot(entries, period_label):
     sugars_plot = [e.sugar_before for e in entries if e.sugar_before is not None]
 
     if not sugars_plot:
+        logging.info("No sugar data available for %s", period_label)
         buf = io.BytesIO()
         plt.figure(figsize=(7, 3))
         plt.text(
