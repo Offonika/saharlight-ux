@@ -64,6 +64,9 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await query.answer()
     data = query.data
 
+    if data.startswith("rem_"):
+        return
+
     if data == "confirm_entry":
         entry_data = context.user_data.pop("pending_entry", None)
         if not entry_data:
