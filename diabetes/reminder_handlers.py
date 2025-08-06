@@ -570,7 +570,6 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if action == "edit":
         context.user_data["edit_reminder_id"] = rid
         context.user_data["reminders_msg"] = query.message
-        context.user_data["cbq_id"] = query.id
         await query.message.reply_text(
             "Введите новое время ЧЧ:ММ или новый интервал (5h / 3d)",
             reply_markup=ForceReply(selective=True),
@@ -651,9 +650,7 @@ async def reminder_edit_reply(update: Update, context: ContextTypes.DEFAULT_TYPE
             pass
         else:
             raise
-    cbq_id = context.user_data.pop("cbq_id", None)
-    if cbq_id:
-        await context.bot.answer_callback_query(cbq_id, text="Готово ✅")
+    await update.message.reply_text("Готово ✅")
     context.user_data.pop("edit_reminder_id", None)
     context.user_data.pop("reminders_msg", None)
     return ConversationHandler.END

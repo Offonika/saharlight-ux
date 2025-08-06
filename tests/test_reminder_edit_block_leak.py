@@ -105,7 +105,7 @@ async def test_good_input_updates_and_ends():
     update2 = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
     end_state = await handlers.reminder_edit_reply(update2, context)
     assert end_state == handlers.ConversationHandler.END
-    assert context.bot.cb_answers == [("cb1", "Готово ✅")]
+    assert msg.replies and msg.replies[-1] == "Готово ✅"
     assert msg_initial.edited is not None
     with TestSession() as session:
         rem = session.get(Reminder, 1)

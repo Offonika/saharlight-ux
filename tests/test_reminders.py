@@ -237,9 +237,8 @@ async def test_edit_reminder(monkeypatch):
         rem = session.get(Reminder, 1)
         handlers.schedule_reminder(rem, job_queue)
 
-    bot = DummyBot()
     query = DummyCallbackQuery("rem_edit:1", DummyMessage(), id="cb1")
-    context = SimpleNamespace(user_data={}, job_queue=job_queue, bot=bot)
+    context = SimpleNamespace(user_data={}, job_queue=job_queue, bot=DummyBot())
     update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
     state = await handlers.reminder_action_cb(update, context)
     assert state == handlers.REM_EDIT_AWAIT_INPUT
@@ -249,7 +248,7 @@ async def test_edit_reminder(monkeypatch):
     update2 = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
     end_state = await handlers.reminder_edit_reply(update2, context)
     assert end_state == handlers.ConversationHandler.END
-    assert bot.cb_answers == [("cb1", "Готово ✅")]
+    assert msg.texts and msg.texts[-1] == "Готово ✅"
 
     with TestSession() as session:
         parsed = parse_time_interval("09:00")
