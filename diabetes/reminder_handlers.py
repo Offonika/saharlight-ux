@@ -48,6 +48,9 @@ def _limit_for(user: User | None) -> int:
 # Conversation states
 # Two-step wizard: choose type -> ask time
 REMINDER_TYPE, REMINDER_TIME = range(2)
+# Editing reminders uses a separate state so that free-form handler
+# doesn't capture user input while we're awaiting new time/interval.
+REM_EDIT_AWAIT_INPUT = 2
 
 
 def _describe(rem: Reminder) -> str:
@@ -551,28 +554,29 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 raise
 
 
-async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     action_raw, rid_str = query.data.split(":", 1)
     if not action_raw.startswith("rem_"):
         await query.answer("Некорректное действие", show_alert=True)
-        return
+        return ConversationHandler.END
     action = action_raw.removeprefix("rem_")
     try:
         rid = int(rid_str)
     except ValueError:
         await query.answer("Некорректный ID", show_alert=True)
-        return
+        return ConversationHandler.END
     user_id = update.effective_user.id
     if action == "edit":
         context.user_data["edit_reminder_id"] = rid
         context.user_data["reminders_msg"] = query.message
+        context.user_data["cbq_id"] = query.id
         await query.message.reply_text(
             "Введите новое время ЧЧ:ММ или новый интервал (5h / 3d)",
             reply_markup=ForceReply(selective=True),
         )
-        await query.answer("Готово ✅")
-        return
+        await query.answer()
+        return REM_EDIT_AWAIT_INPUT
 
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
@@ -608,25 +612,26 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 raise
         else:
             await query.answer("Готово ✅")
+    return ConversationHandler.END
 
 
-async def reminder_edit_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def reminder_edit_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     rid = context.user_data.get("edit_reminder_id")
     msg = context.user_data.get("reminders_msg")
     if not rid or not msg:
-        return
+        return ConversationHandler.END
     text = update.message.text.strip()
     try:
         parsed = parse_time_interval(text)
     except ValueError as exc:
         await update.message.reply_text(str(exc))
-        return
+        return REM_EDIT_AWAIT_INPUT
     user_id = update.effective_user.id
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != user_id:
             await update.message.reply_text("Не найдено")
-            return
+            return ConversationHandler.END
         if isinstance(parsed, time):
             rem.time = parsed.strftime("%H:%M")
             rem.interval_hours = None
@@ -646,8 +651,12 @@ async def reminder_edit_reply(update: Update, context: ContextTypes.DEFAULT_TYPE
             pass
         else:
             raise
+    cbq_id = context.user_data.pop("cbq_id", None)
+    if cbq_id:
+        await context.bot.answer_callback_query(cbq_id, text="Готово ✅")
     context.user_data.pop("edit_reminder_id", None)
     context.user_data.pop("reminders_msg", None)
+    return ConversationHandler.END
 
 
 def schedule_after_meal(user_id: int, job_queue) -> None:
@@ -669,6 +678,14 @@ def schedule_after_meal(user_id: int, job_queue) -> None:
 reminder_action_handler = CallbackQueryHandler(
     reminder_action_cb, pattern="^rem_(edit|del|toggle):"
 )
-reminder_edit_handler = MessageHandler(
-    filters.REPLY & filters.Regex(r"^([0-9]{1,2}:[0-9]{2}|[0-9]+[hd])$"), reminder_edit_reply
+reminder_edit_conv = ConversationHandler(
+    entry_points=[reminder_action_handler],
+    states={
+        REM_EDIT_AWAIT_INPUT: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, reminder_edit_reply)
+        ]
+    },
+    fallbacks=[CommandHandler("cancel", add_reminder_cancel)],
+    per_message=False,
+    allow_reentry=True,
 )

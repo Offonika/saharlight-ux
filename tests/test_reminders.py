@@ -25,9 +25,10 @@ class DummyMessage:
 
 
 class DummyCallbackQuery:
-    def __init__(self, data, message):
+    def __init__(self, data, message, id="1"):
         self.data = data
         self.message = message
+        self.id = id
         self.answers = []
         self.edited = None
 
@@ -41,9 +42,13 @@ class DummyCallbackQuery:
 class DummyBot:
     def __init__(self):
         self.messages = []
+        self.cb_answers = []
 
     async def send_message(self, chat_id, text, **kwargs):
         self.messages.append((chat_id, text, kwargs))
+
+    async def answer_callback_query(self, callback_query_id, text: str | None = None, **kwargs):
+        self.cb_answers.append((callback_query_id, text))
 
 
 class DummyJob:
@@ -232,15 +237,19 @@ async def test_edit_reminder(monkeypatch):
         rem = session.get(Reminder, 1)
         handlers.schedule_reminder(rem, job_queue)
 
-    query = DummyCallbackQuery("rem_edit:1", DummyMessage())
-    context = SimpleNamespace(user_data={}, job_queue=job_queue)
+    bot = DummyBot()
+    query = DummyCallbackQuery("rem_edit:1", DummyMessage(), id="cb1")
+    context = SimpleNamespace(user_data={}, job_queue=job_queue, bot=bot)
     update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    await handlers.reminder_action_cb(update, context)
-    assert query.answers[-1] == "Готово ✅"
+    state = await handlers.reminder_action_cb(update, context)
+    assert state == handlers.REM_EDIT_AWAIT_INPUT
+    assert query.answers[-1] is None
 
     msg = DummyMessage(text="09:00")
     update2 = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
-    await handlers.reminder_edit_reply(update2, context)
+    end_state = await handlers.reminder_edit_reply(update2, context)
+    assert end_state == handlers.ConversationHandler.END
+    assert bot.cb_answers == [("cb1", "Готово ✅")]
 
     with TestSession() as session:
         parsed = parse_time_interval("09:00")

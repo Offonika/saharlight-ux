@@ -39,8 +39,23 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     assert reporting_handlers.history_view in callbacks
     assert dose_handlers.chat_with_gpt in callbacks
     assert security_handlers.hypo_alert_faq in callbacks
-    assert reminder_handlers.reminder_action_cb in callbacks
-    assert reminder_handlers.reminder_edit_reply in callbacks
+    # Reminder edit conversation should be registered
+    reminder_convs = [
+        h
+        for h in handlers
+        if isinstance(h, ConversationHandler)
+        and any(
+            isinstance(ep, CallbackQueryHandler)
+            and ep.callback is reminder_handlers.reminder_action_cb
+            for ep in h.entry_points
+        )
+    ]
+    assert reminder_convs
+    assert any(
+        isinstance(h, MessageHandler)
+        and h.callback is reminder_handlers.reminder_edit_reply
+        for h in reminder_convs[0].states.get(reminder_handlers.REM_EDIT_AWAIT_INPUT, [])
+    )
 
     onb_conv = [
         h
