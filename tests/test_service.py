@@ -14,3 +14,7 @@ def test_find_protocol_trims_whitespace():
     assert find_protocol_by_diagnosis("  Диабет 2 типа  ") == "standard protocol"
 
 
+def test_find_protocol_returns_none_for_missing_diagnosis():
+    assert find_protocol_by_diagnosis(None) is None
+
+
