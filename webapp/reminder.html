@@ -5,6 +5,9 @@
     <title>Reminder</title>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            if (window.Telegram && Telegram.WebApp) {
+                Telegram.WebApp.ready();
+            }
             const form = document.getElementById('reminder-form');
             const urlParams = new URLSearchParams(window.location.search);
             const id = urlParams.get('id');
@@ -74,7 +77,6 @@
                         body: JSON.stringify(payload)
                     });
                     if (resp.ok && window.Telegram && Telegram.WebApp) {
-                        Telegram.WebApp.ready();
                         Telegram.WebApp.sendData(JSON.stringify(payload));
                     }
                 } catch (err) {

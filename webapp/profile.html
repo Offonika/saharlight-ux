@@ -5,6 +5,9 @@
     <title>Profile</title>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            if (window.Telegram && Telegram.WebApp) {
+                Telegram.WebApp.ready();
+            }
             const form = document.getElementById('profile-form');
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -29,7 +32,6 @@
                         body: JSON.stringify(data)
                     });
                     if (resp.ok && window.Telegram && Telegram.WebApp) {
-                        Telegram.WebApp.ready();
                         Telegram.WebApp.sendData(JSON.stringify(data));
                     }
                 } catch (err) {
