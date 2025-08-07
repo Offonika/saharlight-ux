@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 
 app = FastAPI()
@@ -51,10 +51,16 @@ async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
     """Save reminder data to demo store."""
     global NEXT_ID
     data = await request.json()
-    rid = data.get("id") or NEXT_ID
+    raw_id = data.get("id", NEXT_ID)
+    try:
+        rid = int(raw_id)
+    except (TypeError, ValueError) as exc:  # pragma: no cover - validation
+        raise HTTPException(status_code=400, detail="id must be an integer") from exc
+    if rid < 0:
+        raise HTTPException(status_code=400, detail="id must be non-negative")
     NEXT_ID = max(NEXT_ID, rid + 1)
-    REMINDERS[int(rid)] = {"id": int(rid), **data}
-    return {"status": "ok", "id": int(rid)}
+    REMINDERS[rid] = {**data, "id": rid}
+    return {"status": "ok", "id": rid}
 
 
 if __name__ == "__main__":  # pragma: no cover - manual start
