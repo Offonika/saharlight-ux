@@ -318,6 +318,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             return
         session.add(reminder)
         if not commit_session(session):
+            logger.error("Failed to commit new reminder for user %s", user_id)
             await update.message.reply_text(
                 "⚠️ Не удалось сохранить напоминание."
             )
@@ -394,7 +395,11 @@ async def reminder_webapp_save(
             else:
                 rem.time = None
                 rem.interval_hours = int(parsed.total_seconds() // 3600)
-        commit_session(session)
+        if not commit_session(session):
+            logger.error(
+                "Failed to commit reminder via webapp for user %s", user_id
+            )
+            return
         session.refresh(rem)
     schedule_reminder(rem, context.job_queue)
     text, keyboard = _render_reminders(user_id)
@@ -424,7 +429,11 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await message.reply_text("Не найдено")
             return
         session.delete(rem)
-        commit_session(session)
+        if not commit_session(session):
+            logger.error("Failed to commit reminder deletion for %s", rid)
+            if message:
+                await message.reply_text("⚠️ Не удалось удалить напоминание.")
+            return
     for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
         job.schedule_removal()
     if message:
@@ -442,7 +451,11 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         session.add(
             ReminderLog(reminder_id=rid, telegram_id=chat_id, action="trigger")
         )
-        commit_session(session)
+        if not commit_session(session):
+            logger.error(
+                "Failed to log reminder trigger for reminder %s", rid
+            )
+            return
         user = session.get(User, chat_id)
         text = _describe(rem, user)
     keyboard = InlineKeyboardMarkup(
@@ -468,7 +481,11 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         session.add(
             ReminderLog(reminder_id=rid, telegram_id=chat_id, action=action)
         )
-        commit_session(session)
+        if not commit_session(session):
+            logger.error(
+                "Failed to log reminder action %s for reminder %s", action, rid
+            )
+            return
     if action == "remind_snooze":
         context.job_queue.run_once(
             reminder_job,
@@ -518,7 +535,11 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         else:
             await query.answer("Неизвестное действие", show_alert=True)
             return
-        commit_session(session)
+        if not commit_session(session):
+            logger.error(
+                "Failed to commit reminder action %s for reminder %s", action, rid
+            )
+            return
         if action != "del":
             session.refresh(rem)
 

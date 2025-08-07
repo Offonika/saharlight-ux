@@ -2,6 +2,7 @@ import datetime
 import logging
 from types import SimpleNamespace
 from unittest.mock import MagicMock
+import json
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
@@ -28,6 +29,12 @@ class DummyQuery:
 
     async def edit_message_text(self, text, **kwargs):
         self.edited.append(text)
+
+
+class DummyWebAppMessage(DummyMessage):
+    def __init__(self, data: str):
+        super().__init__()
+        self.web_app_data = SimpleNamespace(data=data)
 
 
 @pytest.mark.asyncio
@@ -125,3 +132,160 @@ async def test_add_reminder_commit_failure(monkeypatch, caplog):
     assert "DB commit failed" in caplog.text
     assert message.texts == ["⚠️ Не удалось сохранить напоминание."]
     assert not schedule_mock.called
+
+
+@pytest.mark.asyncio
+async def test_reminder_webapp_save_commit_failure(monkeypatch, caplog):
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = None
+    rem = SimpleNamespace(
+        telegram_id=1,
+        type="sugar",
+        is_enabled=True,
+        time=None,
+        interval_hours=None,
+        minutes_after=None,
+    )
+    session.get.return_value = rem
+    session.commit.side_effect = SQLAlchemyError("fail")
+    session.rollback = MagicMock()
+    session.refresh = MagicMock()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
+    schedule_mock = MagicMock()
+    monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
+    render_mock = MagicMock()
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", render_mock)
+
+    message = DummyWebAppMessage(
+        json.dumps({"type": "sugar", "value": "23:00", "id": 1})
+    )
+    update = SimpleNamespace(
+        effective_message=message, effective_user=SimpleNamespace(id=1)
+    )
+    context = SimpleNamespace(job_queue=SimpleNamespace())
+
+    with caplog.at_level(logging.ERROR):
+        await reminder_handlers.reminder_webapp_save(update, context)
+
+    assert session.rollback.called
+    assert not session.refresh.called
+    assert not schedule_mock.called
+    assert not render_mock.called
+    assert message.texts == []
+    assert "Failed to commit reminder via webapp" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_delete_reminder_commit_failure(monkeypatch, caplog):
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = None
+    session.commit.side_effect = SQLAlchemyError("fail")
+    session.rollback = MagicMock()
+    rem = SimpleNamespace(id=1, telegram_id=1)
+    session.get.return_value = rem
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
+
+    job_queue = SimpleNamespace(get_jobs_by_name=MagicMock())
+    message = DummyMessage()
+    update = SimpleNamespace(message=message)
+    context = SimpleNamespace(args=["1"], job_queue=job_queue)
+
+    with caplog.at_level(logging.ERROR):
+        await reminder_handlers.delete_reminder(update, context)
+
+    assert session.rollback.called
+    assert message.texts == ["⚠️ Не удалось удалить напоминание."]
+    assert not job_queue.get_jobs_by_name.called
+    assert "Failed to commit reminder deletion" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_reminder_job_commit_failure(monkeypatch, caplog):
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = None
+    rem = SimpleNamespace(id=1, telegram_id=1, is_enabled=True)
+    session.get.side_effect = [rem]
+    session.add = MagicMock()
+    session.commit.side_effect = SQLAlchemyError("fail")
+    session.rollback = MagicMock()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
+    describe_mock = MagicMock()
+    monkeypatch.setattr(reminder_handlers, "_describe", describe_mock)
+
+    context = SimpleNamespace(
+        job=SimpleNamespace(data={"reminder_id": 1, "chat_id": 1}),
+        bot=SimpleNamespace(send_message=MagicMock()),
+    )
+
+    with caplog.at_level(logging.ERROR):
+        await reminder_handlers.reminder_job(context)
+
+    assert session.rollback.called
+    assert session.get.call_count == 1
+    assert not describe_mock.called
+    assert not context.bot.send_message.called
+    assert "Failed to log reminder trigger for reminder 1" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_reminder_callback_commit_failure(monkeypatch, caplog):
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = None
+    session.add = MagicMock()
+    session.commit.side_effect = SQLAlchemyError("fail")
+    session.rollback = MagicMock()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
+
+    query = DummyQuery("remind_snooze:1")
+    update = SimpleNamespace(
+        callback_query=query, effective_user=SimpleNamespace(id=1)
+    )
+    context = SimpleNamespace(job_queue=SimpleNamespace(run_once=MagicMock()))
+
+    with caplog.at_level(logging.ERROR):
+        await reminder_handlers.reminder_callback(update, context)
+
+    assert session.rollback.called
+    assert query.edited == []
+    assert not context.job_queue.run_once.called
+    assert "Failed to log reminder action remind_snooze for reminder 1" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_reminder_action_cb_commit_failure(monkeypatch, caplog):
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = None
+    rem = SimpleNamespace(id=1, telegram_id=1, is_enabled=True)
+    session.get.return_value = rem
+    session.commit.side_effect = SQLAlchemyError("fail")
+    session.rollback = MagicMock()
+    session.refresh = MagicMock()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
+    schedule_mock = MagicMock()
+    monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
+
+    job_queue = SimpleNamespace(get_jobs_by_name=MagicMock())
+    query = DummyQuery("rem_toggle:1")
+    update = SimpleNamespace(
+        callback_query=query, effective_user=SimpleNamespace(id=1)
+    )
+    context = SimpleNamespace(job_queue=job_queue)
+
+    with caplog.at_level(logging.ERROR):
+        await reminder_handlers.reminder_action_cb(update, context)
+
+    assert session.rollback.called
+    assert not schedule_mock.called
+    assert not job_queue.get_jobs_by_name.called
+    assert query.edited == []
+    assert "Failed to commit reminder action toggle for reminder 1" in caplog.text
