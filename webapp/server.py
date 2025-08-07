@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 from json import JSONDecodeError
 from pathlib import Path
 
@@ -11,8 +12,22 @@ from pydantic import BaseModel, ValidationError
 
 app = FastAPI()
 BASE_DIR = Path(__file__).parent
-REMINDERS: dict[int, dict] = {}
-NEXT_ID = 1
+REMINDERS_FILE = BASE_DIR / "reminders.json"
+
+
+def _read_reminders() -> dict[int, dict]:
+    """Read reminders from JSON file."""
+    if REMINDERS_FILE.exists():
+        with REMINDERS_FILE.open("r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        return {int(k): v for k, v in data.items()}
+    return {}
+
+
+def _write_reminders(data: dict[int, dict]) -> None:
+    """Write reminders to JSON file."""
+    with REMINDERS_FILE.open("w", encoding="utf-8") as fh:
+        json.dump({int(k): v for k, v in data.items()}, fh)
 
 
 class ProfileSchema(BaseModel):
@@ -68,16 +83,16 @@ async def reminder_form() -> FileResponse:  # pragma: no cover - trivial
 
 @app.get("/reminders")
 async def reminders_get(id: int | None = None) -> dict | list[dict]:  # pragma: no cover - simple
-    """Return stored reminders (in-memory demo store)."""
+    """Return stored reminders from JSON file."""
+    store = _read_reminders()
     if id is None:
-        return list(REMINDERS.values())
-    return REMINDERS.get(id, {})
+        return list(store.values())
+    return store.get(id, {})
 
 
 @app.post("/reminders")
 async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
-    """Save reminder data to demo store."""
-    global NEXT_ID
+    """Save reminder data to JSON store."""
     try:
         data = await request.json()
     except JSONDecodeError as exc:  # pragma: no cover - validation
@@ -86,12 +101,13 @@ async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
         reminder = ReminderSchema(**data)
     except ValidationError as exc:  # pragma: no cover - validation
         raise HTTPException(status_code=400, detail="invalid data") from exc
-    raw_id = reminder.id if reminder.id is not None else NEXT_ID
-    rid = raw_id
+
+    store = _read_reminders()
+    rid = reminder.id if reminder.id is not None else max(store.keys(), default=0) + 1
     if rid < 0:
         raise HTTPException(status_code=400, detail="id must be non-negative")
-    NEXT_ID = max(NEXT_ID, rid + 1)
-    REMINDERS[rid] = {**reminder.dict(exclude_none=True), "id": rid}
+    store[rid] = {**reminder.dict(exclude_none=True), "id": rid}
+    _write_reminders(store)
     return {"status": "ok", "id": rid}
 
 
