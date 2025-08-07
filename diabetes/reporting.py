@@ -59,8 +59,12 @@ def make_sugar_plot(entries, period_label):
     Генерирует график сахара за период. Возвращает BytesIO с PNG.
     Если данных нет, возвращает изображение с сообщением об отсутствии данных.
     """
-    times = [e.event_time for e in entries if e.sugar_before is not None]
-    sugars_plot = [e.sugar_before for e in entries if e.sugar_before is not None]
+    entries_sorted = sorted(
+        (e for e in entries if e.sugar_before is not None),
+        key=lambda e: e.event_time,
+    )
+    times = [e.event_time for e in entries_sorted]
+    sugars_plot = [e.sugar_before for e in entries_sorted]
 
     if not sugars_plot:
         logging.info("No sugar data available for %s", period_label)
