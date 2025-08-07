@@ -32,12 +32,13 @@ from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 from diabetes.db import SessionLocal, User, Profile
 from diabetes.ui import menu_keyboard
 from .common_handlers import commit_session
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
 
 # Wizard states
-ONB_PROFILE_ICR, ONB_PROFILE_CF, ONB_PROFILE_TARGET, ONB_DEMO, ONB_REMINDERS = range(5)
+ONB_PROFILE_ICR, ONB_PROFILE_CF, ONB_PROFILE_TARGET, ONB_PROFILE_TZ, ONB_DEMO, ONB_REMINDERS = range(6)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -177,6 +178,32 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
             return ConversationHandler.END
 
+    await update.message.reply_text(
+        "Введите ваш часовой пояс (например Europe/Moscow).",
+        reply_markup=_skip_markup(),
+    )
+    return ONB_PROFILE_TZ
+
+
+async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle user timezone and proceed to demo."""
+
+    tz_name = update.message.text.strip()
+    try:
+        ZoneInfo(tz_name)
+    except Exception:
+        await update.message.reply_text(
+            "Введите корректный часовой пояс, например Europe/Moscow.",
+            reply_markup=_skip_markup(),
+        )
+        return ONB_PROFILE_TZ
+    user_id = update.effective_user.id
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        if user:
+            user.timezone = tz_name
+            commit_session(session)
+
     keyboard = InlineKeyboardMarkup(
         [[InlineKeyboardButton("Далее", callback_data="onb_next")]]
     )
@@ -310,6 +337,10 @@ onboarding_conv = ConversationHandler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_target),
             CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
+        ONB_PROFILE_TZ: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_timezone),
+            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+        ],
         ONB_DEMO: [
             CallbackQueryNoWarnHandler(onboarding_demo_next, pattern="^onb_next$"),
             CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
@@ -334,6 +365,7 @@ __all__ = [
     "ONB_PROFILE_ICR",
     "ONB_PROFILE_CF",
     "ONB_PROFILE_TARGET",
+    "ONB_PROFILE_TZ",
     "ONB_DEMO",
     "ONB_REMINDERS",
 ]

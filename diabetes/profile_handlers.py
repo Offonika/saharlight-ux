@@ -12,14 +12,15 @@ from telegram.ext import (
 )
 from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
-from diabetes.db import SessionLocal, Profile, Alert, Reminder
+from diabetes.db import SessionLocal, Profile, Alert, Reminder, User
 from diabetes.alert_handlers import evaluate_sugar
 from diabetes.ui import menu_keyboard, back_keyboard
 from .common_handlers import commit_session
 import diabetes.reminder_handlers as reminder_handlers
+from zoneinfo import ZoneInfo
 
 
-PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH = range(5)
+PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)
 
 
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -167,6 +168,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user_id = update.effective_user.id
     with SessionLocal() as session:
         profile = session.get(Profile, user_id)
+        user = session.get(User, user_id)
 
     if not profile:
         await update.message.reply_text(
@@ -179,18 +181,21 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         return
 
+    tz = getattr(user, "timezone", "UTC") if user else "UTC"
     msg = (
         "📄 Ваш профиль:\n"
         f"• ИКХ: {profile.icr} г/ед.\n"  # Инсулин-карб коэффициент
         f"• КЧ: {profile.cf} ммоль/л\n"
         f"• Целевой сахар: {profile.target_bg} ммоль/л\n"
         f"• Низкий порог: {profile.low_threshold} ммоль/л\n"
-        f"• Высокий порог: {profile.high_threshold} ммоль/л"
+        f"• Высокий порог: {profile.high_threshold} ммоль/л\n"
+        f"• Часовой пояс: {tz}"
     )
     keyboard = InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("✏️ Изменить", callback_data="profile_edit")],
             [InlineKeyboardButton("🔔 Безопасность", callback_data="profile_security")],
+            [InlineKeyboardButton("🌐 Часовой пояс", callback_data="profile_timezone")],
             [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
         ]
     )
@@ -211,6 +216,46 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
 
 
+async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Prompt user to enter timezone."""
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text(
+        "Введите ваш часовой пояс (например Europe/Moscow):",
+        reply_markup=back_keyboard,
+    )
+    return PROFILE_TZ
+
+
+async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Save user timezone from input."""
+    raw = update.message.text.strip()
+    if "назад" in raw.lower():
+        return await profile_cancel(update, context)
+    try:
+        ZoneInfo(raw)
+    except Exception:
+        await update.message.reply_text(
+            "Некорректный часовой пояс. Пример: Europe/Moscow",
+            reply_markup=back_keyboard,
+        )
+        return PROFILE_TZ
+    user_id = update.effective_user.id
+    with SessionLocal() as session:
+        user = session.get(User, user_id)
+        if not user:
+            await update.message.reply_text(
+                "Профиль не найден.", reply_markup=menu_keyboard
+            )
+            return ConversationHandler.END
+        user.timezone = raw
+        commit_session(session)
+    await update.message.reply_text(
+        "✅ Часовой пояс обновлён.", reply_markup=menu_keyboard
+    )
+    return ConversationHandler.END
+
+
 async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display and modify security settings."""
     query = update.callback_query
@@ -220,6 +265,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     with SessionLocal() as session:
         profile = session.get(Profile, user_id)
+        user = session.get(User, user_id)
         if not profile:
             await query.edit_message_text("Профиль не найден.")
             return
@@ -273,7 +319,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
         rem_text = (
             "\n".join(
-                f"{r.id}. {reminder_handlers._describe(r)}" for r in rems
+                f"{r.id}. {reminder_handlers._describe(r, user)}" for r in rems
             )
             if rems
             else "нет"
@@ -515,6 +561,7 @@ profile_conv = ConversationHandler(
     entry_points=[
         CommandHandler("profile", profile_command),
         CallbackQueryNoWarnHandler(profile_edit, pattern="^profile_edit$"),
+        CallbackQueryNoWarnHandler(profile_timezone, pattern="^profile_timezone$"),
     ],
     states={
         PROFILE_ICR: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],
@@ -527,6 +574,9 @@ profile_conv = ConversationHandler(
         ],
         PROFILE_HIGH: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, profile_high)
+        ],
+        PROFILE_TZ: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, profile_timezone_save)
         ],
     },
     fallbacks=[
@@ -547,6 +597,7 @@ __all__ = [
     "profile_cancel",
     "profile_back",
     "profile_security",
+    "profile_timezone",
     "profile_edit",
     "profile_conv",
 ]
