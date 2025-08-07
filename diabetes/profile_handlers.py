@@ -34,13 +34,16 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     # Ensure no pending sugar logging conversation captures profile input
     from .dose_handlers import sugar_conv
-
-    try:  # update may lack chat info in some testing scenarios
-        key = sugar_conv._get_key(update)
-    except AttributeError:
-        key = None
-    if key is not None:
-        sugar_conv._update_state(ConversationHandler.END, key)
+    chat_data = getattr(context, "chat_data", {})
+    if chat_data.pop("sugar_active", None):
+        chat_id = getattr(update.effective_chat, "id", None) if sugar_conv.per_chat else None
+        user_id = getattr(update.effective_user, "id", None) if sugar_conv.per_user else None
+        msg_id = (
+            getattr(update.effective_message, "message_id", None)
+            if sugar_conv.per_message
+            else None
+        )
+        sugar_conv._conversations.pop((chat_id, user_id, msg_id), None)
 
     help_text = (
         "❗ Формат команды:\n"

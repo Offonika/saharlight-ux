@@ -65,6 +65,10 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         "telegram_id": update.effective_user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
+    # Track that sugar conversation is active so it can be cancelled
+    chat_data = getattr(context, "chat_data", None)
+    if chat_data is not None:
+        chat_data["sugar_active"] = True
     await update.message.reply_text(
         "Введите текущий уровень сахара (ммоль/л).", reply_markup=sugar_keyboard
     )
@@ -73,6 +77,9 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the provided sugar level to the diary."""
+    chat_data = getattr(context, "chat_data", None)
+    if chat_data is not None and not chat_data.get("sugar_active"):
+        return ConversationHandler.END
     text = update.message.text.strip().replace(",", ".")
     try:
         sugar = float(text)
@@ -98,6 +105,8 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         f"✅ Уровень сахара {sugar} ммоль/л сохранён.",
         reply_markup=menu_keyboard,
     )
+    if chat_data is not None:
+        chat_data.pop("sugar_active", None)
     return ConversationHandler.END
 
 
@@ -241,6 +250,9 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     await update.message.reply_text("Отменено.", reply_markup=menu_keyboard)
     context.user_data.pop("pending_entry", None)
     context.user_data.pop("dose_method", None)
+    chat_data = getattr(context, "chat_data", None)
+    if chat_data is not None:
+        chat_data.pop("sugar_active", None)
     return ConversationHandler.END
 
 
