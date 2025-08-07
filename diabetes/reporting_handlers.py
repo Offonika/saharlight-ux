@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import html
 import logging
 import time
 
@@ -28,15 +29,29 @@ HIGH_SUGAR_THRESHOLD = 13.0
 
 def render_entry(entry: Entry) -> str:
     """Render a single diary entry as HTML-formatted text."""
-    day_str = entry.event_time.strftime("%d.%m %H:%M")
-    sugar = entry.sugar_before if entry.sugar_before is not None else "—"
-    carbs = entry.carbs_g if entry.carbs_g is not None else "—"
-    xe = entry.xe if entry.xe is not None else "—"
-    dose = entry.dose if entry.dose is not None else "—"
+    day_str = html.escape(entry.event_time.strftime("%d.%m %H:%M"))
+    sugar = (
+        html.escape(str(entry.sugar_before))
+        if entry.sugar_before is not None
+        else "—"
+    )
+    dose = (
+        html.escape(str(entry.dose)) if entry.dose is not None else "—"
+    )
+
+    if entry.carbs_g is not None:
+        carbs_text = f"{html.escape(str(entry.carbs_g))} г"
+        if entry.xe is not None:
+            carbs_text += f" ({html.escape(str(entry.xe))} ХЕ)"
+    elif entry.xe is not None:
+        carbs_text = f"{html.escape(str(entry.xe))} ХЕ"
+    else:
+        carbs_text = "—"
+
     return (
         f"<b>{day_str}</b>\n"
         f"🍭 Сахар: <b>{sugar}</b>\n"
-        f"🍞 Углеводы: <b>{carbs} г ({xe} ХЕ)</b>\n"
+        f"🍞 Углеводы: <b>{carbs_text}</b>\n"
         f"💉 Доза: <b>{dose}</b>"
     )
 

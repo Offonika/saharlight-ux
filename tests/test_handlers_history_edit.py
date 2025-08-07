@@ -96,7 +96,7 @@ async def test_history_view_buttons(monkeypatch):
         expected_texts.append(
             f"<b>{day_str}</b>\n"
             f"🍭 Сахар: <b>—</b>\n"
-            f"🍞 Углеводы: <b>— г (— ХЕ)</b>\n"
+            f"🍞 Углеводы: <b>—</b>\n"
             f"💉 Доза: <b>—</b>"
         )
     for (text, kwargs), expected in zip(message.replies[1:-1], expected_texts):
