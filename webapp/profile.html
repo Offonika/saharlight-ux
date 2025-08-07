@@ -9,12 +9,19 @@
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const data = {
-                    icr: form.icr.value,
-                    cf: form.cf.value,
-                    target: form.target.value,
-                    low: form.low.value,
-                    high: form.high.value,
+                    icr: parseFloat(form.icr.value),
+                    cf: parseFloat(form.cf.value),
+                    target: parseFloat(form.target.value),
+                    low: parseFloat(form.low.value),
+                    high: parseFloat(form.high.value),
                 };
+
+                for (const [key, value] of Object.entries(data)) {
+                    if (!Number.isFinite(value) || value <= 0) {
+                        alert(`${key} must be a positive number`);
+                        return;
+                    }
+                }
                 try {
                     const resp = await fetch(form.action, {
                         method: 'POST',
