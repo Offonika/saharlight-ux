@@ -19,7 +19,6 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Update,
-    WebAppInfo,
 )
 from telegram.ext import (
     CommandHandler,
@@ -31,10 +30,9 @@ from telegram.ext import (
 from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
 from diabetes.db import SessionLocal, User, Profile
-from diabetes.ui import menu_keyboard
+from diabetes.ui import menu_keyboard, build_timezone_webapp_button
 from .common_handlers import commit_session
 from zoneinfo import ZoneInfo
-from diabetes.config import WEBAPP_URL
 
 logger = logging.getLogger(__name__)
 
@@ -181,13 +179,9 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             return ConversationHandler.END
 
     keyboard_buttons = []
-    if WEBAPP_URL:
-        keyboard_buttons.append(
-            InlineKeyboardButton(
-                "Определить автоматически",
-                web_app=WebAppInfo(WEBAPP_URL),
-            )
-        )
+    tz_button = build_timezone_webapp_button()
+    if tz_button:
+        keyboard_buttons.append(tz_button)
     keyboard_buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
     await update.message.reply_text(
         "Введите ваш часовой пояс (например Europe/Moscow) или используйте кнопку ниже:",
@@ -207,12 +201,9 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
         ZoneInfo(tz_name)
     except Exception:
         buttons = []
-        if WEBAPP_URL:
-            buttons.append(
-                InlineKeyboardButton(
-                    "Определить автоматически", web_app=WebAppInfo(WEBAPP_URL)
-                )
-            )
+        tz_button = build_timezone_webapp_button()
+        if tz_button:
+            buttons.append(tz_button)
         buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
         await update.message.reply_text(
             "Введите корректный часовой пояс, например Europe/Moscow.",
