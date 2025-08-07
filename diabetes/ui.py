@@ -12,7 +12,9 @@ from telegram import (
     InlineKeyboardButton,
     ReplyKeyboardMarkup,
     KeyboardButton,
+    WebAppInfo,
 )
+from diabetes.config import WEBAPP_URL
 
 __all__ = (
     "menu_keyboard",
@@ -20,6 +22,7 @@ __all__ = (
     "sugar_keyboard",
     "confirm_keyboard",
     "back_keyboard",
+    "build_timezone_webapp_button",
 )
 
 # ─────────────── Reply-клавиатуры (отображаются на экране чата) ───────────────
@@ -88,3 +91,21 @@ def confirm_keyboard(back_cb: str | None = None) -> InlineKeyboardMarkup:
             [InlineKeyboardButton("🔙 Назад", callback_data=back_cb)]
         )
     return InlineKeyboardMarkup(rows)
+
+
+def build_timezone_webapp_button() -> InlineKeyboardButton | None:
+    """Create a WebApp button for timezone detection if configured.
+
+    Returns
+    -------
+    InlineKeyboardButton | None
+        Button instance when ``WEBAPP_URL`` is set and valid, otherwise ``None``.
+    """
+
+    if not WEBAPP_URL:
+        return None
+
+    return InlineKeyboardButton(
+        "Определить автоматически",
+        web_app=WebAppInfo(WEBAPP_URL),
+    )
