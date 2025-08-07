@@ -6,6 +6,9 @@ import os
 from dotenv import load_dotenv
 
 
+logger = logging.getLogger(__name__)
+
+
 if not os.getenv("SKIP_DOTENV"):
     load_dotenv()  # Загрузка переменных из .env файла
 
@@ -39,9 +42,16 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 
 # Optional directory containing custom fonts for PDF reports
 FONT_DIR = os.getenv("FONT_DIR")
-WEBAPP_URL = os.getenv("WEBAPP_URL")
-if not WEBAPP_URL:
-    logging.warning("WEBAPP_URL is not set; web app integration disabled")
-elif not WEBAPP_URL.startswith("https://"):
-    logging.warning("WEBAPP_URL must start with 'https://'; disabling web app integration")
-    WEBAPP_URL = None
+
+# Validate and normalize web app URL
+_raw_webapp_url = os.getenv("WEBAPP_URL")
+WEBAPP_URL = None
+if not _raw_webapp_url:
+    logger.warning("WEBAPP_URL is not set; web app integration disabled")
+elif not _raw_webapp_url.startswith("https://"):
+    logger.warning(
+        "Ignoring WEBAPP_URL %r because it is not HTTPS; web app integration disabled",
+        _raw_webapp_url,
+    )
+else:
+    WEBAPP_URL = _raw_webapp_url
