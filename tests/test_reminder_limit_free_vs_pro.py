@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+import json
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -9,8 +10,8 @@ from diabetes.db import Base, Reminder, User
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None):
-        self.text = text
+    def __init__(self):
+        self.web_app_data = SimpleNamespace()
         self.replies: list[str] = []
 
     async def reply_text(self, text, **kwargs):  # pragma: no cover - kwargs unused
@@ -39,11 +40,12 @@ async def test_reminder_limit_free_vs_pro(plan, limit, monkeypatch):
         session.commit()
 
     msg = DummyMessage()
-    update = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    msg.web_app_data.data = json.dumps({"type": "sugar", "value": "09:00"})
+    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(job_queue=SimpleNamespace(run_daily=lambda *a, **k: None, run_repeating=lambda *a, **k: None, get_jobs_by_name=lambda name: []))
 
-    state = await handlers.add_reminder_start(update, SimpleNamespace())
+    await handlers.reminder_webapp_save(update, context)
 
-    assert state == handlers.ConversationHandler.END
     assert msg.replies[-1] == (
         f"У вас уже {limit} активных (лимит {plan.upper()}). Отключите одно или откройте PRO."
     )

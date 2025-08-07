@@ -202,23 +202,20 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch):
         session.add(Profile(telegram_id=1, icr=10, cf=2, target_bg=6))
         session.commit()
 
-    called = {"add": False, "del": False}
-
-    async def fake_add(update, context):
-        called["add"] = True
+    called = {"del": False}
 
     async def fake_del(update, context):
         called["del"] = True
 
-    monkeypatch.setattr(reminder_handlers, "add_reminder_start", fake_add)
     monkeypatch.setattr(reminder_handlers, "delete_reminder", fake_del)
 
+    monkeypatch.setattr(handlers, "WEBAPP_URL", "http://example")
     query_add = DummyQuery("profile_security:add")
     update_add = SimpleNamespace(callback_query=query_add, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
 
     await handlers.profile_security(update_add, context)
-    assert called["add"] is True
+    assert query_add.message.texts[-1] == "Создать напоминание:"
 
     query_del = DummyQuery("profile_security:del")
     update_del = SimpleNamespace(callback_query=query_del, effective_user=SimpleNamespace(id=1))

@@ -9,6 +9,8 @@ from fastapi.responses import FileResponse
 
 app = FastAPI()
 BASE_DIR = Path(__file__).parent
+REMINDERS: dict[int, dict] = {}
+NEXT_ID = 1
 
 
 @app.get("/")
@@ -28,6 +30,31 @@ async def profile_post(request: Request) -> dict:  # pragma: no cover - simple
     """Accept submitted profile data."""
     await request.json()
     return {"status": "ok"}
+
+
+@app.get("/reminder")
+async def reminder_form() -> FileResponse:  # pragma: no cover - trivial
+    """Return the reminder form page."""
+    return FileResponse(BASE_DIR / "reminder.html")
+
+
+@app.get("/reminders")
+async def reminders_get(id: int | None = None) -> dict | list[dict]:  # pragma: no cover - simple
+    """Return stored reminders (in-memory demo store)."""
+    if id is None:
+        return list(REMINDERS.values())
+    return REMINDERS.get(id, {})
+
+
+@app.post("/reminders")
+async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
+    """Save reminder data to demo store."""
+    global NEXT_ID
+    data = await request.json()
+    rid = data.get("id") or NEXT_ID
+    NEXT_ID = max(NEXT_ID, rid + 1)
+    REMINDERS[int(rid)] = {"id": int(rid), **data}
+    return {"status": "ok", "id": int(rid)}
 
 
 if __name__ == "__main__":  # pragma: no cover - manual start

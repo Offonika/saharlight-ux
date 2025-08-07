@@ -9,7 +9,6 @@ os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import diabetes.openai_utils as openai_utils  # noqa: F401
 from diabetes import (
     dose_handlers,
-    reminder_handlers,
     profile_handlers,
     onboarding_handlers,
     sos_handlers,
@@ -35,18 +34,6 @@ async def _exercise(handler):
     assert message.replies[0] == "Отменено."
     assert any("фото" in r.lower() for r in message.replies[1:])
     assert context.user_data == {}
-
-
-@pytest.mark.asyncio
-async def test_add_reminder_conv_photo_fallback():
-    handler = next(
-        h
-        for h in reminder_handlers.add_reminder_conv.fallbacks
-        if isinstance(h, MessageHandler)
-        and getattr(getattr(h, "filters", None), "pattern", None).pattern
-        == "^📷 Фото еды$"
-    )
-    await _exercise(handler)
 
 
 @pytest.mark.asyncio

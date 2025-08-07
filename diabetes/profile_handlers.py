@@ -384,7 +384,14 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
             await sos_handlers.sos_contact_start(update.callback_query, context)
         elif action == "add":
-            await reminder_handlers.add_reminder_start(update, context)
+            if WEBAPP_URL:
+                button = InlineKeyboardButton(
+                    "📝 Новое", web_app=WebAppInfo(f"{WEBAPP_URL}/reminder")
+                )
+                keyboard = InlineKeyboardMarkup([[button]])
+                await query.message.reply_text(
+                    "Создать напоминание:", reply_markup=keyboard
+                )
         elif action == "del":
             await reminder_handlers.delete_reminder(update, context)
 
