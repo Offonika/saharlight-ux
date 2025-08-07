@@ -1,3 +1,4 @@
+import json
 import pytest
 from datetime import datetime
 from types import SimpleNamespace
@@ -159,7 +160,8 @@ def test_render_reminders_formatting(monkeypatch):
     assert "⏱ Интервал" in text
     assert "📸 Триггер-фото" in text
     assert "2. <s>🔕title2</s>" in text
-    assert markup.inline_keyboard[-1][0].callback_data == "add_new"
+    btn = markup.inline_keyboard[-1][0]
+    assert btn.web_app and btn.web_app.url.endswith("/reminder")
 
 
 @pytest.mark.asyncio
@@ -240,18 +242,13 @@ async def test_edit_reminder(monkeypatch):
         rem = session.get(Reminder, 1)
         handlers.schedule_reminder(rem, job_queue)
 
-    query = DummyCallbackQuery("rem_edit:1", DummyMessage(), id="cb1")
-    context = SimpleNamespace(user_data={}, job_queue=job_queue, bot=DummyBot())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    state = await handlers.reminder_action_cb(update, context)
-    assert state == handlers.REM_EDIT_AWAIT_INPUT
-    assert query.answers[-1] is None
-
-    msg = DummyMessage(text="09:00")
-    update2 = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
-    end_state = await handlers.reminder_edit_reply(update2, context)
-    assert end_state == handlers.ConversationHandler.END
-    assert msg.texts and msg.texts[-1] == "Готово ✅"
+    msg = DummyMessage()
+    msg.web_app_data = SimpleNamespace(
+        data=json.dumps({"id": 1, "type": "medicine", "value": "09:00"})
+    )
+    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(job_queue=job_queue)
+    await handlers.reminder_webapp_save(update, context)
 
     with TestSession() as session:
         parsed = parse_time_interval("09:00")

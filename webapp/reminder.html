@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reminder</title>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const form = document.getElementById('reminder-form');
+            const urlParams = new URLSearchParams(window.location.search);
+            const id = urlParams.get('id');
+            if (id) {
+                try {
+                    const resp = await fetch(`/reminders?id=${id}`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        form.rem_id.value = data.id || '';
+                        form.rem_type.value = data.type || '';
+                        form.value.value = data.time || data.interval || '';
+                    }
+                } catch (err) {
+                    console.error('Failed to load reminder', err);
+                }
+            }
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const payload = {
+                    id: form.rem_id.value || null,
+                    type: form.rem_type.value,
+                    value: form.value.value
+                };
+                try {
+                    const resp = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(payload)
+                    });
+                    if (resp.ok && window.Telegram && Telegram.WebApp) {
+                        Telegram.WebApp.ready();
+                        Telegram.WebApp.sendData(JSON.stringify(payload));
+                    }
+                } catch (err) {
+                    console.error('Failed to submit reminder', err);
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+<form id="reminder-form" action="/reminders" method="post">
+    <input type="hidden" name="rem_id">
+    <label>Type:
+        <select name="rem_type">
+            <option value="sugar">Sugar</option>
+            <option value="long_insulin">Long insulin</option>
+            <option value="medicine">Medicine</option>
+            <option value="xe_after">XE after meal</option>
+        </select>
+    </label><br>
+    <label>Time or interval: <input name="value" type="text" required></label><br>
+    <button type="submit">Save</button>
+</form>
+</body>
+</html>
