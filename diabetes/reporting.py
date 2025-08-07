@@ -10,7 +10,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.ttfonts import TTFont, TTFError
 from reportlab.pdfgen import canvas
 
 from diabetes.config import FONT_DIR
@@ -24,19 +24,30 @@ def _register_font(name, filename):
     path = os.path.join(_font_dir, filename)
     try:
         pdfmetrics.registerFont(TTFont(name, path))
-    except Exception as e:
-        logging.warning("[PDF] Cannot register font %s at %s: %s", name, path, e)
+    except (OSError, TTFError) as e:
+        if isinstance(e, OSError):
+            logging.warning("[PDF] Cannot register font %s at %s: %s", name, path, e)
+        else:
+            logging.exception("[PDF] Invalid font %s at %s: %s", name, path, e)
         if _font_dir != DEFAULT_FONT_DIR:
             fallback = os.path.join(DEFAULT_FONT_DIR, filename)
             try:
                 pdfmetrics.registerFont(TTFont(name, fallback))
-            except Exception as e2:
-                logging.exception(
-                    "[PDF] Failed to register default font %s at %s: %s",
-                    name,
-                    fallback,
-                    e2,
-                )
+            except (OSError, TTFError) as e2:
+                if isinstance(e2, OSError):
+                    logging.warning(
+                        "[PDF] Failed to register default font %s at %s: %s",
+                        name,
+                        fallback,
+                        e2,
+                    )
+                else:
+                    logging.exception(
+                        "[PDF] Invalid default font %s at %s: %s",
+                        name,
+                        fallback,
+                        e2,
+                    )
 
 
 _register_font('DejaVuSans', 'DejaVuSans.ttf')
@@ -169,8 +180,10 @@ def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf):
                 preserveAspectRatio=True,
             )
             y -= 65 * mm
-        except Exception as e:
-            logging.exception("[PDF] Failed to draw plot image: %s", e)
+        except OSError as e:
+            logging.warning("[PDF] Cannot read plot image: %s", e)
+        except ValueError as e:
+            logging.exception("[PDF] Invalid plot image: %s", e)
 
     # Анализ и рекомендации
     y -= 8 * mm
