@@ -40,7 +40,33 @@
                     type: form.rem_type.value
                 };
                 const key = form.value.dataset.key || 'value';
-                payload[key] = form.value.value;
+                let raw = form.value.value.trim();
+                if (key === 'time') {
+                    const match = raw.match(/^(\d{1,2}):(\d{2})$/);
+                    if (!match) {
+                        alert('Введите время в формате ЧЧ:ММ');
+                        return;
+                    }
+                    const hours = parseInt(match[1], 10);
+                    const minutes = parseInt(match[2], 10);
+                    if (
+                        Number.isNaN(hours) ||
+                        Number.isNaN(minutes) ||
+                        hours > 23 ||
+                        minutes > 59
+                    ) {
+                        alert('Некорректное время');
+                        return;
+                    }
+                    payload[key] = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                } else {
+                    const num = parseInt(raw, 10);
+                    if (Number.isNaN(num)) {
+                        alert('Введите число');
+                        return;
+                    }
+                    payload[key] = num;
+                }
                 try {
                     const resp = await fetch(form.action, {
                         method: 'POST',
