@@ -20,6 +20,7 @@ COPY . .
 # COPY .env .env
 
 # Запускаем FastAPI WebApp и Telegram-бота
+# WEBAPP_URL must be provided via environment variables and must use HTTPS.
+# Telegram will reject non-HTTPS URLs.
 ENV UVICORN_WORKERS=1
-ENV WEBAPP_URL="http://localhost:8000/"
 CMD ["bash", "-c", "uvicorn webapp.server:app --host 0.0.0.0 --port 8000 --workers $UVICORN_WORKERS & python bot.py"]
