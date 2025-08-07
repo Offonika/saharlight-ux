@@ -23,6 +23,7 @@ env/
 # Bot data
 .cursor/
 photos/
+webapp/reminders.json
 
 # Temporary/test files
 test123.txt
