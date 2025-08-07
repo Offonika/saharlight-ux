@@ -40,3 +40,8 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 # Optional directory containing custom fonts for PDF reports
 FONT_DIR = os.getenv("FONT_DIR")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
+if not WEBAPP_URL:
+    logging.warning("WEBAPP_URL is not set; web app integration disabled")
+elif not WEBAPP_URL.startswith("https://"):
+    logging.warning("WEBAPP_URL must start with 'https://'; disabling web app integration")
+    WEBAPP_URL = None
