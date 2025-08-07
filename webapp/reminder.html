@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Reminder</title>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             if (window.Telegram && Telegram.WebApp) {
                 Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
             }
             const form = document.getElementById('reminder-form');
             const urlParams = new URLSearchParams(window.location.search);

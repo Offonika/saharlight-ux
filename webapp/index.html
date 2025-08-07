@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Timezone</title>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
             if (window.Telegram && Telegram.WebApp) {
                 Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
                 Telegram.WebApp.sendData(tz);
             }
         });
