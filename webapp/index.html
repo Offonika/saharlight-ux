@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Timezone</title>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (window.Telegram && Telegram.WebApp) {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.sendData(tz);
+            }
+        });
+    </script>
+</head>
+<body>
+    <p>Determining timezone…</p>
+</body>
+</html>
