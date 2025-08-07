@@ -15,7 +15,19 @@
                         const data = await resp.json();
                         form.rem_id.value = data.id || '';
                         form.rem_type.value = data.type || '';
-                        form.value.value = data.time || data.interval || '';
+                        let valueKey = 'value';
+                        let value = '';
+                        if (data.value !== undefined) {
+                            value = data.value;
+                        } else if (data.time !== undefined) {
+                            value = data.time;
+                            valueKey = 'time';
+                        } else if (data.interval !== undefined) {
+                            value = data.interval;
+                            valueKey = 'interval';
+                        }
+                        form.value.dataset.key = valueKey;
+                        form.value.value = value || '';
                     }
                 } catch (err) {
                     console.error('Failed to load reminder', err);
@@ -25,9 +37,10 @@
                 e.preventDefault();
                 const payload = {
                     id: form.rem_id.value || null,
-                    type: form.rem_type.value,
-                    value: form.value.value
+                    type: form.rem_type.value
                 };
+                const key = form.value.dataset.key || 'value';
+                payload[key] = form.value.value;
                 try {
                     const resp = await fetch(form.action, {
                         method: 'POST',
