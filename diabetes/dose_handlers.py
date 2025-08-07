@@ -12,6 +12,7 @@ from pathlib import Path
 from openai import OpenAIError
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatAction
+from telegram.error import TelegramError
 from telegram.ext import (
     CommandHandler,
     ConversationHandler,
@@ -790,9 +791,14 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 await context.bot.send_chat_action(
                     chat_id=chat_id, action=ChatAction.TYPING
                 )
-            except Exception as exc:
+            except TelegramError as exc:
                 logger.warning(
                     "[PHOTO][TYPING_ACTION] Failed to send typing action: %s",
+                    exc,
+                )
+            except Exception as exc:  # pragma: no cover - unexpected
+                logger.exception(
+                    "[PHOTO][TYPING_ACTION] Unexpected error: %s",
                     exc,
                 )
 
@@ -813,9 +819,14 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             ):
                 try:
                     await status_message.edit_text("🔍 Всё ещё анализирую фото…")
-                except Exception as exc:
+                except TelegramError as exc:
                     logger.warning(
                         "[PHOTO][STATUS_EDIT] Failed to update status message: %s",
+                        exc,
+                    )
+                except Exception as exc:  # pragma: no cover - unexpected
+                    logger.exception(
+                        "[PHOTO][STATUS_EDIT] Unexpected error: %s",
                         exc,
                     )
             await send_typing_action()
@@ -827,9 +838,14 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                     await status_message.edit_text(
                         "⚠️ Время ожидания Vision истекло. Попробуйте позже."
                     )
-                except Exception as exc:
+                except TelegramError as exc:
                     logger.warning(
                         "[PHOTO][TIMEOUT_EDIT] Failed to send timeout notice: %s",
+                        exc,
+                    )
+                except Exception as exc:  # pragma: no cover - unexpected
+                    logger.exception(
+                        "[PHOTO][TIMEOUT_EDIT] Unexpected error: %s",
                         exc,
                     )
             else:
@@ -845,9 +861,14 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                     await status_message.edit_text(
                         "⚠️ Vision не смог обработать фото."
                     )
-                except Exception as exc:
+                except TelegramError as exc:
                     logger.warning(
                         "[PHOTO][RUN_FAILED_EDIT] Failed to send Vision failure notice: %s",
+                        exc,
+                    )
+                except Exception as exc:  # pragma: no cover - unexpected
+                    logger.exception(
+                        "[PHOTO][RUN_FAILED_EDIT] Unexpected error: %s",
                         exc,
                     )
             else:
@@ -896,9 +917,14 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         if status_message and hasattr(status_message, "delete"):
             try:
                 await status_message.delete()
-            except Exception as exc:
+            except TelegramError as exc:
                 logger.warning(
                     "[PHOTO][DELETE_STATUS] Failed to delete status message: %s",
+                    exc,
+                )
+            except Exception as exc:  # pragma: no cover - unexpected
+                logger.exception(
+                    "[PHOTO][DELETE_STATUS] Unexpected error: %s",
                     exc,
                 )
         await message.reply_text(
@@ -919,6 +945,9 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
     except ValueError as exc:
         logging.exception("[PHOTO] Parsing error: %s", exc)
         await message.reply_text("⚠️ Не удалось распознать фото. Попробуйте ещё раз.")
+        return ConversationHandler.END
+    except TelegramError as exc:
+        logging.exception("[PHOTO] Telegram error: %s", exc)
         return ConversationHandler.END
     except Exception as exc:  # pragma: no cover - unexpected
         logging.exception("[PHOTO] Unexpected error: %s", exc)
