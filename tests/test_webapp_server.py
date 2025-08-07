@@ -38,9 +38,12 @@ def test_reminders_post_accepts_str_and_int_ids() -> None:
 def test_profile_post_rejects_invalid_json() -> None:
     """Posting malformed JSON to /profile returns an error."""
     response = client.post(
-        "/profile", content="{bad", headers={"Content-Type": "application/json"}
+        "/profile",
+        content=b"{bad",
+        headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 400
+    assert response.json() == {"detail": "invalid JSON format"}
 
 
 @pytest.mark.parametrize("rid", [-1, "-1"])
@@ -54,7 +57,10 @@ def test_reminders_post_rejects_negative_id(rid: int | str) -> None:
 def test_reminders_post_rejects_invalid_json() -> None:
     """Malformed JSON for /reminders should return an error and keep state empty."""
     response = client.post(
-        "/reminders", content="{bad", headers={"Content-Type": "application/json"}
+        "/reminders",
+        content=b"{bad",
+        headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 400
+    assert response.json() == {"detail": "invalid JSON format"}
     assert client.get("/reminders").json() == []
