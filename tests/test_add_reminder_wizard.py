@@ -53,3 +53,25 @@ async def test_webapp_save_creates_reminder(monkeypatch):
     with TestSession() as session:
         rem = session.query(Reminder).first()
         assert rem and rem.time == "08:00"
+
+
+@pytest.mark.asyncio
+async def test_webapp_save_creates_interval(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    msg = DummyMessage(json.dumps({"type": "sugar", "value": "2h"}))
+    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace(job_queue=DummyJobQueue())
+    await handlers.reminder_webapp_save(update, context)
+
+    with TestSession() as session:
+        rem = session.query(Reminder).first()
+        assert rem and rem.interval_hours == 2

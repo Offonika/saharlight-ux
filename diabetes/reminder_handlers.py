@@ -341,9 +341,12 @@ async def reminder_webapp_save(
     except json.JSONDecodeError:
         return
     rtype = data.get("type")
-    value = data.get("value", "")
+    raw_value = data.get("value")
     rid = data.get("id")
-    if not rtype or not value:
+    if not rtype or raw_value is None:
+        return
+    value = str(raw_value).strip()
+    if not value:
         return
     user_id = update.effective_user.id
     if rtype == "xe_after":
