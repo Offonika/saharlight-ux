@@ -5,6 +5,7 @@ import io
 import os
 from types import SimpleNamespace
 
+import matplotlib.pyplot as plt
 import pytest
 from pypdf import PdfReader
 from sqlalchemy import create_engine
@@ -45,6 +46,39 @@ def test_make_sugar_plot():
     assert hasattr(buf, 'read')
     buf.seek(0)
     assert len(buf.read()) > 1000  # есть содержимое
+
+
+def test_make_sugar_plot_sorts_entries(monkeypatch):
+    entries = [
+        DummyEntry(
+            datetime.datetime(2025, 7, 1, 14, tzinfo=datetime.timezone.utc),
+            9.0,
+            50,
+            4.1,
+            8,
+        ),
+        DummyEntry(
+            datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
+            7.0,
+            40,
+            3.3,
+            6,
+        ),
+    ]
+    captured = {}
+
+    def fake_plot(x, y, **kwargs):
+        captured["x"] = x
+        captured["y"] = y
+
+    monkeypatch.setattr(plt, "plot", fake_plot)
+    make_sugar_plot(entries, "период")
+
+    assert captured["x"] == [
+        datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
+        datetime.datetime(2025, 7, 1, 14, tzinfo=datetime.timezone.utc),
+    ]
+    assert captured["y"] == [7.0, 9.0]
 
 
 def test_make_sugar_plot_no_data():
