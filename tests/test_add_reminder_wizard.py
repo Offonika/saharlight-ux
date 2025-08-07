@@ -84,7 +84,9 @@ async def test_add_reminder_wizard_success(monkeypatch):
 
     cq = DummyCallbackQuery("rem_type:sugar", DummyMessage(), id="cb1")
     update2 = SimpleNamespace(callback_query=cq, effective_user=SimpleNamespace(id=1))
-    monkeypatch.setattr(handlers, "_schedule_with_next", lambda rem: ("⏰", "next 23:00"))
+    monkeypatch.setattr(
+        handlers, "_schedule_with_next", lambda rem, user=None: ("⏰", "next 23:00")
+    )
     state = await handlers.add_reminder_type(update2, context)
     assert state == handlers.REMINDER_TIME
 

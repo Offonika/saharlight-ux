@@ -25,6 +25,7 @@ class User(Base):
     thread_id = Column(String, nullable=False)
     onboarding_complete = Column(Boolean, default=False)
     plan = Column(String, default="free")
+    timezone = Column(String, default="UTC")  # IANA timezone identifier
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 

@@ -79,6 +79,10 @@ async def test_onboarding_flow(monkeypatch):
 
     update.message.text = "6"
     state = await onboarding.onboarding_target(update, context)
+    assert state == onboarding.ONB_PROFILE_TZ
+
+    update.message.text = "Europe/Moscow"
+    state = await onboarding.onboarding_timezone(update, context)
     assert state == onboarding.ONB_DEMO
     assert message.photos
 

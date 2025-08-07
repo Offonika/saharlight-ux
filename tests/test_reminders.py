@@ -52,10 +52,11 @@ class DummyBot:
 
 
 class DummyJob:
-    def __init__(self, callback, data, name):
+    def __init__(self, callback, data, name, time=None):
         self.callback = callback
         self.data = data
         self.name = name
+        self.time = time
         self.removed = False
 
     def schedule_removal(self):
@@ -67,7 +68,7 @@ class DummyJobQueue:
         self.jobs = []
 
     def run_daily(self, callback, time, data=None, name=None):
-        self.jobs.append(DummyJob(callback, data, name))
+        self.jobs.append(DummyJob(callback, data, name, time))
 
     def run_repeating(self, callback, interval, data=None, name=None):
         self.jobs.append(DummyJob(callback, data, name))
@@ -85,7 +86,7 @@ def test_schedule_reminder_replaces_existing_job():
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(User(telegram_id=1, thread_id="t", timezone="Europe/Moscow"))
         session.add(
             Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True)
         )
@@ -98,6 +99,7 @@ def test_schedule_reminder_replaces_existing_job():
     jobs = job_queue.get_jobs_by_name("reminder_1")
     active_jobs = [j for j in jobs if not j.removed]
     assert len(active_jobs) == 1
+    assert active_jobs[0].time.tzinfo.key == "Europe/Moscow"
 
 
 def test_schedule_with_next_interval(monkeypatch):
@@ -109,7 +111,8 @@ def test_schedule_with_next_interval(monkeypatch):
             return now
 
     monkeypatch.setattr(handlers, "datetime", DummyDatetime)
-    rem = Reminder(telegram_id=1, type="sugar", interval_hours=2, is_enabled=True)
+    user = User(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
+    rem = Reminder(telegram_id=1, type="sugar", interval_hours=2, is_enabled=True, user=user)
     icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏱"
     assert schedule == "каждые 2 ч (next 12:00)"
@@ -125,7 +128,7 @@ def test_render_reminders_formatting(monkeypatch):
     monkeypatch.setattr(
         handlers,
         "_describe",
-        lambda r: f"{'🔔' if r.is_enabled else '🔕'}title{r.id}",
+        lambda r, u=None: f"{'🔔' if r.is_enabled else '🔕'}title{r.id}",
     )
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))

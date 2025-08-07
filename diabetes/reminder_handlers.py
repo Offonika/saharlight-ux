@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import datetime
 from datetime import timedelta, time, timezone
+from zoneinfo import ZoneInfo
 import logging
 
 from diabetes.utils import parse_time_interval
@@ -54,23 +55,32 @@ REMINDER_TYPE, REMINDER_TIME = range(2)
 REM_EDIT_AWAIT_INPUT = 2
 
 
-def _describe(rem: Reminder) -> str:
+def _describe(rem: Reminder, user: User | None = None) -> str:
     """Return human readable reminder description with status and schedule."""
 
     status = "🔔" if rem.is_enabled else "🔕"
     action = REMINDER_ACTIONS.get(rem.type, rem.type)
-    type_icon, schedule = _schedule_with_next(rem)
+    type_icon, schedule = _schedule_with_next(rem, user)
     return f"{status} {action} {type_icon} {schedule}".strip()
 
 
-def _schedule_with_next(rem: Reminder) -> tuple[str, str]:
+def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, str]:
     """Return type icon and schedule string with next run time."""
 
     dt_cls = getattr(datetime, "datetime", datetime)
+    if user is None:
+        user = rem.__dict__.get("user")
+    tz = timezone.utc
+    tzname = getattr(user, "timezone", None)
+    if tzname:
+        try:
+            tz = ZoneInfo(tzname)
+        except Exception:
+            pass
     try:
-        now = dt_cls.now(timezone.utc)
+        now = dt_cls.now(tz)
     except TypeError:
-        now = dt_cls.now().replace(tzinfo=timezone.utc)
+        now = dt_cls.now().replace(tzinfo=tz)
     next_dt: datetime.datetime | None
     if rem.time:
         type_icon = "⏰"
@@ -127,7 +137,7 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     by_photo: list[tuple[str, list[InlineKeyboardButton]]] = []
 
     for r in rems:
-        title = _describe(r)
+        title = _describe(r, user)
         if not r.is_enabled:
             title = f"<s>{title}</s>"
         line = f"{r.id}. {title}"
@@ -180,6 +190,19 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
     name = f"reminder_{rem.id}"
     for job in job_queue.get_jobs_by_name(name):
         job.schedule_removal()
+
+    tz = timezone.utc
+    user = rem.__dict__.get("user")
+    if user is None or getattr(user, "timezone", None) is None:
+        with SessionLocal() as session:
+            user = session.get(User, rem.telegram_id)
+    tzname = getattr(user, "timezone", None) if user else None
+    if tzname:
+        try:
+            tz = ZoneInfo(tzname)
+        except Exception:
+            pass
+
     if rem.type in {"sugar", "long_insulin", "medicine"}:
         if rem.time:
             hh, mm = map(int, rem.time.split(":"))
@@ -193,7 +216,7 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
             )
             job_queue.run_daily(
                 reminder_job,
-                time=time(hour=hh, minute=mm),
+                time=time(hour=hh, minute=mm, tzinfo=tz),
                 data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
                 name=name,
             )
@@ -295,7 +318,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
         job.schedule_removal()
     schedule_reminder(reminder, context.job_queue)
-    await update.message.reply_text(f"Сохранено: {_describe(reminder)}")
+    await update.message.reply_text(f"Сохранено: {_describe(reminder, user)}")
 
 
 async def add_reminder_start(
@@ -412,7 +435,7 @@ async def add_reminder_time(
             return ConversationHandler.END
         session.refresh(reminder)
     schedule_reminder(reminder, context.job_queue)
-    _, schedule = _schedule_with_next(reminder)
+    _, schedule = _schedule_with_next(reminder, user)
     match = re.search(r"(\d{2}:\d{2})", schedule)
     next_str = match.group(1) if match else ""
     cbq_id = context.user_data.pop("cbq_id", None)
@@ -510,7 +533,8 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             ReminderLog(reminder_id=rid, telegram_id=chat_id, action="trigger")
         )
         commit_session(session)
-        text = _describe(rem)
+        user = session.get(User, chat_id)
+        text = _describe(rem, user)
     keyboard = InlineKeyboardMarkup(
         [
             [
