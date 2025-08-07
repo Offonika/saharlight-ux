@@ -43,7 +43,7 @@ def test_webapp_url_requires_https(monkeypatch, caplog):
     with caplog.at_level(logging.WARNING):
         config = _reload("diabetes.config")
     assert config.WEBAPP_URL is None
-    assert any("must start" in msg for msg in caplog.messages)
+    assert any("Ignoring WEBAPP_URL" in msg and "not HTTPS" in msg for msg in caplog.messages)
 
 
 def test_webapp_url_valid(monkeypatch, caplog):
