@@ -7,6 +7,7 @@ from datetime import timedelta, time, timezone
 from zoneinfo import ZoneInfo
 import logging
 import json
+import re
 
 from diabetes.utils import parse_time_interval
 
@@ -348,6 +349,7 @@ async def reminder_webapp_save(
     value = str(raw_value).strip()
     if not value:
         return
+    logger.debug("Received raw reminder value: %r", value)
     user_id = update.effective_user.id
     if rtype == "xe_after":
         try:
@@ -357,10 +359,19 @@ async def reminder_webapp_save(
             return
         parsed = None
     else:
+        if not re.fullmatch(r"\d{1,2}:\d{2}|\d+h", value):
+            logger.warning("Invalid reminder value format: %s", value)
+            await update.effective_message.reply_text(
+                "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h."
+            )
+            return
         try:
             parsed = parse_time_interval(value)
-        except ValueError as exc:
-            await update.effective_message.reply_text(str(exc))
+        except ValueError:
+            logger.warning("Failed to parse reminder value: %s", value)
+            await update.effective_message.reply_text(
+                "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h."
+            )
             return
         minutes = None
     with SessionLocal() as session:
