@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     CommandHandler,
     ContextTypes,
@@ -15,9 +15,11 @@ from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 from diabetes.db import SessionLocal, Profile, Alert, Reminder, User
 from diabetes.alert_handlers import evaluate_sugar
 from diabetes.ui import menu_keyboard, back_keyboard, build_timezone_webapp_button
+from diabetes.config import WEBAPP_URL
 from .common_handlers import commit_session
 import diabetes.reminder_handlers as reminder_handlers
 from zoneinfo import ZoneInfo
+import json
 
 
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)
@@ -191,15 +193,83 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         f"• Высокий порог: {profile.high_threshold} ммоль/л\n"
         f"• Часовой пояс: {tz}"
     )
-    keyboard = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("✏️ Изменить", callback_data="profile_edit")],
-            [InlineKeyboardButton("🔔 Безопасность", callback_data="profile_security")],
-            [InlineKeyboardButton("🌐 Часовой пояс", callback_data="profile_timezone")],
-            [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
-        ]
-    )
+    rows = [
+        [InlineKeyboardButton("✏️ Изменить", callback_data="profile_edit")],
+        [InlineKeyboardButton("🔔 Безопасность", callback_data="profile_security")],
+        [InlineKeyboardButton("🌐 Часовой пояс", callback_data="profile_timezone")],
+        [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
+    ]
+    if WEBAPP_URL:
+        rows.insert(
+            1,
+            [
+                InlineKeyboardButton(
+                    "📝 Заполнить форму",
+                    web_app=WebAppInfo(f"{WEBAPP_URL}/profile"),
+                )
+            ],
+        )
+    keyboard = InlineKeyboardMarkup(rows)
     await update.message.reply_text(msg, reply_markup=keyboard)
+
+
+async def profile_webapp_save(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Save profile data sent from the web app."""
+    raw = update.effective_message.web_app_data.data
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return
+    if {
+        "icr",
+        "cf",
+        "target",
+        "low",
+        "high",
+    } - data.keys():
+        return
+    try:
+        icr = float(str(data["icr"]).replace(",", "."))
+        cf = float(str(data["cf"]).replace(",", "."))
+        target = float(str(data["target"]).replace(",", "."))
+        low = float(str(data["low"]).replace(",", "."))
+        high = float(str(data["high"]).replace(",", "."))
+    except ValueError:
+        return
+    if icr <= 0 or cf <= 0 or target <= 0 or low <= 0 or high <= 0 or low >= high:
+        await update.effective_message.reply_text(
+            "❗ Все значения должны быть больше 0, низкий порог < высокий.",
+            reply_markup=menu_keyboard,
+        )
+        return
+    user_id = update.effective_user.id
+    with SessionLocal() as session:
+        prof = session.get(Profile, user_id)
+        if not prof:
+            prof = Profile(telegram_id=user_id)
+            session.add(prof)
+        prof.icr = icr
+        prof.cf = cf
+        prof.target_bg = target
+        prof.low_threshold = low
+        prof.high_threshold = high
+        if not commit_session(session):
+            await update.effective_message.reply_text(
+                "⚠️ Не удалось сохранить профиль.",
+                reply_markup=menu_keyboard,
+            )
+            return
+    await update.effective_message.reply_text(
+        "✅ Профиль обновлён:\n"
+        f"• ИКХ: {icr} г/ед.\n"
+        f"• КЧ: {cf} ммоль/л\n"
+        f"• Целевой сахар: {target} ммоль/л\n"
+        f"• Низкий порог: {low} ммоль/л\n"
+        f"• Высокий порог: {high} ммоль/л",
+        reply_markup=menu_keyboard,
+    )
 
 
 async def profile_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -610,6 +680,11 @@ profile_conv = ConversationHandler(
 )
 
 
+profile_webapp_handler = MessageHandler(
+    filters.StatusUpdate.WEB_APP_DATA, profile_webapp_save
+)
+
+
 __all__ = [
     "profile_command",
     "profile_view",
@@ -619,4 +694,6 @@ __all__ = [
     "profile_timezone",
     "profile_edit",
     "profile_conv",
+    "profile_webapp_save",
+    "profile_webapp_handler",
 ]

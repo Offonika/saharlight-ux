@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile</title>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('profile-form');
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const data = {
+                    icr: form.icr.value,
+                    cf: form.cf.value,
+                    target: form.target.value,
+                    low: form.low.value,
+                    high: form.high.value,
+                };
+                try {
+                    const resp = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+                    if (resp.ok && window.Telegram && Telegram.WebApp) {
+                        Telegram.WebApp.ready();
+                        Telegram.WebApp.sendData(JSON.stringify(data));
+                    }
+                } catch (err) {
+                    console.error('Failed to submit profile', err);
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+<form id="profile-form" action="/profile" method="post">
+    <label>ICR: <input name="icr" type="number" step="any" required></label><br>
+    <label>CF: <input name="cf" type="number" step="any" required></label><br>
+    <label>target: <input name="target" type="number" step="any" required></label><br>
+    <label>low: <input name="low" type="number" step="any" required></label><br>
+    <label>high: <input name="high" type="number" step="any" required></label><br>
+    <button type="submit">Save</button>
+</form>
+</body>
+</html>

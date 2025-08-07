@@ -277,6 +277,7 @@ def register_handlers(app: Application) -> None:
     # Register profile conversation before sugar conversation so that numeric
     # inputs for profile aren't captured by sugar logging
     app.add_handler(profile_handlers.profile_conv)
+    app.add_handler(profile_handlers.profile_webapp_handler)
     app.add_handler(dose_handlers.sugar_conv)
     app.add_handler(sos_handlers.sos_contact_conv)
     app.add_handler(CommandHandler("cancel", dose_handlers.dose_cancel))
