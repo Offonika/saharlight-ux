@@ -131,6 +131,7 @@ def test_render_reminders_formatting(monkeypatch):
         "_describe",
         lambda r, u=None: f"{'🔔' if r.is_enabled else '🔕'}title{r.id}",
     )
+    monkeypatch.setattr(handlers, "WEBAPP_URL", "https://example.org")
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add_all(
@@ -162,6 +163,24 @@ def test_render_reminders_formatting(monkeypatch):
     assert "2. <s>🔕title2</s>" in text
     btn = markup.inline_keyboard[-1][0]
     assert btn.web_app and btn.web_app.url.endswith("/reminder")
+
+
+def test_render_reminders_no_webapp(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    monkeypatch.setattr(handlers, "WEBAPP_URL", None)
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
+        session.commit()
+    text, markup = handlers._render_reminders(1)
+    assert "Нажмите кнопку" not in text
+    assert len(markup.inline_keyboard) == 1
+    texts = [btn.text for btn in markup.inline_keyboard[0]]
+    assert texts == ["🗑️", "🔔"]
+    assert all(btn.web_app is None for btn in markup.inline_keyboard[0])
 
 
 @pytest.mark.asyncio
