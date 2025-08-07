@@ -38,7 +38,7 @@ def test_reminders_post_accepts_str_and_int_ids() -> None:
 def test_profile_post_rejects_invalid_json() -> None:
     """Posting malformed JSON to /profile returns an error."""
     response = client.post(
-        "/profile", data="{bad", headers={"Content-Type": "application/json"}
+        "/profile", content="{bad", headers={"Content-Type": "application/json"}
     )
     assert response.status_code == 400
 
@@ -54,7 +54,7 @@ def test_reminders_post_rejects_negative_id(rid: int | str) -> None:
 def test_reminders_post_rejects_invalid_json() -> None:
     """Malformed JSON for /reminders should return an error and keep state empty."""
     response = client.post(
-        "/reminders", data="{bad", headers={"Content-Type": "application/json"}
+        "/reminders", content="{bad", headers={"Content-Type": "application/json"}
     )
     assert response.status_code == 400
     assert client.get("/reminders").json() == []
