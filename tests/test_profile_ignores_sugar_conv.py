@@ -2,6 +2,7 @@ import os
 from types import SimpleNamespace
 
 import pytest
+
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import diabetes.openai_utils as openai_utils  # noqa: F401
@@ -37,27 +38,36 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch):
 
     # Start sugar conversation
     sugar_msg = DummyMessage("/sugar")
-    sugar_update = SimpleNamespace(message=sugar_msg, effective_user=SimpleNamespace(id=1), effective_chat=SimpleNamespace(id=1))
-    sugar_context = SimpleNamespace(user_data={})
-    state = await dose_handlers.sugar_start(sugar_update, sugar_context)
-    dose_handlers.sugar_conv._update_state(state, dose_handlers.sugar_conv._get_key(sugar_update))
+    sugar_update = SimpleNamespace(
+        message=sugar_msg,
+        effective_user=SimpleNamespace(id=1),
+        effective_chat=SimpleNamespace(id=1),
+    )
+    shared_chat_data: dict = {}
+    sugar_context = SimpleNamespace(user_data={}, chat_data=shared_chat_data)
+    await dose_handlers.sugar_start(sugar_update, sugar_context)
 
     # Start profile conversation which should cancel sugar conversation
     prof_msg = DummyMessage("/profile")
-    prof_update = SimpleNamespace(message=prof_msg, effective_user=SimpleNamespace(id=1), effective_chat=SimpleNamespace(id=1))
-    prof_context = SimpleNamespace(args=[], user_data={})
+    prof_update = SimpleNamespace(
+        message=prof_msg,
+        effective_user=SimpleNamespace(id=1),
+        effective_chat=SimpleNamespace(id=1),
+    )
+    prof_context = SimpleNamespace(args=[], user_data={}, chat_data=shared_chat_data)
     result = await profile_handlers.profile_command(prof_update, prof_context)
     assert result == profile_handlers.PROFILE_ICR
     assert "ИКХ" in prof_msg.replies[0]
-
-    # Sugar conversation should be cleared
-    key = dose_handlers.sugar_conv._get_key(prof_update)
-    assert key not in dose_handlers.sugar_conv._conversations
+    assert "sugar_active" not in shared_chat_data
 
     # Send ICR value
     icr_msg = DummyMessage("10")
-    icr_update = SimpleNamespace(message=icr_msg, effective_user=SimpleNamespace(id=1), effective_chat=SimpleNamespace(id=1))
-    icr_context = SimpleNamespace(user_data={})
+    icr_update = SimpleNamespace(
+        message=icr_msg,
+        effective_user=SimpleNamespace(id=1),
+        effective_chat=SimpleNamespace(id=1),
+    )
+    icr_context = SimpleNamespace(user_data={}, chat_data=shared_chat_data)
     result_icr = await profile_handlers.profile_icr(icr_update, icr_context)
     assert result_icr == profile_handlers.PROFILE_CF
     assert "КЧ" in icr_msg.replies[0]
