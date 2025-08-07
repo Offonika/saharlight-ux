@@ -20,15 +20,12 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Мета-данные моделей
 target_metadata = Base.metadata
 
-# Формируем URL подключения к БД
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 
 def run_migrations_offline() -> None:
-    """Офлайн миграции — только генерация SQL."""
     context.configure(
         url=DATABASE_URL,
         target_metadata=target_metadata,
@@ -40,7 +37,6 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Онлайн миграции — с подключением к базе."""
     from sqlalchemy import create_engine
     connectable = create_engine(DATABASE_URL, poolclass=pool.NullPool)
 
