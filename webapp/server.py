@@ -106,7 +106,7 @@ async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
     rid = reminder.id if reminder.id is not None else max(store.keys(), default=0) + 1
     if rid < 0:
         raise HTTPException(status_code=400, detail="id must be non-negative")
-    store[rid] = {**reminder.dict(exclude_none=True), "id": rid}
+    store[rid] = {**reminder.model_dump(exclude_none=True), "id": rid}
     _write_reminders(store)
     return {"status": "ok", "id": rid}
 
