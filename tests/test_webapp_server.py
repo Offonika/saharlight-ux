@@ -29,6 +29,14 @@ def test_reminders_post_accepts_str_and_int_ids() -> None:
     assert server.NEXT_ID == 7
 
 
+def test_profile_post_rejects_invalid_json() -> None:
+    """Posting malformed JSON to /profile returns an error."""
+    response = client.post(
+        "/profile", data="{bad", headers={"Content-Type": "application/json"}
+    )
+    assert response.status_code == 400
+
+
 @pytest.mark.parametrize("rid", [-1, "-1"])
 def test_reminders_post_rejects_negative_id(rid: int | str) -> None:
     """Posting a negative ID should return a validation error."""
@@ -36,4 +44,13 @@ def test_reminders_post_rejects_negative_id(rid: int | str) -> None:
     assert response.status_code == 400
     assert server.REMINDERS == {}
     assert server.NEXT_ID == 1
+
+
+def test_reminders_post_rejects_invalid_json() -> None:
+    """Malformed JSON for /reminders should return an error and keep state empty."""
+    response = client.post(
+        "/reminders", data="{bad", headers={"Content-Type": "application/json"}
+    )
+    assert response.status_code == 400
+    assert server.REMINDERS == {}
 

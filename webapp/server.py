@@ -2,15 +2,36 @@
 from __future__ import annotations
 
 import os
+from json import JSONDecodeError
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, ValidationError
 
 app = FastAPI()
 BASE_DIR = Path(__file__).parent
 REMINDERS: dict[int, dict] = {}
 NEXT_ID = 1
+
+
+class ProfileSchema(BaseModel):
+    """Schema for profile data."""
+
+    icr: float
+    cf: float
+    target: float
+    low: float
+    high: float
+
+
+class ReminderSchema(BaseModel):
+    """Schema for reminder data."""
+
+    id: int | None = None
+    rem_type: str | None = None
+    value: str | None = None
+    text: str | None = None
 
 
 @app.get("/")
@@ -28,7 +49,14 @@ async def profile() -> FileResponse:  # pragma: no cover - trivial
 @app.post("/profile")
 async def profile_post(request: Request) -> dict:  # pragma: no cover - simple
     """Accept submitted profile data."""
-    await request.json()
+    try:
+        data = await request.json()
+    except JSONDecodeError as exc:  # pragma: no cover - validation
+        raise HTTPException(status_code=400, detail="invalid JSON format") from exc
+    try:
+        ProfileSchema(**data)
+    except ValidationError as exc:  # pragma: no cover - validation
+        raise HTTPException(status_code=400, detail="invalid data") from exc
     return {"status": "ok"}
 
 
@@ -50,16 +78,20 @@ async def reminders_get(id: int | None = None) -> dict | list[dict]:  # pragma: 
 async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
     """Save reminder data to demo store."""
     global NEXT_ID
-    data = await request.json()
-    raw_id = data.get("id", NEXT_ID)
     try:
-        rid = int(raw_id)
-    except (TypeError, ValueError) as exc:  # pragma: no cover - validation
-        raise HTTPException(status_code=400, detail="id must be an integer") from exc
+        data = await request.json()
+    except JSONDecodeError as exc:  # pragma: no cover - validation
+        raise HTTPException(status_code=400, detail="invalid JSON format") from exc
+    try:
+        reminder = ReminderSchema(**data)
+    except ValidationError as exc:  # pragma: no cover - validation
+        raise HTTPException(status_code=400, detail="invalid data") from exc
+    raw_id = reminder.id if reminder.id is not None else NEXT_ID
+    rid = raw_id
     if rid < 0:
         raise HTTPException(status_code=400, detail="id must be non-negative")
     NEXT_ID = max(NEXT_ID, rid + 1)
-    REMINDERS[rid] = {**data, "id": rid}
+    REMINDERS[rid] = {**reminder.dict(exclude_none=True), "id": rid}
     return {"status": "ok", "id": rid}
 
 
