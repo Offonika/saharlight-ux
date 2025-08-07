@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="/style.css">
     <title>Profile</title>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -45,11 +46,26 @@
 </head>
 <body>
 <form id="profile-form" action="/profile" method="post">
-    <label>ICR: <input name="icr" type="number" step="any" required></label><br>
-    <label>CF: <input name="cf" type="number" step="any" required></label><br>
-    <label>target: <input name="target" type="number" step="any" required></label><br>
-    <label>low: <input name="low" type="number" step="any" required></label><br>
-    <label>high: <input name="high" type="number" step="any" required></label><br>
+    <div class="form-row">
+        <label for="icr">ICR:</label>
+        <input id="icr" name="icr" type="number" step="any" required>
+    </div>
+    <div class="form-row">
+        <label for="cf">CF:</label>
+        <input id="cf" name="cf" type="number" step="any" required>
+    </div>
+    <div class="form-row">
+        <label for="target">target:</label>
+        <input id="target" name="target" type="number" step="any" required>
+    </div>
+    <div class="form-row">
+        <label for="low">low:</label>
+        <input id="low" name="low" type="number" step="any" required>
+    </div>
+    <div class="form-row">
+        <label for="high">high:</label>
+        <input id="high" name="high" type="number" step="any" required>
+    </div>
     <button type="submit">Save</button>
 </form>
 </body>

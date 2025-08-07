@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="/style.css">
     <title>Reminder</title>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -97,15 +98,19 @@
 <body>
 <form id="reminder-form" action="/reminders" method="post">
     <input type="hidden" name="rem_id">
-    <label>Type:
-        <select name="type">
+    <div class="form-row">
+        <label for="type">Type:</label>
+        <select id="type" name="type">
             <option value="sugar">Sugar</option>
             <option value="long_insulin">Long insulin</option>
             <option value="medicine">Medicine</option>
             <option value="xe_after">XE after meal</option>
         </select>
-    </label><br>
-    <label>Time or interval: <input name="value" type="text" required pattern="([0-9]{1,2}:[0-9]{2}|[0-9]+[hH])" title="HH:MM or 3h"></label><br>
+    </div>
+    <div class="form-row">
+        <label for="value">Time or interval:</label>
+        <input id="value" name="value" type="text" required pattern="([0-9]{1,2}:[0-9]{2}|[0-9]+[hH])" title="HH:MM or 3h">
+    </div>
     <button type="submit">Save</button>
 </form>
 </body>
