@@ -71,18 +71,20 @@ def send_message(
         try:
             with open(image_path, "rb") as f:
                 file = _get_client().files.create(file=f, purpose="vision")
-            logger.info("[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id)
-            content_block = [
-                {"type": "image_file", "image_file": {"file_id": file.id}},
-                text_block,
-            ]
         except OSError as exc:
             logger.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
             raise
         except OpenAIError as exc:
             logger.exception("[OpenAI] Failed to upload %s: %s", image_path, exc)
             raise
-        finally:
+        else:
+            logger.info(
+                "[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id
+            )
+            content_block = [
+                {"type": "image_file", "image_file": {"file_id": file.id}},
+                text_block,
+            ]
             if not keep_image:
                 try:
                     os.remove(image_path)
