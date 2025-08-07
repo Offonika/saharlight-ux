@@ -90,6 +90,12 @@ async def reminder_form() -> FileResponse:  # pragma: no cover - trivial
     return FileResponse(BASE_DIR / "reminder.html")
 
 
+@app.get("/style.css")
+async def style_css() -> FileResponse:  # pragma: no cover - trivial
+    """Return the shared stylesheet."""
+    return FileResponse(BASE_DIR / "style.css")
+
+
 @app.get("/reminders")
 async def reminders_get(id: int | None = None) -> dict | list[dict]:  # pragma: no cover - simple
     """Return stored reminders from JSON file."""
