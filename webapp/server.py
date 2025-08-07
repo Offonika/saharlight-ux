@@ -53,7 +53,7 @@ class ReminderSchema(BaseModel):
     """Schema for reminder data."""
 
     id: int | None = None
-    rem_type: str | None = None
+    type: str | None = None
     value: str | None = None
     text: str | None = None
 
@@ -112,6 +112,10 @@ async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
         raise HTTPException(status_code=400, detail="invalid data") from exc
 
     store = await _read_reminders()
+    # migrate old reminders using "rem_type" to unified "type" key
+    for item in store.values():
+        if "rem_type" in item and "type" not in item:
+            item["type"] = item.pop("rem_type")
     rid = reminder.id if reminder.id is not None else max(store.keys(), default=0) + 1
     if rid < 0:
         raise HTTPException(status_code=400, detail="id must be non-negative")

@@ -17,7 +17,7 @@
                     if (resp.ok) {
                         const data = await resp.json();
                         form.rem_id.value = data.id || '';
-                        form.rem_type.value = data.type || data.rem_type || '';
+                        form.type.value = data.type || data.rem_type || '';
                         let value = '';
                         if (data.value !== undefined) {
                             value = String(data.value);
@@ -36,7 +36,7 @@
                 e.preventDefault();
                 const payload = {
                     id: form.rem_id.value || null,
-                    type: form.rem_type.value
+                    type: form.type.value
                 };
                 let raw = form.value.value.trim();
                 if (payload.type === 'xe_after') {
@@ -90,7 +90,7 @@
 <form id="reminder-form" action="/reminders" method="post">
     <input type="hidden" name="rem_id">
     <label>Type:
-        <select name="rem_type">
+        <select name="type">
             <option value="sugar">Sugar</option>
             <option value="long_insulin">Long insulin</option>
             <option value="medicine">Medicine</option>
