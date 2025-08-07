@@ -115,18 +115,21 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     header = f"Ваши напоминания  ({active_count} / {limit} 🔔)"
     if active_count > limit:
         header += " ⚠️"
-    add_button = [
-        InlineKeyboardButton(
-            "➕ Добавить",
-            web_app=WebAppInfo(f"{WEBAPP_URL}/reminder"),
-        )
-    ]
+    add_button_row: list[InlineKeyboardButton] | None = None
+    if WEBAPP_URL:
+        add_button_row = [
+            InlineKeyboardButton(
+                "➕ Добавить",
+                web_app=WebAppInfo(f"{WEBAPP_URL}/reminder"),
+            )
+        ]
     if not rems:
-        text = (
-            header
-            + "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
-        )
-        return text, InlineKeyboardMarkup([add_button])
+        text = header
+        if WEBAPP_URL:
+            text += "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
+            return text, InlineKeyboardMarkup([add_button_row])
+        text += "\nУ вас нет напоминаний. Отправьте /addreminder."
+        return text, InlineKeyboardMarkup([])
 
     by_time: list[tuple[str, list[InlineKeyboardButton]]] = []
     by_interval: list[tuple[str, list[InlineKeyboardButton]]] = []
@@ -138,14 +141,20 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
             title = f"<s>{title}</s>"
         line = f"{r.id}. {title}"
         status_icon = "🔔" if r.is_enabled else "🔕"
-        row = [
-            InlineKeyboardButton(
-                "✏️",
-                web_app=WebAppInfo(f"{WEBAPP_URL}/reminder?id={r.id}"),
-            ),
-            InlineKeyboardButton("🗑️", callback_data=f"rem_del:{r.id}"),
-            InlineKeyboardButton(status_icon, callback_data=f"rem_toggle:{r.id}"),
-        ]
+        row: list[InlineKeyboardButton] = []
+        if WEBAPP_URL:
+            row.append(
+                InlineKeyboardButton(
+                    "✏️",
+                    web_app=WebAppInfo(f"{WEBAPP_URL}/reminder?id={r.id}"),
+                )
+            )
+        row.extend(
+            [
+                InlineKeyboardButton("🗑️", callback_data=f"rem_del:{r.id}"),
+                InlineKeyboardButton(status_icon, callback_data=f"rem_toggle:{r.id}"),
+            ]
+        )
         if r.time:
             by_time.append((line, row))
         elif r.interval_hours:
@@ -170,7 +179,8 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
     extend("⏱ Интервал", by_interval)
     extend("📸 Триггер-фото", by_photo)
 
-    buttons.append(add_button)
+    if add_button_row:
+        buttons.append(add_button_row)
     text = header + "\n" + "\n".join(lines)
     return text, InlineKeyboardMarkup(buttons)
 
