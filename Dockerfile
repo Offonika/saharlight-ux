@@ -19,8 +19,7 @@ COPY . .
 # Копируйте .env при деплое или используйте секреты Docker Compose!
 # COPY .env .env
 
-# Запускаем FastAPI WebApp и Telegram-бота
-# WEBAPP_URL must be provided via environment variables and must use HTTPS.
-# Telegram will reject non-HTTPS URLs.
+# Запуск WebApp теперь контролируется переменной ENABLE_WEBAPP.
+# WEBAPP_URL должен указывать на публичный HTTPS-адрес; без него WebApp не стартует.
 ENV UVICORN_WORKERS=1
-CMD ["bash", "-c", "uvicorn webapp.server:app --host 0.0.0.0 --port 8000 --workers $UVICORN_WORKERS & python bot.py"]
+CMD ["bash", "./start.sh"]
