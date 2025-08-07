@@ -39,3 +39,4 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 
 # Optional directory containing custom fonts for PDF reports
 FONT_DIR = os.getenv("FONT_DIR")
+WEBAPP_URL = os.getenv("WEBAPP_URL")

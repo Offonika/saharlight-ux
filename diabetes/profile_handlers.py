@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     CommandHandler,
     ContextTypes,
@@ -15,6 +15,7 @@ from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 from diabetes.db import SessionLocal, Profile, Alert, Reminder, User
 from diabetes.alert_handlers import evaluate_sugar
 from diabetes.ui import menu_keyboard, back_keyboard
+from diabetes.config import WEBAPP_URL
 from .common_handlers import commit_session
 import diabetes.reminder_handlers as reminder_handlers
 from zoneinfo import ZoneInfo
@@ -224,12 +225,30 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         "Введите ваш часовой пояс (например Europe/Moscow):",
         reply_markup=back_keyboard,
     )
+    if WEBAPP_URL:
+        keyboard = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "Определить автоматически",
+                        web_app=WebAppInfo(WEBAPP_URL),
+                    )
+                ]
+            ]
+        )
+        await query.message.reply_text(
+            "Можно определить автоматически:", reply_markup=keyboard
+        )
     return PROFILE_TZ
 
 
 async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Save user timezone from input."""
-    raw = update.message.text.strip()
+    raw = (
+        update.message.web_app_data.data
+        if getattr(update.message, "web_app_data", None)
+        else update.message.text.strip()
+    )
     if "назад" in raw.lower():
         return await profile_cancel(update, context)
     try:
@@ -239,6 +258,15 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
             "Некорректный часовой пояс. Пример: Europe/Moscow",
             reply_markup=back_keyboard,
         )
+        if WEBAPP_URL:
+            keyboard = InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("Определить автоматически", web_app=WebAppInfo(WEBAPP_URL))]
+                ]
+            )
+            await update.message.reply_text(
+                "Можно определить автоматически:", reply_markup=keyboard
+            )
         return PROFILE_TZ
     user_id = update.effective_user.id
     with SessionLocal() as session:
@@ -576,7 +604,10 @@ profile_conv = ConversationHandler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, profile_high)
         ],
         PROFILE_TZ: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, profile_timezone_save)
+            MessageHandler(
+                (filters.TEXT & ~filters.COMMAND) | filters.StatusUpdate.WEB_APP_DATA,
+                profile_timezone_save,
+            )
         ],
     },
     fallbacks=[

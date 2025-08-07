@@ -19,6 +19,7 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Update,
+    WebAppInfo,
 )
 from telegram.ext import (
     CommandHandler,
@@ -33,6 +34,7 @@ from diabetes.db import SessionLocal, User, Profile
 from diabetes.ui import menu_keyboard
 from .common_handlers import commit_session
 from zoneinfo import ZoneInfo
+from diabetes.config import WEBAPP_URL
 
 logger = logging.getLogger(__name__)
 
@@ -178,23 +180,43 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
             return ConversationHandler.END
 
+    keyboard_buttons = []
+    if WEBAPP_URL:
+        keyboard_buttons.append(
+            InlineKeyboardButton(
+                "Определить автоматически",
+                web_app=WebAppInfo(WEBAPP_URL),
+            )
+        )
+    keyboard_buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
     await update.message.reply_text(
-        "Введите ваш часовой пояс (например Europe/Moscow).",
-        reply_markup=_skip_markup(),
+        "Введите ваш часовой пояс (например Europe/Moscow) или используйте кнопку ниже:",
+        reply_markup=InlineKeyboardMarkup([keyboard_buttons]),
     )
     return ONB_PROFILE_TZ
 
 
 async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handle user timezone and proceed to demo."""
+    """Handle user timezone (text or WebApp) and proceed to demo."""
 
-    tz_name = update.message.text.strip()
+    if getattr(update.message, "web_app_data", None):
+        tz_name = update.message.web_app_data.data
+    else:
+        tz_name = update.message.text.strip()
     try:
         ZoneInfo(tz_name)
     except Exception:
+        buttons = []
+        if WEBAPP_URL:
+            buttons.append(
+                InlineKeyboardButton(
+                    "Определить автоматически", web_app=WebAppInfo(WEBAPP_URL)
+                )
+            )
+        buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
         await update.message.reply_text(
             "Введите корректный часовой пояс, например Europe/Moscow.",
-            reply_markup=_skip_markup(),
+            reply_markup=InlineKeyboardMarkup([buttons]),
         )
         return ONB_PROFILE_TZ
     user_id = update.effective_user.id
@@ -338,7 +360,10 @@ onboarding_conv = ConversationHandler(
             CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
         ONB_PROFILE_TZ: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_timezone),
+            MessageHandler(
+                (filters.TEXT & ~filters.COMMAND) | filters.StatusUpdate.WEB_APP_DATA,
+                onboarding_timezone,
+            ),
             CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
         ONB_DEMO: [
