@@ -150,7 +150,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         prof.high_threshold = high
         if not commit_session(session):
             await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
-            return
+            return ConversationHandler.END
 
     await update.message.reply_text(
         f"✅ Профиль обновлён:\n"
