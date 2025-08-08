@@ -1,4 +1,5 @@
 import pytest
+from fastapi import HTTPException
 
 from api import ai_diagnose, DiagnoseRequest
 
@@ -8,7 +9,9 @@ async def test_ai_diagnose_with_protocol():
     assert result.protocol == "standard protocol"
 
 @pytest.mark.asyncio
-async def test_ai_diagnose_without_protocol():
-    result = await ai_diagnose(DiagnoseRequest(diagnosis="unknown"))
-    assert result.protocol is None
+async def test_ai_diagnose_unknown_diagnosis_returns_404():
+    with pytest.raises(HTTPException) as exc_info:
+        await ai_diagnose(DiagnoseRequest(diagnosis="unknown"))
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Protocol not found"
 
