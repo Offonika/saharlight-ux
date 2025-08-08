@@ -72,8 +72,9 @@ def _extract_first_json(text: str) -> dict | None:
 
 async def parse_command(text: str, timeout: float = 10) -> dict | None:
     try:
-        # ``asyncio.to_thread`` reuses the loop's default thread pool, avoiding
-        # the overhead of creating a new ``ThreadPoolExecutor`` on each call.
+        # ``asyncio.to_thread`` runs the blocking OpenAI client in the event
+        # loop's shared thread pool, so we reuse threads instead of spawning a
+        # fresh ``ThreadPoolExecutor`` for every invocation.
         response = await asyncio.wait_for(
             asyncio.to_thread(
                 _get_client().chat.completions.create,
