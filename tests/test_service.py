@@ -1,4 +1,3 @@
-import pytest
 from services import find_protocol_by_diagnosis
 
 
