@@ -17,6 +17,13 @@ def temp_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(server, "REMINDERS_FILE", tmp_path / "reminders.json")
 
 
+def test_root_redirects_to_ui() -> None:
+    """Root URL should redirect to the UI."""
+    response = client.get("/", allow_redirects=False)
+    assert response.status_code == 307
+    assert response.headers["location"] == "/ui"
+
+
 def test_reminders_post_accepts_str_and_int_ids() -> None:
     """Posting reminders with string or int IDs stores numeric IDs."""
     response = client.post("/reminders", json={"id": 5, "text": "foo"})
@@ -35,7 +42,7 @@ def test_reminders_post_accepts_str_and_int_ids() -> None:
     assert response.json() == {"status": "ok", "id": 7}
 
 
-def test_profile_post_rejects_invalid_json() -> None:
+def test_profile_rejects_invalid_json() -> None:
     """Posting malformed JSON to /profile returns an error."""
     response = client.post(
         "/profile",
