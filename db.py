@@ -1,7 +1,5 @@
 # db.py  ← полный и единственный источник моделей
 
-from datetime import datetime
-
 from sqlalchemy import (
     create_engine, Column, Integer, BigInteger, String,
     Float, Text, TIMESTAMP, ForeignKey, func
