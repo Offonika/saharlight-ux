@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/style.css">
     <title>Часовой пояс</title>
+    <script src="/telegram-init.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -17,8 +18,6 @@
             };
 
             if (window.Telegram && Telegram.WebApp) {
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
                 try {
                     Telegram.WebApp.sendData(tz);
                     status.textContent = 'Часовой пояс определён';

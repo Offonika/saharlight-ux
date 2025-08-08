@@ -5,12 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/style.css">
     <title>Профиль</title>
+    <script src="/telegram-init.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (window.Telegram && Telegram.WebApp) {
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-            }
             const form = document.getElementById('profile-form');
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
