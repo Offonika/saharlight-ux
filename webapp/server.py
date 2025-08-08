@@ -1,5 +1,5 @@
 # file: webapp/server.py
-"""Minimal FastAPI application serving the timezone detector page."""
+"""Minimal FastAPI application serving the SPA and API endpoints."""
 from __future__ import annotations
 
 import asyncio
@@ -80,16 +80,13 @@ class ReminderSchema(BaseModel):
     text: str | None = None
 
 
-@app.get("/")
-async def index() -> FileResponse:  # pragma: no cover - trivial
-    """Return the main page."""
-    return FileResponse(BASE_DIR / "index.html")
-
-
-@app.get("/profile")
-async def profile() -> FileResponse:  # pragma: no cover - trivial
-    """Return the profile form page."""
-    return FileResponse(BASE_DIR / "profile.html")
+@app.get("/", include_in_schema=False)
+async def index() -> FileResponse:
+    """Serve the SPA entry point."""
+    idx = UI_DIR / "index.html"
+    if idx.exists():
+        return FileResponse(idx)
+    raise HTTPException(status_code=404, detail="UI not found")
 
 
 @app.post("/profile")
@@ -104,18 +101,6 @@ async def profile_post(request: Request) -> dict:  # pragma: no cover - simple
     except ValidationError as exc:  # pragma: no cover - validation
         raise HTTPException(status_code=400, detail="invalid data") from exc
     return {"status": "ok"}
-
-
-@app.get("/reminder")
-async def reminder_form() -> FileResponse:  # pragma: no cover - trivial
-    """Return the reminder form page."""
-    return FileResponse(BASE_DIR / "reminder.html")
-
-
-@app.get("/style.css")
-async def style_css() -> FileResponse:  # pragma: no cover - trivial
-    """Return the shared stylesheet."""
-    return FileResponse(BASE_DIR / "style.css")
 
 
 @app.get("/reminders")
