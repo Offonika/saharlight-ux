@@ -75,6 +75,13 @@ async def _read_reminders() -> dict[int, dict]:
                 except OSError:
                     logger.exception("failed to reset reminders file")
                 return {}
+            if not isinstance(data, dict):
+                logger.warning("reminders JSON is not a dict; resetting storage")
+                try:
+                    REMINDERS_FILE.write_text("{}", encoding="utf-8")
+                except OSError:
+                    logger.exception("failed to reset reminders file")
+                return {}
             return {int(k): v for k, v in data.items()}
         return {}
 
