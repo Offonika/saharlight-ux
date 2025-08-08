@@ -1,6 +1,7 @@
 """Tests for minimal FastAPI webapp used for reminders."""
 
 from pathlib import Path
+import logging
 
 import pytest
 from fastapi.testclient import TestClient
@@ -81,3 +82,14 @@ def test_reminders_post_storage_error(monkeypatch: pytest.MonkeyPatch) -> None:
     response = client.post("/reminders", json={"text": "foo"})
     assert response.status_code == 500
     assert response.json() == {"detail": "storage error"}
+
+
+def test_reminders_get_handles_invalid_json(caplog: pytest.LogCaptureFixture) -> None:
+    """Reading invalid JSON should log a warning and reset the file."""
+    server.REMINDERS_FILE.write_text("{bad", encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING):
+        assert client.get("/reminders").json() == []
+
+    assert server.REMINDERS_FILE.read_text(encoding="utf-8") == "{}"
+    assert "invalid reminders JSON" in caplog.text

@@ -61,8 +61,16 @@ async def _read_reminders() -> dict[int, dict]:
 
     def _read() -> dict[int, dict]:
         if REMINDERS_FILE.exists():
-            with REMINDERS_FILE.open("r", encoding="utf-8") as fh:
-                data = json.load(fh)
+            try:
+                with REMINDERS_FILE.open("r", encoding="utf-8") as fh:
+                    data = json.load(fh)
+            except JSONDecodeError:
+                logger.warning("invalid reminders JSON; resetting storage")
+                try:
+                    REMINDERS_FILE.write_text("{}", encoding="utf-8")
+                except OSError:
+                    logger.exception("failed to reset reminders file")
+                return {}
             return {int(k): v for k, v in data.items()}
         return {}
 
