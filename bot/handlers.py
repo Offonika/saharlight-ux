@@ -423,12 +423,10 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cf = float(args[1])
         target = float(args[2])
 
-        # Флаги подозрения
-        suspicious = False
+        # Предупреждение при подозрительных значениях
         warning_msg = ""
 
         if icr > 8 or cf < 3:
-            suspicious = True
             warning_msg = (
                 "\n⚠️ Проверьте, пожалуйста: возможно, вы перепутали местами ИКХ и КЧ.\n"
                 f"• Вы ввели ИКХ = {icr} ммоль/л (высоковато)\n"
@@ -1022,8 +1020,7 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     await query.answer()
     data = query.data
-    
-    user_id = update.effective_user.id
+
     now = datetime.now()
     if data == "report_today":
         date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
