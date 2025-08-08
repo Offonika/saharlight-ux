@@ -2,95 +2,134 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* СахарФото Design System - Медицинский дизайн для диабетиков
+Цветовая схема: медицинский синий, бирюза, нейтральные серые
+Поддержка Telegram WebApp тем
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    /* Основные цвета бренда */
+    --medical-blue: 210 85% 45%;
+    --medical-teal: 180 65% 55%;
+    --medical-success: 142 70% 45%;
+    --medical-warning: 38 92% 50%;
+    --medical-error: 0 84% 60%;
+    
+    /* Нейтральная палитра */
+    --neutral-50: 210 10% 98%;
+    --neutral-100: 210 10% 95%;
+    --neutral-200: 210 8% 85%;
+    --neutral-300: 210 6% 75%;
+    --neutral-400: 210 6% 65%;
+    --neutral-500: 210 6% 45%;
+    --neutral-600: 210 8% 35%;
+    --neutral-700: 210 10% 25%;
+    --neutral-800: 210 12% 15%;
+    --neutral-900: 210 15% 10%;
+    
+    /* Градиенты */
+    --gradient-medical: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(var(--medical-teal)));
+    --gradient-card: linear-gradient(180deg, hsl(var(--neutral-50)), hsl(0 0% 100%));
+    --gradient-button: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(210 85% 40%));
+    
+    /* Тени */
+    --shadow-soft: 0 2px 8px hsl(var(--medical-blue) / 0.08);
+    --shadow-medium: 0 4px 16px hsl(var(--medical-blue) / 0.12);
+    --shadow-strong: 0 8px 32px hsl(var(--medical-blue) / 0.16);
+    
+    /* Telegram WebApp переменные (светлая тема) */
+    --tg-theme-bg-color: hsl(var(--neutral-50));
+    --tg-theme-text-color: hsl(var(--neutral-800));
+    --tg-theme-hint-color: hsl(var(--neutral-500));
+    --tg-theme-link-color: hsl(var(--medical-blue));
+    --tg-theme-button-color: hsl(var(--medical-blue));
+    --tg-theme-button-text-color: hsl(0 0% 100%);
+    --tg-theme-secondary-bg-color: hsl(0 0% 100%);
+    
+    /* Семантические токены */
+    --background: var(--tg-theme-bg-color, var(--neutral-50));
+    --foreground: var(--tg-theme-text-color, var(--neutral-800));
+    
+    --card: var(--tg-theme-secondary-bg-color, 0 0% 100%);
+    --card-foreground: var(--tg-theme-text-color, var(--neutral-800));
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --popover-foreground: var(--neutral-800);
+    
+    --primary: var(--tg-theme-button-color, var(--medical-blue));
+    --primary-foreground: var(--tg-theme-button-text-color, 0 0% 100%);
+    
+    --secondary: var(--neutral-100);
+    --secondary-foreground: var(--neutral-700);
+    
+    --muted: var(--neutral-100);
+    --muted-foreground: var(--tg-theme-hint-color, var(--neutral-500));
+    
+    --accent: var(--medical-teal);
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: var(--medical-error);
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: var(--medical-success);
+    --success-foreground: 0 0% 100%;
+    
+    --warning: var(--medical-warning);
+    --warning-foreground: var(--neutral-900);
+    
+    --border: var(--neutral-200);
+    --input: var(--neutral-200);
+    --ring: var(--tg-theme-link-color, var(--medical-blue));
+    
+    --radius: 0.75rem;
   }
 
+  /* Темная тема Telegram */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Telegram WebApp переменные (темная тема) */
+    --tg-theme-bg-color: hsl(var(--neutral-900));
+    --tg-theme-text-color: hsl(var(--neutral-100));
+    --tg-theme-hint-color: hsl(var(--neutral-400));
+    --tg-theme-link-color: hsl(var(--medical-teal));
+    --tg-theme-button-color: hsl(var(--medical-blue));
+    --tg-theme-button-text-color: hsl(0 0% 100%);
+    --tg-theme-secondary-bg-color: hsl(var(--neutral-800));
+    
+    /* Переопределение семантических токенов для темной темы */
+    --background: var(--tg-theme-bg-color, var(--neutral-900));
+    --foreground: var(--tg-theme-text-color, var(--neutral-100));
+    
+    --card: var(--tg-theme-secondary-bg-color, var(--neutral-800));
+    --card-foreground: var(--tg-theme-text-color, var(--neutral-100));
+    
+    --popover: var(--neutral-800);
+    --popover-foreground: var(--neutral-100);
+    
+    --primary: var(--tg-theme-button-color, var(--medical-blue));
+    --primary-foreground: var(--tg-theme-button-text-color, 0 0% 100%);
+    
+    --secondary: var(--neutral-800);
+    --secondary-foreground: var(--neutral-200);
+    
+    --muted: var(--neutral-800);
+    --muted-foreground: var(--tg-theme-hint-color, var(--neutral-400));
+    
+    --accent: var(--medical-teal);
+    --accent-foreground: var(--neutral-900);
+    
+    --destructive: var(--medical-error);
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: var(--medical-success);
+    --success-foreground: 0 0% 100%;
+    
+    --warning: var(--medical-warning);
+    --warning-foreground: var(--neutral-900);
+    
+    --border: var(--neutral-700);
+    --input: var(--neutral-700);
+    --ring: var(--tg-theme-link-color, var(--medical-teal));
   }
 }
 
@@ -100,6 +139,99 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  
+  /* Telegram WebApp стили */
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Анимации */
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+}
+
+@layer components {
+  /* Медицинские компоненты */
+  .medical-card {
+    @apply bg-card border border-border rounded-xl p-6 shadow-[var(--shadow-soft)] 
+           hover:shadow-[var(--shadow-medium)] transition-all duration-200;
+  }
+  
+  .medical-button {
+    @apply bg-gradient-to-r from-primary to-primary/90 text-primary-foreground 
+           font-medium px-6 py-3 rounded-xl border-0 shadow-[var(--shadow-soft)]
+           hover:shadow-[var(--shadow-medium)] active:scale-95 
+           transition-all duration-200 touch-manipulation;
+  }
+  
+  .medical-button-secondary {
+    @apply bg-secondary text-secondary-foreground font-medium px-6 py-3 rounded-xl 
+           border border-border hover:bg-secondary/80 active:scale-95 
+           transition-all duration-200 touch-manipulation;
+  }
+  
+  .medical-input {
+    @apply w-full px-4 py-3 bg-card border border-input rounded-xl text-foreground
+           placeholder:text-muted-foreground focus:outline-none focus:ring-2 
+           focus:ring-ring focus:border-transparent transition-all duration-200;
+  }
+  
+  .medical-tile {
+    @apply medical-card hover:bg-card/80 active:scale-95 cursor-pointer
+           flex flex-col items-center justify-center min-h-[120px] text-center
+           transition-all duration-200 touch-manipulation;
+  }
+  
+  .medical-list-item {
+    @apply bg-card border border-border rounded-lg p-4 mb-3 
+           hover:shadow-[var(--shadow-soft)] transition-all duration-200;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
