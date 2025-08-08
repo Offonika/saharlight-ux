@@ -9,7 +9,7 @@ from json import JSONDecodeError
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
@@ -81,16 +81,13 @@ class ReminderSchema(BaseModel):
 
 
 @app.get("/", include_in_schema=False)
-async def index() -> FileResponse:
-    """Serve the SPA entry point."""
-    idx = UI_DIR / "index.html"
-    if idx.exists():
-        return FileResponse(idx)
-    raise HTTPException(status_code=404, detail="UI not found")
+async def root_redirect() -> RedirectResponse:
+    """Redirect the root URL to the SPA at /ui."""
+    return RedirectResponse(url="/ui")
 
 
 @app.post("/profile")
-async def profile_post(request: Request) -> dict:  # pragma: no cover - simple
+async def save_profile(request: Request) -> dict:  # pragma: no cover - simple
     """Accept submitted profile data."""
     try:
         data = await request.json()
