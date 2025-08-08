@@ -25,7 +25,11 @@ TIMEZONE_FILE = BASE_DIR / "timezone.txt"
 UI_DIR = BASE_DIR / "ui"
 if UI_DIR.exists():
     # Статика ассетов Vite (css/js/chunks)
-    app.mount("/ui/assets", StaticFiles(directory=str(UI_DIR / "assets")), name="ui-assets")
+    assets_dir = UI_DIR / "assets"
+    if assets_dir.exists():
+        app.mount("/ui/assets", StaticFiles(directory=str(assets_dir)), name="ui-assets")
+    else:
+        logger.warning("UI assets directory %s missing; skipping mount", assets_dir)
 
     @app.get("/ui", include_in_schema=False)
     @app.get("/ui/", include_in_schema=False)
