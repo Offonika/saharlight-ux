@@ -8,6 +8,8 @@ from diabetes.utils import INVALID_TIME_MSG, parse_time_interval
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
+        ("09:30", time(9, 30)),
+        ("9:30", time(9, 30)),
         ("22:30", time(22, 30)),
         ("6:00", time(6, 0)),
     ],
