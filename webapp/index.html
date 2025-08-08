@@ -8,15 +8,32 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const status = document.getElementById('status');
+            const addButton = (text, handler) => {
+                const btn = document.createElement('button');
+                btn.textContent = text;
+                btn.addEventListener('click', handler);
+                document.body.appendChild(btn);
+            };
+
             if (window.Telegram && Telegram.WebApp) {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
-                Telegram.WebApp.sendData(tz);
+                try {
+                    Telegram.WebApp.sendData(tz);
+                    status.textContent = 'Часовой пояс определён';
+                    addButton('Закрыть', () => Telegram.WebApp.close());
+                } catch (err) {
+                    status.textContent = 'Не удалось отправить данные. Проверьте подключение к сети и попробуйте ещё раз.';
+                    addButton('Повторить', () => location.reload());
+                }
+            } else {
+                status.textContent = 'Недоступно в этом окружении.';
             }
         });
     </script>
 </head>
 <body>
-    <p>Определение часового пояса…</p>
+    <p id="status">Определение часового пояса…</p>
 </body>
 </html>
