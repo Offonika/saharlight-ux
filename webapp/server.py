@@ -1,3 +1,4 @@
+# file: webapp/server.py
 """Minimal FastAPI application serving the timezone detector page."""
 from __future__ import annotations
 
@@ -8,12 +9,33 @@ from json import JSONDecodeError
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
 app = FastAPI()
 BASE_DIR = Path(__file__).parent
 REMINDERS_FILE = BASE_DIR / "reminders.json"
+
+# ---------- NEW: UI (lovable) mount ----------
+UI_DIR = BASE_DIR / "ui"
+if UI_DIR.exists():
+    # Статика ассетов Vite (css/js/chunks)
+    app.mount("/ui/assets", StaticFiles(directory=str(UI_DIR / "assets")), name="ui-assets")
+
+    @app.get("/ui", include_in_schema=False)
+    @app.get("/ui/", include_in_schema=False)
+    async def ui_index() -> FileResponse:
+        return FileResponse(UI_DIR / "index.html")
+
+    # History fallback: любые вложенные маршруты SPA → index.html
+    @app.get("/ui/{path:path}", include_in_schema=False)
+    async def ui_catch_all(path: str) -> HTMLResponse:
+        idx = UI_DIR / "index.html"
+        if idx.exists():
+            return HTMLResponse(idx.read_text(encoding="utf-8"))
+        raise HTTPException(status_code=404, detail="UI not found")
+# ---------- /NEW ----------
 
 
 async def _read_reminders() -> dict[int, dict]:
