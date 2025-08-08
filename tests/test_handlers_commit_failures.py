@@ -6,6 +6,7 @@ import json
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
+from telegram.ext import ConversationHandler
 import diabetes.profile_handlers as profile_handlers
 import diabetes.common_handlers as common_handlers
 import diabetes.reminder_handlers as reminder_handlers
@@ -60,11 +61,12 @@ async def test_profile_command_commit_failure(monkeypatch, caplog):
     context = SimpleNamespace(args=["10", "2", "6", "4", "9"], user_data={})
 
     with caplog.at_level(logging.ERROR):
-        await profile_handlers.profile_command(update, context)
+        result = await profile_handlers.profile_command(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
     assert message.texts == ["⚠️ Не удалось сохранить профиль."]
+    assert result == ConversationHandler.END
 
 
 @pytest.mark.asyncio
