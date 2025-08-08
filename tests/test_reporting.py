@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import pytest
 from pypdf import PdfReader
 from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("DB_PASSWORD", "test")
@@ -142,7 +143,11 @@ async def test_send_report_uses_gpt(monkeypatch):
     import diabetes.reporting_handlers as handlers
     from diabetes.db import Base, Entry, User
 
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(handlers, "SessionLocal", TestSession)

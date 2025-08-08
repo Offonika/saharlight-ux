@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
 from telegram import InlineKeyboardMarkup
 
@@ -53,7 +54,11 @@ async def test_history_view_buttons(monkeypatch):
     import diabetes.common_handlers as common_handlers
     import diabetes.dose_handlers as dose_handlers
 
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
@@ -123,7 +128,11 @@ async def test_edit_flow(monkeypatch):
     import diabetes.common_handlers as common_handlers
     import diabetes.dose_handlers as dose_handlers
 
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(common_handlers, "SessionLocal", TestSession)

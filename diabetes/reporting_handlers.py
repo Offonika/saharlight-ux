@@ -90,14 +90,19 @@ async def report_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display recent diary entries as separate messages with action buttons."""
     user_id = update.effective_user.id
-    with SessionLocal() as session:
-        entries = (
-            session.query(Entry)
-            .filter(Entry.telegram_id == user_id)
-            .order_by(Entry.event_time.desc())
-            .limit(10)
-            .all()
-        )
+
+    def _fetch_entries() -> list[Entry]:
+        with SessionLocal() as session:
+            return (
+                session.query(Entry)
+                .filter(Entry.telegram_id == user_id)
+                .order_by(Entry.event_time.desc())
+                .limit(10)
+                .all()
+            )
+
+    # Run DB work in a thread to keep the event loop responsive.
+    entries = await asyncio.to_thread(_fetch_entries)
     if not entries:
         await update.message.reply_text("В дневнике пока нет записей.")
         return
@@ -183,14 +188,18 @@ async def send_report(
     """Generate and send a PDF report for entries after ``date_from``."""
     user_id = update.effective_user.id
 
-    with SessionLocal() as session:
-        entries = (
-            session.query(Entry)
-            .filter(Entry.telegram_id == user_id)
-            .filter(Entry.event_time >= date_from)
-            .order_by(Entry.event_time)
-            .all()
-        )
+    def _fetch_entries() -> list[Entry]:
+        with SessionLocal() as session:
+            return (
+                session.query(Entry)
+                .filter(Entry.telegram_id == user_id)
+                .filter(Entry.event_time >= date_from)
+                .order_by(Entry.event_time)
+                .all()
+            )
+
+    # Run blocking DB calls in a thread to avoid freezing the event loop.
+    entries = await asyncio.to_thread(_fetch_entries)
     if not entries:
         text = f"Нет записей за {period_label}."
         if query:
