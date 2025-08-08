@@ -93,3 +93,14 @@ def test_reminders_get_handles_invalid_json(caplog: pytest.LogCaptureFixture) ->
 
     assert server.REMINDERS_FILE.read_text(encoding="utf-8") == "{}"
     assert "invalid reminders JSON" in caplog.text
+
+
+def test_reminders_get_handles_non_numeric_keys(caplog: pytest.LogCaptureFixture) -> None:
+    """Non-numeric reminder keys should log a warning and reset the file."""
+    server.REMINDERS_FILE.write_text('{"foo": {"text": "bar"}}', encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING):
+        assert client.get("/reminders").json() == []
+
+    assert server.REMINDERS_FILE.read_text(encoding="utf-8") == "{}"
+    assert "non-numeric reminder key" in caplog.text

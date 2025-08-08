@@ -83,7 +83,15 @@ async def _read_reminders() -> dict[int, dict]:
                 except OSError:
                     logger.exception("failed to reset reminders file")
                 return {}
-            return {int(k): v for k, v in data.items()}
+            try:
+                return {int(k): v for k, v in data.items()}
+            except ValueError:
+                logger.warning("non-numeric reminder key; resetting storage")
+                try:
+                    REMINDERS_FILE.write_text("{}", encoding="utf-8")
+                except OSError:
+                    logger.exception("failed to reset reminders file")
+                return {}
         return {}
 
     return await asyncio.to_thread(_read)
