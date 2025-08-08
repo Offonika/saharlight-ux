@@ -69,6 +69,27 @@ async def test_get_coords_and_link_logs_warning(monkeypatch, caplog):
     assert any("Failed to fetch coordinates" in msg for msg in caplog.messages)
 
 
+@pytest.mark.asyncio
+async def test_get_coords_and_link_invalid_loc(monkeypatch, caplog):
+    def bad_urlopen(*args, **kwargs):
+        class Resp:
+            def __enter__(self):
+                return io.StringIO('{"loc": "invalid"}')
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        return Resp()
+
+    monkeypatch.setattr(utils, "urlopen", bad_urlopen)
+
+    with caplog.at_level(logging.WARNING):
+        coords, link = await utils.get_coords_and_link()
+
+    assert coords is None and link is None
+    assert any("Invalid location format" in msg for msg in caplog.messages)
+
+
 @pytest.mark.parametrize(
     ("text", "expected"),
     [

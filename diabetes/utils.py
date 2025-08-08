@@ -42,15 +42,19 @@ def parse_time_interval(value: str) -> time | timedelta:
         raise ValueError(INVALID_TIME_MSG)
 
 
-async def get_coords_and_link() -> tuple[str, str]:
+async def get_coords_and_link() -> tuple[str | None, str | None]:
     """Return approximate coordinates and Google Maps link based on IP."""
 
-    def _fetch() -> tuple[str, str] | None:
+    def _fetch() -> tuple[str | None, str | None] | None:
         with urlopen("https://ipinfo.io/json", timeout=5) as resp:
             data = json.load(resp)
             loc = data.get("loc")
             if loc:
-                lat, lon = loc.split(",")
+                try:
+                    lat, lon = loc.split(",")
+                except ValueError:
+                    logging.warning("Invalid location format: %s", loc)
+                    return None, None
                 coords = f"{lat},{lon}"
                 link = f"https://maps.google.com/?q={lat},{lon}"
                 return coords, link
