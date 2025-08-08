@@ -84,6 +84,20 @@ def test_reminders_post_storage_error(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.json() == {"detail": "storage error"}
 
 
+def test_reminders_get_storage_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def raise_oserror(self, *args, **kwargs):
+        if self == server.REMINDERS_FILE:
+            raise OSError("disk full")
+        return original_open(self, *args, **kwargs)
+
+    server.REMINDERS_FILE.write_text("{}", encoding="utf-8")
+    original_open = Path.open
+    monkeypatch.setattr(Path, "open", raise_oserror)
+    response = client.get("/reminders")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "storage error"}
+
+
 def test_reminders_get_handles_invalid_json(caplog: pytest.LogCaptureFixture) -> None:
     """Reading invalid JSON should log a warning and reset the file."""
     server.REMINDERS_FILE.write_text("{bad", encoding="utf-8")
