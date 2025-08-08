@@ -71,3 +71,13 @@ def test_reminders_post_rejects_invalid_json() -> None:
     assert response.status_code == 400
     assert response.json() == {"detail": "invalid JSON format"}
     assert client.get("/reminders").json() == []
+
+
+def test_reminders_post_storage_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def raise_oserror(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(server.json, "dump", raise_oserror)
+    response = client.post("/reminders", json={"text": "foo"})
+    assert response.status_code == 500
+    assert response.json() == {"detail": "storage error"}
