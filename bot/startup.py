@@ -1,6 +1,5 @@
 import logging
-import os
-from config import OPENAI_PROXY, validate_tokens
+from config import validate_tokens
 
 
 def setup() -> logging.Logger:
@@ -16,8 +15,6 @@ def setup() -> logging.Logger:
     logger = logging.getLogger("bot")
 
     validate_tokens()
-    # os.environ["HTTP_PROXY"] = OPENAI_PROXY
-    # os.environ["HTTPS_PROXY"] = OPENAI_PROXY
 
     for name in ("httpcore", "httpx", "telegram", "telegram.ext"):
         logging.getLogger(name).setLevel(logging.WARNING)
