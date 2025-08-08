@@ -2,6 +2,7 @@ import logging
 import re
 import asyncio
 import time
+import os
 from datetime import datetime, timezone, timedelta, time as dtime
 
 logger = logging.getLogger("bot")
