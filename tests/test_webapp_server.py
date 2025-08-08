@@ -25,6 +25,13 @@ def test_root_redirects_to_ui() -> None:
     assert response.headers["location"] == "/ui"
 
 
+def test_static_files_available() -> None:
+    """Timezone page and related assets should be served as static files."""
+    assert client.get("/timezone.html").status_code == 200
+    assert client.get("/style.css").status_code == 200
+    assert client.get("/telegram-init.js").status_code == 200
+
+
 def test_reminders_post_accepts_str_and_int_ids() -> None:
     """Posting reminders with string or int IDs stores numeric IDs."""
     response = client.post("/reminders", json={"id": 5, "text": "foo"})
