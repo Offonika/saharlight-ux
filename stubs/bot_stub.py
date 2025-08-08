@@ -1,5 +1,4 @@
 import re
-from types import SimpleNamespace
 
 PHOTO_SUGAR = 7
 WAITING_GPT_FLAG = "waiting_gpt_response"
