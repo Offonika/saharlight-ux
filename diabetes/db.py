@@ -2,17 +2,28 @@
 
 
 from sqlalchemy import (
-    create_engine, Column, Integer, BigInteger, String,
-    Float, Text, TIMESTAMP, ForeignKey, Boolean, func,
+    create_engine,
+    Column,
+    Integer,
+    BigInteger,
+    String,
+    Float,
+    Text,
+    TIMESTAMP,
+    ForeignKey,
+    Boolean,
+    func,
 )
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+import threading
 
 from diabetes.config import DB_HOST, DB_PORT, DB_NAME, DB_USER
 
 
 # ────────────────── подключение к Postgres ──────────────────
 engine = None
+engine_lock = threading.Lock()
 SessionLocal = sessionmaker(autoflush=False, autocommit=False)
 Base = declarative_base()
 
@@ -118,10 +129,11 @@ def init_db() -> None:
     )
 
     global engine
-    if engine is None or engine.url != database_url:
-        if engine is not None:
-            engine.dispose()
-        engine = create_engine(database_url)
-        SessionLocal.configure(bind=engine)
+    with engine_lock:
+        if engine is None or engine.url != database_url:
+            if engine is not None:
+                engine.dispose()
+            engine = create_engine(database_url)
+            SessionLocal.configure(bind=engine)
 
     Base.metadata.create_all(bind=engine)
