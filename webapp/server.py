@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
 REMINDERS_FILE = BASE_DIR / "reminders.json"
 TIMEZONE_FILE = BASE_DIR / "timezone.txt"
+reminders_lock = asyncio.Lock()
 
 # ---------- NEW: UI (lovable) mount ----------
 UI_DIR = BASE_DIR / "ui"
@@ -166,7 +167,8 @@ async def save_profile(request: Request) -> dict:  # pragma: no cover - simple
 @app.get("/reminders")
 async def reminders_get(id: int | None = None) -> dict | list[dict]:  # pragma: no cover - simple
     """Return stored reminders from JSON file."""
-    store = await _read_reminders()
+    async with reminders_lock:
+        store = await _read_reminders()
     if id is None:
         return list(store.values())
     return store.get(id, {})
@@ -185,17 +187,17 @@ async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
         reminder = ReminderSchema(**data)
     except ValidationError as exc:  # pragma: no cover - validation
         raise HTTPException(status_code=400, detail="invalid data") from exc
-
-    store = await _read_reminders()
-    # migrate old reminders using "rem_type" to unified "type" key
-    for item in store.values():
-        if "rem_type" in item and "type" not in item:
-            item["type"] = item.pop("rem_type")
-    rid = reminder.id if reminder.id is not None else max(store.keys(), default=0) + 1
-    if rid < 0:
-        raise HTTPException(status_code=400, detail="id must be non-negative")
-    store[rid] = {**reminder.model_dump(exclude_none=True), "id": rid}
-    await _write_reminders(store)
+    async with reminders_lock:
+        store = await _read_reminders()
+        # migrate old reminders using "rem_type" to unified "type" key
+        for item in store.values():
+            if "rem_type" in item and "type" not in item:
+                item["type"] = item.pop("rem_type")
+        rid = reminder.id if reminder.id is not None else max(store.keys(), default=0) + 1
+        if rid < 0:
+            raise HTTPException(status_code=400, detail="id must be non-negative")
+        store[rid] = {**reminder.model_dump(exclude_none=True), "id": rid}
+        await _write_reminders(store)
     return {"status": "ok", "id": rid}
 
 
