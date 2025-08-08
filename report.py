@@ -3,7 +3,6 @@ import io
 import logging
 import os
 import re
-from datetime import datetime
 import matplotlib.pyplot as plt
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
