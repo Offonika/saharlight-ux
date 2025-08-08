@@ -69,6 +69,9 @@ async def _read_reminders() -> dict[int, dict]:
             try:
                 with REMINDERS_FILE.open("r", encoding="utf-8") as fh:
                     data = json.load(fh)
+            except OSError as exc:
+                logger.exception("failed to read reminders")
+                raise HTTPException(status_code=500, detail="storage error") from exc
             except JSONDecodeError:
                 logger.warning("invalid reminders JSON; resetting storage")
                 try:
