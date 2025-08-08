@@ -2,6 +2,7 @@ import asyncio
 import logging
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 
 from openai import OpenAIError
 
@@ -71,35 +72,42 @@ def _extract_first_json(text: str) -> dict | None:
 
 
 async def parse_command(text: str, timeout: float = 10) -> dict | None:
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(
+        _get_client().chat.completions.create,
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": text},
+        ],
+        temperature=0,
+        max_tokens=256,
+        timeout=timeout,
+    )
     try:
-        response = await asyncio.wait_for(
-            asyncio.to_thread(
-                _get_client().chat.completions.create,
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": text},
-                ],
-                temperature=0,
-                max_tokens=256,
-            ),
-            timeout=timeout,
-        )
-        choices = getattr(response, "choices", None)
-        if not choices:
-            logging.error("No choices in GPT response")
-            return None
-        content = choices[0].message.content.strip()
-        safe_content = _sanitize_sensitive_data(content)
-        logging.info("GPT raw response: %s", safe_content[:200])
-        parsed = _extract_first_json(content)
-        if parsed is None:
-            logging.error("No JSON object found in response")
-            return None
-        return parsed
+        response = await asyncio.wait_for(asyncio.wrap_future(future), timeout)
     except asyncio.TimeoutError:
+        future.cancel()
         logging.error("Command parsing timed out")
         return None
     except OpenAIError:
         logging.exception("Command parsing failed")
         return None
+    except Exception:
+        logging.exception("Unexpected error during command parsing")
+        return None
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
+
+    choices = getattr(response, "choices", None)
+    if not choices:
+        logging.error("No choices in GPT response")
+        return None
+    content = choices[0].message.content.strip()
+    safe_content = _sanitize_sensitive_data(content)
+    logging.info("GPT raw response: %s", safe_content[:200])
+    parsed = _extract_first_json(content)
+    if parsed is None:
+        logging.error("No JSON object found in response")
+        return None
+    return parsed
