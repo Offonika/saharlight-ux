@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import json
+import logging
 from json import JSONDecodeError
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -15,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
 app = FastAPI()
+logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
 REMINDERS_FILE = BASE_DIR / "reminders.json"
 TIMEZONE_FILE = BASE_DIR / "timezone.txt"
@@ -44,8 +46,12 @@ async def _write_timezone(value: str) -> None:
     """Persist timezone value to a text file."""
 
     def _write() -> None:
-        with TIMEZONE_FILE.open("w", encoding="utf-8") as fh:
-            fh.write(value)
+        try:
+            with TIMEZONE_FILE.open("w", encoding="utf-8") as fh:
+                fh.write(value)
+        except OSError as exc:
+            logger.exception("failed to write timezone")
+            raise HTTPException(status_code=500, detail="storage error") from exc
 
     await asyncio.to_thread(_write)
 
@@ -67,8 +73,12 @@ async def _write_reminders(data: dict[int, dict]) -> None:
     """Write reminders to JSON file."""
 
     def _write() -> None:
-        with REMINDERS_FILE.open("w", encoding="utf-8") as fh:
-            json.dump({int(k): v for k, v in data.items()}, fh)
+        try:
+            with REMINDERS_FILE.open("w", encoding="utf-8") as fh:
+                json.dump({int(k): v for k, v in data.items()}, fh)
+        except OSError as exc:
+            logger.exception("failed to write reminders")
+            raise HTTPException(status_code=500, detail="storage error") from exc
 
     await asyncio.to_thread(_write)
 
