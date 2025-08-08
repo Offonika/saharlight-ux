@@ -1,0 +1,9 @@
+// webapp/ui/package.json (фрагмент)
+{
+    "scripts": {
+      "dev": "vite",
+      "build": "vite build",
+      "preview": "vite preview --base=/ui/ --port 5173"
+    }
+  }
+  
