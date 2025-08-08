@@ -62,7 +62,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     """Handle inline button callbacks for pending entries and history actions."""
     query = update.callback_query
     await query.answer()
-    data = query.data
+    data = query.data or ""
 
     if data.startswith("rem_"):
         return
