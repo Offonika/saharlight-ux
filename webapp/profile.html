@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="/style.css">
-    <title>Profile</title>
+    <title>Профиль</title>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             if (window.Telegram && Telegram.WebApp) {
@@ -22,9 +22,17 @@
                     high: parseFloat(form.high.value),
                 };
 
+                const fieldNames = {
+                    icr: 'ICR',
+                    cf: 'CF',
+                    target: 'целевой уровень',
+                    low: 'нижний порог',
+                    high: 'верхний порог',
+                };
+
                 for (const [key, value] of Object.entries(data)) {
                     if (!Number.isFinite(value) || value <= 0) {
-                        alert(`${key} must be a positive number`);
+                        alert(`${fieldNames[key]} должно быть положительным числом`);
                         return;
                     }
                 }
@@ -38,7 +46,7 @@
                         Telegram.WebApp.sendData(JSON.stringify(data));
                     }
                 } catch (err) {
-                    console.error('Failed to submit profile', err);
+                    console.error('Не удалось сохранить профиль', err);
                 }
             });
         });
@@ -47,26 +55,26 @@
 <body>
 <form id="profile-form" action="/profile" method="post">
     <div class="form-row">
-        <label for="icr">ICR:</label>
+        <label for="icr">Коэффициент углеводов (ICR):</label>
         <input id="icr" name="icr" type="number" step="any" required>
     </div>
     <div class="form-row">
-        <label for="cf">CF:</label>
+        <label for="cf">Фактор коррекции (CF):</label>
         <input id="cf" name="cf" type="number" step="any" required>
     </div>
     <div class="form-row">
-        <label for="target">target:</label>
+        <label for="target">Целевой уровень:</label>
         <input id="target" name="target" type="number" step="any" required>
     </div>
     <div class="form-row">
-        <label for="low">low:</label>
+        <label for="low">Нижний порог:</label>
         <input id="low" name="low" type="number" step="any" required>
     </div>
     <div class="form-row">
-        <label for="high">high:</label>
+        <label for="high">Верхний порог:</label>
         <input id="high" name="high" type="number" step="any" required>
     </div>
-    <button type="submit">Save</button>
+    <button type="submit">Сохранить</button>
 </form>
 </body>
 </html>
