@@ -134,6 +134,8 @@ async def timezone_post(request: Request) -> dict:
         data = await request.json()
     except JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail="invalid JSON format") from exc
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="invalid data format")
     tz = data.get("tz")
     if not isinstance(tz, str) or not tz:
         raise HTTPException(status_code=400, detail="invalid data")
@@ -152,6 +154,8 @@ async def save_profile(request: Request) -> dict:  # pragma: no cover - simple
         data = await request.json()
     except JSONDecodeError as exc:  # pragma: no cover - validation
         raise HTTPException(status_code=400, detail="invalid JSON format") from exc
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="invalid data format")
     try:
         ProfileSchema(**data)
     except ValidationError as exc:  # pragma: no cover - validation
@@ -175,6 +179,8 @@ async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
         data = await request.json()
     except JSONDecodeError as exc:  # pragma: no cover - validation
         raise HTTPException(status_code=400, detail="invalid JSON format") from exc
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="invalid data format")
     try:
         reminder = ReminderSchema(**data)
     except ValidationError as exc:  # pragma: no cover - validation
