@@ -23,8 +23,8 @@
                 };
 
                 const fieldNames = {
-                    icr: 'ICR',
-                    cf: 'CF',
+                    icr: 'Коэффициент ХЕ (ICR)',
+                    cf: 'Коррекционный коэффициент (CF)',
                     target: 'целевой уровень',
                     low: 'нижний порог',
                     high: 'верхний порог',
@@ -55,24 +55,29 @@
 <body>
 <form id="profile-form" action="/profile" method="post">
     <div class="form-row">
-        <label for="icr">Коэффициент углеводов (ICR):</label>
-        <input id="icr" name="icr" type="number" step="any" required>
+        <label for="icr">Коэффициент ХЕ (ICR):</label>
+        <input id="icr" name="icr" type="number" step="any" placeholder="например 10" required>
+        <small class="hint">Сколько углеводов покрывает 1 ед. инсулина</small>
     </div>
     <div class="form-row">
-        <label for="cf">Фактор коррекции (CF):</label>
-        <input id="cf" name="cf" type="number" step="any" required>
+        <label for="cf">Коррекционный коэффициент (CF):</label>
+        <input id="cf" name="cf" type="number" step="any" placeholder="например 50" required>
+        <small class="hint">На сколько ммоль/л снизится сахар от 1 ед. инсулина</small>
     </div>
     <div class="form-row">
         <label for="target">Целевой уровень:</label>
-        <input id="target" name="target" type="number" step="any" required>
+        <input id="target" name="target" type="number" step="any" placeholder="например 5.5" required>
+        <small class="hint">Желаемый уровень глюкозы в крови, ммоль/л</small>
     </div>
     <div class="form-row">
         <label for="low">Нижний порог:</label>
-        <input id="low" name="low" type="number" step="any" required>
+        <input id="low" name="low" type="number" step="any" placeholder="например 4.0" required>
+        <small class="hint">Уровень, ниже которого предупреждение</small>
     </div>
     <div class="form-row">
         <label for="high">Верхний порог:</label>
-        <input id="high" name="high" type="number" step="any" required>
+        <input id="high" name="high" type="number" step="any" placeholder="например 9.0" required>
+        <small class="hint">Уровень, выше которого предупреждение</small>
     </div>
     <button type="submit">Сохранить</button>
 </form>
