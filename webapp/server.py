@@ -18,6 +18,8 @@ from pydantic import BaseModel, ValidationError
 app = FastAPI()
 logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
+app.mount("/", StaticFiles(directory=str(BASE_DIR)), name="static")
+STATIC_ROUTE = app.router.routes.pop()
 REMINDERS_FILE = BASE_DIR / "reminders.json"
 TIMEZONE_FILE = BASE_DIR / "timezone.txt"
 reminders_lock = asyncio.Lock()
@@ -211,6 +213,8 @@ async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
         await _write_reminders(store)
     return {"status": "ok", "id": rid}
 
+
+app.router.routes.append(STATIC_ROUTE)
 
 if __name__ == "__main__":  # pragma: no cover - manual start
     import uvicorn
