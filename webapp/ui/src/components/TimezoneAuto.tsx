@@ -4,6 +4,9 @@ import { useTimezone } from "../hooks/useTimezone";
 
 export default function TimezoneAuto() {
   const { submit } = useTimezone();
-  useEffect(() => { submit(true); }, [submit]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    submit(true);
+  }, []);
   return null;
 }
