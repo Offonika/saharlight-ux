@@ -16,9 +16,7 @@ export function useTimezone() {
     const value = forceDetect ? detect() : tz;
     if (!value) return;
     try {
-      // @ts-ignore
       if (window?.Telegram?.WebApp?.sendData) {
-        // @ts-ignore
         window.Telegram.WebApp.sendData(value);
       }
       await fetch("/api/timezone", {
