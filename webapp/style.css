@@ -44,5 +44,5 @@ button {
     display: block;
     margin-top: 4px;
     font-size: 0.9rem;
-    color: gray;
+    color: var(--tg-theme-hint-color, gray);
 }
