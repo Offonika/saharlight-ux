@@ -57,8 +57,11 @@ menu_keyboard = ReplyKeyboardMarkup(
 # ──────────────────────────────────────────────────────────────
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     raw_text = update.message.text.strip()
-    user_id  = update.effective_user.id
-    logger.info(f"FREEFORM raw='{raw_text}'  user={user_id}")
+    logger.info(
+        "FREEFORM raw='%s'  user=%s",
+        raw_text,
+        update.effective_user.id,
+    )
 
     # --- report_date_input ---
     if context.user_data.get('awaiting_report_date'):
@@ -186,7 +189,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         event_dt = datetime.now(timezone.utc)
 
     context.user_data['pending_entry'] = {
-        'telegram_id': user_id,
+        'telegram_id': update.effective_user.id,
         'event_time': event_dt,
         'xe': fields.get('xe'),
         'carbs_g': fields.get('carbs_g'),
