@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from services import find_protocol_by_diagnosis
 
@@ -13,5 +13,7 @@ class DiagnoseResponse(BaseModel):
 @app.post("/v1/ai/diagnose", response_model=DiagnoseResponse)
 async def ai_diagnose(req: DiagnoseRequest) -> DiagnoseResponse:
     protocol = find_protocol_by_diagnosis(req.diagnosis)
+    if protocol is None:
+        raise HTTPException(status_code=404, detail="Protocol not found")
     return DiagnoseResponse(protocol=protocol)
 
