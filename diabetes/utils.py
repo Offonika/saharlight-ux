@@ -30,7 +30,8 @@ def parse_time_interval(value: str) -> time | timedelta:
     """Convert strings like 'HH:MM', 'H:MM', 'Nh' or 'Nd' to time or timedelta."""
 
     value = value.strip()
-    if re.fullmatch(r"\d:\d{2}", value):
+    # Normalize times like `9:30` -> `09:30` before parsing
+    if re.match(r"^\d:\d{2}$", value):
         value = f"0{value}"
     try:
         return datetime.strptime(value, "%H:%M").time()
