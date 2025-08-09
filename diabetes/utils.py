@@ -47,7 +47,7 @@ def parse_time_interval(value: str) -> time | timedelta:
 async def get_coords_and_link() -> tuple[str | None, str | None]:
     """Return approximate coordinates and Google Maps link based on IP."""
 
-    def _fetch() -> tuple[str | None, str | None] | None:
+    def _fetch() -> tuple[str | None, str | None]:
         with urlopen("https://ipinfo.io/json", timeout=5) as resp:
             data = json.load(resp)
             loc = data.get("loc")
@@ -60,7 +60,7 @@ async def get_coords_and_link() -> tuple[str | None, str | None]:
                 coords = f"{lat},{lon}"
                 link = f"https://maps.google.com/?q={lat},{lon}"
                 return coords, link
-        return None
+        return None, None
 
     try:
         result = await asyncio.to_thread(_fetch)
