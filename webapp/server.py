@@ -164,14 +164,6 @@ async def reminders_post(request: Request) -> dict:
 
 # ---------- Совместимость для старых относительных путей из UI ----------
 # ВАЖНО: эти маршруты должны быть ДО mount('/ui'), иначе их перехватит StaticFiles.
-@app.get("/ui/reminder")
-async def _compat_ui_reminder(id: int | None = None) -> RedirectResponse:
-    q = f"?id={id}" if id is not None else ""
-    return RedirectResponse(url=f"/reminders{q}", status_code=307)
-
-@app.get("/ui/reminders")
-async def _compat_ui_reminders() -> RedirectResponse:
-    return RedirectResponse(url="/reminders", status_code=307)
 
 @app.post("/ui/api/timezone")
 async def _compat_ui_timezone(request: Request) -> dict:
