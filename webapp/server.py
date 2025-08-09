@@ -2,13 +2,16 @@
 """Minimal FastAPI application serving the SPA and API endpoints."""
 from __future__ import annotations
 
-import asyncio, json, logging, os
+import asyncio
+import json
+import logging
+import os
 from json import JSONDecodeError
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
@@ -22,24 +25,13 @@ REMINDERS_FILE = BASE_DIR / "reminders.json"
 TIMEZONE_FILE = BASE_DIR / "timezone.txt"
 reminders_lock = asyncio.Lock()
 
-
-@app.get("/timezone.html", include_in_schema=False)
-async def timezone_html() -> FileResponse:
-    return FileResponse(BASE_DIR / "timezone.html")
-
-
-@app.get("/style.css", include_in_schema=False)
-async def style_css() -> FileResponse:
-    return FileResponse(BASE_DIR / "style.css")
-
-
-@app.get("/telegram-init.js", include_in_schema=False)
-async def telegram_init_js() -> FileResponse:
-    return FileResponse(BASE_DIR / "telegram-init.js")
-
 # ---------- API ----------
 class ProfileSchema(BaseModel):
-    icr: float; cf: float; target: float; low: float; high: float
+    icr: float
+    cf: float
+    target: float
+    low: float
+    high: float
 
 class ReminderSchema(BaseModel):
     id: int | None = None
@@ -193,13 +185,13 @@ if UI_DIR.exists():
     app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
 # -----------------------------------
 
-# корневая статика (если нужна) — на /static, чтобы не мешать /ui и API
-app.mount("/static", StaticFiles(directory=str(BASE_DIR)), name="static-root")
-
 # редирект корня на SPA
 @app.get("/", include_in_schema=False)
 async def root_redirect() -> RedirectResponse:
     return RedirectResponse(url="/ui")
+
+# корневая статика — файлы из webapp/ доступны по прямым путям
+app.mount("/", StaticFiles(directory=str(BASE_DIR)), name="static-root")
 
 if __name__ == "__main__":  # pragma: no cover
     import uvicorn
