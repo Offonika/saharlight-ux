@@ -8,12 +8,16 @@ import logging
 import os
 from json import JSONDecodeError
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.responses import Response
+from starlette.types import Scope
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
@@ -24,6 +28,22 @@ UI_DIR = (BASE_DIR / "ui").resolve()
 REMINDERS_FILE = BASE_DIR / "reminders.json"
 TIMEZONE_FILE = BASE_DIR / "timezone.txt"
 reminders_lock = asyncio.Lock()
+
+
+class SPAStaticFiles(StaticFiles):
+    """StaticFiles subclass that falls back to ``index.html`` for SPA routes."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault("html", True)
+        super().__init__(*args, **kwargs)
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404:
+                return await super().get_response("index.html", scope)
+            raise
 
 # ---------- API ----------
 class ProfileSchema(BaseModel):
@@ -174,7 +194,7 @@ async def _compat_ui_timezone(request: Request) -> dict:
 # ---------- UI (Vite SPA) ----------
 # ДОЛЖНО идти ПОСЛЕ совместимых маршрутов!
 if UI_DIR.exists():
-    app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
+    app.mount("/ui", SPAStaticFiles(directory=str(UI_DIR)), name="ui")
 # -----------------------------------
 
 # редирект корня на SPA

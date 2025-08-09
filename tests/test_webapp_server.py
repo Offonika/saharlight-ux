@@ -10,6 +10,7 @@ import webapp.server as server
 
 
 client = TestClient(server.app)
+INDEX_HTML = (server.UI_DIR / "index.html").read_text(encoding="utf-8")
 
 
 @pytest.fixture(autouse=True)
@@ -30,6 +31,14 @@ def test_static_files_available() -> None:
     assert client.get("/timezone.html").status_code == 200
     assert client.get("/style.css").status_code == 200
     assert client.get("/telegram-init.js").status_code == 200
+
+
+@pytest.mark.parametrize("path", ["/ui/reminders", "/ui/unknown/path"])
+def test_spa_routes_fall_back_to_index(path: str) -> None:
+    """SPA routes should return the main index.html file."""
+    response = client.get(path)
+    assert response.status_code == 200
+    assert response.text == INDEX_HTML
 
 
 def test_reminders_post_accepts_str_and_int_ids() -> None:
