@@ -8,7 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
@@ -21,6 +21,21 @@ UI_DIR = (BASE_DIR / "ui").resolve()
 REMINDERS_FILE = BASE_DIR / "reminders.json"
 TIMEZONE_FILE = BASE_DIR / "timezone.txt"
 reminders_lock = asyncio.Lock()
+
+
+@app.get("/timezone.html", include_in_schema=False)
+async def timezone_html() -> FileResponse:
+    return FileResponse(BASE_DIR / "timezone.html")
+
+
+@app.get("/style.css", include_in_schema=False)
+async def style_css() -> FileResponse:
+    return FileResponse(BASE_DIR / "style.css")
+
+
+@app.get("/telegram-init.js", include_in_schema=False)
+async def telegram_init_js() -> FileResponse:
+    return FileResponse(BASE_DIR / "telegram-init.js")
 
 # ---------- API ----------
 class ProfileSchema(BaseModel):
@@ -42,28 +57,49 @@ async def _write_timezone(value: str) -> None:
         logger.exception("failed to write timezone")
         raise HTTPException(status_code=500, detail="storage error")
 
+
+async def _write_reminders(store: dict[int, dict]) -> None:
+    def _write() -> None:
+        with REMINDERS_FILE.open("w", encoding="utf-8") as fh:
+            json.dump(store, fh, ensure_ascii=False)
+
+    try:
+        await asyncio.to_thread(_write)
+    except OSError:
+        logger.exception("failed to write reminders")
+        raise HTTPException(status_code=500, detail="storage error")
+
 async def _read_reminders() -> dict[int, dict]:
     def _read() -> dict[int, dict]:
         if not REMINDERS_FILE.exists():
             return {}
         try:
             data = json.loads(REMINDERS_FILE.read_text(encoding="utf-8"))
-        except (OSError, JSONDecodeError):
+        except JSONDecodeError:
             logger.warning("invalid reminders JSON; resetting storage")
-            try: REMINDERS_FILE.write_text("{}", encoding="utf-8")
-            except OSError: logger.exception("failed to reset reminders file")
+            try:
+                REMINDERS_FILE.write_text("{}", encoding="utf-8")
+            except OSError:
+                logger.exception("failed to reset reminders file")
             return {}
+        except OSError as exc:
+            logger.exception("failed to read reminders")
+            raise HTTPException(status_code=500, detail="storage error") from exc
         if not isinstance(data, dict):
             logger.warning("reminders JSON is not a dict; resetting storage")
-            try: REMINDERS_FILE.write_text("{}", encoding="utf-8")
-            except OSError: logger.exception("failed to reset reminders file")
+            try:
+                REMINDERS_FILE.write_text("{}", encoding="utf-8")
+            except OSError:
+                logger.exception("failed to reset reminders file")
             return {}
         try:
             return {int(k): v for k, v in data.items()}
         except ValueError:
             logger.warning("non-numeric reminder key; resetting storage")
-            try: REMINDERS_FILE.write_text("{}", encoding="utf-8")
-            except OSError: logger.exception("failed to reset reminders file")
+            try:
+                REMINDERS_FILE.write_text("{}", encoding="utf-8")
+            except OSError:
+                logger.exception("failed to reset reminders file")
             return {}
     return await asyncio.to_thread(_read)
 
