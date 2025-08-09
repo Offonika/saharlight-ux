@@ -5,11 +5,17 @@ import pytest
 from diabetes.utils import INVALID_TIME_MSG, parse_time_interval
 
 
+def test_parse_time_zero_padded():
+    assert parse_time_interval("09:30") == time(9, 30)
+
+
+def test_parse_time_single_digit_hour():
+    assert parse_time_interval("9:30") == time(9, 30)
+
+
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("09:30", time(9, 30)),
-        ("9:30", time(9, 30)),
         ("22:30", time(22, 30)),
         ("6:00", time(6, 0)),
     ],
