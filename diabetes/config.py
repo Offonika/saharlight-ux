@@ -35,7 +35,12 @@ OPENAI_ASSISTANT_ID = os.getenv("OPENAI_ASSISTANT_ID")
 OPENAI_PROXY = os.getenv("OPENAI_PROXY")
 
 DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = int(os.getenv("DB_PORT", 5432))
+_raw_db_port = os.getenv("DB_PORT", "5432")
+try:
+    DB_PORT = int(_raw_db_port)
+except ValueError:
+    logger.error("Invalid DB_PORT %r; defaulting to 5432", _raw_db_port)
+    DB_PORT = 5432
 DB_NAME = os.getenv("DB_NAME", "diabetes_bot")
 DB_USER = os.getenv("DB_USER", "diabetes_user")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
