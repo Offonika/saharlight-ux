@@ -2,148 +2,73 @@
 """Minimal FastAPI application serving the SPA and API endpoints."""
 from __future__ import annotations
 
-import asyncio
-import os
-import json
-import logging
+import asyncio, json, logging, os
 from json import JSONDecodeError
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
-BASE_DIR = Path(__file__).parent
-app.mount("/", StaticFiles(directory=str(BASE_DIR)), name="static")
-STATIC_ROUTE = app.router.routes.pop()
+
+BASE_DIR = Path(__file__).parent.resolve()
+UI_DIR = (BASE_DIR / "ui").resolve()
+
 REMINDERS_FILE = BASE_DIR / "reminders.json"
 TIMEZONE_FILE = BASE_DIR / "timezone.txt"
 reminders_lock = asyncio.Lock()
 
-# ---------- NEW: UI (lovable) mount ----------
-UI_DIR = BASE_DIR / "ui"
-if UI_DIR.exists():
-    # Статика ассетов Vite (css/js/chunks)
-    assets_dir = UI_DIR / "assets"
-    if assets_dir.exists():
-        app.mount("/ui/assets", StaticFiles(directory=str(assets_dir)), name="ui-assets")
-    else:
-        logger.warning("UI assets directory %s missing; skipping mount", assets_dir)
-
-    @app.get("/ui", include_in_schema=False)
-    @app.get("/ui/", include_in_schema=False)
-    async def ui_index() -> FileResponse:
-        return FileResponse(UI_DIR / "index.html")
-
-    # History fallback: любые вложенные маршруты SPA → index.html
-    @app.get("/ui/{path:path}", include_in_schema=False)
-    async def ui_catch_all(path: str) -> HTMLResponse:
-        idx = UI_DIR / "index.html"
-        if idx.exists():
-            return HTMLResponse(idx.read_text(encoding="utf-8"))
-        raise HTTPException(status_code=404, detail="UI not found")
-# ---------- /NEW ----------
-
-
-async def _write_timezone(value: str) -> None:
-    """Persist timezone value to a text file."""
-
-    def _write() -> None:
-        try:
-            with TIMEZONE_FILE.open("w", encoding="utf-8") as fh:
-                fh.write(value)
-        except OSError as exc:
-            logger.exception("failed to write timezone")
-            raise HTTPException(status_code=500, detail="storage error") from exc
-
-    await asyncio.to_thread(_write)
-
-
-async def _read_reminders() -> dict[int, dict]:
-    """Read reminders from JSON file."""
-
-    def _read() -> dict[int, dict]:
-        if REMINDERS_FILE.exists():
-            try:
-                with REMINDERS_FILE.open("r", encoding="utf-8") as fh:
-                    data = json.load(fh)
-            except OSError as exc:
-                logger.exception("failed to read reminders")
-                raise HTTPException(status_code=500, detail="storage error") from exc
-            except JSONDecodeError:
-                logger.warning("invalid reminders JSON; resetting storage")
-                try:
-                    REMINDERS_FILE.write_text("{}", encoding="utf-8")
-                except OSError:
-                    logger.exception("failed to reset reminders file")
-                return {}
-            if not isinstance(data, dict):
-                logger.warning("reminders JSON is not a dict; resetting storage")
-                try:
-                    REMINDERS_FILE.write_text("{}", encoding="utf-8")
-                except OSError:
-                    logger.exception("failed to reset reminders file")
-                return {}
-            try:
-                return {int(k): v for k, v in data.items()}
-            except ValueError:
-                logger.warning("non-numeric reminder key; resetting storage")
-                try:
-                    REMINDERS_FILE.write_text("{}", encoding="utf-8")
-                except OSError:
-                    logger.exception("failed to reset reminders file")
-                return {}
-        return {}
-
-    return await asyncio.to_thread(_read)
-
-
-async def _write_reminders(data: dict[int, dict]) -> None:
-    """Write reminders to JSON file."""
-
-    def _write() -> None:
-        try:
-            with REMINDERS_FILE.open("w", encoding="utf-8") as fh:
-                json.dump({int(k): v for k, v in data.items()}, fh)
-        except OSError as exc:
-            logger.exception("failed to write reminders")
-            raise HTTPException(status_code=500, detail="storage error") from exc
-
-    await asyncio.to_thread(_write)
-
-
+# ---------- API ----------
 class ProfileSchema(BaseModel):
-    """Schema for profile data."""
-
-    icr: float
-    cf: float
-    target: float
-    low: float
-    high: float
-
+    icr: float; cf: float; target: float; low: float; high: float
 
 class ReminderSchema(BaseModel):
-    """Schema for reminder data."""
-
     id: int | None = None
     type: str | None = None
     value: str | None = None
     text: str | None = None
 
+async def _write_timezone(value: str) -> None:
+    def _write() -> None:
+        with TIMEZONE_FILE.open("w", encoding="utf-8") as fh:
+            fh.write(value)
+    try:
+        await asyncio.to_thread(_write)
+    except OSError:
+        logger.exception("failed to write timezone")
+        raise HTTPException(status_code=500, detail="storage error")
 
-@app.get("/", include_in_schema=False)
-async def root_redirect() -> RedirectResponse:
-    """Redirect the root URL to the SPA at /ui."""
-    return RedirectResponse(url="/ui")
-
+async def _read_reminders() -> dict[int, dict]:
+    def _read() -> dict[int, dict]:
+        if not REMINDERS_FILE.exists():
+            return {}
+        try:
+            data = json.loads(REMINDERS_FILE.read_text(encoding="utf-8"))
+        except (OSError, JSONDecodeError):
+            logger.warning("invalid reminders JSON; resetting storage")
+            try: REMINDERS_FILE.write_text("{}", encoding="utf-8")
+            except OSError: logger.exception("failed to reset reminders file")
+            return {}
+        if not isinstance(data, dict):
+            logger.warning("reminders JSON is not a dict; resetting storage")
+            try: REMINDERS_FILE.write_text("{}", encoding="utf-8")
+            except OSError: logger.exception("failed to reset reminders file")
+            return {}
+        try:
+            return {int(k): v for k, v in data.items()}
+        except ValueError:
+            logger.warning("non-numeric reminder key; resetting storage")
+            try: REMINDERS_FILE.write_text("{}", encoding="utf-8")
+            except OSError: logger.exception("failed to reset reminders file")
+            return {}
+    return await asyncio.to_thread(_read)
 
 @app.post("/api/timezone")
 async def timezone_post(request: Request) -> dict:
-    """Persist timezone submitted by the client."""
     try:
         data = await request.json()
     except JSONDecodeError as exc:
@@ -160,49 +85,42 @@ async def timezone_post(request: Request) -> dict:
     await _write_timezone(tz)
     return {"status": "ok"}
 
-
 @app.post("/profile")
-async def save_profile(request: Request) -> dict:  # pragma: no cover - simple
-    """Accept submitted profile data."""
+async def save_profile(request: Request) -> dict:
     try:
         data = await request.json()
-    except JSONDecodeError as exc:  # pragma: no cover - validation
+    except JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail="invalid JSON format") from exc
     if not isinstance(data, dict):
         raise HTTPException(status_code=400, detail="invalid data format")
     try:
         ProfileSchema(**data)
-    except ValidationError as exc:  # pragma: no cover - validation
+    except ValidationError as exc:
         raise HTTPException(status_code=400, detail="invalid data") from exc
     return {"status": "ok"}
 
-
 @app.get("/reminders")
-async def reminders_get(id: int | None = None) -> dict | list[dict]:  # pragma: no cover - simple
-    """Return stored reminders from JSON file."""
+async def reminders_get(id: int | None = None) -> dict | list[dict]:
     async with reminders_lock:
         store = await _read_reminders()
     if id is None:
         return list(store.values())
     return store.get(id, {})
 
-
 @app.post("/reminders")
-async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
-    """Save reminder data to JSON store."""
+async def reminders_post(request: Request) -> dict:
     try:
         data = await request.json()
-    except JSONDecodeError as exc:  # pragma: no cover - validation
+    except JSONDecodeError as exc:
         raise HTTPException(status_code=400, detail="invalid JSON format") from exc
     if not isinstance(data, dict):
         raise HTTPException(status_code=400, detail="invalid data format")
     try:
         reminder = ReminderSchema(**data)
-    except ValidationError as exc:  # pragma: no cover - validation
+    except ValidationError as exc:
         raise HTTPException(status_code=400, detail="invalid data") from exc
     async with reminders_lock:
         store = await _read_reminders()
-        # migrate old reminders using "rem_type" to unified "type" key
         for item in store.values():
             if "rem_type" in item and "type" not in item:
                 item["type"] = item.pop("rem_type")
@@ -213,16 +131,38 @@ async def reminders_post(request: Request) -> dict:  # pragma: no cover - simple
         await _write_reminders(store)
     return {"status": "ok", "id": rid}
 
+# ---------- Совместимость для старых относительных путей из UI ----------
+# ВАЖНО: эти маршруты должны быть ДО mount('/ui'), иначе их перехватит StaticFiles.
+@app.get("/ui/reminder")
+async def _compat_ui_reminder(id: int | None = None) -> RedirectResponse:
+    q = f"?id={id}" if id is not None else ""
+    return RedirectResponse(url=f"/reminders{q}", status_code=307)
 
-app.router.routes.append(STATIC_ROUTE)
+@app.get("/ui/reminders")
+async def _compat_ui_reminders() -> RedirectResponse:
+    return RedirectResponse(url="/reminders", status_code=307)
 
-if __name__ == "__main__":  # pragma: no cover - manual start
+@app.post("/ui/api/timezone")
+async def _compat_ui_timezone(request: Request) -> dict:
+    # просто проксируем на существующую логику
+    return await timezone_post(request)
+# -----------------------------------------------------------------------
+
+# ---------- UI (Vite SPA) ----------
+# ДОЛЖНО идти ПОСЛЕ совместимых маршрутов!
+if UI_DIR.exists():
+    app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
+# -----------------------------------
+
+# корневая статика (если нужна) — на /static, чтобы не мешать /ui и API
+app.mount("/static", StaticFiles(directory=str(BASE_DIR)), name="static-root")
+
+# редирект корня на SPA
+@app.get("/", include_in_schema=False)
+async def root_redirect() -> RedirectResponse:
+    return RedirectResponse(url="/ui")
+
+if __name__ == "__main__":  # pragma: no cover
     import uvicorn
-
     workers = int(os.getenv("UVICORN_WORKERS", "1"))
-    uvicorn.run(
-        "webapp.server:app",
-        host="0.0.0.0",
-        port=8000,
-        workers=workers,
-    )
+    uvicorn.run("webapp.server:app", host="0.0.0.0", port=8000, workers=workers)
