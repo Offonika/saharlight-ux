@@ -121,7 +121,7 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(f"{WEBAPP_URL}/reminder"),
+                web_app=WebAppInfo(f"{WEBAPP_URL}/reminders"),
             )
         ]
     if not rems:
@@ -147,7 +147,7 @@ def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
             row.append(
                 InlineKeyboardButton(
                     "✏️",
-                    web_app=WebAppInfo(f"{WEBAPP_URL}/reminder?id={r.id}"),
+                    web_app=WebAppInfo(f"{WEBAPP_URL}/reminders?id={r.id}"),
                 )
             )
         row.extend(
