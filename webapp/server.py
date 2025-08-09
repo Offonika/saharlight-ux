@@ -67,8 +67,9 @@ async def _read_reminders() -> dict[int, dict]:
             logger.warning("invalid reminders JSON; resetting storage")
             try:
                 REMINDERS_FILE.write_text("{}", encoding="utf-8")
-            except OSError:
+            except OSError as exc:
                 logger.exception("failed to reset reminders file")
+                raise HTTPException(status_code=500, detail="storage error") from exc
             return {}
         except OSError as exc:
             logger.exception("failed to read reminders")
@@ -77,8 +78,9 @@ async def _read_reminders() -> dict[int, dict]:
             logger.warning("reminders JSON is not a dict; resetting storage")
             try:
                 REMINDERS_FILE.write_text("{}", encoding="utf-8")
-            except OSError:
+            except OSError as exc:
                 logger.exception("failed to reset reminders file")
+                raise HTTPException(status_code=500, detail="storage error") from exc
             return {}
         try:
             return {int(k): v for k, v in data.items()}
@@ -86,8 +88,9 @@ async def _read_reminders() -> dict[int, dict]:
             logger.warning("non-numeric reminder key; resetting storage")
             try:
                 REMINDERS_FILE.write_text("{}", encoding="utf-8")
-            except OSError:
+            except OSError as exc:
                 logger.exception("failed to reset reminders file")
+                raise HTTPException(status_code=500, detail="storage error") from exc
             return {}
     return await asyncio.to_thread(_read)
 

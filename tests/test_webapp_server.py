@@ -91,6 +91,23 @@ def test_reminders_post_storage_error(monkeypatch: pytest.MonkeyPatch) -> None:
     assert response.json() == {"detail": "storage error"}
 
 
+def test_reminders_post_storage_error_on_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server.REMINDERS_FILE.write_text("{}", encoding="utf-8")
+    original_open = Path.open
+
+    def raise_oserror(self, *args, **kwargs):  # noqa: ANN001
+        if self == server.REMINDERS_FILE:
+            raise OSError("disk full")
+        return original_open(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", raise_oserror)
+    response = client.post("/reminders", json={"text": "foo"})
+    assert response.status_code == 500
+    assert response.json() == {"detail": "storage error"}
+
+
 def test_reminders_get_storage_error(monkeypatch: pytest.MonkeyPatch) -> None:
     def raise_oserror(self, *args, **kwargs):
         if self == server.REMINDERS_FILE:
@@ -100,6 +117,23 @@ def test_reminders_get_storage_error(monkeypatch: pytest.MonkeyPatch) -> None:
     server.REMINDERS_FILE.write_text("{}", encoding="utf-8")
     original_open = Path.open
     monkeypatch.setattr(Path, "open", raise_oserror)
+    response = client.get("/reminders")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "storage error"}
+
+
+def test_reminders_get_storage_error_on_reset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    server.REMINDERS_FILE.write_text("{bad", encoding="utf-8")
+    original_write_text = Path.write_text
+
+    def raise_oserror(self, *args, **kwargs):  # noqa: ANN001
+        if self == server.REMINDERS_FILE:
+            raise OSError("disk full")
+        return original_write_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", raise_oserror)
     response = client.get("/reminders")
     assert response.status_code == 500
     assert response.json() == {"detail": "storage error"}
