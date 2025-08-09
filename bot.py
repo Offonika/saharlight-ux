@@ -14,7 +14,15 @@ import os
 import sys
 
 logger = logging.getLogger(__name__)
-MAINTAINER_CHAT_ID = os.getenv("MAINTAINER_CHAT_ID")
+
+MAINTAINER_CHAT_ID_ENV = os.getenv("MAINTAINER_CHAT_ID")
+try:
+    MAINTAINER_CHAT_ID = (
+        int(MAINTAINER_CHAT_ID_ENV) if MAINTAINER_CHAT_ID_ENV is not None else None
+    )
+except (TypeError, ValueError):
+    logger.warning("Invalid MAINTAINER_CHAT_ID: %s", MAINTAINER_CHAT_ID_ENV)
+    MAINTAINER_CHAT_ID = None
 
 
 async def error_handler(update, context: ContextTypes.DEFAULT_TYPE) -> None:
