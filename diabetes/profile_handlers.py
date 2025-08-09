@@ -386,7 +386,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         elif action == "add":
             if WEBAPP_URL:
                 button = InlineKeyboardButton(
-                    "📝 Новое", web_app=WebAppInfo(f"{WEBAPP_URL}/reminder")
+                    "📝 Новое", web_app=WebAppInfo(f"{WEBAPP_URL}/reminders")
                 )
                 keyboard = InlineKeyboardMarkup([[button]])
                 await query.message.reply_text(
