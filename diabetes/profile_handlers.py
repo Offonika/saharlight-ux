@@ -337,7 +337,9 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
         user.timezone = raw
         if not commit_session(session):
             await update.message.reply_text(
+
                 "⚠️ Не удалось обновить часовой пояс.",
+
                 reply_markup=menu_keyboard,
             )
             return ConversationHandler.END
@@ -353,6 +355,12 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     await query.answer()
     user_id = update.effective_user.id
     action = query.data.split(":", 1)[1] if ":" in query.data else None
+
+    if action == "sos_contact":
+        from diabetes import sos_handlers
+
+        await sos_handlers.sos_contact_start(update.callback_query, context)
+        return
 
     with SessionLocal() as session:
         profile = session.get(Profile, user_id)
@@ -384,10 +392,6 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         elif action == "toggle_sos":
             profile.sos_alerts_enabled = not profile.sos_alerts_enabled
             changed = True
-        elif action == "sos_contact":
-            from diabetes import sos_handlers
-
-            await sos_handlers.sos_contact_start(update.callback_query, context)
         elif action == "add":
             if WEBAPP_URL:
                 button = InlineKeyboardButton(
@@ -403,8 +407,10 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if changed:
             if not commit_session(session):
                 await query.message.reply_text(
+
                     "⚠️ Не удалось сохранить настройки.",
                     reply_markup=menu_keyboard,
+
                 )
                 return
             alert = (
