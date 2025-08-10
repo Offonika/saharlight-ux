@@ -1,0 +1,103 @@
+:root {
+  /* Telegram WebApp tokens with fallbacks (light theme) */
+  --bg-color: var(--tg-theme-bg-color, #ffffff);
+  --text-color: var(--tg-theme-text-color, #000000);
+  --hint-color: var(--tg-theme-hint-color, #707579);
+  --link-color: var(--tg-theme-link-color, #3390ec);
+  --button-color: var(--tg-theme-button-color, #3390ec);
+  --button-text-color: var(--tg-theme-button-text-color, #ffffff);
+  --secondary-bg-color: var(--tg-theme-secondary-bg-color, #f5f5f5);
+  --header-bg-color: var(--tg-theme-header-bg-color, #ffffff);
+  --accent-text-color: var(--tg-theme-accent-text-color, #3390ec);
+  --destructive-text-color: var(--tg-theme-destructive-text-color, #d14c47);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark theme fallbacks */
+    --bg-color: var(--tg-theme-bg-color, #0e1621);
+    --text-color: var(--tg-theme-text-color, #f5f5f5);
+    --hint-color: var(--tg-theme-hint-color, #7d8b99);
+    --link-color: var(--tg-theme-link-color, #61b0f1);
+    --button-color: var(--tg-theme-button-color, #61b0f1);
+    --button-text-color: var(--tg-theme-button-text-color, #0e1621);
+    --secondary-bg-color: var(--tg-theme-secondary-bg-color, #181f2a);
+    --header-bg-color: var(--tg-theme-header-bg-color, #17212b);
+    --accent-text-color: var(--tg-theme-accent-text-color, #61b0f1);
+    --destructive-text-color: var(--tg-theme-destructive-text-color, #e36f6b);
+  }
+}
+
+/* Modal styles */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  background: rgba(0, 0, 0, 0.5);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal--open {
+  display: flex;
+}
+
+.modal__content {
+  background: var(--secondary-bg-color);
+  color: var(--text-color);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  max-width: 30rem;
+  width: 90%;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+/* Button styles */
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--button-color);
+  color: var(--button-text-color);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Segmented control */
+.segmented {
+  display: flex;
+  border: 1px solid var(--link-color);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.segmented__item {
+  flex: 1;
+}
+
+.segmented__item input {
+  display: none;
+}
+
+.segmented__item label {
+  display: block;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--secondary-bg-color);
+  color: var(--link-color);
+  user-select: none;
+}
+
+.segmented__item input:checked + label {
+  background: var(--button-color);
+  color: var(--button-text-color);
+}
