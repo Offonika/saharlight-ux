@@ -1,4 +1,5 @@
 export interface ReminderPayload {
+  id?: number;
   type: 'sugar' | 'insulin' | 'meal' | 'medicine';
   title: string;
   time: string;
@@ -7,9 +8,9 @@ export interface ReminderPayload {
 
 const API_BASE = '/api';
 
-export async function updateReminder(id: string, payload: ReminderPayload) {
-  const res = await fetch(`${API_BASE}/reminders/${id}`, {
-    method: 'PUT',
+export async function updateReminder(payload: ReminderPayload & { id: number }) {
+  const res = await fetch(`${API_BASE}/reminders`, {
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });

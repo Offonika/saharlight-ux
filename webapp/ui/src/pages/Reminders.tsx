@@ -80,7 +80,7 @@ const Reminders = () => {
   const handleSaveReminder = async (values: ReminderFormValues) => {
     try {
       if (editingReminder) {
-        await updateReminder(editingReminder.id, values);
+        await updateReminder({ id: Number(editingReminder.id), ...values });
         setReminders(prev =>
           prev.map(r =>
             r.id === editingReminder.id ? { ...r, ...values } : r
