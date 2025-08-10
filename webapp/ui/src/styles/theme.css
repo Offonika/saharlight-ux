@@ -78,3 +78,28 @@
   border-top: 1px solid hsl(var(--border));
   justify-content: flex-end;
 }
+
+.rem-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.rem-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rem-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (max-width: 360px) {
+  .rem-actions {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
