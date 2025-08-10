@@ -22,11 +22,16 @@ Design tokens and base styles live in styles/theme.css
            transition-all duration-200 touch-manipulation;
   }
 
-  .medical-list-item {
-    @apply bg-card border border-border rounded-lg p-4 mb-3
-           hover:shadow-[var(--shadow-soft)] transition-all duration-200;
+    .medical-list-item {
+      @apply bg-card border border-border rounded-lg p-4 mb-3
+             hover:shadow-[var(--shadow-soft)] transition-all duration-200;
+    }
+
+    .modal-card {
+      @apply relative w-full max-w-lg bg-background rounded-lg shadow-lg m-4;
+      margin-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
   }
-}
 
 @layer components {
   /* Segmented control */
