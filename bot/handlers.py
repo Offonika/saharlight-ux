@@ -91,7 +91,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get('awaiting_report_date'):
         try:
             
-            date_from = datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
+            date_from = datetime.strptime(update.message.text.strip(), "%Y-%m-%d").replace(tzinfo=timezone.utc)
         except Exception:
             await update.message.reply_text("❗ Формат даты: YYYY-MM-DD")
             return
@@ -172,7 +172,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if "dose" in parts:  entry.dose         = float(parts["dose"])
             if "сахар" in parts or "sugar" in parts:
                 entry.sugar_before = float(parts.get("сахар") or parts["sugar"])
-            entry.updated_at = datetime.utcnow()
+            entry.updated_at = datetime.now(timezone.utc)
             s.commit()
         context.user_data.pop("edit_id")
         context.user_data.pop('pending_entry', None)
@@ -193,14 +193,14 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if time_str:
             try:
                 hh, mm = map(int, time_str.split(":"))
-                now = datetime.now()
-                run_time = datetime.combine(now.date(), dtime(hh, mm))
+                now = datetime.now(timezone.utc)
+                run_time = datetime.combine(now.date(), dtime(hh, mm, tzinfo=timezone.utc))
                 if run_time <= now:
                     run_time += timedelta(days=1)
             except Exception:
-                run_time = datetime.now() + timedelta(minutes=1)
+                run_time = datetime.now(timezone.utc) + timedelta(minutes=1)
         else:
-            run_time = datetime.now() + timedelta(minutes=1)
+            run_time = datetime.now(timezone.utc) + timedelta(minutes=1)
         add_reminder(update.effective_user.id, run_time, message)
         schedule_reminder(context.bot, update.effective_user.id, run_time, message)
         await update.message.reply_text(
@@ -227,10 +227,10 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif time_str:
         try:
             hh, mm = map(int, time_str.split(":"))
-            today  = datetime.now().date()
-            event_dt = datetime.combine(today, dtime(hh, mm))
+            today  = datetime.now(timezone.utc).date()
+            event_dt = datetime.combine(today, dtime(hh, mm, tzinfo=timezone.utc))
         except Exception:
-            event_dt = datetime.now()
+            event_dt = datetime.now(timezone.utc)
     else:
         event_dt = datetime.now(timezone.utc)
 
@@ -1044,7 +1044,7 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
     data = query.data
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     if data == "report_today":
         date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
         period_label = "сегодня"
@@ -1069,7 +1069,7 @@ async def report_date_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get('awaiting_report_date'):
         try:
             
-            date_from = datetime.strptime(update.message.text.strip(), "%Y-%m-%d")
+            date_from = datetime.strptime(update.message.text.strip(), "%Y-%m-%d").replace(tzinfo=timezone.utc)
         except Exception:
             await update.message.reply_text("❗ Формат даты: YYYY-MM-DD")
             return

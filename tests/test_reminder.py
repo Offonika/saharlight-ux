@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import create_engine
@@ -29,7 +29,7 @@ def session(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_reminder_creation_and_trigger(session):
-    run_time = datetime.now() + timedelta(seconds=1)
+    run_time = datetime.now(timezone.utc) + timedelta(seconds=1)
     db_access.add_reminder(1, run_time, "check sugar")
     reminders = db_access.get_reminders(1)
     assert len(reminders) == 1
