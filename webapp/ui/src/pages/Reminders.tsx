@@ -87,10 +87,13 @@ const Reminders = () => {
     });
   };
 
-  const handleSaveReminder = async () => {
+  const handleSaveReminder = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
     if (newReminder.title && newReminder.time) {
       try {
-        const res = await fetch('/reminders', {
+        const res = await fetch('/api/reminders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -110,7 +113,11 @@ const Reminders = () => {
           setReminders(prev =>
             prev.map(r =>
               r.id === newReminder.id
-                ? { ...r, ...newReminder, interval: newReminder.interval || undefined }
+                ? {
+                    ...r,
+                    ...newReminder,
+                    interval: newReminder.interval || undefined
+                  }
                 : r
             )
           );
@@ -243,8 +250,8 @@ const Reminders = () => {
             <h3 className="font-semibold text-foreground mb-4">
               {newReminder.id ? 'Редактирование напоминания' : 'Новое напоминание'}
             </h3>
-            
-            <div className="space-y-4">
+
+            <form onSubmit={handleSaveReminder} className="space-y-4">
               {/* Тип напоминания */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -340,8 +347,7 @@ const Reminders = () => {
               {/* Кнопки */}
               <div className="flex gap-3 pt-2">
                 <button
-                  type="button"
-                  onClick={handleSaveReminder}
+                  type="submit"
                   className="medical-button flex-1"
                 >
                   Сохранить
@@ -357,7 +363,7 @@ const Reminders = () => {
                   Отмена
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         )}
 
