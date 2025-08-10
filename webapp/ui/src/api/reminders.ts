@@ -3,6 +3,7 @@ export interface ReminderPayload {
   type: 'sugar' | 'insulin' | 'meal' | 'medicine';
   title: string;
   time: string;
+  interval?: number;
 }
 
 const API_BASE = '/api';
@@ -19,12 +20,13 @@ export async function updateReminder(payload: ReminderPayload & { id: number }) 
   const res = await fetch(`${API_BASE}/reminders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify({ ...payload, id: Number(payload.id) })
   });
   if (!res.ok) {
     throw new Error('Failed to update reminder');
   }
-  return res.json();
+  const data = await res.json();
+  return { ...data, id: Number(data.id) };
 }
 
 export async function createReminder(payload: ReminderPayload) {
@@ -36,5 +38,6 @@ export async function createReminder(payload: ReminderPayload) {
   if (!res.ok) {
     throw new Error('Failed to create reminder');
   }
-  return res.json();
+  const data = await res.json();
+  return { ...data, id: Number(data.id) };
 }

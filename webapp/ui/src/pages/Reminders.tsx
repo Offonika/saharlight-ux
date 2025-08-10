@@ -9,11 +9,12 @@ import MedicalButton from '@/components/MedicalButton';
 import { cn } from '@/lib/utils';
 
 interface Reminder {
-  id: string;
+  id: number;
   type: 'sugar' | 'insulin' | 'meal' | 'medicine';
   title: string;
   time: string;
   active: boolean;
+  interval?: number;
 }
 
 const reminderTypes = {
@@ -21,6 +22,94 @@ const reminderTypes = {
   insulin: { label: 'Инсулин', icon: '💉', color: 'medical-blue' },
   meal: { label: 'Приём пищи', icon: '🍽️', color: 'medical-success' },
   medicine: { label: 'Лекарства', icon: '💊', color: 'medical-teal' }
+};
+
+interface ReminderItemProps {
+  reminder: Reminder;
+  index: number;
+  onToggle: (id: number) => void;
+  onEdit: (reminder: Reminder) => void;
+  onDelete: (id: number) => void;
+}
+
+const ReminderItem = ({
+  reminder,
+  index,
+  onToggle,
+  onEdit,
+  onDelete
+}: ReminderItemProps) => {
+  const typeInfo = reminderTypes[reminder.type];
+  return (
+    <div
+      className={cn('rem-card', !reminder.active && 'opacity-60')}
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="rem-main">
+          <div
+            className={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center',
+              typeInfo.color === 'medical-error'
+                ? 'bg-medical-error/10'
+                : typeInfo.color === 'medical-blue'
+                  ? 'bg-medical-blue/10'
+                  : typeInfo.color === 'medical-success'
+                    ? 'bg-medical-success/10'
+                    : 'bg-medical-teal/10'
+            )}
+          >
+            <span className="text-lg">{typeInfo.icon}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="rem-title font-medium text-foreground">
+              {reminder.title}
+            </h3>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+              <Clock className="w-3 h-3" />
+              <span className="badge">{reminder.time}</span>
+              <span className="badge badge-tonal">{typeInfo.label}</span>
+            </div>
+          </div>
+        </div>
+        <div className="rem-actions">
+          <button
+            type="button"
+            className={cn(
+              'icon-btn',
+              reminder.active
+                ? 'bg-success/10 text-success'
+                : 'bg-secondary text-muted-foreground'
+            )}
+            onClick={() => onToggle(reminder.id)}
+            aria-label={
+              reminder.active
+                ? 'Отключить напоминание'
+                : 'Включить напоминание'
+            }
+          >
+            <Bell className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => onEdit(reminder)}
+            aria-label="Редактировать"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => onDelete(reminder.id)}
+            aria-label="Удалить"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const Reminders = () => {
@@ -50,10 +139,11 @@ const Reminders = () => {
     fetchReminders();
   }, [toast]);
 
+
   const [formOpen, setFormOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
 
-  const handleToggleReminder = (id: string) => {
+  const handleToggleReminder = (id: number) => {
     setReminders(prev => 
       prev.map(reminder => 
         reminder.id === id 
@@ -67,7 +157,7 @@ const Reminders = () => {
     });
   };
 
-  const handleDeleteReminder = (id: string) => {
+  const handleDeleteReminder = (id: number) => {
     setReminders(prev => prev.filter(reminder => reminder.id !== id));
     toast({
       title: "Напоминание удалено",
@@ -78,7 +168,7 @@ const Reminders = () => {
   const handleSaveReminder = async (values: ReminderFormValues) => {
     try {
       if (editingReminder) {
-        await updateReminder({ id: Number(editingReminder.id), ...values });
+        await updateReminder({ id: editingReminder.id, ...values });
         setReminders(prev =>
           prev.map(r =>
             r.id === editingReminder.id ? { ...r, ...values } : r
@@ -92,7 +182,7 @@ const Reminders = () => {
         const data = await createReminder(values);
         setReminders(prev => [
           ...prev,
-          { id: String(data.id), ...values, active: true }
+          { id: Number(data.id), ...values, active: true }
         ]);
         toast({
           title: 'Напоминание добавлено',
@@ -131,6 +221,7 @@ const Reminders = () => {
       </MedicalHeader>
       
       <main className="container mx-auto px-4 py-6">
+
         {loading ? (
           <div className="text-center py-12">Загрузка...</div>
         ) : error ? (
@@ -207,6 +298,7 @@ const Reminders = () => {
           })}
           </div>
         )}
+
 
         {/* Форма создания/редактирования */}
         <ReminderForm
