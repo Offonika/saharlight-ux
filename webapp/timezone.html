@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/ui/assets/index-Cz8THv6W.css">
     <title>Часовой пояс</title>
     <script src="/static/telegram-init.js"></script>
     <script>
@@ -13,6 +13,7 @@
             const addButton = (text, handler) => {
                 const btn = document.createElement('button');
                 btn.textContent = text;
+                btn.className = 'medical-button';
                 btn.addEventListener('click', handler);
                 document.body.appendChild(btn);
             };
