@@ -24,6 +24,94 @@ const reminderTypes = {
   medicine: { label: 'Лекарства', icon: '💊', color: 'medical-teal' }
 };
 
+interface ReminderItemProps {
+  reminder: Reminder;
+  index: number;
+  onToggle: (id: number) => void;
+  onEdit: (reminder: Reminder) => void;
+  onDelete: (id: number) => void;
+}
+
+const ReminderItem = ({
+  reminder,
+  index,
+  onToggle,
+  onEdit,
+  onDelete
+}: ReminderItemProps) => {
+  const typeInfo = reminderTypes[reminder.type];
+  return (
+    <div
+      className={cn('rem-card', !reminder.active && 'opacity-60')}
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="rem-main">
+          <div
+            className={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center',
+              typeInfo.color === 'medical-error'
+                ? 'bg-medical-error/10'
+                : typeInfo.color === 'medical-blue'
+                  ? 'bg-medical-blue/10'
+                  : typeInfo.color === 'medical-success'
+                    ? 'bg-medical-success/10'
+                    : 'bg-medical-teal/10'
+            )}
+          >
+            <span className="text-lg">{typeInfo.icon}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="rem-title font-medium text-foreground">
+              {reminder.title}
+            </h3>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+              <Clock className="w-3 h-3" />
+              <span className="badge">{reminder.time}</span>
+              <span className="badge badge-tonal">{typeInfo.label}</span>
+            </div>
+          </div>
+        </div>
+        <div className="rem-actions">
+          <button
+            type="button"
+            className={cn(
+              'icon-btn',
+              reminder.active
+                ? 'bg-success/10 text-success'
+                : 'bg-secondary text-muted-foreground'
+            )}
+            onClick={() => onToggle(reminder.id)}
+            aria-label={
+              reminder.active
+                ? 'Отключить напоминание'
+                : 'Включить напоминание'
+            }
+          >
+            <Bell className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => onEdit(reminder)}
+            aria-label="Редактировать"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => onDelete(reminder.id)}
+            aria-label="Удалить"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Reminders = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -135,74 +223,19 @@ const Reminders = () => {
       <main className="container mx-auto px-4 py-6">
         {/* Список напоминаний */}
         <div className="space-y-3 mb-6">
-          {reminders.map((reminder, index) => {
-            const typeInfo = reminderTypes[reminder.type];
-            return (
-              <div
-                key={reminder.id}
-                className={`medical-list-item ${!reminder.active ? 'opacity-60' : ''}`}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      typeInfo.color === 'medical-error' ? 'bg-medical-error/10' :
-                      typeInfo.color === 'medical-blue' ? 'bg-medical-blue/10' :
-                      typeInfo.color === 'medical-success' ? 'bg-medical-success/10' :
-                      'bg-medical-teal/10'
-                    }`}>
-                      <span className="text-lg">{typeInfo.icon}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium text-foreground">{reminder.title}</h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="w-3 h-3" />
-                        <span>{reminder.time}</span>
-                        <span className="text-xs bg-secondary px-2 py-1 rounded">
-                          {typeInfo.label}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <MedicalButton
-                      variant="icon"
-                      onClick={() => handleToggleReminder(reminder.id)}
-                      className={cn(
-                        'border-0',
-                        reminder.active
-                          ? 'bg-success/10 text-success'
-                          : 'bg-secondary text-muted-foreground'
-                      )}
-                      aria-label={reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
-                    >
-                      <Bell className="w-4 h-4" />
-                    </MedicalButton>
-                    <MedicalButton
-                      variant="icon"
-                      onClick={() => {
-                        setEditingReminder(reminder);
-                        setFormOpen(true);
-                      }}
-                      className="bg-transparent hover:bg-secondary text-muted-foreground border-0"
-                      aria-label="Редактировать"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </MedicalButton>
-                    <MedicalButton
-                      variant="icon"
-                      onClick={() => handleDeleteReminder(reminder.id)}
-                      className="bg-transparent hover:bg-destructive/10 hover:text-destructive text-muted-foreground border-0"
-                      aria-label="Удалить"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </MedicalButton>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {reminders.map((reminder, index) => (
+            <ReminderItem
+              key={reminder.id}
+              reminder={reminder}
+              index={index}
+              onToggle={handleToggleReminder}
+              onEdit={(r) => {
+                setEditingReminder(r);
+                setFormOpen(true);
+              }}
+              onDelete={handleDeleteReminder}
+            />
+          ))}
         </div>
 
           {/* Форма создания/редактирования */}
