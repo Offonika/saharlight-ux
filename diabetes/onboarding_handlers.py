@@ -215,7 +215,12 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
         user = session.get(User, user_id)
         if user:
             user.timezone = tz_name
-            commit_session(session)
+            if not commit_session(session):
+                await update.message.reply_text(
+                    "⚠️ Не удалось сохранить часовой пояс.",
+                    reply_markup=menu_keyboard,
+                )
+                return ConversationHandler.END
 
     keyboard = InlineKeyboardMarkup(
         [[InlineKeyboardButton("Далее", callback_data="onb_next")]]
@@ -306,7 +311,11 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         user = session.get(User, user_id)
         if user:
             user.onboarding_complete = True
-            commit_session(session)
+            if not commit_session(session):
+                await query.message.reply_text(
+                    "⚠️ Не удалось сохранить настройки."
+                )
+                return ConversationHandler.END
 
     poll_msg = await query.message.reply_poll(
         "Как вам онбординг?",
