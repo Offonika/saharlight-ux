@@ -47,7 +47,9 @@ const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {
     <div
       ref={overlayRef}
       onMouseDown={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] pb-[env(safe-area-inset-bottom)]"
     >
       <div className="relative w-full max-w-lg mx-4 bg-background rounded-lg shadow-lg">
         <div className="flex items-center justify-between p-4 border-b border-border">
