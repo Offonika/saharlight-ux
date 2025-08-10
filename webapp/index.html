@@ -40,20 +40,34 @@
   <button id="action">Click me</button>
 
   <script>
+    (function ensureNoTheme() {
+      if (!location.hash.includes('tgNoTheme=1')) {
+        location.hash = 'tgNoTheme=1';
+      }
+    })();
+
     const tg = window.Telegram ? window.Telegram.WebApp : undefined;
     if (tg) {
       tg.ready();
-      tg.colorScheme = 'light';
-      const customTheme = {
-        bg_color: '#f5f5f5',
-        text_color: '#222222',
-        button_color: '#007bff',
-        button_text_color: '#ffffff',
-        link_color: '#007bff'
+
+      const applyTheme = () => {
+        const customTheme = {
+          bg_color: '#f5f5f5',
+          text_color: '#222222',
+          button_color: '#007bff',
+          button_text_color: '#ffffff',
+          link_color: '#007bff'
+        };
+        Object.entries(customTheme).forEach(([key, value]) => {
+          document.documentElement.style.setProperty(`--tg-theme-${key.replace(/_/g, '-')}`, value);
+        });
+        tg.setBackgroundColor(customTheme.bg_color);
+        tg.setHeaderColor(customTheme.bg_color);
+        tg.setBottomBarColor(customTheme.bg_color);
       };
-      Object.entries(customTheme).forEach(([key, value]) => {
-        document.documentElement.style.setProperty(`--tg-theme-${key.replace(/_/g, '-')}`, value);
-      });
+
+      applyTheme();
+      tg.onEvent('themeChanged', applyTheme);
     }
   </script>
 </body>
