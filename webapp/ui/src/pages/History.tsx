@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, TrendingUp, Edit2, Trash2, Filter } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
+import MedicalButton from '@/components/MedicalButton';
 
 interface HistoryRecord {
   id: string;
@@ -230,23 +230,25 @@ const History = () => {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <button
+                      <MedicalButton
+                        variant="icon"
                         onClick={() => handleEditRecord(record)}
-                        className="p-1 rounded hover:bg-secondary transition-all duration-200"
+                        className="bg-transparent hover:bg-secondary text-muted-foreground border-0 p-1"
                         aria-label="Редактировать"
                       >
-                        <Edit2 className="w-3 h-3 text-muted-foreground" />
-                      </button>
-                      <button
+                        <Edit2 className="w-3 h-3" />
+                      </MedicalButton>
+                      <MedicalButton
+                        variant="icon"
                         onClick={() => handleDeleteRecord(record.id)}
-                        className="p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+                        className="bg-transparent hover:bg-destructive/10 hover:text-destructive text-muted-foreground border-0 p-1"
                         aria-label="Удалить"
                       >
                         <Trash2 className="w-3 h-3" />
-                      </button>
+                      </MedicalButton>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-4 gap-4 text-sm mb-2">
                     {record.sugar && (
                       <div>
@@ -431,15 +433,15 @@ const History = () => {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <Button
+                <MedicalButton
                   type="button"
                   onClick={handleUpdateRecord}
                   className="flex-1"
                   size="lg"
                 >
                   Сохранить
-                </Button>
-                <Button
+                </MedicalButton>
+                <MedicalButton
                   type="button"
                   onClick={() => setEditingRecord(null)}
                   variant="secondary"
@@ -447,7 +449,7 @@ const History = () => {
                   size="lg"
                 >
                   Отмена
-                </Button>
+                </MedicalButton>
               </div>
             </div>
           </div>
@@ -468,14 +470,14 @@ const History = () => {
 
         {/* Кнопка аналитики */}
         <div className="mt-8">
-          <Button
+          <MedicalButton
             onClick={() => navigate('/analytics')}
             className="w-full flex items-center justify-center gap-2"
             size="lg"
           >
             <TrendingUp className="w-4 h-4" />
             Посмотреть аналитику
-          </Button>
+          </MedicalButton>
         </div>
       </main>
     </div>

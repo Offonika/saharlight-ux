@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MedicalHeader } from '@/components/MedicalHeader';
-import { Button } from '@/components/ui/button';
+import MedicalButton from '@/components/MedicalButton';
 
 const NewMeal = () => {
   const navigate = useNavigate();
@@ -40,14 +40,14 @@ const NewMeal = () => {
               onChange={(e) => setCarbs(e.target.value)}
             />
           </label>
-          <Button
+          <MedicalButton
             type="submit"
             className="w-full"
             disabled={!meal || !carbs}
             size="lg"
           >
             Сохранить
-          </Button>
+          </MedicalButton>
         </form>
       </main>
     </div>
