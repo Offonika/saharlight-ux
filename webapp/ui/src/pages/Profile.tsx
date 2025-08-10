@@ -4,7 +4,7 @@ import { Save } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
+import MedicalButton from '@/components/MedicalButton';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -150,14 +150,14 @@ const Profile = () => {
             </div>
 
             {/* Кнопка сохранения */}
-            <Button
+            <MedicalButton
               onClick={handleSave}
               className="w-full flex items-center justify-center gap-2"
               size="lg"
             >
               <Save className="w-4 h-4" />
               Сохранить настройки
-            </Button>
+            </MedicalButton>
           </div>
         </div>
 

@@ -5,7 +5,8 @@ import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import ReminderForm, { ReminderFormValues } from '@/components/ReminderForm';
 import { createReminder, updateReminder } from '@/api/reminders';
-import { Button } from '@/components/ui/button';
+import MedicalButton from '@/components/MedicalButton';
+import { cn } from '@/lib/utils';
 
 interface Reminder {
   id: string;
@@ -118,16 +119,17 @@ const Reminders = () => {
         showBack 
         onBack={() => navigate('/')}
       >
-        <button
+        <MedicalButton
+          variant="icon"
           onClick={() => {
             setEditingReminder(null);
             setFormOpen(true);
           }}
-          className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all duration-200"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 border-0"
           aria-label="Добавить напоминание"
         >
           <Plus className="w-5 h-5" />
-        </button>
+        </MedicalButton>
       </MedicalHeader>
       
       <main className="container mx-auto px-4 py-6">
@@ -164,34 +166,38 @@ const Reminders = () => {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <button
+                    <MedicalButton
+                      variant="icon"
                       onClick={() => handleToggleReminder(reminder.id)}
-                      className={`p-2 rounded-lg transition-all duration-200 ${
+                      className={cn(
+                        'border-0',
                         reminder.active
                           ? 'bg-success/10 text-success'
                           : 'bg-secondary text-muted-foreground'
-                      }`}
+                      )}
                       aria-label={reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
                     >
                       <Bell className="w-4 h-4" />
-                    </button>
-                    <button
+                    </MedicalButton>
+                    <MedicalButton
+                      variant="icon"
                       onClick={() => {
                         setEditingReminder(reminder);
                         setFormOpen(true);
                       }}
-                      className="p-2 rounded-lg hover:bg-secondary transition-all duration-200"
+                      className="bg-transparent hover:bg-secondary text-muted-foreground border-0"
                       aria-label="Редактировать"
                     >
-                      <Edit2 className="w-4 h-4 text-muted-foreground" />
-                    </button>
-                    <button
+                      <Edit2 className="w-4 h-4" />
+                    </MedicalButton>
+                    <MedicalButton
+                      variant="icon"
                       onClick={() => handleDeleteReminder(reminder.id)}
-                      className="p-2 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+                      className="bg-transparent hover:bg-destructive/10 hover:text-destructive text-muted-foreground border-0"
                       aria-label="Удалить"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </MedicalButton>
                   </div>
                 </div>
               </div>
@@ -220,7 +226,7 @@ const Reminders = () => {
             <p className="text-muted-foreground mb-6">
               Добавьте первое напоминание для контроля диабета
             </p>
-            <Button
+            <MedicalButton
               onClick={() => {
                 setEditingReminder(null);
                 setFormOpen(true);
@@ -228,7 +234,7 @@ const Reminders = () => {
               size="lg"
             >
               Создать напоминание
-            </Button>
+            </MedicalButton>
           </div>
         )}
       </main>

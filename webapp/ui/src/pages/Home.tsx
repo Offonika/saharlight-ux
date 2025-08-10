@@ -2,7 +2,7 @@ import { Clock, User, BookOpen, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useTelegram } from '@/hooks/useTelegram';
-import { Button } from '@/components/ui/button';
+import MedicalButton from '@/components/MedicalButton';
 
 const menuItems = [
   {
@@ -97,22 +97,22 @@ const Home = () => {
         <div className="medical-card animate-fade-in" style={{ animationDelay: '400ms' }}>
           <h3 className="font-semibold text-foreground mb-4">Быстрые действия</h3>
           <div className="grid grid-cols-2 gap-3">
-            <Button
+            <MedicalButton
               variant="secondary"
               size="lg"
               className="py-2 text-sm"
               onClick={() => navigate('/history/new-measurement')}
             >
               Записать сахар
-            </Button>
-            <Button
+            </MedicalButton>
+            <MedicalButton
               variant="secondary"
               size="lg"
               className="py-2 text-sm"
               onClick={() => navigate('/history/new-meal')}
             >
               Добавить еду
-            </Button>
+            </MedicalButton>
           </div>
         </div>
 
