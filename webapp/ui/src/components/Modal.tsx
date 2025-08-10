@@ -11,21 +11,39 @@ interface ModalProps {
 
 const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!open) return;
+
+    const focusableSelectors =
+      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+    const focusable = modalRef.current?.querySelectorAll<HTMLElement>(focusableSelectors);
+    const first = focusable?.[0];
+    const last = focusable?.[focusable.length - 1];
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+      } else if (e.key === 'Tab' && focusable && focusable.length) {
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last?.focus();
+          }
+        } else if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
       }
     };
 
     const root = document.documentElement;
     const previousOverflow = root.style.overflow;
 
-    if (open) {
-      document.addEventListener('keydown', handleKeyDown);
-      root.style.overflow = 'hidden';
-    }
+    document.addEventListener('keydown', handleKeyDown);
+    root.style.overflow = 'hidden';
+    (first || modalRef.current)?.focus();
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -49,9 +67,9 @@ const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {
       onMouseDown={handleOverlayClick}
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
     >
-      <div className="relative w-full max-w-lg mx-4 bg-background rounded-lg shadow-lg">
+      <div ref={modalRef} className="modal-card">
         <div className="flex items-center justify-between p-4 border-b border-border">
           {title && <h2 className="text-lg font-semibold">{title}</h2>}
           <Button
