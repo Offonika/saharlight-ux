@@ -39,14 +39,22 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     from .dose_handlers import sugar_conv
     chat_data = getattr(context, "chat_data", {})
     if chat_data.pop("sugar_active", None):
-        chat_id = getattr(update.effective_chat, "id", None) if sugar_conv.per_chat else None
-        user_id = getattr(update.effective_user, "id", None) if sugar_conv.per_user else None
-        msg_id = (
-            getattr(update.effective_message, "message_id", None)
-            if sugar_conv.per_message
-            else None
-        )
-        sugar_conv._conversations.pop((chat_id, user_id, msg_id), None)
+        end_conv = getattr(sugar_conv, "update_state", None)
+        if callable(end_conv):
+            end_conv(update, context, ConversationHandler.END)
+        else:
+            chat_id = getattr(update.effective_chat, "id", None) if sugar_conv.per_chat else None
+            user_id = getattr(update.effective_user, "id", None) if sugar_conv.per_user else None
+            msg_id = (
+                getattr(update.effective_message, "message_id", None)
+                if sugar_conv.per_message
+                else None
+            )
+            key = (chat_id, user_id, msg_id)
+            try:
+                sugar_conv._update_state(ConversationHandler.END, key)
+            except AttributeError:
+                pass
 
     help_text = (
         "❗ Формат команды:\n"
