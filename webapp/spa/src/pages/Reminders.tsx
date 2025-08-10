@@ -78,25 +78,46 @@ const Reminders = () => {
     });
   };
 
-  const handleAddReminder = () => {
+  const handleAddReminder = async () => {
     if (newReminder.title && newReminder.time) {
-      const reminder: Reminder = {
-        id: Date.now().toString(),
-        type: newReminder.type,
-        title: newReminder.title,
-        time: newReminder.time,
-        interval: newReminder.interval || undefined,
-        active: true
-      };
-      
-      setReminders(prev => [...prev, reminder]);
-      setNewReminder({ type: 'sugar', title: '', time: '', interval: '' });
-      setShowAddForm(false);
-      
-      toast({
-        title: "Напоминание добавлено",
-        description: "Новое напоминание создано"
-      });
+      try {
+        const res = await fetch('/reminders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: newReminder.type,
+            value: newReminder.time,
+            text: newReminder.title
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'ok') {
+          throw new Error('failed');
+        }
+
+        const reminder: Reminder = {
+          id: String(data.id),
+          type: newReminder.type,
+          title: newReminder.title,
+          time: newReminder.time,
+          interval: newReminder.interval || undefined,
+          active: true
+        };
+        setReminders(prev => [...prev, reminder]);
+        setNewReminder({ type: 'sugar', title: '', time: '', interval: '' });
+        setShowAddForm(false);
+
+        toast({
+          title: 'Напоминание добавлено',
+          description: 'Новое напоминание создано'
+        });
+      } catch {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось сохранить напоминание',
+          variant: 'destructive'
+        });
+      }
     }
   };
 
@@ -190,7 +211,13 @@ const Reminders = () => {
                   {Object.entries(reminderTypes).map(([key, type]) => (
                     <button
                       key={key}
-                      onClick={() => setNewReminder(prev => ({ ...prev, type: key as any }))}
+                      type="button"
+                      onClick={() =>
+                        setNewReminder(prev => ({
+                          ...prev,
+                          type: key as keyof typeof reminderTypes
+                        }))
+                      }
                       className={`p-3 rounded-lg border transition-all duration-200 ${
                         newReminder.type === key
                           ? 'border-primary bg-primary/10 text-primary'
@@ -234,12 +261,14 @@ const Reminders = () => {
               {/* Кнопки */}
               <div className="flex gap-3 pt-2">
                 <button
+                  type="button"
                   onClick={handleAddReminder}
                   className="medical-button flex-1"
                 >
-                  Добавить
+                  Сохранить
                 </button>
                 <button
+                  type="button"
                   onClick={() => setShowAddForm(false)}
                   className="medical-button-secondary flex-1"
                 >
