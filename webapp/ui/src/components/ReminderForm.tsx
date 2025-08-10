@@ -84,9 +84,7 @@ const ReminderForm = ({ open, onOpenChange, initialData, onSubmit }: ReminderFor
     >
       <form id="reminder-form" onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Тип напоминания
-          </label>
+          <label className="form-label">Тип напоминания</label>
           <SegmentedControl
             value={form.type}
             onChange={value =>
@@ -97,34 +95,28 @@ const ReminderForm = ({ open, onOpenChange, initialData, onSubmit }: ReminderFor
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Название
-          </label>
+          <label className="form-label">Название</label>
           <input
             type="text"
             value={form.title}
             onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-            className="medical-input"
+            className="input"
             placeholder="Например: Измерение сахара"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Время
-          </label>
+          <label className="form-label">Время</label>
           <input
             type="time"
             value={form.time}
             onChange={e => setForm(prev => ({ ...prev, time: e.target.value }))}
-            className="medical-input"
+            className="input"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-2">
-            Интервал (мин)
-          </label>
+          <label className="form-label">Интервал (мин)</label>
           <input
             type="number"
             value={form.interval ?? ''}
@@ -134,7 +126,7 @@ const ReminderForm = ({ open, onOpenChange, initialData, onSubmit }: ReminderFor
                 interval: e.target.value ? Number(e.target.value) : undefined
               }))
             }
-            className="medical-input"
+            className="input"
             placeholder="Например: 60"
             min={1}
           />

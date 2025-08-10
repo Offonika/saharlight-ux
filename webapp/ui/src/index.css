@@ -16,12 +16,6 @@ Design tokens and base styles live in styles/theme.css
            hover:shadow-[var(--shadow-medium)] transition-all duration-200;
   }
 
-  .medical-input {
-    @apply w-full px-4 py-3 bg-card border border-input rounded-xl text-foreground
-           placeholder:text-muted-foreground focus:outline-none focus:ring-2
-           focus:ring-ring focus:border-transparent transition-all duration-200;
-  }
-
   .medical-tile {
     @apply medical-card hover:bg-card/80 active:scale-95 cursor-pointer
            flex flex-col items-center justify-center min-h-[120px] text-center
