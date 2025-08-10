@@ -217,8 +217,9 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
             user.timezone = tz_name
             if not commit_session(session):
                 await update.message.reply_text(
-                    "⚠️ Не удалось сохранить часовой пояс.",
-                    reply_markup=menu_keyboard,
+
+                    "⚠️ Не удалось сохранить часовой пояс."
+
                 )
                 return ConversationHandler.END
 
@@ -313,7 +314,10 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             user.onboarding_complete = True
             if not commit_session(session):
                 await query.message.reply_text(
-                    "⚠️ Не удалось сохранить настройки."
+
+                    "⚠️ Не удалось сохранить настройки.",
+                    reply_markup=menu_keyboard,
+
                 )
                 return ConversationHandler.END
 

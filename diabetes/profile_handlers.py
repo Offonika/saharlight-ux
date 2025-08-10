@@ -337,7 +337,9 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
         user.timezone = raw
         if not commit_session(session):
             await update.message.reply_text(
-                "⚠️ Не удалось сохранить часовой пояс.",
+
+                "⚠️ Не удалось обновить часовой пояс.",
+
                 reply_markup=menu_keyboard,
             )
             return ConversationHandler.END
@@ -405,7 +407,10 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if changed:
             if not commit_session(session):
                 await query.message.reply_text(
-                    "⚠️ Не удалось сохранить настройки."
+
+                    "⚠️ Не удалось сохранить настройки.",
+                    reply_markup=menu_keyboard,
+
                 )
                 return
             alert = (
