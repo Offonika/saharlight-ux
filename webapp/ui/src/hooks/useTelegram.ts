@@ -1,43 +1,103 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Scheme = "light" | "dark";
+
+interface TelegramUser {
+  id: number;
+  is_bot?: boolean;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  photo_url?: string;
+  is_premium?: boolean;
+  added_to_attachment_menu?: boolean;
+  allows_write_to_pm?: boolean;
+}
+
+interface ThemeParams {
+  bg_color?: string;
+  text_color?: string;
+  hint_color?: string;
+  link_color?: string;
+  button_color?: string;
+  button_text_color?: string;
+  secondary_bg_color?: string;
+}
+
+interface MainButton {
+  setText: (text: string) => void;
+  onClick: (handler: () => void) => void;
+  offClick: (handler: () => void) => void;
+  show: () => void;
+  hide: () => void;
+}
+
+interface BackButton {
+  onClick: (handler: () => void) => void;
+  offClick: (handler: () => void) => void;
+  show: () => void;
+  hide: () => void;
+}
+
+interface TelegramWebApp {
+  expand?: () => void;
+  ready?: () => void;
+  colorScheme?: Scheme;
+  themeParams?: ThemeParams;
+  user?: TelegramUser;
+  setBackgroundColor?: (color: string) => void;
+  setHeaderColor?: (color: string) => void;
+  onEvent?: (eventType: string, handler: () => void) => void;
+  offEvent?: (eventType: string, handler: () => void) => void;
+  MainButton?: MainButton;
+  BackButton?: BackButton;
+  sendData?: (data: string) => void;
+}
+
+interface TelegramWindow extends Window {
+  Telegram?: { WebApp?: TelegramWebApp };
+}
 
 export const useTelegram = (
   forceLight: boolean = import.meta.env.VITE_FORCE_LIGHT === "true",
 ) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const tg = useMemo(() => (window as any)?.Telegram?.WebApp ?? null, []);
+  const tg = useMemo<TelegramWebApp | null>(
+    () => (window as TelegramWindow)?.Telegram?.WebApp ?? null,
+    [],
+  );
   const [isReady, setReady] = useState<boolean>(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<TelegramUser | null>(null);
   const [colorScheme, setScheme] = useState<Scheme>("light");
   const mainClickRef = useRef<(() => void) | null>(null);
   const backClickRef = useRef<(() => void) | null>(null);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const applyTheme = (src: any, ignoreScheme = false) => {
-    const root = document.documentElement;
-    const p = src?.themeParams ?? {};
-    const map: Record<string, string | undefined> = {
-      "--tg-theme-bg-color": p.bg_color,
-      "--tg-theme-text-color": p.text_color,
-      "--tg-theme-hint-color": p.hint_color,
-      "--tg-theme-link-color": p.link_color,
-      "--tg-theme-button-color": p.button_color,
-      "--tg-theme-button-text-color": p.button_text_color,
-      "--tg-theme-secondary-bg-color": p.secondary_bg_color,
-    };
-    Object.entries(map).forEach(([k, v]) => v && root.style.setProperty(k, v));
-    if (ignoreScheme) {
-      root.classList.remove("dark");
-      setScheme("light");
-      tg?.setBackgroundColor?.("#ffffff");
-      tg?.setHeaderColor?.("#ffffff");
-    } else {
-      root.classList.toggle("dark", src?.colorScheme === "dark");
-      setScheme(src?.colorScheme ?? "light");
-    }
-  };
+  const applyTheme = useCallback(
+    (src: TelegramWebApp | null, ignoreScheme = false) => {
+      const root = document.documentElement;
+      const p = src?.themeParams ?? {};
+      const map: Record<string, string | undefined> = {
+        "--tg-theme-bg-color": p.bg_color,
+        "--tg-theme-text-color": p.text_color,
+        "--tg-theme-hint-color": p.hint_color,
+        "--tg-theme-link-color": p.link_color,
+        "--tg-theme-button-color": p.button_color,
+        "--tg-theme-button-text-color": p.button_text_color,
+        "--tg-theme-secondary-bg-color": p.secondary_bg_color,
+      };
+      Object.entries(map).forEach(([k, v]) => v && root.style.setProperty(k, v));
+      if (ignoreScheme) {
+        root.classList.remove("dark");
+        setScheme("light");
+        src?.setBackgroundColor?.("#ffffff");
+        src?.setHeaderColor?.("#ffffff");
+      } else {
+        root.classList.toggle("dark", src?.colorScheme === "dark");
+        setScheme(src?.colorScheme ?? "light");
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!tg) {
@@ -63,11 +123,9 @@ export const useTelegram = (
       console.error("[TG] init error:", e);
       setReady(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tg]);
+  }, [tg, applyTheme, forceLight]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sendData = (data: any) => tg?.sendData?.(JSON.stringify(data));
+  const sendData = (data: unknown) => tg?.sendData?.(JSON.stringify(data));
 
   const showMainButton = (text: string, onClick: () => void) => {
     if (!tg?.MainButton) return;
