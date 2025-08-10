@@ -11,6 +11,7 @@ import Reminders from "./pages/Reminders";
 import History from "./pages/History";
 import NewMeasurement from "./pages/NewMeasurement";
 import NewMeal from "./pages/NewMeal";
+import Analytics from "./pages/Analytics";
 import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,7 @@ const AppContent = () => {
       <Route path="/history" element={<History />} />
       <Route path="/history/new-measurement" element={<NewMeasurement />} />
       <Route path="/history/new-meal" element={<NewMeal />} />
+      <Route path="/analytics" element={<Analytics />} />
       <Route path="/subscription" element={<Subscription />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

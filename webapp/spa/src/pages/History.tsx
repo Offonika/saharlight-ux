@@ -462,7 +462,10 @@ const History = () => {
 
         {/* Кнопка аналитики */}
         <div className="mt-8">
-          <button className="medical-button w-full flex items-center justify-center gap-2">
+          <button
+            onClick={() => navigate('/analytics')}
+            className="medical-button w-full flex items-center justify-center gap-2"
+          >
             <TrendingUp className="w-4 h-4" />
             Посмотреть аналитику
           </button>
