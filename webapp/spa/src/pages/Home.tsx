@@ -96,10 +96,16 @@ const Home = () => {
         <div className="medical-card animate-fade-in" style={{ animationDelay: '400ms' }}>
           <h3 className="font-semibold text-foreground mb-4">Быстрые действия</h3>
           <div className="grid grid-cols-2 gap-3">
-            <button className="medical-button-secondary py-2 text-sm">
+            <button
+              className="medical-button-secondary py-2 text-sm"
+              onClick={() => navigate('/history/new-measurement')}
+            >
               Записать сахар
             </button>
-            <button className="medical-button-secondary py-2 text-sm">
+            <button
+              className="medical-button-secondary py-2 text-sm"
+              onClick={() => navigate('/history/new-meal')}
+            >
               Добавить еду
             </button>
           </div>
