@@ -24,6 +24,7 @@ BASE_DIR = Path(__file__).parent.resolve()
 # Serve the compiled ``dist`` directory so that the application serves the
 # latest build output under the ``/ui`` path.
 UI_DIR = (BASE_DIR / "ui" / "dist").resolve()
+PUBLIC_DIR = (BASE_DIR / "public").resolve()
 if not UI_DIR.exists():
     logger.error(
         "UI build directory %s not found. Run `npm run build` in webapp/ui",
@@ -222,15 +223,8 @@ async def ui_files(full_path: str) -> FileResponse:
 async def root_redirect() -> RedirectResponse:
     return RedirectResponse(url="/ui")
 
-# статические файлы для UI и вспомогательных страниц
-app.mount(
-    "/static",
-    StaticFiles(directory=str(BASE_DIR / "static")),
-    name="static-files",
-)
-
-# корневая статика — файлы из webapp/ доступны по прямым путям
-app.mount("/", StaticFiles(directory=str(BASE_DIR)), name="static-root")
+# корневая статика — файлы из public/ доступны по прямым путям
+app.mount("/", StaticFiles(directory=str(PUBLIC_DIR)), name="public-root")
 
 if __name__ == "__main__":  # pragma: no cover
     import uvicorn

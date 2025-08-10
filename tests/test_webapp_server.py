@@ -33,7 +33,7 @@ def test_static_files_available() -> None:
     assert css_files, "CSS build missing"
     css_name = css_files[0].name
     assert client.get(f"/ui/assets/{css_name}").status_code == 200
-    assert client.get("/static/telegram-init.js").status_code == 200
+    assert client.get("/telegram-init.js").status_code == 200
 
 
 def test_storage_files_inaccessible() -> None:
