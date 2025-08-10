@@ -42,7 +42,7 @@ class Entry(Base):
     id          = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"))
 
-    event_time  = Column(TIMESTAMP, nullable=False)          # время приёма пищи / инъекции
+    event_time  = Column(TIMESTAMP(timezone=True), nullable=False)  # время приёма пищи / инъекции
     created_at  = Column(TIMESTAMP, server_default=func.now())
     updated_at  = Column(TIMESTAMP, onupdate=func.now())
 
@@ -59,7 +59,7 @@ class Reminder(Base):
 
     id          = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"))
-    time        = Column(TIMESTAMP, nullable=False)
+    time        = Column(TIMESTAMP(timezone=True), nullable=False)
     message     = Column(Text, nullable=False)
     created_at  = Column(TIMESTAMP, server_default=func.now())
 

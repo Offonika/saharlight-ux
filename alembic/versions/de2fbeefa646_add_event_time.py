@@ -23,9 +23,9 @@ def upgrade() -> None:
         'entries',
         sa.Column(
             'event_time',
-            sa.DateTime(),
+            sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text("'2025-01-01 00:00:00'")
+            server_default=sa.text("'2025-01-01 00:00:00+00:00'")
         )
     )
     op.add_column('entries', sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text('now()'), nullable=True))
