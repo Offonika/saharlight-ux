@@ -219,19 +219,27 @@
   }
 
   .rem-card {
-    @apply bg-card border border-border rounded-lg p-4 shadow-[var(--shadow-soft)] transition-all duration-200;
+    @apply grid grid-cols-[auto_1fr_auto] items-center gap-4 bg-card border border-border rounded-lg p-4 shadow-[var(--shadow-soft)] transition-all duration-200;
+  }
+
+  .rem-left {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center;
+  }
+
+  .rem-main {
+    @apply min-w-0;
   }
 
   .rem-actions {
-    @apply flex items-center gap-2;
+    @apply flex items-center gap-2 justify-self-end;
   }
 
   @media (max-width: 360px) {
     .rem-card {
-      @apply p-3;
+      @apply grid-cols-[auto_1fr] p-3;
     }
     .rem-actions {
-      @apply gap-1;
+      @apply col-span-2 mt-2 justify-self-end gap-1;
     }
   }
 }
