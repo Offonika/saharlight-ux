@@ -13,6 +13,15 @@ interface Reminder {
   active: boolean;
 }
 
+interface ReminderForm {
+  id?: string;
+  type: keyof typeof reminderTypes;
+  title: string;
+  time: string;
+  interval: string;
+  active?: boolean;
+}
+
 const reminderTypes = {
   sugar: { label: 'Измерение сахара', icon: '🩸', color: 'medical-error' },
   insulin: { label: 'Инсулин', icon: '💉', color: 'medical-blue' },
@@ -49,13 +58,12 @@ const Reminders = () => {
   ]);
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newReminder, setNewReminder] = useState({
-    type: 'sugar' as keyof typeof reminderTypes,
+  const [newReminder, setNewReminder] = useState<ReminderForm>({
+    type: 'sugar',
     title: '',
     time: '',
     interval: ''
   });
-  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
 
   const handleToggleReminder = (id: string) => {
     setReminders(prev => 
@@ -79,61 +87,18 @@ const Reminders = () => {
     });
   };
 
-  const handleAddReminder = async () => {
+  const handleSaveReminder = async () => {
     if (newReminder.title && newReminder.time) {
       try {
         const res = await fetch('/reminders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newReminder)
-        });
-        const data = await res.json();
-        if (!res.ok || data.status !== 'ok') {
-          throw new Error('failed');
-        }
-
-        setReminders(prev => [
-          ...prev,
-          {
-            id: String(data.id),
-            ...newReminder,
-            interval: newReminder.interval || undefined,
-            active: true
-          }
-        ]);
-        setNewReminder({ type: 'sugar', title: '', time: '', interval: '' });
-        setShowAddForm(false);
-
-        toast({
-          title: 'Напоминание добавлено',
-          description: 'Новое напоминание создано'
-        });
-      } catch {
-        toast({
-          title: 'Ошибка',
-          description: 'Не удалось сохранить напоминание',
-          variant: 'destructive'
-        });
-      }
-    }
-  };
-
-  const handleEditReminder = (reminder: Reminder) => {
-    setEditingReminder({ ...reminder });
-    setShowAddForm(false);
-  };
-
-  const handleUpdateReminder = async () => {
-    if (editingReminder && editingReminder.title && editingReminder.time) {
-      try {
-        const res = await fetch('/reminders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id: editingReminder.id,
-            type: editingReminder.type,
-            value: editingReminder.time,
-            text: editingReminder.title
+            id: newReminder.id,
+            type: newReminder.type,
+            title: newReminder.title,
+            time: newReminder.time,
+            interval: newReminder.interval || undefined
           })
         });
         const data = await res.json();
@@ -141,18 +106,40 @@ const Reminders = () => {
           throw new Error('failed');
         }
 
-        setReminders(prev =>
-          prev.map(r => (r.id === editingReminder.id ? editingReminder : r))
-        );
-        setEditingReminder(null);
-        toast({
-          title: 'Напоминание обновлено',
-          description: 'Изменения сохранены'
-        });
+        if (newReminder.id) {
+          setReminders(prev =>
+            prev.map(r =>
+              r.id === newReminder.id
+                ? { ...r, ...newReminder, interval: newReminder.interval || undefined }
+                : r
+            )
+          );
+          toast({
+            title: 'Напоминание обновлено',
+            description: 'Изменения сохранены'
+          });
+        } else {
+          setReminders(prev => [
+            ...prev,
+            {
+              id: String(data.id),
+              ...newReminder,
+              interval: newReminder.interval || undefined,
+              active: true
+            }
+          ]);
+          toast({
+            title: 'Напоминание добавлено',
+            description: 'Новое напоминание создано'
+          });
+        }
+
+        setNewReminder({ type: 'sugar', title: '', time: '', interval: '' });
+        setShowAddForm(false);
       } catch {
         toast({
           title: 'Ошибка',
-          description: 'Не удалось обновить напоминание',
+          description: 'Не удалось сохранить напоминание',
           variant: 'destructive'
         });
       }
@@ -167,7 +154,10 @@ const Reminders = () => {
         onBack={() => navigate('/')}
       >
         <button
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            setNewReminder({ type: 'sugar', title: '', time: '', interval: '' });
+            setShowAddForm(true);
+          }}
           className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all duration-200"
         >
           <Plus className="w-5 h-5" />
@@ -219,7 +209,17 @@ const Reminders = () => {
                       <Bell className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleEditReminder(reminder)}
+                      onClick={() => {
+                        setNewReminder({
+                          id: reminder.id,
+                          type: reminder.type,
+                          title: reminder.title,
+                          time: reminder.time,
+                          interval: reminder.interval || '',
+                          active: reminder.active
+                        });
+                        setShowAddForm(true);
+                      }}
                       className="p-2 rounded-lg hover:bg-secondary transition-all duration-200"
                     >
                       <Edit2 className="w-4 h-4 text-muted-foreground" />
@@ -237,100 +237,12 @@ const Reminders = () => {
           })}
         </div>
 
-        {/* Форма редактирования */}
-        {editingReminder && (
-          <div className="medical-card animate-scale-in">
-            <h3 className="font-semibold text-foreground mb-4">Редактирование напоминания</h3>
-
-            <div className="space-y-4">
-              {/* Тип напоминания */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Тип напоминания
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(reminderTypes).map(([key, type]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() =>
-                        setEditingReminder(prev =>
-                          prev ? { ...prev, type: key as keyof typeof reminderTypes } : prev
-                        )
-                      }
-                      className={`p-3 rounded-lg border transition-all duration-200 ${
-                        editingReminder.type === key
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border hover:bg-secondary/50'
-                      }`}
-                    >
-                      <div className="text-lg mb-1">{type.icon}</div>
-                      <div className="text-xs">{type.label}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Название */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Название
-                </label>
-                <input
-                  type="text"
-                  value={editingReminder.title}
-                  onChange={e =>
-                    setEditingReminder(prev =>
-                      prev ? { ...prev, title: e.target.value } : prev
-                    )
-                  }
-                  className="medical-input"
-                  placeholder="Например: Измерение сахара"
-                />
-              </div>
-
-              {/* Время */}
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Время
-                </label>
-                <input
-                  type="time"
-                  value={editingReminder.time}
-                  onChange={e =>
-                    setEditingReminder(prev =>
-                      prev ? { ...prev, time: e.target.value } : prev
-                    )
-                  }
-                  className="medical-input"
-                />
-              </div>
-
-              {/* Кнопки */}
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleUpdateReminder}
-                  className="medical-button flex-1"
-                >
-                  Сохранить
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingReminder(null)}
-                  className="medical-button-secondary flex-1"
-                >
-                  Отмена
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Форма добавления */}
+        {/* Форма создания/редактирования */}
         {showAddForm && (
           <div className="medical-card animate-scale-in">
-            <h3 className="font-semibold text-foreground mb-4">Новое напоминание</h3>
+            <h3 className="font-semibold text-foreground mb-4">
+              {newReminder.id ? 'Редактирование напоминания' : 'Новое напоминание'}
+            </h3>
             
             <div className="space-y-4">
               {/* Тип напоминания */}
@@ -429,14 +341,17 @@ const Reminders = () => {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={handleAddReminder}
+                  onClick={handleSaveReminder}
                   className="medical-button flex-1"
                 >
                   Сохранить
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowAddForm(false)}
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setNewReminder({ type: 'sugar', title: '', time: '', interval: '' });
+                  }}
                   className="medical-button-secondary flex-1"
                 >
                   Отмена
@@ -457,7 +372,10 @@ const Reminders = () => {
               Добавьте первое напоминание для контроля диабета
             </p>
             <button
-              onClick={() => setShowAddForm(true)}
+              onClick={() => {
+                setNewReminder({ type: 'sugar', title: '', time: '', interval: '' });
+                setShowAddForm(true);
+              }}
               className="medical-button"
             >
               Создать напоминание
