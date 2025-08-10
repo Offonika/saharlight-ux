@@ -39,7 +39,11 @@ const NewMeal = () => {
               onChange={(e) => setCarbs(e.target.value)}
             />
           </label>
-          <button type="submit" className="medical-button w-full">
+          <button
+            type="submit"
+            className="medical-button w-full"
+            disabled={!meal || !carbs}
+          >
             Сохранить
           </button>
         </form>

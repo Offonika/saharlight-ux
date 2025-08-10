@@ -31,7 +31,11 @@ const NewMeasurement = () => {
               placeholder="ммоль/л"
             />
           </label>
-          <button type="submit" className="medical-button w-full">
+          <button
+            type="submit"
+            className="medical-button w-full"
+            disabled={!sugar}
+          >
             Сохранить
           </button>
         </form>

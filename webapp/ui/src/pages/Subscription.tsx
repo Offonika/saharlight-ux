@@ -11,7 +11,7 @@ interface TariffPlan {
   description: string;
   features: string[];
   recommended?: boolean;
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   color: string;
 }
 
@@ -154,6 +154,7 @@ const Subscription = () => {
                     
                     <button
                       onClick={() => handleSubscribe(plan.id)}
+                      disabled={plan.price === '0'}
                       className={`w-full py-3 px-6 rounded-xl font-medium transition-all duration-200 touch-manipulation ${
                         plan.recommended
                           ? 'medical-button'
