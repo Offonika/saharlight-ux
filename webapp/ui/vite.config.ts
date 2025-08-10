@@ -9,14 +9,16 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@static': path.resolve(__dirname, '../static'),
+    },
+  },
+  server: {
+    fs: {
+      allow: ['..'],
     },
   },
   build: {
     outDir: 'dist',    // кладём сборку в webapp/ui/dist
     emptyOutDir: true, // чистим dist перед сборкой
-    rollupOptions: {
-      // Не пытаемся обрабатывать внешние статические файлы корня webapp/
-      external: ['/style.css', '/telegram-init.js'],
-    },
   },
 })
