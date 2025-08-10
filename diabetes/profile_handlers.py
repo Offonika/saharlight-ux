@@ -335,7 +335,12 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
             )
             return ConversationHandler.END
         user.timezone = raw
-        commit_session(session)
+        if not commit_session(session):
+            await update.message.reply_text(
+                "⚠️ Не удалось обновить часовой пояс.",
+                reply_markup=menu_keyboard,
+            )
+            return ConversationHandler.END
     await update.message.reply_text(
         "✅ Часовой пояс обновлён.", reply_markup=menu_keyboard
     )
@@ -396,7 +401,12 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             await reminder_handlers.delete_reminder(update, context)
 
         if changed:
-            commit_session(session)
+            if not commit_session(session):
+                await query.message.reply_text(
+                    "⚠️ Не удалось сохранить настройки.",
+                    reply_markup=menu_keyboard,
+                )
+                return
             alert = (
                 session.query(Alert)
                 .filter_by(user_id=user_id)
