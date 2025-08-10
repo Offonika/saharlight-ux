@@ -1,4 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface MedicalHeaderProps {
   title: string;
@@ -14,13 +15,14 @@ export const MedicalHeader = ({ title, showBack, onBack, children }: MedicalHead
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {showBack && (
-              <button
+              <Button
                 onClick={onBack}
-                className="p-2 rounded-lg hover:bg-secondary/80 active:scale-95 transition-all duration-200"
+                variant="ghost"
+                size="icon"
                 aria-label="Назад"
               >
                 <ArrowLeft className="w-5 h-5" />
-              </button>
+              </Button>
             )}
             <h1 className="text-xl font-semibold text-foreground">{title}</h1>
           </div>

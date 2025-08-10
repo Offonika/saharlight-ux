@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface ModalProps {
   open: boolean;
@@ -51,13 +52,14 @@ const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {
       <div className="relative w-full max-w-lg mx-4 bg-background rounded-lg shadow-lg">
         <div className="flex items-center justify-between p-4 border-b border-border">
           {title && <h2 className="text-lg font-semibold">{title}</h2>}
-          <button
+          <Button
             onClick={onClose}
-            className="p-2 rounded-md hover:bg-secondary/80 transition-colors"
+            variant="ghost"
+            size="icon"
             aria-label="Close"
           >
             ×
-          </button>
+          </Button>
         </div>
         <div className="p-4">{children}</div>
         {footer && <div className="p-4 border-t border-border">{footer}</div>}
@@ -67,3 +69,4 @@ const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {
 };
 
 export default Modal;
+
