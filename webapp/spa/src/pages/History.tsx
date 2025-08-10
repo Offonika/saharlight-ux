@@ -20,7 +20,7 @@ const History = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [records] = useState<HistoryRecord[]>([
+  const [records, setRecords] = useState<HistoryRecord[]>([
     {
       id: '1',
       date: '2024-01-08',
@@ -63,12 +63,48 @@ const History = () => {
 
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [editingRecord, setEditingRecord] = useState<HistoryRecord | null>(null);
 
   const filteredRecords = records.filter(record => {
     const dateMatch = !selectedDate || record.date === selectedDate;
     const typeMatch = selectedType === 'all' || record.type === selectedType;
     return dateMatch && typeMatch;
   });
+
+  const handleEditRecord = (record: HistoryRecord) => {
+    setEditingRecord({ ...record });
+  };
+
+  const handleUpdateRecord = async () => {
+    if (editingRecord) {
+      try {
+        const res = await fetch('/history', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editingRecord),
+        });
+        const data = await res.json();
+        if (!res.ok || data.status !== 'ok') {
+          throw new Error('failed');
+        }
+
+        setRecords(prev =>
+          prev.map(r => (r.id === editingRecord.id ? editingRecord : r))
+        );
+        setEditingRecord(null);
+        toast({
+          title: 'Запись обновлена',
+          description: 'Изменения сохранены',
+        });
+      } catch {
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось обновить запись',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
 
   const handleDeleteRecord = (id: string) => {
     toast({
@@ -193,10 +229,13 @@ const History = () => {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <button className="p-1 rounded hover:bg-secondary transition-all duration-200">
+                      <button
+                        onClick={() => handleEditRecord(record)}
+                        className="p-1 rounded hover:bg-secondary transition-all duration-200"
+                      >
                         <Edit2 className="w-3 h-3 text-muted-foreground" />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDeleteRecord(record.id)}
                         className="p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
                       >
@@ -247,6 +286,166 @@ const History = () => {
             </div>
           ))}
         </div>
+
+        {/* Форма редактирования */}
+        {editingRecord && (
+          <div className="medical-card animate-scale-in mt-6">
+            <h3 className="font-semibold text-foreground mb-4">Редактирование записи</h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Дата
+                </label>
+                <input
+                  type="date"
+                  value={editingRecord.date}
+                  onChange={e =>
+                    setEditingRecord(prev =>
+                      prev ? { ...prev, date: e.target.value } : prev
+                    )
+                  }
+                  className="medical-input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Время
+                </label>
+                <input
+                  type="time"
+                  value={editingRecord.time}
+                  onChange={e =>
+                    setEditingRecord(prev =>
+                      prev ? { ...prev, time: e.target.value } : prev
+                    )
+                  }
+                  className="medical-input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Сахар (ммоль/л)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={editingRecord.sugar ?? ''}
+                  onChange={e =>
+                    setEditingRecord(prev =>
+                      prev
+                        ? {
+                            ...prev,
+                            sugar: e.target.value ? Number(e.target.value) : undefined,
+                          }
+                        : prev
+                    )
+                  }
+                  className="medical-input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Углеводы (г)
+                </label>
+                <input
+                  type="number"
+                  value={editingRecord.carbs ?? ''}
+                  onChange={e =>
+                    setEditingRecord(prev =>
+                      prev
+                        ? {
+                            ...prev,
+                            carbs: e.target.value ? Number(e.target.value) : undefined,
+                          }
+                        : prev
+                    )
+                  }
+                  className="medical-input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  ХЕ
+                </label>
+                <input
+                  type="number"
+                  value={editingRecord.breadUnits ?? ''}
+                  onChange={e =>
+                    setEditingRecord(prev =>
+                      prev
+                        ? {
+                            ...prev,
+                            breadUnits: e.target.value ? Number(e.target.value) : undefined,
+                          }
+                        : prev
+                    )
+                  }
+                  className="medical-input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Инсулин (ед.)
+                </label>
+                <input
+                  type="number"
+                  value={editingRecord.insulin ?? ''}
+                  onChange={e =>
+                    setEditingRecord(prev =>
+                      prev
+                        ? {
+                            ...prev,
+                            insulin: e.target.value ? Number(e.target.value) : undefined,
+                          }
+                        : prev
+                    )
+                  }
+                  className="medical-input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Заметки
+                </label>
+                <input
+                  type="text"
+                  value={editingRecord.notes ?? ''}
+                  onChange={e =>
+                    setEditingRecord(prev =>
+                      prev ? { ...prev, notes: e.target.value } : prev
+                    )
+                  }
+                  className="medical-input"
+                  placeholder="Комментарий"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleUpdateRecord}
+                  className="medical-button flex-1"
+                >
+                  Сохранить
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingRecord(null)}
+                  className="medical-button-secondary flex-1"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Пустое состояние */}
         {filteredRecords.length === 0 && (
