@@ -8,16 +8,12 @@ import logging
 import os
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.responses import Response
-from starlette.types import Scope
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
@@ -34,23 +30,6 @@ STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 REMINDERS_FILE = STORAGE_DIR / "reminders.json"
 TIMEZONE_FILE = STORAGE_DIR / "timezone.txt"
 reminders_lock = asyncio.Lock()
-
-
-class SPAStaticFiles(StaticFiles):
-    """StaticFiles subclass that falls back to ``index.html`` for SPA routes."""
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        kwargs.setdefault("html", True)
-        super().__init__(*args, **kwargs)
-
-    async def get_response(self, path: str, scope: Scope) -> Response:
-        try:
-            return await super().get_response(path, scope)
-        except StarletteHTTPException as exc:
-            if exc.status_code == 404:
-                return await super().get_response("index.html", scope)
-            raise
-
 # ---------- API ----------
 class ProfileSchema(BaseModel):
     icr: float
@@ -189,7 +168,8 @@ async def reminders_post(request: Request) -> dict:
     return {"status": "ok", "id": rid}
 
 # ---------- Совместимость для старых относительных путей из UI ----------
-# ВАЖНО: эти маршруты должны быть ДО mount('/ui'), иначе их перехватит StaticFiles.
+# ВАЖНО: эти маршруты должны быть ДО обработчиков SPA,
+# иначе их перехватит UI.
 
 @app.post("/ui/api/timezone")
 async def _compat_ui_timezone(request: Request) -> dict:
@@ -199,8 +179,28 @@ async def _compat_ui_timezone(request: Request) -> dict:
 
 # ---------- UI (Vite SPA) ----------
 # ДОЛЖНО идти ПОСЛЕ совместимых маршрутов!
+
+
+def serve_index() -> FileResponse:
+    return FileResponse(UI_DIR / "index.html", headers={"Cache-Control": "no-store"})
+
+
 if UI_DIR.exists():
-    app.mount("/ui", SPAStaticFiles(directory=str(UI_DIR)), name="ui")
+    app.mount("/ui/assets", StaticFiles(directory=UI_DIR / "assets"), name="ui-assets")
+
+
+@app.get("/ui", include_in_schema=False)
+async def ui_root() -> FileResponse:
+    return serve_index()
+
+
+@app.get("/ui/{full_path:path}", include_in_schema=False)
+async def ui_files(full_path: str) -> FileResponse:
+    target = UI_DIR / full_path
+    if target.exists():
+        return FileResponse(target)
+    return serve_index()
+
 # -----------------------------------
 
 # редирект корня на SPA
