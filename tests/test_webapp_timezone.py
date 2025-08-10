@@ -26,7 +26,7 @@ def test_timezone_persist_and_validate(monkeypatch, tmp_path: Path) -> None:
 
     # invalid json
     resp = client.post(
-        "/api/timezone", data="not json", headers={"Content-Type": "application/json"}
+        "/api/timezone", content=b"not json", headers={"Content-Type": "application/json"}
     )
     assert resp.status_code == 400
 
