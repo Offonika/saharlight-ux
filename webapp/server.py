@@ -214,6 +214,13 @@ async def ui_files(full_path: str) -> FileResponse:
 async def root_redirect() -> RedirectResponse:
     return RedirectResponse(url="/ui")
 
+# статические файлы для UI и вспомогательных страниц
+app.mount(
+    "/static",
+    StaticFiles(directory=str(BASE_DIR / "static")),
+    name="static-files",
+)
+
 # корневая статика — файлы из webapp/ доступны по прямым путям
 app.mount("/", StaticFiles(directory=str(BASE_DIR)), name="static-root")
 
