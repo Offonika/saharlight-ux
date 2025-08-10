@@ -3,6 +3,7 @@
 
 @layer base {
   :root {
+    color-scheme: light dark;
     /* Основные цвета бренда */
     --medical-blue: 210 85% 45%;
     --medical-teal: 180 65% 55%;
@@ -79,52 +80,54 @@
     --radius: 0.75rem;
   }
 
-  /* Темная тема Telegram */
-  .dark {
-    /* Telegram WebApp переменные (темная тема) */
-    --tg-theme-bg-color: hsl(var(--neutral-900));
-    --tg-theme-text-color: hsl(var(--neutral-100));
-    --tg-theme-hint-color: hsl(var(--neutral-400));
-    --tg-theme-link-color: hsl(var(--medical-teal));
-    --tg-theme-button-color: hsl(var(--medical-blue));
-    --tg-theme-button-text-color: hsl(0 0% 100%);
-    --tg-theme-secondary-bg-color: hsl(var(--neutral-800));
+  /* Темная тема Telegram (fallback for dark mode) */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* Telegram WebApp переменные (темная тема) */
+      --tg-theme-bg-color: hsl(var(--neutral-900));
+      --tg-theme-text-color: hsl(var(--neutral-100));
+      --tg-theme-hint-color: hsl(var(--neutral-400));
+      --tg-theme-link-color: hsl(var(--medical-teal));
+      --tg-theme-button-color: hsl(var(--medical-blue));
+      --tg-theme-button-text-color: hsl(0 0% 100%);
+      --tg-theme-secondary-bg-color: hsl(var(--neutral-800));
 
-    /* Переопределение семантических токенов для темной темы */
-    --background: var(--tg-theme-bg-color, var(--neutral-900));
-    --foreground: var(--tg-theme-text-color, var(--neutral-100));
+      /* Переопределение семантических токенов для темной темы */
+      --background: var(--tg-theme-bg-color, var(--neutral-900));
+      --foreground: var(--tg-theme-text-color, var(--neutral-100));
 
-    --card: var(--tg-theme-secondary-bg-color, var(--neutral-800));
-    --card-foreground: var(--tg-theme-text-color, var(--neutral-100));
+      --card: var(--tg-theme-secondary-bg-color, var(--neutral-800));
+      --card-foreground: var(--tg-theme-text-color, var(--neutral-100));
 
-    --popover: var(--neutral-800);
-    --popover-foreground: var(--neutral-100);
+      --popover: var(--neutral-800);
+      --popover-foreground: var(--neutral-100);
 
-    --primary: var(--tg-theme-button-color, var(--medical-blue));
-    --primary-foreground: var(--tg-theme-button-text-color, 0 0% 100%);
+      --primary: var(--tg-theme-button-color, var(--medical-blue));
+      --primary-foreground: var(--tg-theme-button-text-color, 0 0% 100%);
 
-    --secondary: var(--neutral-800);
-    --secondary-foreground: var(--neutral-200);
+      --secondary: var(--neutral-800);
+      --secondary-foreground: var(--neutral-200);
 
-    --muted: var(--neutral-800);
-    --muted-foreground: var(--tg-theme-hint-color, var(--neutral-400));
+      --muted: var(--neutral-800);
+      --muted-foreground: var(--tg-theme-hint-color, var(--neutral-400));
 
-    --accent: var(--medical-teal);
-    --accent-foreground: var(--neutral-900);
+      --accent: var(--medical-teal);
+      --accent-foreground: var(--neutral-900);
 
-    --destructive: var(--medical-error);
-    --destructive-foreground: 0 0% 100%;
+      --destructive: var(--medical-error);
+      --destructive-foreground: 0 0% 100%;
 
-    --success: var(--medical-success);
-    --success-foreground: 0 0% 100%;
+      --success: var(--medical-success);
+      --success-foreground: 0 0% 100%;
 
-    --warning: var(--medical-warning);
-    --warning-foreground: var(--neutral-900);
+      --warning: var(--medical-warning);
+      --warning-foreground: var(--neutral-900);
 
-    --border: var(--neutral-700);
-    --input: var(--neutral-700);
-    --ring: var(--tg-theme-link-color, var(--medical-teal));
-    --overlay: hsl(var(--neutral-900) / 0.8);
+      --border: var(--neutral-700);
+      --input: var(--neutral-700);
+      --ring: var(--tg-theme-link-color, var(--medical-teal));
+      --overlay: hsl(var(--neutral-900) / 0.8);
+    }
   }
 
   * {
@@ -189,5 +192,46 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@layer components {
+  .input,
+  .textarea,
+  .select {
+    @apply w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .textarea {
+    @apply min-h-[80px];
+  }
+
+  .select {
+    @apply h-10;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground;
+  }
+
+  .badge-tonal {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .rem-card {
+    @apply bg-card border border-border rounded-lg p-4 shadow-[var(--shadow-soft)] transition-all duration-200;
+  }
+
+  .rem-actions {
+    @apply flex items-center gap-2;
+  }
+
+  @media (max-width: 360px) {
+    .rem-card {
+      @apply p-3;
+    }
+    .rem-actions {
+      @apply gap-1;
+    }
   }
 }
