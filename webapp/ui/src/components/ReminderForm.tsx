@@ -13,6 +13,7 @@ export interface ReminderFormValues {
   type: keyof typeof reminderTypes;
   title: string;
   time: string;
+  interval?: number;
 }
 
 interface ReminderFormProps {
@@ -26,14 +27,15 @@ const ReminderForm = ({ open, onOpenChange, initialData, onSubmit }: ReminderFor
   const [form, setForm] = useState<ReminderFormValues>({
     type: 'sugar',
     title: '',
-    time: ''
+    time: '',
+    interval: undefined
   });
 
   useEffect(() => {
     if (initialData) {
       setForm({ ...initialData });
     } else {
-      setForm({ type: 'sugar', title: '', time: '' });
+      setForm({ type: 'sugar', title: '', time: '', interval: undefined });
     }
   }, [initialData, open]);
 
@@ -116,6 +118,25 @@ const ReminderForm = ({ open, onOpenChange, initialData, onSubmit }: ReminderFor
             value={form.time}
             onChange={e => setForm(prev => ({ ...prev, time: e.target.value }))}
             className="medical-input"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Интервал (мин)
+          </label>
+          <input
+            type="number"
+            value={form.interval ?? ''}
+            onChange={e =>
+              setForm(prev => ({
+                ...prev,
+                interval: e.target.value ? Number(e.target.value) : undefined
+              }))
+            }
+            className="medical-input"
+            placeholder="Например: 60"
+            min={1}
           />
         </div>
       </form>
