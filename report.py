@@ -193,20 +193,20 @@ async def send_report(update, context, date_from, period_label, query=None):
             f"{day}: сахар {min_sugar}–{max_sugar}, доза {sum_dose}, углеводы {sum_carbs}"
         )
 
-    plt.figure(figsize=(7, 3))
+    fig, ax = plt.subplots(figsize=(7, 3))
     times = [e.event_time for e in entries if e.sugar_before is not None]
     sugars_plot = [e.sugar_before for e in entries if e.sugar_before is not None]
-    plt.plot(times, sugars_plot, marker='o', label='Сахар (ммоль/л)')
-    plt.title(f'Динамика сахара за {period_label}')
-    plt.xlabel('Дата')
-    plt.ylabel('Сахар, ммоль/л')
-    plt.grid(True)
-    plt.legend()
-    plt.tight_layout()
+    ax.plot(times, sugars_plot, marker="o", label="Сахар (ммоль/л)")
+    ax.set_title(f"Динамика сахара за {period_label}")
+    ax.set_xlabel("Дата")
+    ax.set_ylabel("Сахар, ммоль/л")
+    ax.grid(True)
+    ax.legend()
+    fig.tight_layout()
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    fig.savefig(buf, format="png")
     buf.seek(0)
-    plt.close()
+    plt.close(fig)
 
     summary = []
     for e in entries:
