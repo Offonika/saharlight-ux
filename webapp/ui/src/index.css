@@ -187,8 +187,45 @@
   }
   
   .medical-list-item {
-    @apply bg-card border border-border rounded-lg p-4 mb-3 
+    @apply bg-card border border-border rounded-lg p-4 mb-3
            hover:shadow-[var(--shadow-soft)] transition-all duration-200;
+  }
+}
+
+@layer components {
+  /* Segmented control */
+  .segmented {
+    display: flex;
+    border: 1px solid var(--tg-theme-link-color);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .segmented__item {
+    flex: 1;
+  }
+
+  .segmented__item input {
+    display: none;
+  }
+
+  .segmented__item label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    background: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-link-color);
+    user-select: none;
+  }
+
+  .segmented__item input:checked + label,
+  .segmented__item label[aria-checked="true"] {
+    background: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
   }
 }
 
