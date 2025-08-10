@@ -1,14 +1,14 @@
 import { useEffect, useRef } from 'react';
 
 interface ModalProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
   title?: string;
   footer?: React.ReactNode;
   children: React.ReactNode;
 }
 
-const Modal = ({ isOpen, onClose, title, footer, children }: ModalProps) => {
+const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,7 +21,7 @@ const Modal = ({ isOpen, onClose, title, footer, children }: ModalProps) => {
     const root = document.documentElement;
     const previousOverflow = root.style.overflow;
 
-    if (isOpen) {
+    if (open) {
       document.addEventListener('keydown', handleKeyDown);
       root.style.overflow = 'hidden';
     }
@@ -30,7 +30,7 @@ const Modal = ({ isOpen, onClose, title, footer, children }: ModalProps) => {
       document.removeEventListener('keydown', handleKeyDown);
       root.style.overflow = previousOverflow;
     };
-  }, [isOpen, onClose]);
+  }, [open, onClose]);
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === overlayRef.current) {
@@ -38,7 +38,7 @@ const Modal = ({ isOpen, onClose, title, footer, children }: ModalProps) => {
     }
   };
 
-  if (!isOpen) {
+  if (!open) {
     return null;
   }
 
