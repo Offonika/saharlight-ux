@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, TrendingUp, Edit2, Trash2, Filter } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface HistoryRecord {
   id: string;
@@ -430,20 +431,23 @@ const History = () => {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button
+                <Button
                   type="button"
                   onClick={handleUpdateRecord}
-                  className="medical-button flex-1"
+                  className="flex-1"
+                  size="lg"
                 >
                   Сохранить
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => setEditingRecord(null)}
-                  className="medical-button-secondary flex-1"
+                  variant="secondary"
+                  className="flex-1"
+                  size="lg"
                 >
                   Отмена
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -464,13 +468,14 @@ const History = () => {
 
         {/* Кнопка аналитики */}
         <div className="mt-8">
-          <button
+          <Button
             onClick={() => navigate('/analytics')}
-            className="medical-button w-full flex items-center justify-center gap-2"
+            className="w-full flex items-center justify-center gap-2"
+            size="lg"
           >
             <TrendingUp className="w-4 h-4" />
             Посмотреть аналитику
-          </button>
+          </Button>
         </div>
       </main>
     </div>

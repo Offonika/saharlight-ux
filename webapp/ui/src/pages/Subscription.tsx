@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Check, Star, Users, Zap } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface TariffPlan {
   id: string;
@@ -152,17 +153,15 @@ const Subscription = () => {
                       ))}
                     </div>
                     
-                    <button
+                    <Button
                       onClick={() => handleSubscribe(plan.id)}
                       disabled={plan.price === '0'}
-                      className={`w-full py-3 px-6 rounded-xl font-medium transition-all duration-200 touch-manipulation ${
-                        plan.recommended
-                          ? 'medical-button'
-                          : 'medical-button-secondary'
-                      }`}
+                      className="w-full"
+                      size="lg"
+                      variant={plan.recommended ? 'default' : 'secondary'}
                     >
                       {plan.price === '0' ? 'Текущий тариф' : 'Выбрать тариф'}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
