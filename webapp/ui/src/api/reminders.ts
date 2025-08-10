@@ -3,6 +3,7 @@ export interface ReminderPayload {
   type: 'sugar' | 'insulin' | 'meal' | 'medicine';
   title: string;
   time: string;
+  interval?: number;
 }
 
 const API_BASE = '/api';

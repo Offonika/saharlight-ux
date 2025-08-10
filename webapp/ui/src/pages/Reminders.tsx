@@ -14,6 +14,7 @@ interface Reminder {
   title: string;
   time: string;
   active: boolean;
+  interval?: number;
 }
 
 const reminderTypes = {
