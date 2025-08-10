@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import './styles/theme.css'
 import '@static/style.css'
 import '@static/telegram-init.js'
 
