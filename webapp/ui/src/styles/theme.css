@@ -1,105 +1,193 @@
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  padding: 0 0.5rem;
-  height: 1.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  border-radius: 9999px;
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-}
 
-.badge-tonal {
-  background: hsl(var(--primary) / 0.1);
-  color: hsl(var(--primary));
-}
+/* Design tokens and base styles for the Sakhaphoto design system */
 
-.icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.5rem;
-  background: var(--tg-theme-secondary-bg-color, hsl(var(--secondary)));
-  color: hsl(var(--foreground));
-  border: 1px solid hsl(var(--border));
-  transition: background-color 0.2s ease-in-out;
-}
+@layer base {
+  :root {
+    /* Основные цвета бренда */
+    --medical-blue: 210 85% 45%;
+    --medical-teal: 180 65% 55%;
+    --medical-success: 142 70% 45%;
+    --medical-warning: 38 92% 50%;
+    --medical-error: 0 84% 60%;
 
-.icon-btn:hover {
-  background: hsl(var(--secondary) / 0.8);
-}
+    /* Нейтральная палитра */
+    --neutral-50: 210 10% 98%;
+    --neutral-100: 210 10% 95%;
+    --neutral-200: 210 8% 85%;
+    --neutral-300: 210 6% 75%;
+    --neutral-400: 210 6% 65%;
+    --neutral-500: 210 6% 45%;
+    --neutral-600: 210 8% 35%;
+    --neutral-700: 210 10% 25%;
+    --neutral-800: 210 12% 15%;
+    --neutral-900: 210 15% 10%;
 
-.icon-btn:active {
-  background: hsl(var(--secondary) / 0.65);
-}
+    /* Градиенты */
+    --gradient-medical: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(var(--medical-teal)));
+    --gradient-card: linear-gradient(180deg, hsl(var(--neutral-50)), hsl(0 0% 100%));
+    --gradient-button: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(210 85% 40%));
 
-.rem-card {
-  display: flex;
-  flex-direction: column;
-  background: hsl(var(--card));
-  color: hsl(var(--card-foreground));
-  border: 1px solid hsl(var(--border));
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-soft);
-  overflow: hidden;
-}
+    /* Тени */
+    --shadow-soft: 0 2px 8px hsl(var(--medical-blue) / 0.08);
+    --shadow-medium: 0 4px 16px hsl(var(--medical-blue) / 0.12);
+    --shadow-strong: 0 8px 32px hsl(var(--medical-blue) / 0.16);
 
-.rem-card__header {
-  padding: 1rem 1.25rem;
-  font-weight: 600;
-  border-bottom: 1px solid hsl(var(--border));
-}
+    /* Telegram WebApp переменные (светлая тема) */
+    --tg-theme-bg-color: hsl(var(--neutral-50));
+    --tg-theme-text-color: hsl(var(--neutral-800));
+    --tg-theme-hint-color: hsl(var(--neutral-500));
+    --tg-theme-link-color: hsl(var(--medical-blue));
+    --tg-theme-button-color: hsl(var(--medical-blue));
+    --tg-theme-button-text-color: hsl(0 0% 100%);
+    --tg-theme-secondary-bg-color: hsl(0 0% 100%);
 
-.rem-card__title {
-  font-size: 1rem;
-  line-height: 1.25rem;
-}
+    /* Семантические токены */
+    --background: var(--tg-theme-bg-color, var(--neutral-50));
+    --foreground: var(--tg-theme-text-color, var(--neutral-800));
 
-.rem-card__subtitle {
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
-  color: hsl(var(--muted-foreground));
-}
+    --card: var(--tg-theme-secondary-bg-color, 0 0% 100%);
+    --card-foreground: var(--tg-theme-text-color, var(--neutral-800));
 
-.rem-card__content {
-  flex: 1 1 auto;
-  padding: 1rem 1.25rem;
-}
+    --popover: 0 0% 100%;
+    --popover-foreground: var(--neutral-800);
 
-.rem-card__actions {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-top: 1px solid hsl(var(--border));
-  justify-content: flex-end;
-}
+    --primary: var(--tg-theme-button-color, var(--medical-blue));
+    --primary-foreground: var(--tg-theme-button-text-color, 0 0% 100%);
 
-.rem-main {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-}
+    --secondary: var(--neutral-100);
+    --secondary-foreground: var(--neutral-700);
 
-.rem-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+    --muted: var(--neutral-100);
+    --muted-foreground: var(--tg-theme-hint-color, var(--neutral-500));
 
-.rem-actions {
-  display: flex;
-  gap: 0.5rem;
-}
+    --accent: var(--medical-teal);
+    --accent-foreground: 0 0% 100%;
 
-@media (max-width: 360px) {
-  .rem-actions {
-    flex-direction: column;
-    gap: 0.25rem;
+    --destructive: var(--medical-error);
+    --destructive-foreground: 0 0% 100%;
+
+    --success: var(--medical-success);
+    --success-foreground: 0 0% 100%;
+
+    --warning: var(--medical-warning);
+    --warning-foreground: var(--neutral-900);
+
+    --border: var(--neutral-200);
+    --input: var(--neutral-200);
+    --ring: var(--tg-theme-link-color, var(--medical-blue));
+    --overlay: hsl(var(--neutral-900) / 0.5);
+    --radius: 0.75rem;
+  }
+
+  /* Темная тема Telegram */
+  .dark {
+    /* Telegram WebApp переменные (темная тема) */
+    --tg-theme-bg-color: hsl(var(--neutral-900));
+    --tg-theme-text-color: hsl(var(--neutral-100));
+    --tg-theme-hint-color: hsl(var(--neutral-400));
+    --tg-theme-link-color: hsl(var(--medical-teal));
+    --tg-theme-button-color: hsl(var(--medical-blue));
+    --tg-theme-button-text-color: hsl(0 0% 100%);
+    --tg-theme-secondary-bg-color: hsl(var(--neutral-800));
+
+    /* Переопределение семантических токенов для темной темы */
+    --background: var(--tg-theme-bg-color, var(--neutral-900));
+    --foreground: var(--tg-theme-text-color, var(--neutral-100));
+
+    --card: var(--tg-theme-secondary-bg-color, var(--neutral-800));
+    --card-foreground: var(--tg-theme-text-color, var(--neutral-100));
+
+    --popover: var(--neutral-800);
+    --popover-foreground: var(--neutral-100);
+
+    --primary: var(--tg-theme-button-color, var(--medical-blue));
+    --primary-foreground: var(--tg-theme-button-text-color, 0 0% 100%);
+
+    --secondary: var(--neutral-800);
+    --secondary-foreground: var(--neutral-200);
+
+    --muted: var(--neutral-800);
+    --muted-foreground: var(--tg-theme-hint-color, var(--neutral-400));
+
+    --accent: var(--medical-teal);
+    --accent-foreground: var(--neutral-900);
+
+    --destructive: var(--medical-error);
+    --destructive-foreground: 0 0% 100%;
+
+    --success: var(--medical-success);
+    --success-foreground: 0 0% 100%;
+
+    --warning: var(--medical-warning);
+    --warning-foreground: var(--neutral-900);
+
+    --border: var(--neutral-700);
+    --input: var(--neutral-700);
+    --ring: var(--tg-theme-link-color, var(--medical-teal));
+    --overlay: hsl(var(--neutral-900) / 0.8);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  /* Telegram WebApp стили */
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Анимации */
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
   }
 }
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+
