@@ -3,18 +3,17 @@ if (window.Telegram && Telegram.WebApp) {
     webApp.ready();
     webApp.expand();
 
-    const applyLightTheme = () => {
-        webApp.setBackgroundColor('#ffffff');
-        webApp.setHeaderColor('#ffffff');
+    const applyTheme = () => {
+        const { bg_color, header_bg_color } = webApp.themeParams;
+        if (bg_color) {
+            webApp.setBackgroundColor(bg_color);
+        }
+        if (header_bg_color) {
+            webApp.setHeaderColor(header_bg_color);
+        }
     };
 
-    if (webApp.colorScheme !== 'light') {
-        applyLightTheme();
-    }
+    applyTheme();
 
-    webApp.onEvent('themeChanged', () => {
-        if (webApp.colorScheme !== 'light') {
-            applyLightTheme();
-        }
-    });
+    webApp.onEvent('themeChanged', applyTheme);
 }
