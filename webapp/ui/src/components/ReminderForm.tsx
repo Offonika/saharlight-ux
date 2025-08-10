@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Modal, SegmentedControl } from '@/components';
+import { Button } from '@/components/ui/button';
 
 const reminderTypes = {
   sugar: { label: 'Измерение сахара', icon: '🩸' },
@@ -47,21 +48,24 @@ const ReminderForm = ({ open, onOpenChange, initialData, onSubmit }: ReminderFor
 
   const footer = (
     <div className="flex gap-3">
-      <button
+      <Button
         type="submit"
         form="reminder-form"
-        className="medical-button flex-1"
+        className="flex-1"
         disabled={isDisabled}
+        size="lg"
       >
         Сохранить
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
         onClick={() => onOpenChange(false)}
-        className="medical-button-secondary flex-1"
+        variant="secondary"
+        className="flex-1"
+        size="lg"
       >
         Отмена
-      </button>
+      </Button>
     </div>
   );
 

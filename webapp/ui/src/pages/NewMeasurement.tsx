@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MedicalHeader } from '@/components/MedicalHeader';
+import { Button } from '@/components/ui/button';
 
 const NewMeasurement = () => {
   const navigate = useNavigate();
@@ -31,13 +32,14 @@ const NewMeasurement = () => {
               placeholder="ммоль/л"
             />
           </label>
-          <button
+          <Button
             type="submit"
-            className="medical-button w-full"
+            className="w-full"
             disabled={!sugar}
+            size="lg"
           >
             Сохранить
-          </button>
+          </Button>
         </form>
       </main>
     </div>

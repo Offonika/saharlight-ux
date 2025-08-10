@@ -5,6 +5,7 @@ import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import ReminderForm, { ReminderFormValues } from '@/components/ReminderForm';
 import { createReminder, updateReminder } from '@/api/reminders';
+import { Button } from '@/components/ui/button';
 
 interface Reminder {
   id: string;
@@ -219,15 +220,15 @@ const Reminders = () => {
             <p className="text-muted-foreground mb-6">
               Добавьте первое напоминание для контроля диабета
             </p>
-            <button
+            <Button
               onClick={() => {
                 setEditingReminder(null);
                 setFormOpen(true);
               }}
-              className="medical-button"
+              size="lg"
             >
               Создать напоминание
-            </button>
+            </Button>
           </div>
         )}
       </main>
