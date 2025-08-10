@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import ReminderForm, { ReminderFormValues } from '@/components/ReminderForm';
-import { createReminder, updateReminder } from '@/api/reminders';
+import { createReminder, updateReminder, getReminders } from '@/api/reminders';
 import MedicalButton from '@/components/MedicalButton';
 import { cn } from '@/lib/utils';
 
@@ -27,29 +27,28 @@ const Reminders = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [reminders, setReminders] = useState<Reminder[]>([
-    {
-      id: '1',
-      type: 'sugar',
-      title: 'Измерение сахара утром',
-      time: '08:00',
-      active: true
-    },
-    {
-      id: '2',
-      type: 'insulin',
-      title: 'Длинный инсулин',
-      time: '22:00',
-      active: true
-    },
-    {
-      id: '3',
-      type: 'meal',
-      title: 'Обед',
-      time: '13:00',
-      active: false
-    }
-  ]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchReminders = async () => {
+      try {
+        const data = await getReminders();
+        setReminders(data);
+      } catch {
+        setError('Не удалось загрузить напоминания');
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось загрузить напоминания',
+          variant: 'destructive'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReminders();
+  }, [toast]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
@@ -132,8 +131,12 @@ const Reminders = () => {
       </MedicalHeader>
       
       <main className="container mx-auto px-4 py-6">
-        {/* Список напоминаний */}
-        <div className="space-y-3 mb-6">
+        {loading ? (
+          <div className="text-center py-12">Загрузка...</div>
+        ) : error ? (
+          <div className="text-center py-12 text-destructive">{error}</div>
+        ) : (
+          <div className="space-y-3 mb-6">
           {reminders.map((reminder, index) => {
             const typeInfo = reminderTypes[reminder.type];
             return (
@@ -202,21 +205,22 @@ const Reminders = () => {
               </div>
             );
           })}
-        </div>
+          </div>
+        )}
 
-          {/* Форма создания/редактирования */}
-          <ReminderForm
-            open={formOpen}
-            onOpenChange={(open) => {
-              setFormOpen(open);
-              if (!open) setEditingReminder(null);
-            }}
-            initialData={editingReminder || undefined}
-            onSubmit={handleSaveReminder}
-          />
+        {/* Форма создания/редактирования */}
+        <ReminderForm
+          open={formOpen}
+          onOpenChange={(open) => {
+            setFormOpen(open);
+            if (!open) setEditingReminder(null);
+          }}
+          initialData={editingReminder || undefined}
+          onSubmit={handleSaveReminder}
+        />
 
         {/* Пустое состояние */}
-        {reminders.length === 0 && (
+        {!loading && !error && reminders.length === 0 && (
           <div className="text-center py-12">
             <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">

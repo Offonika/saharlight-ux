@@ -7,6 +7,14 @@ export interface ReminderPayload {
 
 const API_BASE = '/api';
 
+export async function getReminders() {
+  const res = await fetch(`${API_BASE}/reminders`);
+  if (!res.ok) {
+    throw new Error('Failed to fetch reminders');
+  }
+  return res.json();
+}
+
 export async function updateReminder(payload: ReminderPayload & { id: number }) {
   const res = await fetch(`${API_BASE}/reminders`, {
     method: 'POST',
