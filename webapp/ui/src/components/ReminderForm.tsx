@@ -13,7 +13,6 @@ export interface ReminderFormValues {
   type: keyof typeof reminderTypes;
   title: string;
   time: string;
-  interval?: string;
 }
 
 interface ReminderFormProps {
@@ -27,15 +26,14 @@ const ReminderForm = ({ open, onOpenChange, initialData, onSubmit }: ReminderFor
   const [form, setForm] = useState<ReminderFormValues>({
     type: 'sugar',
     title: '',
-    time: '',
-    interval: ''
+    time: ''
   });
 
   useEffect(() => {
     if (initialData) {
-      setForm({ ...initialData, interval: initialData.interval || '' });
+      setForm({ ...initialData });
     } else {
-      setForm({ type: 'sugar', title: '', time: '', interval: '' });
+      setForm({ type: 'sugar', title: '', time: '' });
     }
   }, [initialData, open]);
 

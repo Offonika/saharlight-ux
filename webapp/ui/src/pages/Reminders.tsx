@@ -13,7 +13,6 @@ interface Reminder {
   type: 'sugar' | 'insulin' | 'meal' | 'medicine';
   title: string;
   time: string;
-  interval?: string;
   active: boolean;
 }
 
