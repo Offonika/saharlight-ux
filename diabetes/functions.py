@@ -3,6 +3,83 @@
 from dataclasses import dataclass
 import re
 
+# ---------------------------------------------------------------------------
+# Regex helpers
+# ---------------------------------------------------------------------------
+# Base pattern for numeric values with optional decimal part (``"1"``, ``"2,5"``).
+NUMBER_RE = r"\d+[.,]?\d*"
+
+# Generic range patterns reused across nutrition parsing.
+PLUS_MINUS_RANGE_RE = re.compile(rf"({NUMBER_RE})\s*±\s*({NUMBER_RE})")
+DASH_RANGE_RE = re.compile(rf"({NUMBER_RE})\s*[–-]\s*({NUMBER_RE})")
+
+# Variants of the "XE" keyword (latin/cyrillic).
+XE_WORD_RE = re.compile(r"(?:[хx][еe]|xe)", re.IGNORECASE)
+
+# Indicator keywords for ``smart_input``.
+SUGAR_WORD_RE = re.compile(r"(?:sugar|сахар)", re.IGNORECASE)
+XE_LABEL_RE = re.compile(r"(?:xe|хе)", re.IGNORECASE)
+DOSE_WORD_RE = re.compile(r"(?:dose|доза|болюс)", re.IGNORECASE)
+
+# Precompiled patterns built from the bases above.
+CARBS_LABELED_PM_RE = re.compile(
+    rf"углевод[^\d]*:\s*({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г",
+    re.IGNORECASE,
+)
+CARBS_LABEL_RE = re.compile(r"углевод[^\d]*:\s*([\d.,]+)\s*г", re.IGNORECASE)
+XE_COLON_PM_RE = re.compile(
+    rf"\b{XE_WORD_RE.pattern}\s*:\s*{PLUS_MINUS_RANGE_RE.pattern}",
+    re.IGNORECASE,
+)
+XE_COLON_RANGE_RE = re.compile(
+    rf"\b{XE_WORD_RE.pattern}\s*:\s*{DASH_RANGE_RE.pattern}",
+    re.IGNORECASE,
+)
+XE_COLON_SINGLE_RE = re.compile(
+    rf"\b{XE_WORD_RE.pattern}\s*:\s*([\d.,]+)", re.IGNORECASE
+)
+XE_PM_RE = re.compile(
+    rf"{PLUS_MINUS_RANGE_RE.pattern}\s*{XE_WORD_RE.pattern}",
+    re.IGNORECASE,
+)
+XE_RANGE_RE = re.compile(
+    rf"{DASH_RANGE_RE.pattern}\s*{XE_WORD_RE.pattern}",
+    re.IGNORECASE,
+)
+CARBS_PM_RE = re.compile(
+    rf"({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г", re.IGNORECASE
+)
+CARBS_RANGE_RE = re.compile(
+    rf"{DASH_RANGE_RE.pattern}\s*г", re.IGNORECASE
+)
+
+# Patterns for ``smart_input``.
+BAD_SUGAR_UNIT_RE = re.compile(
+    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:xe|хе|ед)\b(?!\s*[\d=:])"
+)
+BAD_XE_UNIT_RE = re.compile(
+    rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:ммоль(?:/л)?|mmol(?:/l)?|ед)\b(?![=:])"
+)
+BAD_DOSE_UNIT_RE = re.compile(
+    rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:ммоль(?:/л)?|mmol(?:/l)?|xe|хе)\b(?![=:])"
+)
+
+SUGAR_VALUE_RE = re.compile(
+    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)"
+)
+SUGAR_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(ммоль/?л|mmol/?l)\b")
+XE_VALUE_RE = re.compile(rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*({NUMBER_RE})\b")
+XE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:xe|хе)\b")
+DOSE_VALUE_RE = re.compile(
+    rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})\b"
+)
+DOSE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:ед\.?|units?|u)\b")
+ONLY_NUMBER_RE = re.compile(rf"\s*({NUMBER_RE})\s*")
+
+EXPLICIT_SUGAR_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\b")
+EXPLICIT_XE_RE = re.compile(rf"\b{XE_LABEL_RE.pattern}\b")
+EXPLICIT_DOSE_RE = re.compile(rf"\b{DOSE_WORD_RE.pattern}\b")
+
 
 def _safe_float(value: str) -> float | None:
     """Возвращает число из строки.
@@ -107,11 +184,7 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
 
     carbs = xe = None
     # Парсим углеводы (carbs)
-    m = re.search(
-        r"углевод[^\d]*:\s*(\d+[.,]?\d*)\s*(?:г)?\s*±\s*(\d+[.,]?\d*)\s*г",
-        text,
-        re.IGNORECASE,
-    )
+    m = CARBS_LABELED_PM_RE.search(text)
     if m:
         first = _safe_float(m.group(1))
         second = _safe_float(m.group(2))
@@ -120,15 +193,11 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
             # Погрешность "b" пока игнорируется
             carbs = first
     else:
-        m = re.search(r"углевод[^\d]*:\s*([\d.,]+)\s*г", text, re.IGNORECASE)
+        m = CARBS_LABEL_RE.search(text)
         if m:
             carbs = _safe_float(m.group(1))
     # Диапазон XE c двоеточием (например XE: 2±1 или XE: 2–3)
-    rng = re.search(
-        r"\b(?:[хx][еe]|xe)\s*:\s*(\d+[.,]?\d*)\s*±\s*(\d+[.,]?\d*)",
-        text,
-        re.IGNORECASE,
-    )
+    rng = XE_COLON_PM_RE.search(text)
     if rng:
         first = _safe_float(rng.group(1))
         second = _safe_float(rng.group(2))
@@ -136,11 +205,7 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
             # Возвращаем центральное значение "a" из записи "a ± b"
             xe = first
     else:
-        rng = re.search(
-            r"\b(?:[хx][еe]|xe)\s*:\s*(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)",
-            text,
-            re.IGNORECASE,
-        )
+        rng = XE_COLON_RANGE_RE.search(text)
         if rng:
             first = _safe_float(rng.group(1))
             second = _safe_float(rng.group(2))
@@ -148,20 +213,12 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
                 xe = (first + second) / 2
         else:
             # Одинарное значение XE: 3.1
-            m = re.search(
-                r"\b(?:[хx][еe]|xe)\s*:\s*([\d.,]+)",
-                text,
-                re.IGNORECASE,
-            )
+            m = XE_COLON_SINGLE_RE.search(text)
             if m:
                 xe = _safe_float(m.group(1))
             # Диапазон XE без двоеточия (например 2±1 ХЕ или 2–3 ХЕ)
             if xe is None:
-                rng = re.search(
-                    r"(\d+[.,]?\d*)\s*±\s*(\d+[.,]?\d*)\s*(?:[хx][еe]|xe)",
-                    text,
-                    re.IGNORECASE,
-                )
+                rng = XE_PM_RE.search(text)
                 if rng:
                     first = _safe_float(rng.group(1))
                     second = _safe_float(rng.group(2))
@@ -169,11 +226,7 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
                         # Погрешность игнорируется, берём только значение "a"
                         xe = first
             if xe is None:
-                rng = re.search(
-                    r"(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)\s*(?:[хx][еe]|xe)",
-                    text,
-                    re.IGNORECASE,
-                )
+                rng = XE_RANGE_RE.search(text)
                 if rng:
                     first = _safe_float(rng.group(1))
                     second = _safe_float(rng.group(2))
@@ -181,11 +234,7 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
                         xe = (first + second) / 2
     # Диапазон углеводов (carbs) если не найдено
     if carbs is None:
-        rng = re.search(
-            r"(\d+[.,]?\d*)\s*(?:г)?\s*±\s*(\d+[.,]?\d*)\s*г",
-            text,
-            re.IGNORECASE,
-        )
+        rng = CARBS_PM_RE.search(text)
         if rng:
             first = _safe_float(rng.group(1))
             second = _safe_float(rng.group(2))
@@ -193,11 +242,7 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
                 # Центральное значение при указании "a ± b"
                 carbs = first
     if carbs is None:
-        rng = re.search(
-            r"(\d+[.,]?\d*)\s*[–-]\s*(\d+[.,]?\d*)\s*г",
-            text,
-            re.IGNORECASE,
-        )
+        rng = CARBS_RANGE_RE.search(text)
         if rng:
             first = _safe_float(rng.group(1))
             second = _safe_float(rng.group(2))
@@ -242,64 +287,52 @@ def smart_input(message: str) -> dict[str, float | None]:
     result: dict[str, float | None] = {"sugar": None, "xe": None, "dose": None}
 
     # Проверка на неверные единицы измерения после явных названий показателей
-    if re.search(
-        r"\b(?:sugar|сахар)\s*[:=]?\s*\d+[.,]?\d*\s*(?:xe|хе|ед)\b(?!\s*[\d=:])",
-        text,
-    ):
+    if BAD_SUGAR_UNIT_RE.search(text):
         raise ValueError("mismatched unit for sugar")
-    if re.search(
-        r"\b(?:xe|хе)\s*[:=]?\s*\d+[.,]?\d*\s*(?:ммоль(?:/л)?|mmol(?:/l)?|ед)\b(?![=:])",
-        text,
-    ):
+    if BAD_XE_UNIT_RE.search(text):
         raise ValueError("mismatched unit for xe")
-    if re.search(
-        r"\b(?:dose|доза|болюс)\s*[:=]?\s*\d+[.,]?\d*\s*(?:ммоль(?:/л)?|mmol(?:/l)?|xe|хе)\b(?![=:])",
-        text,
-    ):
+    if BAD_DOSE_UNIT_RE.search(text):
         raise ValueError("mismatched unit for dose")
 
     # --- Sugar ---
-    m = re.search(
-        r"\b(?:sugar|сахар)\s*[:=]?\s*(\d+[.,]?\d*)(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)",
-        text,
-    )
+    m = SUGAR_VALUE_RE.search(text)
     if m:
         result["sugar"] = _safe_float(m.group(1))
     else:
-        m = re.search(r"\b(\d+[.,]?\d*)\s*(ммоль/?л|mmol/?l)\b", text)
+        m = SUGAR_UNIT_RE.search(text)
         if m:
             result["sugar"] = _safe_float(m.group(1))
 
     # --- XE ---
-    m = re.search(r"\b(?:xe|хе)\s*[:=]?\s*(\d+[.,]?\d*)\b", text)
+    m = XE_VALUE_RE.search(text)
     if m:
         result["xe"] = _safe_float(m.group(1))
     else:
-        m = re.search(r"\b(\d+[.,]?\d*)\s*(?:xe|хе)\b", text)
+        m = XE_UNIT_RE.search(text)
         if m:
             result["xe"] = _safe_float(m.group(1))
 
     # --- Dose ---
-    m = re.search(r"\b(?:dose|доза|болюс)\s*[:=]?\s*(\d+[.,]?\d*)\b", text)
+    m = DOSE_VALUE_RE.search(text)
     if m:
         result["dose"] = _safe_float(m.group(1))
     else:
-        m = re.search(r"\b(\d+[.,]?\d*)\s*(?:ед\.?|units?|u)\b", text)
+        m = DOSE_UNIT_RE.search(text)
         if m:
             result["dose"] = _safe_float(m.group(1))
 
     if all(v is None for v in result.values()):
-        m = re.fullmatch(r"\s*(\d+[.,]?\d*)\s*", text)
+        m = ONLY_NUMBER_RE.fullmatch(text)
         if m:
             result["sugar"] = _safe_float(m.group(1))
 
     # Явное упоминание показателя без числового значения считается ошибкой.
     for key, pattern in [
-        ("sugar", r"\b(?:sugar|сахар)\b"),
-        ("xe", r"\b(?:xe|хе)\b"),
-        ("dose", r"\b(?:dose|доза|болюс)\b"),
+        ("sugar", EXPLICIT_SUGAR_RE),
+        ("xe", EXPLICIT_XE_RE),
+        ("dose", EXPLICIT_DOSE_RE),
     ]:
-        if re.search(pattern, text) and result[key] is None:
+        if pattern.search(text) and result[key] is None:
             raise ValueError(f"invalid number for {key}")
 
     return result
