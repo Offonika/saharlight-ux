@@ -16,7 +16,7 @@ interface Reminder {
 const reminderTypes = {
   sugar: { label: 'Измерение сахара', icon: '🩸', color: 'medical-error' },
   insulin: { label: 'Инсулин', icon: '💉', color: 'medical-blue' },
-  meal: { label: 'Прием пищи', icon: '🍽️', color: 'medical-success' },
+  meal: { label: 'Приём пищи', icon: '🍽️', color: 'medical-success' },
   medicine: { label: 'Лекарства', icon: '💊', color: 'medical-teal' }
 };
 
@@ -85,26 +85,22 @@ const Reminders = () => {
         const res = await fetch('/reminders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: newReminder.type,
-            value: newReminder.time,
-            text: newReminder.title
-          })
+          body: JSON.stringify(newReminder)
         });
         const data = await res.json();
         if (!res.ok || data.status !== 'ok') {
           throw new Error('failed');
         }
 
-        const reminder: Reminder = {
-          id: String(data.id),
-          type: newReminder.type,
-          title: newReminder.title,
-          time: newReminder.time,
-          interval: newReminder.interval || undefined,
-          active: true
-        };
-        setReminders(prev => [...prev, reminder]);
+        setReminders(prev => [
+          ...prev,
+          {
+            id: String(data.id),
+            ...newReminder,
+            interval: newReminder.interval || undefined,
+            active: true
+          }
+        ]);
         setNewReminder({ type: 'sugar', title: '', time: '', interval: '' });
         setShowAddForm(false);
 
@@ -343,26 +339,62 @@ const Reminders = () => {
                   Тип напоминания
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(reminderTypes).map(([key, type]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() =>
-                        setNewReminder(prev => ({
-                          ...prev,
-                          type: key as keyof typeof reminderTypes
-                        }))
-                      }
-                      className={`p-3 rounded-lg border transition-all duration-200 ${
-                        newReminder.type === key
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border hover:bg-secondary/50'
-                      }`}
-                    >
-                      <div className="text-lg mb-1">{type.icon}</div>
-                      <div className="text-xs">{type.label}</div>
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewReminder(prev => ({ ...prev, type: 'sugar' }))
+                    }
+                    className={`p-3 rounded-lg border transition-all duration-200 ${
+                      newReminder.type === 'sugar'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:bg-secondary/50'
+                    }`}
+                  >
+                    <div className="text-lg mb-1">{reminderTypes.sugar.icon}</div>
+                    <div className="text-xs">{reminderTypes.sugar.label}</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewReminder(prev => ({ ...prev, type: 'insulin' }))
+                    }
+                    className={`p-3 rounded-lg border transition-all duration-200 ${
+                      newReminder.type === 'insulin'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:bg-secondary/50'
+                    }`}
+                  >
+                    <div className="text-lg mb-1">{reminderTypes.insulin.icon}</div>
+                    <div className="text-xs">{reminderTypes.insulin.label}</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewReminder(prev => ({ ...prev, type: 'meal' }))
+                    }
+                    className={`p-3 rounded-lg border transition-all duration-200 ${
+                      newReminder.type === 'meal'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:bg-secondary/50'
+                    }`}
+                  >
+                    <div className="text-lg mb-1">{reminderTypes.meal.icon}</div>
+                    <div className="text-xs">{reminderTypes.meal.label}</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNewReminder(prev => ({ ...prev, type: 'medicine' }))
+                    }
+                    className={`p-3 rounded-lg border transition-all duration-200 ${
+                      newReminder.type === 'medicine'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:bg-secondary/50'
+                    }`}
+                  >
+                    <div className="text-lg mb-1">{reminderTypes.medicine.icon}</div>
+                    <div className="text-xs">{reminderTypes.medicine.label}</div>
+                  </button>
                 </div>
               </div>
 
