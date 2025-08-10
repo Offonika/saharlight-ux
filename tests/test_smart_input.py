@@ -19,3 +19,12 @@ def test_smart_input_valid_cases(message, expected):
 def test_smart_input_invalid_dose():
     with pytest.raises(ValueError):
         smart_input("доза=abc")
+
+
+@pytest.mark.parametrize(
+    "message",
+    ["sugar=7abc", "xe=3foo", "dose=4bar"],
+)
+def test_smart_input_rejects_garbage(message: str) -> None:
+    with pytest.raises(ValueError):
+        smart_input(message)
