@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
 app = FastAPI()
+app.router.redirect_slashes = True
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent.resolve()
@@ -196,7 +197,14 @@ if UI_DIR.exists():
 
 
 @app.get("/ui", include_in_schema=False)
+@app.head("/ui", include_in_schema=False)
 async def ui_root() -> FileResponse:
+    return serve_index()
+
+
+@app.get("/ui/", include_in_schema=False)
+@app.head("/ui/", include_in_schema=False)
+async def ui_root_slash() -> FileResponse:
     return serve_index()
 
 
