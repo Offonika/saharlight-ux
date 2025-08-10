@@ -23,6 +23,8 @@
 - `OPENAI_ASSISTANT_ID` – ID ассистента OpenAI
 - `OPENAI_PROXY` – опциональный прокси для запросов к OpenAI
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` – настройки базы данных
+- `WEBAPP_URL` – базовый адрес Telegram WebApp
+- `WEBAPP_VERSION` – версия WebApp для пробивания кеша (git SHA или timestamp)
 
 3. Установите зависимости из файла `requirements.txt`:
    ```bash
@@ -43,6 +45,17 @@
   ```bash
   uvicorn api:app --reload
   ```
+
+### Обновление WebApp
+
+Telegram кэширует URL веб‑приложения без параметров. После каждого
+релиза обновляйте значение `WEBAPP_VERSION`, чтобы к адресу WebApp
+добавлялся параметр `?v=…` и Telegram загружал свежую версию. Обычно
+достаточно указать короткий git SHA:
+
+```bash
+export WEBAPP_VERSION=$(git rev-parse --short HEAD)
+```
 
 ## REST API
 

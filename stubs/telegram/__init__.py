@@ -17,3 +17,7 @@ class InlineKeyboardMarkup:
     def __init__(self, *a, **k):
         pass
 
+class WebAppInfo:
+    def __init__(self, *a, **k):
+        pass
+

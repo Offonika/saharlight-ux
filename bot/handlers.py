@@ -3,12 +3,13 @@ import re
 import asyncio
 import time
 import os
+import subprocess
 from datetime import datetime, timezone, timedelta, time as dtime
 
 logger = logging.getLogger("bot")
 
 from gpt_command_parser import parse_command
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 from telegram.ext import ConversationHandler, ContextTypes
 from db import SessionLocal, User, Profile, Entry
 from gpt_client import create_thread, send_message, client
@@ -32,6 +33,25 @@ SUGAR_VAL                                       = 8              # конвер�
 
 WAITING_GPT_FLAG = "waiting_gpt_response"
 
+WEBAPP_BASE_URL = os.getenv("WEBAPP_URL", "")
+WEBAPP_VERSION = os.getenv("WEBAPP_VERSION")
+
+
+def build_webapp_url() -> str | None:
+    if not WEBAPP_BASE_URL:
+        return None
+    version = WEBAPP_VERSION
+    if not version:
+        try:
+            version = subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL
+            ).decode().strip()
+        except Exception:
+            version = str(int(time.time()))
+    sep = "&" if "?" in WEBAPP_BASE_URL else "?"
+    return f"{WEBAPP_BASE_URL}{sep}v={version}"
+
+
 # Клавиатура для выбора метода ввода
 dose_keyboard = ReplyKeyboardMarkup(
     [
@@ -43,15 +63,18 @@ dose_keyboard = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-menu_keyboard = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton("📷 Фото еды")], 
-        [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
-        [KeyboardButton("📄 Мой профиль"), KeyboardButton("🔄 Изменить профиль")],
-        [KeyboardButton("📈 Отчёт"), KeyboardButton("🔁 Сброс"), KeyboardButton("ℹ️ Помощь")]
-    ],
-    resize_keyboard=True
-)
+_menu_buttons = [
+    [KeyboardButton("📷 Фото еды")],
+    [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
+    [KeyboardButton("📄 Мой профиль"), KeyboardButton("🔄 Изменить профиль")],
+]
+_webapp_url = build_webapp_url()
+if _webapp_url:
+    _menu_buttons.append([KeyboardButton("🌐 WebApp", web_app=WebAppInfo(_webapp_url))])
+_menu_buttons.append([
+    KeyboardButton("📈 Отчёт"), KeyboardButton("🔁 Сброс"), KeyboardButton("ℹ️ Помощь"),
+])
+menu_keyboard = ReplyKeyboardMarkup(_menu_buttons, resize_keyboard=True)
 
 
 
