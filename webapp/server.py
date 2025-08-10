@@ -23,7 +23,10 @@ app = FastAPI()
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent.resolve()
-UI_DIR = (BASE_DIR / "ui").resolve()
+# The SPA source lives in ``webapp/ui`` and builds to ``webapp/ui/dist``.
+# Serve the compiled ``dist`` directory so that the application serves the
+# latest build output under the ``/ui`` path.
+UI_DIR = (BASE_DIR / "ui" / "dist").resolve()
 
 # store data files outside the served static directory
 STORAGE_DIR = (BASE_DIR.parent / "webapp_data").resolve()
