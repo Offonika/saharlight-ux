@@ -9,7 +9,7 @@ import MedicalButton from '@/components/MedicalButton';
 import { cn } from '@/lib/utils';
 
 interface Reminder {
-  id: string;
+  id: number;
   type: 'sugar' | 'insulin' | 'meal' | 'medicine';
   title: string;
   time: string;
@@ -29,21 +29,21 @@ const Reminders = () => {
 
   const [reminders, setReminders] = useState<Reminder[]>([
     {
-      id: '1',
+      id: 1,
       type: 'sugar',
       title: 'Измерение сахара утром',
       time: '08:00',
       active: true
     },
     {
-      id: '2',
+      id: 2,
       type: 'insulin',
       title: 'Длинный инсулин',
       time: '22:00',
       active: true
     },
     {
-      id: '3',
+      id: 3,
       type: 'meal',
       title: 'Обед',
       time: '13:00',
@@ -54,7 +54,7 @@ const Reminders = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
 
-  const handleToggleReminder = (id: string) => {
+  const handleToggleReminder = (id: number) => {
     setReminders(prev => 
       prev.map(reminder => 
         reminder.id === id 
@@ -68,7 +68,7 @@ const Reminders = () => {
     });
   };
 
-  const handleDeleteReminder = (id: string) => {
+  const handleDeleteReminder = (id: number) => {
     setReminders(prev => prev.filter(reminder => reminder.id !== id));
     toast({
       title: "Напоминание удалено",
@@ -79,7 +79,7 @@ const Reminders = () => {
   const handleSaveReminder = async (values: ReminderFormValues) => {
     try {
       if (editingReminder) {
-        await updateReminder({ id: Number(editingReminder.id), ...values });
+        await updateReminder({ id: editingReminder.id, ...values });
         setReminders(prev =>
           prev.map(r =>
             r.id === editingReminder.id ? { ...r, ...values } : r
@@ -93,7 +93,7 @@ const Reminders = () => {
         const data = await createReminder(values);
         setReminders(prev => [
           ...prev,
-          { id: String(data.id), ...values, active: true }
+          { id: Number(data.id), ...values, active: true }
         ]);
         toast({
           title: 'Напоминание добавлено',
