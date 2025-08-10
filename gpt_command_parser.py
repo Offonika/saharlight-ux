@@ -74,7 +74,11 @@ async def parse_command(text: str) -> dict | None:
             return None
         content = choices[0].message.content.strip()
         logging.info(f"GPT parse response: {content}")
-        return json.loads(content)
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            logging.error(f"Invalid JSON response: {content}")
+            return None
     except Exception as e:
         logging.error(f"Command parsing failed: {e}")
         return None
