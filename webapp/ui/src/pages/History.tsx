@@ -232,12 +232,14 @@ const History = () => {
                       <button
                         onClick={() => handleEditRecord(record)}
                         className="p-1 rounded hover:bg-secondary transition-all duration-200"
+                        aria-label="Редактировать"
                       >
                         <Edit2 className="w-3 h-3 text-muted-foreground" />
                       </button>
                       <button
                         onClick={() => handleDeleteRecord(record.id)}
                         className="p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+                        aria-label="Удалить"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>

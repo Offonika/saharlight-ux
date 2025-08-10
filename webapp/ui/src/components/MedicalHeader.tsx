@@ -17,6 +17,7 @@ export const MedicalHeader = ({ title, showBack, onBack, children }: MedicalHead
               <button
                 onClick={onBack}
                 className="p-2 rounded-lg hover:bg-secondary/80 active:scale-95 transition-all duration-200"
+                aria-label="Назад"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>

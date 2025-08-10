@@ -123,6 +123,7 @@ const Reminders = () => {
             setFormOpen(true);
           }}
           className="p-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all duration-200"
+          aria-label="Добавить напоминание"
         >
           <Plus className="w-5 h-5" />
         </button>
@@ -165,27 +166,30 @@ const Reminders = () => {
                     <button
                       onClick={() => handleToggleReminder(reminder.id)}
                       className={`p-2 rounded-lg transition-all duration-200 ${
-                        reminder.active 
-                          ? 'bg-success/10 text-success' 
+                        reminder.active
+                          ? 'bg-success/10 text-success'
                           : 'bg-secondary text-muted-foreground'
                       }`}
+                      aria-label={reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
                     >
                       <Bell className="w-4 h-4" />
                     </button>
-                      <button
-                        onClick={() => {
-                          setEditingReminder(reminder);
-                          setFormOpen(true);
-                        }}
-                        className="p-2 rounded-lg hover:bg-secondary transition-all duration-200"
-                      >
-                        <Edit2 className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteReminder(reminder.id)}
-                        className="p-2 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                    <button
+                      onClick={() => {
+                        setEditingReminder(reminder);
+                        setFormOpen(true);
+                      }}
+                      className="p-2 rounded-lg hover:bg-secondary transition-all duration-200"
+                      aria-label="Редактировать"
+                    >
+                      <Edit2 className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteReminder(reminder.id)}
+                      className="p-2 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
+                      aria-label="Удалить"
+                    >
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
