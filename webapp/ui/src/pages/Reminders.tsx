@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import ReminderForm, { ReminderFormValues } from '@/components/ReminderForm';
-import { createReminder, updateReminder } from '@/api/reminders';
+import { createReminder, updateReminder, getReminders } from '@/api/reminders';
 import MedicalButton from '@/components/MedicalButton';
 import { cn } from '@/lib/utils';
 
@@ -116,29 +116,29 @@ const Reminders = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [reminders, setReminders] = useState<Reminder[]>([
-    {
-      id: 1,
-      type: 'sugar',
-      title: 'Измерение сахара утром',
-      time: '08:00',
-      active: true
-    },
-    {
-      id: 2,
-      type: 'insulin',
-      title: 'Длинный инсулин',
-      time: '22:00',
-      active: true
-    },
-    {
-      id: 3,
-      type: 'meal',
-      title: 'Обед',
-      time: '13:00',
-      active: false
-    }
-  ]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchReminders = async () => {
+      try {
+        const data = await getReminders();
+        setReminders(data);
+      } catch {
+        setError('Не удалось загрузить напоминания');
+        toast({
+          title: 'Ошибка',
+          description: 'Не удалось загрузить напоминания',
+          variant: 'destructive'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReminders();
+  }, [toast]);
+
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
@@ -221,36 +221,98 @@ const Reminders = () => {
       </MedicalHeader>
       
       <main className="container mx-auto px-4 py-6">
-        {/* Список напоминаний */}
-        <div className="space-y-3 mb-6">
-          {reminders.map((reminder, index) => (
-            <ReminderItem
-              key={reminder.id}
-              reminder={reminder}
-              index={index}
-              onToggle={handleToggleReminder}
-              onEdit={(r) => {
-                setEditingReminder(r);
-                setFormOpen(true);
-              }}
-              onDelete={handleDeleteReminder}
-            />
-          ))}
-        </div>
 
-          {/* Форма создания/редактирования */}
-          <ReminderForm
-            open={formOpen}
-            onOpenChange={(open) => {
-              setFormOpen(open);
-              if (!open) setEditingReminder(null);
-            }}
-            initialData={editingReminder || undefined}
-            onSubmit={handleSaveReminder}
-          />
+        {loading ? (
+          <div className="text-center py-12">Загрузка...</div>
+        ) : error ? (
+          <div className="text-center py-12 text-destructive">{error}</div>
+        ) : (
+          <div className="space-y-3 mb-6">
+          {reminders.map((reminder, index) => {
+            const typeInfo = reminderTypes[reminder.type];
+            return (
+              <div
+                key={reminder.id}
+                className={`medical-list-item ${!reminder.active ? 'opacity-60' : ''}`}
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      typeInfo.color === 'medical-error' ? 'bg-medical-error/10' :
+                      typeInfo.color === 'medical-blue' ? 'bg-medical-blue/10' :
+                      typeInfo.color === 'medical-success' ? 'bg-medical-success/10' :
+                      'bg-medical-teal/10'
+                    }`}>
+                      <span className="text-lg">{typeInfo.icon}</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium text-foreground">{reminder.title}</h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        <span>{reminder.time}</span>
+                        <span className="text-xs bg-secondary px-2 py-1 rounded">
+                          {typeInfo.label}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <MedicalButton
+                      variant="icon"
+                      onClick={() => handleToggleReminder(reminder.id)}
+                      className={cn(
+                        'border-0',
+                        reminder.active
+                          ? 'bg-success/10 text-success'
+                          : 'bg-secondary text-muted-foreground'
+                      )}
+                      aria-label={reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
+                    >
+                      <Bell className="w-4 h-4" />
+                    </MedicalButton>
+                    <MedicalButton
+                      variant="icon"
+                      onClick={() => {
+                        setEditingReminder(reminder);
+                        setFormOpen(true);
+                      }}
+                      className="bg-transparent hover:bg-secondary text-muted-foreground border-0"
+                      aria-label="Редактировать"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </MedicalButton>
+                    <MedicalButton
+                      variant="icon"
+                      onClick={() => handleDeleteReminder(reminder.id)}
+                      className="bg-transparent hover:bg-destructive/10 hover:text-destructive text-muted-foreground border-0"
+                      aria-label="Удалить"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </MedicalButton>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          </div>
+        )}
+
+
+        {/* Форма создания/редактирования */}
+        <ReminderForm
+          open={formOpen}
+          onOpenChange={(open) => {
+            setFormOpen(open);
+            if (!open) setEditingReminder(null);
+          }}
+          initialData={editingReminder || undefined}
+          onSubmit={handleSaveReminder}
+        />
 
         {/* Пустое состояние */}
-        {reminders.length === 0 && (
+        {!loading && !error && reminders.length === 0 && (
           <div className="text-center py-12">
             <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground mb-2">
