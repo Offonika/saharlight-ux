@@ -23,6 +23,12 @@ BASE_DIR = Path(__file__).parent.resolve()
 # Serve the compiled ``dist`` directory so that the application serves the
 # latest build output under the ``/ui`` path.
 UI_DIR = (BASE_DIR / "ui" / "dist").resolve()
+if not UI_DIR.exists():
+    logger.error(
+        "UI build directory %s not found. Run `npm run build` in webapp/ui",
+        UI_DIR,
+    )
+    raise RuntimeError("UI build not found; run npm run build in webapp/ui")
 
 # store data files outside the served static directory
 STORAGE_DIR = (BASE_DIR.parent / "webapp_data").resolve()
