@@ -29,7 +29,10 @@ def test_root_redirects_to_ui() -> None:
 def test_static_files_available() -> None:
     """Timezone page and related assets should be served as static files."""
     assert client.get("/timezone.html").status_code == 200
-    assert client.get("/static/style.css").status_code == 200
+    css_files = list((server.UI_DIR / "assets").glob("index-*.css"))
+    assert css_files, "CSS build missing"
+    css_name = css_files[0].name
+    assert client.get(f"/ui/assets/{css_name}").status_code == 200
     assert client.get("/static/telegram-init.js").status_code == 200
 
 
