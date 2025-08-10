@@ -260,7 +260,7 @@ def smart_input(message: str) -> dict[str, float | None]:
 
     # --- Sugar ---
     m = re.search(
-        r"\b(?:sugar|сахар)\s*[:=]?\s*(\d+[.,]?\d*)(?:\s*(ммоль/?л|mmol/?l))?",
+        r"\b(?:sugar|сахар)\s*[:=]?\s*(\d+[.,]?\d*)(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)",
         text,
     )
     if m:
@@ -271,7 +271,7 @@ def smart_input(message: str) -> dict[str, float | None]:
             result["sugar"] = _safe_float(m.group(1))
 
     # --- XE ---
-    m = re.search(r"\b(?:xe|хе)\s*[:=]?\s*(\d+[.,]?\d*)", text)
+    m = re.search(r"\b(?:xe|хе)\s*[:=]?\s*(\d+[.,]?\d*)\b", text)
     if m:
         result["xe"] = _safe_float(m.group(1))
     else:
@@ -280,7 +280,7 @@ def smart_input(message: str) -> dict[str, float | None]:
             result["xe"] = _safe_float(m.group(1))
 
     # --- Dose ---
-    m = re.search(r"\b(?:dose|доза|болюс)\s*[:=]?\s*(\d+[.,]?\d*)", text)
+    m = re.search(r"\b(?:dose|доза|болюс)\s*[:=]?\s*(\d+[.,]?\d*)\b", text)
     if m:
         result["dose"] = _safe_float(m.group(1))
     else:
