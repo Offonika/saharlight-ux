@@ -43,9 +43,16 @@ const ReminderForm = ({ open, onOpenChange, initialData, onSubmit }: ReminderFor
     onSubmit(form);
   };
 
+  const isDisabled = !form.title || !form.time;
+
   const footer = (
     <div className="flex gap-3">
-      <button type="submit" form="reminder-form" className="medical-button flex-1">
+      <button
+        type="submit"
+        form="reminder-form"
+        className="medical-button flex-1"
+        disabled={isDisabled}
+      >
         Сохранить
       </button>
       <button
