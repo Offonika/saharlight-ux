@@ -1,6 +1,10 @@
 
 /* Design tokens and base styles for the Sakhaphoto design system */
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 @layer base {
   :root {
     color-scheme: light dark;
