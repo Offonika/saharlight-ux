@@ -18,4 +18,4 @@ else
     echo "ENABLE_WEBAPP not set; WebApp will not start."
 fi
 
-python bot.py
+python backend/bot.py

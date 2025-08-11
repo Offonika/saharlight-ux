@@ -10,7 +10,7 @@
 
 ### Структура
 
-- `diabetes/` — основной пакет
+- `backend/diabetes/` — основной пакет
   - `common_handlers.py` — общие обработчики и роутинг
   - `onboarding_handlers.py` — регистрация и стартовые команды
   - `profile_handlers.py` — профиль пользователя
@@ -21,7 +21,7 @@
   (например `/api/timezone`); маршруты SPA обслуживаются через fallback на
   `index.html`
 
-Новые обработчики добавляйте в каталог `diabetes/`, создавая отдельные модули с суффиксом `_handlers.py` и группируя их по доменам.
+Новые обработчики добавляйте в каталог `backend/diabetes/`, создавая отдельные модули с суффиксом `_handlers.py` и группируя их по доменам.
 
 ### Доступные команды
 
@@ -67,11 +67,11 @@
    ```
 3. **Установите зависимости:**
    ```bash
-   pip install -r requirements.txt
+   pip install -r backend/requirements.txt
    ```
 4. **Скопируйте шаблон .env и заполните своими данными:**
    ```bash
-   cp .env.example .env
+   cp backend/.env.example .env
    # Откройте .env и впишите свои ключи (Telegram, OpenAI, БД)
    ```
    Обязательно укажите значение переменной `TELEGRAM_TOKEN` — без неё бот не запустится. Также задайте `DB_PASSWORD`; при его отсутствии модуль конфигурации завершится с исключением. Для подробных логов задайте `LOG_LEVEL=DEBUG` (или `DEBUG=1`).
@@ -83,7 +83,7 @@
 
 6. **Запустите бота:**
    ```bash
-   python bot.py
+   python backend/bot.py
    ```
 
 ### Запуск WebApp
@@ -150,7 +150,7 @@ ngrok http 8000
 Для проверки качества кода:
 
 ```bash
-pip install -r requirements-dev.txt
-ruff diabetes tests
+pip install -r backend/requirements-dev.txt
+ruff backend/diabetes tests
 pytest tests/
 ```

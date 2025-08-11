@@ -11,8 +11,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends libpq-dev gcc nodejs npm && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+COPY backend/requirements.txt backend/requirements.txt
+RUN pip install --upgrade pip && pip install -r backend/requirements.txt
 
 COPY . .
 
