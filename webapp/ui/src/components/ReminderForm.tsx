@@ -12,7 +12,7 @@ export interface ReminderFormValues {
   type: TypeKey;
   title: string;
   time: string;
-  interval: number;
+  interval?: number;
 }
 
 export default function ReminderForm(props: {
@@ -22,7 +22,7 @@ export default function ReminderForm(props: {
   const [type, setType] = useState<TypeKey>("sugar");
   const [title, setTitle] = useState("");
   const [time, setTime] = useState("12:30");
-  const [interval, setInterval] = useState(60);
+  const [interval, setInterval] = useState<number | undefined>(60);
 
   return (
     <form
@@ -73,10 +73,18 @@ export default function ReminderForm(props: {
             type="number"
             min={5}
             step={5}
-            value={interval}
-            onChange={(e) => setInterval(Number(e.target.value))}
+            value={interval ?? ""}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              setInterval(Number.isNaN(val) ? undefined : val);
+            }}
             placeholder="Например: 60"
           />
+          <p className="text-sm text-muted-foreground">
+            {interval === undefined
+              ? "Интервал не указан"
+              : `Интервал: каждые ${interval} мин`}
+          </p>
         </div>
       </div>
 
