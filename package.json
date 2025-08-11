@@ -1,7 +1,9 @@
 {
   "name": "diabetes-assistant-root",
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "lovable-tagger": "^1.1.9"
+  },
   "scripts": {
     "setup": "npm --prefix webapp/ui ci",
     "dev": "npm run setup && npm --prefix webapp/ui run dev",
