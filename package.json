@@ -1,11 +1,13 @@
 {
   "name": "diabetes-assistant-root",
   "private": true,
+  "dependencies": {},
   "scripts": {
-    "dev": "cd webapp/ui && npm run dev",
-    "build": "cd webapp/ui && npm run build",
-    "build:dev": "cd webapp/ui && npm run build --mode development",
-    "preview": "cd webapp/ui && npm run preview",
-    "lint": "cd webapp/ui && npm run lint"
+    "setup": "npm --prefix webapp/ui ci",
+    "dev": "npm run setup && npm --prefix webapp/ui run dev",
+    "build": "npm run setup && npm --prefix webapp/ui run build",
+    "build:dev": "npm run setup && npm --prefix webapp/ui run build:dev",
+    "preview": "npm --prefix webapp/ui run preview",
+    "lint": "npm --prefix webapp/ui run lint"
   }
 }
