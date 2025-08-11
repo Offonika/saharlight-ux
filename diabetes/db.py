@@ -16,7 +16,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import URL
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+import asyncio
 import threading
+from typing import Any, Callable, TypeVar
 
 from diabetes.config import DB_HOST, DB_PORT, DB_NAME, DB_USER
 
@@ -26,6 +28,37 @@ engine = None
 engine_lock = threading.Lock()
 SessionLocal = sessionmaker(autoflush=False, autocommit=False)
 Base = declarative_base()
+
+
+T = TypeVar("T")
+
+
+async def run_db(
+    fn: Callable[[Any], T], *args: Any, sessionmaker: Callable[[], Any] = SessionLocal, **kwargs: Any
+) -> T:
+    """Execute blocking DB work in a thread and return the result.
+
+    Parameters
+    ----------
+    fn:
+        Callable accepting an active session as first argument.
+    sessionmaker:
+        Factory to create new :class:`~sqlalchemy.orm.Session` instances. Defaults
+        to the module's ``SessionLocal`` so tests can inject their own.
+    *args, **kwargs:
+        Additional arguments forwarded to ``fn``.
+    """
+
+    def wrapper() -> T:
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    engine = getattr(getattr(sessionmaker, "kw", {}), "get", lambda _k, _d=None: _d)("bind")
+    url = getattr(engine, "url", None)
+    if getattr(url, "drivername", "") == "sqlite" and getattr(url, "database", None) == ":memory:":
+        return wrapper()
+
+    return await asyncio.to_thread(wrapper)
 
 
 # ───────────────────────── модели ────────────────────────────

@@ -6,7 +6,7 @@ import logging
 
 from telegram.ext import ContextTypes
 
-from diabetes.db import SessionLocal, Alert, Profile
+from diabetes.db import SessionLocal, Alert, Profile, run_db
 from diabetes.common_handlers import commit_session
 from diabetes.utils import get_coords_and_link
 
@@ -25,8 +25,8 @@ def schedule_alert(user_id: int, job_queue, count: int = 1) -> None:
     )
 
 
-def evaluate_sugar(user_id: int, sugar: float, job_queue) -> None:
-    with SessionLocal() as session:
+async def evaluate_sugar(user_id: int, sugar: float, job_queue) -> None:
+    def db_eval(session):
         profile = session.get(Profile, user_id)
         low = profile.low_threshold if profile else None
         high = profile.high_threshold if profile else None
@@ -42,15 +42,23 @@ def evaluate_sugar(user_id: int, sugar: float, job_queue) -> None:
             alert = Alert(user_id=user_id, sugar=sugar, type=atype)
             session.add(alert)
             if not commit_session(session):
-                return
-            schedule_alert(user_id, job_queue)
+                return False, None
+            return True, "schedule"
         else:
             for a in active:
                 a.resolved = True
             if not commit_session(session):
-                return
-            for job in job_queue.get_jobs_by_name(f"alert_{user_id}"):
-                job.schedule_removal()
+                return False, None
+            return True, "remove"
+
+    ok, action = await run_db(db_eval, sessionmaker=SessionLocal)
+    if not ok:
+        return
+    if action == "schedule":
+        schedule_alert(user_id, job_queue)
+    else:
+        for job in job_queue.get_jobs_by_name(f"alert_{user_id}"):
+            job.schedule_removal()
 
 
 async def check_alert(update, context: ContextTypes.DEFAULT_TYPE, sugar: float) -> None:

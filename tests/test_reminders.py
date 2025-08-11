@@ -154,7 +154,8 @@ def test_render_reminders_formatting(monkeypatch):
             ]
         )
         session.commit()
-    text, markup = handlers._render_reminders(1)
+    with TestSession() as session:
+        text, markup = handlers._render_reminders(session, 1)
     header, *rest = text.splitlines()
     assert header == "Ваши напоминания  (2 / 1 🔔) ⚠️"
     assert "⏰ По времени" in text
@@ -175,7 +176,8 @@ def test_render_reminders_no_webapp(monkeypatch):
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
         session.commit()
-    text, markup = handlers._render_reminders(1)
+    with TestSession() as session:
+        text, markup = handlers._render_reminders(session, 1)
     assert "Нажмите кнопку" not in text
     assert len(markup.inline_keyboard) == 1
     texts = [btn.text for btn in markup.inline_keyboard[0]]

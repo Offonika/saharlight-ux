@@ -438,7 +438,9 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 .first()
             )
             if alert:
-                evaluate_sugar(user_id, alert.sugar, context.application.job_queue)
+                await evaluate_sugar(
+                    user_id, alert.sugar, context.application.job_queue
+                )
 
         low = profile.low_threshold or 0
         high = profile.high_threshold or 0

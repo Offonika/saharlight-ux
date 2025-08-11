@@ -92,7 +92,7 @@ async def test_profile_security_threshold_changes(monkeypatch, action, expected_
 
     calls = []
 
-    def fake_eval(user_id, sugar, job_queue):
+    async def fake_eval(user_id, sugar, job_queue):
         calls.append((user_id, sugar, job_queue))
 
     monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
@@ -137,7 +137,7 @@ async def test_profile_security_toggle_sos_alerts(monkeypatch):
 
     calls = []
 
-    def fake_eval(user_id, sugar, job_queue):
+    async def fake_eval(user_id, sugar, job_queue):
         calls.append((user_id, sugar, job_queue))
 
     monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)

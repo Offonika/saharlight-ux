@@ -20,7 +20,7 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest
 
-from diabetes.db import Reminder, ReminderLog, SessionLocal, User
+from diabetes.db import Reminder, ReminderLog, SessionLocal, User, run_db
 from .common_handlers import commit_session
 from diabetes.config import WEBAPP_URL
 
@@ -107,10 +107,11 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
 
 
 
-def _render_reminders(user_id: int) -> tuple[str, InlineKeyboardMarkup]:
-    with SessionLocal() as session:
-        rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
-        user = session.query(User).filter_by(telegram_id=user_id).first()
+def _render_reminders(
+    session, user_id: int
+) -> tuple[str, InlineKeyboardMarkup]:
+    rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
+    user = session.query(User).filter_by(telegram_id=user_id).first()
     limit = _limit_for(user)
     active_count = sum(1 for r in rems if r.is_enabled)
     header = f"Ваши напоминания  ({active_count} / {limit} 🔔)"
@@ -271,7 +272,9 @@ def schedule_all(job_queue) -> None:
 
 async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    text, keyboard = _render_reminders(user_id)
+    text, keyboard = await run_db(
+        _render_reminders, user_id, sessionmaker=SessionLocal
+    )
     await update.message.reply_text(text, reply_markup=keyboard, parse_mode="HTML")
 
 
@@ -307,25 +310,36 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text("Неизвестный тип напоминания.")
         return
 
-    with SessionLocal() as session:
+    def db_add(session):
         count = session.query(Reminder).filter_by(telegram_id=user_id).count()
         user = session.get(User, user_id)
         limit = _limit_for(user)
         if count >= limit:
-            await update.message.reply_text(
-                f"У вас уже {count} активных из {limit}. "
-                "Отключите одно или Апгрейд до Pro, чтобы поднять лимит до 10",
-            )
-            return
+            return "limit", user, limit, count
         session.add(reminder)
         if not commit_session(session):
             logger.error("Failed to commit new reminder for user %s", user_id)
-            await update.message.reply_text(
-                "⚠️ Не удалось сохранить напоминание."
-            )
-            return
-        rid = reminder.id
+            return "error", user, limit, count
+        return "ok", user, limit, reminder.id
 
+    status, user, limit, rid_or_count = await run_db(
+        db_add, sessionmaker=SessionLocal
+    )
+
+    if status == "limit":
+        count = rid_or_count
+        await update.message.reply_text(
+            f"У вас уже {count} активных из {limit}. "
+            "Отключите одно или Апгрейд до Pro, чтобы поднять лимит до 10",
+        )
+        return
+    if status == "error":
+        await update.message.reply_text(
+            "⚠️ Не удалось сохранить напоминание."
+        )
+        return
+
+    rid = rid_or_count
     for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
         job.schedule_removal()
     schedule_reminder(reminder, context.job_queue)
@@ -374,12 +388,11 @@ async def reminder_webapp_save(
             )
             return
         minutes = None
-    with SessionLocal() as session:
+    def db_save(session):
         if rid:
             rem = session.get(Reminder, int(rid))
             if not rem or rem.telegram_id != user_id:
-                await update.effective_message.reply_text("Не найдено")
-                return
+                return "not_found", None, None, None
         else:
             count = (
                 session.query(Reminder)
@@ -390,11 +403,7 @@ async def reminder_webapp_save(
             plan = getattr(user, "plan", "free").lower()
             limit = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
             if count >= limit:
-                await update.effective_message.reply_text(
-                    f"У вас уже {limit} активных (лимит {plan.upper()}). "
-                    "Отключите одно или откройте PRO.",
-                )
-                return
+                return "limit", None, plan, limit
             rem = Reminder(telegram_id=user_id, type=rtype, is_enabled=True)
             session.add(rem)
         if rtype == "xe_after":
@@ -413,10 +422,27 @@ async def reminder_webapp_save(
             logger.error(
                 "Failed to commit reminder via webapp for user %s", user_id
             )
-            return
+            return "error", None, None, None
         session.refresh(rem)
+        return "ok", rem, None, None
+
+    status, rem, plan, limit = await run_db(db_save, sessionmaker=SessionLocal)
+    if status == "not_found":
+        await update.effective_message.reply_text("Не найдено")
+        return
+    if status == "limit":
+        await update.effective_message.reply_text(
+            f"У вас уже {limit} активных (лимит {plan.upper()}). "
+            "Отключите одно или откройте PRO.",
+        )
+        return
+    if status == "error":
+        return
+
     schedule_reminder(rem, context.job_queue)
-    text, keyboard = _render_reminders(user_id)
+    text, keyboard = await run_db(
+        _render_reminders, user_id, sessionmaker=SessionLocal
+    )
     await update.effective_message.reply_text(
         text, reply_markup=keyboard, parse_mode="HTML"
     )
@@ -537,37 +563,49 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.answer("Некорректный ID", show_alert=True)
         return
     user_id = update.effective_user.id
-    with SessionLocal() as session:
+
+    def db_action(session):
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != user_id:
-            await query.answer("Не найдено", show_alert=True)
-            return
+            return "not_found", None
         if action == "del":
             session.delete(rem)
         elif action == "toggle":
             rem.is_enabled = not rem.is_enabled
         else:
-            await query.answer("Неизвестное действие", show_alert=True)
-            return
+            return "unknown", None
         if not commit_session(session):
             logger.error(
                 "Failed to commit reminder action %s for reminder %s", action, rid
             )
-            return
+            return "error", None
         if action != "del":
             session.refresh(rem)
+        return action, rem
 
-    if action == "toggle":
-        if rem.is_enabled:
+    status, rem = await run_db(db_action, sessionmaker=SessionLocal)
+    if status == "not_found":
+        await query.answer("Не найдено", show_alert=True)
+        return
+    if status == "unknown":
+        await query.answer("Неизвестное действие", show_alert=True)
+        return
+    if status == "error":
+        return
+
+    if status == "toggle":
+        if rem and rem.is_enabled:
             schedule_reminder(rem, context.job_queue)
         else:
             for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()
-    else:
+    else:  # del
         for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
             job.schedule_removal()
 
-    text, keyboard = _render_reminders(user_id)
+    text, keyboard = await run_db(
+        _render_reminders, user_id, sessionmaker=SessionLocal
+    )
     try:
         await query.edit_message_text(text, reply_markup=keyboard, parse_mode="HTML")
     except BadRequest as exc:
