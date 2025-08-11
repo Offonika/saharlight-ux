@@ -11,12 +11,12 @@ source venv/bin/activate
 
 echo "Установка Python-зависимостей…"
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 
 if [ ! -f ".env" ]; then
-    echo "Копирование .env.example в .env (заполните ключи и пароли)…"
-    cp .env.example .env
+    echo "Копирование backend/.env.example в .env (заполните ключи и пароли)…"
+    cp backend/.env.example .env
 fi
 
 echo "Установка завершена! Проверьте файл .env и заполните свои токены и пароли."
-echo "Для запуска: source venv/bin/activate && python bot.py"
+echo "Для запуска: source venv/bin/activate && python backend/bot.py"

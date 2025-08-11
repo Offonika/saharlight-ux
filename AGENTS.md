@@ -9,7 +9,7 @@
 
 ## 📁 Основные файлы и структура
 
-- **diabetes/** — основной пакет, логика бота
+- **backend/diabetes/** — основной пакет, логика бота
     - **common_handlers.py** — общие обработчики и роутинг
     - **onboarding_handlers.py** — сценарий регистрации и стартовые команды
     - **profile_handlers.py** — управление профилем пользователя
@@ -19,13 +19,13 @@
     - **db.py, models.py** — работа с БД
     - **functions.py** — расчёты и парсинг
     - **gpt_client.py** — работа с OpenAI
-- **requirements.txt** — зависимости Python
+- **backend/requirements.txt** — зависимости Python
 - **setup.sh** — автоматическая установка окружения
 - **Dockerfile** — для контейнеризации и Codex
-- **.env.example** — шаблон для переменных окружения
+- **backend/.env.example** — шаблон для переменных окружения
 - **tests/** — директория для автотестов (по мере развития)
   
-Все обработчики располагаются в отдельных файлах с суффиксом `_handlers.py` в каталоге `diabetes/`. Добавляя новый функционал, создавайте новый модуль или дополняйте существующий, придерживаясь тематического разделения.
+Все обработчики располагаются в отдельных файлах с суффиксом `_handlers.py` в каталоге `backend/diabetes/`. Добавляя новый функционал, создавайте новый модуль или дополняйте существующий, придерживаясь тематического разделения.
 
 ---
 
@@ -39,10 +39,10 @@
 2. Выполните установку зависимостей и настройте окружение:
     ```bash
     bash setup.sh
-    cp .env.example .env
+    cp backend/.env.example .env
     # Впишите свои значения в .env
     source venv/bin/activate
-    python bot.py
+    python backend/bot.py
     ```
 
 3. Для Docker/Codex:
@@ -62,8 +62,8 @@
     ```
 - **Линтинг**: PEP8-стиль
     ```bash
-    pip install -r requirements-dev.txt
-    ruff diabetes tests
+    pip install -r backend/requirements-dev.txt
+    ruff backend/diabetes tests
     ```
 
 ---
@@ -71,22 +71,22 @@
 ## 🛠️ Переменные окружения и секреты
 
 - Все чувствительные данные (токены, ключи) НЕ коммитятся, а задаются через `.env` или секреты Codex.
-- Пример файла смотрите в `.env.example`
+- Пример файла смотрите в `backend/.env.example`
 
 ---
 
 ## ⚡ Примеры задач для Codex/разработки
 
-- **Рефакторинг:**  
-  _Refactor diabetes/handlers.py, split into smaller modules for readability and maintainability. Add type hints and docstrings._
-- **Покрытие тестами:**  
-  _Add pytest unit tests for diabetes/functions.py, cover all calculation logic._
-- **CI и линтинг:**  
-  _Run ruff on diabetes/ and tests/, fix all style issues. Add a pre-commit hook if needed._
-- **Документация:**  
+- **Рефакторинг:**
+  _Refactor backend/diabetes/handlers.py, split into smaller modules for readability and maintainability. Add type hints and docstrings._
+- **Покрытие тестами:**
+  _Add pytest unit tests for backend/diabetes/functions.py, cover all calculation logic._
+- **CI и линтинг:**
+  _Run ruff on backend/diabetes/ and tests/, fix all style issues. Add a pre-commit hook if needed._
+- **Документация:**
   _Generate and update code documentation. Add docstrings to all public functions._
-- **Безопасность:**  
-  _Audit diabetes/db.py for ORM or SQL security issues. Implement parameterized queries if needed._
+- **Безопасность:**
+  _Audit backend/diabetes/db.py for ORM or SQL security issues. Implement parameterized queries if needed._
 - **Docker:**  
   _Check that Dockerfile builds and runs with .env, update README.md with Docker instructions._
 

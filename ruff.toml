@@ -1,2 +1,2 @@
 line-length = 120
-extend-exclude = ["diabetes/handlers.py", "alembic"]
+extend-exclude = ["backend/diabetes/handlers.py", "backend/alembic"]
