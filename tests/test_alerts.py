@@ -47,7 +47,7 @@ async def test_threshold_evaluation():
         session.commit()
 
     job_queue_low = DummyJobQueue()
-    handlers.evaluate_sugar(1, 3, job_queue_low)
+    await handlers.evaluate_sugar(1, 3, job_queue_low)
     with TestSession() as session:
         alert = session.query(Alert).filter_by(user_id=1).first()
         assert alert.type == "hypo"
@@ -55,7 +55,7 @@ async def test_threshold_evaluation():
     assert job_queue_low.jobs[0].when == handlers.ALERT_REPEAT_DELAY
 
     job_queue_high = DummyJobQueue()
-    handlers.evaluate_sugar(2, 9, job_queue_high)
+    await handlers.evaluate_sugar(2, 9, job_queue_high)
     with TestSession() as session:
         alert2 = session.query(Alert).filter_by(user_id=2).first()
         assert alert2.type == "hyper"
@@ -76,7 +76,7 @@ async def test_repeat_logic():
         session.commit()
 
     job_queue = DummyJobQueue()
-    handlers.evaluate_sugar(1, 3, job_queue)
+    await handlers.evaluate_sugar(1, 3, job_queue)
 
     for i in range(1, 4):
         context = SimpleNamespace(job=SimpleNamespace(data={"user_id": 1, "count": i}), job_queue=job_queue)
@@ -99,10 +99,10 @@ async def test_normal_reading_resolves_alert():
         session.commit()
 
     job_queue = DummyJobQueue()
-    handlers.evaluate_sugar(1, 3, job_queue)
+    await handlers.evaluate_sugar(1, 3, job_queue)
     assert job_queue.jobs
 
-    handlers.evaluate_sugar(1, 5, job_queue)
+    await handlers.evaluate_sugar(1, 5, job_queue)
     with TestSession() as session:
         alert = session.query(Alert).filter_by(user_id=1).first()
         assert alert.resolved
