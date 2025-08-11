@@ -1,12 +1,11 @@
 {
-  "name": "saharlight-ux",
-  "version": "0.0.0",
+  "name": "diabetes-assistant-root",
   "private": true,
-  "type": "module",
-  "workspaces": ["webapp/ui"],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "cd webapp/ui && npm run dev",
+    "build": "cd webapp/ui && npm run build",
+    "build:dev": "cd webapp/ui && npm run build --mode development",
+    "preview": "cd webapp/ui && npm run preview",
+    "lint": "cd webapp/ui && npm run lint"
   }
 }
