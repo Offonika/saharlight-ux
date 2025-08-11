@@ -2,12 +2,29 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ReminderForm, { ReminderFormValues } from "@/components/ReminderForm";
 
+function isValidTime(time: string): boolean {
+  const [hours, minutes] = time.split(":").map(Number);
+  return (
+    Number.isInteger(hours) &&
+    Number.isInteger(minutes) &&
+    hours >= 0 &&
+    hours <= 23 &&
+    minutes >= 0 &&
+    minutes <= 59
+  );
+}
+
 export default function CreateReminder() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (values: ReminderFormValues) => {
     setError(null);
+    const valid = Boolean(values.title?.trim()) && isValidTime(values.time);
+    if (!valid) {
+      setError("Пожалуйста, проверьте введённые данные");
+      return;
+    }
     try {
       const res = await fetch("/api/reminders", {
         method: "POST",
