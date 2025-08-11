@@ -6,7 +6,7 @@
     "setup": "npm --prefix webapp/ui ci",
     "dev": "npm run setup && npm --prefix webapp/ui run dev",
     "build": "npm run setup && npm --prefix webapp/ui run build",
-    "build:dev": "npm run setup && npm --prefix webapp/ui run build:dev",
+    "build:dev": "npm --prefix webapp/ui run build:dev",
     "preview": "npm --prefix webapp/ui run preview",
     "lint": "npm --prefix webapp/ui run lint"
   }
