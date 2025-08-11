@@ -1,139 +1,82 @@
-import { useEffect, useState } from 'react';
-import { Modal, SegmentedControl } from '@/components';
-import { Button } from '@/components/ui/button';
+import React, { useState } from "react";
 
-const reminderTypes = {
-  sugar: { label: 'Измерение сахара', icon: '🩸' },
-  insulin: { label: 'Инсулин', icon: '💉' },
-  meal: { label: 'Приём пищи', icon: '🍽️' },
-  medicine: { label: 'Лекарства', icon: '💊' }
+type TypeKey = "sugar" | "insulin" | "meal";
+const TYPES: Record<TypeKey, { label: string; emoji: string }> = {
+  sugar:   { label: "Сахар",   emoji: "🩸" },
+  insulin: { label: "Инсулин", emoji: "💉" },
+  meal:    { label: "Приём пищи", emoji: "🍽️" },
 };
 
-export interface ReminderFormValues {
-  type: keyof typeof reminderTypes;
-  title: string;
-  time: string;
-  interval?: number;
-}
-
-interface ReminderFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  initialData?: ReminderFormValues;
-  onSubmit: (values: ReminderFormValues) => void;
-}
-
-const ReminderForm = ({ open, onOpenChange, initialData, onSubmit }: ReminderFormProps) => {
-  const [form, setForm] = useState<ReminderFormValues>({
-    type: 'sugar',
-    title: '',
-    time: '',
-    interval: undefined
-  });
-
-  useEffect(() => {
-    if (initialData) {
-      setForm({ ...initialData });
-    } else {
-      setForm({ type: 'sugar', title: '', time: '', interval: undefined });
-    }
-  }, [initialData, open]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(form);
-  };
-
-  const isDisabled = !form.title || !form.time;
-
-  const footer = (
-    <div className="flex gap-3">
-      <Button
-        type="submit"
-        form="reminder-form"
-        className="flex-1"
-        disabled={isDisabled}
-        size="lg"
-      >
-        Сохранить
-      </Button>
-      <Button
-        type="button"
-        onClick={() => onOpenChange(false)}
-        variant="secondary"
-        className="flex-1"
-        size="lg"
-      >
-        Отмена
-      </Button>
-    </div>
-  );
-
-  const segmentedItems = Object.entries(reminderTypes).map(([key, info]) => ({
-    value: key,
-    icon: info.icon,
-    label: info.label
-  }));
+export default function ReminderForm(props: {
+  onSubmit: (data: { type: TypeKey; title: string; time: string; interval: number }) => void;
+  onCancel?: () => void;
+}) {
+  const [type, setType] = useState<TypeKey>("sugar");
+  const [title, setTitle] = useState("");
+  const [time, setTime] = useState("12:30");
+  const [interval, setInterval] = useState(60);
 
   return (
-    <Modal
-      open={open}
-      onClose={() => onOpenChange(false)}
-      title={initialData ? 'Редактирование напоминания' : 'Новое напоминание'}
-      footer={footer}
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        props.onSubmit({ type, title, time, interval });
+      }}
+      style={{ marginTop: 8 }}
     >
-      <form id="reminder-form" onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="form-label">Тип напоминания</label>
-          <SegmentedControl
-            value={form.type}
-            onChange={value =>
-              setForm(prev => ({ ...prev, type: value as keyof typeof reminderTypes }))
-            }
-            items={segmentedItems}
-          />
-        </div>
+      <h2>Новое напоминание</h2>
 
+      {/* Тип напоминания в виде сегмента (компактно, влезает на экран) */}
+      <div className="segment" role="tablist" aria-label="Тип напоминания">
+        {Object.entries(TYPES).map(([key, v]) => (
+          <button
+            key={key}
+            type="button"
+            className="chip"
+            data-active={type === key}
+            onClick={() => setType(key as TypeKey)}
+            aria-pressed={type === key}
+          >
+            <span className="emoji">{v.emoji}</span>
+            <span>{v.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <label htmlFor="title">Название</label>
+      <input
+        id="title"
+        className="input"
+        placeholder="Например: Измерение сахара"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        maxLength={40}
+      />
+
+      <div className="form-grid">
         <div>
-          <label className="form-label">Название</label>
+          <label htmlFor="time">Время</label>
+          <input id="time" className="input" type="time" value={time} onChange={(e)=>setTime(e.target.value)} />
+        </div>
+        <div>
+          <label htmlFor="interval">Интервал (мин)</label>
           <input
-            type="text"
-            value={form.title}
-            onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
+            id="interval"
             className="input"
-            placeholder="Например: Измерение сахара"
-          />
-        </div>
-
-        <div>
-          <label className="form-label">Время</label>
-          <input
-            type="time"
-            value={form.time}
-            onChange={e => setForm(prev => ({ ...prev, time: e.target.value }))}
-            className="input"
-          />
-        </div>
-
-        <div>
-          <label className="form-label">Интервал (мин)</label>
-          <input
             type="number"
-            value={form.interval ?? ''}
-            onChange={e =>
-              setForm(prev => ({
-                ...prev,
-                interval: e.target.value ? Number(e.target.value) : undefined
-              }))
-            }
-            className="input"
+            min={5}
+            step={5}
+            value={interval}
+            onChange={(e)=>setInterval(Number(e.target.value))}
             placeholder="Например: 60"
-            min={1}
           />
         </div>
-      </form>
-    </Modal>
-  );
-};
+      </div>
 
-export default ReminderForm;
+      <div className="actions-row">
+        <button className="btn-primary" type="submit">Сохранить</button>
+        <button className="btn-ghost" type="button" onClick={props.onCancel}>Отмена</button>
+      </div>
+    </form>
+  );
+}
