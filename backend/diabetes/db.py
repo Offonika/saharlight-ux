@@ -20,7 +20,12 @@ import asyncio
 import threading
 from typing import Any, Callable, TypeVar
 
-from diabetes.config import DB_HOST, DB_PORT, DB_NAME, DB_USER
+from backend import config
+
+DB_HOST = config.DB_HOST
+DB_PORT = config.DB_PORT
+DB_NAME = config.DB_NAME
+DB_USER = config.DB_USER
 
 
 # ────────────────── подключение к Postgres ──────────────────
@@ -148,8 +153,6 @@ class ReminderLog(Base):
 # ────────────────────── инициализация ────────────────────────
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
-    from diabetes import config
-
     if not config.DB_PASSWORD:
         raise ValueError("DB_PASSWORD environment variable must be set")
     database_url = URL.create(
