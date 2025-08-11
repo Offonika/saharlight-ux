@@ -31,3 +31,5 @@ webapp_data/
 # Temporary/test files
 test123.txt
 .pytest_cache/
+
+/webapp/ui/dist

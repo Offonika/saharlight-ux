@@ -4,21 +4,12 @@ import react from '@vitejs/plugin-react-swc'
 import path from 'path'
 
 export default defineConfig({
-  base: '/ui/',        // ассеты будут /ui/assets/...
+  base: '/ui/',
   plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@public': path.resolve(__dirname, '../public'),
+      '@ux': path.resolve(__dirname, '../ux-kit/src'), // ← сюда будет синкаться дизайн
     },
-  },
-  server: {
-    fs: {
-      allow: ['..'],
-    },
-  },
-  build: {
-    outDir: 'dist',    // кладём сборку в webapp/ui/dist
-    emptyOutDir: true, // чистим dist перед сборкой
   },
 })

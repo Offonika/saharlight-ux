@@ -1,33 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
+<!-- file: webapp/ui/index.html -->
+<!doctype html>
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>СахарФото - Ассистент для диабетиков</title>
-    <link rel="icon" type="image/png" href="/src/assets/app-icon.png" />
-    <meta name="description" content="Умный помощник для людей с диабетом 2 типа с GPT-аналитикой еды" />
+    <!-- Важно для Telegram WebApp и мобильных браузеров -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <title>СахарФото — ассистент для диабетиков</title>
+    <meta name="description" content="Умный помощник для людей с диабетом 2 типа: распознаёт еду по фото, считает углеводы/ХЕ и помогает с напоминаниями." />
     <meta name="author" content="СахарФото" />
-    <meta name="color-scheme" content="light" />
-    <meta name="theme-color" content="#ffffff" />
+
+    <!-- Поддержка светлой и тёмной темы -->
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0f19" media="(prefers-color-scheme: dark)" />
+
+    <!-- Иконки (положи файлы в webapp/ui/public/, будут доступны как /ui/...) -->
+    <link rel="icon" type="image/png" href="/ui/app-icon.png" />
+    <link rel="apple-touch-icon" href="/ui/app-icon.png" />
+
+    <!-- Глобальные стили (раздаются сервером как /style.css) -->
     <link rel="stylesheet" href="/style.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Шрифты -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Telegram SDK + инициализация темы (не бандлим, грузим отдельным скриптом) -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="/telegram-init.js" defer></script>
 
-    <meta property="og:title" content="saharlight-ux" />
-    <meta property="og:description" content="Lovable Generated Project" />
+    <!-- Open Graph / Twitter -->
+    <meta property="og:title" content="СахарФото — ассистент для диабетиков" />
+    <meta property="og:description" content="Распознаёт еду по фото, считает углеводы/ХЕ, напоминает об измерении сахара, инсулине и лекарствах." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <!-- Помести og-изображение в webapp/ui/public/app-og.png -->
+    <meta property="og:image" content="/ui/app-og.png" />
+    <meta property="og:locale" content="ru_RU" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:title" content="СахарФото — ассистент для диабетиков" />
+    <meta name="twitter:description" content="Распознаёт еду по фото, считает углеводы/ХЕ и помогает с напоминаниями." />
+    <meta name="twitter:image" content="/ui/app-og.png" />
   </head>
 
   <body>
     <div id="root"></div>
+    <!-- Точка входа Vite -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

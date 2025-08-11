@@ -1,73 +1,105 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react';
-import { MedicalHeader } from '@/components/MedicalHeader';
-import { useToast } from '@/hooks/use-toast';
-import { getReminders } from '@/api/reminders';
-import MedicalButton from '@/components/MedicalButton';
-import { cn } from '@/lib/utils';
+// Файл: webapp/ui/src/pages/Reminders.tsx
+import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react'
+import { MedicalHeader } from '@/components/MedicalHeader'
+import { useToast } from '@/hooks/use-toast'
+import { getReminders } from '@/api/reminders'
+import MedicalButton from '@/components/MedicalButton'
+import { cn } from '@/lib/utils'
+
+type ReminderType = 'sugar' | 'insulin' | 'meal' | 'medicine' | 'meds'
 
 interface Reminder {
-  id: number;
-  type: 'sugar' | 'insulin' | 'meal' | 'medicine';
-  title: string;
-  time: string;
-  active: boolean;
-  interval?: number;
+  id: number
+  type: ReminderType
+  title: string
+  time: string   // "HH:MM"
+  active: boolean
+  interval?: number
 }
 
-const reminderTypes = {
-  sugar: { label: 'Измерение сахара', icon: '🩸', color: 'medical-error' },
-  insulin: { label: 'Инсулин', icon: '💉', color: 'medical-blue' },
-  meal: { label: 'Приём пищи', icon: '🍽️', color: 'medical-success' },
-  medicine: { label: 'Лекарства', icon: '💊', color: 'medical-teal' }
-};
-
-interface ReminderItemProps {
-  reminder: Reminder;
-  index: number;
-  onToggle: (id: number) => void;
-  onEdit: (reminder: Reminder) => void;
-  onDelete: (id: number) => void;
+const TYPE_LABEL: Record<'sugar'|'insulin'|'meal'|'medicine', string> = {
+  sugar: 'Измерение сахара',
+  insulin: 'Инсулин',
+  meal: 'Приём пищи',
+  medicine: 'Лекарства',
 }
 
-const ReminderItem = ({
+const TYPE_ICON: Record<'sugar'|'insulin'|'meal'|'medicine', string> = {
+  sugar: '🩸',
+  insulin: '💉',
+  meal: '🍽️',
+  medicine: '💊',
+}
+
+const normalizeType = (t: ReminderType): 'sugar'|'insulin'|'meal'|'medicine' =>
+  (t === 'meds' ? 'medicine' : t) as any
+
+function parseTimeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return (h || 0) * 60 + (m || 0)
+}
+
+function SkeletonItem() {
+  return (
+    <div className="rem-card animate-pulse">
+      <div className="rem-left" />
+      <div className="rem-main">
+        <div className="h-5 w-40 rounded bg-muted/30" />
+        <div className="rem-meta mt-1">
+          <span className="h-6 w-16 rounded-full bg-muted/30" />
+          <span className="h-6 w-28 rounded-full bg-muted/30" />
+        </div>
+      </div>
+      <div className="rem-actions">
+        <div className="icon-btn" />
+        <div className="icon-btn" />
+        <div className="icon-btn" />
+      </div>
+    </div>
+  )
+}
+
+function ReminderRow({
   reminder,
   index,
   onToggle,
   onEdit,
   onDelete,
-}: ReminderItemProps) => {
-  const typeInfo = reminderTypes[reminder.type];
+}: {
+  reminder: Reminder
+  index: number
+  onToggle: (id: number) => void
+  onEdit: (reminder: Reminder) => void
+  onDelete: (id: number) => void
+}) {
+  const nt = normalizeType(reminder.type)
+  const icon = TYPE_ICON[nt]
+  const label = TYPE_LABEL[nt]
+
   return (
     <div
-      className={cn('reminder-card', reminder.type, !reminder.active && 'opacity-60')}
-      style={{ animationDelay: `${index * 100}ms` }}
+      className={cn('rem-card', !reminder.active && 'opacity-60')}
+      style={{ animationDelay: `${index * 80}ms` }}
     >
-      <span className="text-lg">{typeInfo.icon}</span>
-      <div className="flex-1 min-w-0">
-        <h3 className="rem-title font-medium text-foreground">{reminder.title}</h3>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-          <Clock className="w-3 h-3" />
-          <span className="badge">{reminder.time}</span>
-          <span className="badge badge-tonal">{typeInfo.label}</span>
+      <div className="rem-left" aria-hidden>{icon}</div>
+
+      <div className="rem-main">
+        <div className="rem-title font-medium text-foreground">{reminder.title}</div>
+        <div className="rem-meta">
+          <span className="badge"><Clock className="inline -mt-0.5 mr-1 h-3 w-3" />{reminder.time}</span>
+          <span className="badge badge-tonal">{label}</span>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+
+      <div className="rem-actions">
         <MedicalButton
           size="icon"
-          className={cn(
-            reminder.active
-              ? 'bg-success/10 text-success'
-              : 'bg-secondary text-muted-foreground'
-          )}
-          onClick={() => onToggle(reminder.id)}
-          aria-label={
-            reminder.active
-              ? 'Отключить напоминание'
-              : 'Включить напоминание'
-          }
           variant="ghost"
+          className={cn(reminder.active ? 'bg-success/10 text-success' : 'bg-secondary text-muted-foreground')}
+          onClick={() => onToggle(reminder.id)}
+          aria-label={reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
         >
           <Bell className="w-4 h-4" />
         </MedicalButton>
@@ -89,65 +121,96 @@ const ReminderItem = ({
         </MedicalButton>
       </div>
     </div>
-  );
-};
+  )
+}
 
-const Reminders = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
+export default function Reminders() {
+  const navigate = useNavigate()
+  const { toast } = useToast()
 
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [reminders, setReminders] = useState<Reminder[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchReminders = async () => {
+    let cancelled = false
+    ;(async () => {
       try {
-        const data = await getReminders();
-        setReminders(data);
+        const data = await getReminders()
+        if (cancelled) return
+        // нормализуем тип и сортируем по времени
+        const normalized: Reminder[] = (data || []).map((r: Reminder) => ({
+          ...r,
+          type: normalizeType(r.type),
+        }))
+        normalized.sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time))
+        setReminders(normalized)
       } catch {
-        setError('Не удалось загрузить напоминания');
-        toast({
-          title: 'Ошибка',
-          description: 'Не удалось загрузить напоминания',
-          variant: 'destructive'
-        });
+        if (!cancelled) {
+          setError('Не удалось загрузить напоминания')
+          toast({ title: 'Ошибка', description: 'Не удалось загрузить напоминания', variant: 'destructive' })
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false)
       }
-    };
-    fetchReminders();
-  }, [toast]);
+    })()
+    return () => { cancelled = true }
+  }, [toast])
 
   const handleToggleReminder = (id: number) => {
     setReminders(prev =>
-      prev.map(reminder =>
-        reminder.id === id
-          ? { ...reminder, active: !reminder.active }
-          : reminder
-      )
-    );
-    toast({
-      title: "Напоминание обновлено",
-      description: "Статус напоминания изменен",
-    });
-  };
+      prev.map(r => (r.id === id ? { ...r, active: !r.active } : r)),
+    )
+    toast({ title: 'Напоминание обновлено', description: 'Статус напоминания изменён' })
+    // TODO: вызвать API toggle
+  }
 
   const handleDeleteReminder = (id: number) => {
-    setReminders(prev => prev.filter(reminder => reminder.id !== id));
-    toast({
-      title: "Напоминание удалено",
-      description: "Напоминание успешно удалено",
-    });
-  };
+    setReminders(prev => prev.filter(r => r.id !== id))
+    toast({ title: 'Напоминание удалено', description: 'Напоминание успешно удалено' })
+    // TODO: вызвать API delete
+  }
+
+  const content = useMemo(() => {
+    if (loading) {
+      return (
+        <div className="space-y-3 mb-6">
+          {Array.from({ length: 4 }).map((_, i) => <SkeletonItem key={i} />)}
+        </div>
+      )
+    }
+    if (error) return <div className="text-center py-12 text-destructive">{error}</div>
+    if (reminders.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">Нет напоминаний</h3>
+          <p className="text-muted-foreground mb-6">Добавьте первое напоминание для контроля диабета</p>
+          <MedicalButton onClick={() => navigate('/reminders/new')} size="lg">
+            Создать напоминание
+          </MedicalButton>
+        </div>
+      )
+    }
+    return (
+      <div className="space-y-3 mb-6">
+        {reminders.map((reminder, index) => (
+          <ReminderRow
+            key={reminder.id}
+            reminder={reminder}
+            index={index}
+            onToggle={handleToggleReminder}
+            onEdit={(r) => navigate(`/reminders/${r.id}/edit`)}
+            onDelete={handleDeleteReminder}
+          />
+        ))}
+      </div>
+    )
+  }, [loading, error, reminders, navigate])
 
   return (
     <div className="min-h-screen bg-background">
-      <MedicalHeader
-        title="Напоминания"
-        showBack
-        onBack={() => navigate('/')}
-      >
+      <MedicalHeader title="Напоминания" showBack onBack={() => navigate('/')}>
         <MedicalButton
           size="icon"
           onClick={() => navigate('/reminders/new')}
@@ -159,42 +222,8 @@ const Reminders = () => {
       </MedicalHeader>
 
       <main className="container mx-auto px-4 py-6">
-        {loading ? (
-          <div className="text-center py-12">Загрузка...</div>
-        ) : error ? (
-          <div className="text-center py-12 text-destructive">{error}</div>
-        ) : (
-          <div className="space-y-3 mb-6">
-            {reminders.map((reminder, index) => (
-              <ReminderItem
-                key={reminder.id}
-                reminder={reminder}
-                index={index}
-                onToggle={handleToggleReminder}
-                onEdit={(r) => navigate(`/reminders/${r.id}/edit`)}
-                onDelete={handleDeleteReminder}
-              />
-            ))}
-          </div>
-        )}
-        {/* Пустое состояние */}
-        {!loading && !error && reminders.length === 0 && (
-          <div className="text-center py-12">
-            <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              Нет напоминаний
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Добавьте первое напоминание для контроля диабета
-            </p>
-            <MedicalButton onClick={() => navigate('/reminders/new')} size="lg">
-              Создать напоминание
-            </MedicalButton>
-          </div>
-        )}
+        {content}
       </main>
     </div>
-  );
-};
-
-export default Reminders;
+  )
+}
