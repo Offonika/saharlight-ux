@@ -33,3 +33,6 @@ test123.txt
 .pytest_cache/
 
 /webapp/ui/dist
+
+# CLI flag artifacts
+--*
