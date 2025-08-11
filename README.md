@@ -17,9 +17,12 @@
   - `reporting_handlers.py` — дневник и отчётность
   - `dose_handlers.py` — расчёт доз инсулина
   - новые файлы `*_handlers.py` — для прочих сценариев
-- `webapp/` — FastAPI‑приложение, отдающее React‑SPA (`/ui`) и служебные API
-  (например `/api/timezone`); маршруты SPA обслуживаются через fallback на
-  `index.html`
+    - `apps/telegram-bot/` — автотесты и сопутствующие файлы Телеграм‑бота
+    - `apps/web/` — интерфейс WebApp (React‑SPA на Vite)
+    - `webapp/` — статика (`public`, `style.css`) для WebApp, отдаётся FastAPI
+      из `backend/main.py`; маршруты SPA обслуживаются через fallback на
+      `index.html`
+    - `apps/android/`, `apps/ios/`, `apps/clinic-panel/` — заготовки для будущих приложений
 
 Новые обработчики добавляйте в каталог `backend/diabetes/`, создавая отдельные модули с суффиксом `_handlers.py` и группируя их по доменам.
 
@@ -88,9 +91,9 @@
 
 ### Запуск WebApp
 
-В каталоге `webapp/ui` расположен React‑SPA (Vite), исходники лежат в `src/`,
-а результат сборки — в `dist/`. Файл `webapp/server.py` отдаёт содержимое
-каталога `webapp/ui/dist` и служебные API.
+В каталоге `apps/web` расположен React‑SPA (Vite), исходники лежат в `src/`,
+а результат сборки — в `dist/`. FastAPI приложение `backend/main.py` отдаёт
+содержимое каталога `apps/web/dist` и служебные API.
 
 1. **Сборка интерфейса**
 
@@ -103,7 +106,7 @@
    Ручная сборка нужна только для локального тестирования изменений:
 
    ```bash
-   cd webapp/ui
+   cd apps/web
    npm ci
    npm run build
    ```
@@ -137,11 +140,11 @@ ngrok http 8000
 
 ## Сервисный запуск
 
-В каталоге `deploy/` лежат примерные конфигурации для запуска приложения как службы.
+В каталоге `apps/telegram-bot/deploy/` лежат примерные конфигурации для запуска приложения как службы.
 Они выполняют `uvicorn webapp.server:app --workers 4` и автоматически перезапускаются при сбое.
 
-- `deploy/diabetes-assistant.service` — unit‑файл для **systemd**. Скопируйте его в `/etc/systemd/system/`, отредактируйте пути и пользователя, затем выполните `sudo systemctl enable --now diabetes-assistant`.
-- `deploy/supervisord.conf` — секция для **supervisord**. Добавьте её в конфигурацию и перезапустите менеджер процессов.
+- `apps/telegram-bot/deploy/diabetes-assistant.service` — unit‑файл для **systemd**. Скопируйте его в `/etc/systemd/system/`, отредактируйте пути и пользователя, затем выполните `sudo systemctl enable --now diabetes-assistant`.
+- `apps/telegram-bot/deploy/supervisord.conf` — секция для **supervisord**. Добавьте её в конфигурацию и перезапустите менеджер процессов.
 
 При необходимости настройте рабочий каталог и параметры запуска под своё окружение.
 
@@ -151,6 +154,6 @@ ngrok http 8000
 
 ```bash
 pip install -r backend/requirements-dev.txt
-ruff backend/diabetes tests
-pytest tests/
+ruff backend/diabetes apps/telegram-bot/tests
+pytest apps/telegram-bot/tests
 ```

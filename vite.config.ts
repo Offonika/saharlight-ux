@@ -8,11 +8,11 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     // Delegate to the UI folder as Vite root
-    root: path.resolve(__dirname, 'webapp/ui'),
+    root: path.resolve(__dirname, 'apps/web'),
     plugins: [react(), mode === 'development' && componentTagger()].filter(Boolean),
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, 'webapp/ui/src'),
+        '@': path.resolve(__dirname, 'apps/web/src'),
       },
     },
     server: {

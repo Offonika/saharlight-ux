@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 app.router.redirect_slashes = True
 
-BASE_DIR = Path(__file__).resolve().parent.parent / "webapp"
-UI_DIR = (BASE_DIR / "ui" / "dist").resolve()
-PUBLIC_DIR = (BASE_DIR / "public").resolve()
-STYLE_FILE = BASE_DIR / "style.css"
+BASE_DIR = Path(__file__).resolve().parent.parent
+UI_DIR = (BASE_DIR / "apps" / "web" / "dist").resolve()
+PUBLIC_DIR = (BASE_DIR / "webapp" / "public").resolve()
+STYLE_FILE = BASE_DIR / "webapp" / "style.css"
 
 
 @app.post("/api/timezone")

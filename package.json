@@ -3,11 +3,11 @@
   "private": true,
   "dependencies": {},
   "scripts": {
-    "setup": "npm --prefix webapp/ui ci",
-    "dev": "npm run setup && npm --prefix webapp/ui run dev",
-    "build": "npm run setup && npm --prefix webapp/ui run build",
-    "build:dev": "npm run setup && npm --prefix webapp/ui run build:dev",
-    "preview": "npm --prefix webapp/ui run preview",
-    "lint": "npm --prefix webapp/ui run lint"
+    "setup": "npm --prefix apps/web ci",
+    "dev": "npm run setup && npm --prefix apps/web run dev",
+    "build": "npm run setup && npm --prefix apps/web run build",
+    "build:dev": "npm run setup && npm --prefix apps/web run build:dev",
+    "preview": "npm --prefix apps/web run preview",
+    "lint": "npm --prefix apps/web run lint"
   }
 }

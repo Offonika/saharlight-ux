@@ -3,9 +3,9 @@ set -e
 
 if [ "$ENABLE_WEBAPP" = "1" ] || [ "$ENABLE_WEBAPP" = "true" ]; then
     if [ -n "$WEBAPP_URL" ] && [[ "$WEBAPP_URL" == https://* ]]; then
-        if [ ! -d "webapp/ui/dist" ]; then
+        if [ ! -d "apps/web/dist" ]; then
             echo "Building webapp UI..."
-            (cd webapp/ui && npm ci && npm run build)
+            (cd apps/web && npm ci && npm run build)
         else
             echo "webapp UI already built; skipping build"
         fi

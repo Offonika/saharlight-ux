@@ -55,15 +55,15 @@
 
 ## 🧪 Тесты и качество кода
 
-- **Тесты**: (добавляйте в папку `tests/`, по мере развития)
+- **Тесты**: (добавляйте в папку `apps/telegram-bot/tests/`, по мере развития)
     ```bash
     pip install pytest
-    pytest tests/
+    pytest apps/telegram-bot/tests/
     ```
 - **Линтинг**: PEP8-стиль
     ```bash
     pip install -r backend/requirements-dev.txt
-    ruff backend/diabetes tests
+    ruff backend/diabetes apps/telegram-bot/tests
     ```
 
 ---
