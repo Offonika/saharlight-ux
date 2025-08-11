@@ -8,33 +8,33 @@ const menuItems = [
     id: 'reminders',
     title: 'Напоминания',
     icon: Clock,
-    description: 'Настройка уведомлений',
+    description: 'AI-уведомления',
     route: '/reminders',
-    color: 'medical-blue'
+    gradient: 'bg-gradient-to-br from-tech-primary to-tech-accent'
   },
   {
     id: 'profile', 
     title: 'Мой профиль',
     icon: User,
-    description: 'Личные настройки',
+    description: 'Умные настройки',
     route: '/profile',
-    color: 'medical-teal'
+    gradient: 'bg-gradient-to-br from-tech-secondary to-tech-primary'
   },
   {
     id: 'history',
     title: 'История',
     icon: BookOpen,
-    description: 'Записи о сахаре',
+    description: 'Аналитика данных',
     route: '/history',
-    color: 'medical-success'
+    gradient: 'bg-gradient-to-br from-tech-accent to-tech-secondary'
   },
   {
     id: 'subscription',
     title: 'Подписка',
     icon: Star,
-    description: 'Тарифы и оплата',
+    description: 'PRO возможности',
     route: '/subscription',
-    color: 'medical-warning'
+    gradient: 'bg-gradient-to-br from-warning to-tech-warning'
   }
 ];
 
@@ -68,22 +68,13 @@ const Home = () => {
             return (
               <div
                 key={item.id}
-                className="medical-tile"
+                className="tech-tile"
                 style={{ animationDelay: `${index * 100}ms` }}
                 onClick={() => handleTileClick(item.route)}
               >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${
-                item.color === 'medical-blue' ? 'bg-medical-blue/10' :
-                item.color === 'medical-teal' ? 'bg-medical-teal/10' :
-                item.color === 'medical-success' ? 'bg-medical-success/10' :
-                'bg-medical-warning/10'
-              }`}>
-                <Icon className={`w-6 h-6 ${
-                  item.color === 'medical-blue' ? 'text-medical-blue' :
-                  item.color === 'medical-teal' ? 'text-medical-teal' :
-                  item.color === 'medical-success' ? 'text-medical-success' :
-                  'text-medical-warning'
-                }`} />
+                <div className={`w-14 h-14 rounded-lg flex items-center justify-center mb-3 ${item.gradient} relative`}>
+                  <Icon className="w-7 h-7 text-white drop-shadow-lg" />
+                  <div className="absolute inset-0 rounded-lg bg-gradient-to-t from-black/20 to-transparent"></div>
                 </div>
                 <h3 className="font-semibold text-foreground mb-1">{item.title}</h3>
                 <p className="text-sm text-muted-foreground">{item.description}</p>
@@ -93,31 +84,40 @@ const Home = () => {
         </div>
 
         {/* Быстрые действия */}
-        <div className="medical-card animate-fade-in" style={{ animationDelay: '400ms' }}>
-          <h3 className="font-semibold text-foreground mb-4">Быстрые действия</h3>
+        <div className="tech-card animate-fade-in" style={{ animationDelay: '400ms' }}>
+          <h3 className="font-semibold text-foreground mb-4 neon-text">Быстрые действия</h3>
           <div className="grid grid-cols-2 gap-3">
-            <button className="medical-button-secondary py-2 text-sm">
-              Записать сахар
+            <button className="tech-button-secondary py-3 text-sm font-medium">
+              📊 Записать сахар
             </button>
-            <button className="medical-button-secondary py-2 text-sm">
-              Добавить еду
+            <button className="tech-button-secondary py-3 text-sm font-medium">
+              🍽️ Добавить еду
             </button>
           </div>
         </div>
 
         {/* Статистика дня */}
         <div className="mt-6 grid grid-cols-3 gap-3">
-          <div className="medical-card text-center py-4">
-            <div className="text-2xl font-bold text-medical-blue">6.2</div>
-            <div className="text-xs text-muted-foreground">ммоль/л</div>
+          <div className="tech-card text-center py-5 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-tech-primary/20 to-transparent"></div>
+            <div className="relative z-10">
+              <div className="text-3xl font-bold text-tech-primary glow-effect">6.2</div>
+              <div className="text-xs text-muted-foreground mt-1">ммоль/л</div>
+            </div>
           </div>
-          <div className="medical-card text-center py-4">
-            <div className="text-2xl font-bold text-medical-teal">4</div>
-            <div className="text-xs text-muted-foreground">ХЕ</div>
+          <div className="tech-card text-center py-5 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-tech-accent/20 to-transparent"></div>
+            <div className="relative z-10">
+              <div className="text-3xl font-bold text-tech-accent glow-effect">4</div>
+              <div className="text-xs text-muted-foreground mt-1">ХЕ</div>
+            </div>
           </div>
-          <div className="medical-card text-center py-4">
-            <div className="text-2xl font-bold text-medical-success">12</div>
-            <div className="text-xs text-muted-foreground">ед.</div>
+          <div className="tech-card text-center py-5 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-tech-success/20 to-transparent"></div>
+            <div className="relative z-10">
+              <div className="text-3xl font-bold text-tech-success glow-effect">12</div>
+              <div className="text-xs text-muted-foreground mt-1">ед.</div>
+            </div>
           </div>
         </div>
       </main>

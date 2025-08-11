@@ -2,87 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
-/* СахарФото Design System - Медицинский дизайн для диабетиков
-Цветовая схема: медицинский синий, бирюза, нейтральные серые
+/* СахарФото Design System - Современный технологичный дизайн
+Цветовая схема: градиенты, неоновые акценты, контрастные цвета
 Поддержка Telegram WebApp тем
 */
 
 @layer base {
   :root {
-    /* Основные цвета бренда */
-    --medical-blue: 210 85% 45%;
-    --medical-teal: 180 65% 55%;
-    --medical-success: 142 70% 45%;
-    --medical-warning: 38 92% 50%;
-    --medical-error: 0 84% 60%;
+    /* Технологичная цветовая палитра */
+    --tech-primary: 240 100% 60%;        /* Яркий синий */
+    --tech-secondary: 280 100% 65%;      /* Фиолетовый */
+    --tech-accent: 200 100% 55%;         /* Голубой неон */
+    --tech-success: 120 100% 50%;        /* Зеленый неон */
+    --tech-warning: 45 100% 55%;         /* Желтый неон */
+    --tech-error: 0 100% 65%;            /* Красный неон */
     
-    /* Нейтральная палитра */
-    --neutral-50: 210 10% 98%;
-    --neutral-100: 210 10% 95%;
-    --neutral-200: 210 8% 85%;
-    --neutral-300: 210 6% 75%;
-    --neutral-400: 210 6% 65%;
-    --neutral-500: 210 6% 45%;
-    --neutral-600: 210 8% 35%;
-    --neutral-700: 210 10% 25%;
-    --neutral-800: 210 12% 15%;
-    --neutral-900: 210 15% 10%;
+    /* Темная нейтральная палитра */
+    --neutral-50: 220 15% 97%;
+    --neutral-100: 220 15% 92%;
+    --neutral-200: 220 13% 80%;
+    --neutral-300: 220 10% 65%;
+    --neutral-400: 220 8% 50%;
+    --neutral-500: 220 10% 35%;
+    --neutral-600: 220 15% 25%;
+    --neutral-700: 220 20% 18%;
+    --neutral-800: 220 25% 12%;
+    --neutral-900: 220 30% 8%;
     
-    /* Градиенты */
-    --gradient-medical: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(var(--medical-teal)));
-    --gradient-card: linear-gradient(180deg, hsl(var(--neutral-50)), hsl(0 0% 100%));
-    --gradient-button: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(210 85% 40%));
+    /* Технологичные градиенты */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--tech-primary)), hsl(var(--tech-secondary)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--tech-accent)), hsl(var(--tech-primary)));
+    --gradient-card: linear-gradient(145deg, hsl(var(--neutral-800) / 0.8), hsl(var(--neutral-700) / 0.6));
+    --gradient-button: linear-gradient(135deg, hsl(var(--tech-primary)), hsl(var(--tech-accent)));
+    --gradient-glow: radial-gradient(circle at center, hsl(var(--tech-primary) / 0.3), transparent 70%);
     
-    /* Тени */
-    --shadow-soft: 0 2px 8px hsl(var(--medical-blue) / 0.08);
-    --shadow-medium: 0 4px 16px hsl(var(--medical-blue) / 0.12);
-    --shadow-strong: 0 8px 32px hsl(var(--medical-blue) / 0.16);
+    /* Неоновые тени и эффекты */
+    --shadow-soft: 0 4px 20px hsl(var(--tech-primary) / 0.15);
+    --shadow-medium: 0 8px 30px hsl(var(--tech-primary) / 0.25);
+    --shadow-strong: 0 16px 40px hsl(var(--tech-primary) / 0.35);
+    --shadow-glow: 0 0 30px hsl(var(--tech-primary) / 0.4);
+    --shadow-neon: 0 0 20px hsl(var(--tech-accent) / 0.6), 0 0 40px hsl(var(--tech-accent) / 0.3);
     
     /* Telegram WebApp переменные (светлая тема) */
-    --tg-theme-bg-color: hsl(var(--neutral-50));
-    --tg-theme-text-color: hsl(var(--neutral-800));
+    --tg-theme-bg-color: hsl(var(--neutral-100));
+    --tg-theme-text-color: hsl(var(--neutral-900));
     --tg-theme-hint-color: hsl(var(--neutral-500));
-    --tg-theme-link-color: hsl(var(--medical-blue));
-    --tg-theme-button-color: hsl(var(--medical-blue));
+    --tg-theme-link-color: hsl(var(--tech-primary));
+    --tg-theme-button-color: hsl(var(--tech-primary));
     --tg-theme-button-text-color: hsl(0 0% 100%);
-    --tg-theme-secondary-bg-color: hsl(0 0% 100%);
+    --tg-theme-secondary-bg-color: hsl(var(--neutral-50));
     
     /* Семантические токены */
-    --background: var(--tg-theme-bg-color, var(--neutral-50));
-    --foreground: var(--tg-theme-text-color, var(--neutral-800));
+    --background: var(--tg-theme-bg-color, var(--neutral-100));
+    --foreground: var(--tg-theme-text-color, var(--neutral-900));
     
-    --card: var(--tg-theme-secondary-bg-color, 0 0% 100%);
-    --card-foreground: var(--tg-theme-text-color, var(--neutral-800));
+    --card: var(--tg-theme-secondary-bg-color, var(--neutral-50));
+    --card-foreground: var(--tg-theme-text-color, var(--neutral-900));
     
-    --popover: 0 0% 100%;
-    --popover-foreground: var(--neutral-800);
+    --popover: var(--neutral-50);
+    --popover-foreground: var(--neutral-900);
     
-    --primary: var(--tg-theme-button-color, var(--medical-blue));
+    --primary: var(--tg-theme-button-color, var(--tech-primary));
     --primary-foreground: var(--tg-theme-button-text-color, 0 0% 100%);
     
-    --secondary: var(--neutral-100);
-    --secondary-foreground: var(--neutral-700);
+    --secondary: var(--neutral-200);
+    --secondary-foreground: var(--neutral-800);
     
-    --muted: var(--neutral-100);
+    --muted: var(--neutral-200);
     --muted-foreground: var(--tg-theme-hint-color, var(--neutral-500));
     
-    --accent: var(--medical-teal);
+    --accent: var(--tech-accent);
     --accent-foreground: 0 0% 100%;
     
-    --destructive: var(--medical-error);
+    --destructive: var(--tech-error);
     --destructive-foreground: 0 0% 100%;
     
-    --success: var(--medical-success);
+    --success: var(--tech-success);
     --success-foreground: 0 0% 100%;
     
-    --warning: var(--medical-warning);
+    --warning: var(--tech-warning);
     --warning-foreground: var(--neutral-900);
     
-    --border: var(--neutral-200);
-    --input: var(--neutral-200);
-    --ring: var(--tg-theme-link-color, var(--medical-blue));
+    --border: var(--neutral-300);
+    --input: var(--neutral-300);
+    --ring: var(--tg-theme-link-color, var(--tech-primary));
     
-    --radius: 0.75rem;
+    --radius: 0.5rem;
   }
 
   /* Темная тема Telegram */
@@ -91,8 +96,8 @@
     --tg-theme-bg-color: hsl(var(--neutral-900));
     --tg-theme-text-color: hsl(var(--neutral-100));
     --tg-theme-hint-color: hsl(var(--neutral-400));
-    --tg-theme-link-color: hsl(var(--medical-teal));
-    --tg-theme-button-color: hsl(var(--medical-blue));
+    --tg-theme-link-color: hsl(var(--tech-accent));
+    --tg-theme-button-color: hsl(var(--tech-primary));
     --tg-theme-button-text-color: hsl(0 0% 100%);
     --tg-theme-secondary-bg-color: hsl(var(--neutral-800));
     
@@ -106,7 +111,7 @@
     --popover: var(--neutral-800);
     --popover-foreground: var(--neutral-100);
     
-    --primary: var(--tg-theme-button-color, var(--medical-blue));
+    --primary: var(--tg-theme-button-color, var(--tech-primary));
     --primary-foreground: var(--tg-theme-button-text-color, 0 0% 100%);
     
     --secondary: var(--neutral-800);
@@ -115,21 +120,21 @@
     --muted: var(--neutral-800);
     --muted-foreground: var(--tg-theme-hint-color, var(--neutral-400));
     
-    --accent: var(--medical-teal);
+    --accent: var(--tech-accent);
     --accent-foreground: var(--neutral-900);
     
-    --destructive: var(--medical-error);
+    --destructive: var(--tech-error);
     --destructive-foreground: 0 0% 100%;
     
-    --success: var(--medical-success);
+    --success: var(--tech-success);
     --success-foreground: 0 0% 100%;
     
-    --warning: var(--medical-warning);
+    --warning: var(--tech-warning);
     --warning-foreground: var(--neutral-900);
     
-    --border: var(--neutral-700);
-    --input: var(--neutral-700);
-    --ring: var(--tg-theme-link-color, var(--medical-teal));
+    --border: var(--neutral-600);
+    --input: var(--neutral-600);
+    --ring: var(--tg-theme-link-color, var(--tech-accent));
   }
 }
 
@@ -168,40 +173,65 @@
 }
 
 @layer components {
-  /* Медицинские компоненты */
-  .medical-card {
-    @apply bg-card border border-border rounded-xl p-6 shadow-[var(--shadow-soft)] 
-           hover:shadow-[var(--shadow-medium)] transition-all duration-200;
+  /* Технологичные компоненты */
+  .tech-card {
+    @apply bg-gradient-card backdrop-blur-sm border border-border/30 rounded-lg p-6 
+           shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-glow)] 
+           transition-all duration-300 relative overflow-hidden;
   }
   
-  .medical-button {
-    @apply bg-gradient-to-r from-primary to-primary/90 text-primary-foreground 
-           font-medium px-6 py-3 rounded-xl border-0 shadow-[var(--shadow-soft)]
-           hover:shadow-[var(--shadow-medium)] active:scale-95 
-           transition-all duration-200 touch-manipulation;
+  .tech-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-glow opacity-0 hover:opacity-100 
+           transition-opacity duration-300 pointer-events-none;
   }
   
-  .medical-button-secondary {
-    @apply bg-secondary text-secondary-foreground font-medium px-6 py-3 rounded-xl 
-           border border-border hover:bg-secondary/80 active:scale-95 
-           transition-all duration-200 touch-manipulation;
+  .tech-button {
+    @apply bg-gradient-button text-primary-foreground font-semibold px-6 py-3 
+           rounded-lg border-0 shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-neon)]
+           active:scale-95 transition-all duration-300 touch-manipulation
+           relative overflow-hidden;
   }
   
-  .medical-input {
-    @apply w-full px-4 py-3 bg-card border border-input rounded-xl text-foreground
-           placeholder:text-muted-foreground focus:outline-none focus:ring-2 
-           focus:ring-ring focus:border-transparent transition-all duration-200;
+  .tech-button::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-accent opacity-0 hover:opacity-20 
+           transition-opacity duration-300;
   }
   
-  .medical-tile {
-    @apply medical-card hover:bg-card/80 active:scale-95 cursor-pointer
-           flex flex-col items-center justify-center min-h-[120px] text-center
-           transition-all duration-200 touch-manipulation;
+  .tech-button-secondary {
+    @apply bg-secondary/20 backdrop-blur-sm text-secondary-foreground font-medium 
+           px-6 py-3 rounded-lg border border-border/50 hover:bg-secondary/30 
+           hover:shadow-[var(--shadow-soft)] active:scale-95 
+           transition-all duration-300 touch-manipulation;
   }
   
-  .medical-list-item {
-    @apply bg-card border border-border rounded-lg p-4 mb-3 
-           hover:shadow-[var(--shadow-soft)] transition-all duration-200;
+  .tech-input {
+    @apply w-full px-4 py-3 bg-card/50 backdrop-blur-sm border border-input/50 
+           rounded-lg text-foreground placeholder:text-muted-foreground 
+           focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent 
+           focus:shadow-[var(--shadow-glow)] transition-all duration-300;
+  }
+  
+  .tech-tile {
+    @apply tech-card hover:scale-105 active:scale-95 cursor-pointer
+           flex flex-col items-center justify-center min-h-[140px] text-center
+           transition-all duration-300 touch-manipulation
+           hover:shadow-[var(--shadow-neon)];
+  }
+  
+  .tech-list-item {
+    @apply bg-card/80 backdrop-blur-sm border border-border/30 rounded-lg p-4 mb-3 
+           hover:shadow-[var(--shadow-soft)] hover:bg-card/90
+           transition-all duration-300;
+  }
+  
+  .neon-text {
+    @apply text-transparent bg-clip-text bg-gradient-accent;
+  }
+  
+  .glow-effect {
+    @apply shadow-[var(--shadow-glow)] animate-pulse;
   }
 }
 

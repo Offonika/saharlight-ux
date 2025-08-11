@@ -67,12 +67,13 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				medical: {
-					blue: 'hsl(var(--medical-blue))',
-					teal: 'hsl(var(--medical-teal))',
-					success: 'hsl(var(--medical-success))',
-					warning: 'hsl(var(--medical-warning))',
-					error: 'hsl(var(--medical-error))'
+				tech: {
+					primary: 'hsl(var(--tech-primary))',
+					secondary: 'hsl(var(--tech-secondary))',
+					accent: 'hsl(var(--tech-accent))',
+					success: 'hsl(var(--tech-success))',
+					warning: 'hsl(var(--tech-warning))',
+					error: 'hsl(var(--tech-error))'
 				},
 				neutral: {
 					50: 'hsl(var(--neutral-50))',
@@ -88,14 +89,18 @@ export default {
 				}
 			},
 			backgroundImage: {
-				'gradient-medical': 'var(--gradient-medical)',
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-accent': 'var(--gradient-accent)',
 				'gradient-card': 'var(--gradient-card)',
-				'gradient-button': 'var(--gradient-button)'
+				'gradient-button': 'var(--gradient-button)',
+				'gradient-glow': 'var(--gradient-glow)'
 			},
 			boxShadow: {
 				'soft': 'var(--shadow-soft)',
 				'medium': 'var(--shadow-medium)',
-				'strong': 'var(--shadow-strong)'
+				'strong': 'var(--shadow-strong)',
+				'glow': 'var(--shadow-glow)',
+				'neon': 'var(--shadow-neon)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
