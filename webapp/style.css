@@ -1,0 +1,89 @@
+/* === 1) Контраст и базовая типографика (мобильная) === */
+:root{
+  --bg:#ffffff; --fg:#111111; --muted:#6b7280;
+  --primary:#111111; --primary-fg:#ffffff;
+  --border:#E5E7EB; --ring:#2563eb;
+  --font-sm:clamp(12px, 3.5vw, 14px);
+  --font-md:clamp(14px, 4vw, 16px);
+  --font-lg:clamp(16px, 4.5vw, 20px);
+}
+
+html,body{background:var(--bg)!important;color:var(--fg)!important;color-scheme:light!important;}
+*{box-sizing:border-box}
+
+/* Telegram tokens — принудительно светлые */
+:root{
+  --tg-theme-bg-color:#fff!important;
+  --tg-theme-text-color:#111!important;
+  --tg-theme-hint-color:#6b7280!important;
+  --tg-theme-button-color:#111!important;
+  --tg-theme-button-text-color:#fff!important;
+}
+
+/* === 2) Заголовки/текст === */
+h1,h2{margin:12px 0 8px 0}
+h1{font-size:var(--font-lg);font-weight:700}
+h2{font-size:var(--font-md);font-weight:600}
+label{display:block;font-size:var(--font-sm);color:#374151;margin:12px 4px 6px}
+
+/* === 3) Поля ввода (контраст, компактность) === */
+.input, input[type=time], input[type=text], input[type=number], select{
+  width:100%; padding:12px 14px; border:1px solid var(--border);
+  border-radius:12px; background:#fff; font-size:var(--font-md);
+  outline:none;
+}
+.input::placeholder{color:var(--muted)}
+.input:focus, input:focus, select:focus{
+  border-color:var(--ring); box-shadow:0 0 0 3px #2563eb22;
+}
+
+/* === 4) Карточки напоминаний: компактнее, с обрезкой заголовка === */
+.reminders{display:flex;flex-direction:column;gap:10px;margin:8px 0}
+.reminder-card{
+  display:grid; grid-template-columns:28px 1fr auto; gap:8px;
+  padding:10px 12px; border:1px solid var(--border); border-radius:14px;
+  background:#fff;
+}
+.reminder-card .icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.reminder-card .title{
+  font-weight:600; font-size:var(--font-md);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; /* <- длинные названия */
+}
+.reminder-card .meta{font-size:var(--font-sm);color:var(--muted)}
+.reminder-card .actions{display:flex;gap:6px}
+.reminder-card .btn{
+  border:1px solid var(--border); border-radius:12px; padding:6px 8px;
+  background:#fff;
+}
+
+/* === 5) Сегмент-переключатель «Тип напоминания» вместо огромного меню === */
+.segment{display:flex;gap:6px;margin:6px 0 10px}
+.segment .chip{
+  flex:1; min-height:40px; padding:8px; border:1px solid var(--border);
+  border-radius:12px; background:#fff; display:flex;align-items:center;justify-content:center;
+  gap:6px; font-size:var(--font-sm); cursor:pointer; user-select:none;
+}
+.segment .chip[data-active="true"]{
+  border-color:#111; background:#111; color:#fff;
+}
+.segment .chip .emoji{font-size:18px;line-height:1}
+
+/* === 6) Сетка формы: время + интервал в один ряд на широких, в столбик на узких === */
+.form-grid{display:grid;gap:10px}
+@media (min-width:420px){ .form-grid{grid-template-columns:1fr 1fr} }
+
+/* === 7) Кнопки формы === */
+.actions-row{display:flex;gap:10px;margin-top:12px}
+.btn-primary{
+  flex:1; padding:12px 14px; border-radius:14px; border:none;
+  background:var(--primary); color:var(--primary-fg); font-weight:600; font-size:var(--font-md);
+}
+.btn-ghost{
+  flex:1; padding:12px 14px; border-radius:14px; border:1px solid var(--border); background:#fff;
+}
+
+/* отключаем авто-тёмную */
+@media (prefers-color-scheme: dark){
+  :root{color-scheme:light!important}
+  html,body{background:#fff!important;color:#111!important}
+}
