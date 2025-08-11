@@ -69,41 +69,41 @@ const ReminderItem = ({
           <span className="badge badge-tonal">{typeInfo.label}</span>
         </div>
       </div>
-      <div className="rem-actions">
-        <button
-          type="button"
-          className={cn(
-            'icon-btn',
-            reminder.active
-              ? 'bg-success/10 text-success'
-              : 'bg-secondary text-muted-foreground'
-          )}
-          onClick={() => onToggle(reminder.id)}
-          aria-label={
-            reminder.active
-              ? 'Отключить напоминание'
-              : 'Включить напоминание'
-          }
-        >
-          <Bell className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          className="icon-btn"
-          onClick={() => onEdit(reminder)}
-          aria-label="Редактировать"
-        >
-          <Edit2 className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          className="icon-btn"
-          onClick={() => onDelete(reminder.id)}
-          aria-label="Удалить"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
+        <div className="rem-actions">
+          <MedicalButton
+            size="icon"
+            className={cn(
+              reminder.active
+                ? 'bg-success/10 text-success'
+                : 'bg-secondary text-muted-foreground'
+            )}
+            onClick={() => onToggle(reminder.id)}
+            aria-label={
+              reminder.active
+                ? 'Отключить напоминание'
+                : 'Включить напоминание'
+            }
+            variant="ghost"
+          >
+            <Bell className="w-4 h-4" />
+          </MedicalButton>
+          <MedicalButton
+            size="icon"
+            variant="ghost"
+            onClick={() => onEdit(reminder)}
+            aria-label="Редактировать"
+          >
+            <Edit2 className="w-4 h-4" />
+          </MedicalButton>
+          <MedicalButton
+            size="icon"
+            variant="destructive"
+            onClick={() => onDelete(reminder.id)}
+            aria-label="Удалить"
+          >
+            <Trash2 className="w-4 h-4" />
+          </MedicalButton>
+        </div>
     </div>
   );
 };
