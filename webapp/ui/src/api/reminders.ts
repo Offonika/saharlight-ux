@@ -1,9 +1,8 @@
 export interface ReminderPayload {
+  type: string;
+  text: string;
+  value: string;
   id?: number;
-  type: 'sugar' | 'insulin' | 'meal' | 'medicine';
-  title: string;
-  time: string;
-  interval?: number;
 }
 
 const API_BASE = '/api';
@@ -17,7 +16,7 @@ export async function getReminders() {
 }
 
 export async function updateReminder(payload: ReminderPayload & { id: number }) {
-  const res = await fetch(`${API_BASE}/reminders`, {
+  const res = await fetch(`/reminders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...payload, id: Number(payload.id) })
@@ -30,7 +29,7 @@ export async function updateReminder(payload: ReminderPayload & { id: number }) 
 }
 
 export async function createReminder(payload: ReminderPayload) {
-  const res = await fetch(`${API_BASE}/reminders`, {
+  const res = await fetch(`/reminders`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
