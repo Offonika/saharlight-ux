@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
 
@@ -29,13 +29,23 @@ function isValidTime(time: string): boolean {
   );
 }
 
+interface Reminder {
+  id: number;
+  type: ReminderType;
+  title: string;
+  time: string;
+  interval?: number;
+}
+
 export default function CreateReminder() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const editing = (location.state as Reminder | undefined) ?? undefined;
 
-  const [type, setType] = useState<ReminderType>("sugar");
-  const [title, setTitle] = useState("");
-  const [time, setTime] = useState("");
-  const [interval, setInterval] = useState<number | undefined>(60);
+  const [type, setType] = useState<ReminderType>(editing?.type ?? "sugar");
+  const [title, setTitle] = useState(editing?.title ?? "");
+  const [time, setTime] = useState(editing?.time ?? "");
+  const [interval, setInterval] = useState<number | undefined>(editing?.interval ?? 60);
   const [error, setError] = useState<string | null>(null);
   const [typeOpen, setTypeOpen] = useState(false);
 
@@ -49,15 +59,16 @@ export default function CreateReminder() {
     if (!formValid) return;
     setError(null);
     try {
-      const res = await fetch("/reminders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type,
-          text: title.trim(),
-          value: `${time}|${interval}`
-        })
-      });
+        const res = await fetch("/reminders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type,
+            text: title.trim(),
+            value: `${time}|${interval}`,
+            ...(editing ? { id: editing.id } : {})
+          })
+        });
       if (!res.ok) {
         throw new Error("Failed to create reminder");
       }
