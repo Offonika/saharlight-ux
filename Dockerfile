@@ -19,7 +19,7 @@ COPY . .
 # Копируйте .env при деплое или используйте секреты Docker Compose!
 # COPY .env .env
 
-# Запуск WebApp теперь контролируется переменной ENABLE_WEBAPP.
-# WEBAPP_URL должен указывать на публичный HTTPS-адрес; без него WebApp не стартует.
+# WebApp UI обслуживается FastAPI-приложением backend.main.
+# WEBAPP_URL должен указывать на публичный HTTPS-адрес.
 ENV UVICORN_WORKERS=1
 CMD ["bash", "./start.sh"]
