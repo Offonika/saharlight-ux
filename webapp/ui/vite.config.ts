@@ -3,16 +3,21 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
 
-export default defineConfig({
-  base: '/ui/',
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@ux': path.resolve(__dirname, '../ux-kit/src'), // ← сюда будет синкаться дизайн
+export default defineConfig(async ({ mode }) => {
+  const { componentTagger } = await import('lovable-tagger')
+
+  return {
+    base: '/ui/',
+    plugins: [react(), mode === 'development' && componentTagger()].filter(Boolean),
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+        '@ux': path.resolve(__dirname, '../ux-kit/src'), // ← сюда будет синкаться дизайн
+      },
     },
-  },
-  server: {
-    port: 8080,
-  },
+    server: {
+      host: '::',
+      port: 8080,
+    },
+  }
 })
