@@ -226,9 +226,13 @@ async def profile_webapp_save(
 ) -> None:
     """Save profile data sent from the web app."""
     raw = update.effective_message.web_app_data.data
+    error_msg = "⚠️ Некорректные данные из WebApp."
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
+        await update.effective_message.reply_text(
+            error_msg, reply_markup=menu_keyboard
+        )
         return
     if {
         "icr",
@@ -237,6 +241,9 @@ async def profile_webapp_save(
         "low",
         "high",
     } - data.keys():
+        await update.effective_message.reply_text(
+            error_msg, reply_markup=menu_keyboard
+        )
         return
     try:
         icr = float(str(data["icr"]).replace(",", "."))
@@ -245,6 +252,9 @@ async def profile_webapp_save(
         low = float(str(data["low"]).replace(",", "."))
         high = float(str(data["high"]).replace(",", "."))
     except ValueError:
+        await update.effective_message.reply_text(
+            error_msg, reply_markup=menu_keyboard
+        )
         return
     if icr <= 0 or cf <= 0 or target <= 0 or low <= 0 or high <= 0 or low >= high:
         await update.effective_message.reply_text(
