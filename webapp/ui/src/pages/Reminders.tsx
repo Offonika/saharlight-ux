@@ -203,7 +203,7 @@ const Reminders = () => {
         onBack={() => navigate('/')}
       >
         <MedicalButton
-          variant="icon"
+          size="icon"
           onClick={() => {
             setEditingReminder(null);
             setFormOpen(true);
