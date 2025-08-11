@@ -216,6 +216,13 @@ async def ui_files(full_path: str) -> FileResponse:
         return FileResponse(target)
     return serve_index()
 
+# статика для общих HTML-форм
+@app.get("/style.css", include_in_schema=False)
+@app.head("/style.css", include_in_schema=False)
+async def style_css() -> FileResponse:
+    """Serve shared stylesheet."""
+    return FileResponse(BASE_DIR / "style.css")
+
 # -----------------------------------
 
 # редирект корня на SPA
