@@ -137,11 +137,11 @@ ngrok http 8000
 
 ## Сервисный запуск
 
-В каталоге `deploy/` лежат примерные конфигурации для запуска приложения как службы.
+В каталоге `docs/deploy/` лежат примерные конфигурации для запуска приложения как службы.
 Они выполняют `uvicorn webapp.server:app --workers 4` и автоматически перезапускаются при сбое.
 
-- `deploy/diabetes-assistant.service` — unit‑файл для **systemd**. Скопируйте его в `/etc/systemd/system/`, отредактируйте пути и пользователя, затем выполните `sudo systemctl enable --now diabetes-assistant`.
-- `deploy/supervisord.conf` — секция для **supervisord**. Добавьте её в конфигурацию и перезапустите менеджер процессов.
+- `docs/deploy/diabetes-assistant.service` — unit‑файл для **systemd**. Скопируйте его в `/etc/systemd/system/`, отредактируйте пути и пользователя, затем выполните `sudo systemctl enable --now diabetes-assistant`.
+- `docs/deploy/supervisord.conf` — секция для **supervisord**. Добавьте её в конфигурацию и перезапустите менеджер процессов.
 
 При необходимости настройте рабочий каталог и параметры запуска под своё окружение.
 
