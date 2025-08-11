@@ -15,7 +15,7 @@ from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 from diabetes.db import SessionLocal, Profile, Alert, Reminder, User
 from diabetes.alert_handlers import evaluate_sugar
 from diabetes.ui import menu_keyboard, back_keyboard, build_timezone_webapp_button
-from diabetes.config import WEBAPP_URL
+from backend.config import WEBAPP_URL
 from .common_handlers import commit_session
 import diabetes.reminder_handlers as reminder_handlers
 from zoneinfo import ZoneInfo

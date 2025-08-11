@@ -14,7 +14,7 @@ from telegram import (
     KeyboardButton,
     WebAppInfo,
 )
-from diabetes.config import WEBAPP_URL
+from backend.config import WEBAPP_URL
 
 __all__ = (
     "menu_keyboard",

@@ -6,7 +6,7 @@ import threading
 
 from openai import OpenAIError
 
-from diabetes.config import OPENAI_ASSISTANT_ID
+from backend.config import OPENAI_ASSISTANT_ID
 from diabetes.openai_utils import get_openai_client
 
 logger = logging.getLogger(__name__)

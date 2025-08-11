@@ -22,7 +22,7 @@ from telegram.error import BadRequest
 
 from diabetes.db import Reminder, ReminderLog, SessionLocal, User, run_db
 from .common_handlers import commit_session
-from diabetes.config import WEBAPP_URL
+from backend.config import WEBAPP_URL
 
 logger = logging.getLogger(__name__)
 

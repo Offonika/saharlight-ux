@@ -13,7 +13,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont, TTFError
 from reportlab.pdfgen import canvas
 
-from diabetes.config import FONT_DIR
+from backend.config import FONT_DIR
 
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
 DEFAULT_FONT_DIR = '/usr/share/fonts/truetype/dejavu'
