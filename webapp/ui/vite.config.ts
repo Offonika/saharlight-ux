@@ -12,4 +12,7 @@ export default defineConfig({
       '@ux': path.resolve(__dirname, '../ux-kit/src'), // ← сюда будет синкаться дизайн
     },
   },
+  server: {
+    port: 8080,
+  },
 })

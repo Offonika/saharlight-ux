@@ -7,4 +7,7 @@ export default defineConfig({
   // Delegate to the UI folder as Vite root
   root: path.resolve(__dirname, 'webapp/ui'),
   plugins: [react()],
+  server: {
+    port: 8080,
+  },
 })
