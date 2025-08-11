@@ -231,7 +231,7 @@ const History = () => {
                     
                     <div className="flex items-center gap-2">
                       <MedicalButton
-                        variant="icon"
+                        size="icon"
                         onClick={() => handleEditRecord(record)}
                         className="bg-transparent hover:bg-secondary text-muted-foreground border-0 p-1"
                         aria-label="Редактировать"
@@ -239,7 +239,7 @@ const History = () => {
                         <Edit2 className="w-3 h-3" />
                       </MedicalButton>
                       <MedicalButton
-                        variant="icon"
+                        size="icon"
                         onClick={() => handleDeleteRecord(record.id)}
                         className="bg-transparent hover:bg-destructive/10 hover:text-destructive text-muted-foreground border-0 p-1"
                         aria-label="Удалить"
