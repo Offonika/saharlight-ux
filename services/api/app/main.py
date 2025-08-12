@@ -1,9 +1,12 @@
+import asyncio
 import json
 import logging
 import os
 import tempfile
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+import aiofiles
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -74,7 +77,9 @@ async def post_history(data: HistoryRecordSchema) -> dict:
 
     try:
         if HISTORY_FILE.exists():
-            records = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+            async with aiofiles.open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                content = await f.read()
+            records = json.loads(content) if content else []
             if not isinstance(records, list):  # pragma: no cover - corrupted file
                 records = []
         else:
@@ -87,13 +92,15 @@ async def post_history(data: HistoryRecordSchema) -> dict:
         else:
             records.append(data.model_dump())
 
-        with tempfile.NamedTemporaryFile(
+        async with aiofiles.tempfile.NamedTemporaryFile(
             "w", dir=HISTORY_FILE.parent, delete=False, encoding="utf-8"
         ) as tmp:
-            json.dump(records, tmp, ensure_ascii=False, indent=2)
-            tmp.flush()
-            os.fsync(tmp.fileno())
-        os.replace(tmp.name, HISTORY_FILE)
+            await tmp.write(json.dumps(records, ensure_ascii=False, indent=2))
+            await tmp.flush()
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, os.fsync, tmp.fileno())
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, os.replace, tmp.name, HISTORY_FILE)
     except Exception as exc:  # pragma: no cover - unexpected errors
         logger.exception("failed to save history")
         raise HTTPException(status_code=500, detail="failed to save history") from exc
