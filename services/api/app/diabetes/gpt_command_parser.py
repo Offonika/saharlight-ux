@@ -5,7 +5,10 @@ import re
 
 from openai import OpenAIError
 
+from pydantic import ValidationError
+
 from services.api.app.diabetes.services.gpt_client import _get_client
+from services.api.app.schemas import CommandSchema
 
 # Prompt guiding GPT to convert free-form diary text into a single JSON command
 SYSTEM_PROMPT = (
@@ -133,4 +136,8 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
     if parsed is None:
         logging.error("No JSON object found in response")
         return None
-    return parsed
+    try:
+        return CommandSchema.model_validate(parsed).model_dump(exclude_none=True)
+    except ValidationError:
+        logging.exception("Invalid command structure")
+        return None

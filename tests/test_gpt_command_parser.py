@@ -142,6 +142,41 @@ async def test_parse_command_with_scalar_response(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_parse_command_with_invalid_schema(monkeypatch, caplog) -> None:
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {
+                    "message": type(
+                        "Msg", (), {"content": "{\"action\":123,\"time\":\"09:00\",\"fields\":{}}"}
+                    )()
+                },
+            )
+        ]
+
+    def create(*args, **kwargs):
+        return FakeResponse()
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(
+                create=create,
+                with_options=lambda **kwargs: SimpleNamespace(create=create),
+            )
+        )
+    )
+    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+
+    with caplog.at_level(logging.ERROR):
+        result = await gpt_command_parser.parse_command("test")
+
+    assert result is None
+    assert "Invalid command structure" in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_parse_command_with_missing_content(monkeypatch, caplog) -> None:
     class FakeResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {})()})]
