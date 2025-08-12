@@ -11,6 +11,7 @@ from telegram.ext import (
     filters,
 )
 import json
+import logging
 from zoneinfo import ZoneInfo
 
 from diabetes_sdk.api.default_api import DefaultApi
@@ -33,6 +34,8 @@ from services.api.app.diabetes.utils.ui import (
 from services.api.app.config import WEBAPP_URL, API_URL
 from .common_handlers import commit_session
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
+
+logger = logging.getLogger(__name__)
 
 api = DefaultApi(ApiClient(Configuration(host=API_URL)))
 
@@ -66,10 +69,10 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 else None
             )
             key = (chat_id, user_id, msg_id)
-            try:
+            if hasattr(sugar_conv, "_update_state"):
                 sugar_conv._update_state(ConversationHandler.END, key)
-            except AttributeError:
-                pass
+            else:
+                logger.warning("sugar_conv lacks _update_state method")
 
     help_text = (
         "❗ Формат команды:\n"
