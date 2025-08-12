@@ -18,7 +18,7 @@
   - `dose_handlers.py` — расчёт доз инсулина
   - новые файлы `*_handlers.py` — для прочих сценариев
 - `services/api/app/main.py` — FastAPI‑приложение: отдаёт WebApp и REST API
-- `webapp/ui` — исходники фронтенда (React + Vite, собирается в `dist/`)
+- `services/webapp/ui` — исходники фронтенда (React + Vite, собирается в `dist/`)
 
 Новые обработчики добавляйте в каталог `services/api/app/diabetes/`, создавая отдельные модули с суффиксом `_handlers.py` и группируя их по доменам.
 
@@ -59,12 +59,12 @@
    ```
 3. **Установите зависимости и соберите фронтенд:**
    ```bash
-   pip install -r services/api/app/requirements.txt
+    pip install -r services/api/app/requirements.txt
 
-   (cd webapp/ui && npm ci)
+    (cd services/webapp/ui && npm ci && npm run build)
 
-   ```
-   Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `webapp/ui`.
+    ```
+    Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `services/webapp/ui`.
 4. **Скопируйте шаблон .env и заполните своими данными:**
    ```bash
    cp infra/env/.env.example .env
@@ -77,17 +77,27 @@
    Данные подключения указаны в .env.
    (Если нужен скрипт миграции — опишите отдельно!)
 
-6. **Запустите сервер:**
-   ```bash
-   python services/api/app/main.py
-   ```
+6. **Запустите сервисы:**
+   - **API:**
+     ```bash
+     uvicorn services.api.app.main:app --host 0.0.0.0 --port 8000
+     ```
+   - **Bot:**
+     ```bash
+     python services/api/app/bot.py
+     ```
+   - **WebApp (dev):**
+     ```bash
+     cd services/webapp/ui
+     npm run dev
+     ```
 
 ### Запуск WebApp
 
-В каталоге `webapp/ui` расположен React‑SPA (Vite), исходники лежат в `src/`,
+В каталоге `services/webapp/ui` расположен React‑SPA (Vite), исходники лежат в `src/`,
 а результат сборки — в `dist/`. Все команды `npm` запускаются из этого каталога.
 Файл `services/api/app/main.py` отдаёт содержимое
-каталога `webapp/ui/dist` и предоставляет REST API (`/api/timezone`,
+каталога `services/webapp/ui/dist` и предоставляет REST API (`/api/timezone`,
 `/api/profile`, `/api/reminders`).
 
 1. **Сборка интерфейса**
@@ -101,7 +111,7 @@
    Ручная сборка нужна только для локального тестирования изменений:
 
    ```bash
-    cd webapp/ui
+     cd services/webapp/ui
     npm ci
     npm run build
    ```
@@ -115,7 +125,7 @@
 SPA будет доступна по адресу `/ui` и автоматически отправит часовой пояс на endpoint `POST /api/timezone` в формате `{"tz": "Europe/Moscow"}`. В ответ сервер возвращает `{ "status": "ok" }` и сохраняет значение в базе данных.
 Любые маршруты внутри `/ui/*` обслуживаются через fallback на `index.html`,
 поэтому прямые переходы по ссылкам не приводят к ошибке 404.
-Также сервер раздаёт статические файлы из каталога `webapp/public` напрямую, поэтому страницы и ассеты доступны по прямым путям вроде `/timezone.html` или `/telegram-init.js`.
+Также сервер раздаёт статические файлы из каталога `services/webapp/public` напрямую, поэтому страницы и ассеты доступны по прямым путям вроде `/timezone.html` или `/telegram-init.js`.
 
 Переменная `WEBAPP_URL` должна указывать на публичный HTTPS‑адрес, по которому SPA доступна пользователю. В Docker‑образе WebApp запускается автоматически; для корректной работы укажите валидный `WEBAPP_URL`.
 
@@ -132,6 +142,27 @@ ngrok http 8000
 - **Docker:** Для контейнеризации можно использовать infra/docker/Dockerfile.api и infra/docker/docker-compose.yml.
 - **Proxy:** Для обхода блокировок OpenAI используйте настройки прокси в .env.
 - **Безопасность:** Никогда не выкладывайте файл .env с реальными токенами!
+
+## Генерация SDK
+
+Спецификация API находится в `libs/contracts/openapi.yaml`. Для обновления SDK выполните:
+
+```bash
+npm install @openapitools/openapi-generator-cli
+
+# TypeScript SDK
+npx openapi-generator-cli generate \
+  -i libs/contracts/openapi.yaml \
+  -g typescript-fetch \
+  -o libs/ts-sdk
+
+# Python SDK
+npx openapi-generator-cli generate \
+  -i libs/contracts/openapi.yaml \
+  -g python \
+  -o libs/py-sdk \
+  -p packageName=diabetes_sdk
+```
 
 ## Сервисный запуск
 

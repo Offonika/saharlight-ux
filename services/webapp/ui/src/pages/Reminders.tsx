@@ -1,4 +1,4 @@
-// Файл: webapp/ui/src/pages/Reminders.tsx
+// Файл: services/webapp/ui/src/pages/Reminders.tsx
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react'
