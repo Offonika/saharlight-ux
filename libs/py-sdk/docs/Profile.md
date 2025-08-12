@@ -11,6 +11,7 @@ Name | Type | Description | Notes
 **target** | **float** |  | 
 **low** | **float** |  | 
 **high** | **float** |  | 
+**org_id** | **int** |  | [optional] 
 
 ## Example
 

@@ -26,24 +26,24 @@ class TestDefaultApi(unittest.TestCase):
     def tearDown(self) -> None:
         pass
 
-    def test_auth_post(self) -> None:
-        """Test case for auth_post
+    def test_api_reminders_get(self) -> None:
+        """Test case for api_reminders_get
 
-        Authenticate user
+        List or retrieve reminders
         """
         pass
 
-    def test_entries_get(self) -> None:
-        """Test case for entries_get
+    def test_api_reminders_post(self) -> None:
+        """Test case for api_reminders_post
 
-        List or retrieve entries
+        Save reminder
         """
         pass
 
-    def test_entries_post(self) -> None:
-        """Test case for entries_post
+    def test_health_get(self) -> None:
+        """Test case for health_get
 
-        Save entry
+        Health check
         """
         pass
 
@@ -61,24 +61,10 @@ class TestDefaultApi(unittest.TestCase):
         """
         pass
 
-    def test_reminders_get(self) -> None:
-        """Test case for reminders_get
+    def test_timezone_post(self) -> None:
+        """Test case for timezone_post
 
-        List or retrieve reminders
-        """
-        pass
-
-    def test_reminders_post(self) -> None:
-        """Test case for reminders_post
-
-        Save reminder
-        """
-        pass
-
-    def test_reports_get(self) -> None:
-        """Test case for reports_get
-
-        Generate report
+        Save timezone
         """
         pass
 

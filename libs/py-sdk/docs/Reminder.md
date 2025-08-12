@@ -10,7 +10,6 @@ Name | Type | Description | Notes
 **type** | **str** |  | 
 **time** | **str** |  | [optional] 
 **interval_hours** | **int** |  | [optional] 
-**minutes_after** | **int** |  | [optional] 
 **is_enabled** | **bool** |  | [optional] 
 
 ## Example

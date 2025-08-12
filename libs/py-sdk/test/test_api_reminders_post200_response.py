@@ -14,10 +14,10 @@
 
 import unittest
 
-from diabetes_sdk.models.auth_response import AuthResponse
+from diabetes_sdk.models.api_reminders_post200_response import ApiRemindersPost200Response
 
-class TestAuthResponse(unittest.TestCase):
-    """AuthResponse unit test stubs"""
+class TestApiRemindersPost200Response(unittest.TestCase):
+    """ApiRemindersPost200Response unit test stubs"""
 
     def setUp(self):
         pass
@@ -25,30 +25,26 @@ class TestAuthResponse(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def make_instance(self, include_optional) -> AuthResponse:
-        """Test AuthResponse
+    def make_instance(self, include_optional) -> ApiRemindersPost200Response:
+        """Test ApiRemindersPost200Response
             include_optional is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # uncomment below to create an instance of `AuthResponse`
+        # uncomment below to create an instance of `ApiRemindersPost200Response`
         """
-        model = AuthResponse()
+        model = ApiRemindersPost200Response()
         if include_optional:
-            return AuthResponse(
-                token = '',
-                user_id = 56,
-                role = ''
+            return ApiRemindersPost200Response(
+                status = '',
+                id = 56
             )
         else:
-            return AuthResponse(
-                token = '',
-                user_id = 56,
-                role = '',
+            return ApiRemindersPost200Response(
         )
         """
 
-    def testAuthResponse(self):
-        """Test AuthResponse"""
+    def testApiRemindersPost200Response(self):
+        """Test ApiRemindersPost200Response"""
         # inst_req_only = self.make_instance(include_optional=False)
         # inst_req_and_optional = self.make_instance(include_optional=True)
 

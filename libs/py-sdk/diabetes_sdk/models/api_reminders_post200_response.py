@@ -17,18 +17,18 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr
-from typing import Any, ClassVar, Dict, List
+from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
 
-class AuthRequest(BaseModel):
+class ApiRemindersPost200Response(BaseModel):
     """
-    AuthRequest
+    ApiRemindersPost200Response
     """ # noqa: E501
-    username: StrictStr
-    password: StrictStr
-    __properties: ClassVar[List[str]] = ["username", "password"]
+    status: Optional[StrictStr] = None
+    id: Optional[StrictInt] = None
+    __properties: ClassVar[List[str]] = ["status", "id"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -48,7 +48,7 @@ class AuthRequest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of AuthRequest from a JSON string"""
+        """Create an instance of ApiRemindersPost200Response from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -73,7 +73,7 @@ class AuthRequest(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of AuthRequest from a dict"""
+        """Create an instance of ApiRemindersPost200Response from a dict"""
         if obj is None:
             return None
 
@@ -81,8 +81,8 @@ class AuthRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "username": obj.get("username"),
-            "password": obj.get("password")
+            "status": obj.get("status"),
+            "id": obj.get("id")
         })
         return _obj
 

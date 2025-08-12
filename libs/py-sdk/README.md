@@ -67,15 +67,16 @@ configuration = diabetes_sdk.Configuration(
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.DefaultApi(api_client)
-    auth_request = diabetes_sdk.AuthRequest() # AuthRequest | 
+    telegram_id = 56 # int | 
+    id = 56 # int |  (optional)
 
     try:
-        # Authenticate user
-        api_response = api_instance.auth_post(auth_request)
-        print("The response of DefaultApi->auth_post:\n")
+        # List or retrieve reminders
+        api_response = api_instance.api_reminders_get(telegram_id, id=id)
+        print("The response of DefaultApi->api_reminders_get:\n")
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling DefaultApi->auth_post: %s\n" % e)
+        print("Exception when calling DefaultApi->api_reminders_get: %s\n" % e)
 
 ```
 
@@ -85,26 +86,20 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*DefaultApi* | [**auth_post**](docs/DefaultApi.md#auth_post) | **POST** /auth | Authenticate user
-*DefaultApi* | [**entries_get**](docs/DefaultApi.md#entries_get) | **GET** /entries | List or retrieve entries
-*DefaultApi* | [**entries_post**](docs/DefaultApi.md#entries_post) | **POST** /entries | Save entry
+*DefaultApi* | [**api_reminders_get**](docs/DefaultApi.md#api_reminders_get) | **GET** /api/reminders | List or retrieve reminders
+*DefaultApi* | [**api_reminders_post**](docs/DefaultApi.md#api_reminders_post) | **POST** /api/reminders | Save reminder
+*DefaultApi* | [**health_get**](docs/DefaultApi.md#health_get) | **GET** /health | Health check
 *DefaultApi* | [**profiles_get**](docs/DefaultApi.md#profiles_get) | **GET** /profiles | Get user profile
 *DefaultApi* | [**profiles_post**](docs/DefaultApi.md#profiles_post) | **POST** /profiles | Save user profile
-*DefaultApi* | [**reminders_get**](docs/DefaultApi.md#reminders_get) | **GET** /reminders | List or retrieve reminders
-*DefaultApi* | [**reminders_post**](docs/DefaultApi.md#reminders_post) | **POST** /reminders | Save reminder
-*DefaultApi* | [**reports_get**](docs/DefaultApi.md#reports_get) | **GET** /reports | Generate report
+*DefaultApi* | [**timezone_post**](docs/DefaultApi.md#timezone_post) | **POST** /timezone | Save timezone
 
 
 ## Documentation For Models
 
- - [AuthRequest](docs/AuthRequest.md)
- - [AuthResponse](docs/AuthResponse.md)
- - [EntriesGet200Response](docs/EntriesGet200Response.md)
- - [EntriesPost200Response](docs/EntriesPost200Response.md)
- - [Entry](docs/Entry.md)
+ - [ApiRemindersGet200Response](docs/ApiRemindersGet200Response.md)
+ - [ApiRemindersPost200Response](docs/ApiRemindersPost200Response.md)
  - [Profile](docs/Profile.md)
  - [Reminder](docs/Reminder.md)
- - [RemindersGet200Response](docs/RemindersGet200Response.md)
  - [Status](docs/Status.md)
  - [Timezone](docs/Timezone.md)
 

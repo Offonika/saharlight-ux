@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt
-from typing import Any, ClassVar, Dict, List, Union
+from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing import Optional, Set
 from typing_extensions import Self
 
@@ -32,7 +32,8 @@ class Profile(BaseModel):
     target: Union[StrictFloat, StrictInt]
     low: Union[StrictFloat, StrictInt]
     high: Union[StrictFloat, StrictInt]
-    __properties: ClassVar[List[str]] = ["telegram_id", "icr", "cf", "target", "low", "high"]
+    org_id: Optional[StrictInt] = None
+    __properties: ClassVar[List[str]] = ["telegram_id", "icr", "cf", "target", "low", "high", "org_id"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -73,6 +74,11 @@ class Profile(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if org_id (nullable) is None
+        # and model_fields_set contains the field
+        if self.org_id is None and "org_id" in self.model_fields_set:
+            _dict['org_id'] = None
+
         return _dict
 
     @classmethod
@@ -90,7 +96,8 @@ class Profile(BaseModel):
             "cf": obj.get("cf"),
             "target": obj.get("target"),
             "low": obj.get("low"),
-            "high": obj.get("high")
+            "high": obj.get("high"),
+            "org_id": obj.get("org_id")
         })
         return _obj
 

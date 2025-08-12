@@ -14,13 +14,9 @@
 
 
 # import models into model package
-from diabetes_sdk.models.auth_request import AuthRequest
-from diabetes_sdk.models.auth_response import AuthResponse
-from diabetes_sdk.models.entries_get200_response import EntriesGet200Response
-from diabetes_sdk.models.entries_post200_response import EntriesPost200Response
-from diabetes_sdk.models.entry import Entry
+from diabetes_sdk.models.api_reminders_get200_response import ApiRemindersGet200Response
+from diabetes_sdk.models.api_reminders_post200_response import ApiRemindersPost200Response
 from diabetes_sdk.models.profile import Profile
 from diabetes_sdk.models.reminder import Reminder
-from diabetes_sdk.models.reminders_get200_response import RemindersGet200Response
 from diabetes_sdk.models.status import Status
 from diabetes_sdk.models.timezone import Timezone
