@@ -6,6 +6,8 @@ from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import aiofiles
+from contextlib import asynccontextmanager
+from filelock import FileLock
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -24,7 +26,20 @@ if not UI_DIR.exists():
 UI_DIR = UI_DIR.resolve()
 TIMEZONE_FILE = Path(__file__).resolve().parent / "timezone.txt"
 HISTORY_FILE = Path(__file__).resolve().parent / "history.json"
-history_lock = asyncio.Lock()
+
+
+def _history_lock_file() -> Path:
+    return Path(str(HISTORY_FILE) + ".lock")
+
+
+@asynccontextmanager
+async def history_file_lock():
+    lock = FileLock(_history_lock_file())
+    await asyncio.to_thread(lock.acquire)
+    try:
+        yield
+    finally:
+        lock.release()
 
 
 class Timezone(BaseModel):
@@ -80,7 +95,7 @@ async def post_history(data: HistoryRecordSchema) -> dict:
     """
 
     try:
-        async with history_lock:
+        async with history_file_lock():
             if HISTORY_FILE.exists():
                 async with aiofiles.open(HISTORY_FILE, "r", encoding="utf-8") as f:
                     content = await f.read()
