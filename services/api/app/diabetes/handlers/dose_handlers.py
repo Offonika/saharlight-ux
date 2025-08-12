@@ -280,7 +280,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle freeform text commands for adding diary entries."""
     raw_text = update.message.text.strip()
     user_id = update.effective_user.id
-    logging.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
+    logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
 
     if context.user_data.get("awaiting_report_date"):
         text = update.message.text.strip().lower()
@@ -679,7 +679,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     parsed = await parse_command(raw_text)
-    logging.info("FREEFORM parsed=%s", parsed)
+    logger.info("FREEFORM parsed=%s", parsed)
     if not parsed or parsed.get("action") != "add_entry":
         await update.message.reply_text(
             "Не понял, воспользуйтесь /help или кнопками меню"
@@ -793,7 +793,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             context.user_data.pop(WAITING_GPT_FLAG, None)
             return ConversationHandler.END
 
-    logging.info("[PHOTO] Saved to %s", file_path)
+    logger.info("[PHOTO] Saved to %s", file_path)
 
     try:
         thread_id = context.user_data.get("thread_id")
