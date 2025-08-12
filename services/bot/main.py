@@ -4,7 +4,6 @@ Bot entry point and configuration.
 """
 
 import logging
-import os
 import sys
 
 from telegram import BotCommand
@@ -13,13 +12,13 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from services.api.app.services import init_db
 
-from services.api.app.config import LOG_LEVEL
+from services.api.app.config import LOG_LEVEL, settings
 from services.api.app.diabetes.handlers.common_handlers import register_handlers
 
 logger = logging.getLogger(__name__)
 
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_TOKEN = settings.telegram_token
 
 
 async def error_handler(update, context: ContextTypes.DEFAULT_TYPE) -> None:
