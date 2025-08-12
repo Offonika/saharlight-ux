@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
+import { createReminder, updateReminder } from "@/api/reminders";
+import { Reminder as ApiReminder } from "@sdk";
 
 type ReminderType = "sugar" | "insulin" | "meal";
 
@@ -58,19 +60,19 @@ export default function CreateReminder() {
     e.preventDefault();
     if (!formValid) return;
     setError(null);
+    const payload: ApiReminder = {
+      telegramId: 1,
+      type,
+      time,
+      intervalHours: interval,
+      isEnabled: true,
+      ...(editing ? { id: editing.id } : {}),
+    };
     try {
-        const res = await fetch("/reminders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type,
-            text: title.trim(),
-            value: `${time}|${interval}`,
-            ...(editing ? { id: editing.id } : {})
-          })
-        });
-      if (!res.ok) {
-        throw new Error("Failed to create reminder");
+      if (editing) {
+        await updateReminder(payload);
+      } else {
+        await createReminder(payload);
       }
       navigate("/reminders");
     } catch {
