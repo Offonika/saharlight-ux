@@ -173,7 +173,7 @@ async def test_reminder_webapp_save_commit_failure(monkeypatch, caplog):
     assert not session.refresh.called
     assert not schedule_mock.called
     assert not render_mock.called
-    assert message.texts == []
+    assert message.texts == ["⚠️ Не удалось сохранить напоминание."]
     assert "Failed to commit reminder via webapp" in caplog.text
 
 
