@@ -1,22 +1,23 @@
 import logging
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
-import asyncio
 
 import services.bot.main as bot
 
 
-def test_main_logs_db_error(monkeypatch, caplog):
+def test_main_logs_db_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setattr(bot, "TELEGRAM_TOKEN", "token")
 
-    def faulty_init_db():
+    def faulty_init_db() -> None:
         raise SQLAlchemyError("boom")
 
     monkeypatch.setattr(bot, "init_db", faulty_init_db)
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(SystemExit) as exc:
-            asyncio.run(bot.main())
+            bot.main()
 
     assert (
         exc.value.code
