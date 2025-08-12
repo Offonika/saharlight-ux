@@ -152,3 +152,46 @@ async def test_three_alerts_notify(monkeypatch):
     with TestSession() as session:
         alerts = session.query(Alert).all()
         assert all(a.resolved for a in alerts)
+
+
+@pytest.mark.asyncio
+async def test_alert_message_without_coords(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t1"))
+        session.add(
+            Profile(
+                telegram_id=1,
+                low_threshold=4,
+                high_threshold=8,
+                sos_contact="@alice",
+                sos_alerts_enabled=True,
+            )
+        )
+        session.commit()
+
+    class DummyBot:
+        def __init__(self):
+            self.sent = []
+
+        async def send_message(self, chat_id, text):
+            self.sent.append((chat_id, text))
+
+    update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
+    context = SimpleNamespace(bot=DummyBot())
+
+    async def fake_get_coords_and_link():
+        return None, None
+
+    monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
+
+    for _ in range(3):
+        await handlers.check_alert(update, context, 3)
+
+    msg = "⚠️ У Ivan критический сахар 3 ммоль/л."
+    assert context.bot.sent == [(1, msg), ("@alice", msg)]

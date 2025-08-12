@@ -33,7 +33,9 @@ async def _send_alert_message(
     first_name: str,
 ) -> None:
     coords, link = await get_coords_and_link()
-    msg = f"⚠️ У {first_name} критический сахар {sugar} ммоль/л. {coords} {link}"
+    msg = f"⚠️ У {first_name} критический сахар {sugar} ммоль/л."
+    if coords and link:
+        msg += f" {coords} {link}"
     await context.bot.send_message(chat_id=user_id, text=msg)
     if profile_info.get("sos_contact") and profile_info.get("sos_alerts_enabled"):
         contact = profile_info["sos_contact"]
