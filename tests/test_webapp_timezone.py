@@ -8,7 +8,9 @@ from httpx import AsyncClient
 import services.api.app.main as server
 
 
-def test_timezone_persist_and_validate(tmp_path, monkeypatch) -> None:
+def test_timezone_persist_and_validate(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(server, "TIMEZONE_FILE", tmp_path / "timezone.txt")
     client = TestClient(server.app)
 
@@ -33,7 +35,9 @@ def test_timezone_persist_and_validate(tmp_path, monkeypatch) -> None:
     assert resp.status_code in {400, 422}
 
 
-def test_timezone_partial_file(tmp_path, monkeypatch) -> None:
+def test_timezone_partial_file(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(server, "TIMEZONE_FILE", tmp_path / "timezone.txt")
     server.TIMEZONE_FILE.write_text("Europe/Mosc", encoding="utf-8")
     client = TestClient(server.app)
@@ -41,7 +45,9 @@ def test_timezone_partial_file(tmp_path, monkeypatch) -> None:
     assert resp.status_code == 500
 
 
-def test_timezone_concurrent_writes(tmp_path, monkeypatch) -> None:
+def test_timezone_concurrent_writes(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(server, "TIMEZONE_FILE", tmp_path / "timezone.txt")
     timezones = ["Europe/Moscow", "America/New_York", "Asia/Tokyo", "Europe/Paris"]
 
@@ -63,7 +69,9 @@ def test_timezone_concurrent_writes(tmp_path, monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_timezone_async_writes(tmp_path, monkeypatch) -> None:
+async def test_timezone_async_writes(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(server, "TIMEZONE_FILE", tmp_path / "timezone.txt")
     timezones = ["Europe/Moscow", "America/New_York", "Asia/Tokyo", "Europe/Paris"]
 

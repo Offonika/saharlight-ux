@@ -28,7 +28,9 @@ class DummyEngine:
     ],
 )
 
-def test_init_db_recreates_engine_on_url_change(monkeypatch, attr, orig, new, url_attr):
+def test_init_db_recreates_engine_on_url_change(
+    monkeypatch: pytest.MonkeyPatch, attr, orig, new, url_attr
+):
     monkeypatch.setenv("DB_PASSWORD", "pwd")
     _reload("services.api.app.config")
     db = _reload("services.api.app.diabetes.services.db")
