@@ -25,7 +25,12 @@ async def test_parse_command_timeout_non_blocking(monkeypatch):
         return FakeResponse()
 
     fake_client = SimpleNamespace(
-        chat=SimpleNamespace(completions=SimpleNamespace(create=slow_create))
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(
+                create=slow_create,
+                with_options=lambda **kwargs: SimpleNamespace(create=slow_create),
+            )
+        )
     )
     monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
 
@@ -63,10 +68,13 @@ async def test_parse_command_with_explanatory_text(monkeypatch):
             )
         ]
 
+    def create(*args, **kwargs):
+        return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
             completions=SimpleNamespace(
-                create=lambda *args, **kwargs: FakeResponse()
+                create=create,
+                with_options=lambda **kwargs: SimpleNamespace(create=create),
             )
         )
     )
@@ -88,10 +96,13 @@ async def test_parse_command_with_array_response(monkeypatch):
             )
         ]
 
+    def create(*args, **kwargs):
+        return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
             completions=SimpleNamespace(
-                create=lambda *args, **kwargs: FakeResponse()
+                create=create,
+                with_options=lambda **kwargs: SimpleNamespace(create=create),
             )
         )
     )
@@ -113,10 +124,13 @@ async def test_parse_command_with_scalar_response(monkeypatch):
             )
         ]
 
+    def create(*args, **kwargs):
+        return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
             completions=SimpleNamespace(
-                create=lambda *args, **kwargs: FakeResponse()
+                create=create,
+                with_options=lambda **kwargs: SimpleNamespace(create=create),
             )
         )
     )
@@ -132,10 +146,13 @@ async def test_parse_command_with_missing_content(monkeypatch, caplog):
     class FakeResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {})()})]
 
+    def create(*args, **kwargs):
+        return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
             completions=SimpleNamespace(
-                create=lambda *args, **kwargs: FakeResponse()
+                create=create,
+                with_options=lambda **kwargs: SimpleNamespace(create=create),
             )
         )
     )
@@ -159,10 +176,13 @@ async def test_parse_command_with_non_string_content(monkeypatch, caplog):
             )
         ]
 
+    def create(*args, **kwargs):
+        return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
             completions=SimpleNamespace(
-                create=lambda *args, **kwargs: FakeResponse()
+                create=create,
+                with_options=lambda **kwargs: SimpleNamespace(create=create),
             )
         )
     )
