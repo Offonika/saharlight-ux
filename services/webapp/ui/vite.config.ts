@@ -12,6 +12,7 @@ export default defineConfig(async ({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
+        '@sdk': path.resolve(__dirname, '../../../libs/ts-sdk'),
       },
     },
     server: {
