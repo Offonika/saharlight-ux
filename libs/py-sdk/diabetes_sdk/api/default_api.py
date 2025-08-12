@@ -17,6 +17,8 @@ class DefaultApi:
 
     def profiles_post(self, profile: Profile) -> None:
         """Store profile in memory with basic validation."""
+        if profile.telegram_id <= 0:
+            raise ApiException("telegram_id must be greater than 0")
         if (
             profile.icr <= 0
             or profile.cf <= 0
@@ -31,7 +33,12 @@ class DefaultApi:
 
     def profiles_get(self, *, telegram_id: int) -> Profile | None:
         """Retrieve profile by Telegram ID."""
-        return self._profiles.get(telegram_id)
+        if telegram_id <= 0:
+            raise ApiException("telegram_id must be greater than 0")
+        try:
+            return self._profiles[telegram_id]
+        except KeyError as exc:
+            raise ApiException("profile not found") from exc
 
     def __repr__(self) -> str:  # pragma: no cover - trivial
         return f"DefaultApi(api_client={self.api_client!r})"
