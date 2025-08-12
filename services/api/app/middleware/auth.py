@@ -9,7 +9,14 @@ logger = logging.getLogger(__name__)
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        user_id = request.headers.get("X-User-Id")
+        user_id_header = request.headers.get("X-User-Id")
+        if user_id_header is None:
+            raise HTTPException(status_code=401, detail="invalid user id")
+        try:
+            user_id = int(user_id_header)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=401, detail="invalid user id")
+
         role = request.headers.get("X-Role", "patient")
         if role not in ALLOWED_ROLES:
             raise HTTPException(status_code=401, detail="invalid role")
