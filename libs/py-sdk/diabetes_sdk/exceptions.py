@@ -11,6 +11,7 @@
     Do not edit the class manually.
 """  # noqa: E501
 
+import logging
 from typing import Any, Optional
 from typing_extensions import Self
 
@@ -126,8 +127,8 @@ class ApiException(OpenApiException):
             if self.body is None:
                 try:
                     self.body = http_resp.data.decode('utf-8')
-                except Exception:
-                    pass
+                except UnicodeDecodeError as exc:
+                    logging.error("Unicode decode error while decoding HTTP response body: %s", exc)
             self.headers = http_resp.getheaders()
 
     @classmethod
