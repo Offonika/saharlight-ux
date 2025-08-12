@@ -3,18 +3,25 @@ from __future__ import annotations
 
 import datetime
 import logging
+from typing import Callable
 
+from sqlalchemy.orm import Session, sessionmaker
 from telegram.error import TelegramError
 from telegram.ext import ContextTypes
 
 from services.api.app.diabetes.services.db import (
     Alert,
     Profile,
-    SessionLocal,
+    SessionLocal as _SessionLocal,
     run_db,
 )
-from services.api.app.diabetes.handlers.common_handlers import commit_session
+from services.api.app.diabetes.handlers.common_handlers import (
+    commit_session as _commit_session,
+)
 from services.api.app.diabetes.utils.helpers import get_coords_and_link
+
+SessionLocal: sessionmaker[Session] = _SessionLocal
+commit_session: Callable[[Session], bool] = _commit_session
 
 logger = logging.getLogger(__name__)
 
@@ -199,5 +206,16 @@ async def alert_stats(update, context) -> None:
 
     text = f"За 7\u202Fдн.: гипо\u202F{hypo}, гипер\u202F{hyper}"
     await update.message.reply_text(text)
+
+
+__all__ = [
+    "schedule_alert",
+    "evaluate_sugar",
+    "check_alert",
+    "alert_job",
+    "alert_stats",
+    "SessionLocal",
+    "commit_session",
+]
 
 
