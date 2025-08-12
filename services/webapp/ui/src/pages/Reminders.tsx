@@ -155,10 +155,11 @@ export default function Reminders() {
         })
         normalized.sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time))
         setReminders(normalized)
-      } catch {
+      } catch (err) {
         if (!cancelled) {
-          setError('Не удалось загрузить напоминания')
-          toast({ title: 'Ошибка', description: 'Не удалось загрузить напоминания', variant: 'destructive' })
+          const message = err instanceof Error ? err.message : 'Не удалось загрузить напоминания'
+          setError(message)
+          toast({ title: 'Ошибка', description: message, variant: 'destructive' })
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -189,11 +190,12 @@ export default function Reminders() {
         title: 'Напоминание обновлено',
         description: 'Статус напоминания изменён',
       })
-    } catch {
+    } catch (err) {
       setReminders(prevReminders)
+      const message = err instanceof Error ? err.message : 'Не удалось обновить напоминание'
       toast({
         title: 'Ошибка',
-        description: 'Не удалось обновить напоминание',
+        description: message,
         variant: 'destructive',
       })
     }
@@ -209,11 +211,12 @@ export default function Reminders() {
         title: 'Напоминание удалено',
         description: 'Напоминание успешно удалено',
       })
-    } catch {
+    } catch (err) {
       setReminders(prevReminders)
+      const message = err instanceof Error ? err.message : 'Не удалось удалить напоминание'
       toast({
         title: 'Ошибка',
-        description: 'Не удалось удалить напоминание',
+        description: message,
         variant: 'destructive',
       })
     }
