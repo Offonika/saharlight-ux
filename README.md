@@ -113,6 +113,7 @@ python services/api/app/main.py
 ```bash
 docker compose -f infra/docker/docker-compose.yml up --build
 ```
+API контейнер запускает `uvicorn` напрямую как команду по умолчанию, поэтому отдельный скрипт запуска не требуется.
 
 ## Генерация SDK
 
