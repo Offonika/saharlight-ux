@@ -18,7 +18,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from telegram.error import BadRequest
+from telegram.error import BadRequest, TelegramError
 
 from services.api.app.diabetes.services.db import (
     Reminder,
@@ -558,7 +558,14 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             ]
         ]
     )
-    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
+    try:
+        await context.bot.send_message(
+            chat_id=chat_id, text=text, reply_markup=keyboard
+        )
+    except TelegramError:
+        logger.exception(
+            "Failed to send reminder %s to chat %s", rid, chat_id
+        )
 
 
 async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
