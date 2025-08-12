@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Depends, Request
 
 from .middleware.auth import require_role
 from .services.audit import log_patient_access
