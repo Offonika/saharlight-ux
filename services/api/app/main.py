@@ -3,10 +3,12 @@ import os
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
+from .middleware.auth import AuthMiddleware, require_role
+from .services.audit import log_patient_access
 from .schemas.profile import ProfileSchema
 from .schemas.reminders import ReminderSchema
 from .schemas.timezone import TimezoneSchema
@@ -18,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 app.router.redirect_slashes = True
+app.add_middleware(AuthMiddleware)
 
 BASE_DIR = Path(__file__).resolve().parent.parent / "webapp"
 UI_DIR = (BASE_DIR / "ui" / "dist").resolve()
@@ -41,7 +44,13 @@ async def api_profile(data: ProfileSchema) -> dict:
 
 
 @app.get("/api/reminders")
-async def api_reminders(telegram_id: int, id: int | None = None):
+async def api_reminders(
+    telegram_id: int,
+    request: Request,
+    id: int | None = None,
+    _: None = Depends(require_role("patient", "clinician", "org_admin", "superadmin")),
+):
+    log_patient_access(getattr(request.state, "user_id", None), telegram_id)
     rems = await list_reminders(telegram_id)
     if id is None:
         return [
@@ -69,7 +78,10 @@ async def api_reminders(telegram_id: int, id: int | None = None):
 
 
 @app.post("/api/reminders")
-async def api_reminders_post(data: ReminderSchema) -> dict:
+async def api_reminders_post(
+    data: ReminderSchema,
+    _: None = Depends(require_role("patient", "clinician", "org_admin", "superadmin")),
+) -> dict:
     rid = await save_reminder(data)
     return {"status": "ok", "id": rid}
 

@@ -9,3 +9,4 @@ class ReminderSchema(BaseModel):
     interval_hours: int | None = None
     minutes_after: int | None = None
     is_enabled: bool = True
+    org_id: int | None = None

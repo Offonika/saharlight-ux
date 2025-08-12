@@ -75,6 +75,7 @@ class User(Base):
     onboarding_complete = Column(Boolean, default=False)
     plan = Column(String, default="free")
     timezone = Column(String, default="UTC")  # IANA timezone identifier
+    org_id = Column(Integer)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
@@ -93,6 +94,7 @@ class Profile(Base):
     high_threshold = Column(Float)  # верхний порог сахара
     sos_contact = Column(String)  # контакт для экстренной связи
     sos_alerts_enabled = Column(Boolean, default=True)
+    org_id = Column(Integer)
     user = relationship("User")
 
 
@@ -101,6 +103,7 @@ class Entry(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"))
+    org_id = Column(Integer)
 
     event_time = Column(TIMESTAMP(timezone=True), nullable=False)  # время приёма
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
@@ -119,6 +122,7 @@ class Alert(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(BigInteger, ForeignKey("users.telegram_id"))
+    org_id = Column(Integer)
     sugar = Column(Float)
     type = Column(String)
     ts = Column(TIMESTAMP(timezone=True), server_default=func.now())
@@ -131,6 +135,7 @@ class Reminder(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"))
+    org_id = Column(Integer)
     type = Column(String, nullable=False)
     time = Column(String)  # HH:MM format for daily reminders
     interval_hours = Column(Integer)  # for repeating reminders
@@ -146,6 +151,7 @@ class ReminderLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     reminder_id = Column(Integer, ForeignKey("reminders.id"))
     telegram_id = Column(BigInteger)
+    org_id = Column(Integer)
     action = Column(String)  # triggered, snoozed, cancelled
     event_time = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
