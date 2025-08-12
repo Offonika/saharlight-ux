@@ -30,6 +30,9 @@ def _validate_profile(data: ProfileSchema) -> None:
     ):
         raise HTTPException(status_code=400, detail="invalid profile values")
 
+    if not (data.low < data.target < data.high):
+        raise HTTPException(status_code=400, detail="target must be between low and high")
+
 
 async def save_profile(data: ProfileSchema) -> None:
     _validate_profile(data)
