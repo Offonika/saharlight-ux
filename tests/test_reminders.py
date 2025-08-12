@@ -238,7 +238,7 @@ async def test_reminders_list_no_keyboard(monkeypatch) -> None:
 
     captured: dict[str, dict] = {}
 
-    async def fake_reply_text(text, **kwargs):
+    async def fake_reply_text(text: str, **kwargs: Any) -> None:
         captured["text"] = text
         captured["kwargs"] = kwargs
 

@@ -162,7 +162,7 @@ async def test_three_alerts_notify(monkeypatch) -> None:
 
     update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
     context: AlertContext = ContextStub(bot=cast(Bot, DummyBot()))
-    async def fake_get_coords_and_link():
+    async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
         return ("0,0", "link")
 
     monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
@@ -210,7 +210,7 @@ async def test_alert_message_without_coords(monkeypatch) -> None:
     update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
     context: AlertContext = ContextStub(bot=cast(Bot, DummyBot()))
 
-    async def fake_get_coords_and_link():
+    async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
         return None, None
 
     monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)

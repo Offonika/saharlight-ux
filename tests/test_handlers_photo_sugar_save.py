@@ -60,7 +60,7 @@ session = DummySession()
 
 @pytest.mark.asyncio
 async def test_photo_flow_saves_entry(monkeypatch, tmp_path) -> None:
-    async def fake_parse_command(text):
+    async def fake_parse_command(text: str) -> dict[str, Any]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
     monkeypatch.setattr(dose_handlers, "parse_command", fake_parse_command)
@@ -76,9 +76,9 @@ async def test_photo_flow_saves_entry(monkeypatch, tmp_path) -> None:
 
     monkeypatch.chdir(tmp_path)
 
-    async def fake_get_file(file_id):
+    async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path):
+            async def download_to_drive(self, path: str) -> None:
                 Path(path).write_bytes(b"img")
 
         return File()
@@ -143,7 +143,7 @@ async def test_photo_flow_saves_entry(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(common_handlers, "SessionLocal", lambda: session)
     import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 
-    async def noop(*a, **k):
+    async def noop(*a: Any, **k: Any) -> None:
         return None
 
     monkeypatch.setattr(alert_handlers, "check_alert", noop)

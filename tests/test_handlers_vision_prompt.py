@@ -25,14 +25,14 @@ class DummyPhoto:
 async def test_photo_prompt_includes_dish_name(monkeypatch, tmp_path) -> None:
     monkeypatch.chdir(tmp_path)
 
-    async def fake_get_file(file_id):
+    async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path):
+            async def download_to_drive(self, path: str) -> None:
                 Path(path).write_bytes(b"img")
 
         return File()
 
-    async def fake_send_chat_action(*args, **kwargs):
+    async def fake_send_chat_action(*args: Any, **kwargs: Any) -> None:
         pass
 
     context = SimpleNamespace(

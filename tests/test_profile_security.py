@@ -90,7 +90,7 @@ async def test_profile_security_threshold_changes(monkeypatch, action, expected_
 
     calls = []
 
-    async def fake_eval(user_id, sugar, job_queue):
+    async def fake_eval(user_id, sugar, job_queue) -> None:
         calls.append((user_id, sugar, job_queue))
 
     monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
@@ -135,7 +135,7 @@ async def test_profile_security_toggle_sos_alerts(monkeypatch) -> None:
 
     calls = []
 
-    async def fake_eval(user_id, sugar, job_queue):
+    async def fake_eval(user_id, sugar, job_queue) -> None:
         calls.append((user_id, sugar, job_queue))
 
     monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
@@ -202,7 +202,7 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch) -> None:
 
     called = {"del": False}
 
-    async def fake_del(update, context):
+    async def fake_del(update, context) -> None:
         called["del"] = True
 
     monkeypatch.setattr(reminder_handlers, "delete_reminder", fake_del)
@@ -237,7 +237,7 @@ async def test_profile_security_sos_contact_calls_handler(monkeypatch) -> None:
 
     called = False
 
-    async def fake_sos(update, context):
+    async def fake_sos(update, context) -> None:
         nonlocal called
         called = True
 

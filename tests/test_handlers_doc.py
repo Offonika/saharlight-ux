@@ -25,15 +25,15 @@ class DummyMessage(Message):
 async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) -> None:
     called = SimpleNamespace(flag=False)
 
-    async def fake_photo_handler(update, context):
+    async def fake_photo_handler(update, context) -> str:
         called.flag = True
         return "OK"
 
     class DummyFile:
-        async def download_to_drive(self, path):
+        async def download_to_drive(self, path) -> None:
             self.path = path
 
-    async def fake_get_file(file_id):
+    async def fake_get_file(file_id: str) -> DummyFile:
         return DummyFile()
 
     dummy_bot = SimpleNamespace(get_file=fake_get_file)
@@ -63,7 +63,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> None:
     called = SimpleNamespace(flag=False)
 
-    async def fake_photo_handler(update, context):
+    async def fake_photo_handler(update, context) -> None:
         called.flag = True
 
     document = SimpleNamespace(
@@ -106,17 +106,17 @@ async def test_photo_handler_preserves_file(monkeypatch, tmp_path) -> None:
         file_id = "fid"
         file_unique_id = "uid"
 
-    async def reply_text(*args, **kwargs):
+    async def reply_text(*args: Any, **kwargs: Any) -> None:
         pass
 
     message = SimpleNamespace(photo=[DummyPhoto()], reply_text=reply_text)
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
 
     class DummyFile:
-        async def download_to_drive(self, path):
+        async def download_to_drive(self, path) -> None:
             Path(path).write_bytes(b"img")
 
-    async def fake_get_file(file_id):
+    async def fake_get_file(file_id: str) -> DummyFile:
         return DummyFile()
 
     dummy_bot = SimpleNamespace(get_file=fake_get_file)
@@ -172,10 +172,10 @@ async def test_photo_then_freeform_calculates_dose(monkeypatch, tmp_path) -> Non
         file_unique_id = "uid"
 
     class DummyFile:
-        async def download_to_drive(self, path):
+        async def download_to_drive(self, path) -> None:
             Path(path).write_bytes(b"img")
 
-    async def fake_get_file(file_id):
+    async def fake_get_file(file_id: str) -> DummyFile:
         return DummyFile()
 
     monkeypatch.chdir(tmp_path)

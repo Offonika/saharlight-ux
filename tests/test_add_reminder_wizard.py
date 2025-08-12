@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from telegram import Update
+from telegram.ext import ContextTypes
 
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 from services.api.app.diabetes.handlers.common_handlers import commit_session
@@ -72,8 +74,10 @@ async def test_webapp_save_creates_reminder(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "08:00"}))
-    update = UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
-    context = CallbackContextStub(job_queue=DummyJobQueue())
+    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
+    context = cast(
+        ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
+    )
     await handlers.reminder_webapp_save(update, context)
 
     with TestSession() as session:
@@ -96,8 +100,10 @@ async def test_webapp_save_creates_interval(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "2h"}))
-    update = UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
-    context = CallbackContextStub(job_queue=DummyJobQueue())
+    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
+    context = cast(
+        ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
+    )
     await handlers.reminder_webapp_save(update, context)
 
     with TestSession() as session:
