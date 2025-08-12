@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
-from telegram import Bot
 from telegram.ext import Job, JobQueue
 
 
 class AlertContext(Protocol):
     """Protocol for context objects used in alert handlers tests."""
-    job: Job | None
-    job_queue: JobQueue | None
-    bot: Bot | None
+    job: Job[Any] | None
+    job_queue: JobQueue[Any] | None
+    bot: Any | None
 
 
 @dataclass
 class ContextStub:
-    job: Job | None = None
-    job_queue: JobQueue | None = None
-    bot: Bot | None = None
+    job: Job[Any] | None = None
+    job_queue: JobQueue[Any] | None = None
+    bot: Any | None = None
