@@ -58,16 +58,16 @@ async def test_onboarding_demo_photo_missing(monkeypatch, caplog) -> None:
     update.message.text = "6"
     await onboarding.onboarding_target(update, context)
 
-    import builtins
+    import pathlib
 
-    orig_open = builtins.open
+    orig_open = pathlib.Path.open
 
-    def fake_open(path, *args, **kwargs):
-        if path == "docs/assets/demo.jpg":
+    def fake_open(self, *args, **kwargs):
+        if self == onboarding.DEMO_PHOTO_PATH:
             raise OSError("missing")
-        return orig_open(path, *args, **kwargs)
+        return orig_open(self, *args, **kwargs)
 
-    monkeypatch.setattr(builtins, "open", fake_open)
+    monkeypatch.setattr(pathlib.Path, "open", fake_open)
 
     update.message.text = "Europe/Moscow"
     with caplog.at_level(logging.ERROR):
