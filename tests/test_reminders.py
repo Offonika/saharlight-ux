@@ -206,6 +206,48 @@ def test_render_reminders_no_webapp(monkeypatch):
     assert all(btn.web_app is None for btn in markup.inline_keyboard[0])
 
 
+def test_render_reminders_no_entries_no_webapp(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    monkeypatch.setattr(handlers, "WEBAPP_URL", None)
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+    with TestSession() as session:
+        text, markup = handlers._render_reminders(session, 1)
+    assert "У вас нет напоминаний" in text
+    assert markup is None
+
+
+@pytest.mark.asyncio
+async def test_reminders_list_no_keyboard(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    monkeypatch.setattr(handlers, "WEBAPP_URL", None)
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    captured: dict[str, dict] = {}
+
+    async def fake_reply_text(text, **kwargs):
+        captured["text"] = text
+        captured["kwargs"] = kwargs
+
+    update = SimpleNamespace(
+        effective_user=SimpleNamespace(id=1),
+        message=SimpleNamespace(reply_text=fake_reply_text),
+    )
+    context = SimpleNamespace()
+    await handlers.reminders_list(update, context)
+    assert "У вас нет напоминаний" in captured["text"]
+    assert "reply_markup" not in captured["kwargs"]
+
+
 @pytest.mark.asyncio
 async def test_toggle_reminder_cb(monkeypatch):
     engine = create_engine("sqlite:///:memory:")
