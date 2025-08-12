@@ -34,9 +34,10 @@ async def sos_contact_start(
 
 
 def _is_valid_contact(text: str) -> bool:
-    """Validate telegram username."""
+    """Validate telegram username or numeric chat ID."""
     username = re.fullmatch(r"@[A-Za-z][A-Za-z0-9_]{4,31}", text)
-    return bool(username)
+    chat_id = re.fullmatch(r"\d+", text)
+    return bool(username or chat_id)
 
 
 async def sos_contact_save(
@@ -46,7 +47,7 @@ async def sos_contact_save(
     contact = update.message.text.strip()
     if not _is_valid_contact(contact):
         await update.message.reply_text(
-            "❗ Укажите @username. Телефоны не поддерживаются.",
+            "❗ Укажите @username или числовой ID. Телефоны не поддерживаются.",
             reply_markup=back_keyboard,
         )
         return SOS_CONTACT

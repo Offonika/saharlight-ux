@@ -40,13 +40,14 @@ def test_session(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_soscontact_stores_contact(test_session):
+@pytest.mark.parametrize("contact", ["@alice", "123456"])
+async def test_soscontact_stores_contact(test_session, contact):
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1))
         session.commit()
 
-    message = DummyMessage("@alice")
+    message = DummyMessage(contact)
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace()
 
@@ -57,7 +58,7 @@ async def test_soscontact_stores_contact(test_session):
 
     with test_session() as session:
         profile = session.get(Profile, 1)
-        assert profile.sos_contact == "@alice"
+        assert profile.sos_contact == contact
 
 
 @pytest.mark.asyncio
