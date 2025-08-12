@@ -11,7 +11,7 @@ source venv/bin/activate
 
 echo "Установка Python-зависимостей…"
 pip install --upgrade pip
-pip install -r services/api/app/requirements.txt
+pip install -r requirements.txt
 
 echo "Сборка фронтенда (npm ci && npm run build)…"
 pushd webapp/ui >/dev/null
