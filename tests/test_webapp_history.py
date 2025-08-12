@@ -1,5 +1,10 @@
+import asyncio
 import json
+
+import pytest
 from fastapi.testclient import TestClient
+from httpx import AsyncClient
+
 import services.api.app.main as server
 
 
@@ -24,3 +29,24 @@ def test_history_persist_and_update(tmp_path, monkeypatch) -> None:
     assert resp.status_code == 200
     rec2_dump = {**rec2, "sugar": None, "carbs": None, "breadUnits": None, "insulin": None, "notes": None}
     assert json.loads(server.HISTORY_FILE.read_text(encoding="utf-8")) == [rec1_update_dump, rec2_dump]
+
+
+@pytest.mark.asyncio
+async def test_history_concurrent_writes(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(server, "HISTORY_FILE", tmp_path / "history.json")
+    records = [
+        {"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"}
+        for i in range(5)
+    ]
+
+    async def post_record(rec: dict) -> None:
+        async with AsyncClient(app=server.app, base_url="http://test") as ac:
+            resp = await ac.post("/api/history", json=rec)
+            assert resp.status_code == 200
+
+    await asyncio.gather(*(post_record(r) for r in records))
+
+    dumped = json.loads(server.HISTORY_FILE.read_text(encoding="utf-8"))
+    default_fields = {"sugar": None, "carbs": None, "breadUnits": None, "insulin": None, "notes": None}
+    expected = [{**rec, **default_fields} for rec in records]
+    assert sorted(dumped, key=lambda d: d["id"]) == expected

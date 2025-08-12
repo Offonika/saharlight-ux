@@ -24,6 +24,7 @@ if not UI_DIR.exists():
 UI_DIR = UI_DIR.resolve()
 TIMEZONE_FILE = Path(__file__).resolve().parent / "timezone.txt"
 HISTORY_FILE = Path(__file__).resolve().parent / "history.json"
+history_lock = asyncio.Lock()
 
 
 class Timezone(BaseModel):
@@ -79,31 +80,32 @@ async def post_history(data: HistoryRecordSchema) -> dict:
     """
 
     try:
-        if HISTORY_FILE.exists():
-            async with aiofiles.open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                content = await f.read()
-            records = json.loads(content) if content else []
-            if not isinstance(records, list):  # pragma: no cover - corrupted file
+        async with history_lock:
+            if HISTORY_FILE.exists():
+                async with aiofiles.open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                    content = await f.read()
+                records = json.loads(content) if content else []
+                if not isinstance(records, list):  # pragma: no cover - corrupted file
+                    records = []
+            else:
                 records = []
-        else:
-            records = []
 
-        for idx, rec in enumerate(records):
-            if rec.get("id") == data.id:
-                records[idx] = data.model_dump()
-                break
-        else:
-            records.append(data.model_dump())
+            for idx, rec in enumerate(records):
+                if rec.get("id") == data.id:
+                    records[idx] = data.model_dump()
+                    break
+            else:
+                records.append(data.model_dump())
 
-        async with aiofiles.tempfile.NamedTemporaryFile(
-            "w", dir=HISTORY_FILE.parent, delete=False, encoding="utf-8"
-        ) as tmp:
-            await tmp.write(json.dumps(records, ensure_ascii=False, indent=2))
-            await tmp.flush()
+            async with aiofiles.tempfile.NamedTemporaryFile(
+                "w", dir=HISTORY_FILE.parent, delete=False, encoding="utf-8"
+            ) as tmp:
+                await tmp.write(json.dumps(records, ensure_ascii=False, indent=2))
+                await tmp.flush()
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(None, os.fsync, tmp.fileno())
             loop = asyncio.get_running_loop()
-            await loop.run_in_executor(None, os.fsync, tmp.fileno())
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, os.replace, tmp.name, HISTORY_FILE)
+            await loop.run_in_executor(None, os.replace, tmp.name, HISTORY_FILE)
     except Exception as exc:  # pragma: no cover - unexpected errors
         logger.exception("failed to save history")
         raise HTTPException(status_code=500, detail="failed to save history") from exc
