@@ -1,0 +1,42 @@
+name: Generate SDKs
+
+on:
+  push:
+    paths:
+      - 'libs/contracts/openapi.yaml'
+  pull_request:
+    paths:
+      - 'libs/contracts/openapi.yaml'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install OpenAPI Generator CLI
+        run: |
+          npm install -g @openapitools/openapi-generator-cli
+      - name: Generate TypeScript SDK
+        run: |
+          openapi-generator-cli generate -i libs/contracts/openapi.yaml -g typescript-axios -o libs/ts-sdk --additional-properties=supportsES6=true
+      - name: Generate Python SDK
+        run: |
+          openapi-generator-cli generate -i libs/contracts/openapi.yaml -g python -o libs/py-sdk --package-name diabetes_sdk
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'chore: regenerate SDKs'
+          title: 'chore: regenerate SDKs'
+          body: |
+            Regenerated SDKs from updated OpenAPI spec.
+          branch: sdk/regenerate
+          delete-branch: true

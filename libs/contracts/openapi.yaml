@@ -1,0 +1,147 @@
+openapi: 3.0.3
+info:
+  title: Diabetes Assistant API
+  version: 1.0.0
+paths:
+  /api/timezone:
+    post:
+      summary: Set timezone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Timezone'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+  /api/profile:
+    post:
+      summary: Save user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+  /api/reminders:
+    get:
+      summary: List or retrieve reminders
+      parameters:
+        - in: query
+          name: telegram_id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: id
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Reminder'
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Reminder'
+    post:
+      summary: Save reminder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reminder'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  id:
+                    type: integer
+components:
+  schemas:
+    Status:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Timezone:
+      type: object
+      properties:
+        telegram_id:
+          type: integer
+        tz:
+          type: string
+      required:
+        - telegram_id
+        - tz
+    Profile:
+      type: object
+      properties:
+        telegram_id:
+          type: integer
+        icr:
+          type: number
+          format: float
+        cf:
+          type: number
+          format: float
+        target:
+          type: number
+          format: float
+        low:
+          type: number
+          format: float
+        high:
+          type: number
+          format: float
+      required:
+        - telegram_id
+        - icr
+        - cf
+        - target
+        - low
+        - high
+    Reminder:
+      type: object
+      properties:
+        telegram_id:
+          type: integer
+        id:
+          type: integer
+        type:
+          type: string
+        time:
+          type: string
+        interval_hours:
+          type: integer
+        minutes_after:
+          type: integer
+        is_enabled:
+          type: boolean
+      required:
+        - telegram_id
+        - type
