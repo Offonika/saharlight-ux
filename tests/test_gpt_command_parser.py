@@ -7,8 +7,8 @@ import pytest
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-from diabetes import openai_utils  # noqa: F401,E402
-from diabetes import gpt_command_parser  # noqa: E402
+from apps.telegram_bot import openai_utils  # noqa: F401,E402
+from apps.telegram_bot import gpt_command_parser  # noqa: E402
 
 
 @pytest.mark.asyncio

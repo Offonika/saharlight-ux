@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("DB_PASSWORD", "test")
-from diabetes.db import Base, User, Entry
+from apps.telegram_bot.db import Base, User, Entry
 
 
 class DummyMessage:
@@ -47,9 +47,9 @@ class DummyBot:
 async def test_edit_dose(monkeypatch):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import diabetes.openai_utils as openai_utils  # noqa: F401
-    import diabetes.common_handlers as common_handlers
-    import diabetes.dose_handlers as dose_handlers
+    import apps.telegram_bot.openai_utils as openai_utils  # noqa: F401
+    import apps.telegram_bot.common_handlers as common_handlers
+    import apps.telegram_bot.dose_handlers as dose_handlers
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

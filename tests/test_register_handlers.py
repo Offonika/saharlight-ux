@@ -7,17 +7,17 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler,
 )
-from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
+from apps.telegram_bot.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
-from diabetes.common_handlers import register_handlers, callback_router, start_command
-from diabetes import security_handlers, reminder_handlers
+from apps.telegram_bot.common_handlers import register_handlers, callback_router, start_command
+from apps.telegram_bot import security_handlers, reminder_handlers
 
 
 def test_register_handlers_attaches_expected_handlers(monkeypatch):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import diabetes.openai_utils as openai_utils  # noqa: F401
-    from diabetes import dose_handlers, profile_handlers, reporting_handlers
+    import apps.telegram_bot.openai_utils as openai_utils  # noqa: F401
+    from apps.telegram_bot import dose_handlers, profile_handlers, reporting_handlers
 
     app = ApplicationBuilder().token("TESTTOKEN").build()
     register_handlers(app)

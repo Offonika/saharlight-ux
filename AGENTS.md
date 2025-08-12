@@ -9,7 +9,7 @@
 
 ## 📁 Основные файлы и структура
 
-- **backend/diabetes/** — основной пакет, логика бота
+- **apps/telegram_bot/** — основной пакет, логика бота
     - **common_handlers.py** — общие обработчики и роутинг
     - **onboarding_handlers.py** — сценарий регистрации и стартовые команды
     - **profile_handlers.py** — управление профилем пользователя
@@ -25,7 +25,7 @@
 - **backend/.env.example** — шаблон для переменных окружения
 - **tests/** — директория для автотестов (по мере развития)
   
-Все обработчики располагаются в отдельных файлах с суффиксом `_handlers.py` в каталоге `backend/diabetes/`. Добавляя новый функционал, создавайте новый модуль или дополняйте существующий, придерживаясь тематического разделения.
+Все обработчики располагаются в отдельных файлах с суффиксом `_handlers.py` в каталоге `apps/telegram_bot/`. Добавляя новый функционал, создавайте новый модуль или дополняйте существующий, придерживаясь тематического разделения.
 
 ---
 
@@ -42,7 +42,7 @@
     cp backend/.env.example .env
     # Впишите свои значения в .env
     source venv/bin/activate
-    python backend/bot.py
+    python apps/telegram_bot/bot.py
     ```
 
 3. Для Docker/Codex:
@@ -63,7 +63,7 @@
 - **Линтинг**: PEP8-стиль
     ```bash
     pip install -r backend/requirements-dev.txt
-    ruff backend/diabetes tests
+    ruff apps/telegram_bot tests
     ```
 
 ---
@@ -78,15 +78,15 @@
 ## ⚡ Примеры задач для Codex/разработки
 
 - **Рефакторинг:**
-  _Refactor backend/diabetes/handlers.py, split into smaller modules for readability and maintainability. Add type hints and docstrings._
+  _Refactor apps/telegram_bot/handlers.py, split into smaller modules for readability and maintainability. Add type hints and docstrings._
 - **Покрытие тестами:**
-  _Add pytest unit tests for backend/diabetes/functions.py, cover all calculation logic._
+  _Add pytest unit tests for apps/telegram_bot/functions.py, cover all calculation logic._
 - **CI и линтинг:**
-  _Run ruff on backend/diabetes/ and tests/, fix all style issues. Add a pre-commit hook if needed._
+  _Run ruff on apps/telegram_bot/ and tests/, fix all style issues. Add a pre-commit hook if needed._
 - **Документация:**
   _Generate and update code documentation. Add docstrings to all public functions._
 - **Безопасность:**
-  _Audit backend/diabetes/db.py for ORM or SQL security issues. Implement parameterized queries if needed._
+  _Audit apps/telegram_bot/db.py for ORM or SQL security issues. Implement parameterized queries if needed._
 - **Docker:**  
   _Check that Dockerfile builds and runs with .env, update README.md with Docker instructions._
 

@@ -3,7 +3,7 @@
 Bot entry point and configuration.
 """
 
-from diabetes.common_handlers import register_handlers
+from apps.telegram_bot.common_handlers import register_handlers
 from backend.services import init_db
 from backend.config import LOG_LEVEL, TELEGRAM_TOKEN
 from telegram import BotCommand

@@ -6,8 +6,8 @@ from telegram.ext import CommandHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-import diabetes.openai_utils as openai_utils  # noqa: F401
-from diabetes import dose_handlers
+import apps.telegram_bot.openai_utils as openai_utils  # noqa: F401
+from apps.telegram_bot import dose_handlers
 
 
 class DummyMessage:

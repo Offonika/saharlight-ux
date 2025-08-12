@@ -3,9 +3,9 @@ from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from diabetes.db import Base, User, Profile, Alert
-import diabetes.alert_handlers as handlers
-from diabetes.common_handlers import commit_session
+from apps.telegram_bot.db import Base, User, Profile, Alert
+import apps.telegram_bot.alert_handlers as handlers
+from apps.telegram_bot.common_handlers import commit_session
 
 
 class DummyJob:

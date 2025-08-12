@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 from types import SimpleNamespace
 
-import diabetes.dose_handlers as dose_handlers
+import apps.telegram_bot.dose_handlers as dose_handlers
 
 
 class DummyMessage:

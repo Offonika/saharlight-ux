@@ -1,4 +1,4 @@
-// file: webapp/ui/src/main.tsx
+// file: apps/web/src/main.tsx
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 

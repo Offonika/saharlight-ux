@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("DB_PASSWORD", "test")
 
-from diabetes.reporting import make_sugar_plot, generate_pdf_report
+from apps.telegram_bot.reporting import make_sugar_plot, generate_pdf_report
 
 
 class DummyEntry:
@@ -140,8 +140,8 @@ async def test_send_report_uses_gpt(monkeypatch):
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst")
     os.environ.setdefault("DB_PASSWORD", "pwd")
 
-    import diabetes.reporting_handlers as handlers
-    from diabetes.db import Base, Entry, User
+    import apps.telegram_bot.reporting_handlers as handlers
+    from apps.telegram_bot.db import Base, Entry, User
 
     engine = create_engine(
         "sqlite:///:memory:",

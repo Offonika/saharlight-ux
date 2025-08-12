@@ -5,8 +5,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from diabetes.db import Base, Alert, User
-import diabetes.alert_handlers as alert_handlers
+from apps.telegram_bot.db import Base, Alert, User
+import apps.telegram_bot.alert_handlers as alert_handlers
 
 
 class DummyMessage:

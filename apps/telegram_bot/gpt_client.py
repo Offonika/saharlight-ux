@@ -7,7 +7,7 @@ import threading
 from openai import OpenAIError
 
 from backend.config import OPENAI_ASSISTANT_ID
-from diabetes.openai_utils import get_openai_client
+from apps.telegram_bot.openai_utils import get_openai_client
 
 logger = logging.getLogger(__name__)
 

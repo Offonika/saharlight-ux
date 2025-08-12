@@ -2,7 +2,7 @@
 
 import pytest
 
-from diabetes.functions import (
+from apps.telegram_bot.functions import (
     PatientProfile,
     _safe_float,
     calc_bolus,

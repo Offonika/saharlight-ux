@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from diabetes import reporting_handlers
+from apps.telegram_bot import reporting_handlers
 
 
 class DummyMessage:

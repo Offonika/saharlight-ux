@@ -27,10 +27,10 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
+from apps.telegram_bot.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
-from diabetes.db import SessionLocal, User, Profile
-from diabetes.ui import menu_keyboard, build_timezone_webapp_button
+from apps.telegram_bot.db import SessionLocal, User, Profile
+from apps.telegram_bot.ui import menu_keyboard, build_timezone_webapp_button
 from .common_handlers import commit_session
 from zoneinfo import ZoneInfo
 

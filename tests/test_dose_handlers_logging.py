@@ -1,6 +1,6 @@
 import logging
 
-from diabetes import dose_handlers
+from apps.telegram_bot import dose_handlers
 
 
 def test_logging_truncates_content(caplog):

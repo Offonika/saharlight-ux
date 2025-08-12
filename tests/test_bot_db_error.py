@@ -3,7 +3,7 @@ import pytest
 from sqlalchemy.exc import SQLAlchemyError
 import asyncio
 
-import bot
+from apps.telegram_bot import bot
 
 
 def test_main_logs_db_error(monkeypatch, caplog):

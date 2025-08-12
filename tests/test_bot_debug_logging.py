@@ -14,9 +14,9 @@ def test_log_level_debug(monkeypatch):
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
 
     # Ensure fresh imports so that env vars are read
-    for mod in ["backend.config", "bot"]:
+    for mod in ["backend.config", "apps.telegram_bot.bot"]:
         sys.modules.pop(mod, None)
-    bot = importlib.import_module("bot")
+    bot = importlib.import_module("apps.telegram_bot.bot")
 
     # Stub external interactions
     monkeypatch.setattr(bot, "init_db", lambda: None)

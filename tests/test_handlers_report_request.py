@@ -30,9 +30,9 @@ class DummyQuery:
 async def test_report_request_and_custom_flow(monkeypatch):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import diabetes.openai_utils as openai_utils  # noqa: F401
-    import diabetes.reporting_handlers as reporting_handlers
-    import diabetes.dose_handlers as dose_handlers
+    import apps.telegram_bot.openai_utils as openai_utils  # noqa: F401
+    import apps.telegram_bot.reporting_handlers as reporting_handlers
+    import apps.telegram_bot.dose_handlers as dose_handlers
 
     message = DummyMessage()
     update = SimpleNamespace(
@@ -78,8 +78,8 @@ async def test_report_request_and_custom_flow(monkeypatch):
 async def test_report_period_callback_week(monkeypatch):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import diabetes.openai_utils as openai_utils  # noqa: F401
-    import diabetes.reporting_handlers as reporting_handlers
+    import apps.telegram_bot.openai_utils as openai_utils  # noqa: F401
+    import apps.telegram_bot.reporting_handlers as reporting_handlers
 
     called: dict[str, datetime.datetime | str] = {}
 

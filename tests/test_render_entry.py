@@ -1,7 +1,7 @@
 import datetime
 from types import SimpleNamespace
 
-from diabetes.reporting_handlers import render_entry
+from apps.telegram_bot.reporting_handlers import render_entry
 
 
 def make_entry(**kwargs):

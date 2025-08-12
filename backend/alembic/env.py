@@ -12,7 +12,7 @@ load_dotenv(".env")
 sys.path.append(os.getcwd())
 
 # Импорт конфигурации проекта
-from diabetes.db import Base
+from apps.telegram_bot.db import Base
 from backend.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 # Alembic Config

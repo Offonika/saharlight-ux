@@ -5,9 +5,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from diabetes.db import Base, User, Reminder, Entry
-import diabetes.reminder_handlers as handlers
-from diabetes.common_handlers import commit_session
+from apps.telegram_bot.db import Base, User, Reminder, Entry
+import apps.telegram_bot.reminder_handlers as handlers
+from apps.telegram_bot.common_handlers import commit_session
 
 
 class DummyMessage:

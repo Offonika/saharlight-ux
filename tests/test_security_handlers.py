@@ -1,7 +1,7 @@
 import pytest
 from types import SimpleNamespace
 
-import diabetes.security_handlers as handlers
+import apps.telegram_bot.security_handlers as handlers
 
 
 class DummyMessage:

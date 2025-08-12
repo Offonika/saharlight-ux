@@ -10,7 +10,7 @@
 
 ### Структура
 
-- `backend/diabetes/` — основной пакет
+- `apps/telegram_bot/` — основной пакет
   - `common_handlers.py` — общие обработчики и роутинг
   - `onboarding_handlers.py` — регистрация и стартовые команды
   - `profile_handlers.py` — профиль пользователя
@@ -18,9 +18,9 @@
   - `dose_handlers.py` — расчёт доз инсулина
   - новые файлы `*_handlers.py` — для прочих сценариев
 - `backend/main.py` — FastAPI‑приложение: отдаёт WebApp и REST API
-- `webapp/ui` — исходники фронтенда (React + Vite, собирается в `dist/`)
+- `apps/web` — исходники фронтенда (React + Vite, собирается в `dist/`)
 
-Новые обработчики добавляйте в каталог `backend/diabetes/`, создавая отдельные модули с суффиксом `_handlers.py` и группируя их по доменам.
+Новые обработчики добавляйте в каталог `apps/telegram_bot/`, создавая отдельные модули с суффиксом `_handlers.py` и группируя их по доменам.
 
 ### Доступные команды
 
@@ -61,10 +61,10 @@
    ```bash
    pip install -r backend/requirements.txt
 
-   (cd webapp/ui && npm ci)
+   (cd apps/web && npm ci)
 
    ```
-   Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `webapp/ui`.
+   Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `apps/web`.
 4. **Скопируйте шаблон .env и заполните своими данными:**
    ```bash
    cp backend/.env.example .env
@@ -84,10 +84,10 @@
 
 ### Запуск WebApp
 
-В каталоге `webapp/ui` расположен React‑SPA (Vite), исходники лежат в `src/`,
+В каталоге `apps/web` расположен React‑SPA (Vite), исходники лежат в `src/`,
 а результат сборки — в `dist/`. Все команды `npm` запускаются из этого каталога.
 Файл `backend/main.py` отдаёт содержимое
-каталога `webapp/ui/dist` и предоставляет REST API (`/api/timezone`,
+каталога `apps/web/dist` и предоставляет REST API (`/api/timezone`,
 `/api/profile`, `/api/reminders`).
 
 1. **Сборка интерфейса**
@@ -101,7 +101,7 @@
    Ручная сборка нужна только для локального тестирования изменений:
 
    ```bash
-    cd webapp/ui
+    cd apps/web
     npm ci
     npm run build
    ```
@@ -149,6 +149,6 @@ ngrok http 8000
 
 ```bash
 pip install -r backend/requirements-dev.txt
-ruff backend/diabetes tests
+ruff apps/telegram_bot tests
 pytest tests/
 ```

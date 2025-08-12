@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from diabetes.db import Base
+from apps.telegram_bot.db import Base
 
 
 class DummyMessage:
@@ -29,9 +29,9 @@ async def test_onboarding_demo_photo_missing(monkeypatch, caplog):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 
-    import diabetes.common_handlers  # noqa: F401
-    import diabetes.onboarding_handlers as onboarding
-    import diabetes.gpt_client as gpt_client
+    import apps.telegram_bot.common_handlers  # noqa: F401
+    import apps.telegram_bot.onboarding_handlers as onboarding
+    import apps.telegram_bot.gpt_client as gpt_client
 
     monkeypatch.setattr(gpt_client, "create_thread", lambda: "tid")
 

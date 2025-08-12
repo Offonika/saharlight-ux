@@ -21,16 +21,16 @@ from telegram.ext import (
     filters,
 )
 
-from diabetes.db import SessionLocal, User, Entry, Profile
-from diabetes.functions import (
+from apps.telegram_bot.db import SessionLocal, User, Entry, Profile
+from apps.telegram_bot.functions import (
     extract_nutrition_info,
     calc_bolus,
     PatientProfile,
     smart_input,
 )
-from diabetes.gpt_client import create_thread, send_message, _get_client
-from diabetes.gpt_command_parser import parse_command
-from diabetes.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
+from apps.telegram_bot.gpt_client import create_thread, send_message, _get_client
+from apps.telegram_bot.gpt_command_parser import parse_command
+from apps.telegram_bot.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from .common_handlers import commit_session, menu_command
 from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry

@@ -1,6 +1,6 @@
 import pytest
 
-from diabetes.functions import smart_input
+from apps.telegram_bot.functions import smart_input
 
 
 @pytest.mark.parametrize(

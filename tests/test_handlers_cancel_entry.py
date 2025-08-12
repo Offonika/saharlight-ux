@@ -32,8 +32,8 @@ class DummyQuery:
 async def test_callback_router_cancel_entry_sends_menu():
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
-    import diabetes.openai_utils  # noqa: F401
-    import diabetes.common_handlers as handlers
+    import apps.telegram_bot.openai_utils  # noqa: F401
+    import apps.telegram_bot.common_handlers as handlers
 
     query = DummyQuery("cancel_entry")
     update = SimpleNamespace(callback_query=query)
@@ -53,8 +53,8 @@ async def test_callback_router_cancel_entry_sends_menu():
 async def test_callback_router_invalid_entry_id(caplog):
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
-    import diabetes.openai_utils  # noqa: F401
-    import diabetes.common_handlers as handlers
+    import apps.telegram_bot.openai_utils  # noqa: F401
+    import apps.telegram_bot.common_handlers as handlers
 
     query = DummyQuery("del:abc")
     update = SimpleNamespace(callback_query=query)
@@ -71,8 +71,8 @@ async def test_callback_router_invalid_entry_id(caplog):
 async def test_callback_router_unknown_data(caplog):
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
-    import diabetes.openai_utils  # noqa: F401
-    import diabetes.common_handlers as handlers
+    import apps.telegram_bot.openai_utils  # noqa: F401
+    import apps.telegram_bot.common_handlers as handlers
 
     query = DummyQuery("foo")
     update = SimpleNamespace(callback_query=query)
@@ -89,8 +89,8 @@ async def test_callback_router_unknown_data(caplog):
 async def test_callback_router_ignores_reminder_action():
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
-    import diabetes.openai_utils  # noqa: F401
-    import diabetes.common_handlers as handlers
+    import apps.telegram_bot.openai_utils  # noqa: F401
+    import apps.telegram_bot.common_handlers as handlers
 
     query = DummyQuery("rem_toggle:1")
     update = SimpleNamespace(callback_query=query)

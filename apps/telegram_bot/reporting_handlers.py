@@ -18,10 +18,10 @@ from telegram import (
 )
 from telegram.ext import ContextTypes
 
-from diabetes.db import SessionLocal, Entry
-from diabetes.gpt_client import send_message, _get_client
-from diabetes.reporting import make_sugar_plot, generate_pdf_report
-from diabetes.ui import menu_keyboard
+from apps.telegram_bot.db import SessionLocal, Entry
+from apps.telegram_bot.gpt_client import send_message, _get_client
+from apps.telegram_bot.reporting import make_sugar_plot, generate_pdf_report
+from apps.telegram_bot.ui import menu_keyboard
 
 LOW_SUGAR_THRESHOLD = 3.0
 HIGH_SUGAR_THRESHOLD = 13.0
