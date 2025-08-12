@@ -36,6 +36,14 @@ class Settings(BaseSettings):
     log_level: int = Field(default=logging.INFO, alias="LOG_LEVEL")
     uvicorn_workers: int = Field(default=1, alias="UVICORN_WORKERS")
 
+    # Optional service URLs and API keys
+    webapp_url: Optional[str] = Field(default=None, alias="WEBAPP_URL")
+    api_url: Optional[str] = Field(default=None, alias="API_URL")
+    openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
+    openai_assistant_id: Optional[str] = Field(default=None, alias="OPENAI_ASSISTANT_ID")
+    openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
+    font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
+
     @field_validator("log_level", mode="before")
     @classmethod
     def parse_log_level(cls, v: object) -> int:  # pragma: no cover - simple parsing
@@ -59,4 +67,10 @@ DB_NAME = settings.db_name
 DB_USER = settings.db_user
 DB_PASSWORD = settings.db_password
 UVICORN_WORKERS = settings.uvicorn_workers
+WEBAPP_URL = settings.webapp_url
+API_URL = settings.api_url
+OPENAI_API_KEY = settings.openai_api_key
+OPENAI_ASSISTANT_ID = settings.openai_assistant_id
+OPENAI_PROXY = settings.openai_proxy
+FONT_DIR = settings.font_dir
 
