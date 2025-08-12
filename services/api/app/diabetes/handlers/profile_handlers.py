@@ -179,11 +179,6 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await update.message.reply_text(str(exc))
         return ConversationHandler.END
 
-    session = SessionLocal()
-    if not commit_session(session):
-        await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
-        return ConversationHandler.END
-
     await update.message.reply_text(
         f"✅ Профиль обновлён:\n"
         f"• ИКХ: {icr} г/ед.\n"

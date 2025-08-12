@@ -1,5 +1,6 @@
 import pytest
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -35,15 +36,11 @@ class DummyQuery:
 
 @pytest.mark.asyncio
 async def test_profile_view_has_security_button(monkeypatch):
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
-
-    with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
-        session.add(Profile(telegram_id=1, icr=10, cf=2, target_bg=6))
-        session.commit()
+    dummy_profile = SimpleNamespace(icr=10, cf=2, target=6, low=4, high=9)
+    dummy_api = SimpleNamespace(profiles_get=lambda telegram_id: dummy_profile)
+    monkeypatch.setattr(
+        handlers, "_get_api", lambda: (dummy_api, Exception, MagicMock)
+    )
 
     msg = DummyMessage()
     update = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))

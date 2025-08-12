@@ -39,33 +39,30 @@ class DummyWebAppMessage(DummyMessage):
 
 
 @pytest.mark.asyncio
-async def test_profile_command_commit_failure(monkeypatch, caplog):
+async def test_profile_command_no_local_session(monkeypatch):
+    """Profile command should not touch the local DB session."""
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
 
-    session = MagicMock()
-    session.__enter__.return_value = session
-    session.__exit__.return_value = None
-    session.get.return_value = None
-    session.add = MagicMock()
-    session.commit.side_effect = SQLAlchemyError("fail")
-    session.rollback = MagicMock()
+    session_factory = MagicMock()
+    monkeypatch.setattr(profile_handlers, "SessionLocal", session_factory)
 
-    monkeypatch.setattr(profile_handlers, "SessionLocal", lambda: session)
+    dummy_api = SimpleNamespace(profiles_post=MagicMock())
+    monkeypatch.setattr(
+        profile_handlers, "_get_api", lambda: (dummy_api, Exception, MagicMock)
+    )
 
     message = DummyMessage()
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(args=["10", "2", "6", "4", "9"], user_data={})
 
-    with caplog.at_level(logging.ERROR):
-        result = await profile_handlers.profile_command(update, context)
+    result = await profile_handlers.profile_command(update, context)
 
-    assert session.rollback.called
-    assert "DB commit failed" in caplog.text
-    assert message.texts == ["⚠️ Не удалось сохранить профиль."]
+    assert not session_factory.called
+    assert message.texts[0].startswith("✅ Профиль обновлён")
     assert result == ConversationHandler.END
 
 
