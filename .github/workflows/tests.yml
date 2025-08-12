@@ -27,7 +27,7 @@ jobs:
           pip install -r services/api/app/requirements.txt
           pip install -r services/api/app/requirements-dev.txt
       - name: Build webapp UI
-        working-directory: webapp/ui
+        working-directory: services/webapp/ui
         run: |
           npm ci
           npm run build
