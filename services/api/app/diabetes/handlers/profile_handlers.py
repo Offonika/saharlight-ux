@@ -14,11 +14,19 @@ import json
 import logging
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from diabetes_sdk.api.default_api import DefaultApi
-from diabetes_sdk.api_client import ApiClient
-from diabetes_sdk.configuration import Configuration
-from diabetes_sdk.exceptions import ApiException
-from diabetes_sdk.models.profile import Profile as ProfileModel
+try:
+    from diabetes_sdk.api.default_api import DefaultApi
+    from diabetes_sdk.api_client import ApiClient
+    from diabetes_sdk.configuration import Configuration
+    from diabetes_sdk.exceptions import ApiException
+    from diabetes_sdk.models.profile import Profile as ProfileModel
+except ImportError as exc:
+    logging.getLogger(__name__).warning(
+        "diabetes_sdk is required but not installed. Install it with 'pip install -r requirements.txt'."
+    )
+    raise ImportError(
+        "diabetes_sdk is required but not installed. Install it with 'pip install -r requirements.txt'."
+    ) from exc
 
 from services.api.app.diabetes.services.db import SessionLocal, Profile, Alert, Reminder, User
 
