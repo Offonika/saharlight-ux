@@ -3,28 +3,27 @@
 Bot entry point and configuration.
 """
 
-from services.api.app.diabetes.handlers.common_handlers import register_handlers
-from services.api.app.config import LOG_LEVEL, TELEGRAM_TOKEN, MAINTAINER_CHAT_ID
+import logging
+import os
+import sys
+
 from telegram import BotCommand
 from telegram.ext import Application, ContextTypes
-import logging
-import sys
+
+from services.api.app.config import LOG_LEVEL
+from services.api.app.diabetes.handlers.common_handlers import register_handlers
 
 logger = logging.getLogger(__name__)
 
 
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+
+
 async def error_handler(update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Log errors and optionally notify maintainers."""
+    """Log errors that occur while processing updates."""
     logger.exception(
         "Exception while handling update %s", update, exc_info=context.error
     )
-    if MAINTAINER_CHAT_ID:
-        try:
-            await context.bot.send_message(
-                chat_id=MAINTAINER_CHAT_ID, text=f"⚠️ Exception: {context.error}"
-            )
-        except Exception:  # pragma: no cover - logging only
-            logger.exception("Failed to notify maintainer")
 
 def main() -> None:
     """Configure and run the bot."""
