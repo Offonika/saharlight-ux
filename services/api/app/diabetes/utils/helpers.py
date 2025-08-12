@@ -82,14 +82,41 @@ def split_text_by_width(
     words = text.split()
     lines: list[str] = []
     current_line = ""
+
+    def _split_word(word: str) -> list[str]:
+        """Split a single word into chunks that fit within ``max_width_mm``."""
+
+        parts: list[str] = []
+        part = ""
+        for ch in word:
+            test_part = part + ch
+            if stringWidth(test_part, font_name, font_size) / mm > max_width_mm and part:
+                parts.append(part)
+                part = ch
+            else:
+                part = test_part
+        if part:
+            parts.append(part)
+        return parts
+
     for word in words:
         test_line = (current_line + " " + word).strip()
         width = stringWidth(test_line, font_name, font_size) / mm
-        if width > max_width_mm and current_line:
+        if width <= max_width_mm:
+            current_line = test_line
+            continue
+
+        if current_line:
             lines.append(current_line)
+            current_line = ""
+
+        if stringWidth(word, font_name, font_size) / mm <= max_width_mm:
             current_line = word
         else:
-            current_line = test_line
+            parts = _split_word(word)
+            lines.extend(parts[:-1])
+            current_line = parts[-1] if parts else ""
+
     if current_line:
         lines.append(current_line)
     return lines

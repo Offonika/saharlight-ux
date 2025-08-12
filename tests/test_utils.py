@@ -7,11 +7,17 @@ import logging
 from datetime import timedelta
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.lib.units import mm
 
 import pytest
 
 import services.api.app.diabetes.utils.helpers as utils
-from services.api.app.diabetes.utils.helpers import clean_markdown, parse_time_interval, split_text_by_width
+from services.api.app.diabetes.utils.helpers import (
+    clean_markdown,
+    parse_time_interval,
+    split_text_by_width,
+)
 
 def test_clean_markdown():
     text = "**Жирный**\n# Заголовок\n* элемент\n1. Первый"
@@ -28,6 +34,21 @@ def test_split_text_by_width_simple():
     lines = split_text_by_width(text, "DejaVuSans", 12, 50)
     assert isinstance(lines, list)
     assert all(isinstance(line, str) for line in lines)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Supercalifragilisticexpialidocious",
+        "Hello Supercalifragilisticexpialidocious world",
+    ],
+)
+def test_split_text_by_width_respects_limit(text):
+    pdfmetrics.registerFont(TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+    max_width = 20
+    lines = split_text_by_width(text, "DejaVuSans", 12, max_width)
+    for line in lines:
+        assert stringWidth(line, "DejaVuSans", 12) / mm <= max_width
 
 
 @pytest.mark.asyncio
