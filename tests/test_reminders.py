@@ -1,6 +1,7 @@
 import json
+import logging
 import pytest
-from datetime import datetime
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -117,6 +118,26 @@ def test_schedule_with_next_interval(monkeypatch):
     icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏱"
     assert schedule == "каждые 2 ч (next 12:00)"
+
+
+def test_schedule_with_next_invalid_timezone_logs_warning(caplog):
+    user = User(telegram_id=1, thread_id="t", timezone="Invalid/Zone")
+    rem = Reminder(telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user)
+    with caplog.at_level(logging.WARNING):
+        icon, schedule = handlers._schedule_with_next(rem)
+    assert icon == "⏰"
+    assert any("Invalid timezone" in r.message for r in caplog.records)
+
+
+def test_schedule_reminder_invalid_timezone_logs_warning(caplog):
+    user = User(telegram_id=1, thread_id="t", timezone="Bad/Zone")
+    rem = Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user)
+    job_queue = DummyJobQueue()
+    with caplog.at_level(logging.WARNING):
+        handlers.schedule_reminder(rem, job_queue)
+    assert job_queue.jobs
+    assert job_queue.jobs[0].time.tzinfo == timezone.utc
+    assert any("Invalid timezone" in r.message for r in caplog.records)
 
 
 def test_render_reminders_formatting(monkeypatch):

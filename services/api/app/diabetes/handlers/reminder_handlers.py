@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 from datetime import timedelta, time, timezone
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import logging
 import json
 import re
@@ -67,8 +67,14 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
     if tzname:
         try:
             tz = ZoneInfo(tzname)
+        except ZoneInfoNotFoundError:
+            logger.warning(
+                "Invalid timezone for user %s: %s",
+                getattr(user, "telegram_id", None),
+                tzname,
+            )
         except Exception:
-            pass
+            logger.exception("Unexpected error loading timezone %s", tzname)
     try:
         now = dt_cls.now(tz)
     except TypeError:
@@ -211,8 +217,14 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
     if tzname:
         try:
             tz = ZoneInfo(tzname)
+        except ZoneInfoNotFoundError:
+            logger.warning(
+                "Invalid timezone for user %s: %s",
+                getattr(user, "telegram_id", None),
+                tzname,
+            )
         except Exception:
-            pass
+            logger.exception("Unexpected error loading timezone %s", tzname)
 
     if rem.type in {"sugar", "long_insulin", "medicine"}:
         if rem.time:
