@@ -14,7 +14,7 @@
 
 import unittest
 
-from diabetes_sdk.models.profile import Profile
+from py_sdk.diabetes_sdk.models.profile import Profile
 
 class TestProfile(unittest.TestCase):
     """Profile unit test stubs"""
