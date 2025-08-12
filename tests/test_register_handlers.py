@@ -50,6 +50,11 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
         and h.callback is reminder_handlers.reminder_webapp_save
         for h in handlers
     )
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is reminder_handlers.add_reminder
+        for h in handlers
+    )
 
     onb_conv = [
         h

@@ -25,7 +25,7 @@ class DummyQuery:
         self.data = data
         self.edited = []
 
-    async def answer(self):
+    async def answer(self, *args, **kwargs):
         pass
 
     async def edit_message_text(self, text, **kwargs):
@@ -240,8 +240,10 @@ async def test_reminder_callback_commit_failure(monkeypatch, caplog):
     session.add = MagicMock()
     session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
+    session.get.return_value = SimpleNamespace(id=1, telegram_id=1)
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
+    reminder_handlers.commit_session = common_handlers.commit_session
 
     query = DummyQuery("remind_snooze:1")
     update = SimpleNamespace(
