@@ -61,7 +61,7 @@
    ```bash
    pip install -r backend/requirements.txt
 
-   cd webapp/ui && npm ci && npm run build && cd ../..
+   (cd webapp/ui && npm ci)
 
    ```
    Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `webapp/ui`.
