@@ -21,7 +21,7 @@ def test_init_db_raises_when_no_password(monkeypatch):
     monkeypatch.delenv("DB_PASSWORD", raising=False)
     config = _reload("services.api.app.config")
     db = _reload("services.api.app.diabetes.services.db")
-    assert config.DB_PASSWORD is None
+    assert config.get_db_password() is None
     with pytest.raises(ValueError):
         db.init_db()
 

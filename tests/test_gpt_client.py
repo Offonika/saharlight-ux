@@ -112,6 +112,7 @@ def test_send_message_empty_string_preserved(tmp_path, monkeypatch):
     )
 
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(gpt_client, "OPENAI_ASSISTANT_ID", "asst_test")
 
     gpt_client.send_message(thread_id="t", content="", image_path=str(img))
     assert captured["content"][1]["text"] == ""
