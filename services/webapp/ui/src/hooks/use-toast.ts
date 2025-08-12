@@ -179,7 +179,8 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+    // Empty dependency array ensures listener is added once and cleaned up on unmount
+  }, [])
 
   return {
     ...state,
