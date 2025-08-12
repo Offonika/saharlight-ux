@@ -60,8 +60,9 @@
 3. **Установите зависимости:**
    ```bash
    pip install -r backend/requirements.txt
-   npm --prefix webapp/ui ci
+   (cd webapp/ui && npm ci)
    ```
+   Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `webapp/ui`.
 4. **Скопируйте шаблон .env и заполните своими данными:**
    ```bash
    cp backend/.env.example .env
@@ -82,7 +83,8 @@
 ### Запуск WebApp
 
 В каталоге `webapp/ui` расположен React‑SPA (Vite), исходники лежат в `src/`,
-а результат сборки — в `dist/`. Файл `backend/main.py` отдаёт содержимое
+а результат сборки — в `dist/`. Все команды `npm` запускаются из этого каталога.
+Файл `backend/main.py` отдаёт содержимое
 каталога `webapp/ui/dist` и предоставляет REST API (`/api/timezone`,
 `/api/profile`, `/api/reminders`).
 
