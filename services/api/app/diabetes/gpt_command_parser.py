@@ -103,7 +103,25 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
     if not choices:
         logging.error("No choices in GPT response")
         return None
-    content = choices[0].message.content.strip()
+
+    first = choices[0]
+    message = getattr(first, "message", None)
+    if message is None:
+        logging.error("No message in first choice")
+        return None
+
+    content = getattr(message, "content", None)
+    if content is None:
+        logging.error("No content in GPT response")
+        return None
+    if not isinstance(content, str):
+        logging.error("Content is not a string in GPT response")
+        return None
+    content = content.strip()
+    if not content:
+        logging.error("Content is empty in GPT response")
+        return None
+
     safe_content = _sanitize_sensitive_data(content)
     logging.info("GPT raw response: %s", safe_content[:200])
     parsed = _extract_first_json(content)
