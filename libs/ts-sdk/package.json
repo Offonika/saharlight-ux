@@ -1,0 +1,6 @@
+{
+  "name": "ts-sdk",
+  "version": "0.1.0",
+  "main": "apis/index.ts",
+  "types": "apis/index.ts"
+}
