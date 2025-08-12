@@ -129,7 +129,10 @@ ngrok http 8000
 
 
 **Дополнительно**
-- **Docker:** Для контейнеризации можно использовать infra/docker/Dockerfile.api и infra/docker/docker-compose.yml.
+- **Docker:** Для контейнеризации используйте `infra/docker/Dockerfile.api` и `infra/docker/docker-compose.yml`:
+  ```bash
+  docker build -f infra/docker/Dockerfile.api -t diabetes-bot .
+  ```
 - **Proxy:** Для обхода блокировок OpenAI используйте настройки прокси в .env.
 - **Безопасность:** Никогда не выкладывайте файл .env с реальными токенами!
 
