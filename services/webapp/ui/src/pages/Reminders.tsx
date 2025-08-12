@@ -157,18 +157,53 @@ export default function Reminders() {
     return () => { cancelled = true }
   }, [toast])
 
-  const handleToggleReminder = (id: number) => {
+  const handleToggleReminder = async (id: number) => {
+    const prevReminders = [...reminders]
+    const target = prevReminders.find(r => r.id === id)
+    if (!target) return
+    const nextActive = !target.active
     setReminders(prev =>
-      prev.map(r => (r.id === id ? { ...r, active: !r.active } : r)),
+      prev.map(r => (r.id === id ? { ...r, active: nextActive } : r)),
     )
-    toast({ title: 'Напоминание обновлено', description: 'Статус напоминания изменён' })
-    // TODO: вызвать API toggle
+    try {
+      const res = await fetch(`/reminders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: nextActive }),
+      })
+      if (!res.ok) throw new Error('Failed to update')
+      toast({
+        title: 'Напоминание обновлено',
+        description: 'Статус напоминания изменён',
+      })
+    } catch {
+      setReminders(prevReminders)
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось обновить напоминание',
+        variant: 'destructive',
+      })
+    }
   }
 
-  const handleDeleteReminder = (id: number) => {
+  const handleDeleteReminder = async (id: number) => {
+    const prevReminders = [...reminders]
     setReminders(prev => prev.filter(r => r.id !== id))
-    toast({ title: 'Напоминание удалено', description: 'Напоминание успешно удалено' })
-    // TODO: вызвать API delete
+    try {
+      const res = await fetch(`/reminders/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete')
+      toast({
+        title: 'Напоминание удалено',
+        description: 'Напоминание успешно удалено',
+      })
+    } catch {
+      setReminders(prevReminders)
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить напоминание',
+        variant: 'destructive',
+      })
+    }
   }
 
   const content = useMemo(() => {
