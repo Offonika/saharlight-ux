@@ -1,8 +1,10 @@
 import { Clock, User, BookOpen, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useTelegram } from '@/hooks/useTelegram';
 import MedicalButton from '@/components/MedicalButton';
+import { fetchDayStats, fallbackDayStats } from '@/api/stats';
 
 const menuItems = [
   {
@@ -42,6 +44,13 @@ const menuItems = [
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useTelegram();
+
+  const { data: stats, isLoading, error } = useQuery({
+    queryKey: ['day-stats', user?.id],
+    queryFn: () => fetchDayStats(user?.id ?? 0),
+  });
+
+  const dayStats = stats ?? fallbackDayStats;
 
   const handleTileClick = (route: string) => {
     navigate(route);
@@ -117,17 +126,25 @@ const Home = () => {
         </div>
 
         {/* Статистика дня */}
+        {isLoading && (
+          <p className="text-center text-muted-foreground mt-6">Загрузка статистики...</p>
+        )}
+        {error && (
+          <p className="text-center text-destructive mt-6">
+            Не удалось загрузить статистику
+          </p>
+        )}
         <div className="mt-6 grid grid-cols-3 gap-3">
           <div className="medical-card text-center py-4">
-            <div className="text-2xl font-bold text-medical-blue">6.2</div>
+            <div className="text-2xl font-bold text-medical-blue">{dayStats.sugar}</div>
             <div className="text-xs text-muted-foreground">ммоль/л</div>
           </div>
           <div className="medical-card text-center py-4">
-            <div className="text-2xl font-bold text-medical-teal">4</div>
+            <div className="text-2xl font-bold text-medical-teal">{dayStats.breadUnits}</div>
             <div className="text-xs text-muted-foreground">ХЕ</div>
           </div>
           <div className="medical-card text-center py-4">
-            <div className="text-2xl font-bold text-medical-success">12</div>
+            <div className="text-2xl font-bold text-medical-success">{dayStats.insulin}</div>
             <div className="text-xs text-muted-foreground">ед.</div>
           </div>
         </div>
