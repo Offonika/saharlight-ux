@@ -70,10 +70,12 @@ export default function CreateReminder() {
   const [typeOpen, setTypeOpen] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     if (!editing && params.id && user?.id) {
       (async () => {
         try {
           const data = await getReminder(user.id, Number(params.id));
+          if (!isMounted) return;
           if (data) {
             const nt = normalizeType(data.type as ReminderType);
             const loaded: Reminder = {
@@ -83,6 +85,7 @@ export default function CreateReminder() {
               time: data.time || "",
               interval: data.intervalHours != null ? data.intervalHours * 60 : undefined,
             };
+            if (!isMounted) return;
             setEditing(loaded);
             setType(loaded.type);
             setTitle(loaded.title);
@@ -90,18 +93,25 @@ export default function CreateReminder() {
             setInterval(loaded.interval ?? 60);
           } else {
             const message = "Не удалось загрузить напоминание";
+            if (isMounted) {
+              setError(message);
+              toast({ title: "Ошибка", description: message, variant: "destructive" });
+            }
+          }
+        } catch (err) {
+          if (isMounted) {
+            const message =
+              err instanceof Error ? err.message : "Не удалось загрузить напоминание";
             setError(message);
             toast({ title: "Ошибка", description: message, variant: "destructive" });
           }
-        } catch (err) {
-          const message =
-            err instanceof Error ? err.message : "Не удалось загрузить напоминание";
-          setError(message);
-          toast({ title: "Ошибка", description: message, variant: "destructive" });
         }
       })();
     }
-  }, [editing, params.id, user?.id]);
+    return () => {
+      isMounted = false;
+    };
+  }, [editing, params.id, user?.id, toast]);
 
   const validName = title.trim().length >= 2;
   const validTime = isValidTime(time);
