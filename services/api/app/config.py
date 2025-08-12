@@ -6,7 +6,13 @@ import logging
 from typing import Optional
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+
+try:  # pragma: no cover - import guard
+    from pydantic_settings import BaseSettings, SettingsConfigDict
+except ModuleNotFoundError as exc:  # pragma: no cover - executed at import time
+    raise ImportError(
+        "`pydantic-settings` is required. Install it with `pip install pydantic-settings`."
+    ) from exc
 
 
 class Settings(BaseSettings):
