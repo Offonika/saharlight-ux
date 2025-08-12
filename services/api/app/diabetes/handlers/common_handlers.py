@@ -43,9 +43,9 @@ def commit_session(session) -> bool:
     try:
         session.commit()
         return True
-    except SQLAlchemyError as exc:  # pragma: no cover - logging only
+    except SQLAlchemyError:  # pragma: no cover - logging only
         session.rollback()
-        logger.error("DB commit failed: %s", exc)
+        logger.exception("DB commit failed")
         return False
 
 
