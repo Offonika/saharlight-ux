@@ -59,9 +59,9 @@ async def run_db(
             return fn(session, *args, **kwargs)
 
     with sessionmaker() as _session:
-        engine = _session.get_bind()
+        bind = _session.get_bind()
 
-    if engine.url.drivername == "sqlite" and engine.url.database == ":memory:":
+    if bind.url.drivername == "sqlite" and bind.url.database == ":memory:":
         return wrapper()
 
     return await asyncio.to_thread(wrapper)
