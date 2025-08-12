@@ -79,14 +79,14 @@ const History = () => {
   const handleUpdateRecord = async () => {
     if (editingRecord) {
       try {
-        const res = await fetch('/history', {
+        const res = await fetch('/api/history', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(editingRecord),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (!res.ok || data.status !== 'ok') {
-          throw new Error('failed');
+          throw new Error(data.detail || 'Не удалось обновить запись');
         }
 
         setRecords(prev =>
@@ -97,10 +97,11 @@ const History = () => {
           title: 'Запись обновлена',
           description: 'Изменения сохранены',
         });
-      } catch {
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Неизвестная ошибка';
         toast({
           title: 'Ошибка',
-          description: 'Не удалось обновить запись',
+          description: message,
           variant: 'destructive',
         });
       }
