@@ -1,7 +1,7 @@
 import pytest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
-import diabetes.dose_handlers as handlers
+import diabetes.handlers.dose_handlers as handlers
 
 
 class DummyMessage:

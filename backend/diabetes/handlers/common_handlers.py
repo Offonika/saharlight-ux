@@ -20,8 +20,8 @@ from telegram.ext import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 
-from diabetes.db import Entry, SessionLocal
-from diabetes.ui import menu_keyboard
+from diabetes.services.db import Entry, SessionLocal
+from diabetes.utils.ui import menu_keyboard
 
 logger = logging.getLogger(__name__)
 

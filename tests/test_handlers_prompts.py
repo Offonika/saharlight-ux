@@ -5,9 +5,9 @@ import pytest
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-import diabetes.openai_utils as openai_utils  # noqa: F401
-from diabetes import dose_handlers
-from diabetes.ui import sugar_keyboard
+import diabetes.utils.openai_utils as openai_utils  # noqa: F401
+from diabetes.handlers import dose_handlers
+from diabetes.utils.ui import sugar_keyboard
 
 
 class DummyMessage:

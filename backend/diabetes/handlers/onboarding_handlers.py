@@ -27,10 +27,10 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from diabetes.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
+from diabetes.handlers.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
-from diabetes.db import SessionLocal, User, Profile
-from diabetes.ui import menu_keyboard, build_timezone_webapp_button
+from diabetes.services.db import SessionLocal, User, Profile
+from diabetes.utils.ui import menu_keyboard, build_timezone_webapp_button
 from .common_handlers import commit_session
 from zoneinfo import ZoneInfo
 
@@ -54,7 +54,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     with SessionLocal() as session:
         user = session.get(User, user_id)
         if not user:
-            from .gpt_client import create_thread
+            from diabetes.services.gpt_client import create_thread
 
             try:
                 thread_id = create_thread()

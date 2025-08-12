@@ -7,9 +7,9 @@ import json
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 from telegram.ext import ConversationHandler
-import diabetes.profile_handlers as profile_handlers
-import diabetes.common_handlers as common_handlers
-import diabetes.reminder_handlers as reminder_handlers
+import diabetes.handlers.profile_handlers as profile_handlers
+import diabetes.handlers.common_handlers as common_handlers
+import diabetes.handlers.reminder_handlers as reminder_handlers
 
 
 class DummyMessage:
@@ -44,7 +44,7 @@ async def test_profile_command_commit_failure(monkeypatch, caplog):
 
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
-    import diabetes.openai_utils  # noqa: F401
+    import diabetes.utils.openai_utils  # noqa: F401
 
     session = MagicMock()
     session.__enter__.return_value = session
@@ -75,7 +75,7 @@ async def test_callback_router_commit_failure(monkeypatch, caplog):
 
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
-    import diabetes.openai_utils  # noqa: F401
+    import diabetes.utils.openai_utils  # noqa: F401
 
     session = MagicMock()
     session.__enter__.return_value = session

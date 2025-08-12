@@ -2,7 +2,7 @@
 
 import pytest
 
-from diabetes.functions import (
+from diabetes.utils.functions import (
     PatientProfile,
     _safe_float,
     calc_bolus,

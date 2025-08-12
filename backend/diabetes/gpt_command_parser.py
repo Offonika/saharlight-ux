@@ -5,7 +5,7 @@ import re
 
 from openai import OpenAIError
 
-from diabetes.gpt_client import _get_client
+from diabetes.services.gpt_client import _get_client
 
 # gpt_command_parser.py  ← замените весь блок SYSTEM_PROMPT
 SYSTEM_PROMPT = (

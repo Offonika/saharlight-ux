@@ -5,11 +5,11 @@ from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from diabetes.db import Base, User, Reminder, ReminderLog
-import diabetes.reminder_handlers as handlers
-import diabetes.common_handlers as common_handlers
-from diabetes.common_handlers import commit_session
-from diabetes.utils import parse_time_interval
+from diabetes.services.db import Base, User, Reminder, ReminderLog
+import diabetes.handlers.reminder_handlers as handlers
+import diabetes.handlers.common_handlers as common_handlers
+from diabetes.handlers.common_handlers import commit_session
+from diabetes.utils.helpers import parse_time_interval
 
 
 class DummyMessage:

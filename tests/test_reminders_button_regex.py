@@ -1,15 +1,15 @@
 import os
 import re
 from telegram.ext import ApplicationBuilder, MessageHandler
-from diabetes.ui import menu_keyboard
-import diabetes.common_handlers as handlers
-import diabetes.reminder_handlers as reminder_handlers
+from diabetes.utils.ui import menu_keyboard
+import diabetes.handlers.common_handlers as handlers
+import diabetes.handlers.reminder_handlers as reminder_handlers
 
 
 def test_reminders_button_matches_regex():
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import diabetes.openai_utils as openai_utils  # noqa: F401
+    import diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
     button_texts = [btn.text for row in menu_keyboard.keyboard for btn in row]
     assert "⏰ Напоминания" in button_texts
