@@ -7,7 +7,7 @@ import logging
 import sys
 from typing import Any
 
-from telegram import BotCommand
+from telegram import BotCommand, Update
 from telegram.ext import Application, ContextTypes
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = settings.telegram_token
 
 
-async def error_handler(update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log errors that occur while processing updates."""
     logger.exception(
         "Exception while handling update %s", update, exc_info=context.error
@@ -60,10 +60,12 @@ def main() -> None:
         BotCommand("help", "Справка"),
     ]
 
-    async def post_init(app: Application[Any, Any, Any, Any]) -> None:
+    async def post_init(
+        app: Application[Any, Any, Any, Any, Any, Any]
+    ) -> None:
         await app.bot.set_my_commands(commands)
 
-    application = (
+    application: Application[Any, Any, Any, Any, Any, Any] = (
         Application.builder()
         .token(BOT_TOKEN)
         .post_init(post_init)  # registers post-init handler
