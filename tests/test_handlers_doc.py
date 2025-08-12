@@ -127,7 +127,7 @@ async def test_photo_handler_preserves_file(
 
     call = {}
 
-    def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs):
         call.update(kwargs)
 
         class Run:
@@ -191,7 +191,7 @@ async def test_photo_then_freeform_calculates_dose(
         thread_id = "tid"
         id = "runid"
 
-    def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs):
         return Run()
 
     class DummyClient:

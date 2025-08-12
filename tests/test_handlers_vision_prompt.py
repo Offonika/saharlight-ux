@@ -47,7 +47,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch, tmp_path) -> None:
         thread_id = "tid"
         id = "runid"
 
-    def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs):
         captured["content"] = kwargs["content"]
         return Run()
 

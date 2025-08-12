@@ -36,7 +36,8 @@ def test_get_client_thread_safe(monkeypatch):
     assert all(r is fake_client for r in results)
 
 
-def test_send_message_openaierror(monkeypatch, caplog):
+@pytest.mark.asyncio
+async def test_send_message_openaierror(monkeypatch, caplog):
     def raise_error(**kwargs):
         raise OpenAIError("boom")
 
@@ -53,7 +54,7 @@ def test_send_message_openaierror(monkeypatch, caplog):
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(OpenAIError):
-            gpt_client.send_message(thread_id="t", content="hi")
+            await gpt_client.send_message(thread_id="t", content="hi")
 
     assert any("Failed to create message" in r.message for r in caplog.records)
 
@@ -73,7 +74,8 @@ def test_create_thread_openaierror(monkeypatch, caplog):
     assert any("Failed to create thread" in r.message for r in caplog.records)
 
 
-def test_send_message_upload_error_keeps_file(tmp_path, monkeypatch):
+@pytest.mark.asyncio
+async def test_send_message_upload_error_keeps_file(tmp_path, monkeypatch):
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 
@@ -84,12 +86,13 @@ def test_send_message_upload_error_keeps_file(tmp_path, monkeypatch):
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
 
     with pytest.raises(OpenAIError):
-        gpt_client.send_message(thread_id="t", image_path=str(img))
+        await gpt_client.send_message(thread_id="t", image_path=str(img))
 
     assert img.exists()
 
 
-def test_send_message_empty_string_preserved(tmp_path, monkeypatch):
+@pytest.mark.asyncio
+async def test_send_message_empty_string_preserved(tmp_path, monkeypatch):
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 
@@ -114,6 +117,6 @@ def test_send_message_empty_string_preserved(tmp_path, monkeypatch):
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(gpt_client, "OPENAI_ASSISTANT_ID", "asst_test")
 
-    gpt_client.send_message(thread_id="t", content="", image_path=str(img))
+    await gpt_client.send_message(thread_id="t", content="", image_path=str(img))
     assert captured["content"][1]["text"] == ""
     assert not img.exists()

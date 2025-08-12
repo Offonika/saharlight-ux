@@ -190,7 +190,7 @@ async def test_send_report_uses_gpt(monkeypatch) -> None:
         thread_id = "tid"
         id = "rid"
 
-    def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs):
         return Run()
 
     class DummyClient:

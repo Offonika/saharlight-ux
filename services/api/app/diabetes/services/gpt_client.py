@@ -1,5 +1,6 @@
 # gpt_client.py
 
+import asyncio
 import logging
 import os
 import threading
@@ -34,7 +35,7 @@ def create_thread() -> str:
     return thread.id
 
 
-def send_message(
+async def send_message(
     thread_id: str,
     content: str | None = None,
     image_path: str | None = None,
@@ -67,10 +68,14 @@ def send_message(
         "type": "text",
         "text": content if content is not None else "Что изображено на фото?",
     }
+    client = _get_client()
     if image_path:
         try:
-            with open(image_path, "rb") as f:
-                file = _get_client().files.create(file=f, purpose="vision")
+            def _upload() -> any:
+                with open(image_path, "rb") as f:
+                    return client.files.create(file=f, purpose="vision")
+
+            file = await asyncio.to_thread(_upload)
         except OSError as exc:
             logger.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
             raise
@@ -87,7 +92,7 @@ def send_message(
             ]
             if not keep_image:
                 try:
-                    os.remove(image_path)
+                    await asyncio.to_thread(os.remove, image_path)
                 except OSError as e:
                     logger.warning(
                         "[OpenAI] Failed to delete %s: %s", image_path, e
@@ -97,7 +102,8 @@ def send_message(
 
     # 2. Создаём сообщение в thread
     try:
-        _get_client().beta.threads.messages.create(
+        await asyncio.to_thread(
+            client.beta.threads.messages.create,
             thread_id=thread_id,
             role="user",
             content=content_block,
@@ -113,7 +119,8 @@ def send_message(
 
     # 3. Запускаем ассистента
     try:
-        run = _get_client().beta.threads.runs.create(
+        run = await asyncio.to_thread(
+            client.beta.threads.runs.create,
             thread_id=thread_id,
             assistant_id=OPENAI_ASSISTANT_ID,
         )
