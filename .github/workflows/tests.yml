@@ -2,7 +2,17 @@ name: Tests
 
 on:
   push:
+    paths:
+      - '.github/workflows/tests.yml'
+      - 'services/**'
+      - 'tests/**'
+      - 'libs/contracts/openapi.yaml'
   pull_request:
+    paths:
+      - '.github/workflows/tests.yml'
+      - 'services/**'
+      - 'tests/**'
+      - 'libs/contracts/openapi.yaml'
 
 jobs:
   tests:
@@ -14,8 +24,8 @@ jobs:
           python-version: '3.x'
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          pip install -r services/api/app/requirements.txt
+          pip install -r services/api/app/requirements-dev.txt
       - name: Build webapp UI
         working-directory: webapp/ui
         run: |
