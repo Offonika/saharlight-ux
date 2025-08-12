@@ -8,7 +8,7 @@ import pytest
 
 def test_app_import_without_ui(monkeypatch: pytest.MonkeyPatch) -> None:
     """Importing services.api.app.main should succeed even if UI build is missing."""
-    ui_dir = (Path(__file__).resolve().parents[1] / "webapp" / "ui" / "dist").resolve()
+    ui_dir = (Path(__file__).resolve().parents[1] / "services" / "webapp" / "ui" / "dist").resolve()
     original_exists = Path.exists
 
     def fake_exists(self: Path) -> bool:  # noqa: ANN001
