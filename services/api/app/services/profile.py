@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from fastapi import HTTPException
 from services.api.app.diabetes.services.db import Profile, SessionLocal, User, run_db
 from services.api.app.schemas.profile import ProfileSchema
 
@@ -17,7 +18,22 @@ async def set_timezone(telegram_id: int, tz: str) -> None:
     await run_db(_save, sessionmaker=SessionLocal)
 
 
+def _validate_profile(data: ProfileSchema) -> None:
+    """Validate business rules for a patient profile."""
+    if (
+        data.icr <= 0
+        or data.cf <= 0
+        or data.target <= 0
+        or data.low <= 0
+        or data.high <= 0
+        or data.low >= data.high
+    ):
+        raise HTTPException(status_code=400, detail="invalid profile values")
+
+
 async def save_profile(data: ProfileSchema) -> None:
+    _validate_profile(data)
+
     def _save(session):
         profile = session.get(Profile, data.telegram_id)
         if profile is None:
@@ -33,3 +49,10 @@ async def save_profile(data: ProfileSchema) -> None:
         session.commit()
 
     await run_db(_save, sessionmaker=SessionLocal)
+
+
+async def get_profile(telegram_id: int) -> Profile | None:
+    def _get(session):
+        return session.get(Profile, telegram_id)
+
+    return await run_db(_get, sessionmaker=SessionLocal)

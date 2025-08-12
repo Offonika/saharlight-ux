@@ -4,11 +4,9 @@ Bot entry point and configuration.
 """
 
 from services.api.app.diabetes.handlers.common_handlers import register_handlers
-from services.api.app.services import init_db
 from services.api.app.config import LOG_LEVEL, TELEGRAM_TOKEN
 from telegram import BotCommand
 from telegram.ext import Application, ContextTypes
-from sqlalchemy.exc import SQLAlchemyError
 import logging
 import os
 import sys
@@ -52,14 +50,6 @@ def main() -> None:
             "BOT_TOKEN is not set. Please provide the environment variable.",
         )
         sys.exit(1)
-
-    try:
-        init_db()
-    except (SQLAlchemyError, ValueError) as err:
-        logger.exception("Failed to initialize the database: %s", err)
-        sys.exit(
-            "Database initialization failed. Please check your configuration and try again."
-        )
 
     commands = [
         BotCommand("start", "Запустить бота"),

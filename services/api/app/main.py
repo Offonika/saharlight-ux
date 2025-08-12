@@ -12,7 +12,7 @@ from .services.audit import log_patient_access
 from .schemas.profile import ProfileSchema
 from .schemas.reminders import ReminderSchema
 from .schemas.timezone import TimezoneSchema
-from .services.profile import save_profile, set_timezone
+from .services.profile import get_profile, save_profile, set_timezone
 from .services.reminders import list_reminders, save_reminder
 from .services import init_db
 
@@ -37,10 +37,26 @@ async def api_timezone(data: TimezoneSchema) -> dict:
     return {"status": "ok"}
 
 
-@app.post("/api/profile")
-async def api_profile(data: ProfileSchema) -> dict:
+@app.post("/profiles")
+async def profiles_post(data: ProfileSchema) -> dict:
     await save_profile(data)
     return {"status": "ok"}
+
+
+@app.get("/profiles")
+async def profiles_get(telegram_id: int) -> ProfileSchema:
+    profile = await get_profile(telegram_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="profile not found")
+    return ProfileSchema(
+        telegram_id=profile.telegram_id,
+        icr=profile.icr,
+        cf=profile.cf,
+        target=profile.target_bg,
+        low=profile.low_threshold,
+        high=profile.high_threshold,
+        org_id=profile.org_id,
+    )
 
 
 @app.get("/api/reminders")
