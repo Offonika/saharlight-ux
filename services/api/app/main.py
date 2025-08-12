@@ -16,7 +16,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
-UI_DIR = (BASE_DIR / "ui").resolve()
+UI_DIR = BASE_DIR / "ui" / "dist"
+if not UI_DIR.exists():
+    UI_DIR = BASE_DIR / "ui"
+UI_DIR = UI_DIR.resolve()
 TIMEZONE_FILE = Path(__file__).resolve().parent / "timezone.txt"
 HISTORY_FILE = Path(__file__).resolve().parent / "history.json"
 
@@ -58,8 +61,7 @@ async def put_timezone(data: Timezone) -> dict:
     return {"status": "ok"}
 
 
-if UI_DIR.exists():
-    app.mount("/ui", StaticFiles(directory=UI_DIR, html=True), name="ui")
+app.mount("/ui", StaticFiles(directory=UI_DIR, html=True), name="ui")
 
 
 @app.post("/api/history")
