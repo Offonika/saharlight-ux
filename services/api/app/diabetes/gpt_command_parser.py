@@ -95,9 +95,12 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
     except OpenAIError:
         logging.exception("Command parsing failed")
         return None
+    except ValueError:
+        logging.exception("Invalid value during command parsing")
+        return None
     except Exception:
         logging.exception("Unexpected error during command parsing")
-        return None
+        raise
 
     choices = getattr(response, "choices", None)
     if not choices:
