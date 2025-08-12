@@ -5,6 +5,7 @@ info:
 paths:
   /health:
     get:
+      operationId: healthGet
       summary: Health check
       responses:
         '200':
@@ -15,6 +16,7 @@ paths:
                 $ref: '#/components/schemas/Status'
   /timezone:
     post:
+      operationId: timezonePost
       summary: Save timezone
       requestBody:
         required: true
@@ -31,6 +33,7 @@ paths:
                 $ref: '#/components/schemas/Status'
   /profiles:
     get:
+      operationId: profilesGet
       summary: Get user profile
       parameters:
         - in: query
@@ -46,6 +49,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Profile'
     post:
+      operationId: profilesPost
       summary: Save user profile
       requestBody:
         required: true
@@ -62,6 +66,7 @@ paths:
                 $ref: '#/components/schemas/Status'
   /api/reminders:
     get:
+      operationId: remindersGet
       summary: List or retrieve reminders
       parameters:
         - in: query
@@ -85,6 +90,7 @@ paths:
                     items:
                       $ref: '#/components/schemas/Reminder'
     post:
+      operationId: remindersPost
       summary: Save reminder
       requestBody:
         required: true
