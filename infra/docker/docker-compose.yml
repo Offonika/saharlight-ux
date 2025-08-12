@@ -8,6 +8,8 @@ services:
     env_file: [ ../env/.env.example ]
     ports:
       - "8000:8000"
+    command: >-
+      uvicorn services.api.app.main:app --host 0.0.0.0 --port 8000
     depends_on:
       - db
 
