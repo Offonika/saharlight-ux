@@ -14,7 +14,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_history_view_does_not_block_event_loop(monkeypatch):
+async def test_history_view_does_not_block_event_loop(monkeypatch) -> None:
     """The database query is executed in a thread and doesn't block."""
 
     def slow_session():

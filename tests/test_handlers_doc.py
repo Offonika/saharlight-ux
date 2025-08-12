@@ -86,7 +86,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_handles_typeerror():
+async def test_photo_handler_handles_typeerror() -> None:
     message = DummyMessage(photo=None)
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={})
@@ -99,7 +99,7 @@ async def test_photo_handler_handles_typeerror():
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_preserves_file(monkeypatch, tmp_path):
+async def test_photo_handler_preserves_file(monkeypatch, tmp_path) -> None:
     monkeypatch.chdir(tmp_path)
 
     class DummyPhoto:
@@ -164,7 +164,7 @@ async def test_photo_handler_preserves_file(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_photo_then_freeform_calculates_dose(monkeypatch, tmp_path):
+async def test_photo_then_freeform_calculates_dose(monkeypatch, tmp_path) -> None:
     """photo_handler + freeform_handler produce dose in reply and context."""
 
     class DummyPhoto:

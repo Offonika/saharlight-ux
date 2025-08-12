@@ -22,7 +22,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_prompt_photo_sends_message():
+async def test_prompt_photo_sends_message() -> None:
     message = DummyMessage()
     update = SimpleNamespace(message=message)
     await dose_handlers.prompt_photo(update, SimpleNamespace())
@@ -30,7 +30,7 @@ async def test_prompt_photo_sends_message():
 
 
 @pytest.mark.asyncio
-async def test_prompt_sugar_sends_message():
+async def test_prompt_sugar_sends_message() -> None:
     message = DummyMessage()
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={})
@@ -40,7 +40,7 @@ async def test_prompt_sugar_sends_message():
 
 
 @pytest.mark.asyncio
-async def test_prompt_dose_sends_message():
+async def test_prompt_dose_sends_message() -> None:
     message = DummyMessage()
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={})

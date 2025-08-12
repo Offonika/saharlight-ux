@@ -19,7 +19,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_alert_stats_counts(monkeypatch):
+async def test_alert_stats_counts(monkeypatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

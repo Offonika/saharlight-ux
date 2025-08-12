@@ -136,7 +136,7 @@ def test_generate_pdf_report_page_breaks(block):
 
 
 @pytest.mark.asyncio
-async def test_send_report_uses_gpt(monkeypatch):
+async def test_send_report_uses_gpt(monkeypatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst")
     os.environ.setdefault("DB_PASSWORD", "pwd")

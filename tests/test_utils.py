@@ -52,7 +52,7 @@ def test_split_text_by_width_respects_limit(text):
 
 
 @pytest.mark.asyncio
-async def test_get_coords_and_link_non_blocking(monkeypatch):
+async def test_get_coords_and_link_non_blocking(monkeypatch) -> None:
     def slow_urlopen(*args, **kwargs):
         time.sleep(0.2)
 
@@ -76,7 +76,7 @@ async def test_get_coords_and_link_non_blocking(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_get_coords_and_link_logs_warning(monkeypatch, caplog):
+async def test_get_coords_and_link_logs_warning(monkeypatch, caplog) -> None:
     def failing_urlopen(*args, **kwargs):
         raise OSError("network down")
 
@@ -90,7 +90,7 @@ async def test_get_coords_and_link_logs_warning(monkeypatch, caplog):
 
 
 @pytest.mark.asyncio
-async def test_get_coords_and_link_invalid_loc(monkeypatch, caplog):
+async def test_get_coords_and_link_invalid_loc(monkeypatch, caplog) -> None:
     def bad_urlopen(*args, **kwargs):
         class Resp:
             def __enter__(self):

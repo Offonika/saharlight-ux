@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from telegram.ext import ConversationHandler
 import services.api.app.diabetes.handlers.profile_handlers as profile_handlers
 import services.api.app.diabetes.handlers.common_handlers as common_handlers
+from services.api.app.diabetes.handlers.common_handlers import commit_session
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 
@@ -26,10 +27,10 @@ class DummyQuery:
         self.data = data
         self.edited = []
 
-    async def answer(self):
+    async def answer(self, text: str | None = None, **kwargs: Any) -> None:
         pass
 
-    async def edit_message_text(self, text, **kwargs):
+    async def edit_message_text(self, text: str, **kwargs: Any) -> None:
         self.edited.append(text)
 
 
@@ -40,7 +41,7 @@ class DummyWebAppMessage(DummyMessage):
 
 
 @pytest.mark.asyncio
-async def test_profile_command_no_local_session(monkeypatch):
+async def test_profile_command_no_local_session(monkeypatch) -> None:
     """Profile command should not touch the local DB session."""
     import os
 
@@ -68,7 +69,7 @@ async def test_profile_command_no_local_session(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_callback_router_commit_failure(monkeypatch, caplog):
+async def test_callback_router_commit_failure(monkeypatch, caplog) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -81,6 +82,8 @@ async def test_callback_router_commit_failure(monkeypatch, caplog):
     session.add = MagicMock()
     session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
+    rem = SimpleNamespace(id=1, telegram_id=1)
+    session.get.return_value = rem
 
     monkeypatch.setattr(common_handlers, "SessionLocal", lambda: session)
 
@@ -101,7 +104,7 @@ async def test_callback_router_commit_failure(monkeypatch, caplog):
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_commit_failure(monkeypatch, caplog):
+async def test_add_reminder_commit_failure(monkeypatch, caplog) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -115,6 +118,7 @@ async def test_add_reminder_commit_failure(monkeypatch, caplog):
     session.rollback = MagicMock()
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
+    monkeypatch.setattr(reminder_handlers, "commit_session", commit_session)
     schedule_mock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
 
@@ -135,7 +139,7 @@ async def test_add_reminder_commit_failure(monkeypatch, caplog):
 
 
 @pytest.mark.asyncio
-async def test_reminder_webapp_save_commit_failure(monkeypatch, caplog):
+async def test_reminder_webapp_save_commit_failure(monkeypatch, caplog) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -178,7 +182,7 @@ async def test_reminder_webapp_save_commit_failure(monkeypatch, caplog):
 
 
 @pytest.mark.asyncio
-async def test_delete_reminder_commit_failure(monkeypatch, caplog):
+async def test_delete_reminder_commit_failure(monkeypatch, caplog) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -204,7 +208,7 @@ async def test_delete_reminder_commit_failure(monkeypatch, caplog):
 
 
 @pytest.mark.asyncio
-async def test_reminder_job_commit_failure(monkeypatch, caplog):
+async def test_reminder_job_commit_failure(monkeypatch, caplog) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -234,15 +238,21 @@ async def test_reminder_job_commit_failure(monkeypatch, caplog):
 
 
 @pytest.mark.asyncio
-async def test_reminder_callback_commit_failure(monkeypatch, caplog):
+async def test_reminder_callback_commit_failure(monkeypatch, caplog) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
     session.add = MagicMock()
-    session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
-
+    rem = SimpleNamespace(id=1, telegram_id=1)
+    session.get.return_value = rem
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
+
+    def failing_commit(sess):
+        sess.rollback()
+        return False
+
+    monkeypatch.setattr(reminder_handlers, "commit_session", failing_commit)
 
     query = DummyQuery("remind_snooze:1")
     update = SimpleNamespace(
@@ -260,7 +270,7 @@ async def test_reminder_callback_commit_failure(monkeypatch, caplog):
 
 
 @pytest.mark.asyncio
-async def test_reminder_action_cb_commit_failure(monkeypatch, caplog):
+async def test_reminder_action_cb_commit_failure(monkeypatch, caplog) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None

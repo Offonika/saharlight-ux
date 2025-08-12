@@ -16,7 +16,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_unknown_command(monkeypatch):
+async def test_freeform_handler_unknown_command(monkeypatch) -> None:
     message = DummyMessage("blah")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={})

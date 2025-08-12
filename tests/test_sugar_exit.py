@@ -23,7 +23,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_sugar_back_fallback_cancels():
+async def test_sugar_back_fallback_cancels() -> None:
     handler = next(
         h
         for h in dose_handlers.sugar_conv.fallbacks
@@ -41,7 +41,7 @@ async def test_sugar_back_fallback_cancels():
 
 
 @pytest.mark.asyncio
-async def test_cancel_command_clears_state():
+async def test_cancel_command_clears_state() -> None:
     message = DummyMessage("/cancel")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}})

@@ -21,7 +21,7 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("plan, limit", [("free", 5), ("pro", 10)])
-async def test_reminder_limit_free_vs_pro(plan, limit, monkeypatch):
+async def test_reminder_limit_free_vs_pro(plan, limit, monkeypatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

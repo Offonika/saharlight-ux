@@ -24,7 +24,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_photo_button_cancels_and_prompts_photo():
+async def test_photo_button_cancels_and_prompts_photo() -> None:
     handler = next(
         h
         for h in dose_handlers.dose_conv.fallbacks

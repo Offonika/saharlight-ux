@@ -16,7 +16,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_help_includes_new_features():
+async def test_help_includes_new_features() -> None:
     """Ensure /help mentions wizard, smart-input and edit features."""
 
     message = DummyMessage()
@@ -34,7 +34,7 @@ async def test_help_includes_new_features():
 
 
 @pytest.mark.asyncio
-async def test_help_includes_security_block():
+async def test_help_includes_security_block() -> None:
     """Ensure /help mentions security settings."""
 
     message = DummyMessage()
@@ -53,7 +53,7 @@ async def test_help_includes_security_block():
 
 
 @pytest.mark.asyncio
-async def test_help_lists_reminder_commands_and_menu_button():
+async def test_help_lists_reminder_commands_and_menu_button() -> None:
     """Ensure reminder commands and menu button are documented."""
 
     message = DummyMessage()
@@ -70,7 +70,7 @@ async def test_help_lists_reminder_commands_and_menu_button():
 
 
 @pytest.mark.asyncio
-async def test_help_lists_sos_contact_command():
+async def test_help_lists_sos_contact_command() -> None:
     """Ensure /help documents SOS contact configuration."""
 
     message = DummyMessage()
