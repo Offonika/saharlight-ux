@@ -4,6 +4,7 @@ import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
 import { createReminder, updateReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
+import { useTelegram } from "@/hooks/useTelegram";
 
 type ReminderType = "sugar" | "insulin" | "meal";
 
@@ -43,6 +44,7 @@ export default function CreateReminder() {
   const navigate = useNavigate();
   const location = useLocation();
   const editing = (location.state as Reminder | undefined) ?? undefined;
+  const { user } = useTelegram();
 
   const [type, setType] = useState<ReminderType>(editing?.type ?? "sugar");
   const [title, setTitle] = useState(editing?.title ?? "");
@@ -58,10 +60,10 @@ export default function CreateReminder() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formValid) return;
+    if (!formValid || !user?.id) return;
     setError(null);
     const payload: ApiReminder = {
-      telegramId: 1,
+      telegramId: user.id,
       type,
       time,
       intervalHours: interval,
