@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from services.api.app.diabetes.services.db import Base, User, Reminder, Entry
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
-from services.api.app.diabetes.handlers.common_handlers import commit_session
+from services.api.app.diabetes.handlers.db_helpers import commit_session
 
 
 class DummyMessage:

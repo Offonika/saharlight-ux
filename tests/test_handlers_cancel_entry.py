@@ -36,7 +36,8 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
-    import services.api.app.diabetes.handlers.common_handlers as handlers
+    import services.api.app.diabetes.handlers.router as router
+    from services.api.app.diabetes.handlers import common_handlers
 
     query = DummyQuery("cancel_entry")
     update = cast(Update, SimpleNamespace(callback_query=query))
@@ -45,13 +46,13 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
         SimpleNamespace(user_data={"pending_entry": {"telegram_id": 1}}),
     )
 
-    await handlers.callback_router(update, context)
+    await router.callback_router(update, context)
 
     assert query.edited == ["❌ Запись отменена."]
     assert not query.edit_kwargs[0] or "reply_markup" not in query.edit_kwargs[0]
     assert len(query.message.replies) == 1
     text, kwargs = query.message.replies[0]
-    assert kwargs["reply_markup"] == handlers.menu_keyboard
+    assert kwargs["reply_markup"] == common_handlers.menu_keyboard
     assert "pending_entry" not in context.user_data
 
 
@@ -62,7 +63,7 @@ async def test_callback_router_invalid_entry_id(
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
-    import services.api.app.diabetes.handlers.common_handlers as handlers
+    import services.api.app.diabetes.handlers.router as router
 
     query = DummyQuery("del:abc")
     update = cast(Update, SimpleNamespace(callback_query=query))
@@ -72,7 +73,7 @@ async def test_callback_router_invalid_entry_id(
     )
 
     with caplog.at_level(logging.WARNING):
-        await handlers.callback_router(update, context)
+        await router.callback_router(update, context)
 
     assert query.edited == ["Некорректный идентификатор записи."]
     assert "Invalid entry_id in callback data" in caplog.text
@@ -85,7 +86,7 @@ async def test_callback_router_unknown_data(
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
-    import services.api.app.diabetes.handlers.common_handlers as handlers
+    import services.api.app.diabetes.handlers.router as router
 
     query = DummyQuery("foo")
     update = cast(Update, SimpleNamespace(callback_query=query))
@@ -95,7 +96,7 @@ async def test_callback_router_unknown_data(
     )
 
     with caplog.at_level(logging.WARNING):
-        await handlers.callback_router(update, context)
+        await router.callback_router(update, context)
 
     assert query.edited == ["Команда не распознана"]
     assert "Unrecognized callback data" in caplog.text
@@ -106,7 +107,7 @@ async def test_callback_router_ignores_reminder_action() -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
-    import services.api.app.diabetes.handlers.common_handlers as handlers
+    import services.api.app.diabetes.handlers.router as router
 
     query = DummyQuery("rem_toggle:1")
     update = cast(Update, SimpleNamespace(callback_query=query))
@@ -115,7 +116,7 @@ async def test_callback_router_ignores_reminder_action() -> None:
         SimpleNamespace(user_data={"pending_entry": {}}),
     )
 
-    await handlers.callback_router(update, context)
+    await router.callback_router(update, context)
 
     assert query.edited == []
     assert "pending_entry" in context.user_data

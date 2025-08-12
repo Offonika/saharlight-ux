@@ -57,7 +57,7 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
-    import services.api.app.diabetes.handlers.common_handlers as common_handlers
+    import services.api.app.diabetes.handlers.router as router
     import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
     engine = create_engine(
@@ -69,7 +69,7 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
     monkeypatch.setattr(reporting_handlers, "SessionLocal", TestSession)
-    monkeypatch.setattr(common_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(router, "SessionLocal", TestSession)
     monkeypatch.setattr(dose_handlers, "SessionLocal", TestSession)
 
     with TestSession() as session:
@@ -133,7 +133,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    import services.api.app.diabetes.handlers.common_handlers as common_handlers
+    import services.api.app.diabetes.handlers.router as router
     import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
     engine = create_engine(
@@ -143,7 +143,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(common_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(router, "SessionLocal", TestSession)
     monkeypatch.setattr(dose_handlers, "SessionLocal", TestSession)
 
     with TestSession() as session:
@@ -170,7 +170,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(user_data={}, bot=DummyBot()),
     )
 
-    await common_handlers.callback_router(update_cb, context)
+    await router.callback_router(update_cb, context)
     assert context.user_data["edit_entry"] == {
         "id": entry_id,
         "chat_id": 42,
@@ -186,7 +186,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     update_cb2 = SimpleNamespace(
         callback_query=field_query, effective_user=SimpleNamespace(id=1)
     )
-    await common_handlers.callback_router(update_cb2, context)
+    await router.callback_router(update_cb2, context)
     assert context.user_data["edit_id"] == entry_id
     assert context.user_data["edit_field"] == "xe"
     assert context.user_data["edit_query"] is field_query

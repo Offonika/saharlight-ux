@@ -9,7 +9,9 @@ from telegram.ext import (
 )
 from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
-from services.api.app.diabetes.handlers.common_handlers import register_handlers, callback_router, start_command
+from services.api.app.diabetes.handlers.registration import register_handlers
+from services.api.app.diabetes.handlers.router import callback_router
+from services.api.app.diabetes.handlers.onboarding_handlers import start_command
 from services.api.app.diabetes.handlers import security_handlers, reminder_handlers
 
 

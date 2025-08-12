@@ -7,7 +7,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
-import services.api.app.diabetes.handlers.common_handlers as common_handlers
+import services.api.app.diabetes.handlers.router as router
 
 
 class DummyMessage:
@@ -148,7 +148,7 @@ async def test_photo_flow_saves_entry(
     await dose_handlers.freeform_handler(update_sugar, context)
     assert context.user_data["pending_entry"]["sugar_before"] == 5.5
 
-    monkeypatch.setattr(common_handlers, "SessionLocal", lambda: session)
+    monkeypatch.setattr(router, "SessionLocal", lambda: session)
     import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 
     async def noop(*a: Any, **k: Any) -> None:
@@ -158,7 +158,7 @@ async def test_photo_flow_saves_entry(
 
     query = DummyQuery("confirm_entry")
     update_confirm = SimpleNamespace(callback_query=query)
-    await common_handlers.callback_router(update_confirm, context)
+    await router.callback_router(update_confirm, context)
 
     assert len(session.added) == 1
     saved = session.added[0]

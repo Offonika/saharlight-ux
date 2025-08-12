@@ -17,8 +17,8 @@ from telegram import Bot
 from services.api.app.diabetes.services.db import Base, User, Profile
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
 import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
-import services.api.app.diabetes.handlers.common_handlers as handlers
-from services.api.app.diabetes.handlers.common_handlers import commit_session
+import services.api.app.diabetes.handlers.registration as handlers
+from services.api.app.diabetes.handlers.db_helpers import commit_session
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 

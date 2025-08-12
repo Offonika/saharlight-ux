@@ -23,7 +23,7 @@ from services.api.app.diabetes.services.gpt_client import (
     _get_client,
     create_thread,
 )
-from .common_handlers import commit_session
+from .db_helpers import commit_session
 from services.api.app.diabetes.services.reporting import make_sugar_plot, generate_pdf_report
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
