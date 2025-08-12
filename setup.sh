@@ -20,8 +20,8 @@ npm run build
 popd >/dev/null
 
 if [ ! -f ".env" ]; then
-    echo "Копирование backend/.env.example в .env (заполните ключи и пароли)…"
-    cp backend/.env.example .env
+    echo "Копирование infra/env/.env.example в .env (заполните ключи и пароли)…"
+    cp infra/env/.env.example .env
 fi
 
 echo "Установка завершена! Проверьте файл .env и заполните свои токены и пароли."
