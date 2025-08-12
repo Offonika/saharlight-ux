@@ -1,5 +1,5 @@
 import sys
 from pathlib import Path
 
-# Ensure repository root on sys.path for py_sdk package
-sys.path.append(str(Path(__file__).resolve().parents[3]))
+# Ensure libs/py-sdk is on sys.path for diabetes_sdk package
+sys.path.append(str(Path(__file__).resolve().parents[1]))

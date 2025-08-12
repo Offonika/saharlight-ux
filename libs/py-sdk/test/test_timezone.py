@@ -14,7 +14,7 @@
 
 import unittest
 
-from py_sdk.diabetes_sdk.models.timezone import Timezone
+from diabetes_sdk.models.timezone import Timezone
 
 class TestTimezone(unittest.TestCase):
     """Timezone unit test stubs"""

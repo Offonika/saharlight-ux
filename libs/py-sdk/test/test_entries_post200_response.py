@@ -14,7 +14,7 @@
 
 import unittest
 
-from py_sdk.diabetes_sdk.models.entries_post200_response import EntriesPost200Response
+from diabetes_sdk.models.entries_post200_response import EntriesPost200Response
 
 class TestEntriesPost200Response(unittest.TestCase):
     """EntriesPost200Response unit test stubs"""

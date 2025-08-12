@@ -14,7 +14,7 @@
 
 import unittest
 
-from py_sdk.diabetes_sdk.models.status import Status
+from diabetes_sdk.models.status import Status
 
 class TestStatus(unittest.TestCase):
     """Status unit test stubs"""
