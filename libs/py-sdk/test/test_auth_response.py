@@ -14,7 +14,7 @@
 
 import unittest
 
-from diabetes_sdk.models.auth_response import AuthResponse
+from py_sdk.diabetes_sdk.models.auth_response import AuthResponse
 
 class TestAuthResponse(unittest.TestCase):
     """AuthResponse unit test stubs"""

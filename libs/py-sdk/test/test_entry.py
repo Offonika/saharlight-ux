@@ -14,7 +14,7 @@
 
 import unittest
 
-from diabetes_sdk.models.entry import Entry
+from py_sdk.diabetes_sdk.models.entry import Entry
 
 class TestEntry(unittest.TestCase):
     """Entry unit test stubs"""

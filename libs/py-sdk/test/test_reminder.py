@@ -14,7 +14,7 @@
 
 import unittest
 
-from diabetes_sdk.models.reminder import Reminder
+from py_sdk.diabetes_sdk.models.reminder import Reminder
 
 class TestReminder(unittest.TestCase):
     """Reminder unit test stubs"""
