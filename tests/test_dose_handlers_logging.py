@@ -1,9 +1,13 @@
 import logging
 
+import pytest
+
 from services.api.app.diabetes.handlers import dose_handlers
 
 
-def test_logging_truncates_content(caplog):
+def test_logging_truncates_content(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     long_text = "A" * 250 + "\x00\x01"
     with caplog.at_level(logging.DEBUG):
         dose_handlers.logger.debug("test %s", dose_handlers._sanitize(long_text))
