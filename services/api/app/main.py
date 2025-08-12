@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import tempfile
@@ -8,6 +9,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from .schemas.history import HistoryRecordSchema
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
@@ -15,6 +18,7 @@ app = FastAPI()
 BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
 UI_DIR = (BASE_DIR / "ui").resolve()
 TIMEZONE_FILE = Path(__file__).resolve().parent / "timezone.txt"
+HISTORY_FILE = Path(__file__).resolve().parent / "history.json"
 
 
 class Timezone(BaseModel):
@@ -56,3 +60,39 @@ async def put_timezone(data: Timezone) -> dict:
 
 if UI_DIR.exists():
     app.mount("/ui", StaticFiles(directory=UI_DIR, html=True), name="ui")
+
+
+@app.post("/api/history")
+async def post_history(data: HistoryRecordSchema) -> dict:
+    """Save or update a history record.
+
+    Records are stored in a local JSON file. If a record with the same ``id``
+    exists, it will be replaced.
+    """
+
+    try:
+        if HISTORY_FILE.exists():
+            records = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
+            if not isinstance(records, list):  # pragma: no cover - corrupted file
+                records = []
+        else:
+            records = []
+
+        for idx, rec in enumerate(records):
+            if rec.get("id") == data.id:
+                records[idx] = data.model_dump()
+                break
+        else:
+            records.append(data.model_dump())
+
+        with tempfile.NamedTemporaryFile(
+            "w", dir=HISTORY_FILE.parent, delete=False, encoding="utf-8"
+        ) as tmp:
+            json.dump(records, tmp, ensure_ascii=False, indent=2)
+            tmp.flush()
+            os.fsync(tmp.fileno())
+        os.replace(tmp.name, HISTORY_FILE)
+    except Exception as exc:  # pragma: no cover - unexpected errors
+        logger.exception("failed to save history")
+        raise HTTPException(status_code=500, detail="failed to save history") from exc
+    return {"status": "ok"}
