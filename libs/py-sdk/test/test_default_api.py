@@ -14,7 +14,7 @@
 
 import unittest
 
-from py_sdk.diabetes_sdk.api.default_api import DefaultApi
+from diabetes_sdk.api.default_api import DefaultApi
 
 
 class TestDefaultApi(unittest.TestCase):

@@ -14,7 +14,7 @@
 
 import unittest
 
-from py_sdk.diabetes_sdk.models.reminders_get200_response import RemindersGet200Response
+from diabetes_sdk.models.reminders_get200_response import RemindersGet200Response
 
 class TestRemindersGet200Response(unittest.TestCase):
     """RemindersGet200Response unit test stubs"""
