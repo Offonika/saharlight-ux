@@ -14,7 +14,14 @@ import json
 import logging
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from services.api.app.diabetes.services.db import SessionLocal, Profile, Alert, Reminder, User
+from services.api.app.diabetes.services.db import (
+    SessionLocal,
+    Profile,
+    Alert,
+    Reminder,
+    User,
+    run_db,
+)
 
 from services.api.app.diabetes.handlers.alert_handlers import evaluate_sugar
 from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
@@ -329,6 +336,15 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
 
 
+def _set_timezone(session, user_id: int, tz: str) -> tuple[bool, bool]:
+    user = session.get(User, user_id)
+    if not user:
+        return False, False
+    user.timezone = tz
+    ok = commit_session(session)
+    return True, ok
+
+
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user to enter timezone."""
     query = update.callback_query
@@ -371,26 +387,85 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
             )
         return PROFILE_TZ
     user_id = update.effective_user.id
-    with SessionLocal() as session:
-        user = session.get(User, user_id)
-        if not user:
-            await update.message.reply_text(
-                "Профиль не найден.", reply_markup=menu_keyboard
-            )
-            return ConversationHandler.END
-        user.timezone = raw
-        if not commit_session(session):
-            await update.message.reply_text(
-
-                "⚠️ Не удалось обновить часовой пояс.",
-
-                reply_markup=menu_keyboard,
-            )
-            return ConversationHandler.END
+    exists, ok = await run_db(
+        _set_timezone, user_id, raw, sessionmaker=SessionLocal
+    )
+    if not exists:
+        await update.message.reply_text(
+            "Профиль не найден.", reply_markup=menu_keyboard
+        )
+        return ConversationHandler.END
+    if not ok:
+        await update.message.reply_text(
+            "⚠️ Не удалось обновить часовой пояс.",
+            reply_markup=menu_keyboard,
+        )
+        return ConversationHandler.END
     await update.message.reply_text(
         "✅ Часовой пояс обновлён.", reply_markup=menu_keyboard
     )
     return ConversationHandler.END
+
+
+def _security_db(session, user_id: int, action: str | None):
+    profile = session.get(Profile, user_id)
+    user = session.get(User, user_id)
+    if not profile:
+        return {"found": False}
+    changed = False
+    if action == "low_inc":
+        new = (profile.low_threshold or 0) + 0.5
+        if profile.high_threshold is None or new < profile.high_threshold:
+            profile.low_threshold = new
+            changed = True
+    elif action == "low_dec":
+        new = (profile.low_threshold or 0) - 0.5
+        if new > 0:
+            profile.low_threshold = new
+            changed = True
+    elif action == "high_inc":
+        new = (profile.high_threshold or 0) + 0.5
+        profile.high_threshold = new
+        changed = True
+    elif action == "high_dec":
+        new = (profile.high_threshold or 0) - 0.5
+        if profile.low_threshold is None or new > profile.low_threshold:
+            profile.high_threshold = new
+            changed = True
+    elif action == "toggle_sos":
+        profile.sos_alerts_enabled = not profile.sos_alerts_enabled
+        changed = True
+
+    commit_ok = True
+    alert_sugar = None
+    if changed:
+        commit_ok = commit_session(session)
+        if commit_ok:
+            alert = (
+                session.query(Alert)
+                .filter_by(user_id=user_id)
+                .order_by(Alert.ts.desc())
+                .first()
+            )
+            alert_sugar = alert.sugar if alert else None
+
+    rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
+    rem_text = (
+        "\n".join(
+            f"{r.id}. {reminder_handlers._describe(r, user)}" for r in rems
+        )
+        if rems
+        else "нет"
+    )
+    return {
+        "found": True,
+        "commit_ok": commit_ok,
+        "low": profile.low_threshold or 0,
+        "high": profile.high_threshold or 0,
+        "sos_enabled": profile.sos_alerts_enabled,
+        "rem_text": rem_text,
+        "alert_sugar": alert_sugar,
+    }
 
 
 async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -405,119 +480,84 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await sos_handlers.sos_contact_start(update.callback_query, context)
         return
-
-    with SessionLocal() as session:
-        profile = session.get(Profile, user_id)
-        user = session.get(User, user_id)
-        if not profile:
-            await query.edit_message_text("Профиль не найден.")
-            return
-
-        changed = False
-        if action == "low_inc":
-            new = (profile.low_threshold or 0) + 0.5
-            if profile.high_threshold is None or new < profile.high_threshold:
-                profile.low_threshold = new
-                changed = True
-        elif action == "low_dec":
-            new = (profile.low_threshold or 0) - 0.5
-            if new > 0:
-                profile.low_threshold = new
-                changed = True
-        elif action == "high_inc":
-            new = (profile.high_threshold or 0) + 0.5
-            profile.high_threshold = new
-            changed = True
-        elif action == "high_dec":
-            new = (profile.high_threshold or 0) - 0.5
-            if profile.low_threshold is None or new > profile.low_threshold:
-                profile.high_threshold = new
-                changed = True
-        elif action == "toggle_sos":
-            profile.sos_alerts_enabled = not profile.sos_alerts_enabled
-            changed = True
-        elif action == "add":
-            if WEBAPP_URL:
-                button = InlineKeyboardButton(
-                    "📝 Новое", web_app=WebAppInfo(f"{WEBAPP_URL}/reminders")
-                )
-                keyboard = InlineKeyboardMarkup([[button]])
-                await query.message.reply_text(
-                    "Создать напоминание:", reply_markup=keyboard
-                )
-        elif action == "del":
-            await reminder_handlers.delete_reminder(update, context)
-
-        if changed:
-            if not commit_session(session):
-                await query.message.reply_text(
-
-                    "⚠️ Не удалось сохранить настройки.",
-                    reply_markup=menu_keyboard,
-
-                )
-                return
-            alert = (
-                session.query(Alert)
-                .filter_by(user_id=user_id)
-                .order_by(Alert.ts.desc())
-                .first()
-            )
-            if alert:
-                await evaluate_sugar(
-                    user_id, alert.sugar, context.application.job_queue
-                )
-
-        low = profile.low_threshold or 0
-        high = profile.high_threshold or 0
-        sos = "вкл" if profile.sos_alerts_enabled else "выкл"
-        rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
-        rem_text = (
-            "\n".join(
-                f"{r.id}. {reminder_handlers._describe(r, user)}" for r in rems
-            )
-            if rems
-            else "нет"
+    if action == "add" and WEBAPP_URL:
+        button = InlineKeyboardButton(
+            "📝 Новое", web_app=WebAppInfo(f"{WEBAPP_URL}/reminders")
         )
-        text = (
-            "🔐 Настройки безопасности:\n"
-            f"Низкий порог: {low:.1f} ммоль/л\n"
-            f"Высокий порог: {high:.1f} ммоль/л\n"
-            f"SOS-уведомления: {sos}\n\n"
-            f"⏰ Напоминания:\n{rem_text}"
+        keyboard = InlineKeyboardMarkup([[button]])
+        await query.message.reply_text("Создать напоминание:", reply_markup=keyboard)
+    elif action == "del":
+        await reminder_handlers.delete_reminder(update, context)
+
+    result = await run_db(
+        _security_db, user_id, action, sessionmaker=SessionLocal
+    )
+    if not result.get("found"):
+        await query.edit_message_text("Профиль не найден.")
+        return
+    if not result.get("commit_ok", True):
+        await query.message.reply_text(
+            "⚠️ Не удалось сохранить настройки.",
+            reply_markup=menu_keyboard,
         )
-        keyboard = InlineKeyboardMarkup(
+        return
+    alert_sugar = result.get("alert_sugar")
+    if alert_sugar is not None:
+        await evaluate_sugar(
+            user_id, alert_sugar, context.application.job_queue
+        )
+
+    low = result["low"]
+    high = result["high"]
+    sos = "вкл" if result["sos_enabled"] else "выкл"
+    rem_text = result["rem_text"]
+    text = (
+        "🔐 Настройки безопасности:\n"
+        f"Низкий порог: {low:.1f} ммоль/л\n"
+        f"Высокий порог: {high:.1f} ммоль/л\n"
+        f"SOS-уведомления: {sos}\n\n"
+        f"⏰ Напоминания:\n{rem_text}"
+    )
+    keyboard = InlineKeyboardMarkup(
+        [
             [
-                [
-                    InlineKeyboardButton("Низкий -0.5", callback_data="profile_security:low_dec"),
-                    InlineKeyboardButton("Низкий +0.5", callback_data="profile_security:low_inc"),
-                ],
-                [
-                    InlineKeyboardButton("Высокий -0.5", callback_data="profile_security:high_dec"),
-                    InlineKeyboardButton("Высокий +0.5", callback_data="profile_security:high_inc"),
-                ],
-                [
-                    InlineKeyboardButton(
-                        f"SOS-уведомления: {'off' if profile.sos_alerts_enabled else 'on'}",
-                        callback_data="profile_security:toggle_sos",
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        "SOS контакт", callback_data="profile_security:sos_contact"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        "➕ Добавить", callback_data="profile_security:add"
-                    ),
-                    InlineKeyboardButton(
-                        "🗑 Удалить", callback_data="profile_security:del"
-                    ),
-                ],
-                [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
-            ]
-        )
+                InlineKeyboardButton(
+                    "Низкий -0.5", callback_data="profile_security:low_dec"
+                ),
+                InlineKeyboardButton(
+                    "Низкий +0.5", callback_data="profile_security:low_inc"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    "Высокий -0.5", callback_data="profile_security:high_dec"
+                ),
+                InlineKeyboardButton(
+                    "Высокий +0.5", callback_data="profile_security:high_inc"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    f"SOS-уведомления: {'off' if result['sos_enabled'] else 'on'}",
+                    callback_data="profile_security:toggle_sos",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "SOS контакт", callback_data="profile_security:sos_contact"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "➕ Добавить", callback_data="profile_security:add"
+                ),
+                InlineKeyboardButton(
+                    "🗑 Удалить", callback_data="profile_security:del"
+                ),
+            ],
+            [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
+        ]
+    )
     await query.edit_message_text(text, reply_markup=keyboard)
 
 
@@ -641,6 +681,27 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return PROFILE_HIGH
 
 
+def _save_profile(
+    session,
+    user_id: int,
+    icr: float,
+    cf: float,
+    target: float,
+    low: float,
+    high: float,
+) -> bool:
+    prof = session.get(Profile, user_id)
+    if not prof:
+        prof = Profile(telegram_id=user_id)
+        session.add(prof)
+    prof.icr = icr
+    prof.cf = cf
+    prof.target_bg = target
+    prof.low_threshold = low
+    prof.high_threshold = high
+    return commit_session(session)
+
+
 async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle high threshold input and save profile."""
     raw_text = update.message.text.strip()
@@ -675,19 +736,19 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         )
         return ConversationHandler.END
     user_id = update.effective_user.id
-    with SessionLocal() as session:
-        prof = session.get(Profile, user_id)
-        if not prof:
-            prof = Profile(telegram_id=user_id)
-            session.add(prof)
-        prof.icr = icr
-        prof.cf = cf
-        prof.target_bg = target
-        prof.low_threshold = low
-        prof.high_threshold = high
-        if not commit_session(session):
-            await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
-            return ConversationHandler.END
+    ok = await run_db(
+        _save_profile,
+        user_id,
+        icr,
+        cf,
+        target,
+        low,
+        high,
+        sessionmaker=SessionLocal,
+    )
+    if not ok:
+        await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
+        return ConversationHandler.END
     warning_msg = ""
     if icr > 8 or cf < 3:
         warning_msg = (
