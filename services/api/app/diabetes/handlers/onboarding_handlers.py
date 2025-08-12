@@ -33,7 +33,7 @@ from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import Cal
 from services.api.app.diabetes.services.db import SessionLocal, User, Profile, Reminder
 from services.api.app.diabetes.utils.ui import menu_keyboard, build_timezone_webapp_button
 from .common_handlers import commit_session
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -206,16 +206,23 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
         tz_name = update.message.web_app_data.data
     else:
         tz_name = update.message.text.strip()
+    buttons: list[InlineKeyboardButton] = []
+    tz_button = build_timezone_webapp_button()
+    if tz_button:
+        buttons.append(tz_button)
+    buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
     try:
         ZoneInfo(tz_name)
-    except Exception:
-        buttons = []
-        tz_button = build_timezone_webapp_button()
-        if tz_button:
-            buttons.append(tz_button)
-        buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
+    except ZoneInfoNotFoundError:
         await update.message.reply_text(
             "Введите корректный часовой пояс, например Europe/Moscow.",
+            reply_markup=InlineKeyboardMarkup([buttons]),
+        )
+        return ONB_PROFILE_TZ
+    except Exception:  # pragma: no cover - unexpected errors
+        logger.exception("Unexpected error validating timezone %s", tz_name)
+        await update.message.reply_text(
+            "⚠️ Произошла ошибка при проверке часового пояса.",
             reply_markup=InlineKeyboardMarkup([buttons]),
         )
         return ONB_PROFILE_TZ
