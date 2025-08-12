@@ -158,7 +158,7 @@ const Subscription = () => {
                       disabled={plan.price === '0'}
                       className="w-full"
                       size="lg"
-                      variant={plan.recommended ? 'primary' : 'secondary'}
+                      variant={plan.recommended ? 'default' : 'secondary'}
                     >
                       {plan.price === '0' ? 'Текущий тариф' : 'Выбрать тариф'}
                     </MedicalButton>
