@@ -36,9 +36,14 @@ def main() -> None:
 
     try:
         init_db()
+    except ValueError as exc:
+        logger.error("Invalid database configuration", exc_info=exc)
+        sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
         logger.error("Failed to initialize the database", exc_info=exc)
-        sys.exit("Database initialization failed. Please check your configuration and try again.")
+        sys.exit(
+            "Database initialization failed. Please check your configuration and try again."
+        )
 
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:
