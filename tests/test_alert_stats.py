@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import pytest
 from sqlalchemy import create_engine
@@ -86,7 +86,7 @@ async def test_alert_stats_counts(monkeypatch: pytest.MonkeyPatch) -> None:
         pass
 
     update = cast("Update", DummyUpdate(message=msg, effective_user=DummyUser(id=1)))
-    context = cast("CallbackContext", DummyContext())
+    context = cast("CallbackContext[Any, Any, Any, Any]", DummyContext())
 
     await alert_handlers.alert_stats(update, context)
     assert msg.texts == ["За 7\u202Fдн.: гипо\u202F1, гипер\u202F1"]

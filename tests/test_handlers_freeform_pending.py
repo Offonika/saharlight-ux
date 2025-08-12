@@ -59,10 +59,10 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         "photo_path": "photos/img.jpg",
     }
     class DummySession:
-        def __enter__(self):
+        def __enter__(self) -> "DummySession":
             return self
 
-        def __exit__(self, exc_type, exc, tb):
+        def __exit__(self, exc_type, exc, tb) -> None:
             pass
 
         def get(self, model, user_id):

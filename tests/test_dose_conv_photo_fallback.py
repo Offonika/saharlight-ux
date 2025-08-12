@@ -38,7 +38,7 @@ async def test_photo_button_cancels_and_prompts_photo() -> None:
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext,
+        CallbackContext[Any, Any, Any, Any],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
     await handler.callback(update, context)
