@@ -60,6 +60,7 @@
    source venv/bin/activate
    ```
 3. **Установите зависимости и соберите фронтенд:**
+   Локальный Python SDK подключается из каталога `libs/py-sdk`, поэтому он будет установлен вместе с зависимостями:
    ```bash
    pip install -r requirements.txt
 
