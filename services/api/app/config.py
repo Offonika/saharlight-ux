@@ -85,3 +85,8 @@ OPENAI_PROXY = settings.openai_proxy
 FONT_DIR = settings.font_dir
 TELEGRAM_TOKEN = settings.telegram_token
 
+
+def get_db_password() -> Optional[str]:
+    """Return the database password from a fresh ``Settings`` instance."""
+    return Settings().db_password
+

@@ -160,12 +160,13 @@ class ReminderLog(Base):
 # ────────────────────── инициализация ────────────────────────
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
-    if not config.DB_PASSWORD:
+    password = config.get_db_password()
+    if not password:
         raise ValueError("DB_PASSWORD environment variable must be set")
     database_url = URL.create(
         "postgresql",
         username=DB_USER,
-        password=config.DB_PASSWORD,
+        password=password,
         host=DB_HOST,
         port=int(DB_PORT),
         database=DB_NAME,
