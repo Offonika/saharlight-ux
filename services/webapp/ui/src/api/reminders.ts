@@ -7,6 +7,17 @@ export async function getReminders(telegramId: number): Promise<Reminder[]> {
   return Array.isArray(data) ? data : [data];
 }
 
+export async function getReminder(
+  telegramId: number,
+  id: number,
+): Promise<Reminder | null> {
+  const data = await api.remindersGet({ telegramId, id });
+  if (Array.isArray(data)) {
+    return data[0] ?? null;
+  }
+  return data ?? null;
+}
+
 export async function createReminder(reminder: Reminder) {
   return api.remindersPost({ reminder });
 }

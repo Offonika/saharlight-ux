@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
-import { createReminder, updateReminder } from "@/api/reminders";
+import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
 import { useTelegram } from "@/hooks/useTelegram";
 
@@ -43,8 +43,11 @@ interface Reminder {
 export default function CreateReminder() {
   const navigate = useNavigate();
   const location = useLocation();
-  const editing = (location.state as Reminder | undefined) ?? undefined;
+  const params = useParams();
   const { user } = useTelegram();
+  const [editing, setEditing] = useState<Reminder | undefined>(
+    (location.state as Reminder | undefined) ?? undefined,
+  );
 
   const [type, setType] = useState<ReminderType>(editing?.type ?? "sugar");
   const [title, setTitle] = useState(editing?.title ?? "");
@@ -53,6 +56,35 @@ export default function CreateReminder() {
   const [interval, setInterval] = useState<number | undefined>(editing?.interval ?? 60);
   const [error, setError] = useState<string | null>(null);
   const [typeOpen, setTypeOpen] = useState(false);
+
+  useEffect(() => {
+    if (!editing && params.id && user?.id) {
+      (async () => {
+        try {
+          const data = await getReminder(user.id, Number(params.id));
+          if (data) {
+            const nt = data.type as ReminderType;
+            const loaded: Reminder = {
+              id: data.id ?? Number(params.id),
+              type: nt,
+              title: TYPES[nt].label,
+              time: data.time || "",
+              interval: data.intervalHours != null ? data.intervalHours * 60 : undefined,
+            };
+            setEditing(loaded);
+            setType(loaded.type);
+            setTitle(loaded.title);
+            setTime(loaded.time);
+            setInterval(loaded.interval ?? 60);
+          } else {
+            setError("Не удалось загрузить напоминание");
+          }
+        } catch {
+          setError("Не удалось загрузить напоминание");
+        }
+      })();
+    }
+  }, [editing, params.id, user?.id]);
 
   const validName = title.trim().length >= 2;
   const validTime = isValidTime(time);
