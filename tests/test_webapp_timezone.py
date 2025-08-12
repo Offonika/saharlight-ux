@@ -1,30 +1,28 @@
-
 from fastapi.testclient import TestClient
 
 import services.api.app.main as server
 
 
-def test_timezone_persist_and_validate(monkeypatch) -> None:
-    stored: dict[int, str] = {}
-
-    async def fake_set_timezone(tid: int, tz: str) -> None:
-        stored[tid] = tz
-
-    monkeypatch.setattr(server, "set_timezone", fake_set_timezone)
+def test_timezone_persist_and_validate(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(server, "TIMEZONE_FILE", tmp_path / "timezone.txt")
     client = TestClient(server.app)
 
-    resp = client.post("/timezone", json={"telegram_id": 1, "tz": "Europe/Moscow"})
+    resp = client.put("/timezone", json={"tz": "Europe/Moscow"})
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
-    assert stored[1] == "Europe/Moscow"
+    assert server.TIMEZONE_FILE.read_text(encoding="utf-8") == "Europe/Moscow"
 
-    resp = client.post("/timezone", json={"telegram_id": 1})
+    resp = client.get("/timezone")
+    assert resp.status_code == 200
+    assert resp.json() == {"tz": "Europe/Moscow"}
+
+    resp = client.put("/timezone", json={})
     assert resp.status_code == 422
 
-    resp = client.post("/timezone", json={"telegram_id": 1, "tz": "Invalid/Zone"})
+    resp = client.put("/timezone", json={"tz": "Invalid/Zone"})
     assert resp.status_code == 400
 
-    resp = client.post(
+    resp = client.put(
         "/timezone", content=b"not json", headers={"Content-Type": "application/json"}
     )
     assert resp.status_code in {400, 422}
