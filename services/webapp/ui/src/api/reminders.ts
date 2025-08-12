@@ -2,7 +2,7 @@ import { DefaultApi, Reminder } from '@sdk';
 
 const api = new DefaultApi();
 
-export async function getReminders(telegramId = 1): Promise<Reminder[]> {
+export async function getReminders(telegramId: number): Promise<Reminder[]> {
   const data = await api.remindersGet({ telegramId });
   return Array.isArray(data) ? data : [data];
 }
