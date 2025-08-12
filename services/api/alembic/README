@@ -1,1 +1,8 @@
+# Alembic Migrations
+
 Generic single-database configuration.
+
+## Running migrations
+
+Copy `infra/env/.env.example` to `.env`, edit credentials, and install `python-dotenv` before running `alembic upgrade head`.
+
