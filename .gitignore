@@ -32,6 +32,9 @@ webapp_data/
 test123.txt
 .pytest_cache/
 
+# Runtime timezone storage
+services/api/app/timezone.txt
+
 /webapp/ui/dist
 
 # CLI flag artifacts
