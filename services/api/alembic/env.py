@@ -6,21 +6,19 @@ from alembic import context
 import os
 import sys
 from dotenv import load_dotenv
+from services.api.app.diabetes.models import metadata
+from backend.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 # Загрузка переменных окружения
 load_dotenv(".env")
 sys.path.append(os.getcwd())
-
-# Импорт конфигурации проекта
-from diabetes.services.db import Base
-from backend.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 # Alembic Config
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
+target_metadata = metadata
 
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
