@@ -50,7 +50,7 @@ async def test_entry_without_dose_has_no_unit(
         "xe": 2.0,
     }
     context = cast(
-        CallbackContext,
+        CallbackContext[Any, Any, Any, Any],
         DummyContext(
             user_data={"pending_entry": pending_entry, "pending_fields": ["sugar"]}
         ),
@@ -61,13 +61,13 @@ async def test_entry_without_dose_has_no_unit(
     )
 
     class DummySession:
-        def __enter__(self):
+        def __enter__(self) -> "DummySession":
             return self
 
-        def __exit__(self, exc_type, exc, tb):
+        def __exit__(self, exc_type, exc, tb) -> None:
             pass
 
-        def add(self, entry):
+        def add(self, entry: Any) -> None:
             self.entry = entry
 
     async def noop(*args: Any, **kwargs: Any) -> None:
@@ -96,7 +96,7 @@ async def test_entry_without_sugar_has_placeholder(
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
     context = cast(
-        CallbackContext,
+        CallbackContext[Any, Any, Any, Any],
         DummyContext(
             user_data={"pending_entry": pending_entry, "pending_fields": ["dose"]}
         ),
@@ -107,13 +107,13 @@ async def test_entry_without_sugar_has_placeholder(
     )
 
     class DummySession:
-        def __enter__(self):
+        def __enter__(self) -> "DummySession":
             return self
 
-        def __exit__(self, exc_type, exc, tb):
+        def __exit__(self, exc_type, exc, tb) -> None:
             pass
 
-        def add(self, entry):
+        def add(self, entry: Any) -> None:
             self.entry = entry
 
     async def noop(*args: Any, **kwargs: Any) -> None:

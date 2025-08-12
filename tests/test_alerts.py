@@ -118,7 +118,7 @@ async def test_repeat_logic(monkeypatch) -> None:
         context: AlertContext = ContextStub(
             job=job, job_queue=job_queue, bot=cast(Bot, SimpleNamespace())
         )
-        await handlers.alert_job(cast(CallbackContext, context))
+        await handlers.alert_job(cast(CallbackContext[Any, Any, Any, Any], context))
 
     assert len(job_queue.jobs) == handlers.MAX_REPEATS
     assert len(calls) == handlers.MAX_REPEATS
@@ -183,9 +183,9 @@ async def test_three_alerts_notify(monkeypatch) -> None:
     monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
 
     for _ in range(2):
-        await handlers.check_alert(update, cast(CallbackContext, context), 3)
+        await handlers.check_alert(update, cast(CallbackContext[Any, Any, Any, Any], context), 3)
     assert context.bot.sent == []
-    await handlers.check_alert(update, cast(CallbackContext, context), 3)
+    await handlers.check_alert(update, cast(CallbackContext[Any, Any, Any, Any], context), 3)
     assert len(context.bot.sent) == 2
     assert context.bot.sent[0][0] == 1
     assert context.bot.sent[1][0] == "@alice"
@@ -231,7 +231,7 @@ async def test_alert_message_without_coords(monkeypatch) -> None:
     monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
 
     for _ in range(3):
-        await handlers.check_alert(update, cast(CallbackContext, context), 3)
+        await handlers.check_alert(update, cast(CallbackContext[Any, Any, Any, Any], context), 3)
 
     msg = "⚠️ У Ivan критический сахар 3 ммоль/л."
     assert context.bot.sent == [(1, msg), ("@alice", msg)]

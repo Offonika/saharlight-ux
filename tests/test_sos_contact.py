@@ -90,7 +90,7 @@ async def test_alert_notifies_user_and_contact(test_session, monkeypatch) -> Non
 
     for _ in range(3):
         await alert_handlers.check_alert(
-            update_alert, cast(CallbackContext, context), 3
+            update_alert, cast(CallbackContext[Any, Any, Any, Any], context), 3
         )
 
     msg = "⚠️ У Ivan критический сахар 3 ммоль/л. 0,0 link"
@@ -129,7 +129,7 @@ async def test_alert_skips_phone_contact(test_session, monkeypatch) -> None:
 
     for _ in range(3):
         await alert_handlers.check_alert(
-            update_alert, cast(CallbackContext, context), 3
+            update_alert, cast(CallbackContext[Any, Any, Any, Any], context), 3
         )
 
     msg = "⚠️ У Ivan критический сахар 3 ммоль/л. 0,0 link"
