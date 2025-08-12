@@ -11,7 +11,6 @@ from telegram.ext import (
     filters,
 )
 import json
-import os
 from zoneinfo import ZoneInfo
 
 from diabetes_sdk.api.default_api import DefaultApi
@@ -31,11 +30,11 @@ from services.api.app.diabetes.utils.ui import (
     back_keyboard,
     menu_keyboard,
 )
-from services.api.app.config import WEBAPP_URL
+from services.api.app.config import WEBAPP_URL, API_URL
 from .common_handlers import commit_session
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
-api = DefaultApi(ApiClient(Configuration(host=os.getenv("API_URL", "http://localhost:8000"))))
+api = DefaultApi(ApiClient(Configuration(host=API_URL)))
 
 
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)

@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -15,6 +14,7 @@ from .schemas.timezone import TimezoneSchema
 from .services.profile import get_profile, save_profile, set_timezone
 from .services.reminders import list_reminders, save_reminder
 from .services import init_db
+from .config import UVICORN_WORKERS
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +143,7 @@ app.mount("/", StaticFiles(directory=str(PUBLIC_DIR)), name="public-root")
 if __name__ == "__main__":  # pragma: no cover
     import uvicorn
 
-    workers = int(os.getenv("UVICORN_WORKERS", "1"))
     init_db()
-    uvicorn.run("services.api.app.main:app", host="0.0.0.0", port=8000, workers=workers)
+    uvicorn.run(
+        "services.api.app.main:app", host="0.0.0.0", port=8000, workers=UVICORN_WORKERS
+    )

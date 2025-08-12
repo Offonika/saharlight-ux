@@ -4,23 +4,13 @@ Bot entry point and configuration.
 """
 
 from services.api.app.diabetes.handlers.common_handlers import register_handlers
-from services.api.app.config import LOG_LEVEL, TELEGRAM_TOKEN
+from services.api.app.config import LOG_LEVEL, TELEGRAM_TOKEN, MAINTAINER_CHAT_ID
 from telegram import BotCommand
 from telegram.ext import Application, ContextTypes
 import logging
-import os
 import sys
 
 logger = logging.getLogger(__name__)
-
-MAINTAINER_CHAT_ID = os.getenv("MAINTAINER_CHAT_ID")
-try:
-    MAINTAINER_CHAT_ID = (
-        int(MAINTAINER_CHAT_ID) if MAINTAINER_CHAT_ID is not None else None
-    )
-except (TypeError, ValueError):
-    logger.warning("Invalid MAINTAINER_CHAT_ID: %s", MAINTAINER_CHAT_ID)
-    MAINTAINER_CHAT_ID = None
 
 
 async def error_handler(update, context: ContextTypes.DEFAULT_TYPE) -> None:
