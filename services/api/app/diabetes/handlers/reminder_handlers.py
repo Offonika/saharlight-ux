@@ -29,7 +29,10 @@ from services.api.app.diabetes.services.db import (
 )
 from .common_handlers import commit_session as _commit_session
 from services.api.app.config import WEBAPP_URL
-from services.api.app.diabetes.utils.helpers import parse_time_interval
+from services.api.app.diabetes.utils.helpers import (
+    INVALID_TIME_MSG,
+    parse_time_interval,
+)
 
 SessionLocal: sessionmaker[Session] = _SessionLocal
 commit_session: Callable[[Session], bool] = _commit_session
@@ -316,7 +319,16 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     reminder = Reminder(telegram_id=user_id, type=rtype)
     if rtype == "sugar":
         if ":" in value:
-            reminder.time = value
+            try:
+                parsed = parse_time_interval(value)
+            except ValueError:
+                await update.message.reply_text(INVALID_TIME_MSG)
+                return
+            if isinstance(parsed, time):
+                reminder.time = parsed.strftime("%H:%M")
+            else:
+                await update.message.reply_text(INVALID_TIME_MSG)
+                return
         else:
             try:
                 reminder.interval_hours = int(value)
@@ -324,7 +336,16 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 await update.message.reply_text("Интервал должен быть числом.")
                 return
     elif rtype in {"long_insulin", "medicine"}:
-        reminder.time = value
+        try:
+            parsed = parse_time_interval(value)
+        except ValueError:
+            await update.message.reply_text(INVALID_TIME_MSG)
+            return
+        if isinstance(parsed, time):
+            reminder.time = parsed.strftime("%H:%M")
+        else:
+            await update.message.reply_text(INVALID_TIME_MSG)
+            return
     elif rtype == "xe_after":
         try:
             reminder.minutes_after = int(value)
