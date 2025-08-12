@@ -1,3 +1,4 @@
+import logging
 from http import HTTPStatus
 from typing import Any, Optional, Union
 
@@ -8,6 +9,7 @@ from ...client import AuthenticatedClient, Client
 from ...models.reminder import Reminder
 from ...types import UNSET, Response, Unset
 
+logger = logging.getLogger(__name__)
 
 def _get_kwargs(
     *,
@@ -43,8 +45,8 @@ def _parse_response(
                 response_200_type_0 = Reminder.from_dict(data)
 
                 return response_200_type_0
-            except:  # noqa: E722
-                pass
+            except (TypeError, ValueError) as exc:
+                logger.warning("Failed to parse reminder from dict: %s", exc)
             if not isinstance(data, list):
                 raise TypeError()
             response_200_type_1 = []
