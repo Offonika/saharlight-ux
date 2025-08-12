@@ -4,41 +4,74 @@ from sqlalchemy import pool
 from alembic import context
 
 import os
-import sys
+from urllib.parse import quote_plus
 
-from services.api.app.diabetes.services.db import Base
-from services.api.app.config import Settings
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:  # pragma: no cover
+    def load_dotenv(*_args, **_kwargs):  # type: ignore
+        return None
+else:
+    load_dotenv()
 
-sys.path.append(os.getcwd())
 
-# Alembic Config
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-settings = Settings()
-target_metadata = Base.metadata
+target_metadata = None
 
-DATABASE_URL = settings.database_url
+
+def build_db_url() -> str:
+    url = os.getenv("DATABASE_URL")
+    if url:
+        return url
+
+    user = os.getenv("DB_USER", "")
+    password = quote_plus(os.getenv("DB_PASSWORD", ""))
+    host = os.getenv("DB_HOST", "")
+    port = os.getenv("DB_PORT", "")
+    name = os.getenv("DB_NAME", "")
+
+    return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{name}"
 
 
 def run_migrations_offline() -> None:
+    url = build_db_url()
+    if not url or url.startswith("driver://"):
+        raise RuntimeError("Invalid database URL")
+
     context.configure(
-        url=DATABASE_URL,
+        url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        compare_type=True,
+        compare_server_default=True,
     )
+
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
     from sqlalchemy import create_engine
-    connectable = create_engine(DATABASE_URL, poolclass=pool.NullPool)
+
+    url = build_db_url()
+    if not url or url.startswith("driver://"):
+        raise RuntimeError("Invalid database URL")
+
+    config.set_main_option("sqlalchemy.url", url)
+    connectable = create_engine(url, poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            compare_server_default=True,
+        )
+
         with context.begin_transaction():
             context.run_migrations()
 

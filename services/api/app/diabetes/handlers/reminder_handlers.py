@@ -483,6 +483,9 @@ async def reminder_webapp_save(
         )
         return
     if status == "error":
+        await update.effective_message.reply_text(
+            "⚠️ Не удалось сохранить напоминание."
+        )
         return
 
     schedule_reminder(rem, context.job_queue)

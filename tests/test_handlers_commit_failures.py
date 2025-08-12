@@ -27,7 +27,9 @@ class DummyQuery:
         self.data = data
         self.edited = []
 
+
     async def answer(self, text: str | None = None, **kwargs: Any) -> None:
+
         pass
 
     async def edit_message_text(self, text: str, **kwargs: Any) -> None:
@@ -177,7 +179,7 @@ async def test_reminder_webapp_save_commit_failure(monkeypatch, caplog) -> None:
     assert not session.refresh.called
     assert not schedule_mock.called
     assert not render_mock.called
-    assert message.texts == []
+    assert message.texts == ["⚠️ Не удалось сохранить напоминание."]
     assert "Failed to commit reminder via webapp" in caplog.text
 
 
@@ -244,9 +246,12 @@ async def test_reminder_callback_commit_failure(monkeypatch, caplog) -> None:
     session.__exit__.return_value = None
     session.add = MagicMock()
     session.rollback = MagicMock()
+
     rem = SimpleNamespace(id=1, telegram_id=1)
     session.get.return_value = rem
+
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
+    reminder_handlers.commit_session = common_handlers.commit_session
 
     def failing_commit(sess):
         sess.rollback()

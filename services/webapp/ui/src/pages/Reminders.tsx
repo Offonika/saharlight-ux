@@ -1,5 +1,5 @@
 // Файл: webapp/ui/src/pages/Reminders.tsx
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react'
 import { MedicalHeader } from '@/components/MedicalHeader'
@@ -219,28 +219,28 @@ export default function Reminders() {
     }
   }
 
-  const content = useMemo(() => {
-    if (loading) {
-      return (
-        <div className="space-y-3 mb-6">
-          {Array.from({ length: 4 }).map((_, i) => <SkeletonItem key={i} />)}
-        </div>
-      )
-    }
-    if (error) return <div className="text-center py-12 text-destructive">{error}</div>
-    if (reminders.length === 0) {
-      return (
-        <div className="text-center py-12">
-          <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">Нет напоминаний</h3>
-          <p className="text-muted-foreground mb-6">Добавьте первое напоминание для контроля диабета</p>
-          <MedicalButton onClick={() => navigate('/reminders/new')} size="lg">
-            Создать напоминание
-          </MedicalButton>
-        </div>
-      )
-    }
-    return (
+  let content
+  if (loading) {
+    content = (
+      <div className="space-y-3 mb-6">
+        {Array.from({ length: 4 }).map((_, i) => <SkeletonItem key={i} />)}
+      </div>
+    )
+  } else if (error) {
+    content = <div className="text-center py-12 text-destructive">{error}</div>
+  } else if (reminders.length === 0) {
+    content = (
+      <div className="text-center py-12">
+        <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-foreground mb-2">Нет напоминаний</h3>
+        <p className="text-muted-foreground mb-6">Добавьте первое напоминание для контроля диабета</p>
+        <MedicalButton onClick={() => navigate('/reminders/new')} size="lg">
+          Создать напоминание
+        </MedicalButton>
+      </div>
+    )
+  } else {
+    content = (
       <div className="space-y-3 mb-6">
         {reminders.map((reminder, index) => (
           <ReminderRow
@@ -254,7 +254,7 @@ export default function Reminders() {
         ))}
       </div>
     )
-  }, [loading, error, reminders, navigate])
+  }
 
   return (
     <div className="min-h-screen bg-background">
