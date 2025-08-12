@@ -404,3 +404,28 @@ async def test_cancel_callback(monkeypatch):
     with TestSession() as session:
         log = session.query(ReminderLog).first()
         assert log.action == "remind_cancel"
+
+
+@pytest.mark.asyncio
+async def test_reminder_callback_foreign_rid(monkeypatch):
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit_session = commit_session
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00"))
+        session.commit()
+
+    query = DummyCallbackQuery("remind_cancel:1", DummyMessage())
+    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=2))
+    context = SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot())
+    await handlers.reminder_callback(update, context)
+
+    assert query.answers == ["Не найдено"]
+    assert query.edited is None
+    with TestSession() as session:
+        assert session.query(ReminderLog).count() == 0
+
