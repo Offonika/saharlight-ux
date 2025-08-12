@@ -1,4 +1,4 @@
-"""Tests for backend server startup checks."""
+"""Tests for API server startup checks."""
 
 import importlib
 from pathlib import Path
@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 
-def test_backend_import_without_ui(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Importing backend.main should succeed even if UI build is missing."""
+def test_app_import_without_ui(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Importing services.api.app.main should succeed even if UI build is missing."""
     ui_dir = (Path(__file__).resolve().parents[1] / "webapp" / "ui" / "dist").resolve()
     original_exists = Path.exists
 
@@ -17,5 +17,5 @@ def test_backend_import_without_ui(monkeypatch: pytest.MonkeyPatch) -> None:
         return original_exists(self)
 
     monkeypatch.setattr(Path, "exists", fake_exists)
-    importlib.reload(importlib.import_module("backend.main"))
+    importlib.reload(importlib.import_module("services.api.app.main"))
 

@@ -9,7 +9,7 @@
 
 ## 📁 Основные файлы и структура
 
-- **backend/diabetes/** — основной пакет, логика бота
+- **services/api/app/diabetes/** — основной пакет, логика бота
     - **common_handlers.py** — общие обработчики и роутинг
     - **onboarding_handlers.py** — сценарий регистрации и стартовые команды
     - **profile_handlers.py** — управление профилем пользователя
@@ -19,14 +19,14 @@
     - **db.py, models.py** — работа с БД
     - **functions.py** — расчёты и парсинг
     - **gpt_client.py** — работа с OpenAI
-- **backend/requirements.txt** — зависимости Python
+- **services/api/app/requirements.txt** — зависимости Python
 - **setup.sh** — автоматическая установка окружения
 - **infra/docker/Dockerfile.api** — для контейнеризации и Codex
 - **infra/docker/docker-compose.yml** — пример конфигурации Docker Compose
 - **infra/env/.env.example** — шаблон для переменных окружения
 - **tests/** — директория для автотестов (по мере развития)
   
-Все обработчики располагаются в отдельных файлах с суффиксом `_handlers.py` в каталоге `backend/diabetes/`. Добавляя новый функционал, создавайте новый модуль или дополняйте существующий, придерживаясь тематического разделения.
+Все обработчики располагаются в отдельных файлах с суффиксом `_handlers.py` в каталоге `services/api/app/diabetes/`. Добавляя новый функционал, создавайте новый модуль или дополняйте существующий, придерживаясь тематического разделения.
 
 ---
 
@@ -43,7 +43,7 @@
     cp infra/env/.env.example .env
     # Впишите свои значения в .env
     source venv/bin/activate
-    python backend/bot.py
+    python services/api/app/bot.py
     ```
 
 3. Для Docker/Codex:
@@ -63,8 +63,8 @@
     ```
 - **Линтинг**: PEP8-стиль
     ```bash
-    pip install -r backend/requirements-dev.txt
-    ruff backend/diabetes tests
+    pip install -r services/api/app/requirements-dev.txt
+    ruff services/api/app tests
     ```
 
 ---
@@ -79,15 +79,15 @@
 ## ⚡ Примеры задач для Codex/разработки
 
 - **Рефакторинг:**
-  _Refactor backend/diabetes/handlers.py, split into smaller modules for readability and maintainability. Add type hints and docstrings._
+  _Refactor services/api/app/diabetes/handlers.py, split into smaller modules for readability and maintainability. Add type hints and docstrings._
 - **Покрытие тестами:**
-  _Add pytest unit tests for backend/diabetes/functions.py, cover all calculation logic._
+  _Add pytest unit tests for services/api/app/diabetes/functions.py, cover all calculation logic._
 - **CI и линтинг:**
-  _Run ruff on backend/diabetes/ and tests/, fix all style issues. Add a pre-commit hook if needed._
+  _Run ruff on services/api/app/ and tests/, fix all style issues. Add a pre-commit hook if needed._
 - **Документация:**
   _Generate and update code documentation. Add docstrings to all public functions._
 - **Безопасность:**
-  _Audit backend/diabetes/db.py for ORM or SQL security issues. Implement parameterized queries if needed._
+  _Audit services/api/app/diabetes/db.py for ORM or SQL security issues. Implement parameterized queries if needed._
 - **Docker:**  
   _Check that infra/docker/Dockerfile.api builds and runs with .env, update README.md with Docker instructions._
 

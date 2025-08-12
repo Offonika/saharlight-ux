@@ -1,7 +1,7 @@
 
 from fastapi.testclient import TestClient
 
-import backend.main as server
+import services.api.app.main as server
 
 
 def test_timezone_persist_and_validate(monkeypatch) -> None:

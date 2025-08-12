@@ -117,4 +117,4 @@ if __name__ == "__main__":  # pragma: no cover
 
     workers = int(os.getenv("UVICORN_WORKERS", "1"))
     init_db()
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, workers=workers)
+    uvicorn.run("services.api.app.main:app", host="0.0.0.0", port=8000, workers=workers)

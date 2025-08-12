@@ -1,4 +1,4 @@
-from backend import config as _config
+from services.api.app import config as _config
 
 __all__ = [name for name in dir(_config) if not name.startswith("_")]
 

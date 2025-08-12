@@ -10,17 +10,17 @@
 
 ### Структура
 
-- `backend/diabetes/` — основной пакет
+- `services/api/app/diabetes/` — основной пакет
   - `common_handlers.py` — общие обработчики и роутинг
   - `onboarding_handlers.py` — регистрация и стартовые команды
   - `profile_handlers.py` — профиль пользователя
   - `reporting_handlers.py` — дневник и отчётность
   - `dose_handlers.py` — расчёт доз инсулина
   - новые файлы `*_handlers.py` — для прочих сценариев
-- `backend/main.py` — FastAPI‑приложение: отдаёт WebApp и REST API
+- `services/api/app/main.py` — FastAPI‑приложение: отдаёт WebApp и REST API
 - `webapp/ui` — исходники фронтенда (React + Vite, собирается в `dist/`)
 
-Новые обработчики добавляйте в каталог `backend/diabetes/`, создавая отдельные модули с суффиксом `_handlers.py` и группируя их по доменам.
+Новые обработчики добавляйте в каталог `services/api/app/diabetes/`, создавая отдельные модули с суффиксом `_handlers.py` и группируя их по доменам.
 
 ### Доступные команды
 
@@ -59,7 +59,7 @@
    ```
 3. **Установите зависимости и соберите фронтенд:**
    ```bash
-   pip install -r backend/requirements.txt
+   pip install -r services/api/app/requirements.txt
 
    (cd webapp/ui && npm ci)
 
@@ -79,14 +79,14 @@
 
 6. **Запустите сервер:**
    ```bash
-   python backend/main.py
+   python services/api/app/main.py
    ```
 
 ### Запуск WebApp
 
 В каталоге `webapp/ui` расположен React‑SPA (Vite), исходники лежат в `src/`,
 а результат сборки — в `dist/`. Все команды `npm` запускаются из этого каталога.
-Файл `backend/main.py` отдаёт содержимое
+Файл `services/api/app/main.py` отдаёт содержимое
 каталога `webapp/ui/dist` и предоставляет REST API (`/api/timezone`,
 `/api/profile`, `/api/reminders`).
 
@@ -108,7 +108,7 @@
 
 2. **Запустите FastAPI‑приложение:**
    ```bash
-    uvicorn backend.main:app --host 0.0.0.0 --port 8000
+    uvicorn services.api.app.main:app --host 0.0.0.0 --port 8000
    ```
    Количество воркеров можно настроить переменной окружения `UVICORN_WORKERS`.
 
@@ -136,7 +136,7 @@ ngrok http 8000
 ## Сервисный запуск
 
 В каталоге `docs/deploy/` лежат примерные конфигурации для запуска приложения как службы.
-Они выполняют `uvicorn backend.main:app --workers 4` и автоматически перезапускаются при сбое.
+Они выполняют `uvicorn services.api.app.main:app --workers 4` и автоматически перезапускаются при сбое.
 
 - `docs/deploy/diabetes-assistant.service` — unit‑файл для **systemd**. Скопируйте его в `/etc/systemd/system/`, отредактируйте пути и пользователя, затем выполните `sudo systemctl enable --now diabetes-assistant`.
 - `docs/deploy/supervisord.conf` — секция для **supervisord**. Добавьте её в конфигурацию и перезапустите менеджер процессов.
@@ -148,7 +148,7 @@ ngrok http 8000
 Для проверки качества кода:
 
 ```bash
-pip install -r backend/requirements-dev.txt
-ruff backend/diabetes tests
+pip install -r services/api/app/requirements-dev.txt
+ruff services/api/app/diabetes tests
 pytest tests/
 ```

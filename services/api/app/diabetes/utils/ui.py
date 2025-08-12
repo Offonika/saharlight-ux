@@ -4,7 +4,7 @@ UI-компоненты бота «Diabet Buddy».
 Здесь живут все клавиатуры (Reply и Inline) и их генераторы.
 Импортируйте объекты напрямую:
 
-    from diabetes.utils.ui import menu_keyboard, dose_keyboard, confirm_keyboard
+    from services.api.app.diabetes.utils.ui import menu_keyboard, dose_keyboard, confirm_keyboard
 """
 
 from telegram import (
@@ -14,7 +14,7 @@ from telegram import (
     KeyboardButton,
     WebAppInfo,
 )
-from backend.config import WEBAPP_URL
+from services.api.app.config import WEBAPP_URL
 
 __all__ = (
     "menu_keyboard",

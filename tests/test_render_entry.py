@@ -1,7 +1,7 @@
 import datetime
 from types import SimpleNamespace
 
-from diabetes.handlers.reporting_handlers import render_entry
+from services.api.app.diabetes.handlers.reporting_handlers import render_entry
 
 
 def make_entry(**kwargs):

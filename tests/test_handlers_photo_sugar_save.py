@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-import diabetes.handlers.dose_handlers as dose_handlers
-import diabetes.handlers.common_handlers as common_handlers
+import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+import services.api.app.diabetes.handlers.common_handlers as common_handlers
 
 
 class DummyMessage:
@@ -140,7 +140,7 @@ async def test_photo_flow_saves_entry(monkeypatch, tmp_path):
     assert context.user_data["pending_entry"]["sugar_before"] == 5.5
 
     monkeypatch.setattr(common_handlers, "SessionLocal", lambda: session)
-    import diabetes.handlers.alert_handlers as alert_handlers
+    import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 
     async def noop(*a, **k):
         return None

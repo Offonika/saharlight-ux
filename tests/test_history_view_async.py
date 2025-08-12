@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from diabetes.handlers import reporting_handlers
+from services.api.app.diabetes.handlers import reporting_handlers
 
 
 class DummyMessage:

@@ -3,11 +3,11 @@ from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from diabetes.services.db import Base, User, Profile, Alert, Reminder
-import diabetes.handlers.profile_handlers as handlers
-from diabetes.handlers.common_handlers import commit_session
-import diabetes.handlers.reminder_handlers as reminder_handlers
-import diabetes.handlers.sos_handlers as sos_handlers
+from services.api.app.diabetes.services.db import Base, User, Profile, Alert, Reminder
+import services.api.app.diabetes.handlers.profile_handlers as handlers
+from services.api.app.diabetes.handlers.common_handlers import commit_session
+import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
+import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
 
 
 class DummyMessage:

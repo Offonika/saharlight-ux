@@ -4,8 +4,8 @@ from typing import List
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from diabetes.services.db import Reminder, SessionLocal, run_db
-from backend.schemas.reminders import ReminderSchema
+from services.api.app.diabetes.services.db import Reminder, SessionLocal, run_db
+from services.api.app.schemas.reminders import ReminderSchema
 
 
 async def list_reminders(telegram_id: int) -> List[Reminder]:

@@ -11,7 +11,7 @@ source venv/bin/activate
 
 echo "Установка Python-зависимостей…"
 pip install --upgrade pip
-pip install -r backend/requirements.txt
+pip install -r services/api/app/requirements.txt
 
 echo "Сборка фронтенда (npm ci && npm run build)…"
 pushd webapp/ui >/dev/null
@@ -26,4 +26,4 @@ fi
 
 echo "Установка завершена! Проверьте файл .env и заполните свои токены и пароли."
 echo "Фронтенд собран в webapp/ui/dist."
-echo "Для запуска API: source venv/bin/activate && python backend/main.py"
+echo "Для запуска API: source venv/bin/activate && python services/api/app/main.py"

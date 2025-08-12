@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from fastapi.staticfiles import StaticFiles
 
-import backend.main as server
+import services.api.app.main as server
 
 if not server.UI_DIR.exists():
     (server.UI_DIR / "assets").mkdir(parents=True)

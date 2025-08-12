@@ -7,7 +7,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from services.api.app.diabetes.models import metadata
-from backend.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+from services.api.app.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
 # Загрузка переменных окружения
 load_dotenv(".env")

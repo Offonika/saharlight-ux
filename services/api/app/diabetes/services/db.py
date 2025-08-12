@@ -20,7 +20,7 @@ import asyncio
 import threading
 from typing import Any, Callable, TypeVar
 
-from backend import config
+from services.api.app import config
 
 DB_HOST = config.DB_HOST
 DB_PORT = config.DB_PORT
