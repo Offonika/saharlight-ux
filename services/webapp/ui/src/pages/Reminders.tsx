@@ -18,7 +18,7 @@ interface Reminder {
   title: string
   time: string   // "HH:MM"
   active: boolean
-  interval?: number
+  interval?: number // stored in minutes
 }
 
 const TYPE_LABEL: Record<'sugar'|'insulin'|'meal'|'medicine', string> = {
@@ -150,7 +150,7 @@ export default function Reminders() {
             title: TYPE_LABEL[nt],
             time: r.time || '',
             active: r.isEnabled ?? false,
-            interval: r.intervalHours ?? undefined,
+            interval: r.intervalHours != null ? r.intervalHours * 60 : undefined,
           }
         })
         normalized.sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time))
@@ -182,7 +182,7 @@ export default function Reminders() {
         id,
         type: target.type,
         time: target.time,
-        intervalHours: target.interval,
+        intervalHours: target.interval != null ? target.interval / 60 : undefined,
         isEnabled: nextActive,
       })
       toast({
@@ -248,7 +248,7 @@ export default function Reminders() {
             reminder={reminder}
             index={index}
             onToggle={handleToggleReminder}
-            onEdit={(r) => navigate(`/reminders/${r.id}/edit`)}
+            onEdit={(r) => navigate(`/reminders/${r.id}/edit`, { state: r })}
             onDelete={handleDeleteReminder}
           />
         ))}

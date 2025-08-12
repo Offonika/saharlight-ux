@@ -49,6 +49,7 @@ export default function CreateReminder() {
   const [type, setType] = useState<ReminderType>(editing?.type ?? "sugar");
   const [title, setTitle] = useState(editing?.title ?? "");
   const [time, setTime] = useState(editing?.time ?? "");
+  // interval is stored in minutes for UI, API expects hours
   const [interval, setInterval] = useState<number | undefined>(editing?.interval ?? 60);
   const [error, setError] = useState<string | null>(null);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -66,7 +67,7 @@ export default function CreateReminder() {
       telegramId: user.id,
       type,
       time,
-      intervalHours: interval,
+      intervalHours: interval != null ? interval / 60 : undefined,
       isEnabled: true,
       ...(editing ? { id: editing.id } : {}),
     };
