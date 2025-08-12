@@ -1,13 +1,14 @@
 import datetime
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from telegram import InlineKeyboardMarkup, Update
+from telegram.ext import CallbackContext
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
-from telegram import InlineKeyboardMarkup
 
 os.environ.setdefault("DB_PASSWORD", "test")
 from services.api.app.diabetes.services.db import Base, User, Entry
@@ -51,7 +52,7 @@ class DummyBot:
 
 
 @pytest.mark.asyncio
-async def test_history_view_buttons(monkeypatch) -> None:
+async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -90,7 +91,9 @@ async def test_history_view_buttons(monkeypatch) -> None:
 
     message = DummyMessage()
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+    )
 
     await reporting_handlers.history_view(update, context)
 
@@ -126,7 +129,7 @@ async def test_history_view_buttons(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_edit_flow(monkeypatch) -> None:
+async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -162,7 +165,10 @@ async def test_edit_flow(monkeypatch) -> None:
     update_cb = SimpleNamespace(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(user_data={}, bot=DummyBot())
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={}, bot=DummyBot()),
+    )
 
     await common_handlers.callback_router(update_cb, context)
     assert context.user_data["edit_entry"] == {
@@ -187,8 +193,9 @@ async def test_edit_flow(monkeypatch) -> None:
     assert any("Введите" in t for t, _ in entry_message.replies)
 
     reply_msg = DummyMessage(text="3")
-    update_msg = SimpleNamespace(
-        message=reply_msg, effective_user=SimpleNamespace(id=1)
+    update_msg = cast(
+        Update,
+        SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1)),
     )
     await dose_handlers.freeform_handler(update_msg, context)
 

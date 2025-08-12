@@ -1,8 +1,10 @@
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 import services.api.app.diabetes.handlers.common_handlers as common_handlers
@@ -59,7 +61,9 @@ session = DummySession()
 
 
 @pytest.mark.asyncio
-async def test_photo_flow_saves_entry(monkeypatch, tmp_path) -> None:
+async def test_photo_flow_saves_entry(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     async def fake_parse_command(text: str) -> dict[str, Any]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
@@ -68,10 +72,13 @@ async def test_photo_flow_saves_entry(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
     msg_start = DummyMessage("/dose")
-    update_start = SimpleNamespace(
-        message=msg_start, effective_user=SimpleNamespace(id=1)
+    update_start = cast(
+        Update,
+        SimpleNamespace(message=msg_start, effective_user=SimpleNamespace(id=1)),
     )
-    context = SimpleNamespace(user_data={})
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+    )
     await dose_handlers.freeform_handler(update_start, context)
 
     monkeypatch.chdir(tmp_path)
@@ -133,8 +140,9 @@ async def test_photo_flow_saves_entry(monkeypatch, tmp_path) -> None:
     assert entry["photo_path"].endswith("uid.jpg")
 
     msg_sugar = DummyMessage("5.5")
-    update_sugar = SimpleNamespace(
-        message=msg_sugar, effective_user=SimpleNamespace(id=1)
+    update_sugar = cast(
+        Update,
+        SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
     dose_handlers.SessionLocal = lambda: session
     await dose_handlers.freeform_handler(update_sugar, context)

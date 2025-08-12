@@ -1,8 +1,11 @@
 import datetime
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
+
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
 
@@ -27,8 +30,14 @@ async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
         "photo_path": "photos/img.jpg",
     }
     message = DummyMessage("dose=3.5 carbs=30")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"pending_entry": entry})
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"pending_entry": entry}),
+    )
 
     await handlers.freeform_handler(update, context)
 
@@ -61,8 +70,14 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
 
     handlers.SessionLocal = lambda: DummySession()
     message = DummyMessage("5,6")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"pending_entry": entry})
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"pending_entry": entry}),
+    )
 
     await handlers.freeform_handler(update, context)
 
@@ -84,8 +99,14 @@ async def test_freeform_handler_sugar_only_flow() -> None:
         "photo_path": None,
     }
     message = DummyMessage("4.2")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"pending_entry": entry})
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"pending_entry": entry}),
+    )
 
     await handlers.freeform_handler(update, context)
 
