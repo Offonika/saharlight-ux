@@ -7,8 +7,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from .schemas import ProfileSchema, ReminderSchema, TimezoneSchema
-from .services import list_reminders, save_profile, save_reminder, set_timezone, init_db
+from .schemas.profile import ProfileSchema
+from .schemas.reminders import ReminderSchema
+from .schemas.timezone import TimezoneSchema
+from .services.profile import save_profile, set_timezone
+from .services.reminders import list_reminders, save_reminder
+from .services import init_db
 
 logger = logging.getLogger(__name__)
 
