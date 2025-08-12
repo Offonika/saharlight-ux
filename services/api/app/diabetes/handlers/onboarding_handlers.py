@@ -85,8 +85,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             return ConversationHandler.END
 
     await update.message.reply_text(
-        "👋 Привет! Давай начнём.\n"
-        "1/3. Введите коэффициент ИКХ (г/ед.):",
+        "👋 Привет! Давай начнём.\n1/3. Введите коэффициент ИКХ (г/ед.):",
         reply_markup=_skip_markup(),
     )
     return ONB_PROFILE_ICR
