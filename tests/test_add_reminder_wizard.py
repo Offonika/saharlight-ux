@@ -1,40 +1,66 @@
+from __future__ import annotations
+
 import json
-from types import SimpleNamespace
+from dataclasses import dataclass
+from typing import Any
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from services.api.app.diabetes.services.db import Base, User, Reminder
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 from services.api.app.diabetes.handlers.common_handlers import commit_session
+from services.api.app.diabetes.services.db import Base, Reminder, User
+
+
+@dataclass
+class WebAppData:
+    data: str
 
 
 class DummyMessage:
-    def __init__(self, data: str):
-        self.web_app_data = SimpleNamespace(data=data)
+    def __init__(self, data: str) -> None:
+        self.web_app_data = WebAppData(data)
         self.replies: list[str] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append(text)
 
 
 class DummyJobQueue:
-    def __init__(self):
-        self.jobs = []
+    def __init__(self) -> None:
+        self.jobs: list[Any] = []
 
-    def run_daily(self, *args, **kwargs):
+    def run_daily(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def run_repeating(self, *args, **kwargs):
+    def run_repeating(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def get_jobs_by_name(self, name):
+    def get_jobs_by_name(self, name: str) -> list[Any]:
         return []
 
 
+@dataclass
+class DummyUser:
+    id: int
+
+
+@dataclass
+class UpdateStub:
+    effective_message: DummyMessage
+    effective_user: DummyUser
+
+
+@dataclass
+class CallbackContextStub:
+    job_queue: DummyJobQueue
+
+
 @pytest.mark.asyncio
-async def test_webapp_save_creates_reminder(monkeypatch):
+async def test_webapp_save_creates_reminder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -46,8 +72,8 @@ async def test_webapp_save_creates_reminder(monkeypatch):
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "08:00"}))
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=DummyJobQueue())
+    update = UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
+    context = CallbackContextStub(job_queue=DummyJobQueue())
     await handlers.reminder_webapp_save(update, context)
 
     with TestSession() as session:
@@ -56,7 +82,9 @@ async def test_webapp_save_creates_reminder(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_webapp_save_creates_interval(monkeypatch):
+async def test_webapp_save_creates_interval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -68,8 +96,8 @@ async def test_webapp_save_creates_interval(monkeypatch):
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "2h"}))
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=DummyJobQueue())
+    update = UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
+    context = CallbackContextStub(job_queue=DummyJobQueue())
     await handlers.reminder_webapp_save(update, context)
 
     with TestSession() as session:
