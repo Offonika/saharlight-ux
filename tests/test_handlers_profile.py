@@ -1,11 +1,11 @@
 import pytest
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
-from telegram import InlineKeyboardMarkup
-from telegram.ext import ConversationHandler
+from telegram import InlineKeyboardMarkup, Update
+from telegram.ext import CallbackContext, ConversationHandler
 
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
@@ -36,7 +36,15 @@ class DummyMessage:
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_and_view(monkeypatch, args, expected_icr, expected_cf, expected_target, expected_low, expected_high) -> None:
+async def test_profile_command_and_view(
+    monkeypatch: pytest.MonkeyPatch,
+    args,
+    expected_icr,
+    expected_cf,
+    expected_target,
+    expected_low,
+    expected_high,
+) -> None:
     import os
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
@@ -54,8 +62,12 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
         session.commit()
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=123))
-    context = SimpleNamespace(args=args, user_data={})
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=123))
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(args=args, user_data={})
+    )
 
     await handlers.profile_command(update, context)
     assert message.markups[0] is menu_keyboard
@@ -66,8 +78,12 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     assert f"• Высокий порог: {expected_high} ммоль/л" in message.texts[0]
 
     message2 = DummyMessage()
-    update2 = SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=123))
-    context2 = SimpleNamespace(user_data={})
+    update2 = cast(
+        Update, SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=123))
+    )
+    context2 = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+    )
 
     await handlers.profile_view(update2, context2)
     assert f"• ИКХ: {expected_icr} г/ед." in message2.texts[0]
@@ -94,7 +110,9 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_invalid_values(monkeypatch, args) -> None:
+async def test_profile_command_invalid_values(
+    monkeypatch: pytest.MonkeyPatch, args
+) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -108,8 +126,12 @@ async def test_profile_command_invalid_values(monkeypatch, args) -> None:
     monkeypatch.setattr(handlers, "SessionLocal", session_local_mock)
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(args=args, user_data={})
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(args=args, user_data={})
+    )
 
     await handlers.profile_command(update, context)
 
@@ -119,7 +141,9 @@ async def test_profile_command_invalid_values(monkeypatch, args) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_command_help_and_dialog(monkeypatch) -> None:
+async def test_profile_command_help_and_dialog(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -129,16 +153,24 @@ async def test_profile_command_help_and_dialog(monkeypatch) -> None:
 
     # Test /profile help
     help_msg = DummyMessage()
-    update = SimpleNamespace(message=help_msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(args=["help"], user_data={})
+    update = cast(
+        Update, SimpleNamespace(message=help_msg, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(args=["help"], user_data={})
+    )
     result = await handlers.profile_command(update, context)
     assert result == ConversationHandler.END
     assert "Формат команды" in help_msg.texts[0]
 
     # Test starting dialog with empty args
     dialog_msg = DummyMessage()
-    update2 = SimpleNamespace(message=dialog_msg, effective_user=SimpleNamespace(id=1))
-    context2 = SimpleNamespace(args=[], user_data={})
+    update2 = cast(
+        Update, SimpleNamespace(message=dialog_msg, effective_user=SimpleNamespace(id=1))
+    )
+    context2 = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(args=[], user_data={})
+    )
     result2 = await handlers.profile_command(update2, context2)
     assert result2 == handlers.PROFILE_ICR
     assert dialog_msg.texts[0].startswith("Введите коэффициент ИКХ")
@@ -146,7 +178,9 @@ async def test_profile_command_help_and_dialog(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_view_preserves_user_data(monkeypatch) -> None:
+async def test_profile_view_preserves_user_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -166,8 +200,13 @@ async def test_profile_view_preserves_user_data(monkeypatch) -> None:
         session.commit()
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"thread_id": "tid", "foo": "bar"})
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"thread_id": "tid", "foo": "bar"}),
+    )
 
     await handlers.profile_view(update, context)
 

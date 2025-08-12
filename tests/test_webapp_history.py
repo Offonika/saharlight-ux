@@ -1,5 +1,6 @@
 import asyncio
 import json
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,7 +9,9 @@ from httpx import AsyncClient
 import services.api.app.main as server
 
 
-def test_history_persist_and_update(tmp_path, monkeypatch) -> None:
+def test_history_persist_and_update(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(server, "HISTORY_FILE", tmp_path / "history.json")
     client = TestClient(server.app)
 
@@ -32,14 +35,16 @@ def test_history_persist_and_update(tmp_path, monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_history_concurrent_writes(tmp_path, monkeypatch) -> None:
+async def test_history_concurrent_writes(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(server, "HISTORY_FILE", tmp_path / "history.json")
     records = [
         {"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"}
         for i in range(5)
     ]
 
-    async def post_record(rec: dict) -> None:
+    async def post_record(rec: dict[str, Any]) -> None:
         async with AsyncClient(app=server.app, base_url="http://test") as ac:
             resp = await ac.post("/api/history", json=rec)
             assert resp.status_code == 200

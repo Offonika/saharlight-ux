@@ -90,7 +90,9 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
         entry_ids = [e.id for e in session.query(Entry).all()]
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
     )
@@ -162,8 +164,9 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     entry_message = DummyMessage(chat_id=42, message_id=24)
     query = DummyQuery(f"edit:{entry_id}", message=entry_message)
-    update_cb = SimpleNamespace(
-        callback_query=query, effective_user=SimpleNamespace(id=1)
+    update_cb = cast(
+        Update,
+        SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
         CallbackContext[Any, Any, Any, Any],
@@ -183,8 +186,9 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert f"edit_field:{entry_id}:dose" in buttons
 
     field_query = DummyQuery(f"edit_field:{entry_id}:xe", message=entry_message)
-    update_cb2 = SimpleNamespace(
-        callback_query=field_query, effective_user=SimpleNamespace(id=1)
+    update_cb2 = cast(
+        Update,
+        SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1)),
     )
     await common_handlers.callback_router(update_cb2, context)
     assert context.user_data["edit_id"] == entry_id
@@ -201,6 +205,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         updated = session.get(Entry, entry_id)
+        assert updated is not None
         assert updated.xe == 3
         assert updated.carbs_g == 10
         assert updated.dose == 2
