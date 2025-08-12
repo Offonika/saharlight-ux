@@ -1,4 +1,4 @@
-# bot.py
+# main.py
 """
 Bot entry point and configuration.
 """
@@ -9,6 +9,9 @@ import sys
 
 from telegram import BotCommand
 from telegram.ext import Application, ContextTypes
+from sqlalchemy.exc import SQLAlchemyError
+
+from services.api.app.services import init_db
 
 from services.api.app.config import LOG_LEVEL
 from services.api.app.diabetes.handlers.common_handlers import register_handlers
@@ -32,6 +35,12 @@ def main() -> None:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     logger.info("=== Bot started ===")
+
+    try:
+        init_db()
+    except SQLAlchemyError as exc:
+        logger.error("Failed to initialize the database", exc_info=exc)
+        sys.exit("Database initialization failed. Please check your configuration and try again.")
 
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:

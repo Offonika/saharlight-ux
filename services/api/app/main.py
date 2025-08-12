@@ -20,7 +20,7 @@ app.router.redirect_slashes = True
 app.add_middleware(AuthMiddleware)
 app.include_router(legacy.router)
 
-BASE_DIR = Path(__file__).resolve().parent.parent / "webapp"
+BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
 UI_DIR = (BASE_DIR / "ui" / "dist").resolve()
 PUBLIC_DIR = (BASE_DIR / "public").resolve()
 
