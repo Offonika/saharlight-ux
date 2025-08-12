@@ -77,7 +77,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
         # fresh ``ThreadPoolExecutor`` for every invocation.
         response = await asyncio.wait_for(
             asyncio.to_thread(
-                _get_client().chat.completions.create,
+                _get_client().chat.completions.with_options(timeout=timeout).create,
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
@@ -85,7 +85,6 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
                 ],
                 temperature=0,
                 max_tokens=256,
-                timeout=timeout,
             ),
             timeout,
         )
@@ -97,6 +96,9 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
         return None
     except ValueError:
         logging.exception("Invalid value during command parsing")
+        return None
+    except TypeError:
+        logging.exception("Invalid type during command parsing")
         return None
     except Exception:
         logging.exception("Unexpected error during command parsing")
