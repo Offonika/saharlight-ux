@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import threading
+from typing import Any
 
 from openai import OpenAIError
 
@@ -71,7 +72,7 @@ async def send_message(
     client = _get_client()
     if image_path:
         try:
-            def _upload() -> any:
+            def _upload() -> Any:
                 with open(image_path, "rb") as f:
                     return client.files.create(file=f, purpose="vision")
 
