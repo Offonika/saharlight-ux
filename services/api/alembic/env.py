@@ -29,12 +29,15 @@ def build_db_url() -> str:
         return url
 
     user = os.getenv("DB_USER", "")
-    password = quote_plus(os.getenv("DB_PASSWORD", ""))
+    password = os.getenv("DB_PASSWORD", "")
     host = os.getenv("DB_HOST", "")
     port = os.getenv("DB_PORT", "")
     name = os.getenv("DB_NAME", "")
 
-    return f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{name}"
+    if not password:
+        raise RuntimeError("DB_PASSWORD is missing; ensure .env is loaded")
+
+    return f"postgresql+psycopg2://{user}:{quote_plus(password)}@{host}:{port}/{name}"
 
 
 def run_migrations_offline() -> None:
