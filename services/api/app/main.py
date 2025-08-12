@@ -1,4 +1,6 @@
 import logging
+import os
+import tempfile
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -28,7 +30,12 @@ async def health() -> dict:
 async def get_timezone() -> dict:
     if not TIMEZONE_FILE.exists():
         raise HTTPException(status_code=404, detail="timezone not set")
-    return {"tz": TIMEZONE_FILE.read_text(encoding="utf-8").strip()}
+    try:
+        tz = TIMEZONE_FILE.read_text(encoding="utf-8").strip()
+        ZoneInfo(tz)
+    except (OSError, ZoneInfoNotFoundError) as exc:
+        raise HTTPException(status_code=500, detail="invalid timezone file") from exc
+    return {"tz": tz}
 
 
 @app.put("/timezone")
@@ -37,7 +44,13 @@ async def put_timezone(data: Timezone) -> dict:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
         raise HTTPException(status_code=400, detail="invalid timezone") from exc
-    TIMEZONE_FILE.write_text(data.tz, encoding="utf-8")
+    with tempfile.NamedTemporaryFile(
+        "w", dir=TIMEZONE_FILE.parent, delete=False, encoding="utf-8"
+    ) as tmp:
+        tmp.write(data.tz)
+        tmp.flush()
+        os.fsync(tmp.fileno())
+    os.replace(tmp.name, TIMEZONE_FILE)
     return {"status": "ok"}
 
 
