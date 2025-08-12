@@ -1,6 +1,9 @@
+import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
+import pytest
 from fastapi.testclient import TestClient
+from httpx import AsyncClient
 
 import services.api.app.main as server
 
@@ -57,3 +60,24 @@ def test_timezone_concurrent_writes(tmp_path, monkeypatch) -> None:
     resp = client.get("/timezone")
     assert resp.status_code == 200
     assert resp.json() == {"tz": final_value}
+
+
+@pytest.mark.asyncio
+async def test_timezone_async_writes(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(server, "TIMEZONE_FILE", tmp_path / "timezone.txt")
+    timezones = ["Europe/Moscow", "America/New_York", "Asia/Tokyo", "Europe/Paris"]
+
+    async def write_tz(tz: str) -> None:
+        async with AsyncClient(app=server.app, base_url="http://test") as ac:
+            resp = await ac.put("/timezone", json={"tz": tz})
+            assert resp.status_code == 200
+
+    await asyncio.gather(*(write_tz(tz) for tz in timezones))
+
+    final_value = server.TIMEZONE_FILE.read_text(encoding="utf-8").strip()
+    assert final_value in timezones
+
+    async with AsyncClient(app=server.app, base_url="http://test") as ac:
+        resp = await ac.get("/timezone")
+        assert resp.status_code == 200
+        assert resp.json() == {"tz": final_value}
