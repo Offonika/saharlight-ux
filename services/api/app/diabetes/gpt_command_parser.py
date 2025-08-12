@@ -102,7 +102,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
         return None
     except Exception:
         logging.exception("Unexpected error during command parsing")
-        raise
+        return None
 
     choices = getattr(response, "choices", None)
     if not choices:
