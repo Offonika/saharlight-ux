@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 from fastapi.testclient import TestClient
 
 import services.api.app.main as server
@@ -26,3 +28,32 @@ def test_timezone_persist_and_validate(tmp_path, monkeypatch) -> None:
         "/timezone", content=b"not json", headers={"Content-Type": "application/json"}
     )
     assert resp.status_code in {400, 422}
+
+
+def test_timezone_partial_file(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(server, "TIMEZONE_FILE", tmp_path / "timezone.txt")
+    server.TIMEZONE_FILE.write_text("Europe/Mosc", encoding="utf-8")
+    client = TestClient(server.app)
+    resp = client.get("/timezone")
+    assert resp.status_code == 500
+
+
+def test_timezone_concurrent_writes(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(server, "TIMEZONE_FILE", tmp_path / "timezone.txt")
+    timezones = ["Europe/Moscow", "America/New_York", "Asia/Tokyo", "Europe/Paris"]
+
+    def write_tz(tz: str) -> None:
+        with TestClient(server.app) as c:
+            resp = c.put("/timezone", json={"tz": tz})
+            assert resp.status_code == 200
+
+    with ThreadPoolExecutor(max_workers=len(timezones)) as exc:
+        list(exc.map(write_tz, timezones))
+
+    final_value = server.TIMEZONE_FILE.read_text(encoding="utf-8").strip()
+    assert final_value in timezones
+
+    client = TestClient(server.app)
+    resp = client.get("/timezone")
+    assert resp.status_code == 200
+    assert resp.json() == {"tz": final_value}
