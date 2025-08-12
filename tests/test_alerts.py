@@ -2,6 +2,8 @@ from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any, Callable, Optional
 
+from .context_stub import AlertContext, ContextStub
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -94,7 +96,8 @@ async def test_repeat_logic():
     await handlers.evaluate_sugar(1, 3, job_queue)
 
     for i in range(1, 4):
-        context = SimpleNamespace(job=SimpleNamespace(data={"user_id": 1, "count": i}), job_queue=job_queue)
+        job = SimpleNamespace(data={"user_id": 1, "count": i})
+        context: AlertContext = ContextStub(job=job, job_queue=job_queue)
         await handlers.alert_job(context)
 
     assert len(job_queue.jobs) == 3
@@ -151,7 +154,7 @@ async def test_three_alerts_notify(monkeypatch):
             self.sent.append((chat_id, text))
 
     update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
-    context = SimpleNamespace(bot=DummyBot())
+    context: AlertContext = ContextStub(bot=DummyBot())
     async def fake_get_coords_and_link():
         return ("0,0", "link")
 
@@ -198,7 +201,7 @@ async def test_alert_message_without_coords(monkeypatch):
             self.sent.append((chat_id, text))
 
     update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
-    context = SimpleNamespace(bot=DummyBot())
+    context: AlertContext = ContextStub(bot=DummyBot())
 
     async def fake_get_coords_and_link():
         return None, None
