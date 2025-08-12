@@ -13,6 +13,8 @@ const Analytics = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['analytics', user?.id],
     queryFn: () => fetchAnalytics(user?.id ?? 0),
+    enabled: !!user?.id,
+    placeholderData: fallbackAnalytics,
   });
 
   const chartData = data ?? fallbackAnalytics;
