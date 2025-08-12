@@ -18,8 +18,13 @@ from telegram import (
 )
 from telegram.ext import ContextTypes
 
-from services.api.app.diabetes.services.db import SessionLocal, Entry
-from services.api.app.diabetes.services.gpt_client import send_message, _get_client
+from services.api.app.diabetes.services.db import SessionLocal, Entry, User
+from services.api.app.diabetes.services.gpt_client import (
+    send_message,
+    _get_client,
+    create_thread,
+)
+from .common_handlers import commit_session
 from services.api.app.diabetes.services.reporting import make_sugar_plot, generate_pdf_report
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
@@ -236,6 +241,22 @@ async def send_report(
     default_gpt_text = "Не удалось получить рекомендации."
     gpt_text = default_gpt_text
     thread_id = context.user_data.get("thread_id")
+    if thread_id is None:
+        with SessionLocal() as session:
+            user = session.get(User, user_id)
+            thread_id = getattr(user, "thread_id", None)
+            if thread_id is None:
+                thread_id = create_thread()
+                if user:
+                    user.thread_id = thread_id
+                else:
+                    session.add(User(telegram_id=user_id, thread_id=thread_id))
+                if commit_session(session):
+                    context.user_data["thread_id"] = thread_id
+                else:
+                    thread_id = None
+            else:
+                context.user_data["thread_id"] = thread_id
     if thread_id:
         try:
             def _fetch_recommendations() -> str:
