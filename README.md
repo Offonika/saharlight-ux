@@ -57,10 +57,12 @@
    python3 -m venv venv
    source venv/bin/activate
    ```
-3. **Установите зависимости:**
+3. **Установите зависимости и соберите фронтенд:**
    ```bash
    pip install -r backend/requirements.txt
-   (cd webapp/ui && npm ci)
+
+   cd webapp/ui && npm ci && npm run build && cd ../..
+
    ```
    Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `webapp/ui`.
 4. **Скопируйте шаблон .env и заполните своими данными:**
@@ -75,9 +77,9 @@
    Данные подключения указаны в .env.
    (Если нужен скрипт миграции — опишите отдельно!)
 
-6. **Запустите бота:**
+6. **Запустите сервер:**
    ```bash
-   python backend/bot.py
+   python backend/main.py
    ```
 
 ### Запуск WebApp

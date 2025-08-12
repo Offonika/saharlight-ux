@@ -13,10 +13,17 @@ echo "Установка Python-зависимостей…"
 pip install --upgrade pip
 pip install -r backend/requirements.txt
 
+echo "Сборка фронтенда (npm ci && npm run build)…"
+pushd webapp/ui >/dev/null
+npm ci
+npm run build
+popd >/dev/null
+
 if [ ! -f ".env" ]; then
     echo "Копирование backend/.env.example в .env (заполните ключи и пароли)…"
     cp backend/.env.example .env
 fi
 
 echo "Установка завершена! Проверьте файл .env и заполните свои токены и пароли."
-echo "Для запуска: source venv/bin/activate && python backend/bot.py"
+echo "Фронтенд собран в webapp/ui/dist."
+echo "Для запуска API: source venv/bin/activate && python backend/main.py"
