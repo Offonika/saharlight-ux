@@ -41,9 +41,24 @@ export async function fetchDayStats(telegramId: number): Promise<DayStats> {
     throw new Error('Failed to fetch stats');
   }
   const data = await res.json();
-  return {
-    sugar: Number(data.sugar),
-    breadUnits: Number(data.breadUnits),
-    insulin: Number(data.insulin),
-  };
+
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error('Invalid stats data');
+  }
+
+  const { sugar, breadUnits, insulin } = data as Record<string, unknown>;
+
+  if (
+    typeof sugar !== 'number' ||
+    !Number.isFinite(sugar) ||
+    typeof breadUnits !== 'number' ||
+    !Number.isFinite(breadUnits) ||
+    typeof insulin !== 'number' ||
+    !Number.isFinite(insulin)
+  ) {
+    console.error('Unexpected stats API response:', data);
+    return fallbackDayStats;
+  }
+
+  return { sugar, breadUnits, insulin };
 }
