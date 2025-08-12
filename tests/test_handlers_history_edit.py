@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from telegram import InlineKeyboardMarkup
 
 os.environ.setdefault("DB_PASSWORD", "test")
-from diabetes.db import Base, User, Entry
+from diabetes.services.db import Base, User, Entry
 
 
 class DummyMessage:
@@ -49,10 +49,10 @@ class DummyBot:
 async def test_history_view_buttons(monkeypatch):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import diabetes.openai_utils as openai_utils  # noqa: F401
-    import diabetes.reporting_handlers as reporting_handlers
-    import diabetes.common_handlers as common_handlers
-    import diabetes.dose_handlers as dose_handlers
+    import diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    import diabetes.handlers.reporting_handlers as reporting_handlers
+    import diabetes.handlers.common_handlers as common_handlers
+    import diabetes.handlers.dose_handlers as dose_handlers
 
     engine = create_engine(
         "sqlite:///:memory:",
@@ -124,9 +124,9 @@ async def test_history_view_buttons(monkeypatch):
 async def test_edit_flow(monkeypatch):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import diabetes.openai_utils as openai_utils  # noqa: F401
-    import diabetes.common_handlers as common_handlers
-    import diabetes.dose_handlers as dose_handlers
+    import diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    import diabetes.handlers.common_handlers as common_handlers
+    import diabetes.handlers.dose_handlers as dose_handlers
 
     engine = create_engine(
         "sqlite:///:memory:",

@@ -32,7 +32,7 @@ def test_init_db_recreates_engine_on_url_change(monkeypatch, attr, orig, new, ur
     monkeypatch.setenv("SKIP_DOTENV", "1")
     config = _reload("backend.config")
     config.DB_PASSWORD = "pwd"
-    db = _reload("diabetes.db")
+    db = _reload("diabetes.services.db")
 
     created = []
 

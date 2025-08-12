@@ -5,9 +5,9 @@ import pytest
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-import diabetes.openai_utils as openai_utils  # noqa: F401
-from diabetes import dose_handlers, profile_handlers
-from diabetes.db import Base, Entry, User
+import diabetes.utils.openai_utils as openai_utils  # noqa: F401
+from diabetes.handlers import dose_handlers, profile_handlers
+from diabetes.services.db import Base, Entry, User
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 

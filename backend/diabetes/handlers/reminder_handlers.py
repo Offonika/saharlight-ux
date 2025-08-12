@@ -9,7 +9,7 @@ import logging
 import json
 import re
 
-from diabetes.utils import parse_time_interval
+from diabetes.utils.helpers import parse_time_interval
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import (
@@ -20,7 +20,7 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest
 
-from diabetes.db import Reminder, ReminderLog, SessionLocal, User, run_db
+from diabetes.services.db import Reminder, ReminderLog, SessionLocal, User, run_db
 from .common_handlers import commit_session
 from backend.config import WEBAPP_URL
 
