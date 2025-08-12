@@ -12,7 +12,6 @@ export default defineConfig(async ({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        '@ux': path.resolve(__dirname, '../ux-kit/src'), // ← сюда будет синкаться дизайн
       },
     },
     server: {
