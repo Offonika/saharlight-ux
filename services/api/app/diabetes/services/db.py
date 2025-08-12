@@ -15,8 +15,10 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.engine import URL
+from sqlalchemy.exc import UnboundExecutionError
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 import asyncio
+import logging
 import threading
 from typing import Any, Callable, TypeVar
 
@@ -26,6 +28,7 @@ DB_HOST = config.DB_HOST
 DB_PORT = config.DB_PORT
 DB_NAME = config.DB_NAME
 DB_USER = config.DB_USER
+logger = logging.getLogger(__name__)
 
 
 # ────────────────── подключение к Postgres ──────────────────
@@ -58,8 +61,14 @@ async def run_db(
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
-    with sessionmaker() as _session:
-        bind = _session.get_bind()
+    try:
+        with sessionmaker() as _session:
+            bind = _session.get_bind()
+    except UnboundExecutionError as exc:
+        logger.error("Database engine is not initialized. Call init_db() to configure it.")
+        raise RuntimeError(
+            "Database engine is not initialized; run init_db() before calling run_db()."
+        ) from exc
 
     if bind.url.drivername == "sqlite" and bind.url.database == ":memory:":
         return wrapper()

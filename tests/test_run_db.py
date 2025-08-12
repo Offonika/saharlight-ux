@@ -1,6 +1,6 @@
-import asyncio
 from types import SimpleNamespace
 
+import asyncio
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -62,3 +62,14 @@ async def test_run_db_postgres(monkeypatch) -> None:
     result = await run_db(work, sessionmaker=dummy_sessionmaker)
     assert result == 42
     assert called is True
+
+
+@pytest.mark.asyncio
+async def test_run_db_without_engine() -> None:
+    Session = sessionmaker()
+
+    def work(session):
+        return 42
+
+    with pytest.raises(RuntimeError, match="init_db"):
+        await run_db(work, sessionmaker=Session)
