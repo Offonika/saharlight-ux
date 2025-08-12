@@ -83,7 +83,7 @@
 
 Все секреты и настройки задаются в файле `.env` (см. шаблон `infra/env/.env.example`).
 
-- обязательные значения: `TELEGRAM_TOKEN`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+- обязательные значения: `TELEGRAM_TOKEN` (токен бота), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 - дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `UVICORN_WORKERS`
 - при необходимости настройте прокси для OpenAI через переменные окружения
 

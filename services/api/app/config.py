@@ -21,7 +21,10 @@ class Settings(BaseSettings):
     Environment variables are loaded from ``infra/env/.env``.
     """
 
-    model_config = SettingsConfigDict(env_file="infra/env/.env")
+    model_config = SettingsConfigDict(
+        env_file="infra/env/.env",
+        extra="ignore",
+    )
 
     # General application settings
     app_name: str = "diabetes-bot"
@@ -49,6 +52,7 @@ class Settings(BaseSettings):
     openai_assistant_id: Optional[str] = Field(default=None, alias="OPENAI_ASSISTANT_ID")
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
+    telegram_token: Optional[str] = Field(default=None, alias="TELEGRAM_TOKEN")
 
     @field_validator("log_level", mode="before")
     @classmethod
@@ -79,4 +83,5 @@ OPENAI_API_KEY = settings.openai_api_key
 OPENAI_ASSISTANT_ID = settings.openai_assistant_id
 OPENAI_PROXY = settings.openai_proxy
 FONT_DIR = settings.font_dir
+TELEGRAM_TOKEN = settings.telegram_token
 
