@@ -18,11 +18,11 @@ except ModuleNotFoundError as exc:  # pragma: no cover - executed at import time
 class Settings(BaseSettings):
     """Runtime application configuration.
 
-    Environment variables are loaded from ``infra/env/.env``.
+    Environment variables are loaded from ``.env`` located in the project root.
     """
 
     model_config = SettingsConfigDict(
-        env_file="infra/env/.env",
+        env_file=".env",
         extra="ignore",
     )
 
