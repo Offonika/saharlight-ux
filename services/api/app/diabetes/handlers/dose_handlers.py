@@ -802,6 +802,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                     "[PHOTO][TYPING_ACTION] Unexpected error: %s",
                     exc,
                 )
+                raise
 
         await send_typing_action()
 
@@ -830,6 +831,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                         "[PHOTO][STATUS_EDIT] Unexpected error: %s",
                         exc,
                     )
+                    raise
             await send_typing_action()
 
         if run.status not in ("completed", "failed", "cancelled", "expired"):
@@ -849,6 +851,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                         "[PHOTO][TIMEOUT_EDIT] Unexpected error: %s",
                         exc,
                     )
+                    raise
             else:
                 await message.reply_text(
                     "⚠️ Время ожидания Vision истекло. Попробуйте позже."
@@ -872,6 +875,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                         "[PHOTO][RUN_FAILED_EDIT] Unexpected error: %s",
                         exc,
                     )
+                    raise
             else:
                 await message.reply_text("⚠️ Vision не смог обработать фото.")
             return ConversationHandler.END
@@ -928,6 +932,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                     "[PHOTO][DELETE_STATUS] Unexpected error: %s",
                     exc,
                 )
+                raise
         await message.reply_text(
             f"🍽️ На фото:\n{vision_text}\n\n"
             "Введите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина.",
