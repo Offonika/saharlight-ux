@@ -29,7 +29,6 @@ class DummyEngine:
 )
 
 def test_init_db_recreates_engine_on_url_change(monkeypatch, attr, orig, new, url_attr):
-    monkeypatch.setenv("SKIP_DOTENV", "1")
     config = _reload("services.api.app.config")
     config.DB_PASSWORD = "pwd"
     db = _reload("services.api.app.diabetes.services.db")
