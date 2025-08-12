@@ -21,7 +21,13 @@ from telegram.ext import (
     filters,
 )
 
-from services.api.app.diabetes.services.db import SessionLocal, User, Entry, Profile
+from services.api.app.diabetes.services.db import (
+    SessionLocal,
+    User,
+    Entry,
+    Profile,
+    run_db,
+)
 from services.api.app.diabetes.utils.functions import (
     extract_nutrition_info,
     calc_bolus,
@@ -349,14 +355,21 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "Введите дозу инсулина (ед.)."
                 )
             return
-        with SessionLocal() as session:
+        def db_save(session) -> bool:
             entry = Entry(**pending_entry)
             session.add(entry)
-            if not commit_session(session):
-                await update.message.reply_text(
-                    "⚠️ Не удалось сохранить запись."
-                )
-                return
+            return commit_session(session)
+
+        try:
+            ok = await run_db(db_save, sessionmaker=SessionLocal)
+        except AttributeError:
+            with SessionLocal() as session:
+                ok = db_save(session)
+        if not ok:
+            await update.message.reply_text(
+                "⚠️ Не удалось сохранить запись."
+            )
+            return
         sugar = pending_entry.get("sugar_before")
         if sugar is not None:
             await check_alert(update, context, sugar)
@@ -396,8 +409,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     carbs_g = xe * 12
                     entry["carbs_g"] = carbs_g
                 user_id = update.effective_user.id
-                with SessionLocal() as session:
-                    profile = session.get(Profile, user_id)
+                try:
+                    profile = await run_db(
+                        lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
+                    )
+                except AttributeError:
+                    with SessionLocal() as session:
+                        profile = session.get(Profile, user_id)
                 if not profile or None in (
                     profile.icr,
                     profile.cf,
@@ -525,23 +543,34 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "Доза инсулина не может быть отрицательной."
                 )
             return
-        with SessionLocal() as session:
+        def db_update(session):
             entry = session.get(Entry, context.user_data["edit_id"])
             if not entry:
-                await update.message.reply_text("Запись уже удалена.")
-                for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
-                    context.user_data.pop(key, None)
-                return
+                return "missing", None
             field_map = {"sugar": "sugar_before", "xe": "xe", "dose": "dose"}
             setattr(entry, field_map[field], value)
             entry.updated_at = datetime.datetime.now(datetime.timezone.utc)
             if not commit_session(session):
-                await update.message.reply_text("⚠️ Не удалось обновить запись.")
-                return
+                return "fail", None
             session.refresh(entry)
-            if field == "sugar":
-                await check_alert(update, context, value)
-            render_text = render_entry(entry)
+            return "ok", entry
+
+        try:
+            status, entry = await run_db(db_update, sessionmaker=SessionLocal)
+        except AttributeError:
+            with SessionLocal() as session:
+                status, entry = db_update(session)
+        if status == "missing":
+            await update.message.reply_text("Запись уже удалена.")
+            for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
+                context.user_data.pop(key, None)
+            return
+        if status == "fail" or entry is None:
+            await update.message.reply_text("⚠️ Не удалось обновить запись.")
+            return
+        if field == "sugar":
+            await check_alert(update, context, value)
+        render_text = render_entry(entry)
         edit_info = context.user_data.get("edit_entry", {})
         markup = InlineKeyboardMarkup(
             [
@@ -609,14 +638,21 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
         if not missing:
-            with SessionLocal() as session:
+            def db_save(session):
                 entry = Entry(**entry_data)
                 session.add(entry)
-                if not commit_session(session):
-                    await update.message.reply_text(
-                        "⚠️ Не удалось сохранить запись."
-                    )
-                    return
+                return commit_session(session)
+
+            try:
+                ok = await run_db(db_save, sessionmaker=SessionLocal)
+            except AttributeError:
+                with SessionLocal() as session:
+                    ok = db_save(session)
+            if not ok:
+                await update.message.reply_text(
+                    "⚠️ Не удалось сохранить запись."
+                )
+                return
             if sugar is not None:
                 await check_alert(update, context, sugar)
             await update.message.reply_text(
