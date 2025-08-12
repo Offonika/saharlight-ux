@@ -1,8 +1,13 @@
+from __future__ import annotations
+
 import datetime
-from types import SimpleNamespace
 import os
+from dataclasses import dataclass
+from typing import Any, cast
 
 import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -11,26 +16,49 @@ import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
 
 class DummyMessage:
-    def __init__(self, text):
+    def __init__(self, text: str) -> None:
         self.text = text
-        self.replies = []
+        self.replies: list[str] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: dict[str, Any]) -> None:
         self.replies.append(text)
 
 
+@dataclass
+class DummyUser:
+    id: int
+
+
+@dataclass
+class DummyUpdate:
+    message: DummyMessage
+    effective_user: DummyUser
+
+
+@dataclass
+class DummyContext:
+    user_data: dict[str, Any]
+
+
 @pytest.mark.asyncio
-async def test_entry_without_dose_has_no_unit(monkeypatch):
+async def test_entry_without_dose_has_no_unit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     pending_entry = {
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
         "xe": 2.0,
     }
-    context = SimpleNamespace(
-        user_data={"pending_entry": pending_entry, "pending_fields": ["sugar"]}
+    context = cast(
+        CallbackContext,
+        DummyContext(
+            user_data={"pending_entry": pending_entry, "pending_fields": ["sugar"]}
+        ),
     )
     message = DummyMessage("5.5")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    update = cast(
+        Update, DummyUpdate(message=message, effective_user=DummyUser(id=1))
+    )
 
     class DummySession:
         def __enter__(self):
@@ -60,16 +88,23 @@ async def test_entry_without_dose_has_no_unit(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_entry_without_sugar_has_placeholder(monkeypatch):
+async def test_entry_without_sugar_has_placeholder(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     pending_entry = {
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
-    context = SimpleNamespace(
-        user_data={"pending_entry": pending_entry, "pending_fields": ["dose"]}
+    context = cast(
+        CallbackContext,
+        DummyContext(
+            user_data={"pending_entry": pending_entry, "pending_fields": ["dose"]}
+        ),
     )
     message = DummyMessage("5")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    update = cast(
+        Update, DummyUpdate(message=message, effective_user=DummyUser(id=1))
+    )
 
     class DummySession:
         def __enter__(self):
