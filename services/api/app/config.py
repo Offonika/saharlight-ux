@@ -19,6 +19,13 @@ def _read_log_level() -> int:
 LOG_LEVEL = _read_log_level()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+_raw_maintainer_chat_id = os.getenv("MAINTAINER_CHAT_ID")
+MAINTAINER_CHAT_ID = None
+if _raw_maintainer_chat_id:
+    try:
+        MAINTAINER_CHAT_ID = int(_raw_maintainer_chat_id)
+    except ValueError:
+        logger.warning("Invalid MAINTAINER_CHAT_ID %r", _raw_maintainer_chat_id)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_ASSISTANT_ID = os.getenv("OPENAI_ASSISTANT_ID")
 OPENAI_PROXY = os.getenv("OPENAI_PROXY")
@@ -49,3 +56,16 @@ elif not _raw_webapp_url.startswith("https://"):
     )
 else:
     WEBAPP_URL = _raw_webapp_url
+
+# Base URL of the API service
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+
+# Number of worker processes for uvicorn when running the API server
+_raw_uvicorn_workers = os.getenv("UVICORN_WORKERS", "1")
+try:
+    UVICORN_WORKERS = int(_raw_uvicorn_workers)
+except ValueError:
+    logger.error(
+        "Invalid UVICORN_WORKERS %r; defaulting to 1", _raw_uvicorn_workers
+    )
+    UVICORN_WORKERS = 1
