@@ -1,4 +1,4 @@
-import { DefaultApi, Reminder } from '../../../../libs/ts-sdk';
+import { DefaultApi, Reminder } from '@sdk';
 
 const api = new DefaultApi();
 
