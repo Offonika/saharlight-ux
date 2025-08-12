@@ -4,6 +4,7 @@ from sqlalchemy import pool
 from alembic import context
 
 import os
+from pathlib import Path
 from urllib.parse import quote_plus
 
 try:
@@ -12,7 +13,7 @@ except ModuleNotFoundError:  # pragma: no cover
     def load_dotenv(*_args, **_kwargs):  # type: ignore
         return None
 else:
-    load_dotenv()
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 
 config = context.config
