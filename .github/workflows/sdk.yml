@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,24 +21,27 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Install OpenAPI Generator CLI
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install generators
         run: |
-          npm install -g @openapitools/openapi-generator-cli
+          npm install -g openapi-typescript
+          pip install openapi-python-client
       - name: Generate TypeScript SDK
         run: |
-          openapi-generator-cli generate -i libs/contracts/openapi.yaml -g typescript-axios -o libs/ts-sdk --additional-properties=supportsES6=true
+          rm -rf libs/ts-sdk
+          mkdir -p libs/ts-sdk
+          npx openapi-typescript libs/contracts/openapi.yaml --output libs/ts-sdk/index.ts
       - name: Generate Python SDK
         run: |
-          openapi-generator-cli generate -i libs/contracts/openapi.yaml -g python -o libs/py-sdk --package-name diabetes_sdk
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
+          rm -rf libs/py-sdk
+          openapi-python-client generate --path libs/contracts/openapi.yaml --output-path libs/py-sdk --overwrite
+      - name: Commit SDKs
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit-message: 'chore: regenerate SDKs'
-          title: 'chore: regenerate SDKs'
-          body: |
-            Regenerated SDKs from updated OpenAPI spec.
-          branch: sdk/regenerate
-          delete-branch: true
-          add-paths: |
+          commit_message: 'chore: regenerate SDKs'
+          file_pattern: |
             libs/ts-sdk/index.ts
             libs/py-sdk/**
