@@ -1,61 +1,62 @@
-"""Application configuration loaded from environment variables."""
+"""Application configuration via Pydantic settings."""
 
 from __future__ import annotations
 
 import logging
-import os
+from typing import Optional
 
-from dotenv import load_dotenv
-
-logger = logging.getLogger(__name__)
-
-# Always attempt to load variables from a local .env file.
-load_dotenv()
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-def _read_log_level() -> int:
-    """Return numeric log level from ``LOG_LEVEL``."""
-    raw = os.getenv("LOG_LEVEL", "")
-    if raw.lower() in {"1", "true", "debug"}:
-        return logging.DEBUG
-    return logging.INFO
+class Settings(BaseSettings):
+    """Runtime application configuration.
 
+    Environment variables are loaded from ``infra/env/.env``.
+    """
 
-# --- Logging -----------------------------------------------------------------
-LOG_LEVEL: int = _read_log_level()
-"""Logging verbosity level for the application."""
+    model_config = SettingsConfigDict(env_file="infra/env/.env")
 
+    # General application settings
+    app_name: str = "diabetes-bot"
+    debug: bool = False
 
-# --- Database -----------------------------------------------------------------
-DB_HOST: str = os.getenv("DB_HOST", "localhost")
-"""Hostname of the database server."""
-
-_raw_db_port = os.getenv("DB_PORT", "5432")
-try:
-    DB_PORT: int = int(_raw_db_port)
-except ValueError:  # pragma: no cover - logging only
-    logger.error("Invalid DB_PORT %r; defaulting to 5432", _raw_db_port)
-    DB_PORT = 5432
-"""Port number of the database server."""
-
-DB_NAME: str = os.getenv("DB_NAME", "diabetes_bot")
-"""Name of the database to use."""
-
-DB_USER: str = os.getenv("DB_USER", "diabetes_user")
-"""Database username."""
-
-DB_PASSWORD: str | None = os.getenv("DB_PASSWORD")
-"""Password for the database user."""
-
-
-# --- Runtime ------------------------------------------------------------------
-_raw_uvicorn_workers = os.getenv("UVICORN_WORKERS", "1")
-try:
-    UVICORN_WORKERS: int = int(_raw_uvicorn_workers)
-except ValueError:  # pragma: no cover - logging only
-    logger.error(
-        "Invalid UVICORN_WORKERS %r; defaulting to 1", _raw_uvicorn_workers
+    # Database configuration
+    database_url: str = Field(
+        default="postgresql://diabetes_user@localhost:5432/diabetes_bot",
+        alias="DATABASE_URL",
     )
-    UVICORN_WORKERS = 1
-"""Number of worker processes for Uvicorn."""
+    db_host: str = Field(default="localhost", alias="DB_HOST")
+    db_port: int = Field(default=5432, alias="DB_PORT")
+    db_name: str = Field(default="diabetes_bot", alias="DB_NAME")
+    db_user: str = Field(default="diabetes_user", alias="DB_USER")
+    db_password: Optional[str] = Field(default=None, alias="DB_PASSWORD")
+
+    # Logging and runtime
+    log_level: int = Field(default=logging.INFO, alias="LOG_LEVEL")
+    uvicorn_workers: int = Field(default=1, alias="UVICORN_WORKERS")
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def parse_log_level(cls, v: object) -> int:  # pragma: no cover - simple parsing
+        if isinstance(v, str) and v.lower() in {"1", "true", "debug"}:
+            return logging.DEBUG
+        try:
+            return int(v)  # type: ignore[return-value]
+        except (TypeError, ValueError):
+            return logging.INFO
+
+
+# Instantiate settings for external use
+settings = Settings()
+
+
+# Legacy module-level variables for backward compatibility
+LOG_LEVEL = settings.log_level
+DB_HOST = settings.db_host
+DB_PORT = settings.db_port
+DB_NAME = settings.db_name
+DB_USER = settings.db_user
+DB_PASSWORD = settings.db_password
+UVICORN_WORKERS = settings.uvicorn_workers
 
