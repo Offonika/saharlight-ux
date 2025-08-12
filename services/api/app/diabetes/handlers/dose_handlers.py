@@ -242,11 +242,13 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     xe_info = f", ХЕ: {xe}" if xe is not None else ""
     await update.message.reply_text(
-        f"💉 Расчёт завершён:\n"
-        f"• Углеводы: {carbs_g} г{xe_info}\n"
-        f"• Сахар: {sugar} ммоль/л\n"
-        f"• Ваша доза: {dose} Ед\n\n"
-        "Сохранить это в дневник?",
+        text=(
+            f"💉 Расчёт завершён:\n"
+            f"• Углеводы: {carbs_g} г{xe_info}\n"
+            f"• Сахар: {sugar} ммоль/л\n"
+            f"• Ваша доза: {dose} Ед\n\n"
+            "Сохранить это в дневник?"
+        ),
         reply_markup=confirm_keyboard(),
     )
     return ConversationHandler.END
@@ -437,11 +439,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 context.user_data["pending_entry"] = entry
                 xe_info = f", ХЕ: {xe}" if xe is not None else ""
                 await update.message.reply_text(
-                    f"💉 Расчёт завершён:\n"
-                    f"• Углеводы: {carbs_g} г{xe_info}\n"
-                    f"• Сахар: {sugar} ммоль/л\n"
-                    f"• Ваша доза: {dose} Ед\n\n"
-                    "Сохранить это в дневник?",
+                    text=(
+                        f"💉 Расчёт завершён:\n"
+                        f"• Углеводы: {carbs_g} г{xe_info}\n"
+                        f"• Сахар: {sugar} ммоль/л\n"
+                        f"• Ваша доза: {dose} Ед\n\n"
+                        "Сохранить это в дневник?"
+                    ),
                     reply_markup=confirm_keyboard(),
                 )
             else:
@@ -513,11 +517,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         xe_info = f", ХЕ: {xe}" if xe is not None else ""
 
         await update.message.reply_text(
-            f"💉 Расчёт завершён:\n"
-            f"• Углеводы: {carbs} г{xe_info}\n"
-            f"• Сахар: {sugar} ммоль/л\n"
-            f"• Ваша доза: {dose} Ед\n\n"
-            f"Сохранить это в дневник?",
+            text=(
+                f"💉 Расчёт завершён:\n"
+                f"• Углеводы: {carbs} г{xe_info}\n"
+                f"• Сахар: {sugar} ммоль/л\n"
+                f"• Ваша доза: {dose} Ед\n\n"
+                "Сохранить это в дневник?"
+            ),
             reply_markup=confirm_keyboard(),
         )
         return
@@ -747,7 +753,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
 
     reply = f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
-    await update.message.reply_text(reply, reply_markup=confirm_keyboard())
+    await update.message.reply_text(text=reply, reply_markup=confirm_keyboard())
     return ConversationHandler.END
 
 
