@@ -40,3 +40,6 @@ jobs:
             Regenerated SDKs from updated OpenAPI spec.
           branch: sdk/regenerate
           delete-branch: true
+          add-paths: |
+            libs/ts-sdk/index.ts
+            libs/py-sdk/**
