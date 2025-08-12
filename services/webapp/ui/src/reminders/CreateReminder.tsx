@@ -7,18 +7,26 @@ import { Reminder as ApiReminder } from "@sdk";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast } from "@/hooks/use-toast";
 
-type ReminderType = "sugar" | "insulin" | "meal";
+// Reminder type returned from API may contain legacy value "meds",
+// normalize it to "medicine" for UI usage
+type ReminderType = "sugar" | "insulin" | "meal" | "medicine" | "meds";
+type NormalizedReminderType = "sugar" | "insulin" | "meal" | "medicine";
 
-const TYPES: Record<ReminderType, { label: string; emoji: string }> = {
+const normalizeType = (t: ReminderType): NormalizedReminderType =>
+  t === "meds" ? "medicine" : t;
+
+const TYPES: Record<NormalizedReminderType, { label: string; emoji: string }> = {
   sugar: { label: "Сахар", emoji: "🩸" },
   insulin: { label: "Инсулин", emoji: "💉" },
-  meal: { label: "Приём пищи", emoji: "🍽️" }
+  meal: { label: "Приём пищи", emoji: "🍽️" },
+  medicine: { label: "Лекарства", emoji: "💊" }
 };
 
-const PRESETS: Record<ReminderType, number[]> = {
+const PRESETS: Record<NormalizedReminderType, number[]> = {
   sugar: [15, 30, 60],
   insulin: [120, 180, 240],
-  meal: [180, 240, 360]
+  meal: [180, 240, 360],
+  medicine: [240, 480, 720]
 };
 
 function isValidTime(time: string): boolean {
@@ -35,7 +43,7 @@ function isValidTime(time: string): boolean {
 
 interface Reminder {
   id: number;
-  type: ReminderType;
+  type: NormalizedReminderType;
   title: string;
   time: string;
   interval?: number;
@@ -51,7 +59,9 @@ export default function CreateReminder() {
     (location.state as Reminder | undefined) ?? undefined,
   );
 
-  const [type, setType] = useState<ReminderType>(editing?.type ?? "sugar");
+  const [type, setType] = useState<NormalizedReminderType>(
+    editing?.type ?? "sugar",
+  );
   const [title, setTitle] = useState(editing?.title ?? "");
   const [time, setTime] = useState(editing?.time ?? "");
   // interval is stored in minutes for UI, API expects hours
@@ -65,11 +75,11 @@ export default function CreateReminder() {
         try {
           const data = await getReminder(user.id, Number(params.id));
           if (data) {
-            const nt = data.type as ReminderType;
+            const nt = normalizeType(data.type as ReminderType);
             const loaded: Reminder = {
               id: data.id ?? Number(params.id),
               type: nt,
-              title: TYPES[nt].label,
+              title: data.title ?? TYPES[nt].label,
               time: data.time || "",
               interval: data.intervalHours != null ? data.intervalHours * 60 : undefined,
             };
@@ -200,7 +210,7 @@ export default function CreateReminder() {
 
       <Sheet open={typeOpen} onClose={() => setTypeOpen(false)}>
         <div className="p-4 grid grid-cols-3 gap-4">
-          {(Object.keys(TYPES) as ReminderType[]).map((key) => (
+          {(Object.keys(TYPES) as NormalizedReminderType[]).map((key) => (
             <button
               key={key}
               type="button"
