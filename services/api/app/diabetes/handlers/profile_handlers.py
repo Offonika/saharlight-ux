@@ -10,16 +10,32 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
+import json
+import os
+from zoneinfo import ZoneInfo
+
+from diabetes_sdk.api.default_api import DefaultApi
+from diabetes_sdk.api_client import ApiClient
+from diabetes_sdk.configuration import Configuration
+from diabetes_sdk.exceptions import ApiException
+from diabetes_sdk.models.profile import Profile as ProfileModel
 
 from services.api.app.diabetes.services.db import SessionLocal, Profile, Alert, Reminder, User
+
 from services.api.app.diabetes.handlers.alert_handlers import evaluate_sugar
-from services.api.app.diabetes.utils.ui import menu_keyboard, back_keyboard, build_timezone_webapp_button
+from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
+    CallbackQueryNoWarnHandler,
+)
+from services.api.app.diabetes.utils.ui import (
+    build_timezone_webapp_button,
+    back_keyboard,
+    menu_keyboard,
+)
 from services.api.app.config import WEBAPP_URL
 from .common_handlers import commit_session
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
-from zoneinfo import ZoneInfo
-import json
+
+api = DefaultApi(ApiClient(Configuration(host=os.getenv("API_URL", "http://localhost:8000"))))
 
 
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)
@@ -120,19 +136,6 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return ConversationHandler.END
 
-    if (
-        icr <= 0
-        or cf <= 0
-        or target <= 0
-        or low <= 0
-        or high <= 0
-        or low >= high
-    ):
-        await update.message.reply_text(
-            "❗ Все значения должны быть больше 0, низкий порог < высокий. Справка: /profile help"
-        )
-        return ConversationHandler.END
-
     warning_msg = ""
     if icr > 8 or cf < 3:
         warning_msg = (
@@ -145,20 +148,19 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
 
     user_id = update.effective_user.id
-    with SessionLocal() as session:
-        prof = session.get(Profile, user_id)
-        if not prof:
-            prof = Profile(telegram_id=user_id)
-            session.add(prof)
-
-        prof.icr = icr
-        prof.cf = cf
-        prof.target_bg = target
-        prof.low_threshold = low
-        prof.high_threshold = high
-        if not commit_session(session):
-            await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
-            return ConversationHandler.END  # end conversation on failure
+    profile = ProfileModel(
+        telegram_id=user_id,
+        icr=icr,
+        cf=cf,
+        target=target,
+        low=low,
+        high=high,
+    )
+    try:
+        api.profiles_post(profile)
+    except ApiException:
+        await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
+        return ConversationHandler.END
 
     await update.message.reply_text(
         f"✅ Профиль обновлён:\n"
@@ -176,9 +178,10 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display current patient profile."""
     user_id = update.effective_user.id
-    with SessionLocal() as session:
-        profile = session.get(Profile, user_id)
-        user = session.get(User, user_id)
+    try:
+        profile = api.profiles_get(telegram_id=user_id)
+    except ApiException:
+        profile = None
 
     if not profile:
         await update.message.reply_text(
@@ -191,15 +194,13 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         return
 
-    tz = getattr(user, "timezone", "UTC") if user else "UTC"
     msg = (
         "📄 Ваш профиль:\n"
-        f"• ИКХ: {profile.icr} г/ед.\n"  # Инсулин-карб коэффициент
+        f"• ИКХ: {profile.icr} г/ед.\n"
         f"• КЧ: {profile.cf} ммоль/л\n"
-        f"• Целевой сахар: {profile.target_bg} ммоль/л\n"
-        f"• Низкий порог: {profile.low_threshold} ммоль/л\n"
-        f"• Высокий порог: {profile.high_threshold} ммоль/л\n"
-        f"• Часовой пояс: {tz}"
+        f"• Целевой сахар: {profile.target} ммоль/л\n"
+        f"• Низкий порог: {profile.low} ммоль/л\n"
+        f"• Высокий порог: {profile.high} ммоль/л"
     )
     rows = [
         [InlineKeyboardButton("✏️ Изменить", callback_data="profile_edit")],
@@ -256,29 +257,23 @@ async def profile_webapp_save(
             error_msg, reply_markup=menu_keyboard
         )
         return
-    if icr <= 0 or cf <= 0 or target <= 0 or low <= 0 or high <= 0 or low >= high:
+    user_id = update.effective_user.id
+    profile = ProfileModel(
+        telegram_id=user_id,
+        icr=icr,
+        cf=cf,
+        target=target,
+        low=low,
+        high=high,
+    )
+    try:
+        api.profiles_post(profile)
+    except ApiException:
         await update.effective_message.reply_text(
-            "❗ Все значения должны быть больше 0, низкий порог < высокий.",
+            "⚠️ Не удалось сохранить профиль.",
             reply_markup=menu_keyboard,
         )
         return
-    user_id = update.effective_user.id
-    with SessionLocal() as session:
-        prof = session.get(Profile, user_id)
-        if not prof:
-            prof = Profile(telegram_id=user_id)
-            session.add(prof)
-        prof.icr = icr
-        prof.cf = cf
-        prof.target_bg = target
-        prof.low_threshold = low
-        prof.high_threshold = high
-        if not commit_session(session):
-            await update.effective_message.reply_text(
-                "⚠️ Не удалось сохранить профиль.",
-                reply_markup=menu_keyboard,
-            )
-            return
     await update.effective_message.reply_text(
         "✅ Профиль обновлён:\n"
         f"• ИКХ: {icr} г/ед.\n"
