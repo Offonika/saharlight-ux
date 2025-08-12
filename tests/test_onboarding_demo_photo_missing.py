@@ -60,7 +60,7 @@ async def test_onboarding_demo_photo_missing(monkeypatch, caplog):
     orig_open = builtins.open
 
     def fake_open(path, *args, **kwargs):
-        if path == "assets/demo.jpg":
+        if path == "docs/assets/demo.jpg":
             raise OSError("missing")
         return orig_open(path, *args, **kwargs)
 

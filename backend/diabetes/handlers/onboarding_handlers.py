@@ -227,7 +227,7 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
         [[InlineKeyboardButton("Далее", callback_data="onb_next")]]
     )
     try:
-        with open("assets/demo.jpg", "rb") as photo:
+        with open("docs/assets/demo.jpg", "rb") as photo:
             await update.message.reply_photo(
                 photo=photo,
                 caption="2/3. Вот пример распознавания еды.",
