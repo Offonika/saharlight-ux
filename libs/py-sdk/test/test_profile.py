@@ -40,7 +40,8 @@ class TestProfile(unittest.TestCase):
                 cf = 1.337,
                 target = 1.337,
                 low = 1.337,
-                high = 1.337
+                high = 1.337,
+                org_id = 56
             )
         else:
             return Profile(

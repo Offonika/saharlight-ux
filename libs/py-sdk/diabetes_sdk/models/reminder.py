@@ -31,9 +31,8 @@ class Reminder(BaseModel):
     type: StrictStr
     time: Optional[StrictStr] = None
     interval_hours: Optional[StrictInt] = None
-    minutes_after: Optional[StrictInt] = None
     is_enabled: Optional[StrictBool] = None
-    __properties: ClassVar[List[str]] = ["telegram_id", "id", "type", "time", "interval_hours", "minutes_after", "is_enabled"]
+    __properties: ClassVar[List[str]] = ["telegram_id", "id", "type", "time", "interval_hours", "is_enabled"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -74,6 +73,11 @@ class Reminder(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if interval_hours (nullable) is None
+        # and model_fields_set contains the field
+        if self.interval_hours is None and "interval_hours" in self.model_fields_set:
+            _dict['interval_hours'] = None
+
         return _dict
 
     @classmethod
@@ -91,7 +95,6 @@ class Reminder(BaseModel):
             "type": obj.get("type"),
             "time": obj.get("time"),
             "interval_hours": obj.get("interval_hours"),
-            "minutes_after": obj.get("minutes_after"),
             "is_enabled": obj.get("is_enabled")
         })
         return _obj

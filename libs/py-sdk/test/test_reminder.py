@@ -40,7 +40,6 @@ class TestReminder(unittest.TestCase):
                 type = '',
                 time = '',
                 interval_hours = 56,
-                minutes_after = 56,
                 is_enabled = True
             )
         else:

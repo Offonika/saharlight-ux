@@ -45,9 +45,9 @@ def patch_services(monkeypatch: pytest.MonkeyPatch) -> None:
     async def save_profile(data):
         return None
 
-    monkeypatch.setattr(server, "list_reminders", list_reminders)
-    monkeypatch.setattr(server, "save_reminder", save_reminder)
-    monkeypatch.setattr(server, "save_profile", save_profile)
+    monkeypatch.setattr(server.legacy, "list_reminders", list_reminders)
+    monkeypatch.setattr(server.legacy, "save_reminder", save_reminder)
+    monkeypatch.setattr(server.legacy, "save_profile", save_profile)
 
 
 def test_root_redirects_to_ui() -> None:

@@ -22,11 +22,11 @@ from pydantic import StrictStr, Field
 from typing import Union, List, Set, Optional, Dict
 from typing_extensions import Literal, Self
 
-REMINDERSGET200RESPONSE_ONE_OF_SCHEMAS = ["List[Reminder]", "Reminder"]
+APIREMINDERSGET200RESPONSE_ONE_OF_SCHEMAS = ["List[Reminder]", "Reminder"]
 
-class RemindersGet200Response(BaseModel):
+class ApiRemindersGet200Response(BaseModel):
     """
-    RemindersGet200Response
+    ApiRemindersGet200Response
     """
     # data type: Reminder
     oneof_schema_1_validator: Optional[Reminder] = None
@@ -53,7 +53,7 @@ class RemindersGet200Response(BaseModel):
 
     @field_validator('actual_instance')
     def actual_instance_must_validate_oneof(cls, v):
-        instance = RemindersGet200Response.model_construct()
+        instance = ApiRemindersGet200Response.model_construct()
         error_messages = []
         match = 0
         # validate data type: Reminder
@@ -69,10 +69,10 @@ class RemindersGet200Response(BaseModel):
             error_messages.append(str(e))
         if match > 1:
             # more than 1 match
-            raise ValueError("Multiple matches found when setting `actual_instance` in RemindersGet200Response with oneOf schemas: List[Reminder], Reminder. Details: " + ", ".join(error_messages))
+            raise ValueError("Multiple matches found when setting `actual_instance` in ApiRemindersGet200Response with oneOf schemas: List[Reminder], Reminder. Details: " + ", ".join(error_messages))
         elif match == 0:
             # no match
-            raise ValueError("No match found when setting `actual_instance` in RemindersGet200Response with oneOf schemas: List[Reminder], Reminder. Details: " + ", ".join(error_messages))
+            raise ValueError("No match found when setting `actual_instance` in ApiRemindersGet200Response with oneOf schemas: List[Reminder], Reminder. Details: " + ", ".join(error_messages))
         else:
             return v
 
@@ -105,10 +105,10 @@ class RemindersGet200Response(BaseModel):
 
         if match > 1:
             # more than 1 match
-            raise ValueError("Multiple matches found when deserializing the JSON string into RemindersGet200Response with oneOf schemas: List[Reminder], Reminder. Details: " + ", ".join(error_messages))
+            raise ValueError("Multiple matches found when deserializing the JSON string into ApiRemindersGet200Response with oneOf schemas: List[Reminder], Reminder. Details: " + ", ".join(error_messages))
         elif match == 0:
             # no match
-            raise ValueError("No match found when deserializing the JSON string into RemindersGet200Response with oneOf schemas: List[Reminder], Reminder. Details: " + ", ".join(error_messages))
+            raise ValueError("No match found when deserializing the JSON string into ApiRemindersGet200Response with oneOf schemas: List[Reminder], Reminder. Details: " + ", ".join(error_messages))
         else:
             return instance
 

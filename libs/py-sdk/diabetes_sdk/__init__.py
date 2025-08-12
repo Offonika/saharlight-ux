@@ -28,14 +28,10 @@ __all__ = [
     "ApiKeyError",
     "ApiAttributeError",
     "ApiException",
-    "AuthRequest",
-    "AuthResponse",
-    "EntriesGet200Response",
-    "EntriesPost200Response",
-    "Entry",
+    "ApiRemindersGet200Response",
+    "ApiRemindersPost200Response",
     "Profile",
     "Reminder",
-    "RemindersGet200Response",
     "Status",
     "Timezone",
 ]
@@ -55,13 +51,9 @@ from diabetes_sdk.exceptions import ApiAttributeError as ApiAttributeError
 from diabetes_sdk.exceptions import ApiException as ApiException
 
 # import models into sdk package
-from diabetes_sdk.models.auth_request import AuthRequest as AuthRequest
-from diabetes_sdk.models.auth_response import AuthResponse as AuthResponse
-from diabetes_sdk.models.entries_get200_response import EntriesGet200Response as EntriesGet200Response
-from diabetes_sdk.models.entries_post200_response import EntriesPost200Response as EntriesPost200Response
-from diabetes_sdk.models.entry import Entry as Entry
+from diabetes_sdk.models.api_reminders_get200_response import ApiRemindersGet200Response as ApiRemindersGet200Response
+from diabetes_sdk.models.api_reminders_post200_response import ApiRemindersPost200Response as ApiRemindersPost200Response
 from diabetes_sdk.models.profile import Profile as Profile
 from diabetes_sdk.models.reminder import Reminder as Reminder
-from diabetes_sdk.models.reminders_get200_response import RemindersGet200Response as RemindersGet200Response
 from diabetes_sdk.models.status import Status as Status
 from diabetes_sdk.models.timezone import Timezone as Timezone

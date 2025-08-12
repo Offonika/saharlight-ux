@@ -2,32 +2,35 @@ import logging
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from .middleware.auth import AuthMiddleware, require_role
-from .services.audit import log_patient_access
-from .schemas.profile import ProfileSchema
-from .schemas.reminders import ReminderSchema
+from .middleware.auth import AuthMiddleware
 from .schemas.timezone import TimezoneSchema
-from .services.profile import get_profile, save_profile, set_timezone
-from .services.reminders import list_reminders, save_reminder
+from .services.profile import set_timezone
 from .services import init_db
 from .config import UVICORN_WORKERS
+from . import legacy
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 app.router.redirect_slashes = True
 app.add_middleware(AuthMiddleware)
+app.include_router(legacy.router)
 
 BASE_DIR = Path(__file__).resolve().parent.parent / "webapp"
 UI_DIR = (BASE_DIR / "ui" / "dist").resolve()
 PUBLIC_DIR = (BASE_DIR / "public").resolve()
 
 
-@app.post("/api/timezone")
+@app.get("/health", include_in_schema=False)
+async def health() -> dict:
+    return {"status": "ok"}
+
+
+@app.post("/timezone")
 async def api_timezone(data: TimezoneSchema) -> dict:
     try:
         ZoneInfo(data.tz)
@@ -35,71 +38,6 @@ async def api_timezone(data: TimezoneSchema) -> dict:
         raise HTTPException(status_code=400, detail="invalid timezone") from exc
     await set_timezone(data.telegram_id, data.tz)
     return {"status": "ok"}
-
-
-@app.post("/profiles")
-async def profiles_post(data: ProfileSchema) -> dict:
-    await save_profile(data)
-    return {"status": "ok"}
-
-
-@app.get("/profiles")
-async def profiles_get(telegram_id: int) -> ProfileSchema:
-    profile = await get_profile(telegram_id)
-    if profile is None:
-        raise HTTPException(status_code=404, detail="profile not found")
-    return ProfileSchema(
-        telegram_id=profile.telegram_id,
-        icr=profile.icr,
-        cf=profile.cf,
-        target=profile.target_bg,
-        low=profile.low_threshold,
-        high=profile.high_threshold,
-        org_id=profile.org_id,
-    )
-
-
-@app.get("/api/reminders")
-async def api_reminders(
-    telegram_id: int,
-    request: Request,
-    id: int | None = None,
-    _: None = Depends(require_role("patient", "clinician", "org_admin", "superadmin")),
-):
-    log_patient_access(getattr(request.state, "user_id", None), telegram_id)
-    rems = await list_reminders(telegram_id)
-    if id is None:
-        return [
-            {
-                "id": r.id,
-                "type": r.type,
-                "title": r.type,
-                "time": r.time,
-                "active": r.is_enabled,
-                "interval": r.interval_hours,
-            }
-            for r in rems
-        ]
-    for r in rems:
-        if r.id == id:
-            return {
-                "id": r.id,
-                "type": r.type,
-                "title": r.type,
-                "time": r.time,
-                "active": r.is_enabled,
-                "interval": r.interval_hours,
-            }
-    return {}
-
-
-@app.post("/api/reminders")
-async def api_reminders_post(
-    data: ReminderSchema,
-    _: None = Depends(require_role("patient", "clinician", "org_admin", "superadmin")),
-) -> dict:
-    rid = await save_reminder(data)
-    return {"status": "ok", "id": rid}
 
 
 # ---------- UI serving ----------

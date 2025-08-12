@@ -14,10 +14,10 @@
 
 import unittest
 
-from diabetes_sdk.models.entry import Entry
+from diabetes_sdk.models.api_reminders_get200_response import ApiRemindersGet200Response
 
-class TestEntry(unittest.TestCase):
-    """Entry unit test stubs"""
+class TestApiRemindersGet200Response(unittest.TestCase):
+    """ApiRemindersGet200Response unit test stubs"""
 
     def setUp(self):
         pass
@@ -25,35 +25,32 @@ class TestEntry(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def make_instance(self, include_optional) -> Entry:
-        """Test Entry
+    def make_instance(self, include_optional) -> ApiRemindersGet200Response:
+        """Test ApiRemindersGet200Response
             include_optional is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # uncomment below to create an instance of `Entry`
+        # uncomment below to create an instance of `ApiRemindersGet200Response`
         """
-        model = Entry()
+        model = ApiRemindersGet200Response()
         if include_optional:
-            return Entry(
+            return ApiRemindersGet200Response(
                 telegram_id = 56,
                 id = 56,
-                event_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
-                photo_path = '',
-                carbs_g = 1.337,
-                xe = 1.337,
-                sugar_before = 1.337,
-                dose = 1.337,
-                gpt_summary = ''
+                type = '',
+                time = '',
+                interval_hours = 56,
+                is_enabled = True
             )
         else:
-            return Entry(
+            return ApiRemindersGet200Response(
                 telegram_id = 56,
-                event_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
+                type = '',
         )
         """
 
-    def testEntry(self):
-        """Test Entry"""
+    def testApiRemindersGet200Response(self):
+        """Test ApiRemindersGet200Response"""
         # inst_req_only = self.make_instance(include_optional=False)
         # inst_req_and_optional = self.make_instance(include_optional=True)
 
