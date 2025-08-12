@@ -147,7 +147,7 @@ export default function Reminders() {
           return {
             id: r.id ?? 0,
             type: nt,
-            title: TYPE_LABEL[nt],
+            title: r.title ?? TYPE_LABEL[nt],
             time: r.time || '',
             active: r.isEnabled ?? false,
             interval: r.intervalHours != null ? r.intervalHours * 60 : undefined,
