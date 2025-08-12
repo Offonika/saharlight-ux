@@ -86,8 +86,8 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
                 getattr(user, "telegram_id", None),
                 tzname,
             )
-        except Exception:
-            logger.exception("Unexpected error loading timezone %s", tzname)
+        except (OSError, ValueError) as exc:
+            logger.exception("Unexpected error loading timezone %s: %s", tzname, exc)
     try:
         now = dt_cls.now(tz)
     except TypeError:
@@ -236,8 +236,8 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
                 getattr(user, "telegram_id", None),
                 tzname,
             )
-        except Exception:
-            logger.exception("Unexpected error loading timezone %s", tzname)
+        except (OSError, ValueError) as exc:
+            logger.exception("Unexpected error loading timezone %s: %s", tzname, exc)
 
     if rem.type in {"sugar", "long_insulin", "medicine"}:
         if rem.time:

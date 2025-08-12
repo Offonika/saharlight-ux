@@ -35,6 +35,9 @@ from services.api.app.diabetes.utils.ui import menu_keyboard, build_timezone_web
 from .common_handlers import commit_session
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from openai import OpenAIError
+
+
 logger = logging.getLogger(__name__)
 
 DEMO_PHOTO_PATH = (
@@ -63,8 +66,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
             try:
                 thread_id = create_thread()
-            except Exception:  # pragma: no cover - network errors
-                logger.exception("Failed to create thread for user %s", user_id)
+            except OpenAIError as exc:  # pragma: no cover - network errors
+                logger.exception("Failed to create thread for user %s: %s", user_id, exc)
                 await update.message.reply_text(
                     "⚠️ Не удалось инициализировать профиль. Попробуйте позже."
                 )
@@ -214,6 +217,14 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
     try:
         ZoneInfo(tz_name)
     except ZoneInfoNotFoundError:
+
+        logger.warning("Invalid timezone provided by user %s: %s", update.effective_user.id, tz_name)
+        buttons = []
+        tz_button = build_timezone_webapp_button()
+        if tz_button:
+            buttons.append(tz_button)
+        buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
+
         await update.message.reply_text(
             "Введите корректный часовой пояс, например Europe/Moscow.",
             reply_markup=InlineKeyboardMarkup([buttons]),
