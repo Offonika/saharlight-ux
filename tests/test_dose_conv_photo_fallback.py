@@ -1,4 +1,5 @@
 import os
+from re import Pattern
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -10,6 +11,16 @@ os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 from services.api.app.diabetes.handlers import dose_handlers
+
+
+def _find_handler(fallbacks, regex: str) -> MessageHandler:
+    for h in fallbacks:
+        if isinstance(h, MessageHandler):
+            filt = getattr(h, "filters", None)
+            pattern = getattr(filt, "pattern", None)
+            if isinstance(pattern, Pattern) and pattern.pattern == regex:
+                return h
+    raise LookupError(regex)
 
 
 class DummyMessage:
@@ -25,13 +36,7 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 async def test_photo_button_cancels_and_prompts_photo() -> None:
-    handler = next(
-        h
-        for h in dose_handlers.dose_conv.fallbacks
-        if isinstance(h, MessageHandler)
-        and getattr(getattr(h, "filters", None), "pattern", None).pattern
-        == "^📷 Фото еды$"
-    )
+    handler = _find_handler(dose_handlers.dose_conv.fallbacks, "^📷 Фото еды$")
     message = DummyMessage("📷 Фото еды")
     update = cast(
         Update,
