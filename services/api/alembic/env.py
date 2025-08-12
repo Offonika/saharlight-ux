@@ -5,12 +5,10 @@ from alembic import context
 
 import os
 import sys
-from dotenv import load_dotenv
-from services.api.app.diabetes.services.db import Base
-from services.api.app.config import DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
 
-# Загрузка переменных окружения
-load_dotenv(".env")
+from services.api.app.diabetes.services.db import Base
+from services.api.app.config import Settings
+
 sys.path.append(os.getcwd())
 
 # Alembic Config
@@ -18,9 +16,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+settings = Settings()
 target_metadata = Base.metadata
 
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+DATABASE_URL = settings.database_url
 
 
 def run_migrations_offline() -> None:
