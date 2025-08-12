@@ -1,9 +1,11 @@
 import datetime
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
 
 
 class DummyMessage:
@@ -28,7 +30,9 @@ class DummyQuery:
 
 
 @pytest.mark.asyncio
-async def test_report_request_and_custom_flow(monkeypatch) -> None:
+async def test_report_request_and_custom_flow(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -39,7 +43,9 @@ async def test_report_request_and_custom_flow(monkeypatch) -> None:
     update = SimpleNamespace(
         message=message, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(user_data={})
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+    )
 
     await reporting_handlers.report_request(update, context)
     assert "awaiting_report_date" not in context.user_data
@@ -67,9 +73,12 @@ async def test_report_request_and_custom_flow(monkeypatch) -> None:
 
     monkeypatch.setattr(dose_handlers, "send_report", dummy_send_report)
 
-    update2 = SimpleNamespace(
-        message=DummyMessage(text="2024-01-01"),
-        effective_user=SimpleNamespace(id=1),
+    update2 = cast(
+        Update,
+        SimpleNamespace(
+            message=DummyMessage(text="2024-01-01"),
+            effective_user=SimpleNamespace(id=1),
+        ),
     )
     await dose_handlers.freeform_handler(update2, context)
 
@@ -78,7 +87,9 @@ async def test_report_request_and_custom_flow(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_report_period_callback_week(monkeypatch) -> None:
+async def test_report_period_callback_week(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401

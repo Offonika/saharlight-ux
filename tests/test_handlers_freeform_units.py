@@ -1,6 +1,9 @@
 import pytest
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
+
+from telegram import Update
+from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
@@ -17,8 +20,13 @@ class DummyMessage:
 @pytest.mark.asyncio
 async def test_freeform_handler_warns_on_sugar_unit_mix() -> None:
     message = DummyMessage("сахар 5 XE")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+    )
 
     await handlers.freeform_handler(update, context)
 
@@ -30,8 +38,13 @@ async def test_freeform_handler_warns_on_sugar_unit_mix() -> None:
 @pytest.mark.asyncio
 async def test_freeform_handler_warns_on_dose_unit_mix() -> None:
     message = DummyMessage("доза 7 ммоль")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+    )
 
     await handlers.freeform_handler(update, context)
 
@@ -41,10 +54,17 @@ async def test_freeform_handler_warns_on_dose_unit_mix() -> None:
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_guidance_on_valueerror(monkeypatch) -> None:
+async def test_freeform_handler_guidance_on_valueerror(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     message = DummyMessage("whatever")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+    )
 
     def fake_smart_input(_):
         raise ValueError("boom")

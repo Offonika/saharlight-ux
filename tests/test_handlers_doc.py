@@ -1,9 +1,10 @@
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
-from telegram import Message
+from telegram import Message, Update
+from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
@@ -99,7 +100,9 @@ async def test_photo_handler_handles_typeerror() -> None:
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_preserves_file(monkeypatch, tmp_path) -> None:
+async def test_photo_handler_preserves_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     monkeypatch.chdir(tmp_path)
 
     class DummyPhoto:
@@ -164,7 +167,9 @@ async def test_photo_handler_preserves_file(monkeypatch, tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_photo_then_freeform_calculates_dose(monkeypatch, tmp_path) -> None:
+async def test_photo_then_freeform_calculates_dose(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:
     """photo_handler + freeform_handler produce dose in reply and context."""
 
     class DummyPhoto:
@@ -207,7 +212,10 @@ async def test_photo_then_freeform_calculates_dose(monkeypatch, tmp_path) -> Non
     update_photo = SimpleNamespace(
         message=photo_msg, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(bot=dummy_bot, user_data={"thread_id": "tid"})
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(bot=dummy_bot, user_data={"thread_id": "tid"}),
+    )
 
     await handlers.photo_handler(update_photo, context)
 
@@ -224,8 +232,9 @@ async def test_photo_then_freeform_calculates_dose(monkeypatch, tmp_path) -> Non
     handlers.SessionLocal = lambda: DummySession()
 
     sugar_msg = DummyMessage(text="5")
-    update_sugar = SimpleNamespace(
-        message=sugar_msg, effective_user=SimpleNamespace(id=1)
+    update_sugar = cast(
+        Update,
+        SimpleNamespace(message=sugar_msg, effective_user=SimpleNamespace(id=1)),
     )
 
     await handlers.freeform_handler(update_sugar, context)

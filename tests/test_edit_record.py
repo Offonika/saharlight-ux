@@ -1,9 +1,11 @@
 import os
 import datetime
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -49,7 +51,7 @@ class DummyBot:
 
 
 @pytest.mark.asyncio
-async def test_edit_dose(monkeypatch) -> None:
+async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -75,8 +77,13 @@ async def test_edit_dose(monkeypatch) -> None:
 
     entry_message = DummyMessage(chat_id=42, message_id=24)
     query = DummyQuery(f"edit:{entry_id}", message=entry_message)
-    update_cb = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={}, bot=DummyBot())
+    update_cb = SimpleNamespace(
+        callback_query=query, effective_user=SimpleNamespace(id=1)
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={}, bot=DummyBot()),
+    )
 
     await common_handlers.callback_router(update_cb, context)
 
@@ -86,7 +93,9 @@ async def test_edit_dose(monkeypatch) -> None:
     assert context.user_data["edit_field"] == "dose"
 
     reply_msg = DummyMessage(text="5")
-    update_msg = SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1))
+    update_msg = cast(
+        Update, SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1))
+    )
     await dose_handlers.freeform_handler(update_msg, context)
 
     with TestSession() as session:
