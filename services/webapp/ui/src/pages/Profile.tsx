@@ -2,13 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Save } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
-import { useTelegram } from '@/hooks/useTelegram';
 import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { showMainButton, hideMainButton } = useTelegram();
   const { toast } = useToast();
 
   const [profile, setProfile] = useState({
