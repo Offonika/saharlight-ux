@@ -8,3 +8,4 @@ class ProfileSchema(BaseModel):
     target: float
     low: float
     high: float
+    org_id: int | None = None

@@ -23,6 +23,8 @@ async def save_profile(data: ProfileSchema) -> None:
         if profile is None:
             profile = Profile(telegram_id=data.telegram_id)
             session.add(profile)
+        if data.org_id is not None:
+            profile.org_id = data.org_id
         profile.icr = data.icr
         profile.cf = data.cf
         profile.target_bg = data.target
