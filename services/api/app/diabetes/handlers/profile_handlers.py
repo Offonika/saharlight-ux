@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import logging
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     CommandHandler,
@@ -10,9 +14,6 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-import json
-import logging
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 try:
     from diabetes_sdk.api.default_api import DefaultApi
@@ -20,13 +21,11 @@ try:
     from diabetes_sdk.configuration import Configuration
     from diabetes_sdk.exceptions import ApiException
     from diabetes_sdk.models.profile import Profile as ProfileModel
-except ImportError as exc:
+except ImportError:
+    DefaultApi = ApiClient = Configuration = ApiException = ProfileModel = None  # type: ignore[assignment]
     logging.getLogger(__name__).warning(
         "diabetes_sdk is required but not installed. Install it with 'pip install -r requirements.txt'."
     )
-    raise ImportError(
-        "diabetes_sdk is required but not installed. Install it with 'pip install -r requirements.txt'."
-    ) from exc
 
 from services.api.app.diabetes.services.db import SessionLocal, Profile, Alert, Reminder, User
 
@@ -45,7 +44,11 @@ import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 logger = logging.getLogger(__name__)
 
-api = DefaultApi(ApiClient(Configuration(host=API_URL)))
+api = (
+    DefaultApi(ApiClient(Configuration(host=API_URL)))
+    if DefaultApi and ApiClient and Configuration
+    else None
+)
 
 
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)
@@ -60,6 +63,13 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     """
 
     args = context.args
+
+    if not (api and ProfileModel and ApiException):
+        await update.message.reply_text(
+            "⚠️ Профиль недоступен. Установите diabetes_sdk.",
+            reply_markup=menu_keyboard,
+        )
+        return ConversationHandler.END
 
     # Ensure no pending sugar logging conversation captures profile input
     from .dose_handlers import sugar_conv
@@ -187,6 +197,12 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display current patient profile."""
+    if not (api and ApiException):
+        await update.message.reply_text(
+            "⚠️ Профиль недоступен. Установите diabetes_sdk.",
+            reply_markup=menu_keyboard,
+        )
+        return
     user_id = update.effective_user.id
     try:
         profile = api.profiles_get(telegram_id=user_id)
@@ -236,6 +252,12 @@ async def profile_webapp_save(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Save profile data sent from the web app."""
+    if not (api and ProfileModel and ApiException):
+        await update.effective_message.reply_text(
+            "⚠️ Профиль недоступен. Установите diabetes_sdk.",
+            reply_markup=menu_keyboard,
+        )
+        return
     raw = update.effective_message.web_app_data.data
     error_msg = "⚠️ Некорректные данные из WebApp."
     try:
