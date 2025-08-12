@@ -61,6 +61,7 @@
    ```
 3. **Установите зависимости и соберите фронтенд:**
    ```bash
+   # requirements.txt установит локальный SDK из libs/py-sdk
    pip install -r requirements.txt
 
    (cd services/webapp/ui && npm ci)
