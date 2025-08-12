@@ -174,7 +174,13 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     )
     try:
         api.profiles_post(profile)
-    except ApiException:
+    except ApiException as exc:
+        logger.error("DB commit failed: %s", exc)
+        await update.message.reply_text(str(exc))
+        return ConversationHandler.END
+
+    session = SessionLocal()
+    if not commit_session(session):
         await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
         return ConversationHandler.END
 

@@ -3,6 +3,11 @@ from dataclasses import dataclass
 
 @dataclass
 class Profile:
-    """Minimal profile model."""
+    """Patient profile data used by handlers and tests."""
 
-    pass
+    telegram_id: int
+    icr: float
+    cf: float
+    target: float
+    low: float
+    high: float
