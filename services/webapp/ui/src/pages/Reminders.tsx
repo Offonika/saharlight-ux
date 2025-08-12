@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react'
 import { MedicalHeader } from '@/components/MedicalHeader'
 import { useToast } from '@/hooks/use-toast'
-import { getReminders } from '@/api/reminders'
+import { getReminders, updateReminder, deleteReminder } from '@/api/reminders'
 import MedicalButton from '@/components/MedicalButton'
 import { cn } from '@/lib/utils'
+import { Reminder as ApiReminder } from '@sdk'
 
 type ReminderType = 'sugar' | 'insulin' | 'meal' | 'medicine' | 'meds'
 
@@ -34,7 +35,7 @@ const TYPE_ICON: Record<'sugar'|'insulin'|'meal'|'medicine', string> = {
 }
 
 const normalizeType = (t: ReminderType): 'sugar'|'insulin'|'meal'|'medicine' =>
-  (t === 'meds' ? 'medicine' : t) as any
+  t === 'meds' ? 'medicine' : t
 
 function parseTimeToMinutes(t: string): number {
   const [h, m] = t.split(':').map(Number)
@@ -138,11 +139,17 @@ export default function Reminders() {
       try {
         const data = await getReminders()
         if (cancelled) return
-        // нормализуем тип и сортируем по времени
-        const normalized: Reminder[] = (data || []).map((r: Reminder) => ({
-          ...r,
-          type: normalizeType(r.type),
-        }))
+        const normalized: Reminder[] = (data || []).map((r: ApiReminder) => {
+          const nt = normalizeType(r.type as ReminderType)
+          return {
+            id: r.id ?? 0,
+            type: nt,
+            title: TYPE_LABEL[nt],
+            time: r.time || '',
+            active: r.isEnabled ?? false,
+            interval: r.intervalHours ?? undefined,
+          }
+        })
         normalized.sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time))
         setReminders(normalized)
       } catch {
@@ -166,12 +173,14 @@ export default function Reminders() {
       prev.map(r => (r.id === id ? { ...r, active: nextActive } : r)),
     )
     try {
-      const res = await fetch(`/reminders/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active: nextActive }),
+      await updateReminder({
+        telegramId: 1,
+        id,
+        type: target.type,
+        time: target.time,
+        intervalHours: target.interval,
+        isEnabled: nextActive,
       })
-      if (!res.ok) throw new Error('Failed to update')
       toast({
         title: 'Напоминание обновлено',
         description: 'Статус напоминания изменён',
@@ -190,8 +199,7 @@ export default function Reminders() {
     const prevReminders = [...reminders]
     setReminders(prev => prev.filter(r => r.id !== id))
     try {
-      const res = await fetch(`/reminders/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete')
+      await deleteReminder(1, id)
       toast({
         title: 'Напоминание удалено',
         description: 'Напоминание успешно удалено',
