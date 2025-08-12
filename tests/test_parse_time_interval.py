@@ -2,7 +2,7 @@ from datetime import time, timedelta
 
 import pytest
 
-from diabetes.utils.helpers import INVALID_TIME_MSG, parse_time_interval
+from services.api.app.diabetes.utils.helpers import INVALID_TIME_MSG, parse_time_interval
 
 
 def test_parse_time_zero_padded():

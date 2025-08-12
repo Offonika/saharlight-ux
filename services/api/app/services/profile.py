@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from diabetes.services.db import Profile, SessionLocal, User, run_db
-from backend.schemas.profile import ProfileSchema
+from services.api.app.diabetes.services.db import Profile, SessionLocal, User, run_db
+from services.api.app.schemas.profile import ProfileSchema
 
 
 async def set_timezone(telegram_id: int, tz: str) -> None:

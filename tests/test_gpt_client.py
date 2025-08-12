@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from openai import OpenAIError
 
-from diabetes.services import gpt_client
+from services.api.app.diabetes.services import gpt_client
 
 
 def test_get_client_thread_safe(monkeypatch):

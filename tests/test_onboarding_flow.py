@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from telegram.ext import ConversationHandler
 
-from diabetes.services.db import Base, User
+from services.api.app.diabetes.services.db import Base, User
 
 
 class DummyMessage:
@@ -48,8 +48,8 @@ async def test_onboarding_flow(monkeypatch):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 
-    import diabetes.handlers.onboarding_handlers as onboarding
-    import diabetes.services.gpt_client as gpt_client
+    import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
+    import services.api.app.diabetes.services.gpt_client as gpt_client
 
     monkeypatch.setattr(gpt_client, "create_thread", lambda: "tid")
 

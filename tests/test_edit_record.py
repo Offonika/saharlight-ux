@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("DB_PASSWORD", "test")
-from diabetes.services.db import Base, User, Entry
+from services.api.app.diabetes.services.db import Base, User, Entry
 
 
 class DummyMessage:
@@ -47,9 +47,9 @@ class DummyBot:
 async def test_edit_dose(monkeypatch):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    import diabetes.handlers.common_handlers as common_handlers
-    import diabetes.handlers.dose_handlers as dose_handlers
+    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    import services.api.app.diabetes.handlers.common_handlers as common_handlers
+    import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

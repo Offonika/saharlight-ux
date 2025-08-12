@@ -3,9 +3,9 @@ from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from diabetes.services.db import Base, User, Profile, Alert
-import diabetes.handlers.alert_handlers as handlers
-from diabetes.handlers.common_handlers import commit_session
+from services.api.app.diabetes.services.db import Base, User, Profile, Alert
+import services.api.app.diabetes.handlers.alert_handlers as handlers
+from services.api.app.diabetes.handlers.common_handlers import commit_session
 
 
 class DummyJob:

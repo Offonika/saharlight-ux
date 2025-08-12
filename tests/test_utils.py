@@ -10,8 +10,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 import pytest
 
-import diabetes.utils.helpers as utils
-from diabetes.utils.helpers import clean_markdown, parse_time_interval, split_text_by_width
+import services.api.app.diabetes.utils.helpers as utils
+from services.api.app.diabetes.utils.helpers import clean_markdown, parse_time_interval, split_text_by_width
 
 def test_clean_markdown():
     text = "**Жирный**\n# Заголовок\n* элемент\n1. Первый"

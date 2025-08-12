@@ -1,7 +1,7 @@
 import logging
 import os
 from openai import OpenAI
-from backend.config import OPENAI_API_KEY, OPENAI_ASSISTANT_ID, OPENAI_PROXY
+from services.api.app.config import OPENAI_API_KEY, OPENAI_ASSISTANT_ID, OPENAI_PROXY
 
 
 def get_openai_client() -> OpenAI:

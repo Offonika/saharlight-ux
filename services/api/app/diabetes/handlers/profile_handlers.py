@@ -10,14 +10,14 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from diabetes.handlers.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
+from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
-from diabetes.services.db import SessionLocal, Profile, Alert, Reminder, User
-from diabetes.handlers.alert_handlers import evaluate_sugar
-from diabetes.utils.ui import menu_keyboard, back_keyboard, build_timezone_webapp_button
-from backend.config import WEBAPP_URL
+from services.api.app.diabetes.services.db import SessionLocal, Profile, Alert, Reminder, User
+from services.api.app.diabetes.handlers.alert_handlers import evaluate_sugar
+from services.api.app.diabetes.utils.ui import menu_keyboard, back_keyboard, build_timezone_webapp_button
+from services.api.app.config import WEBAPP_URL
 from .common_handlers import commit_session
-import diabetes.handlers.reminder_handlers as reminder_handlers
+import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 from zoneinfo import ZoneInfo
 import json
 
@@ -375,7 +375,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     action = query.data.split(":", 1)[1] if ":" in query.data else None
 
     if action == "sos_contact":
-        from diabetes.handlers import sos_handlers
+        from services.api.app.diabetes.handlers import sos_handlers
 
         await sos_handlers.sos_contact_start(update.callback_query, context)
         return

@@ -6,9 +6,9 @@ from unittest.mock import MagicMock
 from telegram import InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
-from diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import menu_keyboard
 
-from diabetes.services.db import Base, User, Profile
+from services.api.app.diabetes.services.db import Base, User, Profile
 
 
 class DummyMessage:
@@ -39,8 +39,8 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     import os
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
-    import diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    import diabetes.handlers.profile_handlers as handlers
+    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    import services.api.app.diabetes.handlers.profile_handlers as handlers
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -98,8 +98,8 @@ async def test_profile_command_invalid_values(monkeypatch, args):
 
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
-    import diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    import diabetes.handlers.profile_handlers as handlers
+    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    import services.api.app.diabetes.handlers.profile_handlers as handlers
 
     commit_mock = MagicMock()
     session_local_mock = MagicMock()
@@ -123,8 +123,8 @@ async def test_profile_command_help_and_dialog(monkeypatch):
 
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
-    import diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    import diabetes.handlers.profile_handlers as handlers
+    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    import services.api.app.diabetes.handlers.profile_handlers as handlers
 
     # Test /profile help
     help_msg = DummyMessage()
@@ -150,8 +150,8 @@ async def test_profile_view_preserves_user_data(monkeypatch):
 
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
-    import diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    import diabetes.handlers.profile_handlers as handlers
+    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    import services.api.app.diabetes.handlers.profile_handlers as handlers
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

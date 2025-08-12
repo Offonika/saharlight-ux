@@ -3,9 +3,9 @@
 Bot entry point and configuration.
 """
 
-from diabetes.handlers.common_handlers import register_handlers
-from backend.services import init_db
-from backend.config import LOG_LEVEL, TELEGRAM_TOKEN
+from services.api.app.diabetes.handlers.common_handlers import register_handlers
+from services.api.app.services import init_db
+from services.api.app.config import LOG_LEVEL, TELEGRAM_TOKEN
 from telegram import BotCommand
 from telegram.ext import Application, ContextTypes
 from sqlalchemy.exc import SQLAlchemyError

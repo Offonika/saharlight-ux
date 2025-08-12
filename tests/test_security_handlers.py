@@ -1,7 +1,7 @@
 import pytest
 from types import SimpleNamespace
 
-import diabetes.handlers.security_handlers as handlers
+import services.api.app.diabetes.handlers.security_handlers as handlers
 
 
 class DummyMessage:

@@ -6,9 +6,9 @@ import logging
 
 from telegram.ext import ContextTypes
 
-from diabetes.services.db import SessionLocal, Alert, Profile, run_db
-from diabetes.handlers.common_handlers import commit_session
-from diabetes.utils.helpers import get_coords_and_link
+from services.api.app.diabetes.services.db import SessionLocal, Alert, Profile, run_db
+from services.api.app.diabetes.handlers.common_handlers import commit_session
+from services.api.app.diabetes.utils.helpers import get_coords_and_link
 
 logger = logging.getLogger(__name__)
 

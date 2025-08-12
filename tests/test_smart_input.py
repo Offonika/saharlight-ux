@@ -1,6 +1,6 @@
 import pytest
 
-from diabetes.utils.functions import smart_input
+from services.api.app.diabetes.utils.functions import smart_input
 
 
 @pytest.mark.parametrize(

@@ -8,12 +8,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from telegram.ext import ApplicationBuilder, MessageHandler
 
-from diabetes.services.db import Base, User, Profile
-import diabetes.handlers.sos_handlers as sos_handlers
-import diabetes.handlers.alert_handlers as alert_handlers
-import diabetes.handlers.common_handlers as handlers
-from diabetes.handlers.common_handlers import commit_session
-from diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.services.db import Base, User, Profile
+import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
+import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
+import services.api.app.diabetes.handlers.common_handlers as handlers
+from services.api.app.diabetes.handlers.common_handlers import commit_session
+from services.api.app.diabetes.utils.ui import menu_keyboard
 
 
 class DummyMessage:
@@ -129,7 +129,7 @@ async def test_alert_skips_phone_contact(test_session, monkeypatch):
 async def test_sos_contact_menu_button_starts_conv(monkeypatch):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
     button_texts = [btn.text for row in menu_keyboard.keyboard for btn in row]
     assert "🆘 SOS контакт" in button_texts

@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 from types import SimpleNamespace
 
-import diabetes.handlers.dose_handlers as handlers
+import services.api.app.diabetes.handlers.dose_handlers as handlers
 
 
 class DummyMessage:
