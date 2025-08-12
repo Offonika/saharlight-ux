@@ -1,0 +1,3 @@
+-r services/api/app/requirements.txt
+-r libs/py-sdk/requirements.txt
+-e libs/py-sdk

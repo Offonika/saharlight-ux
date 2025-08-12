@@ -61,7 +61,7 @@
    ```
 3. **Установите зависимости и соберите фронтенд:**
    ```bash
-   pip install -r services/api/app/requirements.txt
+   pip install -r requirements.txt
 
    (cd services/webapp/ui && npm ci)
 
