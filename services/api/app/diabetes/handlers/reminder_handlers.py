@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import datetime
-from datetime import timedelta, time, timezone
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-import logging
 import json
+import logging
 import re
+from datetime import time, timedelta, timezone
+from typing import Callable
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from services.api.app.diabetes.utils.helpers import parse_time_interval
-
+from sqlalchemy.orm import Session, sessionmaker
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import (
     CallbackQueryHandler,
@@ -20,9 +20,19 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest
 
-from services.api.app.diabetes.services.db import Reminder, ReminderLog, SessionLocal, User, run_db
-from .common_handlers import commit_session
+from services.api.app.diabetes.services.db import (
+    Reminder,
+    ReminderLog,
+    SessionLocal as _SessionLocal,
+    User,
+    run_db,
+)
+from .common_handlers import commit_session as _commit_session
 from services.api.app.config import WEBAPP_URL
+from services.api.app.diabetes.utils.helpers import parse_time_interval
+
+SessionLocal: sessionmaker[Session] = _SessionLocal
+commit_session: Callable[[Session], bool] = _commit_session
 
 logger = logging.getLogger(__name__)
 
@@ -652,3 +662,21 @@ reminder_action_handler = CallbackQueryHandler(
 reminder_webapp_handler = MessageHandler(
     filters.StatusUpdate.WEB_APP_DATA, reminder_webapp_save
 )
+
+
+__all__ = [
+    "schedule_reminder",
+    "schedule_all",
+    "reminders_list",
+    "add_reminder",
+    "reminder_webapp_save",
+    "delete_reminder",
+    "reminder_job",
+    "reminder_callback",
+    "reminder_action_cb",
+    "schedule_after_meal",
+    "reminder_action_handler",
+    "reminder_webapp_handler",
+    "SessionLocal",
+    "commit_session",
+]
