@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import os
-import tempfile
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -54,13 +53,17 @@ async def put_timezone(data: Timezone) -> dict:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
         raise HTTPException(status_code=400, detail="invalid timezone") from exc
-    with tempfile.NamedTemporaryFile(
+
+    async with aiofiles.tempfile.NamedTemporaryFile(
         "w", dir=TIMEZONE_FILE.parent, delete=False, encoding="utf-8"
     ) as tmp:
-        tmp.write(data.tz)
-        tmp.flush()
-        os.fsync(tmp.fileno())
-    os.replace(tmp.name, TIMEZONE_FILE)
+        await tmp.write(data.tz)
+        await tmp.flush()
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, os.fsync, tmp.fileno())
+
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, os.replace, tmp.name, TIMEZONE_FILE)
     return {"status": "ok"}
 
 
