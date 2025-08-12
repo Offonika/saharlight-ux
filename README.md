@@ -137,10 +137,27 @@ npx @openapitools/openapi-generator-cli generate -i libs/contracts/openapi.yaml 
 
 ## Тесты и линтинг
 
-Для проверки качества кода:
+### Running tests
+
+Перед запуском убедитесь, что установлены зависимости и переменные окружения:
+
+```bash
+pip install -r services/api/app/requirements.txt
+pip install -e libs/py-sdk
+```
+
+Тесты используют переменные `OPENAI_API_KEY`, `DB_PASSWORD` и другие из `.env`.
+Отсутствие обязательных пакетов (например, SQLAlchemy, `python-telegram-bot`, `openai`) приведёт к `ModuleNotFoundError`.
+
+Запустите тесты:
+
+```bash
+pytest tests/
+```
+
+### Линтинг
 
 ```bash
 pip install -r services/api/app/requirements-dev.txt
 ruff services/api/app/diabetes tests
-pytest tests/
 ```
