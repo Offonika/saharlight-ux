@@ -5,16 +5,15 @@ Bot entry point and configuration.
 
 import logging
 import sys
+from typing import Any
 
 from telegram import BotCommand
 from telegram.ext import Application, ContextTypes
 from sqlalchemy.exc import SQLAlchemyError
 
-from services.api.app.services import init_db
+from services.api.app.diabetes.services.db import init_db
 
 from services.api.app.config import LOG_LEVEL, settings
-from services.api.app.diabetes.handlers.common_handlers import register_handlers
-
 logger = logging.getLogger(__name__)
 
 
@@ -60,7 +59,8 @@ def main() -> None:
         BotCommand("delreminder", "Удалить напоминание"),
         BotCommand("help", "Справка"),
     ]
-    async def post_init(app: Application) -> None:
+
+    async def post_init(app: Application[Any, Any, Any, Any]) -> None:
         await app.bot.set_my_commands(commands)
 
     application = (
@@ -70,6 +70,9 @@ def main() -> None:
         .build()
     )
     application.add_error_handler(error_handler)
+
+    from services.api.app.diabetes.handlers.common_handlers import register_handlers
+
     register_handlers(application)
     application.run_polling()
 
