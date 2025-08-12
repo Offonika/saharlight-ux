@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import os
 from types import SimpleNamespace
 from typing import Any, cast
@@ -68,7 +68,7 @@ async def test_report_request_and_custom_flow(
         update, context, date_from, period_label, query=None
     ) -> None:
         called["called"] = True
-        expected = datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc)
+        expected = dt.datetime(2024, 1, 1, tzinfo=dt.timezone.utc)
         assert date_from == expected
 
     monkeypatch.setattr(dose_handlers, "send_report", dummy_send_report)
@@ -95,7 +95,7 @@ async def test_report_period_callback_week(
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
 
-    called: dict[str, datetime.datetime | str] = {}
+    called: dict[str, dt.datetime | str] = {}
 
     async def dummy_send_report(
         update, context, date_from, period_label, query=None
@@ -105,12 +105,12 @@ async def test_report_period_callback_week(
 
     monkeypatch.setattr(reporting_handlers, "send_report", dummy_send_report)
 
-    fixed_now = datetime.datetime(2024, 1, 10, tzinfo=datetime.timezone.utc)
-
-    class DummyDateTime(datetime.datetime):
+    class DummyDateTime(dt.datetime):
         @classmethod
-        def now(cls, tz=None):
+        def now(cls, tz: dt.tzinfo | None = None) -> "DummyDateTime":
             return fixed_now
+
+    fixed_now = DummyDateTime(2024, 1, 10, tzinfo=dt.timezone.utc)
 
     monkeypatch.setattr(reporting_handlers.datetime, "datetime", DummyDateTime)
 
@@ -118,11 +118,13 @@ async def test_report_period_callback_week(
     update_cb = SimpleNamespace(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(user_data={})
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+    )
 
     await reporting_handlers.report_period_callback(update_cb, context)
 
-    expected = (fixed_now - datetime.timedelta(days=7)).replace(
+    expected = (fixed_now - dt.timedelta(days=7)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
     assert called["date_from"] == expected
