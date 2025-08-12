@@ -70,6 +70,7 @@
    cp infra/env/.env.example .env
    # Откройте .env и впишите свои ключи (Telegram, OpenAI, БД)
    ```
+   Минимальный набор переменных приведён в файле [infra/env/.env.example](infra/env/.env.example): TELEGRAM_TOKEN, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD.
     Обязательно укажите значение переменной `TELEGRAM_TOKEN` — без неё бот не запустится. Также задайте `DB_PASSWORD`; при его отсутствии модуль конфигурации завершится с исключением. Для подробных логов задайте `LOG_LEVEL=DEBUG` (или `DEBUG=1`).
     Чтобы использовать WebApp, укажите `WEBAPP_URL`. Telegram‑клиенты не могут обращаться к `localhost`, поэтому страница должна быть доступна по публичному **HTTPS**‑адресу, например `https://your-domain.example/`. Для локальной разработки используйте туннель (см. ниже).
 5. **Инициализируйте базу данных (PostgreSQL):**
