@@ -27,8 +27,12 @@ def test_log_level_debug(monkeypatch):
 
     class DummyApp:
         bot = DummyBot()
+        job_queue = None
 
         def add_error_handler(self, _):
+            return None
+
+        def add_handler(self, _):
             return None
 
         def run_polling(self):
@@ -49,8 +53,11 @@ def test_log_level_debug(monkeypatch):
         def builder():
             return DummyBuilder()
 
+        def __class_getitem__(cls, _):  # Support subscripting in type hints
+            return cls
+
     monkeypatch.setattr(bot, "Application", DummyApplication)
-    monkeypatch.setattr(bot, "register_handlers", lambda app: None)
+    monkeypatch.setattr(bot, "register_handlers", lambda app: None, raising=False)
 
     # Reset and capture logging configuration
     root = logging.getLogger()

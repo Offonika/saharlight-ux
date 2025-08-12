@@ -64,12 +64,10 @@ async def get_coords_and_link() -> tuple[str | None, str | None]:
         return None, None
 
     try:
-        result = await asyncio.to_thread(_fetch)
-        if result:
-            return result
+        return await asyncio.to_thread(_fetch)
     except Exception as exc:  # pragma: no cover - network failures
         logging.warning("Failed to fetch coordinates: %s", exc)
-    return "0.0,0.0", "https://maps.google.com/?q=0.0,0.0"
+    return None, None
 
 
 def split_text_by_width(

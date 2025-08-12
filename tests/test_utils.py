@@ -64,8 +64,7 @@ async def test_get_coords_and_link_logs_warning(monkeypatch, caplog):
     with caplog.at_level(logging.WARNING):
         coords, link = await utils.get_coords_and_link()
 
-    assert coords == "0.0,0.0"
-    assert link == "https://maps.google.com/?q=0.0,0.0"
+    assert coords is None and link is None
     assert any("Failed to fetch coordinates" in msg for msg in caplog.messages)
 
 
