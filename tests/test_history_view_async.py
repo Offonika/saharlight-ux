@@ -54,7 +54,7 @@ async def test_history_view_does_not_block_event_loop(monkeypatch) -> None:
 
     flag = False
 
-    async def marker():
+    async def marker() -> None:
         nonlocal flag
         await asyncio.sleep(0.1)
         flag = True

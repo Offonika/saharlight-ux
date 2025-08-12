@@ -27,7 +27,7 @@ class DummyMessage:
         self.kwargs.append(kwargs)
 
 
-async def _exercise(handler):
+async def _exercise(handler) -> None:
     message = DummyMessage("📷 Фото еды")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"})

@@ -1,4 +1,5 @@
 from types import SimpleNamespace
+from typing import Any
 
 import asyncio
 import pytest
@@ -15,7 +16,7 @@ async def test_run_db_sqlite_in_memory(monkeypatch) -> None:
 
     called = False
 
-    async def fake_to_thread(fn, *args, **kwargs):
+    async def fake_to_thread(fn, *args: Any, **kwargs: Any) -> Any:
         nonlocal called
         called = True
         return fn(*args, **kwargs)
@@ -49,7 +50,7 @@ async def test_run_db_postgres(monkeypatch) -> None:
 
     called = False
 
-    async def fake_to_thread(fn, *args, **kwargs):
+    async def fake_to_thread(fn, *args: Any, **kwargs: Any) -> Any:
         nonlocal called
         called = True
         return fn(*args, **kwargs)

@@ -83,7 +83,7 @@ async def test_alert_notifies_user_and_contact(test_session, monkeypatch) -> Non
     context: AlertContext = ContextStub(bot=cast(Bot, SimpleNamespace()))
     send_mock = AsyncMock()
     monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
-    async def fake_get_coords_and_link():
+    async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
         return ("0,0", "link")
 
     monkeypatch.setattr(alert_handlers, "get_coords_and_link", fake_get_coords_and_link)
@@ -122,7 +122,7 @@ async def test_alert_skips_phone_contact(test_session, monkeypatch) -> None:
     send_mock = AsyncMock()
     monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
 
-    async def fake_get_coords_and_link():
+    async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
         return ("0,0", "link")
 
     monkeypatch.setattr(alert_handlers, "get_coords_and_link", fake_get_coords_and_link)

@@ -58,7 +58,9 @@ async def test_report_request_and_custom_flow(monkeypatch) -> None:
 
     called = {}
 
-    async def dummy_send_report(update, context, date_from, period_label, query=None):
+    async def dummy_send_report(
+        update, context, date_from, period_label, query=None
+    ) -> None:
         called["called"] = True
         expected = datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc)
         assert date_from == expected
@@ -84,7 +86,9 @@ async def test_report_period_callback_week(monkeypatch) -> None:
 
     called: dict[str, datetime.datetime | str] = {}
 
-    async def dummy_send_report(update, context, date_from, period_label, query=None):
+    async def dummy_send_report(
+        update, context, date_from, period_label, query=None
+    ) -> None:
         called["date_from"] = date_from
         called["period_label"] = period_label
 

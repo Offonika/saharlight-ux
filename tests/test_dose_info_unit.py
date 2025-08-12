@@ -70,7 +70,7 @@ async def test_entry_without_dose_has_no_unit(
         def add(self, entry):
             self.entry = entry
 
-    async def noop(*args, **kwargs):
+    async def noop(*args: Any, **kwargs: Any) -> None:
         pass
 
     monkeypatch.setattr(dose_handlers, "SessionLocal", lambda: DummySession())
@@ -116,7 +116,7 @@ async def test_entry_without_sugar_has_placeholder(
         def add(self, entry):
             self.entry = entry
 
-    async def noop(*args, **kwargs):
+    async def noop(*args: Any, **kwargs: Any) -> None:
         pass
 
     monkeypatch.setattr(dose_handlers, "SessionLocal", lambda: DummySession())
