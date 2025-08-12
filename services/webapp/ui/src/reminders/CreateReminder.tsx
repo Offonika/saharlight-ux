@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
 import { useTelegram } from "@/hooks/useTelegram";
+import { useToast } from "@/hooks/use-toast";
 
 type ReminderType = "sugar" | "insulin" | "meal";
 
@@ -45,6 +46,7 @@ export default function CreateReminder() {
   const location = useLocation();
   const params = useParams();
   const { user } = useTelegram();
+  const { toast } = useToast();
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
   );
@@ -77,10 +79,15 @@ export default function CreateReminder() {
             setTime(loaded.time);
             setInterval(loaded.interval ?? 60);
           } else {
-            setError("Не удалось загрузить напоминание");
+            const message = "Не удалось загрузить напоминание";
+            setError(message);
+            toast({ title: "Ошибка", description: message, variant: "destructive" });
           }
-        } catch {
-          setError("Не удалось загрузить напоминание");
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "Не удалось загрузить напоминание";
+          setError(message);
+          toast({ title: "Ошибка", description: message, variant: "destructive" });
         }
       })();
     }
@@ -110,8 +117,11 @@ export default function CreateReminder() {
         await createReminder(payload);
       }
       navigate("/reminders");
-    } catch {
-      setError("Не удалось сохранить напоминание");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Не удалось сохранить напоминание";
+      setError(message);
+      toast({ title: "Ошибка", description: message, variant: "destructive" });
     }
   };
 
