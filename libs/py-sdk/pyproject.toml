@@ -6,6 +6,7 @@ authors = []
 readme = "README.md"
 packages = [
     { include = "diabetes_assistant_api_client" },
+    { include = "diabetes_sdk" },
 ]
 include = ["CHANGELOG.md", "diabetes_assistant_api_client/py.typed"]
 
