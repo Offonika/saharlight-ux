@@ -18,7 +18,6 @@ app.router.redirect_slashes = True
 BASE_DIR = Path(__file__).resolve().parent.parent / "webapp"
 UI_DIR = (BASE_DIR / "ui" / "dist").resolve()
 PUBLIC_DIR = (BASE_DIR / "public").resolve()
-STYLE_FILE = BASE_DIR / "style.css"
 
 
 @app.post("/api/timezone")
@@ -99,12 +98,6 @@ async def ui_files(full_path: str) -> FileResponse:
     if target.exists():
         return FileResponse(target)
     return serve_index()
-
-
-@app.get("/style.css", include_in_schema=False)
-@app.head("/style.css", include_in_schema=False)
-async def style_css() -> FileResponse:
-    return FileResponse(STYLE_FILE)
 
 
 @app.get("/", include_in_schema=False)
