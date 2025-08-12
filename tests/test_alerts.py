@@ -1,33 +1,48 @@
-import pytest
+from datetime import timedelta
 from types import SimpleNamespace
+from typing import Any, Callable, Optional
+
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from services.api.app.diabetes.services.db import Base, User, Profile, Alert
 import services.api.app.diabetes.handlers.alert_handlers as handlers
 from services.api.app.diabetes.handlers.common_handlers import commit_session
+from services.api.app.diabetes.services.db import Base, User, Profile, Alert
 
 
 class DummyJob:
-    def __init__(self, callback, when, data, name):
-        self.callback = callback
-        self.when = when
-        self.data = data
-        self.name = name
-        self.removed = False
+    def __init__(
+        self,
+        callback: Callable[..., Any],
+        when: timedelta,
+        data: Optional[dict[str, Any]],
+        name: Optional[str],
+    ) -> None:
+        self.callback: Callable[..., Any] = callback
+        self.when: timedelta = when
+        self.data: Optional[dict[str, Any]] = data
+        self.name: Optional[str] = name
+        self.removed: bool = False
 
-    def schedule_removal(self):
+    def schedule_removal(self) -> None:
         self.removed = True
 
 
 class DummyJobQueue:
-    def __init__(self):
-        self.jobs = []
+    def __init__(self) -> None:
+        self.jobs: list[DummyJob] = []
 
-    def run_once(self, callback, when, data=None, name=None):
+    def run_once(
+        self,
+        callback: Callable[..., Any],
+        when: timedelta,
+        data: Optional[dict[str, Any]] = None,
+        name: Optional[str] = None,
+    ) -> None:
         self.jobs.append(DummyJob(callback, when, data, name))
 
-    def get_jobs_by_name(self, name):
+    def get_jobs_by_name(self, name: str) -> list[DummyJob]:
         return [j for j in self.jobs if j.name == name]
 
 
