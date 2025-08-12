@@ -560,11 +560,15 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    await query.answer()
     action, rid_str = query.data.split(":")
     rid = int(rid_str)
     chat_id = update.effective_user.id
     with SessionLocal() as session:
+        rem = session.get(Reminder, rid)
+        if not rem or rem.telegram_id != chat_id:
+            await query.answer("Не найдено", show_alert=True)
+            return
+        await query.answer()
         session.add(
             ReminderLog(reminder_id=rid, telegram_id=chat_id, action=action)
         )
