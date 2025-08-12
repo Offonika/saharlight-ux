@@ -1,8 +1,10 @@
 import os
 import re
-import pytest
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, call
+
+import pytest
 
 from .context_stub import AlertContext, ContextStub
 
@@ -19,11 +21,11 @@ from services.api.app.diabetes.utils.ui import menu_keyboard
 
 
 class DummyMessage:
-    def __init__(self, text):
+    def __init__(self, text: str):
         self.text = text
-        self.replies = []
+        self.replies: list[str] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append(text)
 
 

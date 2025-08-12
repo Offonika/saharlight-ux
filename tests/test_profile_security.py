@@ -1,8 +1,9 @@
 import pytest
-from types import SimpleNamespace
-from unittest.mock import MagicMock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import MagicMock
 
 from services.api.app.diabetes.services.db import Base, User, Profile, Alert, Reminder
 import services.api.app.diabetes.handlers.profile_handlers as handlers
@@ -13,18 +14,18 @@ import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
 
 class DummyMessage:
     def __init__(self):
-        self.texts = []
-        self.markups = []
+        self.texts: list[str] = []
+        self.markups: list[Any] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
         self.markups.append(kwargs.get("reply_markup"))
 
 
 class DummyQuery:
-    def __init__(self, data):
+    def __init__(self, data: str):
         self.data = data
-        self.edits = []
+        self.edits: list[tuple[str, dict[str, Any]]] = []
         self.message = DummyMessage()
 
     async def answer(self):

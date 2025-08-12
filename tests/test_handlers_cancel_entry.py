@@ -1,20 +1,21 @@
-import os
 import logging
+import os
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
 
 class DummyMessage:
     def __init__(self):
-        self.replies = []
+        self.replies: list[tuple[str, dict[str, Any]]] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append((text, kwargs))
 
 
 class DummyQuery:
-    def __init__(self, data):
+    def __init__(self, data: str):
         self.data = data
         self.edited = []
         self.edit_kwargs = []

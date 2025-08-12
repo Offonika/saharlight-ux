@@ -1,17 +1,18 @@
 import pytest
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
 
 class DummyMessage:
-    def __init__(self, text=None, photo=None):
+    def __init__(self, text: str | None = None, photo: list[Any] | None = None):
         self.text = text
         self.photo = photo
-        self.replies = []
+        self.replies: list[tuple[str, dict[str, Any]]] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append((text, kwargs))
 
 

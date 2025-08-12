@@ -1,8 +1,10 @@
-from types import SimpleNamespace
 import os
+from types import SimpleNamespace
+from typing import Any, cast
 
 import pytest
-from telegram.ext import MessageHandler
+from telegram import Update
+from telegram.ext import CallbackContext, MessageHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -11,12 +13,12 @@ from services.api.app.diabetes.handlers import dose_handlers
 
 
 class DummyMessage:
-    def __init__(self, text=""):
+    def __init__(self, text: str = ""):
         self.text = text
         self.replies: list[str] = []
-        self.kwargs: list[dict] = []
+        self.kwargs: list[dict[str, Any]] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append(text)
         self.kwargs.append(kwargs)
 
@@ -31,10 +33,14 @@ async def test_photo_button_cancels_and_prompts_photo():
         == "^📷 Фото еды$"
     )
     message = DummyMessage("📷 Фото еды")
-    update = SimpleNamespace(
-        message=message, effective_user=SimpleNamespace(id=1)
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
-    context = SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}})
+    context = cast(
+        CallbackContext,
+        SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
+    )
     await handler.callback(update, context)
     assert message.replies[0] == "Отменено."
     assert any("фото" in r.lower() for r in message.replies[1:])

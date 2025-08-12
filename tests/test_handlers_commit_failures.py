@@ -1,8 +1,9 @@
 import datetime
+import json
 import logging
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import MagicMock
-import json
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
@@ -14,14 +15,14 @@ import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 class DummyMessage:
     def __init__(self):
-        self.texts = []
+        self.texts: list[str] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
 
 
 class DummyQuery:
-    def __init__(self, data):
+    def __init__(self, data: str):
         self.data = data
         self.edited = []
 
