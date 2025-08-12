@@ -1,42 +1,18 @@
-export interface ReminderPayload {
-  type: string;
-  text: string;
-  value: string;
-  id?: number;
+import { DefaultApi, Reminder } from '../../../../libs/ts-sdk';
+
+const api = new DefaultApi();
+
+export async function getReminders(telegramId = 1) {
+  const { data } = await api.remindersGet(telegramId);
+  return data;
 }
 
-const API_BASE = '/api';
-
-export async function getReminders() {
-  const res = await fetch(`${API_BASE}/reminders`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch reminders');
-  }
-  return res.json();
-}
-
-export async function updateReminder(payload: ReminderPayload & { id: number }) {
-  const res = await fetch(`/reminders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...payload, id: Number(payload.id) })
-  });
-  if (!res.ok) {
-    throw new Error('Failed to update reminder');
-  }
-  const data = await res.json();
+export async function updateReminder(payload: Reminder & { id: number }) {
+  const { data } = await api.remindersPost(payload);
   return { ...data, id: Number(data.id) };
 }
 
-export async function createReminder(payload: ReminderPayload) {
-  const res = await fetch(`/reminders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  if (!res.ok) {
-    throw new Error('Failed to create reminder');
-  }
-  const data = await res.json();
+export async function createReminder(payload: Reminder) {
+  const { data } = await api.remindersPost(payload);
   return { ...data, id: Number(data.id) };
 }

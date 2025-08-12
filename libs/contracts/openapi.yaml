@@ -3,23 +3,38 @@ info:
   title: Diabetes Assistant API
   version: 1.0.0
 paths:
-  /api/timezone:
+  /auth:
     post:
-      summary: Set timezone
+      summary: Authenticate user
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Timezone'
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /profiles:
+    get:
+      summary: Get user profile
+      parameters:
+        - in: query
+          name: telegram_id
+          required: true
+          schema:
+            type: integer
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Status'
-  /api/profile:
+                $ref: '#/components/schemas/Profile'
     post:
       summary: Save user profile
       requestBody:
@@ -35,7 +50,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Status'
-  /api/reminders:
+  /entries:
+    get:
+      summary: List or retrieve entries
+      parameters:
+        - in: query
+          name: telegram_id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: id
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Entry'
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/Entry'
+    post:
+      summary: Save entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Entry'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  id:
+                    type: integer
+  /reminders:
     get:
       summary: List or retrieve reminders
       parameters:
@@ -79,8 +138,52 @@ paths:
                     type: string
                   id:
                     type: integer
+  /reports:
+    get:
+      summary: Generate report
+      parameters:
+        - in: query
+          name: telegram_id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: period_days
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: PDF report
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
 components:
   schemas:
+    AuthRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user_id:
+          type: integer
+        role:
+          type: string
+      required:
+        - token
+        - user_id
+        - role
     Status:
       type: object
       properties:
@@ -125,6 +228,35 @@ components:
         - target
         - low
         - high
+    Entry:
+      type: object
+      properties:
+        telegram_id:
+          type: integer
+        id:
+          type: integer
+        event_time:
+          type: string
+          format: date-time
+        photo_path:
+          type: string
+        carbs_g:
+          type: number
+          format: float
+        xe:
+          type: number
+          format: float
+        sugar_before:
+          type: number
+          format: float
+        dose:
+          type: number
+          format: float
+        gpt_summary:
+          type: string
+      required:
+        - telegram_id
+        - event_time
     Reminder:
       type: object
       properties:
