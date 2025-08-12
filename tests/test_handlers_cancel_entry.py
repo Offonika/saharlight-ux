@@ -1,9 +1,11 @@
 import logging
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
 
 
 class DummyMessage:
@@ -17,8 +19,8 @@ class DummyMessage:
 class DummyQuery:
     def __init__(self, data: str):
         self.data = data
-        self.edited = []
-        self.edit_kwargs = []
+        self.edited: list[str] = []
+        self.edit_kwargs: list[dict[str, Any]] = []
         self.message = DummyMessage()
 
     async def answer(self) -> None:
@@ -37,8 +39,11 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
     import services.api.app.diabetes.handlers.common_handlers as handlers
 
     query = DummyQuery("cancel_entry")
-    update = SimpleNamespace(callback_query=query)
-    context = SimpleNamespace(user_data={"pending_entry": {"telegram_id": 1}})
+    update = cast(Update, SimpleNamespace(callback_query=query))
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"pending_entry": {"telegram_id": 1}}),
+    )
 
     await handlers.callback_router(update, context)
 
@@ -51,15 +56,20 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
 
 
 @pytest.mark.asyncio
-async def test_callback_router_invalid_entry_id(caplog) -> None:
+async def test_callback_router_invalid_entry_id(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.common_handlers as handlers
 
     query = DummyQuery("del:abc")
-    update = SimpleNamespace(callback_query=query)
-    context = SimpleNamespace(user_data={})
+    update = cast(Update, SimpleNamespace(callback_query=query))
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={}),
+    )
 
     with caplog.at_level(logging.WARNING):
         await handlers.callback_router(update, context)
@@ -69,15 +79,20 @@ async def test_callback_router_invalid_entry_id(caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_callback_router_unknown_data(caplog) -> None:
+async def test_callback_router_unknown_data(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.common_handlers as handlers
 
     query = DummyQuery("foo")
-    update = SimpleNamespace(callback_query=query)
-    context = SimpleNamespace(user_data={})
+    update = cast(Update, SimpleNamespace(callback_query=query))
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={}),
+    )
 
     with caplog.at_level(logging.WARNING):
         await handlers.callback_router(update, context)
@@ -94,8 +109,11 @@ async def test_callback_router_ignores_reminder_action() -> None:
     import services.api.app.diabetes.handlers.common_handlers as handlers
 
     query = DummyQuery("rem_toggle:1")
-    update = SimpleNamespace(callback_query=query)
-    context = SimpleNamespace(user_data={"pending_entry": {}})
+    update = cast(Update, SimpleNamespace(callback_query=query))
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"pending_entry": {}}),
+    )
 
     await handlers.callback_router(update, context)
 
