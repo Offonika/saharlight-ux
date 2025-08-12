@@ -5,6 +5,7 @@ import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react'
 import { MedicalHeader } from '@/components/MedicalHeader'
 import { useToast } from '@/hooks/use-toast'
 import { getReminders, updateReminder, deleteReminder } from '@/api/reminders'
+import { useTelegram } from '@/hooks/useTelegram'
 import MedicalButton from '@/components/MedicalButton'
 import { cn } from '@/lib/utils'
 import { Reminder as ApiReminder } from '@sdk'
@@ -128,16 +129,18 @@ function ReminderRow({
 export default function Reminders() {
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { user } = useTelegram()
 
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!user?.id) return
     let cancelled = false
     ;(async () => {
       try {
-        const data = await getReminders()
+        const data = await getReminders(user.id)
         if (cancelled) return
         const normalized: Reminder[] = (data || []).map((r: ApiReminder) => {
           const nt = normalizeType(r.type as ReminderType)
@@ -162,9 +165,10 @@ export default function Reminders() {
       }
     })()
     return () => { cancelled = true }
-  }, [toast])
+  }, [toast, user?.id])
 
   const handleToggleReminder = async (id: number) => {
+    if (!user?.id) return
     const prevReminders = [...reminders]
     const target = prevReminders.find(r => r.id === id)
     if (!target) return
@@ -174,7 +178,7 @@ export default function Reminders() {
     )
     try {
       await updateReminder({
-        telegramId: 1,
+        telegramId: user.id,
         id,
         type: target.type,
         time: target.time,
@@ -196,10 +200,11 @@ export default function Reminders() {
   }
 
   const handleDeleteReminder = async (id: number) => {
+    if (!user?.id) return
     const prevReminders = [...reminders]
     setReminders(prev => prev.filter(r => r.id !== id))
     try {
-      await deleteReminder(1, id)
+      await deleteReminder(user.id, id)
       toast({
         title: 'Напоминание удалено',
         description: 'Напоминание успешно удалено',
