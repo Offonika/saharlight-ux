@@ -4,9 +4,15 @@ from __future__ import annotations
 import datetime
 import logging
 
+from telegram.error import TelegramError
 from telegram.ext import ContextTypes
 
-from services.api.app.diabetes.services.db import SessionLocal, Alert, Profile, run_db
+from services.api.app.diabetes.services.db import (
+    Alert,
+    Profile,
+    SessionLocal,
+    run_db,
+)
 from services.api.app.diabetes.handlers.common_handlers import commit_session
 from services.api.app.diabetes.utils.helpers import get_coords_and_link
 
@@ -36,15 +42,42 @@ async def _send_alert_message(
     msg = f"⚠️ У {first_name} критический сахар {sugar} ммоль/л."
     if coords and link:
         msg += f" {coords} {link}"
-    await context.bot.send_message(chat_id=user_id, text=msg)
+    try:
+        await context.bot.send_message(chat_id=user_id, text=msg)
+    except TelegramError as exc:
+        logger.error("Failed to send alert message to user %s: %s", user_id, exc)
+    except Exception as exc:  # pragma: no cover - unexpected
+        logger.exception(
+            "Unexpected error sending alert message to user %s: %s", user_id, exc
+        )
     if profile_info.get("sos_contact") and profile_info.get("sos_alerts_enabled"):
         contact = profile_info["sos_contact"]
+        chat_id: int | str | None
         if contact.startswith("@"):
-            await context.bot.send_message(chat_id=contact, text=msg)
+            chat_id = contact
+        elif contact.isdigit():
+            chat_id = int(contact)
         else:
             logger.info(
-                "SOS contact '%s' is not a Telegram username; skipping", contact
+                "SOS contact '%s' is not a Telegram username or chat id; skipping",
+                contact,
             )
+            chat_id = None
+        if chat_id is not None:
+            try:
+                await context.bot.send_message(chat_id=chat_id, text=msg)
+            except TelegramError as exc:
+                logger.error(
+                    "Failed to send alert message to SOS contact '%s': %s",
+                    contact,
+                    exc,
+                )
+            except Exception as exc:  # pragma: no cover - unexpected
+                logger.exception(
+                    "Unexpected error sending alert message to SOS contact '%s': %s",
+                    contact,
+                    exc,
+                )
 
 
 async def evaluate_sugar(
