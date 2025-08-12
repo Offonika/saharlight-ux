@@ -125,7 +125,7 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
 
 def _render_reminders(
     session, user_id: int
-) -> tuple[str, InlineKeyboardMarkup]:
+) -> tuple[str, InlineKeyboardMarkup | None]:
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
     user = session.query(User).filter_by(telegram_id=user_id).first()
     limit = _limit_for(user)
@@ -147,7 +147,7 @@ def _render_reminders(
             text += "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
             return text, InlineKeyboardMarkup([add_button_row])
         text += "\nУ вас нет напоминаний. Отправьте /addreminder."
-        return text, InlineKeyboardMarkup([])
+        return text, None
 
     by_time: list[tuple[str, list[InlineKeyboardButton]]] = []
     by_interval: list[tuple[str, list[InlineKeyboardButton]]] = []
@@ -297,7 +297,10 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     text, keyboard = await run_db(
         _render_reminders, user_id, sessionmaker=SessionLocal
     )
-    await update.message.reply_text(text, reply_markup=keyboard, parse_mode="HTML")
+    kwargs = {"parse_mode": "HTML"}
+    if keyboard is not None:
+        kwargs["reply_markup"] = keyboard
+    await update.message.reply_text(text, **kwargs)
 
 
 async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -465,9 +468,10 @@ async def reminder_webapp_save(
     text, keyboard = await run_db(
         _render_reminders, user_id, sessionmaker=SessionLocal
     )
-    await update.effective_message.reply_text(
-        text, reply_markup=keyboard, parse_mode="HTML"
-    )
+    kwargs = {"parse_mode": "HTML"}
+    if keyboard is not None:
+        kwargs["reply_markup"] = keyboard
+    await update.effective_message.reply_text(text, **kwargs)
 
 
 
@@ -628,8 +632,11 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
     text, keyboard = await run_db(
         _render_reminders, user_id, sessionmaker=SessionLocal
     )
+    kwargs = {"parse_mode": "HTML"}
+    if keyboard is not None:
+        kwargs["reply_markup"] = keyboard
     try:
-        await query.edit_message_text(text, reply_markup=keyboard, parse_mode="HTML")
+        await query.edit_message_text(text, **kwargs)
     except BadRequest as exc:
         if "Message is not modified" in str(exc):
             await query.answer()
