@@ -1,8 +1,8 @@
 # utils.py
 
-import asyncio
 import json
 import logging
+import asyncio
 import re
 from datetime import datetime, time, timedelta
 from urllib.request import urlopen
