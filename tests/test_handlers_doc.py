@@ -1,22 +1,28 @@
 import pytest
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
+
+from telegram import Message
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
 
-class DummyMessage:
-    def __init__(self, text=None, photo=None):
+class DummyMessage(Message):
+    def __setattr__(self, key: str, value: Any) -> None:
+        object.__setattr__(self, key, value)
+
+    def __init__(self, text: str | None = None, photo: list[Any] | None = None) -> None:
         self.text = text
         self.photo = photo
-        self.texts = []
+        self.texts: list[str] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
 
 
 @pytest.mark.asyncio
-async def test_doc_handler_calls_photo_handler(monkeypatch):
+async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) -> None:
     called = SimpleNamespace(flag=False)
 
     async def fake_photo_handler(update, context):
@@ -54,7 +60,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_doc_handler_skips_non_images(monkeypatch):
+async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> None:
     called = SimpleNamespace(flag=False)
 
     async def fake_photo_handler(update, context):
