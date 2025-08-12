@@ -29,11 +29,25 @@ MAX_REPEATS = 3
 ALERT_REPEAT_DELAY = datetime.timedelta(minutes=5)
 
 
-def schedule_alert(user_id: int, job_queue, count: int = 1) -> None:
+def schedule_alert(
+    user_id: int,
+    job_queue,
+    *,
+    sugar: float,
+    profile: dict,
+    first_name: str = "",
+    count: int = 1,
+) -> None:
     job_queue.run_once(
         alert_job,
         when=ALERT_REPEAT_DELAY,
-        data={"user_id": user_id, "count": count},
+        data={
+            "user_id": user_id,
+            "count": count,
+            "sugar": sugar,
+            "profile": profile,
+            "first_name": first_name,
+        },
         name=f"alert_{user_id}",
     )
 
@@ -146,7 +160,13 @@ async def evaluate_sugar(
         return
     action = result["action"]
     if action == "schedule" and job_queue is not None:
-        schedule_alert(user_id, job_queue)
+        schedule_alert(
+            user_id,
+            job_queue,
+            sugar=sugar,
+            profile=result.get("profile", {}),
+            first_name=first_name,
+        )
     elif action == "remove" and job_queue is not None:
         for job in job_queue.get_jobs_by_name(f"alert_{user_id}"):
             job.schedule_removal()
@@ -175,17 +195,39 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     data = context.job.data
     user_id = data["user_id"]
     count = data.get("count", 1)
+    sugar = data.get("sugar")
+    profile = data.get("profile", {})
+    first_name = data.get("first_name", "")
     with SessionLocal() as session:
         active = (
             session.query(Alert)
             .filter_by(user_id=user_id, resolved=False)
             .first()
         )
-    if not active:
-        return
+        if not active:
+            context.job.schedule_removal()
+            return
+    await _send_alert_message(user_id, sugar, profile, context, first_name)
     if count >= MAX_REPEATS:
+        with SessionLocal() as session:
+            alerts = (
+                session.query(Alert)
+                .filter_by(user_id=user_id, resolved=False)
+                .all()
+            )
+            for a in alerts:
+                a.resolved = True
+            commit_session(session)
+        context.job.schedule_removal()
         return
-    schedule_alert(user_id, context.job_queue, count=count + 1)
+    schedule_alert(
+        user_id,
+        context.job_queue,
+        sugar=sugar,
+        profile=profile,
+        first_name=first_name,
+        count=count + 1,
+    )
 
 
 async def alert_stats(update, context) -> None:

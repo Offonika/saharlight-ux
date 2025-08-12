@@ -85,7 +85,7 @@ async def test_threshold_evaluation() -> None:
 
 
 @pytest.mark.asyncio
-async def test_repeat_logic() -> None:
+async def test_repeat_logic(monkeypatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -100,14 +100,29 @@ async def test_repeat_logic() -> None:
     job_queue = DummyJobQueue()
     await handlers.evaluate_sugar(1, 3, job_queue)
 
-    for i in range(1, 4):
-        job = SimpleNamespace(data={"user_id": 1, "count": i})
+    calls: list[tuple[int, float]] = []
+
+    async def dummy_send_alert_message(
+        user_id: int,
+        sugar: float,
+        profile: dict,
+        context: Any,
+        first_name: str,
+    ) -> None:
+        calls.append((user_id, sugar))
+
+    monkeypatch.setattr(handlers, "_send_alert_message", dummy_send_alert_message)
+
+    for i in range(handlers.MAX_REPEATS):
+        job = job_queue.jobs[i]
         context: AlertContext = ContextStub(
             job=job, job_queue=job_queue, bot=cast(Bot, SimpleNamespace())
         )
         await handlers.alert_job(cast(CallbackContext, context))
 
-    assert len(job_queue.jobs) == 3
+    assert len(job_queue.jobs) == handlers.MAX_REPEATS
+    assert len(calls) == handlers.MAX_REPEATS
+    assert job_queue.jobs[-1].removed
 
 
 @pytest.mark.asyncio
