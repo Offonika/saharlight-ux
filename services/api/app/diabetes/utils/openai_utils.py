@@ -18,11 +18,8 @@ def get_openai_client() -> OpenAI:
         message = "OPENAI_API_KEY is not set"
         logging.error("[OpenAI] %s", message)
         raise RuntimeError(message)
-    if not OPENAI_ASSISTANT_ID:
-        message = "OPENAI_ASSISTANT_ID is not set"
-        logging.error("[OpenAI] %s", message)
-        raise RuntimeError(message)
 
     client = OpenAI(api_key=OPENAI_API_KEY)
-    logging.info("[OpenAI] Using assistant: %s", OPENAI_ASSISTANT_ID)
+    if OPENAI_ASSISTANT_ID:
+        logging.info("[OpenAI] Using assistant: %s", OPENAI_ASSISTANT_ID)
     return client

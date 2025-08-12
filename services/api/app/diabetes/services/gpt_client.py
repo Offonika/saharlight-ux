@@ -106,6 +106,11 @@ def send_message(
         logger.exception("[OpenAI] Failed to create message: %s", exc)
         raise
 
+    if not OPENAI_ASSISTANT_ID:
+        message = "OPENAI_ASSISTANT_ID is not set"
+        logger.error("[OpenAI] %s", message)
+        raise RuntimeError(message)
+
     # 3. Запускаем ассистента
     try:
         run = _get_client().beta.threads.runs.create(
