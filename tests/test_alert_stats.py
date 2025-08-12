@@ -1,6 +1,6 @@
 import datetime
-from types import SimpleNamespace
-from typing import Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from sqlalchemy import create_engine
@@ -9,17 +9,21 @@ from sqlalchemy.orm import sessionmaker
 from services.api.app.diabetes.services.db import Base, Alert, User
 import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 
+if TYPE_CHECKING:
+    from telegram import Update
+    from telegram.ext import CallbackContext
+
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.texts: list[str] = []
 
-    async def reply_text(self, text: str, **kwargs: Any) -> None:
+    async def reply_text(self, text: str) -> None:
         self.texts.append(text)
 
 
 @pytest.mark.asyncio
-async def test_alert_stats_counts(monkeypatch) -> None:
+async def test_alert_stats_counts(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -29,16 +33,24 @@ async def test_alert_stats_counts(monkeypatch) -> None:
 
     class DummyDateTime(datetime.datetime):
         @classmethod
-        def now(cls, tz=None):
+        def now(
+            cls, tz: datetime.tzinfo | None = None
+        ) -> datetime.datetime:  # pragma: no cover - used for typing
             return fixed_now
+
+    @dataclass
+    class DummyDateTimeModule:
+        datetime: type[datetime.datetime]
+        timedelta: type[datetime.timedelta]
+        timezone: type[datetime.timezone]
 
     monkeypatch.setattr(
         alert_handlers,
         "datetime",
-        SimpleNamespace(
-            datetime=DummyDateTime,
-            timedelta=datetime.timedelta,
-            timezone=datetime.timezone,
+        DummyDateTimeModule(
+            DummyDateTime,
+            datetime.timedelta,
+            datetime.timezone,
         ),
     )
 
@@ -59,8 +71,22 @@ async def test_alert_stats_counts(monkeypatch) -> None:
         session.commit()
 
     msg = DummyMessage()
-    update = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace()
+
+    @dataclass
+    class DummyUser:
+        id: int
+
+    @dataclass
+    class DummyUpdate:
+        message: DummyMessage
+        effective_user: DummyUser
+
+    @dataclass
+    class DummyContext:
+        pass
+
+    update = cast("Update", DummyUpdate(message=msg, effective_user=DummyUser(id=1)))
+    context = cast("CallbackContext", DummyContext())
 
     await alert_handlers.alert_stats(update, context)
     assert msg.texts == ["За 7\u202Fдн.: гипо\u202F1, гипер\u202F1"]
