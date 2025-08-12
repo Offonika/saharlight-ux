@@ -4,6 +4,8 @@ import pytest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, call
 
+from .context_stub import AlertContext, ContextStub
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from telegram.ext import ApplicationBuilder, MessageHandler
@@ -73,7 +75,7 @@ async def test_alert_notifies_user_and_contact(test_session, monkeypatch):
     update_alert = SimpleNamespace(
         effective_user=SimpleNamespace(id=1, first_name="Ivan")
     )
-    context = SimpleNamespace(bot=SimpleNamespace())
+    context: AlertContext = ContextStub(bot=SimpleNamespace())
     send_mock = AsyncMock()
     monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
     async def fake_get_coords_and_link():
@@ -109,7 +111,7 @@ async def test_alert_skips_phone_contact(test_session, monkeypatch):
     update_alert = SimpleNamespace(
         effective_user=SimpleNamespace(id=1, first_name="Ivan")
     )
-    context = SimpleNamespace(bot=SimpleNamespace())
+    context: AlertContext = ContextStub(bot=SimpleNamespace())
     send_mock = AsyncMock()
     monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
 
