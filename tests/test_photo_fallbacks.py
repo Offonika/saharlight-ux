@@ -1,9 +1,10 @@
 import os
+from re import Pattern
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
-from telegram.ext import MessageHandler
+from telegram.ext import CallbackContext, MessageHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -14,6 +15,16 @@ from services.api.app.diabetes.handlers import (
     onboarding_handlers,
     sos_handlers,
 )
+
+
+def _find_handler(fallbacks, regex: str) -> MessageHandler:
+    for h in fallbacks:
+        if isinstance(h, MessageHandler):
+            filt = getattr(h, "filters", None)
+            pattern = getattr(filt, "pattern", None)
+            if isinstance(pattern, Pattern) and pattern.pattern == regex:
+                return h
+    raise LookupError(regex)
 
 
 class DummyMessage:
@@ -30,7 +41,10 @@ class DummyMessage:
 async def _exercise(handler) -> None:
     message = DummyMessage("📷 Фото еды")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"})
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"}),
+    )
     await handler.callback(update, context)
     assert message.replies[0] == "Отменено."
     assert any("фото" in r.lower() for r in message.replies[1:])
@@ -39,47 +53,23 @@ async def _exercise(handler) -> None:
 
 @pytest.mark.asyncio
 async def test_profile_conv_photo_fallback() -> None:
-    handler = next(
-        h
-        for h in profile_handlers.profile_conv.fallbacks
-        if isinstance(h, MessageHandler)
-        and getattr(getattr(h, "filters", None), "pattern", None).pattern
-        == "^📷 Фото еды$"
-    )
+    handler = _find_handler(profile_handlers.profile_conv.fallbacks, "^📷 Фото еды$")
     await _exercise(handler)
 
 
 @pytest.mark.asyncio
 async def test_sugar_conv_photo_fallback() -> None:
-    handler = next(
-        h
-        for h in dose_handlers.sugar_conv.fallbacks
-        if isinstance(h, MessageHandler)
-        and getattr(getattr(h, "filters", None), "pattern", None).pattern
-        == "^📷 Фото еды$"
-    )
+    handler = _find_handler(dose_handlers.sugar_conv.fallbacks, "^📷 Фото еды$")
     await _exercise(handler)
 
 
 @pytest.mark.asyncio
 async def test_onboarding_conv_photo_fallback() -> None:
-    handler = next(
-        h
-        for h in onboarding_handlers.onboarding_conv.fallbacks
-        if isinstance(h, MessageHandler)
-        and getattr(getattr(h, "filters", None), "pattern", None).pattern
-        == "^📷 Фото еды$"
-    )
+    handler = _find_handler(onboarding_handlers.onboarding_conv.fallbacks, "^📷 Фото еды$")
     await _exercise(handler)
 
 
 @pytest.mark.asyncio
 async def test_sos_contact_conv_photo_fallback() -> None:
-    handler = next(
-        h
-        for h in sos_handlers.sos_contact_conv.fallbacks
-        if isinstance(h, MessageHandler)
-        and getattr(getattr(h, "filters", None), "pattern", None).pattern
-        == "^📷 Фото еды$"
-    )
+    handler = _find_handler(sos_handlers.sos_contact_conv.fallbacks, "^📷 Фото еды$")
     await _exercise(handler)
