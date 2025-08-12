@@ -665,10 +665,15 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             reply_markup=back_keyboard,
         )
         return PROFILE_HIGH
-    icr = context.user_data.pop("profile_icr")
-    cf = context.user_data.pop("profile_cf")
-    target = context.user_data.pop("profile_target")
-    context.user_data.pop("profile_low")
+    icr = context.user_data.pop("profile_icr", None)
+    cf = context.user_data.pop("profile_cf", None)
+    target = context.user_data.pop("profile_target", None)
+    context.user_data.pop("profile_low", None)
+    if icr is None or cf is None or target is None:
+        await update.message.reply_text(
+            "⚠️ Не хватает данных для сохранения профиля. Пожалуйста, начните заново."
+        )
+        return ConversationHandler.END
     user_id = update.effective_user.id
     with SessionLocal() as session:
         prof = session.get(Profile, user_id)
