@@ -75,7 +75,6 @@ DB_HOST = settings.db_host
 DB_PORT = settings.db_port
 DB_NAME = settings.db_name
 DB_USER = settings.db_user
-DB_PASSWORD = settings.db_password
 UVICORN_WORKERS = settings.uvicorn_workers
 WEBAPP_URL = settings.webapp_url
 API_URL = settings.api_url
