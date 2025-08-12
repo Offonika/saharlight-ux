@@ -286,8 +286,10 @@ async def send_report(
                 logging.error("[GPT][RUN_FAILED] status=%s", run.status)
         except OpenAIError:
             logging.exception("[GPT] Failed to get recommendations")
-        except Exception:  # pragma: no cover - unexpected errors
-            logging.exception("[GPT] Unexpected error while getting recommendations")
+        except OSError as exc:
+            logging.exception(
+                "[GPT] OS error while getting recommendations: %s", exc
+            )
     else:
         logging.warning("[GPT] thread_id missing for user %s", user_id)
     report_msg = "<b>Отчёт сформирован</b>\n\n" + "\n".join(summary_lines + day_lines)

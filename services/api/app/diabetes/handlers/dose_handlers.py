@@ -839,9 +839,9 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                     "[PHOTO][TYPING_ACTION] Failed to send typing action: %s",
                     exc,
                 )
-            except Exception as exc:  # pragma: no cover - unexpected
+            except OSError as exc:
                 logger.exception(
-                    "[PHOTO][TYPING_ACTION] Unexpected error: %s",
+                    "[PHOTO][TYPING_ACTION] OS error: %s",
                     exc,
                 )
                 raise
@@ -869,9 +869,9 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                         "[PHOTO][STATUS_EDIT] Failed to update status message: %s",
                         exc,
                     )
-                except Exception as exc:  # pragma: no cover - unexpected
+                except OSError as exc:
                     logger.exception(
-                        "[PHOTO][STATUS_EDIT] Unexpected error: %s",
+                        "[PHOTO][STATUS_EDIT] OS error: %s",
                         exc,
                     )
                     raise
@@ -889,9 +889,9 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                         "[PHOTO][TIMEOUT_EDIT] Failed to send timeout notice: %s",
                         exc,
                     )
-                except Exception as exc:  # pragma: no cover - unexpected
+                except OSError as exc:
                     logger.exception(
-                        "[PHOTO][TIMEOUT_EDIT] Unexpected error: %s",
+                        "[PHOTO][TIMEOUT_EDIT] OS error: %s",
                         exc,
                     )
                     raise
@@ -913,9 +913,9 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                         "[PHOTO][RUN_FAILED_EDIT] Failed to send Vision failure notice: %s",
                         exc,
                     )
-                except Exception as exc:  # pragma: no cover - unexpected
+                except OSError as exc:
                     logger.exception(
-                        "[PHOTO][RUN_FAILED_EDIT] Unexpected error: %s",
+                        "[PHOTO][RUN_FAILED_EDIT] OS error: %s",
                         exc,
                     )
                     raise
@@ -973,9 +973,9 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                     "[PHOTO][DELETE_STATUS] Failed to delete status message: %s",
                     exc,
                 )
-            except Exception as exc:  # pragma: no cover - unexpected
+            except OSError as exc:
                 logger.exception(
-                    "[PHOTO][DELETE_STATUS] Unexpected error: %s",
+                    "[PHOTO][DELETE_STATUS] OS error: %s",
                     exc,
                 )
                 raise
@@ -1001,9 +1001,6 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
     except TelegramError as exc:
         logging.exception("[PHOTO] Telegram error: %s", exc)
         return ConversationHandler.END
-    except Exception as exc:  # pragma: no cover - unexpected
-        logging.exception("[PHOTO] Unexpected error: %s", exc)
-        raise
     finally:
         context.user_data.pop(WAITING_GPT_FLAG, None)
 

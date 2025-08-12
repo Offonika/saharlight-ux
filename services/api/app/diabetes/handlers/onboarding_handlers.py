@@ -33,7 +33,8 @@ from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import Cal
 from services.api.app.diabetes.services.db import SessionLocal, User, Profile, Reminder
 from services.api.app.diabetes.utils.ui import menu_keyboard, build_timezone_webapp_button
 from .common_handlers import commit_session
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from openai import OpenAIError
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +64,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
             try:
                 thread_id = create_thread()
-            except Exception:  # pragma: no cover - network errors
-                logger.exception("Failed to create thread for user %s", user_id)
+            except OpenAIError as exc:  # pragma: no cover - network errors
+                logger.exception("Failed to create thread for user %s: %s", user_id, exc)
                 await update.message.reply_text(
                     "⚠️ Не удалось инициализировать профиль. Попробуйте позже."
                 )
@@ -208,7 +209,8 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
         tz_name = update.message.text.strip()
     try:
         ZoneInfo(tz_name)
-    except Exception:
+    except ZoneInfoNotFoundError:
+        logger.warning("Invalid timezone provided by user %s: %s", update.effective_user.id, tz_name)
         buttons = []
         tz_button = build_timezone_webapp_button()
         if tz_button:

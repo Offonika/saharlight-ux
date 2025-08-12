@@ -67,9 +67,9 @@ async def _send_alert_message(
         await context.bot.send_message(chat_id=user_id, text=msg)
     except TelegramError as exc:
         logger.error("Failed to send alert message to user %s: %s", user_id, exc)
-    except Exception as exc:  # pragma: no cover - unexpected
+    except OSError as exc:
         logger.exception(
-            "Unexpected error sending alert message to user %s: %s", user_id, exc
+            "OS error sending alert message to user %s: %s", user_id, exc
         )
     if profile_info.get("sos_contact") and profile_info.get("sos_alerts_enabled"):
         contact = profile_info["sos_contact"]
@@ -93,9 +93,9 @@ async def _send_alert_message(
                     contact,
                     exc,
                 )
-            except Exception as exc:  # pragma: no cover - unexpected
+            except OSError as exc:
                 logger.exception(
-                    "Unexpected error sending alert message to SOS contact '%s': %s",
+                    "OS error sending alert message to SOS contact '%s': %s",
                     contact,
                     exc,
                 )
