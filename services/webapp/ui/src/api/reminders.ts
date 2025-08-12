@@ -4,7 +4,17 @@ const api = new DefaultApi();
 
 export async function getReminders(telegramId: number): Promise<Reminder[]> {
   const data = await api.remindersGet({ telegramId });
-  return Array.isArray(data) ? data : [data];
+
+  if (!data) {
+    return [];
+  }
+
+  if (!Array.isArray(data)) {
+    console.error('Unexpected reminders API response:', data);
+    return [];
+  }
+
+  return data;
 }
 
 export async function getReminder(
