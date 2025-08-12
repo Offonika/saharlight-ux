@@ -5,24 +5,18 @@ services:
     build:
       context: ../..
       dockerfile: infra/docker/Dockerfile.api
-    env_file:
-      - ../../.env
+    env_file: [ ../env/.env.example ]
     ports:
       - "8000:8000"
-    restart: unless-stopped
+    depends_on:
+      - db
 
-  clinic-panel:
-    image: node:18
-    working_dir: /workspace/services/clinic-panel
-    volumes:
-      - ../..:/workspace
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: diabetes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "3000:3000"
-    command: ["sh", "-c", "npm install && npm run dev"]
+      - "5432:5432"
 
-  worker:
-    image: python:3.11
-    working_dir: /workspace/services/worker
-    volumes:
-      - ../..:/workspace
-    command: ["sh", "-c", "pip install -r requirements.txt && python main.py"]
