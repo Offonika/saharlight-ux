@@ -85,7 +85,7 @@ async def test_threshold_evaluation() -> None:
 
 
 @pytest.mark.asyncio
-async def test_repeat_logic(monkeypatch) -> None:
+async def test_repeat_logic(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -105,7 +105,7 @@ async def test_repeat_logic(monkeypatch) -> None:
     async def dummy_send_alert_message(
         user_id: int,
         sugar: float,
-        profile: dict,
+        profile: dict[str, Any],
         context: Any,
         first_name: str,
     ) -> None:
@@ -150,7 +150,7 @@ async def test_normal_reading_resolves_alert() -> None:
 
 
 @pytest.mark.asyncio
-async def test_three_alerts_notify(monkeypatch) -> None:
+async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -195,7 +195,9 @@ async def test_three_alerts_notify(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_alert_message_without_coords(monkeypatch) -> None:
+async def test_alert_message_without_coords(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

@@ -1,9 +1,11 @@
 import logging
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -28,7 +30,9 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_onboarding_demo_photo_missing(monkeypatch, caplog) -> None:
+async def test_onboarding_demo_photo_missing(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 
@@ -45,10 +49,15 @@ async def test_onboarding_demo_photo_missing(monkeypatch, caplog) -> None:
     monkeypatch.setattr(onboarding, "menu_keyboard", "MK")
 
     message = DummyMessage()
-    update = SimpleNamespace(
-        message=message, effective_user=SimpleNamespace(id=1, first_name="Ann")
+    update = cast(
+        Update,
+        SimpleNamespace(
+            message=message, effective_user=SimpleNamespace(id=1, first_name="Ann")
+        ),
     )
-    context = SimpleNamespace(user_data={}, bot_data={})
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={}, bot_data={})
+    )
 
     await onboarding.start_command(update, context)
     update.message.text = "10"

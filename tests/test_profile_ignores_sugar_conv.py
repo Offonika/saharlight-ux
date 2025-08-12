@@ -1,8 +1,10 @@
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -25,7 +27,9 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_profile_input_not_logged_as_sugar(monkeypatch) -> None:
+async def test_profile_input_not_logged_as_sugar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -39,23 +43,35 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch) -> None:
 
     # Start sugar conversation
     sugar_msg = DummyMessage("/sugar")
-    sugar_update = SimpleNamespace(
-        message=sugar_msg,
-        effective_user=SimpleNamespace(id=1),
-        effective_chat=SimpleNamespace(id=1),
+    sugar_update = cast(
+        Update,
+        SimpleNamespace(
+            message=sugar_msg,
+            effective_user=SimpleNamespace(id=1),
+            effective_chat=SimpleNamespace(id=1),
+        ),
     )
-    shared_chat_data: dict = {}
-    sugar_context = SimpleNamespace(user_data={}, chat_data=shared_chat_data)
+    shared_chat_data: dict[str, Any] = {}
+    sugar_context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={}, chat_data=shared_chat_data),
+    )
     await dose_handlers.sugar_start(sugar_update, sugar_context)
 
     # Start profile conversation which should cancel sugar conversation
     prof_msg = DummyMessage("/profile")
-    prof_update = SimpleNamespace(
-        message=prof_msg,
-        effective_user=SimpleNamespace(id=1),
-        effective_chat=SimpleNamespace(id=1),
+    prof_update = cast(
+        Update,
+        SimpleNamespace(
+            message=prof_msg,
+            effective_user=SimpleNamespace(id=1),
+            effective_chat=SimpleNamespace(id=1),
+        ),
     )
-    prof_context = SimpleNamespace(args=[], user_data={}, chat_data=shared_chat_data)
+    prof_context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(args=[], user_data={}, chat_data=shared_chat_data),
+    )
     result = await profile_handlers.profile_command(prof_update, prof_context)
     assert result == profile_handlers.PROFILE_ICR
     assert "ИКХ" in prof_msg.replies[0]
@@ -63,12 +79,18 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch) -> None:
 
     # Send ICR value
     icr_msg = DummyMessage("10")
-    icr_update = SimpleNamespace(
-        message=icr_msg,
-        effective_user=SimpleNamespace(id=1),
-        effective_chat=SimpleNamespace(id=1),
+    icr_update = cast(
+        Update,
+        SimpleNamespace(
+            message=icr_msg,
+            effective_user=SimpleNamespace(id=1),
+            effective_chat=SimpleNamespace(id=1),
+        ),
     )
-    icr_context = SimpleNamespace(user_data={}, chat_data=shared_chat_data)
+    icr_context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={}, chat_data=shared_chat_data),
+    )
     result_icr = await profile_handlers.profile_icr(icr_update, icr_context)
     assert result_icr == profile_handlers.PROFILE_CF
     assert "КЧ" in icr_msg.replies[0]

@@ -1,8 +1,10 @@
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -49,7 +51,7 @@ class DummyQuery:
 
 
 @pytest.mark.asyncio
-async def test_onboarding_flow(monkeypatch) -> None:
+async def test_onboarding_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 
@@ -65,10 +67,15 @@ async def test_onboarding_flow(monkeypatch) -> None:
     monkeypatch.setattr(onboarding, "menu_keyboard", "MK")
 
     message = DummyMessage()
-    update = SimpleNamespace(
-        message=message, effective_user=SimpleNamespace(id=1, first_name="Ann")
+    update = cast(
+        Update,
+        SimpleNamespace(
+            message=message, effective_user=SimpleNamespace(id=1, first_name="Ann")
+        ),
     )
-    context = SimpleNamespace(user_data={}, bot_data={})
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={}, bot_data={})
+    )
 
     state = await onboarding.start_command(update, context)
     assert state == onboarding.ONB_PROFILE_ICR
@@ -92,13 +99,17 @@ async def test_onboarding_flow(monkeypatch) -> None:
     assert message.photos
 
     query = DummyQuery(message, "onb_next")
-    update_cb = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    update_cb = cast(
+        Update, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    )
     state = await onboarding.onboarding_demo_next(update_cb, context)
     assert state == onboarding.ONB_REMINDERS
     assert "3/3" in message.texts[-1]
 
     query2 = DummyQuery(message, "onb_rem_no")
-    update_cb2 = SimpleNamespace(callback_query=query2, effective_user=SimpleNamespace(id=1))
+    update_cb2 = cast(
+        Update, SimpleNamespace(callback_query=query2, effective_user=SimpleNamespace(id=1))
+    )
     state = await onboarding.onboarding_reminders(update_cb2, context)
     assert state == ConversationHandler.END
     assert message.polls
@@ -108,10 +119,15 @@ async def test_onboarding_flow(monkeypatch) -> None:
         assert user.onboarding_complete is True
 
     message2 = DummyMessage()
-    update2 = SimpleNamespace(
-        message=message2, effective_user=SimpleNamespace(id=1, first_name="Ann")
+    update2 = cast(
+        Update,
+        SimpleNamespace(
+            message=message2, effective_user=SimpleNamespace(id=1, first_name="Ann")
+        ),
     )
-    context2 = SimpleNamespace(user_data={}, bot_data={})
+    context2 = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={}, bot_data={})
+    )
     state2 = await onboarding.start_command(update2, context2)
     assert state2 == ConversationHandler.END
     assert any("Выберите" in t for t in message2.texts)

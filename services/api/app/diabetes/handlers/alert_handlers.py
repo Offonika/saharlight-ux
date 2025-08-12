@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Callable
+from typing import Any, Callable
 
 from sqlalchemy.orm import Session, sessionmaker
 from telegram.error import TelegramError
@@ -34,7 +34,7 @@ def schedule_alert(
     job_queue,
     *,
     sugar: float,
-    profile: dict,
+    profile: dict[str, Any],
     first_name: str = "",
     count: int = 1,
 ) -> None:
@@ -55,7 +55,7 @@ def schedule_alert(
 async def _send_alert_message(
     user_id: int,
     sugar: float,
-    profile_info: dict,
+    profile_info: dict[str, Any],
     context: ContextTypes.DEFAULT_TYPE,
     first_name: str,
 ) -> None:
