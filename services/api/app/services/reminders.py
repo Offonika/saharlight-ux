@@ -24,6 +24,8 @@ async def save_reminder(data: ReminderSchema) -> int:
         else:
             rem = Reminder(telegram_id=data.telegram_id)
             session.add(rem)
+        if data.org_id is not None:
+            rem.org_id = data.org_id
         rem.type = data.type
         rem.time = data.time
         rem.interval_hours = data.interval_hours
