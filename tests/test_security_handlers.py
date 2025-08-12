@@ -14,7 +14,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_hypoalert_faq_returns_message():
+async def test_hypoalert_faq_returns_message() -> None:
     message = DummyMessage()
     update = SimpleNamespace(message=message)
     context = SimpleNamespace()

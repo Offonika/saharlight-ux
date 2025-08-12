@@ -13,7 +13,7 @@ from services.api.app.diabetes import gpt_command_parser  # noqa: E402
 
 
 @pytest.mark.asyncio
-async def test_parse_command_timeout_non_blocking(monkeypatch):
+async def test_parse_command_timeout_non_blocking(monkeypatch) -> None:
     def slow_create(*args, **kwargs):
         time.sleep(1)
 
@@ -46,7 +46,7 @@ async def test_parse_command_timeout_non_blocking(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_explanatory_text(monkeypatch):
+async def test_parse_command_with_explanatory_text(monkeypatch) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -86,7 +86,7 @@ async def test_parse_command_with_explanatory_text(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_array_response(monkeypatch):
+async def test_parse_command_with_array_response(monkeypatch) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -114,7 +114,7 @@ async def test_parse_command_with_array_response(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_scalar_response(monkeypatch):
+async def test_parse_command_with_scalar_response(monkeypatch) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -142,7 +142,7 @@ async def test_parse_command_with_scalar_response(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_missing_content(monkeypatch, caplog):
+async def test_parse_command_with_missing_content(monkeypatch, caplog) -> None:
     class FakeResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {})()})]
 
@@ -166,7 +166,7 @@ async def test_parse_command_with_missing_content(monkeypatch, caplog):
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_non_string_content(monkeypatch, caplog):
+async def test_parse_command_with_non_string_content(monkeypatch, caplog) -> None:
     class FakeResponse:
         choices = [
             type(

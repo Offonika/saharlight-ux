@@ -21,16 +21,16 @@ class DummyQuery:
         self.edit_kwargs = []
         self.message = DummyMessage()
 
-    async def answer(self):
+    async def answer(self) -> None:
         pass
 
-    async def edit_message_text(self, text, **kwargs):
+    async def edit_message_text(self, text: str, **kwargs: Any) -> None:
         self.edited.append(text)
         self.edit_kwargs.append(kwargs)
 
 
 @pytest.mark.asyncio
-async def test_callback_router_cancel_entry_sends_menu():
+async def test_callback_router_cancel_entry_sends_menu() -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
@@ -51,7 +51,7 @@ async def test_callback_router_cancel_entry_sends_menu():
 
 
 @pytest.mark.asyncio
-async def test_callback_router_invalid_entry_id(caplog):
+async def test_callback_router_invalid_entry_id(caplog) -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
@@ -69,7 +69,7 @@ async def test_callback_router_invalid_entry_id(caplog):
 
 
 @pytest.mark.asyncio
-async def test_callback_router_unknown_data(caplog):
+async def test_callback_router_unknown_data(caplog) -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
@@ -87,7 +87,7 @@ async def test_callback_router_unknown_data(caplog):
 
 
 @pytest.mark.asyncio
-async def test_callback_router_ignores_reminder_action():
+async def test_callback_router_ignores_reminder_action() -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401

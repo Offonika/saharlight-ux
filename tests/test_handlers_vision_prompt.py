@@ -22,7 +22,7 @@ class DummyPhoto:
 
 
 @pytest.mark.asyncio
-async def test_photo_prompt_includes_dish_name(monkeypatch, tmp_path):
+async def test_photo_prompt_includes_dish_name(monkeypatch, tmp_path) -> None:
     monkeypatch.chdir(tmp_path)
 
     async def fake_get_file(file_id):

@@ -24,7 +24,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_dose_sugar_requires_carbs_or_xe():
+async def test_dose_sugar_requires_carbs_or_xe() -> None:
     entry = {
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),

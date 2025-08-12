@@ -16,7 +16,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_edits_pending_entry_keeps_state():
+async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
     entry = {
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -39,7 +39,7 @@ async def test_freeform_handler_edits_pending_entry_keeps_state():
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_adds_sugar_to_photo_entry():
+async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
     entry = {
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -73,7 +73,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry():
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_sugar_only_flow():
+async def test_freeform_handler_sugar_only_flow() -> None:
     entry = {
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),

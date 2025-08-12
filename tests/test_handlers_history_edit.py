@@ -31,23 +31,27 @@ class DummyQuery:
         self.markups = []
         self.answer_texts = []
 
-    async def answer(self, text=None):
+    async def answer(self, text: str | None = None) -> None:
         self.answer_texts.append(text)
 
-    async def edit_message_reply_markup(self, reply_markup=None, **kwargs):
+    async def edit_message_reply_markup(
+        self, reply_markup: Any | None = None, **kwargs: Any
+    ) -> None:
         self.markups.append(reply_markup)
 
 
 class DummyBot:
-    def __init__(self):
-        self.edited: list[tuple[str, int, int, dict]] = []
+    def __init__(self) -> None:
+        self.edited: list[tuple[str, int, int, dict[str, Any]]] = []
 
-    async def edit_message_text(self, text, chat_id, message_id, **kwargs):
+    async def edit_message_text(
+        self, text: str, chat_id: int, message_id: int, **kwargs: Any
+    ) -> None:
         self.edited.append((text, chat_id, message_id, kwargs))
 
 
 @pytest.mark.asyncio
-async def test_history_view_buttons(monkeypatch):
+async def test_history_view_buttons(monkeypatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -122,7 +126,7 @@ async def test_history_view_buttons(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_edit_flow(monkeypatch):
+async def test_edit_flow(monkeypatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401

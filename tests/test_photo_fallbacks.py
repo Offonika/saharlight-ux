@@ -38,7 +38,7 @@ async def _exercise(handler):
 
 
 @pytest.mark.asyncio
-async def test_profile_conv_photo_fallback():
+async def test_profile_conv_photo_fallback() -> None:
     handler = next(
         h
         for h in profile_handlers.profile_conv.fallbacks
@@ -50,7 +50,7 @@ async def test_profile_conv_photo_fallback():
 
 
 @pytest.mark.asyncio
-async def test_sugar_conv_photo_fallback():
+async def test_sugar_conv_photo_fallback() -> None:
     handler = next(
         h
         for h in dose_handlers.sugar_conv.fallbacks
@@ -62,7 +62,7 @@ async def test_sugar_conv_photo_fallback():
 
 
 @pytest.mark.asyncio
-async def test_onboarding_conv_photo_fallback():
+async def test_onboarding_conv_photo_fallback() -> None:
     handler = next(
         h
         for h in onboarding_handlers.onboarding_conv.fallbacks
@@ -74,7 +74,7 @@ async def test_onboarding_conv_photo_fallback():
 
 
 @pytest.mark.asyncio
-async def test_sos_contact_conv_photo_fallback():
+async def test_sos_contact_conv_photo_fallback() -> None:
     handler = next(
         h
         for h in sos_handlers.sos_contact_conv.fallbacks

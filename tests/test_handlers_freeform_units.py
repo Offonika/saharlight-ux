@@ -15,7 +15,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_warns_on_sugar_unit_mix():
+async def test_freeform_handler_warns_on_sugar_unit_mix() -> None:
     message = DummyMessage("сахар 5 XE")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={})
@@ -28,7 +28,7 @@ async def test_freeform_handler_warns_on_sugar_unit_mix():
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_warns_on_dose_unit_mix():
+async def test_freeform_handler_warns_on_dose_unit_mix() -> None:
     message = DummyMessage("доза 7 ммоль")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={})
@@ -41,7 +41,7 @@ async def test_freeform_handler_warns_on_dose_unit_mix():
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_guidance_on_valueerror(monkeypatch):
+async def test_freeform_handler_guidance_on_valueerror(monkeypatch) -> None:
     message = DummyMessage("whatever")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(user_data={})

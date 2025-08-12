@@ -31,7 +31,7 @@ def _get_menu_handler(fallbacks):
 
 
 @pytest.mark.asyncio
-async def test_sugar_conv_menu_then_photo():
+async def test_sugar_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(dose_handlers.sugar_conv.fallbacks)
     message = DummyMessage("/menu")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
@@ -51,7 +51,7 @@ async def test_sugar_conv_menu_then_photo():
     assert any("фото" in r.lower() for r in next_message.replies)
 
 @pytest.mark.asyncio
-async def test_dose_conv_menu_then_photo():
+async def test_dose_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(dose_handlers.dose_conv.fallbacks)
     message = DummyMessage("/menu")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))

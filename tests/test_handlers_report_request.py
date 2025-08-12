@@ -20,15 +20,15 @@ class DummyQuery:
         self.data = data
         self.edited: list[str] = []
 
-    async def answer(self):
+    async def answer(self) -> None:
         pass
 
-    async def edit_message_text(self, text, **kwargs):
+    async def edit_message_text(self, text: str, **kwargs: Any) -> None:
         self.edited.append(text)
 
 
 @pytest.mark.asyncio
-async def test_report_request_and_custom_flow(monkeypatch):
+async def test_report_request_and_custom_flow(monkeypatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -76,7 +76,7 @@ async def test_report_request_and_custom_flow(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_report_period_callback_week(monkeypatch):
+async def test_report_period_callback_week(monkeypatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401

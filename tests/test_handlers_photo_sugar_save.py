@@ -59,7 +59,7 @@ session = DummySession()
 
 
 @pytest.mark.asyncio
-async def test_photo_flow_saves_entry(monkeypatch, tmp_path):
+async def test_photo_flow_saves_entry(monkeypatch, tmp_path) -> None:
     async def fake_parse_command(text):
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 

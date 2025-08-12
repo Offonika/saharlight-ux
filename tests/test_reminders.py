@@ -29,29 +29,31 @@ class DummyMessage:
 
 
 class DummyCallbackQuery:
-    def __init__(self, data, message, id="1"):
+    def __init__(self, data: str, message: DummyMessage, id: str = "1") -> None:
         self.data = data
         self.message = message
         self.id = id
-        self.answers = []
-        self.edited = None
+        self.answers: list[str | None] = []
+        self.edited: tuple[str, dict[str, Any]] | None = None
 
-    async def answer(self, text=None, **kwargs):
+    async def answer(self, text: str | None = None, **kwargs: Any) -> None:
         self.answers.append(text)
 
-    async def edit_message_text(self, text, **kwargs):
+    async def edit_message_text(self, text: str, **kwargs: Any) -> None:
         self.edited = (text, kwargs)
 
 
 class DummyBot:
-    def __init__(self):
-        self.messages = []
-        self.cb_answers = []
+    def __init__(self) -> None:
+        self.messages: list[tuple[int | str, str, dict[str, Any]]] = []
+        self.cb_answers: list[tuple[str, str | None]] = []
 
-    async def send_message(self, chat_id, text, **kwargs):
+    async def send_message(self, chat_id: int | str, text: str, **kwargs: Any) -> None:
         self.messages.append((chat_id, text, kwargs))
 
-    async def answer_callback_query(self, callback_query_id, text: str | None = None, **kwargs):
+    async def answer_callback_query(
+        self, callback_query_id: str, text: str | None = None, **kwargs: Any
+    ) -> None:
         self.cb_answers.append((callback_query_id, text))
 
 
@@ -224,7 +226,7 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_reminders_list_no_keyboard(monkeypatch):
+async def test_reminders_list_no_keyboard(monkeypatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -251,7 +253,7 @@ async def test_reminders_list_no_keyboard(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_toggle_reminder_cb(monkeypatch):
+async def test_toggle_reminder_cb(monkeypatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -282,7 +284,7 @@ async def test_toggle_reminder_cb(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_delete_reminder_cb(monkeypatch):
+async def test_delete_reminder_cb(monkeypatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -311,7 +313,7 @@ async def test_delete_reminder_cb(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_edit_reminder(monkeypatch):
+async def test_edit_reminder(monkeypatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -345,7 +347,7 @@ async def test_edit_reminder(monkeypatch):
     assert jobs[1].removed is False
 
 @pytest.mark.asyncio
-async def test_trigger_job_logs(monkeypatch):
+async def test_trigger_job_logs(monkeypatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -384,7 +386,7 @@ async def test_trigger_job_logs(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_cancel_callback(monkeypatch):
+async def test_cancel_callback(monkeypatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -409,7 +411,7 @@ async def test_cancel_callback(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_reminder_callback_foreign_rid(monkeypatch):
+async def test_reminder_callback_foreign_rid(monkeypatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

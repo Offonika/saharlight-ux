@@ -28,7 +28,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_onboarding_demo_photo_missing(monkeypatch, caplog):
+async def test_onboarding_demo_photo_missing(monkeypatch, caplog) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 

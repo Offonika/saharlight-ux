@@ -45,7 +45,7 @@ def _setup_db():
 
 
 @pytest.mark.asyncio
-async def test_bad_input_does_not_create_entry():
+async def test_bad_input_does_not_create_entry() -> None:
     TestSession = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "bad"}))
     update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
@@ -57,7 +57,7 @@ async def test_bad_input_does_not_create_entry():
 
 
 @pytest.mark.asyncio
-async def test_good_input_updates_and_ends():
+async def test_good_input_updates_and_ends() -> None:
     TestSession = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "09:30"}))
     update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))

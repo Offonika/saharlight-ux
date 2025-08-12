@@ -17,7 +17,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_quick_input_help_button():
+async def test_quick_input_help_button() -> None:
     """Simulate the "🕹 Быстрый ввод" menu button and verify the hint."""
 
     message = DummyMessage("🕹 Быстрый ввод")

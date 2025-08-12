@@ -36,7 +36,7 @@ class DummyMessage:
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_and_view(monkeypatch, args, expected_icr, expected_cf, expected_target, expected_low, expected_high):
+async def test_profile_command_and_view(monkeypatch, args, expected_icr, expected_cf, expected_target, expected_low, expected_high) -> None:
     import os
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
@@ -94,7 +94,7 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_invalid_values(monkeypatch, args):
+async def test_profile_command_invalid_values(monkeypatch, args) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -119,7 +119,7 @@ async def test_profile_command_invalid_values(monkeypatch, args):
 
 
 @pytest.mark.asyncio
-async def test_profile_command_help_and_dialog(monkeypatch):
+async def test_profile_command_help_and_dialog(monkeypatch) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -146,7 +146,7 @@ async def test_profile_command_help_and_dialog(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_profile_view_preserves_user_data(monkeypatch):
+async def test_profile_view_preserves_user_data(monkeypatch) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
