@@ -11,7 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import services.api.app.diabetes.handlers.alert_handlers as handlers
-from services.api.app.diabetes.handlers.common_handlers import commit_session
+from services.api.app.diabetes.handlers.db_helpers import commit_session
 from services.api.app.diabetes.services.db import Base, User, Profile, Alert
 
 

@@ -2,7 +2,7 @@ import os
 import re
 from telegram.ext import ApplicationBuilder, MessageHandler
 from services.api.app.diabetes.utils.ui import menu_keyboard
-import services.api.app.diabetes.handlers.common_handlers as handlers
+import services.api.app.diabetes.handlers.registration as handlers
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 

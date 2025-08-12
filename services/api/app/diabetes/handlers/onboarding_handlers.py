@@ -32,7 +32,7 @@ from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import Cal
 
 from services.api.app.diabetes.services.db import SessionLocal, User, Profile, Reminder
 from services.api.app.diabetes.utils.ui import menu_keyboard, build_timezone_webapp_button
-from .common_handlers import commit_session
+from .db_helpers import commit_session
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from openai import OpenAIError

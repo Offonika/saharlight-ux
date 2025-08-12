@@ -27,7 +27,7 @@ from services.api.app.diabetes.services.db import (
     User,
     run_db,
 )
-from .common_handlers import commit_session as _commit_session
+from .db_helpers import commit_session as _commit_session
 from services.api.app.config import WEBAPP_URL
 from services.api.app.diabetes.utils.helpers import (
     INVALID_TIME_MSG,

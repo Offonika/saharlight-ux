@@ -15,7 +15,7 @@ from services.api.app.diabetes.services.db import (
     SessionLocal as _SessionLocal,
     run_db,
 )
-from services.api.app.diabetes.handlers.common_handlers import (
+from services.api.app.diabetes.handlers.db_helpers import (
     commit_session as _commit_session,
 )
 from services.api.app.diabetes.utils.helpers import get_coords_and_link

@@ -26,7 +26,7 @@ from services.api.app.diabetes.utils.ui import (
     menu_keyboard,
 )
 from services.api.app.config import WEBAPP_URL, API_URL
-from .common_handlers import commit_session
+from .db_helpers import commit_session
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 logger = logging.getLogger(__name__)

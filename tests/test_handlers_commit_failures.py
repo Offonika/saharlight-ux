@@ -9,8 +9,8 @@ import pytest
 from sqlalchemy.exc import SQLAlchemyError
 from telegram.ext import ConversationHandler
 import services.api.app.diabetes.handlers.profile_handlers as profile_handlers
-import services.api.app.diabetes.handlers.common_handlers as common_handlers
-from services.api.app.diabetes.handlers.common_handlers import commit_session
+import services.api.app.diabetes.handlers.router as router
+from services.api.app.diabetes.handlers.db_helpers import commit_session
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 
@@ -87,7 +87,7 @@ async def test_callback_router_commit_failure(monkeypatch, caplog) -> None:
     rem = SimpleNamespace(id=1, telegram_id=1)
     session.get.return_value = rem
 
-    monkeypatch.setattr(common_handlers, "SessionLocal", lambda: session)
+    monkeypatch.setattr(router, "SessionLocal", lambda: session)
 
     pending_entry = {
         "telegram_id": 1,
@@ -98,7 +98,7 @@ async def test_callback_router_commit_failure(monkeypatch, caplog) -> None:
     context = SimpleNamespace(user_data={"pending_entry": pending_entry})
 
     with caplog.at_level(logging.ERROR):
-        await common_handlers.callback_router(update, context)
+        await router.callback_router(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
@@ -251,7 +251,7 @@ async def test_reminder_callback_commit_failure(monkeypatch, caplog) -> None:
     session.get.return_value = rem
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
-    reminder_handlers.commit_session = common_handlers.commit_session
+    reminder_handlers.commit_session = commit_session
 
     def failing_commit(sess):
         sess.rollback()

@@ -10,8 +10,8 @@ from typing import Any
 
 from services.api.app.diabetes.services.db import Base, User, Reminder, ReminderLog
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
-import services.api.app.diabetes.handlers.common_handlers as common_handlers
-from services.api.app.diabetes.handlers.common_handlers import commit_session
+import services.api.app.diabetes.handlers.router as router
+from services.api.app.diabetes.handlers.db_helpers import commit_session
 from services.api.app.diabetes.utils.helpers import parse_time_interval
 
 
@@ -274,7 +274,7 @@ async def test_toggle_reminder_cb(monkeypatch) -> None:
     update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(job_queue=job_queue, user_data={"pending_entry": {}})
     await handlers.reminder_action_cb(update, context)
-    await common_handlers.callback_router(update, context)
+    await router.callback_router(update, context)
 
     with TestSession() as session:
         assert not session.get(Reminder, 1).is_enabled

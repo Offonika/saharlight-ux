@@ -37,7 +37,8 @@ from services.api.app.diabetes.utils.functions import (
 from services.api.app.diabetes.services.gpt_client import create_thread, send_message, _get_client
 from services.api.app.diabetes.gpt_command_parser import parse_command
 from services.api.app.diabetes.utils.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
-from .common_handlers import commit_session, menu_command
+from .db_helpers import commit_session
+from .common_handlers import menu_command
 from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry
 from .profile_handlers import profile_view

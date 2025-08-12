@@ -78,7 +78,7 @@ def main() -> None:
     )
     application.add_error_handler(error_handler)
 
-    from services.api.app.diabetes.handlers.common_handlers import register_handlers
+    from services.api.app.diabetes.handlers.registration import register_handlers
 
     register_handlers(application)
     application.run_polling()

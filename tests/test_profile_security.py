@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 from services.api.app.diabetes.services.db import Base, User, Profile, Alert, Reminder
 import services.api.app.diabetes.handlers.profile_handlers as handlers
-from services.api.app.diabetes.handlers.common_handlers import commit_session
+from services.api.app.diabetes.handlers.db_helpers import commit_session
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
 
