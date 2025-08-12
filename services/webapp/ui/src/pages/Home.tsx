@@ -48,6 +48,8 @@ const Home = () => {
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['day-stats', user?.id],
     queryFn: () => fetchDayStats(user?.id ?? 0),
+    enabled: !!user?.id,
+    placeholderData: fallbackDayStats,
   });
 
   const dayStats = stats ?? fallbackDayStats;
