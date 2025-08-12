@@ -12,7 +12,7 @@ from telegram.ext import (
 )
 import json
 import logging
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from diabetes_sdk.api.default_api import DefaultApi
 from diabetes_sdk.api_client import ApiClient
@@ -329,7 +329,8 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
         return await profile_cancel(update, context)
     try:
         ZoneInfo(raw)
-    except Exception:
+    except ZoneInfoNotFoundError:
+        logger.warning("Invalid timezone provided: %s", raw)
         await update.message.reply_text(
             "Некорректный часовой пояс. Пример: Europe/Moscow",
             reply_markup=back_keyboard,
