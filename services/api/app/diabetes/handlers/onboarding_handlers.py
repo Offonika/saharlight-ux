@@ -14,6 +14,7 @@ invocations show the greeting and menu without triggering the wizard.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from telegram import (
     InlineKeyboardButton,
@@ -35,6 +36,10 @@ from .common_handlers import commit_session
 from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
+
+DEMO_PHOTO_PATH = (
+    Path(__file__).resolve().parents[5] / "docs" / "assets" / "demo.jpg"
+)
 
 
 # Wizard states
@@ -231,7 +236,7 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
         [[InlineKeyboardButton("Далее", callback_data="onb_next")]]
     )
     try:
-        with open("docs/assets/demo.jpg", "rb") as photo:
+        with DEMO_PHOTO_PATH.open("rb") as photo:
             await update.message.reply_photo(
                 photo=photo,
                 caption="2/3. Вот пример распознавания еды.",
