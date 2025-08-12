@@ -811,7 +811,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                         return ConversationHandler.END
             context.user_data["thread_id"] = thread_id
 
-        run = send_message(
+        run = await send_message(
             thread_id=thread_id,
             content=(
                 "Определи **название** блюда и количество углеводов/ХЕ. Ответ:\n"
@@ -854,7 +854,8 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             if run.status in ("completed", "failed", "cancelled", "expired"):
                 break
             await asyncio.sleep(2)
-            run = _get_client().beta.threads.runs.retrieve(
+            run = await asyncio.to_thread(
+                _get_client().beta.threads.runs.retrieve,
                 thread_id=run.thread_id,
                 run_id=run.id,
             )
@@ -922,7 +923,10 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 await message.reply_text("⚠️ Vision не смог обработать фото.")
             return ConversationHandler.END
 
-        messages = _get_client().beta.threads.messages.list(thread_id=run.thread_id)
+        messages = await asyncio.to_thread(
+            _get_client().beta.threads.messages.list,
+            thread_id=run.thread_id,
+        )
         for m in messages.data:
             content = _sanitize(m.content)
             logger.debug("[VISION][MSG] m.role=%s; content=%s", m.role, content)

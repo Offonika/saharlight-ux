@@ -90,7 +90,7 @@ async def test_photo_flow_saves_entry(monkeypatch, tmp_path) -> None:
         thread_id = "tid"
         id = "runid"
 
-    def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs):
         return Run()
 
     class DummyClient:
