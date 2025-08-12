@@ -29,7 +29,7 @@ from telegram.ext import (
 )
 from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
-from services.api.app.diabetes.services.db import SessionLocal, User, Profile
+from services.api.app.diabetes.services.db import SessionLocal, User, Profile, Reminder
 from services.api.app.diabetes.utils.ui import menu_keyboard, build_timezone_webapp_button
 from .common_handlers import commit_session
 from zoneinfo import ZoneInfo
@@ -279,15 +279,52 @@ async def onboarding_reminders(
     await query.answer()
     enable = query.data == "onb_rem_yes"
     user_id = update.effective_user.id
+    reminders: list[Reminder] = []
     with SessionLocal() as session:
         user = session.get(User, user_id)
         if user:
             user.onboarding_complete = True
+            if enable:
+                reminders = (
+                    session.query(Reminder)
+                    .filter_by(telegram_id=user_id, type="sugar")
+                    .all()
+                )
+                if not reminders:
+                    reminders = [
+                        Reminder(
+                            telegram_id=user_id,
+                            type="sugar",
+                            interval_hours=4,
+                        )
+                    ]
+                    session.add_all(reminders)
+                else:
+                    for rem in reminders:
+                        rem.is_enabled = True
+            else:
+                reminders = (
+                    session.query(Reminder)
+                    .filter_by(telegram_id=user_id, type="sugar")
+                    .all()
+                )
+                for rem in reminders:
+                    rem.is_enabled = False
             if not commit_session(session):
                 await query.message.reply_text(
                     "⚠️ Не удалось сохранить настройки."
                 )
                 return ConversationHandler.END
+
+    if enable:
+        from . import reminder_handlers
+
+        for rem in reminders:
+            reminder_handlers.schedule_reminder(rem, context.job_queue)
+    else:
+        for rem in reminders:
+            for job in context.job_queue.get_jobs_by_name(f"reminder_{rem.id}"):
+                job.schedule_removal()
 
     logger.info("User %s reminder choice: %s", user_id, enable)
 
