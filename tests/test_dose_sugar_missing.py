@@ -1,10 +1,11 @@
 import datetime
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
-from telegram.ext import ConversationHandler
+from telegram import Update
+from telegram.ext import CallbackContext, ConversationHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -30,8 +31,13 @@ async def test_dose_sugar_requires_carbs_or_xe() -> None:
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
     message = DummyMessage("5.5")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"pending_entry": entry})
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"pending_entry": entry}),
+    )
 
     result = await dose_handlers.dose_sugar(update, context)
 

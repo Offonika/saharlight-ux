@@ -41,14 +41,14 @@ class DummySession:
     def __init__(self):
         self.added = []
 
-    def __enter__(self):
+    def __enter__(self) -> "DummySession":
         return self
 
-    def __exit__(self, exc_type, exc, tb):
+    def __exit__(self, exc_type, exc, tb) -> None:
         pass
 
-    def add(self, obj):
-        self.added.append(obj)
+    def add(self, entry: Any) -> None:
+        self.added.append(entry)
 
     def commit(self):
         pass

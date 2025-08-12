@@ -39,10 +39,10 @@ async def test_run_db_postgres(monkeypatch) -> None:
         def get_bind(self):
             return dummy_engine
 
-        def __enter__(self):
+        def __enter__(self) -> "DummySession":
             return self
 
-        def __exit__(self, exc_type, exc, tb):
+        def __exit__(self, exc_type, exc, tb) -> None:
             pass
 
     def dummy_sessionmaker():

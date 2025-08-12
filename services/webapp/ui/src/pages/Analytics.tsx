@@ -1,23 +1,36 @@
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-
-const data = [
-  { date: '2024-01-01', sugar: 5.5 },
-  { date: '2024-01-02', sugar: 6.1 },
-  { date: '2024-01-03', sugar: 5.8 },
-  { date: '2024-01-04', sugar: 6.0 },
-  { date: '2024-01-05', sugar: 5.4 },
-];
+import { useTelegram } from '@/hooks/useTelegram';
+import { fetchAnalytics, fallbackAnalytics } from '@/api/stats';
 
 const Analytics = () => {
   const navigate = useNavigate();
+  const { user } = useTelegram();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['analytics', user?.id],
+    queryFn: () => fetchAnalytics(user?.id ?? 0),
+    enabled: !!user?.id,
+    placeholderData: fallbackAnalytics,
+  });
+
+  const chartData = data ?? fallbackAnalytics;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
       <MedicalHeader title="Аналитика" showBack onBack={() => navigate('/history')} />
       <main className="container mx-auto px-4 py-6">
+        {isLoading && (
+          <p className="text-center text-muted-foreground mb-4">Загрузка...</p>
+        )}
+        {error && (
+          <p className="text-center text-destructive mb-4">
+            Не удалось загрузить данные
+          </p>
+        )}
         <ChartContainer
           config={{
             sugar: {
@@ -27,7 +40,7 @@ const Analytics = () => {
           }}
           className="h-64"
         >
-          <LineChart data={data}>
+          <LineChart data={chartData}>
             <XAxis dataKey="date" />
             <YAxis />
             <ChartTooltip content={<ChartTooltipContent />} />

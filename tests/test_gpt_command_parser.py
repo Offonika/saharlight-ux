@@ -195,6 +195,20 @@ async def test_parse_command_with_non_string_content(monkeypatch, caplog) -> Non
     assert "Content is not a string in GPT response" in caplog.text
 
 
+@pytest.mark.asyncio
+async def test_parse_command_handles_unexpected_exception(monkeypatch, caplog) -> None:
+    def bad_client() -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(gpt_command_parser, "_get_client", bad_client)
+
+    with caplog.at_level(logging.ERROR):
+        result = await gpt_command_parser.parse_command("test")
+
+    assert result is None
+    assert "Unexpected error during command parsing" in caplog.text
+
+
 @pytest.mark.parametrize(
     "token",
     [

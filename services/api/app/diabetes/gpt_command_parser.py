@@ -7,7 +7,7 @@ from openai import OpenAIError
 
 from services.api.app.diabetes.services.gpt_client import _get_client
 
-# gpt_command_parser.py  ← замените весь блок SYSTEM_PROMPT
+# Prompt guiding GPT to convert free-form diary text into a single JSON command
 SYSTEM_PROMPT = (
     "Ты — парсер дневника диабетика.\n"
     "Из свободного текста пользователя извлеки команду и верни СТРОГО ОДИН "
@@ -102,7 +102,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
         return None
     except Exception:
         logging.exception("Unexpected error during command parsing")
-        raise
+        return None
 
     choices = getattr(response, "choices", None)
     if not choices:

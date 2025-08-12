@@ -220,10 +220,10 @@ async def test_photo_then_freeform_calculates_dose(
     await handlers.photo_handler(update_photo, context)
 
     class DummySession:
-        def __enter__(self):
+        def __enter__(self) -> "DummySession":
             return self
 
-        def __exit__(self, exc_type, exc, tb):
+        def __exit__(self, exc_type, exc, tb) -> None:
             pass
 
         def get(self, model, user_id):
