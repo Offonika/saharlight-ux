@@ -1,8 +1,8 @@
-import pytest
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
 from telegram import Message
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers

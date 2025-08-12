@@ -1,5 +1,6 @@
-from types import SimpleNamespace
 import os
+from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -13,9 +14,9 @@ from services.api.app.diabetes.utils.ui import sugar_keyboard
 class DummyMessage:
     def __init__(self):
         self.texts: list[str] = []
-        self.kwargs: list[dict] = []
+        self.kwargs: list[dict[str, Any]] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
         self.kwargs.append(kwargs)
 

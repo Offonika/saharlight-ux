@@ -1,6 +1,7 @@
 import asyncio
 import time
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -8,7 +9,7 @@ from services.api.app.diabetes.handlers import reporting_handlers
 
 
 class DummyMessage:
-    async def reply_text(self, *args, **kwargs):
+    async def reply_text(self, *args: Any, **kwargs: Any) -> None:
         pass
 
 

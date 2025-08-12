@@ -1,5 +1,6 @@
 import datetime
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from sqlalchemy import create_engine
@@ -13,7 +14,7 @@ class DummyMessage:
     def __init__(self):
         self.texts: list[str] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
 
 

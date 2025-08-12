@@ -1,6 +1,7 @@
-import os
 import datetime
+import os
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from sqlalchemy import create_engine
@@ -17,9 +18,9 @@ class DummyMessage:
         self.text = text
         self.chat_id = chat_id
         self.message_id = message_id
-        self.replies: list[tuple[str, dict]] = []
+        self.replies: list[tuple[str, dict[str, Any]]] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append((text, kwargs))
 
 

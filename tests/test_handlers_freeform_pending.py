@@ -1,16 +1,17 @@
 import datetime
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
 
 class DummyMessage:
-    def __init__(self, text):
+    def __init__(self, text: str):
         self.text = text
-        self.replies = []
+        self.replies: list[tuple[str, dict[str, Any]]] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append((text, kwargs))
 
 

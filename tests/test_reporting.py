@@ -4,6 +4,7 @@ import datetime
 import io
 import os
 from types import SimpleNamespace
+from typing import Any
 
 import matplotlib.pyplot as plt
 import pytest
@@ -167,15 +168,15 @@ async def test_send_report_uses_gpt(monkeypatch):
 
     class DummyMessage:
         def __init__(self):
-            self.docs = []
+            self.docs: list[Any] = []
 
-        async def reply_text(self, *args, **kwargs):
+        async def reply_text(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        async def reply_photo(self, *args, **kwargs):
+        async def reply_photo(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        async def reply_document(self, document, **kwargs):
+        async def reply_document(self, document: Any, **kwargs: Any) -> None:
             self.docs.append(document)
 
     message = DummyMessage()

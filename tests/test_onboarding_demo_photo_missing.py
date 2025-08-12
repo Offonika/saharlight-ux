@@ -1,7 +1,8 @@
+import logging
 import os
 from types import SimpleNamespace
+from typing import Any
 
-import logging
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,15 +12,17 @@ from services.api.app.diabetes.services.db import Base
 
 class DummyMessage:
     def __init__(self):
-        self.texts = []
-        self.photos = []
-        self.markups = []
+        self.texts: list[str] = []
+        self.photos: list[tuple[Any, str | None]] = []
+        self.markups: list[Any] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
         self.markups.append(kwargs.get("reply_markup"))
 
-    async def reply_photo(self, photo, caption=None, **kwargs):
+    async def reply_photo(
+        self, photo: Any, caption: str | None = None, **kwargs: Any
+    ) -> None:
         self.photos.append((photo, caption))
         self.markups.append(kwargs.get("reply_markup"))
 

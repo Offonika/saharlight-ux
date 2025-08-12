@@ -1,5 +1,6 @@
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -8,24 +9,24 @@ import services.api.app.diabetes.handlers.common_handlers as common_handlers
 
 
 class DummyMessage:
-    def __init__(self, text=None, photo=None):
+    def __init__(self, text: str | None = None, photo: list[Any] | None = None):
         self.text = text
         self.photo = photo
-        self.replies = []
+        self.replies: list[tuple[str, dict[str, Any]]] = []
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append((text, kwargs))
 
 
 class DummyQuery:
-    def __init__(self, data):
+    def __init__(self, data: str):
         self.data = data
-        self.edited = []
+        self.edited: list[str] = []
 
-    async def answer(self):
+    async def answer(self) -> None:
         pass
 
-    async def edit_message_text(self, text, **kwargs):
+    async def edit_message_text(self, text: str, **kwargs: Any) -> None:
         self.edited.append(text)
 
 

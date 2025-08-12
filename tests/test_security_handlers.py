@@ -1,14 +1,15 @@
 import pytest
 from types import SimpleNamespace
+from typing import Any
 
 import services.api.app.diabetes.handlers.security_handlers as handlers
 
 
 class DummyMessage:
     def __init__(self):
-        self.replies = []
+        self.replies: list[str] = []
 
-    async def reply_text(self, text):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append(text)
 
 

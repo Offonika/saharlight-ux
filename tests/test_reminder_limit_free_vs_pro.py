@@ -1,6 +1,7 @@
-from types import SimpleNamespace
-
 import json
+from types import SimpleNamespace
+from typing import Any
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -14,7 +15,7 @@ class DummyMessage:
         self.web_app_data = SimpleNamespace()
         self.replies: list[str] = []
 
-    async def reply_text(self, text, **kwargs):  # pragma: no cover - kwargs unused
+    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - kwargs unused
         self.replies.append(text)
 
 

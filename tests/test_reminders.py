@@ -6,6 +6,8 @@ from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from typing import Any
+
 from services.api.app.diabetes.services.db import Base, User, Reminder, ReminderLog
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 import services.api.app.diabetes.handlers.common_handlers as common_handlers
@@ -14,15 +16,15 @@ from services.api.app.diabetes.utils.helpers import parse_time_interval
 
 
 class DummyMessage:
-    def __init__(self, text=None):
+    def __init__(self, text: str | None = None):
         self.text = text
-        self.texts = []
-        self.edited = None
+        self.texts: list[str] = []
+        self.edited: tuple[str, dict[str, Any]] | None = None
 
-    async def reply_text(self, text, **kwargs):
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
 
-    async def edit_text(self, text, **kwargs):
+    async def edit_text(self, text: str, **kwargs: Any) -> None:
         self.edited = (text, kwargs)
 
 
