@@ -1,5 +1,16 @@
-from diabetes_sdk import Configuration
-from diabetes_sdk.api import default_api
+"""Worker service entry point."""
+
+import sys
+
+try:
+  from diabetes_sdk import Configuration
+  from diabetes_sdk.api import default_api
+except ImportError:
+  print(
+    "diabetes_sdk is required to run the worker. "
+    "Install it with 'pip install diabetes_sdk'."
+  )
+  sys.exit(1)
 
 
 def run() -> None:
