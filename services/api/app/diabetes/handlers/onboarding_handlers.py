@@ -162,8 +162,13 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         )
         return ONB_PROFILE_TARGET
 
-    icr = context.user_data.pop("profile_icr")
-    cf = context.user_data.pop("profile_cf")
+    icr = context.user_data.pop("profile_icr", None)
+    cf = context.user_data.pop("profile_cf", None)
+    if icr is None or cf is None:
+        await update.message.reply_text(
+            "⚠️ Не хватает данных для профиля. Пожалуйста, начните заново."
+        )
+        return ConversationHandler.END
     user_id = update.effective_user.id
 
     with SessionLocal() as session:
