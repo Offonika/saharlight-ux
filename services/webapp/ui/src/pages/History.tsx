@@ -107,12 +107,28 @@ const History = () => {
       }
     }
   };
+  const handleDeleteRecord = async (id: string) => {
+    // Optimistically remove record from UI
+    setRecords(prev => prev.filter(r => r.id !== id));
 
-  const handleDeleteRecord = (id: string) => {
-    toast({
-      title: "Запись удалена",
-      description: "Запись успешно удалена из истории"
-    });
+    try {
+      const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.status !== 'ok') {
+        throw new Error(data.detail || 'Не удалось удалить запись');
+      }
+      toast({
+        title: 'Запись удалена',
+        description: 'Запись успешно удалена из истории',
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Неизвестная ошибка';
+      toast({
+        title: 'Ошибка',
+        description: message,
+        variant: 'destructive',
+      });
+    }
   };
 
   const getRecordIcon = (type: string) => {
