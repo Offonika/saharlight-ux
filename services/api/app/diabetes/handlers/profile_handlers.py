@@ -32,7 +32,7 @@ from services.api.app.diabetes.utils.ui import (
     back_keyboard,
     menu_keyboard,
 )
-from services.api.app.config import WEBAPP_URL, API_URL
+from services.api.app.config import settings
 from .db_helpers import commit_session
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
@@ -51,7 +51,7 @@ def _get_api():
             "diabetes_sdk is required but not installed. Install it with 'pip install -r requirements.txt'."
         )
         return None, None, None
-    api = DefaultApi(ApiClient(Configuration(host=API_URL)))
+    api = DefaultApi(ApiClient(Configuration(host=settings.api_url)))
     return api, ApiException, ProfileModel
 
 
@@ -238,13 +238,13 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🌐 Часовой пояс", callback_data="profile_timezone")],
         [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
     ]
-    if WEBAPP_URL:
+    if settings.webapp_url:
         rows.insert(
             1,
             [
                 InlineKeyboardButton(
                     "📝 Заполнить форму",
-                    web_app=WebAppInfo(f"{WEBAPP_URL}/profile"),
+                    web_app=WebAppInfo(f"{settings.webapp_url}/profile"),
                 )
             ],
         )
@@ -480,9 +480,9 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await sos_handlers.sos_contact_start(update.callback_query, context)
         return
-    if action == "add" and WEBAPP_URL:
+    if action == "add" and settings.webapp_url:
         button = InlineKeyboardButton(
-            "📝 Новое", web_app=WebAppInfo(f"{WEBAPP_URL}/reminders")
+            "📝 Новое", web_app=WebAppInfo(f"{settings.webapp_url}/reminders")
         )
         keyboard = InlineKeyboardMarkup([[button]])
         await query.message.reply_text("Создать напоминание:", reply_markup=keyboard)

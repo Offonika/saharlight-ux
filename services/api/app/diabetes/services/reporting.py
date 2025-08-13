@@ -13,11 +13,11 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont, TTFError
 from reportlab.pdfgen import canvas
 
-from services.api.app.config import FONT_DIR
+from services.api.app.config import settings
 
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
 DEFAULT_FONT_DIR = '/usr/share/fonts/truetype/dejavu'
-_font_dir = FONT_DIR or DEFAULT_FONT_DIR
+_font_dir = settings.font_dir or DEFAULT_FONT_DIR
 
 
 def _register_font(name, filename):

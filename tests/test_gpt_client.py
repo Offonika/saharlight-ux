@@ -7,6 +7,7 @@ import pytest
 from openai import OpenAIError
 
 from services.api.app.diabetes.services import gpt_client
+from services.api.app.config import settings
 
 
 def test_get_client_thread_safe(monkeypatch):
@@ -115,7 +116,7 @@ async def test_send_message_empty_string_preserved(tmp_path, monkeypatch):
     )
 
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
-    monkeypatch.setattr(gpt_client, "OPENAI_ASSISTANT_ID", "asst_test")
+    monkeypatch.setattr(settings, "openai_assistant_id", "asst_test")
 
     await gpt_client.send_message(thread_id="t", content="", image_path=str(img))
     assert captured["content"][1]["text"] == ""

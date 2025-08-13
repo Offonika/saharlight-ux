@@ -28,7 +28,7 @@ from services.api.app.diabetes.services.db import (
     run_db,
 )
 from .db_helpers import commit_session as _commit_session
-from services.api.app.config import WEBAPP_URL
+from services.api.app.config import settings
 from services.api.app.diabetes.utils.helpers import (
     INVALID_TIME_MSG,
     parse_time_interval,
@@ -137,16 +137,16 @@ def _render_reminders(
     if active_count > limit:
         header += " ⚠️"
     add_button_row: list[InlineKeyboardButton] | None = None
-    if WEBAPP_URL:
+    if settings.webapp_url:
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(f"{WEBAPP_URL}/reminders"),
+                web_app=WebAppInfo(f"{settings.webapp_url}/reminders"),
             )
         ]
     if not rems:
         text = header
-        if WEBAPP_URL:
+        if settings.webapp_url:
             text += "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
             return text, InlineKeyboardMarkup([add_button_row])
         text += "\nУ вас нет напоминаний. Отправьте /addreminder."
@@ -163,11 +163,11 @@ def _render_reminders(
         line = f"{r.id}. {title}"
         status_icon = "🔔" if r.is_enabled else "🔕"
         row: list[InlineKeyboardButton] = []
-        if WEBAPP_URL:
+        if settings.webapp_url:
             row.append(
                 InlineKeyboardButton(
                     "✏️",
-                    web_app=WebAppInfo(f"{WEBAPP_URL}/reminders?id={r.id}"),
+                    web_app=WebAppInfo(f"{settings.webapp_url}/reminders?id={r.id}"),
                 )
             )
         row.extend(

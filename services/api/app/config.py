@@ -69,22 +69,6 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-# Legacy module-level variables for backward compatibility
-LOG_LEVEL = settings.log_level
-DB_HOST = settings.db_host
-DB_PORT = settings.db_port
-DB_NAME = settings.db_name
-DB_USER = settings.db_user
-UVICORN_WORKERS = settings.uvicorn_workers
-WEBAPP_URL = settings.webapp_url
-API_URL = settings.api_url
-OPENAI_API_KEY = settings.openai_api_key
-OPENAI_ASSISTANT_ID = settings.openai_assistant_id
-OPENAI_PROXY = settings.openai_proxy
-FONT_DIR = settings.font_dir
-TELEGRAM_TOKEN = settings.telegram_token
-
-
 def get_db_password() -> Optional[str]:
     """Return the database password from a fresh ``Settings`` instance."""
     return Settings().db_password
