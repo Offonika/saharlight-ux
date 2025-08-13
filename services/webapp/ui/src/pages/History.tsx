@@ -1,70 +1,44 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, TrendingUp, Edit2, Trash2, Filter } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
-
-interface HistoryRecord {
-  id: string;
-  date: string;
-  time: string;
-  sugar?: number;
-  carbs?: number;
-  breadUnits?: number;
-  insulin?: number;
-  notes?: string;
-  type: 'measurement' | 'meal' | 'insulin';
-}
+import { getHistory, updateRecord, deleteRecord, HistoryRecord } from '@/api/history';
 
 const History = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [records, setRecords] = useState<HistoryRecord[]>([
-    {
-      id: '1',
-      date: '2024-01-08',
-      time: '08:30',
-      sugar: 6.2,
-      type: 'measurement',
-      notes: 'Утром натощак'
-    },
-    {
-      id: '2',
-      date: '2024-01-08',
-      time: '09:00',
-      sugar: 5.8,
-      carbs: 45,
-      breadUnits: 3.8,
-      insulin: 4,
-      type: 'meal',
-      notes: 'Завтрак: овсянка с фруктами'
-    },
-    {
-      id: '3',
-      date: '2024-01-08',
-      time: '13:15',
-      sugar: 8.2,
-      carbs: 60,
-      breadUnits: 5.0,
-      insulin: 6,
-      type: 'meal',
-      notes: 'Обед: макароны с мясом'
-    },
-    {
-      id: '4',
-      date: '2024-01-07',
-      time: '22:00',
-      insulin: 18,
-      type: 'insulin',
-      notes: 'Длинный инсулин перед сном'
-    }
-  ]);
-
+  const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [editingRecord, setEditingRecord] = useState<HistoryRecord | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getHistory();
+        if (!cancelled) {
+          setRecords(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const message =
+            err instanceof Error ? err.message : 'Неизвестная ошибка';
+          toast({
+            title: 'Ошибка',
+            description: message,
+            variant: 'destructive',
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [toast]);
 
   const filteredRecords = records.filter(record => {
     const dateMatch = !selectedDate || record.date === selectedDate;
@@ -79,16 +53,7 @@ const History = () => {
   const handleUpdateRecord = async () => {
     if (editingRecord) {
       try {
-        const res = await fetch('/api/history', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(editingRecord),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || data.status !== 'ok') {
-          throw new Error(data.detail || 'Не удалось обновить запись');
-        }
-
+        await updateRecord(editingRecord);
         setRecords(prev =>
           prev.map(r => (r.id === editingRecord.id ? editingRecord : r))
         );
@@ -112,11 +77,7 @@ const History = () => {
     setRecords(prev => prev.filter(r => r.id !== id));
 
     try {
-      const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.status !== 'ok') {
-        throw new Error(data.detail || 'Не удалось удалить запись');
-      }
+      await deleteRecord(id);
       toast({
         title: 'Запись удалена',
         description: 'Запись успешно удалена из истории',
