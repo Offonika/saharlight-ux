@@ -53,7 +53,7 @@ export default function CreateReminder() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
-  const { user } = useTelegram();
+  const { user, sendData } = useTelegram();
   const { toast } = useToast();
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
@@ -121,10 +121,15 @@ export default function CreateReminder() {
       ...(editing ? { id: editing.id } : {}),
     };
     try {
-      if (editing) {
-        await updateReminder(payload);
-      } else {
-        await createReminder(payload);
+      const res = editing
+        ? await updateReminder(payload)
+        : await createReminder(payload);
+      const rid = editing ? editing.id : res?.id;
+      const hours = interval != null ? interval / 60 : undefined;
+      const value =
+        hours != null && Number.isInteger(hours) ? `${hours}h` : time;
+      if (rid) {
+        sendData({ id: rid, type, value });
       }
       navigate("/reminders");
     } catch (err) {
