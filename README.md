@@ -112,6 +112,7 @@ python services/api/app/main.py
    ```bash
    uvicorn services.api.app.main:app --host 0.0.0.0 --port 8000
    ```
+   Приложение также подключает маршруты из `legacy.py`, предоставляя эндпоинты `/profiles` и `/api/reminders`, совместимые с SDK.
 
 ### Docker Compose
 ```bash

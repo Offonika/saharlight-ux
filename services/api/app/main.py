@@ -11,11 +11,13 @@ from .diabetes.services.db import (
     Timezone as TimezoneDB,
     run_db,
 )
+from .legacy import router
 from .schemas.history import HistoryRecordSchema
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+app.include_router(router)
 
 BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
 UI_DIR = BASE_DIR / "ui" / "dist"
