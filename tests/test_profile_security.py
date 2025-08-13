@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 from services.api.app.diabetes.services.db import Base, User, Profile, Alert, Reminder
 import services.api.app.diabetes.handlers.profile_handlers as handlers
-from services.api.app.diabetes.handlers.db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
 from services.api.app.config import settings
@@ -71,7 +71,7 @@ async def test_profile_security_threshold_changes(monkeypatch, action, expected_
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(handlers, "SessionLocal", TestSession)
-    monkeypatch.setattr(handlers, "commit_session", commit_session)
+    monkeypatch.setattr(handlers, "commit", commit)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -116,7 +116,7 @@ async def test_profile_security_toggle_sos_alerts(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(handlers, "SessionLocal", TestSession)
-    monkeypatch.setattr(handlers, "commit_session", commit_session)
+    monkeypatch.setattr(handlers, "commit", commit)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -160,7 +160,7 @@ async def test_profile_security_shows_reminders(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(handlers, "SessionLocal", TestSession)
-    monkeypatch.setattr(handlers, "commit_session", commit_session)
+    monkeypatch.setattr(handlers, "commit", commit)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -194,7 +194,7 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(handlers, "SessionLocal", TestSession)
-    monkeypatch.setattr(handlers, "commit_session", commit_session)
+    monkeypatch.setattr(handlers, "commit", commit)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -229,7 +229,7 @@ async def test_profile_security_sos_contact_calls_handler(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(handlers, "SessionLocal", TestSession)
-    monkeypatch.setattr(handlers, "commit_session", commit_session)
+    monkeypatch.setattr(handlers, "commit", commit)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))

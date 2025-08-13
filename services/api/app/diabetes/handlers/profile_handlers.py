@@ -33,7 +33,7 @@ from services.api.app.diabetes.utils.ui import (
     menu_keyboard,
 )
 from services.api.app.config import settings
-from .db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 logger = logging.getLogger(__name__)
@@ -341,7 +341,7 @@ def _set_timezone(session, user_id: int, tz: str) -> tuple[bool, bool]:
     if not user:
         return False, False
     user.timezone = tz
-    ok = commit_session(session)
+    ok = commit(session)
     return True, ok
 
 
@@ -439,7 +439,7 @@ def _security_db(session, user_id: int, action: str | None):
     commit_ok = True
     alert_sugar = None
     if changed:
-        commit_ok = commit_session(session)
+        commit_ok = commit(session)
         if commit_ok:
             alert = (
                 session.query(Alert)
@@ -699,7 +699,7 @@ def _save_profile(
     prof.target_bg = target
     prof.low_threshold = low
     prof.high_threshold = high
-    return commit_session(session)
+    return commit(session)
 
 
 async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

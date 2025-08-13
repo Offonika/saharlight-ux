@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from services.api.app.diabetes.services.db import Base, User, Reminder, Entry
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
-from services.api.app.diabetes.handlers.db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 
 
 class DummyMessage:
@@ -36,7 +36,7 @@ def _setup_db():
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))

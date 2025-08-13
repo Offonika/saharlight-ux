@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes
 from services.api.app.diabetes.services.db import Entry, SessionLocal
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
-from .db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         with SessionLocal() as session:
             entry = Entry(**entry_data)
             session.add(entry)
-            if not commit_session(session):
+            if not commit(session):
                 await query.edit_message_text("⚠️ Не удалось сохранить запись.")
                 return
         sugar = entry_data.get("sugar_before")
@@ -81,7 +81,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 return
             if action == "del":
                 session.delete(entry)
-                if not commit_session(session):
+                if not commit(session):
                     await query.edit_message_text("⚠️ Не удалось удалить запись.")
                     return
                 await query.edit_message_text("❌ Запись удалена.")
