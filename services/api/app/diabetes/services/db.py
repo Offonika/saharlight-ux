@@ -161,6 +161,27 @@ class ReminderLog(Base):
     event_time = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
 
+class Timezone(Base):
+    __tablename__ = "timezones"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tz = Column(String, nullable=False)
+
+
+class HistoryRecord(Base):
+    __tablename__ = "history_records"
+
+    id = Column(String, primary_key=True, index=True)
+    date = Column(String, nullable=False)
+    time = Column(String, nullable=False)
+    sugar = Column(Float)
+    carbs = Column(Float)
+    bread_units = Column(Float)
+    insulin = Column(Float)
+    notes = Column(Text)
+    type = Column(String, nullable=False)
+
+
 # ────────────────────── инициализация ────────────────────────
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
