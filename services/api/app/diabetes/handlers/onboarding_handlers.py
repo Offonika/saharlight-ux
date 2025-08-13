@@ -339,15 +339,20 @@ async def onboarding_reminders(
                 )
                 return ConversationHandler.END
 
-    if enable:
-        from . import reminder_handlers
+    if getattr(context, "job_queue", None):
+        if enable:
+            from . import reminder_handlers
 
-        for rem in reminders:
-            reminder_handlers.schedule_reminder(rem, context.job_queue)
+            for rem in reminders:
+                reminder_handlers.schedule_reminder(rem, context.job_queue)
+        else:
+            for rem in reminders:
+                for job in context.job_queue.get_jobs_by_name(
+                    f"reminder_{rem.id}"
+                ):
+                    job.schedule_removal()
     else:
-        for rem in reminders:
-            for job in context.job_queue.get_jobs_by_name(f"reminder_{rem.id}"):
-                job.schedule_removal()
+        logger.warning("Job queue not available, skipping reminder scheduling")
 
     logger.info("User %s reminder choice: %s", user_id, enable)
 
