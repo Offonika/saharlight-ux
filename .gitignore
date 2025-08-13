@@ -39,3 +39,7 @@ services/api/app/timezone.txt
 
 # CLI flag artifacts
 --*
+
+# виртуалки
+venv*/
+
