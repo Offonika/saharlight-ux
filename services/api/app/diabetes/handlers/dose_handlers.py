@@ -41,7 +41,7 @@ from services.api.app.diabetes.services.repository import commit
 from .common_handlers import menu_command
 from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry
-from .profile_handlers import profile_view
+from .profile import profile_view
 
 
 logger = logging.getLogger(__name__)

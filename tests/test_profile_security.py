@@ -6,7 +6,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from services.api.app.diabetes.services.db import Base, User, Profile, Alert, Reminder
-import services.api.app.diabetes.handlers.profile_handlers as handlers
+from services.api.app.diabetes.handlers import profile as handlers
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
@@ -41,7 +41,7 @@ async def test_profile_view_has_security_button(monkeypatch) -> None:
     dummy_profile = SimpleNamespace(icr=10, cf=2, target=6, low=4, high=9)
     dummy_api = SimpleNamespace(profiles_get=lambda telegram_id: dummy_profile)
     monkeypatch.setattr(
-        handlers, "_get_api", lambda: (dummy_api, Exception, MagicMock)
+        handlers, "get_api", lambda: (dummy_api, Exception, MagicMock)
     )
 
     msg = DummyMessage()

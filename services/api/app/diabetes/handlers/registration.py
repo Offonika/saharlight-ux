@@ -25,7 +25,7 @@ def register_handlers(app: Application) -> None:
     # (for example OpenAI client initialization).
     from . import (
         dose_handlers,
-        profile_handlers,
+        profile,
         reporting_handlers,
         reminder_handlers,
         alert_handlers,
@@ -39,8 +39,8 @@ def register_handlers(app: Application) -> None:
     app.add_handler(dose_handlers.dose_conv)
     # Register profile conversation before sugar conversation so that numeric
     # inputs for profile aren't captured by sugar logging
-    app.add_handler(profile_handlers.profile_conv)
-    app.add_handler(profile_handlers.profile_webapp_handler)
+    app.add_handler(profile.profile_conv)
+    app.add_handler(profile.profile_webapp_handler)
     app.add_handler(dose_handlers.sugar_conv)
     app.add_handler(sos_handlers.sos_contact_conv)
     app.add_handler(CommandHandler("cancel", dose_handlers.dose_cancel))
@@ -55,7 +55,7 @@ def register_handlers(app: Application) -> None:
     app.add_handler(CommandHandler("hypoalert", security_handlers.hypo_alert_faq))
     app.add_handler(PollAnswerHandler(onboarding_poll_answer))
     app.add_handler(
-        MessageHandler(filters.Regex("^📄 Мой профиль$"), profile_handlers.profile_view)
+        MessageHandler(filters.Regex("^📄 Мой профиль$"), profile.profile_view)
     )
     app.add_handler(
         MessageHandler(filters.Regex("^📈 Отчёт$"), reporting_handlers.report_request)
@@ -101,11 +101,11 @@ def register_handlers(app: Application) -> None:
     )
     app.add_handler(
         CallbackQueryHandler(
-            profile_handlers.profile_security, pattern="^profile_security"
+            profile.profile_security, pattern="^profile_security"
         )
     )
     app.add_handler(
-        CallbackQueryHandler(profile_handlers.profile_back, pattern="^profile_back$")
+        CallbackQueryHandler(profile.profile_back, pattern="^profile_back$")
     )
     app.add_handler(CallbackQueryHandler(reminder_handlers.reminder_callback, pattern="^remind_"))
     app.add_handler(CallbackQueryHandler(callback_router))
