@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import logging
+from contextlib import contextmanager
+from typing import Iterator
+
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
 
-def commit_session(session: Session) -> bool:
+def commit(session: Session) -> bool:
     """Commit an SQLAlchemy session.
 
     Parameters
@@ -28,3 +31,15 @@ def commit_session(session: Session) -> bool:
         session.rollback()
         logger.exception("DB commit failed")
         return False
+
+
+@contextmanager
+def transactional(session: Session) -> Iterator[Session]:
+    """Context manager that commits on success and rolls back on failure."""
+    try:
+        yield session
+        session.commit()
+    except SQLAlchemyError:  # pragma: no cover - logging only
+        session.rollback()
+        logger.exception("DB commit failed")
+        raise

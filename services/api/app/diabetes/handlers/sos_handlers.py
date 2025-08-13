@@ -15,7 +15,7 @@ from telegram.ext import (
 
 from services.api.app.diabetes.services.db import SessionLocal, Profile
 from services.api.app.diabetes.utils.ui import back_keyboard, menu_keyboard
-from .db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 from . import dose_handlers
 from .dose_handlers import _cancel_then
 
@@ -59,7 +59,7 @@ async def sos_contact_save(
             profile = Profile(telegram_id=user_id)
             session.add(profile)
         profile.sos_contact = contact
-        if not commit_session(session):
+        if not commit(session):
             await update.message.reply_text(
                 "⚠️ Не удалось сохранить контакт.",
                 reply_markup=menu_keyboard,

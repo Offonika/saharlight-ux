@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from telegram.ext import ConversationHandler
 import services.api.app.diabetes.handlers.profile_handlers as profile_handlers
 import services.api.app.diabetes.handlers.router as router
-from services.api.app.diabetes.handlers.db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 
@@ -120,7 +120,7 @@ async def test_add_reminder_commit_failure(monkeypatch, caplog) -> None:
     session.rollback = MagicMock()
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
-    monkeypatch.setattr(reminder_handlers, "commit_session", commit_session)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
     schedule_mock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
 
@@ -251,13 +251,13 @@ async def test_reminder_callback_commit_failure(monkeypatch, caplog) -> None:
     session.get.return_value = rem
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
-    reminder_handlers.commit_session = commit_session
+    reminder_handlers.commit = commit
 
     def failing_commit(sess):
         sess.rollback()
         return False
 
-    monkeypatch.setattr(reminder_handlers, "commit_session", failing_commit)
+    monkeypatch.setattr(reminder_handlers, "commit", failing_commit)
 
     query = DummyQuery("remind_snooze:1")
     update = SimpleNamespace(

@@ -37,7 +37,7 @@ from services.api.app.diabetes.utils.functions import (
 from services.api.app.diabetes.services.gpt_client import create_thread, send_message, _get_client
 from services.api.app.diabetes.gpt_command_parser import parse_command
 from services.api.app.diabetes.utils.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
-from .db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 from .common_handlers import menu_command
 from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry
@@ -105,7 +105,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     with SessionLocal() as session:
         entry = Entry(**entry_data)
         session.add(entry)
-        if not commit_session(session):
+        if not commit(session):
             await update.message.reply_text("⚠️ Не удалось сохранить запись.")
             return ConversationHandler.END
     await check_alert(update, context, sugar)
@@ -361,7 +361,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         def db_save(session) -> bool:
             entry = Entry(**pending_entry)
             session.add(entry)
-            return commit_session(session)
+            return commit(session)
 
         try:
             ok = await run_db(db_save, sessionmaker=SessionLocal)
@@ -557,7 +557,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             field_map = {"sugar": "sugar_before", "xe": "xe", "dose": "dose"}
             setattr(entry, field_map[field], value)
             entry.updated_at = datetime.datetime.now(datetime.timezone.utc)
-            if not commit_session(session):
+            if not commit(session):
                 return "fail", None
             session.refresh(entry)
             return "ok", entry
@@ -648,7 +648,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             def db_save(session):
                 entry = Entry(**entry_data)
                 session.add(entry)
-                return commit_session(session)
+                return commit(session)
 
             try:
                 ok = await run_db(db_save, sessionmaker=SessionLocal)
@@ -805,7 +805,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 else:
                     thread_id = create_thread()
                     session.add(User(telegram_id=user_id, thread_id=thread_id))
-                    if not commit_session(session):
+                    if not commit(session):
                         await message.reply_text(
                             "⚠️ Не удалось сохранить данные пользователя."
                         )

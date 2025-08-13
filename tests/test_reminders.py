@@ -11,7 +11,7 @@ from typing import Any
 from services.api.app.diabetes.services.db import Base, User, Reminder, ReminderLog
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 import services.api.app.diabetes.handlers.router as router
-from services.api.app.diabetes.handlers.db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.helpers import parse_time_interval
 from services.api.app.config import settings
 
@@ -259,7 +259,7 @@ async def test_toggle_reminder_cb(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -290,7 +290,7 @@ async def test_delete_reminder_cb(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -319,7 +319,7 @@ async def test_edit_reminder(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -353,7 +353,7 @@ async def test_trigger_job_logs(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -392,7 +392,7 @@ async def test_cancel_callback(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -417,7 +417,7 @@ async def test_reminder_callback_foreign_rid(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))

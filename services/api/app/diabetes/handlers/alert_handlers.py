@@ -15,13 +15,11 @@ from services.api.app.diabetes.services.db import (
     SessionLocal as _SessionLocal,
     run_db,
 )
-from services.api.app.diabetes.handlers.db_helpers import (
-    commit_session as _commit_session,
-)
+from services.api.app.diabetes.services.repository import commit as _commit
 from services.api.app.diabetes.utils.helpers import get_coords_and_link
 
 SessionLocal: sessionmaker[Session] = _SessionLocal
-commit_session: Callable[[Session], bool] = _commit_session
+commit: Callable[[Session], bool] = _commit
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +124,7 @@ async def evaluate_sugar(
             atype = "hypo" if low is not None and sugar < low else "hyper"
             alert = Alert(user_id=user_id, sugar=sugar, type=atype)
             session.add(alert)
-            if not commit_session(session):
+            if not commit(session):
                 return False, None
             alerts = (
                 session.query(Alert)
@@ -139,7 +137,7 @@ async def evaluate_sugar(
             if notify:
                 for a in alerts:
                     a.resolved = True
-                commit_session(session)
+                commit(session)
             return True, {
                 "action": "schedule",
                 "notify": notify,
@@ -151,7 +149,7 @@ async def evaluate_sugar(
         else:
             for a in active:
                 a.resolved = True
-            if not commit_session(session):
+            if not commit(session):
                 return False, None
             return True, {"action": "remove", "notify": False}
 
@@ -217,7 +215,7 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             )
             for a in alerts:
                 a.resolved = True
-            commit_session(session)
+            commit(session)
         context.job.schedule_removal()
         return
     schedule_alert(
@@ -257,7 +255,7 @@ __all__ = [
     "alert_job",
     "alert_stats",
     "SessionLocal",
-    "commit_session",
+    "commit",
 ]
 
 

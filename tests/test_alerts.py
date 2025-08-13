@@ -11,7 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import services.api.app.diabetes.handlers.alert_handlers as handlers
-from services.api.app.diabetes.handlers.db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.services.db import Base, User, Profile, Alert
 
 
@@ -56,7 +56,7 @@ async def test_threshold_evaluation() -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t1"))
@@ -89,7 +89,7 @@ async def test_repeat_logic(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -135,7 +135,7 @@ async def test_normal_reading_resolves_alert() -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -160,7 +160,7 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t1"))
@@ -205,7 +205,7 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t1"))

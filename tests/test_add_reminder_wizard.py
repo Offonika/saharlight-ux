@@ -11,7 +11,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
-from services.api.app.diabetes.handlers.db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.services.db import Base, Reminder, User
 
 
@@ -67,7 +67,7 @@ async def test_webapp_save_creates_reminder(
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -93,7 +93,7 @@ async def test_webapp_save_creates_interval(
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    handlers.commit_session = commit_session
+    handlers.commit = commit
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))

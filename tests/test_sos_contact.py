@@ -18,7 +18,7 @@ from services.api.app.diabetes.services.db import Base, User, Profile
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
 import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 import services.api.app.diabetes.handlers.registration as handlers
-from services.api.app.diabetes.handlers.db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 
@@ -38,8 +38,8 @@ def test_session(monkeypatch):
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(sos_handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(alert_handlers, "SessionLocal", TestSession)
-    monkeypatch.setattr(sos_handlers, "commit_session", commit_session)
-    monkeypatch.setattr(alert_handlers, "commit_session", commit_session)
+    monkeypatch.setattr(sos_handlers, "commit", commit)
+    monkeypatch.setattr(alert_handlers, "commit", commit)
     return TestSession
 
 

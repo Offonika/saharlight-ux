@@ -23,7 +23,7 @@ from services.api.app.diabetes.services.gpt_client import (
     _get_client,
     create_thread,
 )
-from .db_helpers import commit_session
+from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.services.reporting import make_sugar_plot, generate_pdf_report
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
@@ -250,7 +250,7 @@ async def send_report(
                     user.thread_id = thread_id
                 else:
                     session.add(User(telegram_id=user_id, thread_id=thread_id))
-                if commit_session(session):
+                if commit(session):
                     context.user_data["thread_id"] = thread_id
                 else:
                     thread_id = None

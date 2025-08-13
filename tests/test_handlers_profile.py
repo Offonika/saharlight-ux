@@ -104,7 +104,7 @@ async def test_profile_command_invalid_values(monkeypatch, args) -> None:
 
     commit_mock = MagicMock()
     session_local_mock = MagicMock()
-    monkeypatch.setattr(handlers, "commit_session", commit_mock)
+    monkeypatch.setattr(handlers, "commit", commit_mock)
     monkeypatch.setattr(handlers, "SessionLocal", session_local_mock)
 
     message = DummyMessage()
