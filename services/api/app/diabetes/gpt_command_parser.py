@@ -55,21 +55,43 @@ def _sanitize_sensitive_data(text: str) -> str:
 
 
 def _extract_first_json(text: str) -> dict | None:
-    """Return the first JSON object found in *text* or ``None`` if absent."""
-    decoder = json.JSONDecoder()
-    idx = 0
-    while idx < len(text):
-        match = re.search(r"[\[{]", text[idx:])
-        if not match:
-            return None
-        start = idx + match.start()
-        try:
-            obj, end = decoder.raw_decode(text, start)
-            if isinstance(obj, dict):
-                return obj
-            idx = end
-        except json.JSONDecodeError:
-            idx = start + 1
+    """Return the first standalone JSON object in *text* or ``None``."""
+
+    start = text.find("{")
+    if start == -1:
+        return None
+
+    # If the object is preceded by ``[``, treat it as part of an array and
+    # ignore it so that we don't parse array responses like ``[{...}]``.
+    if text[:start].rstrip().endswith("["):
+        return None
+
+    brace_count = 0
+    in_string = False
+    escape = False
+    for idx in range(start, len(text)):
+        ch = text[idx]
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
+        else:
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                brace_count += 1
+            elif ch == "}":
+                brace_count -= 1
+                if brace_count == 0:
+                    candidate = text[start : idx + 1]
+                    try:
+                        obj = json.loads(candidate)
+                    except json.JSONDecodeError:
+                        return None
+                    return obj if isinstance(obj, dict) else None
     return None
 
 
