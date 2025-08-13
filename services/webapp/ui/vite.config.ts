@@ -9,7 +9,8 @@ export default defineConfig(async ({ mode }) => {
     const { componentTagger } = await import('lovable-tagger')
     plugins.push(componentTagger())
   }
-
+  const base   = mode === 'development' ? '/' : '/ui/'  // dev → '/', prod → '/ui/'
+  const port   = 5173                                   // или оставьте 8080 и укажите его в .lovable.yml
   return {
     base: '/ui/',
     plugins,
