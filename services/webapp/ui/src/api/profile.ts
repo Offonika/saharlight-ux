@@ -7,6 +7,9 @@ export async function saveProfile(profile: Profile) {
     return await api.profilesPost({ profile });
   } catch (error) {
     console.error('Failed to save profile:', error);
-    throw new Error('Не удалось сохранить профиль');
+    if (error instanceof Error) {
+      throw new Error(`Не удалось сохранить профиль: ${error.message}`);
+    }
+    throw error;
   }
 }

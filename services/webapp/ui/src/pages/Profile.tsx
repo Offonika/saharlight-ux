@@ -48,8 +48,7 @@ const Profile = () => {
         description: 'Ваши настройки успешно обновлены',
       });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Не удалось сохранить профиль';
+      const message = error instanceof Error ? error.message : String(error);
       toast({
         title: 'Ошибка',
         description: message,
