@@ -10,32 +10,33 @@ import MedicalButton from '@/components/MedicalButton'
 import { cn } from '@/lib/utils'
 import { Reminder as ApiReminder } from '@sdk'
 
-type ReminderType = 'sugar' | 'insulin' | 'meal' | 'medicine' | 'meds'
+type NormalizedReminderType = 'sugar' | 'insulin' | 'meal' | 'medicine'
+type ReminderType = NormalizedReminderType | 'meds'
 
 interface Reminder {
   id: number
-  type: ReminderType
+  type: NormalizedReminderType
   title: string
   time: string   // "HH:MM"
   active: boolean
   interval?: number // stored in minutes
 }
 
-const TYPE_LABEL: Record<'sugar'|'insulin'|'meal'|'medicine', string> = {
+const TYPE_LABEL: Record<NormalizedReminderType, string> = {
   sugar: 'Измерение сахара',
   insulin: 'Инсулин',
   meal: 'Приём пищи',
   medicine: 'Лекарства',
 }
 
-const TYPE_ICON: Record<'sugar'|'insulin'|'meal'|'medicine', string> = {
+const TYPE_ICON: Record<NormalizedReminderType, string> = {
   sugar: '🩸',
   insulin: '💉',
   meal: '🍽️',
   medicine: '💊',
 }
 
-const normalizeType = (t: ReminderType): 'sugar'|'insulin'|'meal'|'medicine' =>
+const normalizeType = (t: ReminderType): NormalizedReminderType =>
   t === 'meds' ? 'medicine' : t
 
 function parseTimeToMinutes(t: string): number {
@@ -101,7 +102,8 @@ function ReminderRow({
           variant="ghost"
           className={cn(reminder.active ? 'bg-success/10 text-success' : 'bg-secondary text-muted-foreground')}
           onClick={() => onToggle(reminder.id)}
-          aria-label={reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
+          aria-label=
+            {reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
         >
           <Bell className="w-4 h-4" />
         </MedicalButton>
