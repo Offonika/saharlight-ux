@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from .diabetes.services.db import (
@@ -71,6 +72,14 @@ async def put_timezone(data: Timezone) -> dict:
 
 
 app.mount("/ui", StaticFiles(directory=UI_DIR, html=True), name="ui")
+
+
+@app.get("/ui/{full_path:path}", include_in_schema=False)
+async def catch_all_ui(full_path: str) -> FileResponse:
+    requested_file = UI_DIR / full_path
+    if requested_file.is_file():
+        return FileResponse(requested_file)
+    return FileResponse(UI_DIR / "index.html")
 
 
 @app.post("/api/history")
