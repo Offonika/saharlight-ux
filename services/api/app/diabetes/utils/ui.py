@@ -122,5 +122,5 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
 
     return InlineKeyboardButton(
         "Определить автоматически",
-        web_app=WebAppInfo(settings.webapp_url),
+        web_app=WebAppInfo(f"{settings.webapp_url}/timezone"),
     )
