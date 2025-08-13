@@ -17,3 +17,9 @@ def test_static_ui_serving() -> None:
     resp = client.get("/ui")
     assert resp.status_code == 200
     assert "<html" in resp.text.lower()
+
+
+def test_unknown_ui_route_serves_index() -> None:
+    resp = client.get("/ui/reminders")
+    assert resp.status_code == 200
+    assert "<html" in resp.text.lower()
