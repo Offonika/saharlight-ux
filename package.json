@@ -5,7 +5,6 @@
   "scripts": {
     "dev":       "npm --workspace services/webapp/ui run dev",
     "build":     "npm --workspace services/webapp/ui run build",
-    "build:dev": "npm --workspace services/webapp/ui run build:dev",   // ← новый скрипт
-    "preview":   "npm --workspace services/webapp/ui run preview"
+    "build:dev": "npm --workspace services/webapp/ui run build:dev"
   }
 }
