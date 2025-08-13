@@ -17,7 +17,6 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     server: { host: '::', port: 8080 },
-    root: './services/webapp/ui',
-    build: { outDir: '../../../dist' },
+    build: { outDir: 'dist' },
   }
 })
