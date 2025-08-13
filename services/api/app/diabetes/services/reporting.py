@@ -4,6 +4,8 @@ import os
 import io
 import logging
 import textwrap
+from datetime import datetime
+from typing import Iterable, Protocol, Sequence, cast
 
 import matplotlib.pyplot as plt
 from reportlab.lib.pagesizes import A4
@@ -18,6 +20,13 @@ from services.api.app.config import settings
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
 DEFAULT_FONT_DIR = '/usr/share/fonts/truetype/dejavu'
 _font_dir = settings.font_dir or DEFAULT_FONT_DIR
+
+
+class SugarEntry(Protocol):
+    """Запись дневника с уровнем сахара."""
+
+    event_time: datetime
+    sugar_before: float | None
 
 
 def _register_font(name, filename):
@@ -54,17 +63,28 @@ _register_font('DejaVuSans', 'DejaVuSans.ttf')
 _register_font('DejaVuSans-Bold', 'DejaVuSans-Bold.ttf')
 
 
-def make_sugar_plot(entries, period_label):
-    """
-    Генерирует график сахара за период. Возвращает BytesIO с PNG.
-    Если данных нет, возвращает изображение с сообщением об отсутствии данных.
+def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.BytesIO:
+    """Собирает график сахара за период.
+
+    Args:
+        entries: Итерация записей, каждая из которых имеет атрибуты
+            ``event_time`` и ``sugar_before``.
+        period_label: Подпись периода, выводимая в заголовке графика.
+
+    Returns:
+        BytesIO: Буфер с изображением графика в формате PNG. Если данных
+        нет, в буфере будет изображение с сообщением об отсутствии данных.
+
+    Side Effects:
+        Логирует отсутствие данных и использует глобальное состояние
+        ``matplotlib``.
     """
     entries_sorted = sorted(
         (e for e in entries if e.sugar_before is not None),
         key=lambda e: e.event_time,
     )
-    times = [e.event_time for e in entries_sorted]
-    sugars_plot = [e.sugar_before for e in entries_sorted]
+    times: list[datetime] = [e.event_time for e in entries_sorted]
+    sugars_plot: list[float] = [cast(float, e.sugar_before) for e in entries_sorted]
 
     if not sugars_plot:
         logging.info("No sugar data available for %s", period_label)
@@ -85,7 +105,7 @@ def make_sugar_plot(entries, period_label):
         return buf
 
     plt.figure(figsize=(7, 3))
-    plt.plot(times, sugars_plot, marker='o', label='Сахар (ммоль/л)')
+    plt.plot(times, sugars_plot, marker='o', label='Сахар (ммоль/л)')  # type: ignore[arg-type]
     plt.title(f'Динамика сахара за {period_label}')
     plt.xlabel('Дата')
     plt.ylabel('Сахар, ммоль/л')
@@ -99,20 +119,47 @@ def make_sugar_plot(entries, period_label):
     return buf
 
 
-def wrap_text(text, width=100):
+def wrap_text(text: str, width: int = 100) -> list[str]:
+    """Переносит строки по длине для PDF.
+
+    Args:
+        text: Исходная строка.
+        width: Максимальная длина строки. По умолчанию 100 символов.
+
+    Returns:
+        list[str]: Список строк с учётом переноса.
+
+    Side Effects:
+        Нет.
     """
-    Переносит строки по длине для PDF.
-    """
-    lines = []
+    lines: list[str] = []
     for line in text.splitlines():
         lines += textwrap.wrap(line, width=width) or [""]
     return lines
 
 
-def generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf):
-    """
-    Генерирует PDF-отчёт для врача с графиком и рекомендациями.
-    Возвращает BytesIO с PDF.
+def generate_pdf_report(
+    summary_lines: Sequence[str],
+    errors: Sequence[str],
+    day_lines: Sequence[str],
+    gpt_text: str,
+    plot_buf: io.BytesIO | None,
+) -> io.BytesIO:
+    """Генерирует PDF-отчёт для врача.
+
+    Args:
+        summary_lines: Сводка по записей дневника.
+        errors: Список ошибок или критических значений.
+        day_lines: Динамика показателей по дням.
+        gpt_text: Текст рекомендаций.
+        plot_buf: Буфер с графиком в формате PNG, либо ``None``.
+
+    Returns:
+        BytesIO: Буфер с готовым PDF-отчётом.
+
+    Side Effects:
+        Использует библиотеку ``reportlab`` для записи PDF и может
+        логировать предупреждения при ошибках чтения изображения.
     """
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
