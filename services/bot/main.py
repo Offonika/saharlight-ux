@@ -13,7 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from services.api.app.diabetes.services.db import init_db
 
-from services.api.app.config import LOG_LEVEL, settings
+from services.api.app.config import settings
 logger = logging.getLogger(__name__)
 
 
@@ -29,7 +29,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 def main() -> None:
     """Configure and run the bot."""
     logging.basicConfig(
-        level=LOG_LEVEL,
+        level=settings.log_level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     logger.info("=== Bot started ===")

@@ -4,7 +4,6 @@ import sys
 import pytest
 
 
-
 def _reload(module: str):
     if module in sys.modules:
         del sys.modules[module]
@@ -23,8 +22,8 @@ class DummyEngine:
 @pytest.mark.parametrize(
     ("attr", "orig", "new", "url_attr"),
     [
-        ("DB_HOST", "host1", "host2", "host"),
-        ("DB_NAME", "name1", "name2", "database"),
+        ("db_host", "host1", "host2", "host"),
+        ("db_name", "name1", "name2", "database"),
     ],
 )
 
@@ -43,13 +42,13 @@ def test_init_db_recreates_engine_on_url_change(monkeypatch, attr, orig, new, ur
     monkeypatch.setattr(db, "create_engine", fake_create_engine)
     monkeypatch.setattr(db.Base.metadata, "create_all", lambda bind: None)
 
-    monkeypatch.setattr(db, attr, orig, raising=False)
+    monkeypatch.setattr(db.settings, attr, orig)
     db.engine = None
     db.init_db()
     first_engine = db.engine
     assert getattr(first_engine.url, url_attr) == orig
 
-    monkeypatch.setattr(db, attr, new, raising=False)
+    monkeypatch.setattr(db.settings, attr, new)
     db.init_db()
     second_engine = db.engine
 

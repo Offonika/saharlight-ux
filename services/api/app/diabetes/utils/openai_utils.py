@@ -1,7 +1,7 @@
 import logging
 import os
 from openai import OpenAI
-from services.api.app.config import OPENAI_API_KEY, OPENAI_ASSISTANT_ID, OPENAI_PROXY
+from services.api.app.config import settings
 
 
 def get_openai_client() -> OpenAI:
@@ -10,16 +10,16 @@ def get_openai_client() -> OpenAI:
     Sets proxy environment variables and validates that required
     credentials are provided.
     """
-    if OPENAI_PROXY:
-        os.environ["HTTP_PROXY"] = OPENAI_PROXY
-        os.environ["HTTPS_PROXY"] = OPENAI_PROXY
+    if settings.openai_proxy:
+        os.environ["HTTP_PROXY"] = settings.openai_proxy
+        os.environ["HTTPS_PROXY"] = settings.openai_proxy
 
-    if not OPENAI_API_KEY:
+    if not settings.openai_api_key:
         message = "OPENAI_API_KEY is not set"
         logging.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
-    client = OpenAI(api_key=OPENAI_API_KEY)
-    if OPENAI_ASSISTANT_ID:
-        logging.info("[OpenAI] Using assistant: %s", OPENAI_ASSISTANT_ID)
+    client = OpenAI(api_key=settings.openai_api_key)
+    if settings.openai_assistant_id:
+        logging.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)
     return client

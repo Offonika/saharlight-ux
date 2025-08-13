@@ -13,6 +13,7 @@ import services.api.app.diabetes.handlers.reminder_handlers as handlers
 import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.handlers.db_helpers import commit_session
 from services.api.app.diabetes.utils.helpers import parse_time_interval
+from services.api.app.config import settings
 
 
 class DummyMessage:
@@ -156,7 +157,7 @@ def test_render_reminders_formatting(monkeypatch):
         "_describe",
         lambda r, u=None: f"{'🔔' if r.is_enabled else '🔕'}title{r.id}",
     )
-    monkeypatch.setattr(handlers, "WEBAPP_URL", "https://example.org")
+    monkeypatch.setattr(settings, "webapp_url", "https://example.org")
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add_all(
@@ -196,7 +197,7 @@ def test_render_reminders_no_webapp(monkeypatch):
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.setattr(handlers, "WEBAPP_URL", None)
+    monkeypatch.setattr(settings, "webapp_url", None)
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
@@ -215,7 +216,7 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch):
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.setattr(handlers, "WEBAPP_URL", None)
+    monkeypatch.setattr(settings, "webapp_url", None)
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
@@ -231,7 +232,7 @@ async def test_reminders_list_no_keyboard(monkeypatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.setattr(handlers, "WEBAPP_URL", None)
+    monkeypatch.setattr(settings, "webapp_url", None)
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.commit()

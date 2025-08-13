@@ -22,12 +22,7 @@ import logging
 import threading
 from typing import Any, Callable, TypeVar
 
-from services.api.app import config
-
-DB_HOST = config.DB_HOST
-DB_PORT = config.DB_PORT
-DB_NAME = config.DB_NAME
-DB_USER = config.DB_USER
+from services.api.app.config import get_db_password, settings
 logger = logging.getLogger(__name__)
 
 
@@ -169,16 +164,16 @@ class ReminderLog(Base):
 # ────────────────────── инициализация ────────────────────────
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
-    password = config.get_db_password()
+    password = get_db_password()
     if not password:
         raise ValueError("DB_PASSWORD environment variable must be set")
     database_url = URL.create(
         "postgresql",
-        username=DB_USER,
+        username=settings.db_user,
         password=password,
-        host=DB_HOST,
-        port=int(DB_PORT),
-        database=DB_NAME,
+        host=settings.db_host,
+        port=int(settings.db_port),
+        database=settings.db_name,
     )
 
     global engine

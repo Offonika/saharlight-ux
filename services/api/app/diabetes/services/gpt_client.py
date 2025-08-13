@@ -8,7 +8,7 @@ from typing import Any
 
 from openai import OpenAIError
 
-from services.api.app.config import OPENAI_ASSISTANT_ID
+from services.api.app.config import settings
 from services.api.app.diabetes.utils.openai_utils import get_openai_client
 
 logger = logging.getLogger(__name__)
@@ -113,7 +113,7 @@ async def send_message(
         logger.exception("[OpenAI] Failed to create message: %s", exc)
         raise
 
-    if not OPENAI_ASSISTANT_ID:
+    if not settings.openai_assistant_id:
         message = "OPENAI_ASSISTANT_ID is not set"
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
@@ -123,7 +123,7 @@ async def send_message(
         run = await asyncio.to_thread(
             client.beta.threads.runs.create,
             thread_id=thread_id,
-            assistant_id=OPENAI_ASSISTANT_ID,
+            assistant_id=settings.openai_assistant_id,
         )
     except OpenAIError as exc:
         logger.exception("[OpenAI] Failed to create run: %s", exc)

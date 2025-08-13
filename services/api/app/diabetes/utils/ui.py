@@ -14,7 +14,7 @@ from telegram import (
     KeyboardButton,
     WebAppInfo,
 )
-from services.api.app.config import WEBAPP_URL
+from services.api.app.config import settings
 
 __all__ = (
     "menu_keyboard",
@@ -102,10 +102,10 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
         Button instance when ``WEBAPP_URL`` is set and valid, otherwise ``None``.
     """
 
-    if not WEBAPP_URL:
+    if not settings.webapp_url:
         return None
 
     return InlineKeyboardButton(
         "Определить автоматически",
-        web_app=WebAppInfo(WEBAPP_URL),
+        web_app=WebAppInfo(settings.webapp_url),
     )
