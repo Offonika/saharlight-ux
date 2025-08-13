@@ -1,0 +1,11 @@
+{
+    "name": "saharlight-monorepo",
+    "private": true,
+    "workspaces": ["services/webapp/ui"],
+    "scripts": {
+      "dev": "npm --workspace services/webapp/ui run dev",
+      "build": "npm --workspace services/webapp/ui run build",
+      "preview": "npm --workspace services/webapp/ui run preview"
+    }
+  }
+  
