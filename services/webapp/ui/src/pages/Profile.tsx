@@ -4,10 +4,13 @@ import { Save } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
+import { saveProfile } from '@/api/profile';
+import { useTelegram } from '@/hooks/useTelegram';
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useTelegram();
 
   const [profile, setProfile] = useState({
     icr: '12',
@@ -21,12 +24,38 @@ const Profile = () => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => {
-    // Здесь будет отправка данных на сервер
-    toast({
-      title: "Профиль сохранен",
-      description: "Ваши настройки успешно обновлены"
-    });
+  const handleSave = async () => {
+    if (!user?.id) {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось определить пользователя',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await saveProfile({
+        telegramId: user.id,
+        icr: Number(profile.icr),
+        cf: Number(profile.correctionFactor),
+        target: Number(profile.targetSugar),
+        low: Number(profile.lowThreshold),
+        high: Number(profile.highThreshold),
+      });
+      toast({
+        title: 'Профиль сохранен',
+        description: 'Ваши настройки успешно обновлены',
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Не удалось сохранить профиль';
+      toast({
+        title: 'Ошибка',
+        description: message,
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
