@@ -123,8 +123,9 @@ async def test_photo_flow_saves_entry(
             )
         )
 
-    monkeypatch.setattr(dose_handlers, "send_message", fake_send_message)
-    monkeypatch.setattr(dose_handlers, "_get_client", lambda: DummyClient())
+    fake_client = DummyClient()
+    monkeypatch.setattr(dose_handlers.gpt_client, "send_message", fake_send_message)
+    monkeypatch.setattr(dose_handlers.gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(dose_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0))
     context.user_data["thread_id"] = "tid"
 

@@ -74,8 +74,9 @@ async def test_photo_prompt_includes_dish_name(monkeypatch, tmp_path) -> None:
             )
         )
 
-    monkeypatch.setattr(dose_handlers, "send_message", fake_send_message)
-    monkeypatch.setattr(dose_handlers, "_get_client", lambda: DummyClient())
+    fake_client = DummyClient()
+    monkeypatch.setattr(dose_handlers.gpt_client, "send_message", fake_send_message)
+    monkeypatch.setattr(dose_handlers.gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
     msg_photo = DummyMessage(photo=[DummyPhoto()])

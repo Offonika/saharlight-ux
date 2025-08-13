@@ -36,6 +36,7 @@ from services.api.app.diabetes.services.repository import commit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from openai import OpenAIError
+from services.api.app.diabetes.services.gpt_client import OpenAIClient
 
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,9 @@ DEMO_PHOTO_PATH = (
 
 # Wizard states
 ONB_PROFILE_ICR, ONB_PROFILE_CF, ONB_PROFILE_TARGET, ONB_PROFILE_TZ, ONB_DEMO, ONB_REMINDERS = range(6)
+
+
+gpt_client = OpenAIClient()
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -62,10 +66,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     with SessionLocal() as session:
         user = session.get(User, user_id)
         if not user:
-            from services.api.app.diabetes.services.gpt_client import create_thread
-
             try:
-                thread_id = create_thread()
+                thread_id = gpt_client.create_thread()
             except OpenAIError as exc:  # pragma: no cover - network errors
                 logger.exception("Failed to create thread for user %s: %s", user_id, exc)
                 await update.message.reply_text(

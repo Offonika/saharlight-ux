@@ -34,9 +34,8 @@ async def test_onboarding_demo_photo_missing(monkeypatch, caplog) -> None:
 
     import services.api.app.diabetes.handlers.common_handlers  # noqa: F401
     import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
-    import services.api.app.diabetes.services.gpt_client as gpt_client
 
-    monkeypatch.setattr(gpt_client, "create_thread", lambda: "tid")
+    monkeypatch.setattr(onboarding.gpt_client, "create_thread", lambda: "tid")
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

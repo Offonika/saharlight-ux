@@ -149,8 +149,9 @@ async def test_photo_handler_preserves_file(
             )
         )
 
-    monkeypatch.setattr(handlers, "send_message", fake_send_message)
-    monkeypatch.setattr(handlers, "_get_client", lambda: DummyClient())
+    fake_client = DummyClient()
+    monkeypatch.setattr(handlers.gpt_client, "send_message", fake_send_message)
+    monkeypatch.setattr(handlers.gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
     monkeypatch.setattr(handlers, "menu_keyboard", None)
     monkeypatch.setattr(
@@ -202,8 +203,9 @@ async def test_photo_then_freeform_calculates_dose(
             )
         )
 
-    monkeypatch.setattr(handlers, "send_message", fake_send_message)
-    monkeypatch.setattr(handlers, "_get_client", lambda: DummyClient())
+    fake_client2 = DummyClient()
+    monkeypatch.setattr(handlers.gpt_client, "send_message", fake_send_message)
+    monkeypatch.setattr(handlers.gpt_client, "_get_client", lambda: fake_client2)
     monkeypatch.setattr(handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
     monkeypatch.setattr(handlers, "menu_keyboard", None)
     monkeypatch.setattr(handlers, "confirm_keyboard", lambda: None)

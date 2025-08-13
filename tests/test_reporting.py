@@ -216,8 +216,9 @@ async def test_send_report_uses_gpt(monkeypatch) -> None:
             )
         )
 
-    monkeypatch.setattr(handlers, "send_message", fake_send_message)
-    monkeypatch.setattr(handlers, "_get_client", lambda: DummyClient())
+    fake_client = DummyClient()
+    monkeypatch.setattr(handlers.gpt_client, "send_message", fake_send_message)
+    monkeypatch.setattr(handlers.gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(
         handlers, "make_sugar_plot", lambda entries, period_label: io.BytesIO(b"img")
     )

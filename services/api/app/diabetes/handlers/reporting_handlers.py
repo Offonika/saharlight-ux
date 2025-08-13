@@ -18,17 +18,16 @@ from telegram import (
 from telegram.ext import ContextTypes
 
 from services.api.app.diabetes.services.db import SessionLocal, Entry, User
-from services.api.app.diabetes.services.gpt_client import (
-    send_message,
-    _get_client,
-    create_thread,
-)
+from services.api.app.diabetes.services.gpt_client import OpenAIClient
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.services.reporting import make_sugar_plot, generate_pdf_report
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 LOW_SUGAR_THRESHOLD = 3.0
 HIGH_SUGAR_THRESHOLD = 13.0
+
+
+gpt_client = OpenAIClient()
 
 
 def render_entry(entry: Entry) -> str:
@@ -245,7 +244,7 @@ async def send_report(
             user = session.get(User, user_id)
             thread_id = getattr(user, "thread_id", None)
             if thread_id is None:
-                thread_id = create_thread()
+                thread_id = gpt_client.create_thread()
                 if user:
                     user.thread_id = thread_id
                 else:
@@ -258,20 +257,20 @@ async def send_report(
                 context.user_data["thread_id"] = thread_id
     if thread_id:
         try:
-            run = await send_message(thread_id=thread_id, content=prompt)
+            run = await gpt_client.send_message(thread_id=thread_id, content=prompt)
             max_attempts = 15
             for _ in range(max_attempts):
                 if run.status in ("completed", "failed", "cancelled", "expired"):
                     break
                 await asyncio.sleep(2)
                 run = await asyncio.to_thread(
-                    _get_client().beta.threads.runs.retrieve,
+                    gpt_client.client.beta.threads.runs.retrieve,
                     thread_id=run.thread_id,
                     run_id=run.id,
                 )
             if run.status == "completed":
                 messages = await asyncio.to_thread(
-                    _get_client().beta.threads.messages.list,
+                    gpt_client.client.beta.threads.messages.list,
                     thread_id=run.thread_id,
                 )
                 gpt_text = next(
