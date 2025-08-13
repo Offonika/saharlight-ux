@@ -263,3 +263,98 @@ def test_sanitize_leaves_numeric_strings():
     number = "1234567890" * 4 + "12"
     text = f"id {number}"
     assert gpt_command_parser._sanitize_sensitive_data(text) == text
+
+
+def test_extract_first_json_multiple_objects():
+    text = (
+        '{"action":"add_entry","fields":{}} '
+        '{"action":"delete_entry","fields":{}}'
+    )
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
+def test_extract_first_json_malformed_input():
+    text = '{"action":"add_entry","fields":{}'
+    assert gpt_command_parser._extract_first_json(text) is None
+
+
+@pytest.mark.asyncio
+async def test_parse_command_with_multiple_jsons(monkeypatch) -> None:
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {
+                    "message": type(
+                        "Msg",
+                        (),
+                        {
+                            "content": (
+                                '{"action":"add_entry","fields":{}} '
+                                '{"action":"delete_entry","fields":{}}'
+                            )
+                        },
+                    )()
+                },
+            )
+        ]
+
+    def create(*args, **kwargs):
+        return FakeResponse()
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(
+                create=create,
+                with_options=lambda **kwargs: SimpleNamespace(create=create),
+            )
+        )
+    )
+    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+
+    result = await gpt_command_parser.parse_command("test")
+
+    assert result == {"action": "add_entry", "fields": {}}
+
+
+@pytest.mark.asyncio
+async def test_parse_command_with_malformed_json(monkeypatch, caplog) -> None:
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {
+                    "message": type(
+                        "Msg",
+                        (),
+                        {
+                            "content": '{"action":"add_entry","fields":{}'
+                        },
+                    )()
+                },
+            )
+        ]
+
+    def create(*args, **kwargs):
+        return FakeResponse()
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(
+                create=create,
+                with_options=lambda **kwargs: SimpleNamespace(create=create),
+            )
+        )
+    )
+    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+
+    with caplog.at_level(logging.ERROR):
+        result = await gpt_command_parser.parse_command("test")
+
+    assert result is None
+    assert "No JSON object found in response" in caplog.text
