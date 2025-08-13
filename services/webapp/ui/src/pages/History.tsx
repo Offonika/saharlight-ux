@@ -73,8 +73,9 @@ const History = () => {
     }
   };
   const handleDeleteRecord = async (id: string) => {
+    const prev = [...records];
     // Optimistically remove record from UI
-    setRecords(prev => prev.filter(r => r.id !== id));
+    setRecords(prevRecords => prevRecords.filter(r => r.id !== id));
 
     try {
       await deleteRecord(id);
@@ -83,6 +84,7 @@ const History = () => {
         description: 'Запись успешно удалена из истории',
       });
     } catch (err) {
+      setRecords(prev);
       const message = err instanceof Error ? err.message : 'Неизвестная ошибка';
       toast({
         title: 'Ошибка',
