@@ -101,7 +101,7 @@ export default function CreateReminder() {
         }
       })();
     }
-  }, [editing, params.id, user?.id]);
+  }, [editing, params.id, user?.id, toast]);
 
   const validName = title.trim().length >= 2;
   const validTime = isValidTime(time);
