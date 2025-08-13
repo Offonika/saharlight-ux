@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
 
-def commit_session(session) -> bool:
+def commit_session(session: Session) -> bool:
     """Commit an SQLAlchemy session.
 
     Parameters
