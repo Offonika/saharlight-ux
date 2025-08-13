@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Optional
 
 from pydantic import Field, field_validator
@@ -70,6 +71,13 @@ settings = Settings()
 
 
 def get_db_password() -> Optional[str]:
-    """Return the database password from a fresh ``Settings`` instance."""
-    return Settings().db_password
+    """Return the database password from the environment.
+
+    ``Settings`` loads variables from a ``.env`` file which can cache values
+    across imports. Tests dynamically mutate ``DB_PASSWORD`` and expect those
+    changes to be reflected immediately. Querying ``os.environ`` directly
+    ensures we always get the current value and avoids any cached defaults.
+    """
+
+    return os.environ.get("DB_PASSWORD")
 
