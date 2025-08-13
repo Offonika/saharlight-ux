@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 from telegram.ext import ConversationHandler
-import services.api.app.diabetes.handlers.profile_handlers as profile_handlers
+from services.api.app.diabetes.handlers import profile as profile_handlers
 import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
@@ -56,7 +56,7 @@ async def test_profile_command_no_local_session(monkeypatch) -> None:
 
     dummy_api = SimpleNamespace(profiles_post=MagicMock())
     monkeypatch.setattr(
-        profile_handlers, "_get_api", lambda: (dummy_api, Exception, MagicMock)
+        profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock)
     )
 
     message = DummyMessage()

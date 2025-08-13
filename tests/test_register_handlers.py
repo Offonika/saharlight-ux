@@ -19,7 +19,11 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch):
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    from services.api.app.diabetes.handlers import dose_handlers, profile_handlers, reporting_handlers
+    from services.api.app.diabetes.handlers import (
+        dose_handlers,
+        profile as profile_handlers,
+        reporting_handlers,
+    )
 
     app = ApplicationBuilder().token("TESTTOKEN").build()
     register_handlers(app)

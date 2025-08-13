@@ -36,23 +36,10 @@ from services.api.app.config import settings
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
+from .api import get_api, save_profile, set_timezone, fetch_profile, post_profile
+from .validation import parse_profile_args
+
 logger = logging.getLogger(__name__)
- 
- 
-def _get_api():
-    try:
-        from diabetes_sdk.api.default_api import DefaultApi
-        from diabetes_sdk.api_client import ApiClient
-        from diabetes_sdk.configuration import Configuration
-        from diabetes_sdk.exceptions import ApiException
-        from diabetes_sdk.models.profile import Profile as ProfileModel
-    except ImportError:
-        logger.warning(
-            "diabetes_sdk is required but not installed. Install it with 'pip install -r requirements.txt'."
-        )
-        return None, None, None
-    api = DefaultApi(ApiClient(Configuration(host=settings.api_url)))
-    return api, ApiException, ProfileModel
 
 
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)
@@ -67,7 +54,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     """
 
     args = context.args
-    api, ApiException, ProfileModel = _get_api()
+    api, ApiException, ProfileModel = get_api()
     if api is None:
         await update.message.reply_text(
             "⚠️ Функции профиля недоступны. Установите пакет 'diabetes_sdk'."
@@ -75,7 +62,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return ConversationHandler.END
 
     # Ensure no pending sugar logging conversation captures profile input
-    from .dose_handlers import sugar_conv
+    from ..dose_handlers import sugar_conv
     chat_data = getattr(context, "chat_data", {})
     if chat_data.pop("sugar_active", None):
         end_conv = getattr(sugar_conv, "update_state", None)
@@ -113,36 +100,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return PROFILE_ICR
 
-    values: dict[str, str] | None = None
-    if len(args) == 5 and all("=" not in a for a in args):
-        values = {
-            "icr": args[0],
-            "cf": args[1],
-            "target": args[2],
-            "low": args[3],
-            "high": args[4],
-        }
-    else:
-        parsed: dict[str, str] = {}
-        for arg in args:
-            if "=" not in arg:
-                values = None
-                break
-            key, val = arg.split("=", 1)
-            key = key.lower()
-            match = None
-            for full in ("icr", "cf", "target", "low", "high"):
-                if full.startswith(key):
-                    match = full
-                    break
-            if not match:
-                values = None
-                break
-            parsed[match] = val
-        else:
-            if set(parsed) == {"icr", "cf", "target", "low", "high"}:
-                values = parsed
-
+    values = parse_profile_args(args)
     if values is None:
         await update.message.reply_text("❗ Неверный формат. Справка: /profile help")
         return ConversationHandler.END
@@ -171,19 +129,19 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
 
     user_id = update.effective_user.id
-    profile = ProfileModel(
-        telegram_id=user_id,
-        icr=icr,
-        cf=cf,
-        target=target,
-        low=low,
-        high=high,
+    ok, err = post_profile(
+        api,
+        ApiException,
+        ProfileModel,
+        user_id,
+        icr,
+        cf,
+        target,
+        low,
+        high,
     )
-    try:
-        api.profiles_post(profile)
-    except ApiException as exc:
-        logger.error("DB commit failed: %s", exc)
-        await update.message.reply_text(str(exc))
+    if not ok:
+        await update.message.reply_text(err or "⚠️ Не удалось сохранить профиль.")
         return ConversationHandler.END
 
     await update.message.reply_text(
@@ -201,17 +159,14 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display current patient profile."""
-    api, ApiException, _ = _get_api()
+    api, ApiException, _ = get_api()
     if api is None:
         await update.message.reply_text(
             "⚠️ Функции профиля недоступны. Установите пакет 'diabetes_sdk'."
         )
         return
     user_id = update.effective_user.id
-    try:
-        profile = api.profiles_get(telegram_id=user_id)
-    except ApiException:
-        profile = None
+    profile = fetch_profile(api, ApiException, user_id)
 
     if not profile:
         await update.message.reply_text(
@@ -256,7 +211,7 @@ async def profile_webapp_save(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Save profile data sent from the web app."""
-    api, ApiException, ProfileModel = _get_api()
+    api, ApiException, ProfileModel = get_api()
     if api is None:
         await update.effective_message.reply_text(
             "⚠️ Функции профиля недоступны. Установите пакет 'diabetes_sdk'.",
@@ -295,19 +250,20 @@ async def profile_webapp_save(
         )
         return
     user_id = update.effective_user.id
-    profile = ProfileModel(
-        telegram_id=user_id,
-        icr=icr,
-        cf=cf,
-        target=target,
-        low=low,
-        high=high,
+    ok, err = post_profile(
+        api,
+        ApiException,
+        ProfileModel,
+        user_id,
+        icr,
+        cf,
+        target,
+        low,
+        high,
     )
-    try:
-        api.profiles_post(profile)
-    except ApiException:
+    if not ok:
         await update.effective_message.reply_text(
-            "⚠️ Не удалось сохранить профиль.",
+            err or "⚠️ Не удалось сохранить профиль.",
             reply_markup=menu_keyboard,
         )
         return
@@ -334,17 +290,6 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.answer()
     await query.message.delete()
     await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
-
-
-def _set_timezone(session, user_id: int, tz: str) -> tuple[bool, bool]:
-    user = session.get(User, user_id)
-    if not user:
-        return False, False
-    user.timezone = tz
-    ok = commit(session)
-    return True, ok
-
-
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user to enter timezone."""
     query = update.callback_query
@@ -388,7 +333,7 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
         return PROFILE_TZ
     user_id = update.effective_user.id
     exists, ok = await run_db(
-        _set_timezone, user_id, raw, sessionmaker=SessionLocal
+        set_timezone, user_id, raw, sessionmaker=SessionLocal
     )
     if not exists:
         await update.message.reply_text(
@@ -679,29 +624,6 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         reply_markup=back_keyboard,
     )
     return PROFILE_HIGH
-
-
-def _save_profile(
-    session,
-    user_id: int,
-    icr: float,
-    cf: float,
-    target: float,
-    low: float,
-    high: float,
-) -> bool:
-    prof = session.get(Profile, user_id)
-    if not prof:
-        prof = Profile(telegram_id=user_id)
-        session.add(prof)
-    prof.icr = icr
-    prof.cf = cf
-    prof.target_bg = target
-    prof.low_threshold = low
-    prof.high_threshold = high
-    return commit(session)
-
-
 async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle high threshold input and save profile."""
     raw_text = update.message.text.strip()
@@ -737,7 +659,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         return ConversationHandler.END
     user_id = update.effective_user.id
     ok = await run_db(
-        _save_profile,
+        save_profile,
         user_id,
         icr,
         cf,
@@ -772,7 +694,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 
 async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    from .dose_handlers import _cancel_then, photo_prompt
+    from ..dose_handlers import _cancel_then, photo_prompt
 
     handler = _cancel_then(photo_prompt)
     return await handler(update, context)
