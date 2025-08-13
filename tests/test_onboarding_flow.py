@@ -54,9 +54,8 @@ async def test_onboarding_flow(monkeypatch) -> None:
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 
     import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
-    import services.api.app.diabetes.services.gpt_client as gpt_client
 
-    monkeypatch.setattr(gpt_client, "create_thread", lambda: "tid")
+    monkeypatch.setattr(onboarding.gpt_client, "create_thread", lambda: "tid")
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

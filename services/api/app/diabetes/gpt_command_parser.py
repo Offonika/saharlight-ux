@@ -7,7 +7,7 @@ from openai import OpenAIError
 
 from pydantic import ValidationError
 
-from services.api.app.diabetes.services.gpt_client import _get_client
+from services.api.app.diabetes.services.gpt_client import OpenAIClient
 from services.api.app.schemas import CommandSchema
 
 # Prompt guiding GPT to convert free-form diary text into a single JSON command
@@ -73,6 +73,9 @@ def _extract_first_json(text: str) -> dict | None:
     return None
 
 
+gpt_client = OpenAIClient()
+
+
 async def parse_command(text: str, timeout: float = 10) -> dict | None:
     try:
         # ``asyncio.to_thread`` runs the blocking OpenAI client in the event
@@ -80,7 +83,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
         # fresh ``ThreadPoolExecutor`` for every invocation.
         response = await asyncio.wait_for(
             asyncio.to_thread(
-                _get_client().chat.completions.with_options(timeout=timeout).create,
+                gpt_client.client.chat.completions.with_options(timeout=timeout).create,
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},

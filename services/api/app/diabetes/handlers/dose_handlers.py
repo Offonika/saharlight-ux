@@ -34,7 +34,7 @@ from services.api.app.diabetes.utils.functions import (
     PatientProfile,
     smart_input,
 )
-from services.api.app.diabetes.services.gpt_client import create_thread, send_message, _get_client
+from services.api.app.diabetes.services.gpt_client import OpenAIClient
 from services.api.app.diabetes.gpt_command_parser import parse_command
 from services.api.app.diabetes.utils.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from services.api.app.diabetes.services.repository import commit
@@ -45,6 +45,9 @@ from .profile_handlers import profile_view
 
 
 logger = logging.getLogger(__name__)
+
+
+gpt_client = OpenAIClient()
 
 
 def _sanitize(text: str, max_len: int = 200) -> str:
@@ -803,7 +806,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 if user:
                     thread_id = user.thread_id
                 else:
-                    thread_id = create_thread()
+                    thread_id = gpt_client.create_thread()
                     session.add(User(telegram_id=user_id, thread_id=thread_id))
                     if not commit(session):
                         await message.reply_text(
@@ -812,7 +815,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                         return ConversationHandler.END
             context.user_data["thread_id"] = thread_id
 
-        run = await send_message(
+        run = await gpt_client.send_message(
             thread_id=thread_id,
             content=(
                 "Определи **название** блюда и количество углеводов/ХЕ. Ответ:\n"
@@ -856,7 +859,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 break
             await asyncio.sleep(2)
             run = await asyncio.to_thread(
-                _get_client().beta.threads.runs.retrieve,
+                gpt_client.client.beta.threads.runs.retrieve,
                 thread_id=run.thread_id,
                 run_id=run.id,
             )
@@ -925,7 +928,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             return ConversationHandler.END
 
         messages = await asyncio.to_thread(
-            _get_client().beta.threads.messages.list,
+            gpt_client.client.beta.threads.messages.list,
             thread_id=run.thread_id,
         )
         for m in messages.data:

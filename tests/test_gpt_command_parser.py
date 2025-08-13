@@ -32,7 +32,7 @@ async def test_parse_command_timeout_non_blocking(monkeypatch) -> None:
             )
         )
     )
-    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(gpt_command_parser, "gpt_client", SimpleNamespace(client=fake_client))
 
     start = time.perf_counter()
     result, _ = await asyncio.gather(
@@ -78,7 +78,7 @@ async def test_parse_command_with_explanatory_text(monkeypatch) -> None:
             )
         )
     )
-    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(gpt_command_parser, "gpt_client", SimpleNamespace(client=fake_client))
 
     result = await gpt_command_parser.parse_command("test")
 
@@ -106,7 +106,7 @@ async def test_parse_command_with_array_response(monkeypatch) -> None:
             )
         )
     )
-    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(gpt_command_parser, "gpt_client", SimpleNamespace(client=fake_client))
 
     result = await gpt_command_parser.parse_command("test")
 
@@ -134,7 +134,7 @@ async def test_parse_command_with_scalar_response(monkeypatch) -> None:
             )
         )
     )
-    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(gpt_command_parser, "gpt_client", SimpleNamespace(client=fake_client))
 
     result = await gpt_command_parser.parse_command("test")
 
@@ -167,7 +167,7 @@ async def test_parse_command_with_invalid_schema(monkeypatch, caplog) -> None:
             )
         )
     )
-    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(gpt_command_parser, "gpt_client", SimpleNamespace(client=fake_client))
 
     with caplog.at_level(logging.ERROR):
         result = await gpt_command_parser.parse_command("test")
@@ -191,7 +191,7 @@ async def test_parse_command_with_missing_content(monkeypatch, caplog) -> None:
             )
         )
     )
-    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(gpt_command_parser, "gpt_client", SimpleNamespace(client=fake_client))
 
     with caplog.at_level(logging.ERROR):
         result = await gpt_command_parser.parse_command("test")
@@ -221,7 +221,7 @@ async def test_parse_command_with_non_string_content(monkeypatch, caplog) -> Non
             )
         )
     )
-    monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(gpt_command_parser, "gpt_client", SimpleNamespace(client=fake_client))
 
     with caplog.at_level(logging.ERROR):
         result = await gpt_command_parser.parse_command("test")
@@ -235,7 +235,7 @@ async def test_parse_command_handles_unexpected_exception(monkeypatch, caplog) -
     def bad_client() -> None:
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(gpt_command_parser, "_get_client", bad_client)
+    monkeypatch.setattr(gpt_command_parser, "gpt_client", SimpleNamespace(client=bad_client))
 
     with caplog.at_level(logging.ERROR):
         result = await gpt_command_parser.parse_command("test")

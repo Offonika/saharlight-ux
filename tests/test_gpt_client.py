@@ -2,11 +2,13 @@ import logging
 import threading
 import time
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from openai import OpenAIError
 
-from services.api.app.diabetes.services import gpt_client
+from services.api.app.diabetes.services import gpt_client as gpt_module
+from services.api.app.diabetes.services.gpt_client import OpenAIClient
 from services.api.app.config import settings
 
 
@@ -20,12 +22,13 @@ def test_get_client_thread_safe(monkeypatch):
         call_count += 1
         return fake_client
 
-    monkeypatch.setattr(gpt_client, "get_openai_client", fake_get_openai_client)
-    monkeypatch.setattr(gpt_client, "_client", None)
-    results = []
+    monkeypatch.setattr(gpt_module, "get_openai_client", fake_get_openai_client)
 
-    def worker():
-        results.append(gpt_client._get_client())
+    client = OpenAIClient()
+    results: list[Any] = []  # type: ignore[name-defined]
+
+    def worker() -> None:
+        results.append(client._get_client())
 
     threads = [threading.Thread(target=worker) for _ in range(10)]
     for t in threads:
@@ -51,11 +54,12 @@ async def test_send_message_openaierror(monkeypatch, caplog):
         )
     )
 
-    monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    client = OpenAIClient()
+    monkeypatch.setattr(client, "_get_client", lambda: fake_client)
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(OpenAIError):
-            await gpt_client.send_message(thread_id="t", content="hi")
+            await client.send_message(thread_id="t", content="hi")
 
     assert any("Failed to create message" in r.message for r in caplog.records)
 
@@ -64,13 +68,16 @@ def test_create_thread_openaierror(monkeypatch, caplog):
     def raise_error():
         raise OpenAIError("boom")
 
-    fake_client = SimpleNamespace(beta=SimpleNamespace(threads=SimpleNamespace(create=raise_error)))
+    fake_client = SimpleNamespace(
+        beta=SimpleNamespace(threads=SimpleNamespace(create=raise_error))
+    )
 
-    monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    client = OpenAIClient()
+    monkeypatch.setattr(client, "_get_client", lambda: fake_client)
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(OpenAIError):
-            gpt_client.create_thread()
+            client.create_thread()
 
     assert any("Failed to create thread" in r.message for r in caplog.records)
 
@@ -84,10 +91,11 @@ async def test_send_message_upload_error_keeps_file(tmp_path, monkeypatch):
         raise OpenAIError("boom")
 
     fake_client = SimpleNamespace(files=SimpleNamespace(create=raise_upload))
-    monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    client = OpenAIClient()
+    monkeypatch.setattr(client, "_get_client", lambda: fake_client)
 
     with pytest.raises(OpenAIError):
-        await gpt_client.send_message(thread_id="t", image_path=str(img))
+        await client.send_message(thread_id="t", image_path=str(img))
 
     assert img.exists()
 
@@ -97,7 +105,7 @@ async def test_send_message_empty_string_preserved(tmp_path, monkeypatch):
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 
-    captured = {}
+    captured: dict[str, Any] = {}  # type: ignore[name-defined]
 
     def fake_files_create(file, purpose):
         return SimpleNamespace(id="f1")
@@ -115,9 +123,11 @@ async def test_send_message_empty_string_preserved(tmp_path, monkeypatch):
         ),
     )
 
-    monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    client = OpenAIClient()
+    monkeypatch.setattr(client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(settings, "openai_assistant_id", "asst_test")
 
-    await gpt_client.send_message(thread_id="t", content="", image_path=str(img))
+    await client.send_message(thread_id="t", content="", image_path=str(img))
     assert captured["content"][1]["text"] == ""
     assert not img.exists()
+
