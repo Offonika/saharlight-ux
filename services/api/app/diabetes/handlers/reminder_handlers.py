@@ -207,6 +207,9 @@ def _render_reminders(
 
 
 def schedule_reminder(rem: Reminder, job_queue) -> None:
+    name = f"reminder_{rem.id}"
+    for job in job_queue.get_jobs_by_name(name):
+        job.schedule_removal()
     if not rem.is_enabled:
         logger.debug(
             "Reminder %s disabled, skipping (type=%s, time=%s, interval=%s, minutes_after=%s)",
@@ -217,9 +220,6 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
             rem.minutes_after,
         )
         return
-    name = f"reminder_{rem.id}"
-    for job in job_queue.get_jobs_by_name(name):
-        job.schedule_removal()
 
     tz = timezone.utc
     user = rem.__dict__.get("user")

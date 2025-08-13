@@ -131,7 +131,7 @@ function ReminderRow({
 export default function Reminders() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { user } = useTelegram()
+  const { user, sendData } = useTelegram()
 
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loading, setLoading] = useState(true)
@@ -188,6 +188,10 @@ export default function Reminders() {
         intervalHours: target.interval != null ? target.interval / 60 : undefined,
         isEnabled: nextActive,
       })
+      const hours = target.interval != null ? target.interval / 60 : undefined
+      const value =
+        hours != null && Number.isInteger(hours) ? `${hours}h` : target.time
+      sendData({ id, type: target.type, value })
       toast({
         title: 'Напоминание обновлено',
         description: 'Статус напоминания изменён',
