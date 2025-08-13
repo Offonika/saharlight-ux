@@ -26,14 +26,29 @@ __all__ = (
 )
 
 # ─────────────── Reply-клавиатуры (отображаются на экране чата) ───────────────
+# Create WebApp buttons when WebApp is configured, fall back to text buttons otherwise
+profile_button = (
+    KeyboardButton(
+        "📄 Мой профиль", web_app=WebAppInfo(f"{settings.webapp_url}/profile")
+    )
+    if settings.webapp_url
+    else KeyboardButton("📄 Мой профиль")
+)
+reminders_button = (
+    KeyboardButton(
+        "⏰ Напоминания", web_app=WebAppInfo(f"{settings.webapp_url}/reminders")
+    )
+    if settings.webapp_url
+    else KeyboardButton("⏰ Напоминания")
+)
 
 menu_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton("📷 Фото еды"), KeyboardButton("🩸 Уровень сахара")],
         [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
-        [KeyboardButton("📈 Отчёт"), KeyboardButton("📄 Мой профиль")],
+        [KeyboardButton("📈 Отчёт"), profile_button],
         [KeyboardButton("🕹 Быстрый ввод"), KeyboardButton("ℹ️ Помощь")],
-        [KeyboardButton("⏰ Напоминания"), KeyboardButton("🆘 SOS контакт")],
+        [reminders_button, KeyboardButton("🆘 SOS контакт")],
     ],
     resize_keyboard=True,
     one_time_keyboard=False,
