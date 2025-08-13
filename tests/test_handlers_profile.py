@@ -173,3 +173,30 @@ async def test_profile_view_preserves_user_data(monkeypatch) -> None:
 
     assert context.user_data["thread_id"] == "tid"
     assert context.user_data["foo"] == "bar"
+
+
+
+@pytest.mark.asyncio
+async def test_profile_view_missing_profile_shows_webapp_button(monkeypatch) -> None:
+    from urllib.parse import urlparse
+    from services.api.app.config import settings as config_settings
+    from services.api.app.diabetes.handlers import profile as handlers
+
+    monkeypatch.setattr(config_settings, "webapp_url", "https://example.com")
+    monkeypatch.setattr(handlers, "settings", config_settings, raising=False)
+    monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
+    monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
+
+    msg = DummyMessage()
+    update = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    context = SimpleNamespace()
+
+    await handlers.profile_view(update, context)
+
+    assert msg.texts[0].startswith("Ваш профиль пока не настроен.")
+    markup = msg.markups[0]
+    button = markup.inline_keyboard[0][0]
+    assert button.text == "📝 Заполнить форму"
+    assert button.web_app is not None
+    assert urlparse(button.web_app.url).path == "/profile"
+
