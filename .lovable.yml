@@ -1,0 +1,7 @@
+dev:
+  command: npm run dev
+  port: 5173          # <-- опциональное поле; зависит от версии Lovable
+build:
+  command: npm run build
+preview:
+  command: npm run preview
