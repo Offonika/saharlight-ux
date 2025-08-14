@@ -25,5 +25,5 @@ if [ ! -f ".env" ]; then
 fi
 
 echo "Установка завершена! Проверьте файл .env и заполните свои токены и пароли."
-echo "Фронтенд собран в webapp/ui/dist."
+echo "Фронтенд собран в services/webapp/ui/dist."
 echo "Для запуска API: source venv/bin/activate && python services/api/app/main.py"
