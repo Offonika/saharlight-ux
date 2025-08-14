@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster as Sonner } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { Routes, Route } from "react-router-dom"           // убрали BrowserRouter
+import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { useTelegram } from "@/hooks/useTelegram"
 import { ThemeProvider } from "next-themes"
 
@@ -58,8 +58,9 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        {/* BrowserRouter — только здесь, в main.tsx, поэтому здесь его не оставляем */}
-        <AppContent />
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>
