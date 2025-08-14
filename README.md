@@ -61,12 +61,12 @@
    python3 -m venv venv
    source venv/bin/activate
    ```
-3. **Установите зависимости и соберите фронтенд:**
+3. **Установите зависимости и соберите фронтенд (`npm ci && npm run build`):**
    Локальный Python SDK подключается из каталога `libs/py-sdk`, поэтому он будет установлен вместе с зависимостями:
    ```bash
    pip install -r requirements.txt
 
-   (cd services/webapp/ui && npm ci)
+   (cd services/webapp/ui && npm ci && npm run build)
 
    ```
    Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `services/webapp/ui`.
