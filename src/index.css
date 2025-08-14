@@ -18,25 +18,25 @@
    Компонентные стили (Tailwind + apply)  
    ================================================================== */
 @layer components {
-  /* ---------- Карточки / плитки ---------- */
+  /* ---------- Карточки / плитки - улучшенные ---------- */
   .medical-card {
-    @apply bg-card border border-border rounded-xl p-6
-           shadow-[var(--shadow-soft)]
-           hover:shadow-[var(--shadow-medium)]
-           transition-all duration-200;
+    @apply bg-gradient-card border border-border/60 rounded-xl p-6
+           shadow-soft hover:shadow-medium
+           transition-all duration-300 backdrop-blur-sm;
   }
 
   .medical-tile {
-    @apply medical-card hover:bg-card/80 active:scale-95 cursor-pointer
+    @apply medical-card hover:bg-gradient-card/80 hover:scale-[1.02] active:scale-95 cursor-pointer
            flex flex-col items-center justify-center
            min-h-[120px] text-center
-           transition-all duration-200 touch-manipulation;
+           transition-all duration-300 touch-manipulation
+           hover:shadow-glow;
   }
 
   .medical-list-item {
-    @apply bg-card border border-border rounded-lg p-4 mb-3
-           hover:shadow-[var(--shadow-soft)]
-           transition-all duration-200;
+    @apply bg-gradient-card border border-border/60 rounded-lg p-4 mb-3
+           hover:shadow-soft hover:scale-[1.01]
+           transition-all duration-300;
   }
 
   .modal-card {

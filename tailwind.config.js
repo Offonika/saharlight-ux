@@ -70,7 +70,9 @@ export default {
 				},
 				medical: {
 					blue: 'hsl(var(--medical-blue))',
+					'blue-light': 'hsl(var(--medical-blue-light))',
 					teal: 'hsl(var(--medical-teal))',
+					'teal-light': 'hsl(var(--medical-teal-light))',
 					success: 'hsl(var(--medical-success))',
 					warning: 'hsl(var(--medical-warning))',
 					error: 'hsl(var(--medical-error))'
@@ -91,12 +93,15 @@ export default {
 			backgroundImage: {
 				'gradient-medical': 'var(--gradient-medical)',
 				'gradient-card': 'var(--gradient-card)',
-				'gradient-button': 'var(--gradient-button)'
+				'gradient-button': 'var(--gradient-button)',
+				'gradient-success': 'var(--gradient-success)',
+				'gradient-warning': 'var(--gradient-warning)'
 			},
 			boxShadow: {
 				'soft': 'var(--shadow-soft)',
 				'medium': 'var(--shadow-medium)',
-				'strong': 'var(--shadow-strong)'
+				'strong': 'var(--shadow-strong)',
+				'glow': 'var(--shadow-glow)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

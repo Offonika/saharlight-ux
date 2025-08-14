@@ -8,12 +8,14 @@
 @layer base {
   :root {
     color-scheme: light dark;
-    /* Основные цвета бренда */
-    --medical-blue: 210 85% 45%;
-    --medical-teal: 180 65% 55%;
-    --medical-success: 142 70% 45%;
-    --medical-warning: 38 92% 50%;
-    --medical-error: 0 84% 60%;
+    /* Основные цвета бренда - улучшенная медицинская палитра */
+    --medical-blue: 210 90% 48%;     /* Более насыщенный синий */
+    --medical-blue-light: 210 85% 65%;
+    --medical-teal: 180 70% 45%;     /* Более глубокий бирюзовый */
+    --medical-teal-light: 180 65% 60%;
+    --medical-success: 142 75% 42%;  /* Более контрастный зелёный */
+    --medical-warning: 38 95% 52%;   /* Более яркий оранжевый */
+    --medical-error: 0 88% 58%;      /* Более мягкий красный */
 
     /* Нейтральная палитра */
     --neutral-50: 210 10% 98%;
@@ -27,15 +29,18 @@
     --neutral-800: 210 12% 15%;
     --neutral-900: 210 15% 10%;
 
-    /* Градиенты */
+    /* Градиенты - более медицинские и профессиональные */
     --gradient-medical: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(var(--medical-teal)));
-    --gradient-card: linear-gradient(180deg, hsl(var(--neutral-50)), hsl(0 0% 100%));
-    --gradient-button: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(210 85% 40%));
+    --gradient-card: linear-gradient(180deg, hsl(var(--neutral-50)), hsl(0 0% 98%));
+    --gradient-button: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(var(--medical-blue-light)));
+    --gradient-success: linear-gradient(135deg, hsl(var(--medical-success)), hsl(142 70% 55%));
+    --gradient-warning: linear-gradient(135deg, hsl(var(--medical-warning)), hsl(38 90% 65%));
 
-    /* Тени */
-    --shadow-soft: 0 2px 8px hsl(var(--medical-blue) / 0.08);
-    --shadow-medium: 0 4px 16px hsl(var(--medical-blue) / 0.12);
-    --shadow-strong: 0 8px 32px hsl(var(--medical-blue) / 0.16);
+    /* Тени - более мягкие и профессиональные */
+    --shadow-soft: 0 2px 12px hsl(var(--medical-blue) / 0.06);
+    --shadow-medium: 0 4px 20px hsl(var(--medical-blue) / 0.1);
+    --shadow-strong: 0 8px 36px hsl(var(--medical-blue) / 0.15);
+    --shadow-glow: 0 0 24px hsl(var(--medical-blue) / 0.2);
 
     /* Telegram WebApp переменные (светлая тема) */
     --tg-theme-bg-color: hsl(var(--neutral-50));
