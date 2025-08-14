@@ -179,6 +179,7 @@ const Profile = () => {
             <MedicalButton
               onClick={handleSave}
               className="w-full flex items-center justify-center gap-2"
+              variant="medical"
               size="lg"
             >
               <Save className="w-4 h-4" />

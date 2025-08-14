@@ -52,6 +52,7 @@ const NewMeal = () => {
           <MedicalButton
             type="submit"
             className="w-full"
+            variant="success"
             disabled={!meal || !carbs}
             size="lg"
           >

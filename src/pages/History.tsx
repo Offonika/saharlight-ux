@@ -417,6 +417,7 @@ const History = () => {
                   type="button"
                   onClick={handleUpdateRecord}
                   className="flex-1"
+                  variant="success"
                   size="lg"
                 >
                   Сохранить
@@ -424,7 +425,7 @@ const History = () => {
                 <MedicalButton
                   type="button"
                   onClick={() => setEditingRecord(null)}
-                  variant="secondary"
+                  variant="outline"
                   className="flex-1"
                   size="lg"
                 >
@@ -453,6 +454,7 @@ const History = () => {
           <MedicalButton
             onClick={() => navigate('/analytics')}
             className="w-full flex items-center justify-center gap-2"
+            variant="medical"
             size="lg"
           >
             <TrendingUp className="w-4 h-4" />

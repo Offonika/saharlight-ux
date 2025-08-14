@@ -47,6 +47,7 @@ const NewMeasurement = () => {
           <MedicalButton
             type="submit"
             className="w-full"
+            variant="warning"
             disabled={!sugar}
             size="lg"
           >
