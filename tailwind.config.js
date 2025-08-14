@@ -32,6 +32,7 @@ export default {
                                 background: 'hsl(var(--background))',
                                 foreground: 'hsl(var(--foreground))',
                                 overlay: 'hsl(var(--overlay))',
+                                'gradient-card': 'hsl(var(--gradient-card-base))',
                                 primary: {
                                         DEFAULT: 'hsl(var(--primary))',
                                         foreground: 'hsl(var(--primary-foreground))'

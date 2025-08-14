@@ -32,6 +32,7 @@
     /* Градиенты - более медицинские и профессиональные */
     --gradient-medical: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(var(--medical-teal)));
     --gradient-card: linear-gradient(180deg, hsl(var(--neutral-50)), hsl(0 0% 98%));
+    --gradient-card-base: var(--card);
     --gradient-button: linear-gradient(135deg, hsl(var(--medical-blue)), hsl(var(--medical-blue-light)));
     --gradient-success: linear-gradient(135deg, hsl(var(--medical-success)), hsl(142 70% 55%));
     --gradient-warning: linear-gradient(135deg, hsl(var(--medical-warning)), hsl(38 90% 65%));
