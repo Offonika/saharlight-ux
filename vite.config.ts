@@ -1,3 +1,4 @@
+// vite.config.ts  (ветка lovable)
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
@@ -14,13 +15,14 @@ export default defineConfig(async ({ mode }) => {
     base: mode === 'development' ? '/' : '/ui/',
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
-      },
+        '@':   path.resolve(__dirname, './src'),
+        '@sdk': path.resolve(__dirname, './libs/ts-sdk')
+      }
     },
-    server: { 
+    server: {
       host: '::',
-      port: 8080 
+      port: 8080
     },
-    build: { outDir: 'dist' },
+    build: { outDir: 'dist' }
   }
 })
