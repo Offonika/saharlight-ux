@@ -34,8 +34,8 @@
 
 1. Клонируйте репозиторий:
     ```bash
-    git clone https://github.com/Offonika/diabetes-assistant.git
-    cd diabetes-assistant
+    git clone https://github.com/Offonika/saharlight-ux.git
+    cd saharlight-ux
     ```
 2. Выполните установку зависимостей и настройте окружение:
     ```bash
