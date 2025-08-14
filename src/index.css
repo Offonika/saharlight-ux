@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* СахарФото Design System - Медицинский дизайн для диабетиков
+Цветовая схема: медицинский синий, бирюза, нейтральные серые
+Поддержка Telegram WebApp тем
+
+Design tokens and base styles live in styles/theme.css
+*/
+
+@layer components {
+  /* Медицинские компоненты */
+  .medical-card {
+    @apply bg-card border border-border rounded-xl p-6 shadow-[var(--shadow-soft)]
+           hover:shadow-[var(--shadow-medium)] transition-all duration-200;
+  }
+
+  .medical-tile {
+    @apply medical-card hover:bg-card/80 active:scale-95 cursor-pointer
+           flex flex-col items-center justify-center min-h-[120px] text-center
+           transition-all duration-200 touch-manipulation;
+  }
+
+    .medical-list-item {
+      @apply bg-card border border-border rounded-lg p-4 mb-3
+             hover:shadow-[var(--shadow-soft)] transition-all duration-200;
+    }
+
+    .modal-card {
+      @apply relative w-full max-w-lg bg-background rounded-lg shadow-lg m-4;
+      margin-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+  }
+
+@layer components {
+  /* Segmented control */
+  .segmented {
+    display: flex;
+    border: 1px solid var(--primary);
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .segmented__item {
+    flex: 1;
+  }
+
+  .segmented__item button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    background: var(--tg-theme-secondary-bg-color);
+    color: var(--tg-theme-link-color);
+    user-select: none;
+    width: 100%;
+    height: 100%;
+    border: 1px solid transparent;
+  }
+
+  .segmented__item button[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: hsl(var(--medical-blue) / 0.1);
+  }
+}
