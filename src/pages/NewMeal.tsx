@@ -21,33 +21,43 @@ const NewMeal = () => {
         onBack={() => navigate(-1)}
       />
       <main className="container mx-auto px-4 py-6">
-        <form onSubmit={handleSubmit} className="medical-card p-4 flex flex-col gap-4">
-          <label className="text-sm font-medium">
-            Название блюда
+        <form onSubmit={handleSubmit} className="medical-card bg-gradient-success/5 border-medical-success/20 animate-slide-up">
+          <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Название блюда
+            </label>
             <input
-              className="medical-input mt-2"
+              className="medical-input"
               value={meal}
               onChange={(e) => setMeal(e.target.value)}
-              placeholder="Например: овсянка"
+              placeholder="Например: овсянка с молоком"
             />
-          </label>
-          <label className="text-sm font-medium">
-            Углеводы (г)
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Углеводы (г)
+            </label>
             <input
               type="number"
-              className="medical-input mt-2"
+              step="0.1"
+              className="medical-input"
               value={carbs}
               onChange={(e) => setCarbs(e.target.value)}
+              placeholder="Введите количество углеводов"
             />
-          </label>
+          </div>
+          
           <MedicalButton
             type="submit"
             className="w-full"
             disabled={!meal || !carbs}
             size="lg"
           >
-            Сохранить
+            Сохранить блюдо
           </MedicalButton>
+        </div>
         </form>
       </main>
     </div>

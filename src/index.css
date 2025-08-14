@@ -20,13 +20,18 @@
 @layer components {
   /* ---------- Карточки / плитки - улучшенные ---------- */
   .medical-card {
-    @apply bg-gradient-card border border-border/60 rounded-xl p-6
-           shadow-soft hover:shadow-medium
-           transition-all duration-300 backdrop-blur-sm;
+    @apply bg-card text-card-foreground rounded-xl border border-border/60 p-4 shadow-soft;
+    background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.97) 100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .medical-card:hover {
+    @apply shadow-medium transform-gpu scale-[1.02];
+    border-color: hsl(var(--border) / 0.8);
   }
 
   .medical-tile {
-    @apply medical-card hover:bg-gradient-card/80 hover:scale-[1.02] active:scale-95 cursor-pointer
+    @apply medical-card hover:scale-[1.02] active:scale-95 cursor-pointer
            flex flex-col items-center justify-center
            min-h-[120px] text-center
            transition-all duration-300 touch-manipulation
@@ -34,9 +39,18 @@
   }
 
   .medical-list-item {
-    @apply bg-gradient-card border border-border/60 rounded-lg p-4 mb-3
-           hover:shadow-soft hover:scale-[1.01]
-           transition-all duration-300;
+    @apply bg-card text-card-foreground rounded-xl border border-border/60 p-4 shadow-soft animate-slide-up;
+    background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.97) 100%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .medical-list-item:hover {
+    @apply shadow-medium border-primary/20;
+    transform: translateY(-2px);
+  }
+
+  .medical-input {
+    @apply w-full rounded-lg border border-input bg-background px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:border-primary/60 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200;
   }
 
   .modal-card {

@@ -168,15 +168,15 @@ const History = () => {
 
         {/* Статистика */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="medical-card text-center py-4">
+          <div className="medical-card text-center py-4 bg-gradient-success/5 border-medical-success/20">
             <div className="text-xl font-bold text-medical-success">6.8</div>
             <div className="text-xs text-muted-foreground">Средний сахар</div>
           </div>
-          <div className="medical-card text-center py-4">
+          <div className="medical-card text-center py-4 bg-gradient-medical/5 border-medical-teal/20">
             <div className="text-xl font-bold text-medical-teal">24</div>
             <div className="text-xs text-muted-foreground">Записей</div>
           </div>
-          <div className="medical-card text-center py-4">
+          <div className="medical-card text-center py-4 bg-gradient-button/5 border-medical-blue/20">
             <div className="text-xl font-bold text-medical-blue">85%</div>
             <div className="text-xs text-muted-foreground">В норме</div>
           </div>

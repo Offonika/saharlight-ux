@@ -66,7 +66,7 @@ const Profile = () => {
       />
       
       <main className="container mx-auto px-4 py-6">
-        <div className="medical-card animate-slide-up">
+        <div className="medical-card animate-slide-up bg-gradient-medical/5 border-medical-blue/20">
           <div className="space-y-6">
             {/* ICR */}
             <div>
@@ -188,7 +188,7 @@ const Profile = () => {
         </div>
 
         {/* Дополнительная информация */}
-        <div className="mt-6 medical-card">
+        <div className="mt-6 medical-card bg-gradient-success/5 border-medical-teal/20">
           <h3 className="font-semibold text-foreground mb-3">Справка</h3>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
