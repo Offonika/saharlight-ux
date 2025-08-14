@@ -5,7 +5,7 @@ services:
     build:
       context: ../..
       dockerfile: infra/docker/Dockerfile.api
-    env_file: [ ../env/.env.example ]
+    env_file: [ ../../.env ]
     ports:
       - "8000:8000"
     command: >-

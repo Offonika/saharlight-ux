@@ -115,6 +115,9 @@ python services/api/app/main.py
    Приложение также подключает маршруты из `legacy.py`, предоставляя эндпоинты `/profiles` и `/api/reminders`, совместимые с SDK.
 
 ### Docker Compose
+
+Перед запуском создайте файл `.env` в корне проекта (например, `cp infra/env/.env.example .env`) и убедитесь, что в `infra/docker/docker-compose.yml` путь `env_file` указывает на него (`../../.env`).
+
 ```bash
 docker compose -f infra/docker/docker-compose.yml up --build
 ```
