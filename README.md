@@ -147,7 +147,6 @@ npx @openapitools/openapi-generator-cli generate -i libs/contracts/openapi.yaml 
 
 ```bash
 pip install -r services/api/app/requirements.txt
-pip install -e libs/py-sdk
 ```
 
 Тесты используют переменные `OPENAI_API_KEY`, `DB_PASSWORD` и другие из `.env`.
