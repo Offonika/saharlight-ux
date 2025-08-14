@@ -4,20 +4,23 @@ const api = new DefaultApi();
 
 export async function getReminders(telegramId: number): Promise<Reminder[]> {
   try {
+    console.log('[API] Getting reminders for telegramId:', telegramId);
     const data = await api.remindersGet({ telegramId });
+    console.log('[API] Reminders response:', data);
 
     if (!data) {
+      console.log('[API] No data received, returning empty array');
       return [];
     }
 
     if (!Array.isArray(data)) {
-      console.error('Unexpected reminders API response:', data);
+      console.error('[API] Unexpected reminders API response:', data);
       return [];
     }
 
     return data;
   } catch (error) {
-    console.error('Failed to fetch reminders:', error);
+    console.error('[API] Failed to fetch reminders:', error);
     throw new Error('Не удалось загрузить напоминания');
   }
 }

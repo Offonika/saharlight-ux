@@ -138,11 +138,23 @@ export default function Reminders() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!user?.id) return
+    console.log('[Reminders] useEffect triggered, user:', user)
+    
+    if (!user?.id) {
+      console.log('[Reminders] No user ID, stopping loading')
+      setLoading(false)
+      setError('Пользователь не авторизован в Telegram')
+      return
+    }
+    
     let cancelled = false
+    console.log('[Reminders] Loading reminders for user:', user.id)
+    
     ;(async () => {
       try {
         const data = await getReminders(user.id)
+        console.log('[Reminders] API response:', data)
+        
         if (cancelled) return
         const normalized: Reminder[] = (data || []).map((r: ApiReminder) => {
           const nt = normalizeType(r.type as ReminderType)
@@ -156,8 +168,11 @@ export default function Reminders() {
           }
         })
         normalized.sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time))
+        console.log('[Reminders] Normalized reminders:', normalized)
         setReminders(normalized)
+        setError(null)
       } catch (err) {
+        console.error('[Reminders] Error loading reminders:', err)
         if (!cancelled) {
           const message = err instanceof Error ? err.message : 'Не удалось загрузить напоминания'
           setError(message)
