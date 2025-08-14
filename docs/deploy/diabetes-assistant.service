@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/opt/diabetes-assistant
-EnvironmentFile=/opt/diabetes-assistant/.env
+WorkingDirectory=/opt/saharlight-ux
+EnvironmentFile=/opt/saharlight-ux/.env
 ExecStart=/usr/bin/env uvicorn services.api.app.main:app --host 0.0.0.0 --port 8000 --workers 4
 Restart=on-failure
 RestartSec=5
