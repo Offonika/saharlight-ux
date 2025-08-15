@@ -19,10 +19,11 @@ def test_menu_keyboard_webapp_urls(monkeypatch: pytest.MonkeyPatch) -> None:
     reminders_btn = next(b for b in buttons if b.text == "⏰ Напоминания")
 
     assert profile_btn.web_app is not None
-    assert urlparse(profile_btn.web_app.url).path == "/profile"
+    assert urlparse(profile_btn.web_app.url).path == "/ui/profile"
     assert reminders_btn.web_app is not None
-    assert urlparse(reminders_btn.web_app.url).path == "/reminders"
+    assert urlparse(reminders_btn.web_app.url).path == "/ui/reminders"
 
     monkeypatch.delenv("WEBAPP_URL", raising=False)
     importlib.reload(config)
     importlib.reload(ui)
+

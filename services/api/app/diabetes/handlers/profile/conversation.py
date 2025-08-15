@@ -176,7 +176,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                     [
                         InlineKeyboardButton(
                             "📝 Заполнить форму",
-                            web_app=WebAppInfo(f"{settings.webapp_url}/profile"),
+                            web_app=WebAppInfo(f"{settings.webapp_url}/ui/profile"),
                         )
                     ]
                 ]
@@ -215,7 +215,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             [
                 InlineKeyboardButton(
                     "📝 Заполнить форму",
-                    web_app=WebAppInfo(f"{settings.webapp_url}/profile"),
+                    web_app=WebAppInfo(f"{settings.webapp_url}/ui/profile"),
                 )
             ],
         )
@@ -450,7 +450,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     if action == "add" and settings.webapp_url:
         button = InlineKeyboardButton(
-            "📝 Новое", web_app=WebAppInfo(f"{settings.webapp_url}/reminders")
+            "📝 Новое", web_app=WebAppInfo(f"{settings.webapp_url}/ui/reminders")
         )
         keyboard = InlineKeyboardMarkup([[button]])
         await query.message.reply_text("Создать напоминание:", reply_markup=keyboard)

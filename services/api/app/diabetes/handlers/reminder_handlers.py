@@ -141,7 +141,7 @@ def _render_reminders(
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(f"{settings.webapp_url}/reminders"),
+                web_app=WebAppInfo(f"{settings.webapp_url}/ui/reminders"),
             )
         ]
     if not rems:
@@ -167,7 +167,7 @@ def _render_reminders(
             row.append(
                 InlineKeyboardButton(
                     "✏️",
-                    web_app=WebAppInfo(f"{settings.webapp_url}/reminders?id={r.id}"),
+                    web_app=WebAppInfo(f"{settings.webapp_url}/ui/reminders?id={r.id}"),
                 )
             )
         row.extend(
