@@ -66,12 +66,24 @@ def main() -> None:
     ]
 
     async def post_init(
-        app: Application[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]]
+        app: Application[
+            ExtBot[None],
+            dict[str, Any],
+            dict[str, Any],
+            dict[str, Any],
+            Any,
+            Any,
+        ]
     ) -> None:
         await app.bot.set_my_commands(commands)
 
     application: Application[
-        ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]
+        ExtBot[None],
+        dict[str, Any],
+        dict[str, Any],
+        dict[str, Any],
+        Any,
+        Any,
     ] = (
         Application.builder()
         .token(BOT_TOKEN)

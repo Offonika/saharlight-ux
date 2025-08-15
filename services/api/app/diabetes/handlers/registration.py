@@ -22,7 +22,14 @@ logger = logging.getLogger(__name__)
 
 
 def register_handlers(
-    app: Application[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]]
+    app: Application[
+        ExtBot[None],
+        dict[str, Any],
+        dict[str, Any],
+        dict[str, Any],
+        Any,
+        Any,
+    ]
 ) -> None:
     """Register bot handlers on the provided ``Application`` instance."""
 
