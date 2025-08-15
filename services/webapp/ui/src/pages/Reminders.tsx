@@ -1,5 +1,5 @@
 // Файл: webapp/ui/src/pages/Reminders.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react'
 import { MedicalHeader } from '@/components/MedicalHeader'
@@ -135,15 +135,33 @@ export default function Reminders() {
 
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<ReactNode | null>(null)
 
   useEffect(() => {
     if (!isReady) return
     if (!user?.id) {
       setLoading(false)
-      setError('Не удалось получить данные пользователя. Откройте приложение в Telegram.')
+      setError(
+        <div className="space-y-4">
+          <p className="text-destructive">Не удалось получить данные пользователя.</p>
+          <div className="flex flex-col items-center gap-2">
+            <MedicalButton onClick={() => window.location.reload()}>Повторить</MedicalButton>
+            <MedicalButton asChild variant="outline">
+              <a
+                href="https://t.me/saharlight_bot?startapp=reminders"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Открыть в Telegram
+              </a>
+            </MedicalButton>
+          </div>
+        </div>,
+      )
       return
     }
+    setLoading(true)
+    setError(null)
     let cancelled = false
     ;(async () => {
       try {
@@ -165,7 +183,7 @@ export default function Reminders() {
       } catch (err) {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : 'Не удалось загрузить напоминания'
-          setError(message)
+          setError(<p className="text-destructive mb-4">{message}</p>)
           toast({ title: 'Ошибка', description: message, variant: 'destructive' })
         }
       } finally {
@@ -241,14 +259,7 @@ export default function Reminders() {
       </div>
     )
   } else if (error) {
-    content = (
-      <div className="text-center py-12">
-        <p className="text-destructive mb-4">{error}</p>
-        {!user?.id && (
-          <p className="text-muted-foreground">Откройте приложение в Telegram</p>
-        )}
-      </div>
-    )
+    content = <div className="text-center py-12">{error}</div>
   } else if (reminders.length === 0) {
     content = (
       <div className="text-center py-12">
