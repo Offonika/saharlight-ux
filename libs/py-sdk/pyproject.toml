@@ -17,7 +17,7 @@ attrs = ">=22.2.0"
 python-dateutil = "^2.8.0"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core>=1.8,<2"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
