@@ -124,12 +124,14 @@ async def create_user(
 ) -> dict:
     """Ensure a user exists in the database."""
 
+
     if data.telegram_id != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
 
     def _create_user(session: Session, telegram_id: int) -> None:
         db_user = session.get(UserDB, telegram_id)
         if db_user is None:
+
             session.add(UserDB(telegram_id=telegram_id, thread_id="webapp"))
         session.commit()
 
