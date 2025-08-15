@@ -131,14 +131,19 @@ function ReminderRow({
 export default function Reminders() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { user, sendData } = useTelegram()
+  const { user, sendData, isReady } = useTelegram()
 
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!user?.id) return
+    if (!isReady) return
+    if (!user?.id) {
+      setLoading(false)
+      setError('Не удалось получить данные пользователя. Откройте приложение в Telegram.')
+      return
+    }
     let cancelled = false
     ;(async () => {
       try {
@@ -168,7 +173,7 @@ export default function Reminders() {
       }
     })()
     return () => { cancelled = true }
-  }, [toast, user?.id])
+  }, [toast, user?.id, isReady])
 
   const handleToggleReminder = async (id: number) => {
     if (!user?.id) return
@@ -236,7 +241,14 @@ export default function Reminders() {
       </div>
     )
   } else if (error) {
-    content = <div className="text-center py-12 text-destructive">{error}</div>
+    content = (
+      <div className="text-center py-12">
+        <p className="text-destructive mb-4">{error}</p>
+        {!user?.id && (
+          <p className="text-muted-foreground">Откройте приложение в Telegram</p>
+        )}
+      </div>
+    )
   } else if (reminders.length === 0) {
     content = (
       <div className="text-center py-12">
