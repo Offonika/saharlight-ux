@@ -46,6 +46,7 @@ interface TelegramWebApp {
   colorScheme?: Scheme;
   themeParams?: ThemeParams;
   initDataUnsafe?: { user?: TelegramUser };
+  initData?: string;
   setBackgroundColor?: (color: string) => void;
   setHeaderColor?: (color: string) => void;
   onEvent?: (eventType: string, handler: () => void) => void;
@@ -114,7 +115,22 @@ export const useTelegram = (
       tg.expand?.();
       tg.ready?.();
       applyTheme(tg, forceLight);
-      setUser(tg.initDataUnsafe?.user ?? null);
+      const params = new URLSearchParams(tg.initData ?? "");
+      const userRaw = params.get("user");
+      let userObj: TelegramUser | null = null;
+      try {
+        userObj = userRaw ? JSON.parse(userRaw) : null;
+      } catch (err) {
+        console.warn("[TG] failed to parse initData user", err);
+      }
+      const finalUser = tg.initDataUnsafe?.user ?? userObj;
+      setUser(finalUser);
+      if (!finalUser?.id) {
+        console.warn("[TG] failed to get user ID", {
+          initData: tg.initData,
+          initDataUnsafe: tg.initDataUnsafe,
+        });
+      }
       setReady(true);
       const onTheme = () => applyTheme(tg, forceLight);
       tg.onEvent?.("themeChanged", onTheme);
