@@ -8,8 +8,5 @@
     "build":     "npm --workspace services/webapp/ui run build",
     "build:dev": "npm --workspace services/webapp/ui run build:dev",
     "preview":   "npm --workspace services/webapp/ui run preview"
-  },
-  "dependencies": {
-    "workspace-aggregator": "1.0.0"  
   }
 }
