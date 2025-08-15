@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { tgFetch } from "../lib/tgFetch";
 
 type Scheme = "light" | "dark";
 
@@ -163,7 +164,7 @@ export const useTelegram = (
           }
           if (document.cookie) {
             try {
-              const resp = await fetch("/api/profile/self", {
+              const resp = await tgFetch("/api/profile/self", {
                 credentials: "include",
               });
               if (resp.ok) {
