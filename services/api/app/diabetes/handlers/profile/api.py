@@ -1,12 +1,20 @@
 import logging
+from typing import Any, TYPE_CHECKING, cast
+
+from sqlalchemy.orm import Session
+
 from services.api.app.config import settings
-from services.api.app.diabetes.services.db import Profile, SessionLocal, User
+from services.api.app.diabetes.services.db import Profile, User
 from services.api.app.diabetes.services.repository import commit
 
 logger = logging.getLogger(__name__)
 
 
-def get_api():
+if TYPE_CHECKING:
+    from diabetes_sdk.api.default_api import DefaultApi
+
+
+def get_api() -> tuple[Any, Any, Any]:
     """Return API client, its exception type and profile model.
 
     Separate function to make API access testable without importing SDK in UI
@@ -27,42 +35,54 @@ def get_api():
     return api, ApiException, ProfileModel
 
 
-def save_profile(session, user_id: int, icr: float, cf: float, target: float, low: float, high: float) -> bool:
+def save_profile(
+    session: Session,
+    user_id: int,
+    icr: float,
+    cf: float,
+    target: float,
+    low: float,
+    high: float,
+) -> bool:
     """Persist profile values into the local database."""
     prof = session.get(Profile, user_id)
     if not prof:
         prof = Profile(telegram_id=user_id)
         session.add(prof)
+    prof = cast(Any, prof)
     prof.icr = icr
     prof.cf = cf
     prof.target_bg = target
     prof.low_threshold = low
     prof.high_threshold = high
-    return commit(session)
+    return bool(commit(session))
 
 
-def set_timezone(session, user_id: int, tz: str) -> tuple[bool, bool]:
+def set_timezone(session: Session, user_id: int, tz: str) -> tuple[bool, bool]:
     """Update user timezone in the database."""
     user = session.get(User, user_id)
     if not user:
         return False, False
-    user.timezone = tz
-    ok = commit(session)
+    cast(Any, user).timezone = tz
+    ok = bool(commit(session))
     return True, ok
 
 
-def fetch_profile(api, ApiException, user_id: int):
+def fetch_profile(
+    api: "DefaultApi",
+    ApiException: type[Exception],
+    user_id: int,
+) -> Any:
     """Fetch profile via synchronous SDK call."""
     try:
         return api.profiles_get(telegram_id=user_id)
     except ApiException:
         return None
 
-
 def post_profile(
-    api,
-    ApiException,
-    ProfileModel,
+    api: "DefaultApi",
+    ApiException: type[Exception],
+    ProfileModel: type,
     user_id: int,
     icr: float,
     cf: float,
