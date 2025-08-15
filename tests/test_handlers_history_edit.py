@@ -26,11 +26,11 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str, message: DummyMessage | None = None):
+    def __init__(self, message: DummyMessage, data: str) -> None:
         self.data = data
-        self.message = message or DummyMessage()
-        self.markups = []
-        self.answer_texts = []
+        self.message = message
+        self.markups: list[Any | None] = []
+        self.answer_texts: list[str | None] = []
 
     async def answer(self, text: str | None = None) -> None:
         self.answer_texts.append(text)
@@ -161,7 +161,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         entry_id = entry.id
 
     entry_message = DummyMessage(chat_id=42, message_id=24)
-    query = DummyQuery(f"edit:{entry_id}", message=entry_message)
+    query = DummyQuery(entry_message, f"edit:{entry_id}")
     update_cb = SimpleNamespace(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
@@ -182,7 +182,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert f"edit_field:{entry_id}:xe" in buttons
     assert f"edit_field:{entry_id}:dose" in buttons
 
-    field_query = DummyQuery(f"edit_field:{entry_id}:xe", message=entry_message)
+    field_query = DummyQuery(entry_message, f"edit_field:{entry_id}:xe")
     update_cb2 = SimpleNamespace(
         callback_query=field_query, effective_user=SimpleNamespace(id=1)
     )

@@ -25,11 +25,11 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str, message: DummyMessage | None = None):
+    def __init__(self, message: DummyMessage, data: str) -> None:
         self.data = data
-        self.message = message or DummyMessage()
-        self.markups = []
-        self.answer_texts = []
+        self.message = message
+        self.markups: list[Any] = []
+        self.answer_texts: list[str | None] = []
 
     async def answer(self, text: str | None = None) -> None:
         self.answer_texts.append(text)
@@ -76,7 +76,7 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
         entry_id = entry.id
 
     entry_message = DummyMessage(chat_id=42, message_id=24)
-    query = DummyQuery(f"edit:{entry_id}", message=entry_message)
+    query = DummyQuery(entry_message, f"edit:{entry_id}")
     update_cb = SimpleNamespace(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
@@ -87,7 +87,7 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await router.callback_router(update_cb, context)
 
-    field_query = DummyQuery(f"edit_field:{entry_id}:dose", message=entry_message)
+    field_query = DummyQuery(entry_message, f"edit_field:{entry_id}:dose")
     update_cb2 = SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1))
     await router.callback_router(update_cb2, context)
     assert context.user_data["edit_field"] == "dose"

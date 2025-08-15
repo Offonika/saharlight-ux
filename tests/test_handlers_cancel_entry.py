@@ -17,11 +17,11 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str):
+    def __init__(self, message: DummyMessage, data: str) -> None:
         self.data = data
+        self.message = message
         self.edited: list[str] = []
         self.edit_kwargs: list[dict[str, Any]] = []
-        self.message = DummyMessage()
 
     async def answer(self) -> None:
         pass
@@ -39,7 +39,7 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
     import services.api.app.diabetes.handlers.router as router
     from services.api.app.diabetes.handlers import common_handlers
 
-    query = DummyQuery("cancel_entry")
+    query = DummyQuery(DummyMessage(), "cancel_entry")
     update = cast(Update, SimpleNamespace(callback_query=query))
     context = cast(
         CallbackContext[Any, Any, Any, Any],
@@ -65,7 +65,7 @@ async def test_callback_router_invalid_entry_id(
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 
-    query = DummyQuery("del:abc")
+    query = DummyQuery(DummyMessage(), "del:abc")
     update = cast(Update, SimpleNamespace(callback_query=query))
     context = cast(
         CallbackContext[Any, Any, Any, Any],
@@ -88,7 +88,7 @@ async def test_callback_router_unknown_data(
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 
-    query = DummyQuery("foo")
+    query = DummyQuery(DummyMessage(), "foo")
     update = cast(Update, SimpleNamespace(callback_query=query))
     context = cast(
         CallbackContext[Any, Any, Any, Any],
@@ -109,7 +109,7 @@ async def test_callback_router_ignores_reminder_action() -> None:
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 
-    query = DummyQuery("rem_toggle:1")
+    query = DummyQuery(DummyMessage(), "rem_toggle:1")
     update = cast(Update, SimpleNamespace(callback_query=query))
     context = cast(
         CallbackContext[Any, Any, Any, Any],

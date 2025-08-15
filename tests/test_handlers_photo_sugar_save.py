@@ -21,8 +21,9 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str):
+    def __init__(self, message: DummyMessage, data: str) -> None:
         self.data = data
+        self.message = message
         self.edited: list[str] = []
 
     async def answer(self) -> None:
@@ -156,7 +157,7 @@ async def test_photo_flow_saves_entry(
 
     monkeypatch.setattr(alert_handlers, "check_alert", noop)
 
-    query = DummyQuery("confirm_entry")
+    query = DummyQuery(DummyMessage(), "confirm_entry")
     update_confirm = SimpleNamespace(callback_query=query)
     await router.callback_router(update_confirm, context)
 
