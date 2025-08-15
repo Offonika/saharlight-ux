@@ -10,10 +10,12 @@ from telegram.ext import CallbackContext
 
 class DummyMessage:
     def __init__(self):
-        self.replies: list[tuple[str, dict[str, Any]]] = []
+        self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
-        self.replies.append((text, kwargs))
+        self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 class DummyQuery:
@@ -51,7 +53,7 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
     assert query.edited == ["❌ Запись отменена."]
     assert not query.edit_kwargs[0] or "reply_markup" not in query.edit_kwargs[0]
     assert len(query.message.replies) == 1
-    text, kwargs = query.message.replies[0]
+    kwargs = query.message.kwargs[0]
     assert kwargs["reply_markup"] == common_handlers.menu_keyboard
     assert "pending_entry" not in context.user_data
 

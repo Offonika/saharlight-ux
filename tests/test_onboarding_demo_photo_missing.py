@@ -18,16 +18,19 @@ class DummyMessage:
         self.texts: list[str] = []
         self.photos: list[tuple[Any, str | None]] = []
         self.markups: list[Any] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
         self.markups.append(kwargs.get("reply_markup"))
+        self.kwargs.append(kwargs)
 
     async def reply_photo(
         self, photo: Any, caption: str | None = None, **kwargs: Any
     ) -> None:
         self.photos.append((photo, caption))
         self.markups.append(kwargs.get("reply_markup"))
+        self.kwargs.append(kwargs)
 
 
 @pytest.mark.asyncio

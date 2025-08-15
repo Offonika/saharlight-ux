@@ -17,9 +17,11 @@ import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 class DummyMessage:
     def __init__(self):
         self.texts: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
+        self.kwargs.append(kwargs)
 
 
 class DummyQuery:

@@ -14,9 +14,11 @@ class DummyMessage:
     def __init__(self):
         self.web_app_data = SimpleNamespace()
         self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - kwargs unused
         self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 @pytest.mark.asyncio

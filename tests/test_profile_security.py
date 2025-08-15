@@ -17,10 +17,12 @@ class DummyMessage:
     def __init__(self):
         self.texts: list[str] = []
         self.markups: list[Any] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
         self.markups.append(kwargs.get("reply_markup"))
+        self.kwargs.append(kwargs)
 
 
 class DummyQuery:

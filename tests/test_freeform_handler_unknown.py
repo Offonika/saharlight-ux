@@ -12,10 +12,12 @@ import services.api.app.diabetes.handlers.dose_handlers as handlers
 class DummyMessage:
     def __init__(self, text: str):
         self.text = text
-        self.replies: list[tuple[str, dict[str, Any]]] = []
+        self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
-        self.replies.append((text, kwargs))
+        self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 @pytest.mark.asyncio
@@ -36,4 +38,6 @@ async def test_freeform_handler_unknown_command(
     await handlers.freeform_handler(update, context)
 
     assert message.replies
-    assert message.replies[0][0] == "Не понял, воспользуйтесь /help или кнопками меню"
+    assert (
+        message.replies[0] == "Не понял, воспользуйтесь /help или кнопками меню"
+    )

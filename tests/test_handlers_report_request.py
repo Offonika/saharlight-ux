@@ -11,10 +11,12 @@ from telegram.ext import CallbackContext
 class DummyMessage:
     def __init__(self, text: str = ""):
         self.text = text
-        self.replies: list[tuple[str, dict[str, Any]]] = []
+        self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
-        self.replies.append((text, kwargs))
+        self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 class DummyQuery:
@@ -50,8 +52,8 @@ async def test_report_request_and_custom_flow(
 
     await reporting_handlers.report_request(update, context)
     assert "awaiting_report_date" not in context.user_data
-    assert any("Выберите период" in t[0] for t in message.replies)
-    assert message.replies[0][1].get("reply_markup") is not None
+    assert any("Выберите период" in t for t in message.replies)
+    assert message.kwargs[0].get("reply_markup") is not None
 
     query = DummyQuery(DummyMessage(), "report_period:custom")
     update_cb = SimpleNamespace(

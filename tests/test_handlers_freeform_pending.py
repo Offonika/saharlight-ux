@@ -12,10 +12,12 @@ import services.api.app.diabetes.handlers.dose_handlers as handlers
 class DummyMessage:
     def __init__(self, text: str):
         self.text = text
-        self.replies: list[tuple[str, dict[str, Any]]] = []
+        self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
-        self.replies.append((text, kwargs))
+        self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 @pytest.mark.asyncio
@@ -88,7 +90,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
 
     assert context.user_data["pending_entry"]["sugar_before"] == 5.6
     assert "pending_entry" in context.user_data
-    text, _ = message.replies[0]
+    text = message.replies[0]
     assert "5.6 ммоль/л" in text
 
 

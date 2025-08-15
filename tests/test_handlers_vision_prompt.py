@@ -10,10 +10,12 @@ class DummyMessage:
     def __init__(self, text: str | None = None, photo: list[Any] | None = None):
         self.text = text
         self.photo = photo
-        self.replies: list[tuple[str, dict[str, Any]]] = []
+        self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
-        self.replies.append((text, kwargs))
+        self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 class DummyPhoto:
@@ -85,7 +87,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch: pytest.MonkeyPatch, 
 
     assert "название" in captured["content"]
     # Final reply should include dish name from Vision response
-    assert any("Борщ" in reply[0] for reply in msg_photo.replies)
+    assert any("Борщ" in reply for reply in msg_photo.replies)
     entry = context.user_data.get("pending_entry")
     assert entry["carbs_g"] == 30
     assert entry["xe"] == 2

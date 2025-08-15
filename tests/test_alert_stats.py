@@ -18,9 +18,11 @@ if TYPE_CHECKING:
 class DummyMessage:
     def __init__(self) -> None:
         self.texts: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
-    async def reply_text(self, text: str) -> None:
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
+        self.kwargs.append(kwargs)
 
 
 @pytest.mark.asyncio
