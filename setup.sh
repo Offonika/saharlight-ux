@@ -9,6 +9,11 @@ sudo add-apt-repository ppa:deadsnakes/ppa -y || { echo "Add-apt-repository fail
 sudo apt-get update || { echo "APT update failed" >&2; exit 1; }
 sudo apt-get install -y python3.12-venv python3.12-dev build-essential libpq-dev || { echo "APT install failed" >&2; exit 1; }
 
+command -v python3.12 >/dev/null 2>&1 || {
+    echo >&2 "Python 3.12 не найден. Убедитесь, что установлен python3.12."
+    exit 1
+}
+
 echo "Создание виртуального окружения…"
 python3.12 -m venv venv
 source venv/bin/activate
