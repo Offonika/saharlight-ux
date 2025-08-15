@@ -77,7 +77,11 @@ async def put_timezone(data: Timezone) -> dict:
 
 @app.get("/ui/{full_path:path}", include_in_schema=False)
 async def catch_all_ui(full_path: str) -> FileResponse:
-    requested_file = UI_DIR / full_path
+    requested_file = (UI_DIR / full_path).resolve()
+    try:
+        requested_file.relative_to(UI_DIR)
+    except ValueError as exc:
+        raise HTTPException(status_code=404) from exc
     if requested_file.is_file():
         return FileResponse(requested_file)
     return FileResponse(UI_DIR / "index.html")
