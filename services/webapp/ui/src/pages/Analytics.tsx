@@ -3,12 +3,12 @@ import { LineChart, Line, XAxis, YAxis } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { useTelegram } from '@/hooks/useTelegram';
 import { fetchAnalytics, fallbackAnalytics } from '@/api/stats';
+import { useTelegramContext } from '@/contexts/TelegramContext';
 
 const Analytics = () => {
   const navigate = useNavigate();
-  const { user } = useTelegram();
+  const { user } = useTelegramContext();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['analytics', user?.id],
