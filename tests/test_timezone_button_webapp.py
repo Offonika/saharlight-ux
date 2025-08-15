@@ -16,7 +16,7 @@ def test_timezone_button_webapp_url(monkeypatch: pytest.MonkeyPatch) -> None:
 
     button = ui.build_timezone_webapp_button()
     assert button is not None
-    assert urlparse(button.web_app.url).path == "/timezone"
+    assert urlparse(button.web_app.url).path == "/ui/timezone"
 
     monkeypatch.delenv("WEBAPP_URL", raising=False)
     importlib.reload(config)

@@ -29,14 +29,14 @@ __all__ = (
 # Create WebApp buttons when WebApp is configured, fall back to text buttons otherwise
 profile_button = (
     KeyboardButton(
-        "📄 Мой профиль", web_app=WebAppInfo(f"{settings.webapp_url}/profile")
+        "📄 Мой профиль", web_app=WebAppInfo(f"{settings.webapp_url}/ui/profile")
     )
     if settings.webapp_url
     else KeyboardButton("📄 Мой профиль")
 )
 reminders_button = (
     KeyboardButton(
-        "⏰ Напоминания", web_app=WebAppInfo(f"{settings.webapp_url}/reminders")
+        "⏰ Напоминания", web_app=WebAppInfo(f"{settings.webapp_url}/ui/reminders")
     )
     if settings.webapp_url
     else KeyboardButton("⏰ Напоминания")
@@ -122,5 +122,5 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
 
     return InlineKeyboardButton(
         "Определить автоматически",
-        web_app=WebAppInfo(f"{settings.webapp_url}/timezone"),
+        web_app=WebAppInfo(f"{settings.webapp_url}/ui/timezone"),
     )

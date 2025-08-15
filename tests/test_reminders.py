@@ -191,7 +191,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "📸 Триггер-фото" in text
     assert "2. <s>🔕title2</s>" in text
     btn = markup.inline_keyboard[-1][0]
-    assert btn.web_app and btn.web_app.url.endswith("/reminders")
+    assert btn.web_app and btn.web_app.url.endswith("/ui/reminders")
 
 
 def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
