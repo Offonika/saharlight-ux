@@ -14,11 +14,11 @@ def _reload(module: str) -> ModuleType:
 
 
 class DummyEngine:
-    def __init__(self, url):
+    def __init__(self, url: Any) -> None:
         self.url = url
         self.disposed = False
 
-    def dispose(self):
+    def dispose(self) -> None:
         self.disposed = True
 
 
@@ -35,9 +35,9 @@ def test_init_db_recreates_engine_on_url_change(monkeypatch: pytest.MonkeyPatch,
     _reload("services.api.app.config")
     db = cast(Any, _reload("services.api.app.diabetes.services.db"))
 
-    created = []
+    created: list[DummyEngine] = []
 
-    def fake_create_engine(url):
+    def fake_create_engine(url: Any) -> DummyEngine:
         engine = DummyEngine(url)
         created.append(engine)
         return engine
