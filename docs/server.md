@@ -154,8 +154,9 @@ To                         Action      From
 
 
 ## Cron & Timers
+> Cron jobs should run with Python 3.12. Update the `/usr/bin/python3` symlink or use `/usr/bin/python3.12` directly.
 # Edit this file to introduce tasks to be run by cron.
-# 
+#
 # Each task to run has to be defined through a single line
 # indicating with different fields when the task will be run
 # and what command to run for the task
@@ -175,11 +176,11 @@ To                         Action      From
 # 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
 # 
 # For more information see the manual pages of crontab(5) and cron(8)
-# 
+#
 # m h  dom mon dow   command
-*/5 * * * * /usr/bin/python3 /opt/ddns_updater/update_dns.py >> /opt/ddns_updater/update_dns.log 2>&1
+*/5 * * * * /usr/bin/python3.12 /opt/ddns_updater/update_dns.py >> /opt/ddns_updater/update_dns.log 2>&1
 */5 * * * * wget -q -O - https://blog.offonika.ru/wp-cron.php?doing_wp_cron > /dev/null 2>&1
-NEXT                        LEFT           LAST                        PASSED     UNIT                         ACTIVATES                     
+NEXT                        LEFT           LAST                        PASSED     UNIT                         ACTIVATES
 Sat 2025-08-09 01:09:00 MSK 14min left     Sat 2025-08-09 00:39:03 MSK 15min ago  phpsessionclean.timer        phpsessionclean.service       
 Sat 2025-08-09 04:39:50 MSK 3h 45min left  Fri 2025-08-08 11:12:22 MSK 13h ago    apt-daily.timer              apt-daily.service             
 Sat 2025-08-09 05:26:35 MSK 4h 32min left  Fri 2025-08-08 11:12:23 MSK 13h ago    fwupd-refresh.timer          fwupd-refresh.service         
