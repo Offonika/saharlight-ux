@@ -6,6 +6,8 @@ set -e
 echo "Обновление списка пакетов и установка системных зависимостей…"
 sudo apt-get update || { echo "APT update failed" >&2; exit 1; }
 sudo add-apt-repository ppa:deadsnakes/ppa -y || { echo "Add-apt-repository failed" >&2; exit 1; }
+curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor --yes -o /usr/share/keyrings/pgdg.gpg || { echo "Add PGDG GPG key failed" >&2; exit 1; }
+echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt noble-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null || { echo "Add PGDG repository failed" >&2; exit 1; }
 sudo apt-get update || { echo "APT update failed" >&2; exit 1; }
 sudo apt-get install -y python3.12-venv python3.12-dev build-essential libpq-dev || { echo "APT install failed" >&2; exit 1; }
 
