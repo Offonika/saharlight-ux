@@ -41,7 +41,7 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, message, data):
+    def __init__(self, message: DummyMessage, data: str) -> None:
         self.message = message
         self.data = data
 

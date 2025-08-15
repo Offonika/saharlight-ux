@@ -18,8 +18,9 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str):
+    def __init__(self, message: DummyMessage, data: str) -> None:
         self.data = data
+        self.message = message
         self.edited: list[str] = []
 
     async def answer(self) -> None:
@@ -52,7 +53,7 @@ async def test_report_request_and_custom_flow(
     assert any("Выберите период" in t[0] for t in message.replies)
     assert message.replies[0][1].get("reply_markup") is not None
 
-    query = DummyQuery("report_period:custom")
+    query = DummyQuery(DummyMessage(), "report_period:custom")
     update_cb = SimpleNamespace(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
@@ -114,7 +115,7 @@ async def test_report_period_callback_week(
 
     monkeypatch.setattr(reporting_handlers.datetime, "datetime", DummyDateTime)
 
-    query = DummyQuery("report_period:week")
+    query = DummyQuery(DummyMessage(), "report_period:week")
     update_cb = SimpleNamespace(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )

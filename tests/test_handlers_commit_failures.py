@@ -23,9 +23,10 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str):
+    def __init__(self, message: DummyMessage, data: str) -> None:
         self.data = data
-        self.edited = []
+        self.message = message
+        self.edited: list[str] = []
 
 
     async def answer(self, text: str | None = None, **kwargs: Any) -> None:
@@ -93,7 +94,7 @@ async def test_callback_router_commit_failure(monkeypatch: pytest.MonkeyPatch, c
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
-    query = DummyQuery("confirm_entry")
+    query = DummyQuery(DummyMessage(), "confirm_entry")
     update = SimpleNamespace(callback_query=query)
     context = SimpleNamespace(user_data={"pending_entry": pending_entry})
 
@@ -259,7 +260,7 @@ async def test_reminder_callback_commit_failure(monkeypatch: pytest.MonkeyPatch,
 
     monkeypatch.setattr(reminder_handlers, "commit", failing_commit)
 
-    query = DummyQuery("remind_snooze:1")
+    query = DummyQuery(DummyMessage(), "remind_snooze:1")
     update = SimpleNamespace(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
@@ -290,7 +291,7 @@ async def test_reminder_action_cb_commit_failure(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
 
     job_queue = SimpleNamespace(get_jobs_by_name=MagicMock())
-    query = DummyQuery("rem_toggle:1")
+    query = DummyQuery(DummyMessage(), "rem_toggle:1")
     update = SimpleNamespace(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
