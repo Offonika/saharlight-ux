@@ -97,7 +97,10 @@ sudo apt install python3.12 python3.12-venv
 - обязательные значения: `TELEGRAM_TOKEN` (токен бота), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 - дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `VITE_API_BASE`, `UVICORN_WORKERS`
 - при необходимости настройте прокси для OpenAI через переменные окружения
-Переменная `VITE_API_BASE` задаёт базовый URL API для WebApp.
+Переменная `VITE_API_BASE` задаёт базовый URL API для WebApp и используется SDK‑клиентом:
+```env
+VITE_API_BASE=http://localhost:8000
+```
 
 Telegram‑клиенты не могут обращаться к `localhost`, поэтому `WEBAPP_URL` должен быть публичным **HTTPS**‑адресом. Для локальной разработки используйте туннель (например, [ngrok](https://ngrok.com/)).
 Не коммитьте `.env` в репозиторий.
