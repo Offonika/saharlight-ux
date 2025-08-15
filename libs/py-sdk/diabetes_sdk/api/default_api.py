@@ -1,4 +1,5 @@
 from ..api_client import ApiClient
+from ..configuration import Configuration
 from ..exceptions import ApiException
 from ..models import Profile
 
@@ -8,7 +9,9 @@ class DefaultApi:
 
     _profiles_store: dict[int, Profile] = {}
 
-    def __init__(self, api_client: ApiClient | None = None, *, configuration=None) -> None:
+    def __init__(
+        self, api_client: ApiClient | None = None, *, configuration: Configuration | None = None
+    ) -> None:
         if api_client is not None:
             self.api_client = api_client
         else:
