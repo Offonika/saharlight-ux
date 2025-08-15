@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import os
 from dataclasses import dataclass
+from types import TracebackType
 from typing import Any, cast
 
 import pytest
@@ -64,7 +65,12 @@ async def test_entry_without_dose_has_no_unit(
         def __enter__(self) -> "DummySession":
             return self
 
-        def __exit__(self, exc_type, exc, tb) -> None:
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
             pass
 
         def add(self, entry: Any) -> None:
@@ -110,7 +116,12 @@ async def test_entry_without_sugar_has_placeholder(
         def __enter__(self) -> "DummySession":
             return self
 
-        def __exit__(self, exc_type, exc, tb) -> None:
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
             pass
 
         def add(self, entry: Any) -> None:

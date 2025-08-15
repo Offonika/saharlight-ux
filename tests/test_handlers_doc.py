@@ -1,5 +1,5 @@
 from pathlib import Path
-from types import SimpleNamespace
+from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
 import pytest
@@ -223,7 +223,12 @@ async def test_photo_then_freeform_calculates_dose(
         def __enter__(self) -> "DummySession":
             return self
 
-        def __exit__(self, exc_type, exc, tb) -> None:
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
             pass
 
         def get(self, model, user_id):
