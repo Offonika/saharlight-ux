@@ -10,6 +10,7 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup f
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
 
 from .diabetes.services.db import (
     HistoryRecord as HistoryRecordDB,
@@ -124,9 +125,12 @@ async def post_history(data: HistoryRecordSchema) -> dict:
 
     try:
         await run_db(_save_history, data)
-    except Exception as exc:  # pragma: no cover - unexpected errors
-        logger.exception("failed to save history")
-        raise HTTPException(status_code=500, detail="failed to save history") from exc
+    except SQLAlchemyError as exc:  # pragma: no cover - database errors
+        logger.exception("database error while saving history")
+        raise HTTPException(status_code=500, detail="database error") from exc
+    except RuntimeError as exc:  # pragma: no cover - misconfiguration
+        logger.exception("database not initialized")
+        raise HTTPException(status_code=500, detail="database not initialized") from exc
     return {"status": "ok"}
 
 
