@@ -22,7 +22,7 @@ class WebAppData:
 
 class DummyMessage:
     def __init__(self, data: str) -> None:
-        self.web_app_data = WebAppData(data)
+        self.web_app_data: WebAppData = WebAppData(data)
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

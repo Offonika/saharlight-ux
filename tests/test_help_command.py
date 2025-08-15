@@ -6,7 +6,7 @@ import services.api.app.diabetes.handlers.common_handlers as handlers
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

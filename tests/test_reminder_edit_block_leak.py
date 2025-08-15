@@ -12,8 +12,8 @@ from services.api.app.diabetes.services.repository import commit
 
 
 class DummyMessage:
-    def __init__(self, data: str):
-        self.web_app_data = SimpleNamespace(data=data)
+    def __init__(self, data: str) -> None:
+        self.web_app_data: SimpleNamespace = SimpleNamespace(data=data)
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

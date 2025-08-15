@@ -13,7 +13,7 @@ from services.api.app.diabetes.services.db import Base, User, Profile
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.texts: list[str] = []
         self.markups: list[Any] = []
         self.kwargs: list[dict[str, Any]] = []
