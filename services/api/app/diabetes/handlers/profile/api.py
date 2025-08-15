@@ -1,5 +1,5 @@
 import logging
-from typing import Any, TYPE_CHECKING, cast
+from typing import Any, TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
@@ -49,7 +49,6 @@ def save_profile(
     if not prof:
         prof = Profile(telegram_id=user_id)
         session.add(prof)
-    prof = cast(Any, prof)
     prof.icr = icr
     prof.cf = cf
     prof.target_bg = target
@@ -63,7 +62,7 @@ def set_timezone(session: Session, user_id: int, tz: str) -> tuple[bool, bool]:
     user = session.get(User, user_id)
     if not user:
         return False, False
-    cast(Any, user).timezone = tz
+    user.timezone = tz
     ok = bool(commit(session))
     return True, ok
 

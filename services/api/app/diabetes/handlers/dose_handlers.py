@@ -257,9 +257,15 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel dose calculation conversation."""
-    await update.message.reply_text("Отменено.", reply_markup=menu_keyboard)
-    context.user_data.pop("pending_entry", None)
-    context.user_data.pop("dose_method", None)
+    message = update.message
+    if message is None:
+        return ConversationHandler.END
+    user_data = context.user_data
+    if user_data is None:
+        return ConversationHandler.END
+    await message.reply_text("Отменено.", reply_markup=menu_keyboard)
+    user_data.pop("pending_entry", None)
+    user_data.pop("dose_method", None)
     chat_data = getattr(context, "chat_data", None)
     if chat_data is not None:
         chat_data.pop("sugar_active", None)
