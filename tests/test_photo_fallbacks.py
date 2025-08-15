@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import os
 from re import Pattern
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Iterable, cast
 
 import pytest
-from telegram.ext import CallbackContext, MessageHandler
+from telegram.ext import BaseHandler, CallbackContext, MessageHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -17,7 +19,10 @@ from services.api.app.diabetes.handlers import (
 )
 
 
-def _find_handler(fallbacks, regex: str) -> MessageHandler:
+def _find_handler(
+    fallbacks: Iterable[BaseHandler[Any, Any]],
+    regex: str,
+) -> MessageHandler[Any, Any]:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
             filt = getattr(h, "filters", None)
@@ -38,7 +43,7 @@ class DummyMessage:
         self.kwargs.append(kwargs)
 
 
-async def _exercise(handler) -> None:
+async def _exercise(handler: MessageHandler[Any, Any]) -> None:
     message = DummyMessage("📷 Фото еды")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = cast(
