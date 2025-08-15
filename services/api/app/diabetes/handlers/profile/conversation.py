@@ -233,14 +233,18 @@ async def profile_webapp_save(
             reply_markup=menu_keyboard,
         )
         return
-    raw = update.effective_message.web_app_data.data
+    eff_msg = update.effective_message
+    web_app = getattr(eff_msg, "web_app_data", None) if eff_msg else None
     error_msg = "⚠️ Некорректные данные из WebApp."
+    if web_app is None:
+        if eff_msg:
+            await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard)
+        return
+    raw = web_app.data
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        await update.effective_message.reply_text(
-            error_msg, reply_markup=menu_keyboard
-        )
+        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard)
         return
     if {
         "icr",
@@ -249,9 +253,7 @@ async def profile_webapp_save(
         "low",
         "high",
     } - data.keys():
-        await update.effective_message.reply_text(
-            error_msg, reply_markup=menu_keyboard
-        )
+        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard)
         return
     try:
         icr = float(str(data["icr"]).replace(",", "."))
@@ -324,11 +326,16 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Save user timezone from input."""
-    raw = (
-        update.message.web_app_data.data
-        if getattr(update.message, "web_app_data", None)
-        else update.message.text.strip()
-    )
+    message = update.message
+    if message is None:
+        return ConversationHandler.END
+    web_app = getattr(message, "web_app_data", None)
+    if web_app is not None:
+        raw = web_app.data
+    elif message.text is not None:
+        raw = message.text.strip()
+    else:
+        return ConversationHandler.END
     if "назад" in raw.lower():
         return await profile_cancel(update, context)
     try:
@@ -535,20 +542,23 @@ async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
-    raw_text = update.message.text.strip()
+    message = update.message
+    if message is None or message.text is None:
+        return ConversationHandler.END
+    raw_text = message.text.strip()
     if "назад" in raw_text.lower():
         return await profile_cancel(update, context)
     text = raw_text.replace(",", ".")
     try:
         icr = float(text)
     except ValueError:
-        await update.message.reply_text("Введите ИКХ числом.", reply_markup=back_keyboard)
+        await message.reply_text("Введите ИКХ числом.", reply_markup=back_keyboard)
         return PROFILE_ICR
     if icr <= 0:
-        await update.message.reply_text("ИКХ должен быть больше 0.", reply_markup=back_keyboard)
+        await message.reply_text("ИКХ должен быть больше 0.", reply_markup=back_keyboard)
         return PROFILE_ICR
     context.user_data["profile_icr"] = icr
-    await update.message.reply_text(
+    await message.reply_text(
         "Введите коэффициент чувствительности (КЧ) ммоль/л — на сколько ммоль/л 1 ед. инсулина снижает сахар:",
         reply_markup=back_keyboard,
     )
@@ -557,9 +567,12 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
-    raw_text = update.message.text.strip()
+    message = update.message
+    if message is None or message.text is None:
+        return ConversationHandler.END
+    raw_text = message.text.strip()
     if "назад" in raw_text.lower():
-        await update.message.reply_text(
+        await message.reply_text(
             "Введите коэффициент ИКХ (г/ед.) — сколько граммов углеводов покрывает 1 ед. быстрого инсулина:",
             reply_markup=back_keyboard,
         )
@@ -568,13 +581,13 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
         cf = float(text)
     except ValueError:
-        await update.message.reply_text("Введите КЧ числом.", reply_markup=back_keyboard)
+        await message.reply_text("Введите КЧ числом.", reply_markup=back_keyboard)
         return PROFILE_CF
     if cf <= 0:
-        await update.message.reply_text("КЧ должен быть больше 0.", reply_markup=back_keyboard)
+        await message.reply_text("КЧ должен быть больше 0.", reply_markup=back_keyboard)
         return PROFILE_CF
     context.user_data["profile_cf"] = cf
-    await update.message.reply_text(
+    await message.reply_text(
         "Введите целевой уровень сахара (ммоль/л) — к какому значению вы стремитесь:",
         reply_markup=back_keyboard,
     )
@@ -583,9 +596,12 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input."""
-    raw_text = update.message.text.strip()
+    message = update.message
+    if message is None or message.text is None:
+        return ConversationHandler.END
+    raw_text = message.text.strip()
     if "назад" in raw_text.lower():
-        await update.message.reply_text(
+        await message.reply_text(
             "Введите коэффициент чувствительности (КЧ) ммоль/л — на сколько ммоль/л 1 ед. инсулина снижает сахар:",
             reply_markup=back_keyboard,
         )
@@ -594,17 +610,17 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     try:
         target = float(text)
     except ValueError:
-        await update.message.reply_text(
+        await message.reply_text(
             "Введите целевой сахар числом.", reply_markup=back_keyboard
         )
         return PROFILE_TARGET
     if target <= 0:
-        await update.message.reply_text(
+        await message.reply_text(
             "Целевой сахар должен быть больше 0.", reply_markup=back_keyboard
         )
         return PROFILE_TARGET
     context.user_data["profile_target"] = target
-    await update.message.reply_text(
+    await message.reply_text(
         "Введите нижний порог сахара (ммоль/л) — ниже него бот предупредит о гипогликемии:",
         reply_markup=back_keyboard,
     )
@@ -613,9 +629,12 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle low threshold input."""
-    raw_text = update.message.text.strip()
+    message = update.message
+    if message is None or message.text is None:
+        return ConversationHandler.END
+    raw_text = message.text.strip()
     if "назад" in raw_text.lower():
-        await update.message.reply_text(
+        await message.reply_text(
             "Введите целевой уровень сахара (ммоль/л) — к какому значению вы стремитесь:",
             reply_markup=back_keyboard,
         )
@@ -624,26 +643,29 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     try:
         low = float(text)
     except ValueError:
-        await update.message.reply_text(
+        await message.reply_text(
             "Введите нижний порог числом.", reply_markup=back_keyboard
         )
         return PROFILE_LOW
     if low <= 0:
-        await update.message.reply_text(
+        await message.reply_text(
             "Нижний порог должен быть больше 0.", reply_markup=back_keyboard
         )
         return PROFILE_LOW
     context.user_data["profile_low"] = low
-    await update.message.reply_text(
+    await message.reply_text(
         "Введите верхний порог сахара (ммоль/л) — выше него бот предупредит о гипергликемии:",
         reply_markup=back_keyboard,
     )
     return PROFILE_HIGH
 async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle high threshold input and save profile."""
-    raw_text = update.message.text.strip()
+    message = update.message
+    if message is None or message.text is None:
+        return ConversationHandler.END
+    raw_text = message.text.strip()
     if "назад" in raw_text.lower():
-        await update.message.reply_text(
+        await message.reply_text(
             "Введите нижний порог сахара (ммоль/л) — ниже него бот предупредит о гипогликемии:",
             reply_markup=back_keyboard,
         )
@@ -652,13 +674,13 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     try:
         high = float(text)
     except ValueError:
-        await update.message.reply_text(
+        await message.reply_text(
             "Введите верхний порог числом.", reply_markup=back_keyboard
         )
         return PROFILE_HIGH
     low = context.user_data.get("profile_low")
     if high <= 0 or low is None or high <= low:
-        await update.message.reply_text(
+        await message.reply_text(
             "Верхний порог должен быть больше нижнего и больше 0.",
             reply_markup=back_keyboard,
         )
@@ -668,7 +690,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     target = context.user_data.pop("profile_target", None)
     context.user_data.pop("profile_low", None)
     if icr is None or cf is None or target is None:
-        await update.message.reply_text(
+        await message.reply_text(
             "⚠️ Не хватает данных для сохранения профиля. Пожалуйста, начните заново."
         )
         return ConversationHandler.END
@@ -684,7 +706,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         sessionmaker=SessionLocal,
     )
     if not ok:
-        await update.message.reply_text("⚠️ Не удалось сохранить профиль.")
+        await message.reply_text("⚠️ Не удалось сохранить профиль.")
         return ConversationHandler.END
     warning_msg = ""
     if icr > 8 or cf < 3:
@@ -696,7 +718,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             f"/profile {cf} {icr} {target} {low} {high}\n"
             f"(ИКХ {cf}, КЧ {icr}, целевой {target}, низкий {low}, высокий {high})\n"
         )
-    await update.message.reply_text(
+    await message.reply_text(
         "✅ Профиль обновлён:\n"
         f"• ИКХ: {icr} г/ед.\n"
         f"• КЧ: {cf} ммоль/л\n"
