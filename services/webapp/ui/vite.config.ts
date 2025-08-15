@@ -12,7 +12,7 @@ export default defineConfig(async ({ mode }) => {
   const base   = mode === 'development' ? '/' : '/ui/'  // dev → '/', prod → '/ui/'
   const port   = 5173                                   // или оставьте 8080 и укажите его в .lovable.yml
   return {
-    base: '/ui/',
+    base,
     plugins,
     resolve: {
       alias: {
@@ -20,7 +20,7 @@ export default defineConfig(async ({ mode }) => {
         '@sdk': path.resolve(__dirname, '../../../libs/ts-sdk'),
       },
     },
-    server: { host: '::', port: 8080 },
+    server: { host: '::', port },
     build: { outDir: 'dist' }, // Явно задаём dist (по умолчанию и так dist)
   }
 })
