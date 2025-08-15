@@ -1,5 +1,5 @@
 from pathlib import Path
-from types import SimpleNamespace
+from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
 import pytest
@@ -44,7 +44,12 @@ class DummySession:
     def __enter__(self) -> "DummySession":
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         pass
 
     def add(self, entry: Any) -> None:
@@ -151,7 +156,7 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(router, "SessionLocal", lambda: session)
     import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 
-    async def noop(*a: Any, **k: Any) -> None:
+    async def noop(*args: Any, **kwargs: Any) -> None:
         return None
 
     monkeypatch.setattr(alert_handlers, "check_alert", noop)
