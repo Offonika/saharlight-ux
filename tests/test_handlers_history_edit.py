@@ -29,8 +29,8 @@ class DummyQuery:
     def __init__(self, data: str, message: DummyMessage | None = None):
         self.data = data
         self.message = message or DummyMessage()
-        self.markups = []
-        self.answer_texts = []
+        self.markups: list[Any] = []
+        self.answer_texts: list[str | None] = []
 
     async def answer(self, text: str | None = None) -> None:
         self.answer_texts.append(text)
@@ -171,7 +171,9 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     await router.callback_router(update_cb, context)
-    assert context.user_data["edit_entry"] == {
+    edit_entry = context.user_data.get("edit_entry")
+    assert edit_entry is not None
+    assert edit_entry == {
         "id": entry_id,
         "chat_id": 42,
         "message_id": 24,
@@ -187,9 +189,14 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         callback_query=field_query, effective_user=SimpleNamespace(id=1)
     )
     await router.callback_router(update_cb2, context)
-    assert context.user_data["edit_id"] == entry_id
-    assert context.user_data["edit_field"] == "xe"
-    assert context.user_data["edit_query"] is field_query
+    edit_id = context.user_data.get("edit_id")
+    assert edit_id is not None
+    assert edit_id == entry_id
+    edit_field = context.user_data.get("edit_field")
+    assert edit_field is not None
+    assert edit_field == "xe"
+    edit_query = context.user_data.get("edit_query")
+    assert edit_query is field_query
     assert any("Введите" in t for t, _ in entry_message.replies)
 
     reply_msg = DummyMessage(text="3")
@@ -201,6 +208,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         updated = session.get(Entry, entry_id)
+        assert updated is not None
         assert updated.xe == 3
         assert updated.carbs_g == 10
         assert updated.dose == 2
