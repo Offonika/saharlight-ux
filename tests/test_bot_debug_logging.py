@@ -1,3 +1,5 @@
+import pytest
+
 """Tests for debug logging configuration in bot.main."""
 
 import importlib
@@ -5,7 +7,7 @@ import logging
 import sys
 
 
-def test_log_level_debug(monkeypatch):
+def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
     """Setting LOG_LEVEL=DEBUG enables debug logging in bot.main."""
 
     # Prepare environment for config module
@@ -71,4 +73,3 @@ def test_log_level_debug(monkeypatch):
     finally:
         root.handlers[:] = previous_handlers
         root.setLevel(previous_level)
-

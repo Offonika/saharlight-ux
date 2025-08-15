@@ -62,7 +62,7 @@ async def test_cancel_command_clears_state() -> None:
     assert context.user_data == {}
 
 
-def test_sugar_conv_has_back_fallback():
+def test_sugar_conv_has_back_fallback() -> None:
     fallbacks = dose_handlers.sugar_conv.fallbacks
     assert any(
         isinstance(h, MessageHandler)

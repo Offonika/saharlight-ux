@@ -21,7 +21,7 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("plan, limit", [("free", 5), ("pro", 10)])
-async def test_reminder_limit_free_vs_pro(plan, limit, monkeypatch) -> None:
+async def test_reminder_limit_free_vs_pro(plan: Any, limit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -50,4 +50,3 @@ async def test_reminder_limit_free_vs_pro(plan, limit, monkeypatch) -> None:
     assert msg.replies[-1] == (
         f"У вас уже {limit} активных (лимит {plan.upper()}). Отключите одно или откройте PRO."
     )
-

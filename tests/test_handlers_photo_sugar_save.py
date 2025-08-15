@@ -62,7 +62,7 @@ session = DummySession()
 
 @pytest.mark.asyncio
 async def test_photo_flow_saves_entry(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     async def fake_parse_command(text: str) -> dict[str, Any]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
@@ -166,4 +166,3 @@ async def test_photo_flow_saves_entry(
     assert saved.sugar_before == 5.5
     assert "pending_entry" not in context.user_data
     assert query.edited == ["✅ Запись сохранена в дневник!"]
-

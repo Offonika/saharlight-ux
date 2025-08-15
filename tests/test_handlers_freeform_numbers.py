@@ -19,7 +19,7 @@ def parse_values(text: str) -> dict[str, float]:
     return result
 
 
-def test_parse_comma_and_negative_values():
+def test_parse_comma_and_negative_values() -> None:
     text = "carbs=10,5 dose=-1,5 xe=2 sugar=5,6"
     parsed = parse_values(text)
     assert parsed == {
@@ -30,7 +30,7 @@ def test_parse_comma_and_negative_values():
     }
 
 
-def test_parse_negative_numbers():
+def test_parse_negative_numbers() -> None:
     text = "carbs=-10.5 dose=-2 xe=-1,0 sugar=-4,2"
     parsed = parse_values(text)
     assert parsed == {
@@ -41,14 +41,13 @@ def test_parse_negative_numbers():
     }
 
 
-def test_parse_ignores_invalid_subtraction():
+def test_parse_ignores_invalid_subtraction() -> None:
     text = "xe=1-2 carbs=3"
     parsed = parse_values(text)
     assert parsed == {"carbs": 3.0}
 
 
-def test_parse_invalid_input_returns_empty():
+def test_parse_invalid_input_returns_empty() -> None:
     text = "xe=1-2"
     parsed = parse_values(text)
     assert parsed == {}
-

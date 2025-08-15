@@ -26,7 +26,7 @@ def setup_db(monkeypatch):
     return Session
 
 
-def test_timezone_persist_and_validate(monkeypatch) -> None:
+def test_timezone_persist_and_validate(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
     client = TestClient(server.app)
 
@@ -54,7 +54,7 @@ def test_timezone_persist_and_validate(monkeypatch) -> None:
     assert resp.status_code in {400, 422}
 
 
-def test_timezone_partial_file(monkeypatch) -> None:
+def test_timezone_partial_file(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
     with Session() as session:
         session.add(db.Timezone(id=1, tz="Europe/Mosc"))
@@ -65,7 +65,7 @@ def test_timezone_partial_file(monkeypatch) -> None:
     assert resp.status_code == 500
 
 
-def test_timezone_concurrent_writes(monkeypatch) -> None:
+def test_timezone_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
     timezones = ["Europe/Moscow", "America/New_York", "Asia/Tokyo", "Europe/Paris"]
 
@@ -88,7 +88,7 @@ def test_timezone_concurrent_writes(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_timezone_async_writes(monkeypatch) -> None:
+async def test_timezone_async_writes(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
     timezones = ["Europe/Moscow", "America/New_York", "Asia/Tokyo", "Europe/Paris"]
 
@@ -107,4 +107,3 @@ async def test_timezone_async_writes(monkeypatch) -> None:
         resp = await ac.get("/timezone")
         assert resp.status_code == 200
         assert resp.json() == {"tz": tz_row.tz}
-

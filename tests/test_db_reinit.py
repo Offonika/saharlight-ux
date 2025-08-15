@@ -1,3 +1,5 @@
+from typing import Any
+
 import importlib
 import sys
 
@@ -27,7 +29,7 @@ class DummyEngine:
     ],
 )
 
-def test_init_db_recreates_engine_on_url_change(monkeypatch, attr, orig, new, url_attr):
+def test_init_db_recreates_engine_on_url_change(monkeypatch: pytest.MonkeyPatch, attr: Any, orig: Any, new: Any, url_attr: Any) -> None:
     monkeypatch.setenv("DB_PASSWORD", "pwd")
     _reload("services.api.app.config")
     db = _reload("services.api.app.diabetes.services.db")

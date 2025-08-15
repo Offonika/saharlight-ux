@@ -21,4 +21,3 @@ def test_app_import_without_ui(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(Path, "exists", fake_exists)
     importlib.reload(importlib.import_module("services.api.app.main"))
-

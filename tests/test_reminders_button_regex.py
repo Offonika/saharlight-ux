@@ -6,7 +6,7 @@ import services.api.app.diabetes.handlers.registration as handlers
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 
-def test_reminders_button_matches_regex():
+def test_reminders_button_matches_regex() -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -24,4 +24,3 @@ def test_reminders_button_matches_regex():
     pattern = reminder_handler.filters.pattern.pattern
     assert pattern == "^⏰ Напоминания$"
     assert re.fullmatch(pattern, "⏰ Напоминания")
-

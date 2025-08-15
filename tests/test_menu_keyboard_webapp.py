@@ -1,8 +1,10 @@
+import pytest
+
 import importlib
 from urllib.parse import urlparse
 
 
-def test_menu_keyboard_webapp_urls(monkeypatch):
+def test_menu_keyboard_webapp_urls(monkeypatch: pytest.MonkeyPatch) -> None:
     """Menu buttons should open webapp paths for profile and reminders."""
     monkeypatch.setenv("WEBAPP_URL", "https://example.com")
 
