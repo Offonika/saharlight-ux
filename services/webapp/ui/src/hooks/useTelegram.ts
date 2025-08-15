@@ -43,6 +43,8 @@ interface BackButton {
 interface TelegramWebApp {
   expand?: () => void;
   ready?: () => void;
+  version?: string;
+  platform?: string;
   colorScheme?: Scheme;
   themeParams?: ThemeParams;
   initDataUnsafe?: { user?: TelegramUser };
@@ -59,6 +61,16 @@ interface TelegramWebApp {
 interface TelegramWindow extends Window {
   Telegram?: { WebApp?: TelegramWebApp };
 }
+
+const supportsColorMethods = (app: TelegramWebApp | null): boolean => {
+  const [major = 0, minor = 0] = (app?.version || "0.0")
+    .split(".")
+    .map((n) => parseInt(n, 10));
+  if (app?.platform === "tdesktop") {
+    return major > 4 || (major === 4 && minor >= 8);
+  }
+  return major > 6 || (major === 6 && minor >= 1);
+};
 
 export const useTelegram = (
   forceLight: boolean = import.meta.env.VITE_FORCE_LIGHT === "true",
@@ -92,8 +104,10 @@ export const useTelegram = (
         root.classList.remove("dark");
         root.style.colorScheme = "light";
         setScheme("light");
-        src?.setBackgroundColor?.("#ffffff");
-        src?.setHeaderColor?.("#ffffff");
+        if (src && supportsColorMethods(src)) {
+          if (src.setBackgroundColor) src.setBackgroundColor("#ffffff");
+          if (src.setHeaderColor) src.setHeaderColor("#ffffff");
+        }
       } else {
         Object.entries(map).forEach(([k, v]) => v && root.style.setProperty(k, v));
         root.style.colorScheme = "";
