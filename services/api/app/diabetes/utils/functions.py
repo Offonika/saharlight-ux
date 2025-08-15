@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import re
+from typing import cast
 
 # ---------------------------------------------------------------------------
 # Regex helpers
@@ -154,7 +155,7 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
     return round(meal + correction, 1)
 
 
-def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
+def extract_nutrition_info(text: object) -> tuple[float | None, float | None]:
     """Извлекает углеводы и ХЕ из произвольной строки.
 
     Поддерживаются варианты: ``"углеводы: 30 г"``, ``"XE: 2-3"``,
@@ -179,6 +180,7 @@ def extract_nutrition_info(text: str) -> tuple[float | None, float | None]:
     """
     if not isinstance(text, str):
         return (None, None)
+    text = cast(str, text)
     # Если первая строка не содержит цифр или ключевых слов,
     # считаем её названием блюда и игнорируем
     lines = text.splitlines()
