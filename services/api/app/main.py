@@ -15,11 +15,14 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from .diabetes.services.db import (
     HistoryRecord as HistoryRecordDB,
     Timezone as TimezoneDB,
+
     User as UserDB,
+
     run_db,
 )
 from .legacy import router
@@ -41,14 +44,18 @@ class Timezone(BaseModel):
     tz: str
 
 
+class WebUser(BaseModel):
+    telegram_id: int
+
+
 @app.get("/health", include_in_schema=False)
-async def health() -> dict:
+async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.get("/timezone")
-async def get_timezone() -> dict:
-    def _get_timezone(session):
+async def get_timezone() -> dict[str, str]:
+    def _get_timezone(session: Session) -> TimezoneDB | None:
         return session.get(TimezoneDB, 1)
 
     tz_row = await run_db(_get_timezone)
@@ -62,13 +69,15 @@ async def get_timezone() -> dict:
 
 
 @app.put("/timezone")
-async def put_timezone(data: Timezone) -> dict:
+async def put_timezone(data: Timezone) -> dict[str, str]:
     try:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
         raise HTTPException(status_code=400, detail="invalid timezone") from exc
 
-    def _save_timezone(session, tz: str):
+    tz = data.tz
+
+    def _save_timezone(session: Session) -> None:
         obj = session.get(TimezoneDB, 1)
         if obj is None:
             obj = TimezoneDB(id=1, tz=tz)
@@ -77,7 +86,7 @@ async def put_timezone(data: Timezone) -> dict:
             obj.tz = tz
         session.commit()
 
-    await run_db(_save_timezone, data.tz)
+    await run_db(_save_timezone)
     return {"status": "ok"}
 
 
@@ -129,38 +138,52 @@ async def catch_root_ui() -> FileResponse:
     return await catch_all_ui("")
 
 
+@app.post("/api/user")
+async def create_user(data: WebUser) -> dict:
+    """Ensure a user exists in the database."""
+
+    def _create_user(session, telegram_id: int) -> None:
+        user = session.get(DBUser, telegram_id)
+        if user is None:
+            session.add(DBUser(telegram_id=telegram_id, thread_id="webapp"))
+        session.commit()
+
+    await run_db(_create_user, data.telegram_id)
+    return {"status": "ok"}
+
+
 @app.post("/api/history")
-async def post_history(data: HistoryRecordSchema) -> dict:
+async def post_history(data: HistoryRecordSchema) -> dict[str, str]:
     """Save or update a history record in the database."""
 
-    def _save_history(session, record: HistoryRecordSchema) -> None:
-        obj = session.get(HistoryRecordDB, record.id)
+    def _save_history(session: Session) -> None:
+        obj = session.get(HistoryRecordDB, data.id)
         if obj:
-            obj.date = record.date
-            obj.time = record.time
-            obj.sugar = record.sugar
-            obj.carbs = record.carbs
-            obj.bread_units = record.breadUnits
-            obj.insulin = record.insulin
-            obj.notes = record.notes
-            obj.type = record.type
+            obj.date = data.date
+            obj.time = data.time
+            obj.sugar = data.sugar
+            obj.carbs = data.carbs
+            obj.bread_units = data.breadUnits
+            obj.insulin = data.insulin
+            obj.notes = data.notes
+            obj.type = data.type
         else:
             obj = HistoryRecordDB(
-                id=record.id,
-                date=record.date,
-                time=record.time,
-                sugar=record.sugar,
-                carbs=record.carbs,
-                bread_units=record.breadUnits,
-                insulin=record.insulin,
-                notes=record.notes,
-                type=record.type,
+                id=data.id,
+                date=data.date,
+                time=data.time,
+                sugar=data.sugar,
+                carbs=data.carbs,
+                bread_units=data.breadUnits,
+                insulin=data.insulin,
+                notes=data.notes,
+                type=data.type,
             )
             session.add(obj)
         session.commit()
 
     try:
-        await run_db(_save_history, data)
+        await run_db(_save_history)
     except SQLAlchemyError as exc:  # pragma: no cover - database errors
         logger.exception("database error while saving history")
         raise HTTPException(status_code=500, detail="database error") from exc

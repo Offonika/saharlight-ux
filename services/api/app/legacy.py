@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.post("/profiles")
-async def profiles_post(data: ProfileSchema) -> dict:
+async def profiles_post(data: ProfileSchema) -> dict[str, str]:
     await save_profile(data)
     return {"status": "ok"}
 
@@ -26,11 +26,11 @@ async def profiles_get(telegram_id: int) -> ProfileSchema:
         raise HTTPException(status_code=404, detail="profile not found")
     return ProfileSchema(
         telegram_id=profile.telegram_id,
-        icr=profile.icr,
-        cf=profile.cf,
-        target=profile.target_bg,
-        low=profile.low_threshold,
-        high=profile.high_threshold,
+        icr=float(profile.icr),
+        cf=float(profile.cf),
+        target=float(profile.target_bg),
+        low=float(profile.low_threshold),
+        high=float(profile.high_threshold),
         org_id=profile.org_id,
     )
 
@@ -41,7 +41,7 @@ async def api_reminders(
     request: Request,
     id: int | None = None,
     _: None = Depends(require_role("patient", "clinician", "org_admin", "superadmin")),
-):
+) -> list[dict[str, object]] | dict[str, object]:
     log_patient_access(getattr(request.state, "user_id", None), telegram_id)
     rems = await list_reminders(telegram_id)
     if id is None:
@@ -73,6 +73,6 @@ async def api_reminders(
 async def api_reminders_post(
     data: ReminderSchema,
     _: None = Depends(require_role("patient", "clinician", "org_admin", "superadmin")),
-) -> dict:
+) -> dict[str, object]:
     rid = await save_reminder(data)
     return {"status": "ok", "id": rid}
