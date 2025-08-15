@@ -6,16 +6,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useTelegram } from "@/hooks/useTelegram";
 import { ThemeProvider } from "next-themes";
-import Home from "./pages/Home";
-import Profile from "./pages/Profile";
-import Reminders from "./pages/Reminders";
-import CreateReminder from "./reminders/CreateReminder";
-import History from "./pages/History";
-import NewMeasurement from "./pages/NewMeasurement";
-import NewMeal from "./pages/NewMeal";
-import Analytics from "./pages/Analytics";
-import Subscription from "./pages/Subscription";
-import NotFound from "./pages/NotFound";
+import { Suspense, lazy } from "react";
+
+const Home = lazy(() => import("./pages/Home"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Reminders = lazy(() => import("./pages/Reminders"));
+const CreateReminder = lazy(() => import("./reminders/CreateReminder"));
+const History = lazy(() => import("./pages/History"));
+const NewMeasurement = lazy(() => import("./pages/NewMeasurement"));
+const NewMeal = lazy(() => import("./pages/NewMeal"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Subscription = lazy(() => import("./pages/Subscription"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -34,19 +36,21 @@ const AppContent = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/profile" element={<Profile />} />
+    <Suspense fallback={<div>Загрузка...</div>}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/reminders" element={<Reminders />} />
         <Route path="/reminders/new" element={<CreateReminder />} />
         <Route path="/reminders/:id/edit" element={<CreateReminder />} />
-      <Route path="/history" element={<History />} />
-      <Route path="/history/new-measurement" element={<NewMeasurement />} />
-      <Route path="/history/new-meal" element={<NewMeal />} />
-      <Route path="/analytics" element={<Analytics />} />
-      <Route path="/subscription" element={<Subscription />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route path="/history" element={<History />} />
+        <Route path="/history/new-measurement" element={<NewMeasurement />} />
+        <Route path="/history/new-meal" element={<NewMeal />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/subscription" element={<Subscription />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 };
 
