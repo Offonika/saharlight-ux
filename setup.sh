@@ -1,22 +1,24 @@
 # setup.sh — автоматическая установка окружения для Diabetes Bot
 # Используйте: bash setup.sh
 
+set -e
+
 echo "Обновление списка пакетов и установка системных зависимостей…"
-sudo apt-get update
-sudo apt-get install -y python3-venv python3-dev build-essential libpq-dev
+sudo apt-get update || { echo "APT update failed" >&2; exit 1; }
+sudo apt-get install -y python3-venv python3-dev build-essential libpq-dev || { echo "APT install failed" >&2; exit 1; }
 
 echo "Создание виртуального окружения…"
 python3 -m venv venv
 source venv/bin/activate
 
 echo "Установка Python-зависимостей…"
-pip install --upgrade pip
-pip install -r requirements.txt
+pip install --upgrade pip || { echo "Pip upgrade failed" >&2; exit 1; }
+pip install -r requirements.txt || { echo "Python dependencies installation failed" >&2; exit 1; }
 
 echo "Сборка фронтенда (npm ci && npm run build)…"
 pushd services/webapp/ui >/dev/null
-npm ci
-npm run build
+npm ci || { echo "npm ci failed" >&2; exit 1; }
+npm run build || { echo "npm build failed" >&2; exit 1; }
 popd >/dev/null
 
 if [ ! -f ".env" ]; then
