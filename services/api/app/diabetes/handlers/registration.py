@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
+
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
     CommandHandler,
+    ExtBot,
     MessageHandler,
     PollAnswerHandler,
     filters,
@@ -18,7 +21,9 @@ from .router import callback_router
 logger = logging.getLogger(__name__)
 
 
-def register_handlers(app: Application) -> None:
+def register_handlers(
+    app: Application[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]]
+) -> None:
     """Register bot handlers on the provided ``Application`` instance."""
 
     # Import inside the function to avoid heavy imports at module import time
