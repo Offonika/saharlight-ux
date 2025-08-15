@@ -38,6 +38,8 @@ from services.api.app.diabetes.services.gpt_client import create_thread, send_me
 from services.api.app.diabetes.gpt_command_parser import parse_command
 from services.api.app.diabetes.utils.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from services.api.app.diabetes.services.repository import commit
+from collections.abc import Awaitable, Callable
+from typing import TypeVar
 from .common_handlers import menu_command
 from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry
@@ -45,6 +47,8 @@ from .profile import profile_view
 
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 def _sanitize(text: str, max_len: int = 200) -> str:
@@ -272,10 +276,14 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return ConversationHandler.END
 
 
-def _cancel_then(handler):
+def _cancel_then(
+    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[T]]
+) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[T]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
-    async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def wrapped(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> T:
         await dose_cancel(update, context)
         return await handler(update, context)
 
@@ -1111,4 +1119,5 @@ __all__ = [
     "doc_handler",
     "dose_conv",
     "ConversationHandler",
+    "_cancel_then",
 ]
