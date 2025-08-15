@@ -27,7 +27,7 @@ class DummyEntry:
         self.dose = dose
 
 
-def test_make_sugar_plot():
+def test_make_sugar_plot() -> None:
     entries = [
         DummyEntry(
             datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
@@ -50,7 +50,7 @@ def test_make_sugar_plot():
     assert len(buf.read()) > 1000  # есть содержимое
 
 
-def test_make_sugar_plot_sorts_entries(monkeypatch):
+def test_make_sugar_plot_sorts_entries(monkeypatch: pytest.MonkeyPatch) -> None:
     entries = [
         DummyEntry(
             datetime.datetime(2025, 7, 1, 14, tzinfo=datetime.timezone.utc),
@@ -83,7 +83,7 @@ def test_make_sugar_plot_sorts_entries(monkeypatch):
     assert captured["y"] == [7.0, 9.0]
 
 
-def test_make_sugar_plot_no_data():
+def test_make_sugar_plot_no_data() -> None:
     entries = [
         DummyEntry(
             datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
@@ -99,7 +99,7 @@ def test_make_sugar_plot_no_data():
     assert len(buf.read()) > 1000
 
 
-def test_generate_pdf_report():
+def test_generate_pdf_report() -> None:
     entries = [
         DummyEntry(
             datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
@@ -125,7 +125,7 @@ def test_generate_pdf_report():
 
 
 @pytest.mark.parametrize("block", ["summary_lines", "errors", "day_lines"])
-def test_generate_pdf_report_page_breaks(block):
+def test_generate_pdf_report_page_breaks(block: Any) -> None:
     long_lines = [f"line {i}" for i in range(100)]
     kwargs = {"summary_lines": [], "errors": [], "day_lines": []}
     kwargs[block] = long_lines
@@ -136,7 +136,7 @@ def test_generate_pdf_report_page_breaks(block):
 
 
 @pytest.mark.asyncio
-async def test_send_report_uses_gpt(monkeypatch) -> None:
+async def test_send_report_uses_gpt(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst")
     os.environ.setdefault("DB_PASSWORD", "pwd")

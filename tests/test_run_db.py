@@ -10,7 +10,7 @@ from services.api.app.diabetes.services.db import run_db
 
 
 @pytest.mark.asyncio
-async def test_run_db_sqlite_in_memory(monkeypatch) -> None:
+async def test_run_db_sqlite_in_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Session = sessionmaker(bind=engine)
 
@@ -32,7 +32,7 @@ async def test_run_db_sqlite_in_memory(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_run_db_postgres(monkeypatch) -> None:
+async def test_run_db_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
     dummy_engine = SimpleNamespace(url=SimpleNamespace(drivername="postgresql", database="db"))
 
     class DummySession:

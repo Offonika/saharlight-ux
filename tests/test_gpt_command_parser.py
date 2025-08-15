@@ -1,3 +1,5 @@
+from typing import Any
+
 import os
 import asyncio
 import time
@@ -13,7 +15,7 @@ from services.api.app.diabetes import gpt_command_parser  # noqa: E402
 
 
 @pytest.mark.asyncio
-async def test_parse_command_timeout_non_blocking(monkeypatch) -> None:
+async def test_parse_command_timeout_non_blocking(monkeypatch: pytest.MonkeyPatch) -> None:
     def slow_create(*args, **kwargs):
         time.sleep(1)
 
@@ -46,7 +48,7 @@ async def test_parse_command_timeout_non_blocking(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_explanatory_text(monkeypatch) -> None:
+async def test_parse_command_with_explanatory_text(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -86,7 +88,7 @@ async def test_parse_command_with_explanatory_text(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_array_response(monkeypatch) -> None:
+async def test_parse_command_with_array_response(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -114,7 +116,7 @@ async def test_parse_command_with_array_response(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_scalar_response(monkeypatch) -> None:
+async def test_parse_command_with_scalar_response(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -142,7 +144,7 @@ async def test_parse_command_with_scalar_response(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_invalid_schema(monkeypatch, caplog) -> None:
+async def test_parse_command_with_invalid_schema(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -177,7 +179,7 @@ async def test_parse_command_with_invalid_schema(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_missing_content(monkeypatch, caplog) -> None:
+async def test_parse_command_with_missing_content(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     class FakeResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {})()})]
 
@@ -201,7 +203,7 @@ async def test_parse_command_with_missing_content(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_non_string_content(monkeypatch, caplog) -> None:
+async def test_parse_command_with_non_string_content(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -231,7 +233,7 @@ async def test_parse_command_with_non_string_content(monkeypatch, caplog) -> Non
 
 
 @pytest.mark.asyncio
-async def test_parse_command_handles_unexpected_exception(monkeypatch, caplog) -> None:
+async def test_parse_command_handles_unexpected_exception(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     def bad_client() -> None:
         raise RuntimeError("boom")
 
@@ -251,7 +253,7 @@ async def test_parse_command_handles_unexpected_exception(monkeypatch, caplog) -
         "ghp_" + "A1b2" * 9 + "Cd",
     ],
 )
-def test_sanitize_masks_api_like_tokens(token):
+def test_sanitize_masks_api_like_tokens(token: Any) -> None:
     text = f"before {token} after"
     assert (
         gpt_command_parser._sanitize_sensitive_data(text)
@@ -259,13 +261,13 @@ def test_sanitize_masks_api_like_tokens(token):
     )
 
 
-def test_sanitize_leaves_numeric_strings():
+def test_sanitize_leaves_numeric_strings() -> None:
     number = "1234567890" * 4 + "12"
     text = f"id {number}"
     assert gpt_command_parser._sanitize_sensitive_data(text) == text
 
 
-def test_extract_first_json_multiple_objects():
+def test_extract_first_json_multiple_objects() -> None:
     text = (
         '{"action":"add_entry","fields":{}} '
         '{"action":"delete_entry","fields":{}}'
@@ -276,13 +278,13 @@ def test_extract_first_json_multiple_objects():
     }
 
 
-def test_extract_first_json_malformed_input():
+def test_extract_first_json_malformed_input() -> None:
     text = '{"action":"add_entry","fields":{}'
     assert gpt_command_parser._extract_first_json(text) is None
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_multiple_jsons(monkeypatch) -> None:
+async def test_parse_command_with_multiple_jsons(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -322,7 +324,7 @@ async def test_parse_command_with_multiple_jsons(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_malformed_json(monkeypatch, caplog) -> None:
+async def test_parse_command_with_malformed_json(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     class FakeResponse:
         choices = [
             type(

@@ -25,7 +25,7 @@ def setup_db(monkeypatch):
     return Session
 
 
-def test_history_persist_and_update(monkeypatch) -> None:
+def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
     client = TestClient(server.app)
 
@@ -57,7 +57,7 @@ def test_history_persist_and_update(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_history_concurrent_writes(monkeypatch) -> None:
+async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
     records = [
         {"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"}
@@ -74,4 +74,3 @@ async def test_history_concurrent_writes(monkeypatch) -> None:
     with Session() as session:
         stored = session.query(db.HistoryRecord).all()
         assert sorted([r.id for r in stored]) == [r["id"] for r in records]
-

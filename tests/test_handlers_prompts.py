@@ -46,4 +46,3 @@ async def test_prompt_dose_sends_message() -> None:
     context = SimpleNamespace(user_data={})
     await dose_handlers.prompt_dose(update, context)
     assert any("доз" in t.lower() for t in message.texts)
-

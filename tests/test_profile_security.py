@@ -37,7 +37,7 @@ class DummyQuery:
 
 
 @pytest.mark.asyncio
-async def test_profile_view_has_security_button(monkeypatch) -> None:
+async def test_profile_view_has_security_button(monkeypatch: pytest.MonkeyPatch) -> None:
     dummy_profile = SimpleNamespace(icr=10, cf=2, target=6, low=4, high=9)
     dummy_api = SimpleNamespace(profiles_get=lambda telegram_id: dummy_profile)
     monkeypatch.setattr(
@@ -66,7 +66,7 @@ async def test_profile_view_has_security_button(monkeypatch) -> None:
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_security_threshold_changes(monkeypatch, action, expected_low, expected_high) -> None:
+async def test_profile_security_threshold_changes(monkeypatch: pytest.MonkeyPatch, action: Any, expected_low: Any, expected_high: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -111,7 +111,7 @@ async def test_profile_security_threshold_changes(monkeypatch, action, expected_
 
 
 @pytest.mark.asyncio
-async def test_profile_security_toggle_sos_alerts(monkeypatch) -> None:
+async def test_profile_security_toggle_sos_alerts(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -155,7 +155,7 @@ async def test_profile_security_toggle_sos_alerts(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_security_shows_reminders(monkeypatch) -> None:
+async def test_profile_security_shows_reminders(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -189,7 +189,7 @@ async def test_profile_security_shows_reminders(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_security_add_delete_calls_handlers(monkeypatch) -> None:
+async def test_profile_security_add_delete_calls_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -224,7 +224,7 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_security_sos_contact_calls_handler(monkeypatch) -> None:
+async def test_profile_security_sos_contact_calls_handler(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

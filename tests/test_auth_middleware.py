@@ -40,4 +40,3 @@ def test_invalid_user_id_header() -> None:
         client.get("/whoami", headers={"X-User-Id": "abc"})
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "invalid user id"
-

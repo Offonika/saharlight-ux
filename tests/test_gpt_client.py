@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import logging
 import threading
 import time
@@ -10,7 +12,7 @@ from services.api.app.diabetes.services import gpt_client
 from services.api.app.config import settings
 
 
-def test_get_client_thread_safe(monkeypatch):
+def test_get_client_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_client = object()
     call_count = 0
 
@@ -38,7 +40,7 @@ def test_get_client_thread_safe(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_send_message_openaierror(monkeypatch, caplog):
+async def test_send_message_openaierror(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     def raise_error(**kwargs):
         raise OpenAIError("boom")
 
@@ -60,7 +62,7 @@ async def test_send_message_openaierror(monkeypatch, caplog):
     assert any("Failed to create message" in r.message for r in caplog.records)
 
 
-def test_create_thread_openaierror(monkeypatch, caplog):
+def test_create_thread_openaierror(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     def raise_error():
         raise OpenAIError("boom")
 
@@ -76,7 +78,7 @@ def test_create_thread_openaierror(monkeypatch, caplog):
 
 
 @pytest.mark.asyncio
-async def test_send_message_upload_error_keeps_file(tmp_path, monkeypatch):
+async def test_send_message_upload_error_keeps_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 
@@ -93,7 +95,7 @@ async def test_send_message_upload_error_keeps_file(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_send_message_empty_string_preserved(tmp_path, monkeypatch):
+async def test_send_message_empty_string_preserved(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 

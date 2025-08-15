@@ -1,3 +1,5 @@
+from sqlalchemy.orm import Session
+
 import os
 import re
 from types import SimpleNamespace
@@ -32,7 +34,7 @@ class DummyMessage:
 
 
 @pytest.fixture
-def test_session(monkeypatch):
+def test_session(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -45,7 +47,7 @@ def test_session(monkeypatch):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("contact", ["@alice", "123456"])
-async def test_soscontact_stores_contact(test_session, contact) -> None:
+async def test_soscontact_stores_contact(test_session: sessionmaker[Session], contact: Any) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1))
@@ -66,7 +68,7 @@ async def test_soscontact_stores_contact(test_session, contact) -> None:
 
 
 @pytest.mark.asyncio
-async def test_alert_notifies_user_and_contact(test_session, monkeypatch) -> None:
+async def test_alert_notifies_user_and_contact(test_session: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8))
@@ -101,7 +103,7 @@ async def test_alert_notifies_user_and_contact(test_session, monkeypatch) -> Non
 
 
 @pytest.mark.asyncio
-async def test_alert_skips_phone_contact(test_session, monkeypatch) -> None:
+async def test_alert_skips_phone_contact(test_session: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(
@@ -137,7 +139,7 @@ async def test_alert_skips_phone_contact(test_session, monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_sos_contact_menu_button_starts_conv(monkeypatch) -> None:
+async def test_sos_contact_menu_button_starts_conv(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401

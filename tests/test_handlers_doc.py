@@ -101,7 +101,7 @@ async def test_photo_handler_handles_typeerror() -> None:
 
 @pytest.mark.asyncio
 async def test_photo_handler_preserves_file(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.chdir(tmp_path)
 
@@ -168,7 +168,7 @@ async def test_photo_handler_preserves_file(
 
 @pytest.mark.asyncio
 async def test_photo_then_freeform_calculates_dose(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """photo_handler + freeform_handler produce dose in reply and context."""
 

@@ -131,4 +131,3 @@ async def test_entry_without_sugar_has_placeholder(
     text = message.replies[0]
     assert "сахар —" in text
     assert "ммоль/л" not in text
-

@@ -25,7 +25,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_profile_input_not_logged_as_sugar(monkeypatch) -> None:
+async def test_profile_input_not_logged_as_sugar(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

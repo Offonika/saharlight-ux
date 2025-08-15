@@ -69,4 +69,3 @@ async def test_dose_conv_menu_then_photo() -> None:
     )
     await dose_handlers.photo_prompt(next_update, context)
     assert any("фото" in r.lower() for r in next_message.replies)
-

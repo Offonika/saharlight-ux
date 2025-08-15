@@ -1,8 +1,10 @@
+import pytest
+
 import importlib
 from urllib.parse import urlparse
 
 
-def test_timezone_button_webapp_url(monkeypatch):
+def test_timezone_button_webapp_url(monkeypatch: pytest.MonkeyPatch) -> None:
     """Timezone button should open webapp path for timezone detection."""
     monkeypatch.setenv("WEBAPP_URL", "https://example.com")
 

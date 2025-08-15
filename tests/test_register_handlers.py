@@ -1,3 +1,5 @@
+import pytest
+
 import os
 
 from telegram.ext import (
@@ -15,7 +17,7 @@ from services.api.app.diabetes.handlers.onboarding_handlers import start_command
 from services.api.app.diabetes.handlers import security_handlers, reminder_handlers
 
 
-def test_register_handlers_attaches_expected_handlers(monkeypatch):
+def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401

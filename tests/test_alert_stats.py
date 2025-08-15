@@ -91,4 +91,3 @@ async def test_alert_stats_counts(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await alert_handlers.alert_stats(update, context)
     assert msg.texts == ["За 7\u202Fдн.: гипо\u202F1, гипер\u202F1"]
-

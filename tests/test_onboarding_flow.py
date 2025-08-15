@@ -49,7 +49,7 @@ class DummyQuery:
 
 
 @pytest.mark.asyncio
-async def test_onboarding_flow(monkeypatch) -> None:
+async def test_onboarding_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 

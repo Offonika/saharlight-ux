@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from services.api.app.diabetes.utils.functions import smart_input
@@ -12,11 +14,11 @@ from services.api.app.diabetes.utils.functions import smart_input
         ("Xe 1.5 dose 2", {"sugar": None, "xe": 1.5, "dose": 2.0}),
     ],
 )
-def test_smart_input_valid_cases(message, expected):
+def test_smart_input_valid_cases(message: Any, expected: Any) -> None:
     assert smart_input(message) == expected
 
 
-def test_smart_input_invalid_dose():
+def test_smart_input_invalid_dose() -> None:
     with pytest.raises(ValueError):
         smart_input("доза=abc")
 
