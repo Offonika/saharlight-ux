@@ -16,9 +16,9 @@ from services.api.app.diabetes.handlers import dose_handlers
 
 
 def _find_handler(
-    fallbacks: Iterable[BaseHandler[Any, Any]],
+    fallbacks: Iterable[BaseHandler[Any]],
     regex: str,
-) -> MessageHandler[Any, Any]:
+) -> MessageHandler[Any]:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
             filt = getattr(h, "filters", None)

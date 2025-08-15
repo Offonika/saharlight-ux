@@ -20,9 +20,9 @@ from services.api.app.diabetes.handlers import (
 
 
 def _find_handler(
-    fallbacks: Iterable[BaseHandler[Any, Any]],
+    fallbacks: Iterable[BaseHandler[Any]],
     regex: str,
-) -> MessageHandler[Any, Any]:
+) -> MessageHandler[Any]:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
             filt = getattr(h, "filters", None)
@@ -43,7 +43,7 @@ class DummyMessage:
         self.kwargs.append(kwargs)
 
 
-async def _exercise(handler: MessageHandler[Any, Any]) -> None:
+async def _exercise(handler: MessageHandler[Any]) -> None:
     message = DummyMessage("📷 Фото еды")
     update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context = cast(
