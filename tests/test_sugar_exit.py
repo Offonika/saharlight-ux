@@ -3,6 +3,8 @@ from re import Pattern
 from types import SimpleNamespace
 from typing import Any, cast
 
+from telegram import Update
+
 import pytest
 from telegram.ext import CallbackContext, ConversationHandler, MessageHandler
 
@@ -37,7 +39,9 @@ async def test_sugar_back_fallback_cancels() -> None:
         if isinstance(h, MessageHandler) and _filter_pattern_equals(h, "^↩️ Назад$")
     )
     message = DummyMessage("↩️ Назад")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, Any, Any, Any],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
@@ -51,7 +55,9 @@ async def test_sugar_back_fallback_cancels() -> None:
 @pytest.mark.asyncio
 async def test_cancel_command_clears_state() -> None:
     message = DummyMessage("/cancel")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, Any, Any, Any],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),

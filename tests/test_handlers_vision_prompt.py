@@ -1,7 +1,10 @@
 import pytest
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
+
+from telegram import Update
+from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
@@ -37,9 +40,14 @@ async def test_photo_prompt_includes_dish_name(monkeypatch: pytest.MonkeyPatch, 
     async def fake_send_chat_action(*args: Any, **kwargs: Any) -> None:
         pass
 
-    context = SimpleNamespace(
-        user_data={"thread_id": "tid"},
-        bot=SimpleNamespace(get_file=fake_get_file, send_chat_action=fake_send_chat_action),
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(
+            user_data={"thread_id": "tid"},
+            bot=SimpleNamespace(
+                get_file=fake_get_file, send_chat_action=fake_send_chat_action
+            ),
+        ),
     )
 
     captured = {}
@@ -81,7 +89,10 @@ async def test_photo_prompt_includes_dish_name(monkeypatch: pytest.MonkeyPatch, 
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
     msg_photo = DummyMessage(photo=[DummyPhoto()])
-    update = SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1))
+    update = cast(
+        Update,
+        SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1)),
+    )
 
     await dose_handlers.photo_handler(update, context)
 
