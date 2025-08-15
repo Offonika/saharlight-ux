@@ -88,6 +88,9 @@ class User(Base):
         BigInteger, primary_key=True, index=True
     )
     thread_id: Mapped[str] = mapped_column(String, nullable=False)
+    first_name: Mapped[str | None] = mapped_column(String)
+    last_name: Mapped[str | None] = mapped_column(String)
+    username: Mapped[str | None] = mapped_column(String)
     onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
     plan: Mapped[str] = mapped_column(String, default="free")
     timezone: Mapped[str] = mapped_column(String, default="UTC")
