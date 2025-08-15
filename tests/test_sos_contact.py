@@ -3,18 +3,17 @@ from sqlalchemy.orm import Session
 import os
 import re
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, call
 
 import pytest
-from typing import cast
 
 from .context_stub import AlertContext, ContextStub
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from telegram import Bot, Update
 from telegram.ext import ApplicationBuilder, CallbackContext, MessageHandler
-from telegram import Bot
 
 from services.api.app.diabetes.services.db import Base, User, Profile
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
@@ -54,8 +53,11 @@ async def test_soscontact_stores_contact(test_session: sessionmaker[Session], co
         session.commit()
 
     message = DummyMessage(contact)
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace()
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(CallbackContext, SimpleNamespace())
 
     result = await sos_handlers.sos_contact_save(update, context)
 
@@ -76,11 +78,17 @@ async def test_alert_notifies_user_and_contact(test_session: sessionmaker[Sessio
 
     # Save SOS contact via handler
     message = DummyMessage("@alice")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    await sos_handlers.sos_contact_save(update, SimpleNamespace())
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    await sos_handlers.sos_contact_save(
+        update, cast(CallbackContext, SimpleNamespace())
+    )
 
-    update_alert = SimpleNamespace(
-        effective_user=SimpleNamespace(id=1, first_name="Ivan")
+    update_alert = cast(
+        Update,
+        SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
     )
     context: AlertContext = ContextStub(bot=cast(Bot, SimpleNamespace()))
     send_mock = AsyncMock()
@@ -117,8 +125,9 @@ async def test_alert_skips_phone_contact(test_session: sessionmaker[Session], mo
         )
         session.commit()
 
-    update_alert = SimpleNamespace(
-        effective_user=SimpleNamespace(id=1, first_name="Ivan")
+    update_alert = cast(
+        Update,
+        SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
     )
     context: AlertContext = ContextStub(bot=cast(Bot, SimpleNamespace()))
     send_mock = AsyncMock()
@@ -158,8 +167,8 @@ async def test_sos_contact_menu_button_starts_conv(monkeypatch: pytest.MonkeyPat
     assert re.fullmatch(pattern, "🆘 SOS контакт")
 
     message = DummyMessage("🆘 SOS контакт")
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(CallbackContext, SimpleNamespace())
     state = await sos_handler.callback(update, context)
 
     assert state == sos_handlers.SOS_CONTACT
