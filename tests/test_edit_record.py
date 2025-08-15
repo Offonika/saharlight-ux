@@ -18,7 +18,7 @@ class DummyMessage:
         self.text = text
         self.chat_id = chat_id
         self.message_id = message_id
-        self.replies: list[tuple[str, dict]] = []
+        self.replies: list[tuple[str, dict[str, Any]]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append((text, kwargs))
@@ -28,8 +28,8 @@ class DummyQuery:
     def __init__(self, data: str, message: DummyMessage | None = None):
         self.data = data
         self.message = message or DummyMessage()
-        self.markups = []
-        self.answer_texts = []
+        self.markups: list[Any] = []
+        self.answer_texts: list[str | None] = []
 
     async def answer(self, text: str | None = None) -> None:
         self.answer_texts.append(text)
@@ -90,7 +90,9 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     field_query = DummyQuery(f"edit_field:{entry_id}:dose", message=entry_message)
     update_cb2 = SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1))
     await router.callback_router(update_cb2, context)
-    assert context.user_data["edit_field"] == "dose"
+    edit_field = context.user_data.get("edit_field")
+    assert edit_field is not None
+    assert edit_field == "dose"
 
     reply_msg = DummyMessage(text="5")
     update_msg = cast(
@@ -100,6 +102,7 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         updated = session.get(Entry, entry_id)
+        assert updated is not None
         assert updated.dose == 5.0
 
     assert field_query.answer_texts[-1] == "Изменено"
