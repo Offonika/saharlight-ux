@@ -6,6 +6,10 @@ set -e
 echo "Обновление списка пакетов и установка системных зависимостей…"
 sudo apt-get update || { echo "APT update failed" >&2; exit 1; }
 sudo add-apt-repository ppa:deadsnakes/ppa -y || { echo "Add-apt-repository failed" >&2; exit 1; }
+# Добавляем репозиторий PostgreSQL с актуальным кодовым именем системы
+PG_CODENAME=$(lsb_release -cs)
+echo "deb http://apt.postgresql.org/pub/repos/apt ${PG_CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add - >/dev/null || { echo "PostgreSQL repo key add failed" >&2; exit 1; }
 sudo apt-get update || { echo "APT update failed" >&2; exit 1; }
 sudo apt-get install -y python3.12-venv python3.12-dev build-essential libpq-dev || { echo "APT install failed" >&2; exit 1; }
 
