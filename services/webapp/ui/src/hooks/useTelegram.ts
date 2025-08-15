@@ -45,7 +45,7 @@ interface TelegramWebApp {
   ready?: () => void;
   colorScheme?: Scheme;
   themeParams?: ThemeParams;
-  user?: TelegramUser;
+  initDataUnsafe?: { user?: TelegramUser };
   setBackgroundColor?: (color: string) => void;
   setHeaderColor?: (color: string) => void;
   onEvent?: (eventType: string, handler: () => void) => void;
@@ -114,7 +114,7 @@ export const useTelegram = (
       tg.expand?.();
       tg.ready?.();
       applyTheme(tg, forceLight);
-      setUser(tg.user ?? null);
+      setUser(tg.initDataUnsafe?.user ?? null);
       setReady(true);
       const onTheme = () => applyTheme(tg, forceLight);
       tg.onEvent?.("themeChanged", onTheme);
