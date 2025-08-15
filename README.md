@@ -51,16 +51,25 @@
 
 ## Установка
 
+Перед началом убедитесь, что установлен **Python 3.12**. В Ubuntu его можно поставить через PPA Deadsnakes:
+
+```bash
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.12 python3.12-venv
+```
+
 1. **Клонируйте репозиторий:**
    ```bash
    git clone https://github.com/Offonika/saharlight-ux.git
    cd saharlight-ux
    ```
-2. **Создайте виртуальное окружение и активируйте его:**
+2. **Создайте виртуальное окружение Python 3.12 и активируйте его:**
    ```bash
-   python3 -m venv venv
+   python3.12 -m venv venv
    source venv/bin/activate
    ```
+   Все последующие команды `python` и `pip` выполняйте внутри этого окружения.
 3. **Установите зависимости и соберите фронтенд (`npm ci && npm run build`):**
    Локальный Python SDK подключается из каталога `libs/py-sdk`, поэтому он будет установлен вместе с зависимостями:
    ```bash
