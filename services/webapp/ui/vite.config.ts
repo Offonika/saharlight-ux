@@ -21,6 +21,19 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     server: { host: '::', port },
-    build: { outDir: 'dist' }, // Явно задаём dist (по умолчанию и так dist)
+    build: {
+      outDir: 'dist', // Явно задаём dist (по умолчанию и так dist)
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: [
+              'react',
+              'react-dom',
+              'react-router-dom'
+            ]
+          }
+        }
+      }
+    },
   }
 })
