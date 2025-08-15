@@ -5,10 +5,12 @@ set -e
 
 echo "Обновление списка пакетов и установка системных зависимостей…"
 sudo apt-get update || { echo "APT update failed" >&2; exit 1; }
-sudo apt-get install -y python3-venv python3-dev build-essential libpq-dev || { echo "APT install failed" >&2; exit 1; }
+sudo add-apt-repository ppa:deadsnakes/ppa -y || { echo "Add-apt-repository failed" >&2; exit 1; }
+sudo apt-get update || { echo "APT update failed" >&2; exit 1; }
+sudo apt-get install -y python3.12-venv python3.12-dev build-essential libpq-dev || { echo "APT install failed" >&2; exit 1; }
 
 echo "Создание виртуального окружения…"
-python3 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 
 echo "Установка Python-зависимостей…"
