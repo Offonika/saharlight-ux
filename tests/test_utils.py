@@ -1,5 +1,5 @@
 # test_utils.py
-from typing import Any
+from typing import Any, ContextManager, Literal
 
 
 import asyncio
@@ -55,14 +55,16 @@ def test_split_text_by_width_respects_limit(text: Any) -> None:
 
 @pytest.mark.asyncio
 async def test_get_coords_and_link_non_blocking(monkeypatch: pytest.MonkeyPatch) -> None:
-    def slow_urlopen(*args, **kwargs):
+    def slow_urlopen(*args: object, **kwargs: object) -> ContextManager[io.StringIO]:
         time.sleep(0.2)
 
         class Resp:
-            def __enter__(self):
+            def __enter__(self) -> io.StringIO:
                 return io.StringIO('{"loc": "1,2"}')
 
-            def __exit__(self, exc_type, exc, tb):
+            def __exit__(
+                self, exc_type: object, exc: object, tb: object
+            ) -> Literal[False]:
                 return False
 
         return Resp()
@@ -79,7 +81,7 @@ async def test_get_coords_and_link_non_blocking(monkeypatch: pytest.MonkeyPatch)
 
 @pytest.mark.asyncio
 async def test_get_coords_and_link_logs_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
-    def failing_urlopen(*args, **kwargs):
+    def failing_urlopen(*args: object, **kwargs: object) -> None:
         raise OSError("network down")
 
     monkeypatch.setattr(utils, "urlopen", failing_urlopen)
@@ -93,12 +95,14 @@ async def test_get_coords_and_link_logs_warning(monkeypatch: pytest.MonkeyPatch,
 
 @pytest.mark.asyncio
 async def test_get_coords_and_link_invalid_loc(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
-    def bad_urlopen(*args, **kwargs):
+    def bad_urlopen(*args: object, **kwargs: object) -> ContextManager[io.StringIO]:
         class Resp:
-            def __enter__(self):
+            def __enter__(self) -> io.StringIO:
                 return io.StringIO('{"loc": "invalid"}')
 
-            def __exit__(self, exc_type, exc, tb):
+            def __exit__(
+                self, exc_type: object, exc: object, tb: object
+            ) -> Literal[False]:
                 return False
 
         return Resp()
