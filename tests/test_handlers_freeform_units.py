@@ -11,10 +11,12 @@ import services.api.app.diabetes.handlers.dose_handlers as handlers
 class DummyMessage:
     def __init__(self, text: str):
         self.text = text
-        self.replies: list[tuple[str, dict[str, Any]]] = []
+        self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
-        self.replies.append((text, kwargs))
+        self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 @pytest.mark.asyncio
@@ -31,7 +33,7 @@ async def test_freeform_handler_warns_on_sugar_unit_mix() -> None:
     await handlers.freeform_handler(update, context)
 
     assert message.replies
-    text, _ = message.replies[0]
+    text = message.replies[0]
     assert "ммоль/л" in text and "Сахар" in text
 
 
@@ -49,7 +51,7 @@ async def test_freeform_handler_warns_on_dose_unit_mix() -> None:
     await handlers.freeform_handler(update, context)
 
     assert message.replies
-    text, _ = message.replies[0]
+    text = message.replies[0]
     assert "ед" in text.lower() and "доза" in text.lower()
 
 
@@ -74,5 +76,5 @@ async def test_freeform_handler_guidance_on_valueerror(
     await handlers.freeform_handler(update, context)
 
     assert message.replies
-    text, _ = message.replies[0]
+    text = message.replies[0]
     assert "Не удалось распознать значения" in text

@@ -18,10 +18,12 @@ class DummyMessage:
         self.text = text
         self.chat_id = chat_id
         self.message_id = message_id
-        self.replies: list[tuple[str, dict]] = []
+        self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
-        self.replies.append((text, kwargs))
+        self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 class DummyQuery:

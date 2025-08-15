@@ -24,9 +24,11 @@ class DummyMessage:
     def __init__(self, data: str) -> None:
         self.web_app_data = WebAppData(data)
         self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 class DummyJobQueue:

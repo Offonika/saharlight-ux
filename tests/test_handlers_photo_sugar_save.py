@@ -14,10 +14,12 @@ class DummyMessage:
     def __init__(self, text: str | None = None, photo: list[Any] | None = None):
         self.text = text
         self.photo = photo
-        self.replies: list[tuple[str, dict[str, Any]]] = []
+        self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
-        self.replies.append((text, kwargs))
+        self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 class DummyQuery:

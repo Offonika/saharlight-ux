@@ -18,22 +18,26 @@ class DummyMessage:
         self.photos: list[tuple[Any, str | None]] = []
         self.polls: list[tuple[str, list[str]]] = []
         self.markups: list[Any] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
         self.markups.append(kwargs.get("reply_markup"))
+        self.kwargs.append(kwargs)
 
     async def reply_photo(
         self, photo: Any, caption: str | None = None, **kwargs: Any
     ) -> None:
         self.photos.append((photo, caption))
         self.markups.append(kwargs.get("reply_markup"))
+        self.kwargs.append(kwargs)
 
     async def reply_poll(
         self, question: str, options: list[str], **kwargs: Any
     ) -> SimpleNamespace:
         self.polls.append((question, options))
         self.markups.append(kwargs.get("reply_markup"))
+        self.kwargs.append(kwargs)
         return SimpleNamespace(poll=SimpleNamespace(id="p1"))
 
     async def delete(self) -> None:

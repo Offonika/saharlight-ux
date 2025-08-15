@@ -19,10 +19,12 @@ class DummyMessage:
         self.text = text
         self.chat_id = chat_id
         self.message_id = message_id
-        self.replies: list[tuple[str, dict[str, Any]]] = []
+        self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
-        self.replies.append((text, kwargs))
+        self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 class DummyQuery:
@@ -112,7 +114,9 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
             f"🍞 Углеводы: <b>—</b>\n"
             f"💉 Доза: <b>—</b>"
         )
-    for (text, kwargs), expected in zip(message.replies[1:-1], expected_texts):
+    for text, kwargs, expected in zip(
+        message.replies[1:-1], message.kwargs[1:-1], expected_texts
+    ):
         markup = kwargs.get("reply_markup")
         assert kwargs.get("parse_mode") == "HTML"
         assert text == expected
@@ -123,7 +127,7 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
         assert f"edit:{eid}" in all_callbacks
         assert f"del:{eid}" in all_callbacks
 
-    back_markup = message.replies[-1][1]["reply_markup"]
+    back_markup = message.kwargs[-1]["reply_markup"]
     back_button = back_markup.inline_keyboard[0][0]
     assert back_button.callback_data == "report_back"
 
@@ -190,7 +194,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert context.user_data["edit_id"] == entry_id
     assert context.user_data["edit_field"] == "xe"
     assert context.user_data["edit_query"] is field_query
-    assert any("Введите" in t for t, _ in entry_message.replies)
+    assert any("Введите" in t for t in entry_message.replies)
 
     reply_msg = DummyMessage(text="3")
     update_msg = cast(

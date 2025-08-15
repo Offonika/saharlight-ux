@@ -17,9 +17,11 @@ class DummyMessage(Message):
         self.text = text
         self.photo = photo
         self.texts: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
+        self.kwargs.append(kwargs)
 
 
 @pytest.mark.asyncio

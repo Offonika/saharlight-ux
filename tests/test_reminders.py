@@ -21,9 +21,11 @@ class DummyMessage:
         self.text = text
         self.texts: list[str] = []
         self.edited: tuple[str, dict[str, Any]] | None = None
+        self.kwargs: list[dict[str, Any]] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
+        self.kwargs.append(kwargs)
 
     async def edit_text(self, text: str, **kwargs: Any) -> None:
         self.edited = (text, kwargs)

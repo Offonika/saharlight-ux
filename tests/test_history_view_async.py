@@ -9,8 +9,13 @@ from services.api.app.diabetes.handlers import reporting_handlers
 
 
 class DummyMessage:
-    async def reply_text(self, *args: Any, **kwargs: Any) -> None:
-        pass
+    def __init__(self) -> None:
+        self.replies: list[str] = []
+        self.kwargs: list[dict[str, Any]] = []
+
+    async def reply_text(self, text: str, **kwargs: Any) -> None:
+        self.replies.append(text)
+        self.kwargs.append(kwargs)
 
 
 @pytest.mark.asyncio

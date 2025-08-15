@@ -169,15 +169,17 @@ async def test_send_report_uses_gpt(monkeypatch: pytest.MonkeyPatch) -> None:
     class DummyMessage:
         def __init__(self):
             self.docs: list[Any] = []
+            self.kwargs: list[dict[str, Any]] = []
 
-        async def reply_text(self, *args: Any, **kwargs: Any) -> None:
-            pass
+        async def reply_text(self, text: str, **kwargs: Any) -> None:
+            self.kwargs.append(kwargs)
 
         async def reply_photo(self, *args: Any, **kwargs: Any) -> None:
-            pass
+            self.kwargs.append(kwargs)
 
         async def reply_document(self, document: Any, **kwargs: Any) -> None:
             self.docs.append(document)
+            self.kwargs.append(kwargs)
 
     message = DummyMessage()
     update = SimpleNamespace(
