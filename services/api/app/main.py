@@ -4,7 +4,11 @@ from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup for direct execution
-    sys.path.append(str(Path(__file__).resolve().parents[3]))
+    # Ensure repository root is the first entry so that the correct `services`
+    # package is imported when running this file directly.  There is another
+    # third-party package named ``services`` installed in the environment which
+    # would otherwise take precedence and cause `ModuleNotFoundError`.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
     __package__ = "services.api.app"
 
 from fastapi import FastAPI, HTTPException
