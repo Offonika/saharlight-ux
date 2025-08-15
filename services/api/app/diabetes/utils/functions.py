@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 import re
-from typing import cast
 
 # ---------------------------------------------------------------------------
 # Regex helpers
@@ -181,7 +180,7 @@ def extract_nutrition_info(text: object) -> tuple[float | None, float | None]:
     """
     if not isinstance(text, str):
         return (None, None)
-    text = cast(str, text)
+    # На этом этапе ``text`` гарантированно строка.
     # Если первая строка не содержит цифр или ключевых слов,
     # считаем её названием блюда и игнорируем
     lines = text.splitlines()
