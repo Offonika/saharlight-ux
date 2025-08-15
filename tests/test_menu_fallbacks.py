@@ -1,6 +1,9 @@
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
+
+from telegram import Update
+from telegram.ext import CallbackContext
 
 import pytest
 from telegram.ext import CommandHandler
@@ -34,8 +37,13 @@ def _get_menu_handler(fallbacks):
 async def test_sugar_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(dose_handlers.sugar_conv.fallbacks)
     message = DummyMessage("/menu")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}})
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
+    )
 
     await handler.callback(update, context)
 
@@ -44,8 +52,8 @@ async def test_sugar_conv_menu_then_photo() -> None:
     assert context.user_data == {}
 
     next_message = DummyMessage("📷 Фото еды")
-    next_update = SimpleNamespace(
-        message=next_message, effective_user=SimpleNamespace(id=1)
+    next_update = cast(
+        Update, SimpleNamespace(message=next_message, effective_user=SimpleNamespace(id=1))
     )
     await dose_handlers.photo_prompt(next_update, context)
     assert any("фото" in r.lower() for r in next_message.replies)
@@ -54,8 +62,13 @@ async def test_sugar_conv_menu_then_photo() -> None:
 async def test_dose_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(dose_handlers.dose_conv.fallbacks)
     message = DummyMessage("/menu")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}})
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
+    )
 
     await handler.callback(update, context)
 
@@ -64,8 +77,8 @@ async def test_dose_conv_menu_then_photo() -> None:
     assert context.user_data == {}
 
     next_message = DummyMessage("📷 Фото еды")
-    next_update = SimpleNamespace(
-        message=next_message, effective_user=SimpleNamespace(id=1)
+    next_update = cast(
+        Update, SimpleNamespace(message=next_message, effective_user=SimpleNamespace(id=1))
     )
     await dose_handlers.photo_prompt(next_update, context)
     assert any("фото" in r.lower() for r in next_message.replies)

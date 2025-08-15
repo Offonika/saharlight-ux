@@ -5,6 +5,8 @@ from re import Pattern
 from types import SimpleNamespace
 from typing import Any, Iterable, cast
 
+from telegram import Update
+
 import pytest
 from telegram.ext import BaseHandler, CallbackContext, MessageHandler
 
@@ -45,7 +47,9 @@ class DummyMessage:
 
 async def _exercise(handler: MessageHandler[Any, Any]) -> None:
     message = DummyMessage("📷 Фото еды")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, Any, Any, Any],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"}),

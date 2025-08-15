@@ -137,8 +137,9 @@ async def test_photo_flow_saves_entry(
     context.user_data["thread_id"] = "tid"
 
     msg_photo = DummyMessage(photo=[DummyPhoto()])
-    update_photo = SimpleNamespace(
-        message=msg_photo, effective_user=SimpleNamespace(id=1)
+    update_photo = cast(
+        Update,
+        SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1)),
     )
     await dose_handlers.photo_handler(update_photo, context)
 
@@ -165,7 +166,7 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(alert_handlers, "check_alert", noop)
 
     query = DummyQuery(DummyMessage(), "confirm_entry")
-    update_confirm = SimpleNamespace(callback_query=query)
+    update_confirm = cast(Update, SimpleNamespace(callback_query=query))
     await router.callback_router(update_confirm, context)
 
     assert len(session.added) == 1

@@ -43,8 +43,9 @@ async def test_report_request_and_custom_flow(
     import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
     message = DummyMessage()
-    update = SimpleNamespace(
-        message=message, effective_user=SimpleNamespace(id=1)
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
@@ -56,8 +57,9 @@ async def test_report_request_and_custom_flow(
     assert message.kwargs[0].get("reply_markup") is not None
 
     query = DummyQuery(DummyMessage(), "report_period:custom")
-    update_cb = SimpleNamespace(
-        callback_query=query, effective_user=SimpleNamespace(id=1)
+    update_cb = cast(
+        Update,
+        SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)),
     )
 
     await reporting_handlers.report_period_callback(update_cb, context)
@@ -118,8 +120,9 @@ async def test_report_period_callback_week(
     monkeypatch.setattr(reporting_handlers.datetime, "datetime", DummyDateTime)
 
     query = DummyQuery(DummyMessage(), "report_period:week")
-    update_cb = SimpleNamespace(
-        callback_query=query, effective_user=SimpleNamespace(id=1)
+    update_cb = cast(
+        Update,
+        SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})

@@ -1,6 +1,9 @@
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
+
+from telegram import Update
+from telegram.ext import CallbackContext
 
 import pytest
 
@@ -24,16 +27,22 @@ class DummyMessage:
 @pytest.mark.asyncio
 async def test_prompt_photo_sends_message() -> None:
     message = DummyMessage()
-    update = SimpleNamespace(message=message)
-    await dose_handlers.prompt_photo(update, SimpleNamespace())
+    update = cast(Update, SimpleNamespace(message=message))
+    await dose_handlers.prompt_photo(
+        update, cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace())
+    )
     assert any("фото" in t.lower() for t in message.texts)
 
 
 @pytest.mark.asyncio
 async def test_prompt_sugar_sends_message() -> None:
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+    )
     await dose_handlers.prompt_sugar(update, context)
     assert any("сахар" in t.lower() for t in message.texts)
     assert message.kwargs and message.kwargs[0].get("reply_markup") is sugar_keyboard
@@ -42,7 +51,11 @@ async def test_prompt_sugar_sends_message() -> None:
 @pytest.mark.asyncio
 async def test_prompt_dose_sends_message() -> None:
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+    )
     await dose_handlers.prompt_dose(update, context)
     assert any("доз" in t.lower() for t in message.texts)
