@@ -29,7 +29,7 @@ class SugarEntry(Protocol):
     sugar_before: float | None
 
 
-def _register_font(name, filename):
+def _register_font(name: str, filename: str) -> None:
     path = os.path.join(_font_dir, filename)
     try:
         pdfmetrics.registerFont(TTFont(name, path))
@@ -105,7 +105,7 @@ def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.Byte
         return buf
 
     plt.figure(figsize=(7, 3))
-    plt.plot(times, sugars_plot, marker='o', label='Сахар (ммоль/л)')  # type: ignore[arg-type]
+    plt.plot(times, sugars_plot, marker='o', label='Сахар (ммоль/л)')
     plt.title(f'Динамика сахара за {period_label}')
     plt.xlabel('Дата')
     plt.ylabel('Сахар, ммоль/л')
@@ -165,7 +165,7 @@ def generate_pdf_report(
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    def check_page_break(y_pos, font_name, font_size):
+    def check_page_break(y_pos: float, font_name: str, font_size: int) -> float:
         if y_pos < 25 * mm:
             c.showPage()
             y_pos = height - 25 * mm
