@@ -1,10 +1,10 @@
-import pytest
-
 """Tests for debug logging configuration in bot.main."""
 
 import importlib
 import logging
 import sys
+
+import pytest
 
 
 def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
