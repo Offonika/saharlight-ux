@@ -122,9 +122,9 @@ async def create_user(data: WebUser) -> dict:
     """Ensure a user exists in the database."""
 
     def _create_user(session, telegram_id: int) -> None:
-        user = session.get(DBUser, telegram_id)
+        user = session.get(UserDB, telegram_id)
         if user is None:
-            session.add(DBUser(telegram_id=telegram_id, thread_id="webapp"))
+            session.add(UserDB(telegram_id=telegram_id, thread_id="webapp"))
         session.commit()
 
     await run_db(_create_user, data.telegram_id)
