@@ -118,13 +118,19 @@ async def catch_root_ui() -> FileResponse:
 
 
 @app.post("/api/user")
-async def create_user(data: WebUser) -> dict:
+async def create_user(
+    data: WebUser,
+    user: dict = Depends(require_tg_user),
+) -> dict:
     """Ensure a user exists in the database."""
 
-    def _create_user(session, telegram_id: int) -> None:
-        user = session.get(DBUser, telegram_id)
-        if user is None:
-            session.add(DBUser(telegram_id=telegram_id, thread_id="webapp"))
+    if data.telegram_id != user["id"]:
+        raise HTTPException(status_code=403, detail="telegram id mismatch")
+
+    def _create_user(session: Session, telegram_id: int) -> None:
+        db_user = session.get(UserDB, telegram_id)
+        if db_user is None:
+            session.add(UserDB(telegram_id=telegram_id, thread_id="webapp"))
         session.commit()
 
     await run_db(_create_user, data.telegram_id)
