@@ -1,5 +1,3 @@
-from sqlalchemy.orm import Session
-
 import os
 import re
 from types import SimpleNamespace
@@ -11,7 +9,7 @@ import pytest
 from .context_stub import AlertContext, ContextStub
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from telegram import Bot, Update
 from telegram.ext import ApplicationBuilder, CallbackContext, MessageHandler, filters
 
@@ -33,7 +31,7 @@ class DummyMessage:
 
 
 @pytest.fixture
-def test_session(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_session(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -57,7 +55,7 @@ async def test_soscontact_stores_contact(test_session: sessionmaker[Session], co
         Update,
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
-    context = cast(CallbackContext, SimpleNamespace())
+    context = cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace())
 
     result = await sos_handlers.sos_contact_save(update, context)
 
@@ -66,6 +64,7 @@ async def test_soscontact_stores_contact(test_session: sessionmaker[Session], co
 
     with test_session() as session:
         profile = session.get(Profile, 1)
+        assert profile is not None
         assert profile.sos_contact == contact
 
 
@@ -83,7 +82,7 @@ async def test_alert_notifies_user_and_contact(test_session: sessionmaker[Sessio
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     await sos_handlers.sos_contact_save(
-        update, cast(CallbackContext, SimpleNamespace())
+        update, cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace())
     )
 
     update_alert = cast(
@@ -168,7 +167,7 @@ async def test_sos_contact_menu_button_starts_conv(monkeypatch: pytest.MonkeyPat
 
     message = DummyMessage("🆘 SOS контакт")
     update = cast(Update, SimpleNamespace(message=message))
-    context = cast(CallbackContext, SimpleNamespace())
+    context = cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace())
     state = await sos_handler.callback(update, context)
 
     assert state == sos_handlers.SOS_CONTACT
