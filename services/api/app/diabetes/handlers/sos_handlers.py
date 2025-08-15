@@ -95,4 +95,11 @@ sos_contact_conv = ConversationHandler(
     per_message=False,
 )
 
-__all__ = ["sos_contact_conv"]
+__all__ = [
+    "SOS_CONTACT",
+    "sos_contact_start",
+    "sos_contact_save",
+    "sos_contact_cancel",
+    "sos_contact_conv",
+    "ConversationHandler",
+]
