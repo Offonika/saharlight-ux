@@ -1,6 +1,9 @@
 import { DefaultApi, Reminder } from '@sdk';
+import { Configuration } from '@sdk/runtime';
 
-const api = new DefaultApi();
+const api = new DefaultApi(
+  new Configuration({ basePath: import.meta.env.VITE_API_BASE }),
+);
 
 export async function getReminders(telegramId: number): Promise<Reminder[]> {
   try {
