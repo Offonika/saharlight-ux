@@ -205,6 +205,8 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         updated = session.get(Entry, entry_id)
+        assert updated is not None
+        updated: Entry = updated
         assert updated.xe == 3
         assert updated.carbs_g == 10
         assert updated.dose == 2

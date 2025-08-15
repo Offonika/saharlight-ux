@@ -102,6 +102,8 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         updated = session.get(Entry, entry_id)
+        assert updated is not None
+        updated: Entry = updated
         assert updated.dose == 5.0
 
     assert field_query.answer_texts[-1] == "Изменено"
