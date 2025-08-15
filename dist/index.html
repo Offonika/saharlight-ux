@@ -1,9 +1,7 @@
-<!-- file: webapp/ui/index.html -->
 <!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <!-- Важно для Telegram WebApp и мобильных браузеров -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
     <meta name="format-detection" content="telephone=no" />
 
@@ -16,12 +14,9 @@
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b0f19" media="(prefers-color-scheme: dark)" />
 
-    <!-- Иконки (положи файлы в webapp/ui/public/, будут доступны как /ui/...) -->
-    <link rel="icon" type="image/png" href="/ui/app-icon.png" />
-    <link rel="apple-touch-icon" href="/ui/app-icon.png" />
-
-    <!-- Глобальные стили (раздаются сервером как /style.css) -->
-    <link rel="stylesheet" href="/ui/style.css" />
+    <!-- Иконки -->
+    <link rel="icon" type="image/png" href="/assets/app-icon-BMedTHhq.png" />
+    <link rel="apple-touch-icon" href="/assets/app-icon-BMedTHhq.png" />
 
     <!-- Шрифты -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -31,29 +26,23 @@
       rel="stylesheet"
     />
 
-    <!-- Telegram SDK + инициализация темы (не бандлим, грузим отдельным скриптом) -->
+    <!-- Telegram SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="/ui/telegram-init.js"></script>
 
     <!-- Open Graph / Twitter -->
     <meta property="og:title" content="СахарФото — ассистент для диабетиков" />
     <meta property="og:description" content="Распознаёт еду по фото, считает углеводы/ХЕ, напоминает об измерении сахара, инсулине и лекарствах." />
     <meta property="og:type" content="website" />
-    <!-- Помести og-изображение в webapp/ui/public/app-og.png -->
-    <meta property="og:image" content="/ui/app-og.png" />
     <meta property="og:locale" content="ru_RU" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="СахарФото — ассистент для диабетиков" />
     <meta name="twitter:description" content="Распознаёт еду по фото, считает углеводы/ХЕ и помогает с напоминаниями." />
-    <meta name="twitter:image" content="/ui/app-og.png" />
-    <script type="module" crossorigin src="/ui/assets/index-gZWaLxZh.js"></script>
-    <link rel="modulepreload" crossorigin href="/ui/assets/vendor-CzhASIQC.js">
-    <link rel="stylesheet" crossorigin href="/ui/assets/index-DKMiZ-3Y.css">
+    <script type="module" crossorigin src="/assets/index-D42OubJF.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DWdW1GPM.css">
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- Точка входа Vite -->
   </body>
 </html>

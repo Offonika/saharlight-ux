@@ -1,0 +1,1 @@
+import{j as s,b as e}from"./index-gZWaLxZh.js";import{R as m}from"./vendor-CzhASIQC.js";import{B as n}from"./switch-CGngOfw1.js";const c=m.forwardRef(({className:t,size:o="lg",...a},r)=>s.jsx(n,{ref:r,size:o,className:e(o==="icon"&&"rounded-lg",t),...a}));c.displayName="MedicalButton";export{c as M};

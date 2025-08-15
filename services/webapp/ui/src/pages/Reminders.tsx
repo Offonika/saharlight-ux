@@ -148,7 +148,7 @@ export default function Reminders() {
             <MedicalButton onClick={() => window.location.reload()}>Повторить</MedicalButton>
             <MedicalButton asChild variant="outline">
               <a
-                href="https://t.me/saharlight_bot?startapp=reminders"
+                href={`https://t.me/${import.meta.env.VITE_TELEGRAM_BOT}?startapp=reminders`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
