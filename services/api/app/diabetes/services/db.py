@@ -16,7 +16,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import URL
 from sqlalchemy.exc import UnboundExecutionError
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy.orm import DeclarativeBase, sessionmaker, relationship
 import asyncio
 import logging
 import threading
@@ -30,7 +30,10 @@ logger = logging.getLogger(__name__)
 engine = None
 engine_lock = threading.Lock()
 SessionLocal = sessionmaker(autoflush=False, autocommit=False)
-Base = declarative_base()
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 T = TypeVar("T")
