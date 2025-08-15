@@ -11,7 +11,7 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup f
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
     __package__ = "services.api.app"
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
@@ -22,6 +22,7 @@ from .diabetes.services.db import (
     run_db,
 )
 from .legacy import router
+from .telegram_auth import require_tg_user
 from .schemas.history import HistoryRecordSchema
 
 logger = logging.getLogger(__name__)
@@ -78,6 +79,11 @@ async def put_timezone(data: Timezone) -> dict:
 
     await run_db(_save_timezone, data.tz)
     return {"status": "ok"}
+
+
+@app.get("/api/profile/self")
+async def profile_self(user: dict = Depends(require_tg_user)) -> dict:
+    return user
 
 
 @app.get("/ui/{full_path:path}", include_in_schema=False)
