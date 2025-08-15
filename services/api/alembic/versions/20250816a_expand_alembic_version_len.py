@@ -9,10 +9,10 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
     op.execute("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255);")
 
 
-def downgrade():
+def downgrade() -> None:
     # осторожно: может не влезть, если в истории уже длинные id
     op.execute("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(32);")
