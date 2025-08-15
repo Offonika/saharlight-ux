@@ -22,9 +22,7 @@ from sqlalchemy.orm import Session
 from .diabetes.services.db import (
     HistoryRecord as HistoryRecordDB,
     Timezone as TimezoneDB,
-
-    User as UserDB,
-
+    User as DBUser,
     run_db,
 )
 from .legacy import router
@@ -57,7 +55,7 @@ async def health() -> dict[str, str]:
 
 
 @app.get("/timezone")
-async def get_timezone() -> dict[str, str]:
+async def get_timezone(_: dict = Depends(require_tg_user)) -> dict[str, str]:
     def _get_timezone(session: Session) -> TimezoneDB | None:
         return session.get(TimezoneDB, 1)
 
@@ -72,7 +70,7 @@ async def get_timezone() -> dict[str, str]:
 
 
 @app.put("/timezone")
-async def put_timezone(data: Timezone) -> dict[str, str]:
+async def put_timezone(data: Timezone, _: dict = Depends(require_tg_user)) -> dict[str, str]:
     try:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:

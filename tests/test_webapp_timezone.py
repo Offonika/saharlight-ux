@@ -1,5 +1,9 @@
 import asyncio
+import hashlib
+import hmac
+import json
 from concurrent.futures import ThreadPoolExecutor
+import urllib.parse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +14,25 @@ from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
 from services.api.app.diabetes.services import db
+from services.api.app.config import settings
+
+
+TOKEN = "test-token"
+
+
+def build_init_data(user_id: int = 1) -> str:
+    user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
+    params = {"auth_date": "123", "query_id": "abc", "user": user}
+    data_check = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
+    secret = hmac.new(b"WebAppData", TOKEN.encode(), hashlib.sha256).digest()
+    params["hash"] = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
+    return urllib.parse.urlencode(params)
+
+
+@pytest.fixture
+def auth_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    return {"X-Telegram-Init-Data": build_init_data()}
 
 
 def setup_db(monkeypatch):
@@ -26,15 +49,17 @@ def setup_db(monkeypatch):
     return Session
 
 
-def test_timezone_persist_and_validate(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_timezone_persist_and_validate(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
     Session = setup_db(monkeypatch)
     client = TestClient(server.app)
 
-    resp = client.put("/timezone", json={"tz": "Europe/Moscow"})
+    resp = client.put("/timezone", json={"tz": "Europe/Moscow"}, headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json() == {"status": "ok"}
 
-    resp = client.get("/timezone")
+    resp = client.get("/timezone", headers=auth_headers)
     assert resp.status_code == 200
     assert resp.json() == {"tz": "Europe/Moscow"}
 
@@ -42,36 +67,44 @@ def test_timezone_persist_and_validate(monkeypatch: pytest.MonkeyPatch) -> None:
         tz_row = session.get(db.Timezone, 1)
         assert tz_row.tz == "Europe/Moscow"
 
-    resp = client.put("/timezone", json={})
+    resp = client.put("/timezone", json={}, headers=auth_headers)
     assert resp.status_code == 422
 
-    resp = client.put("/timezone", json={"tz": "Invalid/Zone"})
+    resp = client.put("/timezone", json={"tz": "Invalid/Zone"}, headers=auth_headers)
     assert resp.status_code == 400
 
     resp = client.put(
-        "/timezone", content=b"not json", headers={"Content-Type": "application/json"}
+        "/timezone",
+        content=b"not json",
+        headers={**auth_headers, "Content-Type": "application/json"},
     )
     assert resp.status_code in {400, 422}
 
 
-def test_timezone_partial_file(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_timezone_partial_file(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
     Session = setup_db(monkeypatch)
     with Session() as session:
         session.add(db.Timezone(id=1, tz="Europe/Mosc"))
         session.commit()
 
     client = TestClient(server.app)
-    resp = client.get("/timezone")
+    resp = client.get("/timezone", headers=auth_headers)
     assert resp.status_code == 500
 
 
-def test_timezone_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_timezone_concurrent_writes(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
     Session = setup_db(monkeypatch)
     timezones = ["Europe/Moscow", "America/New_York", "Asia/Tokyo", "Europe/Paris"]
 
+    headers = auth_headers
+
     def write_tz(tz: str) -> None:
         with TestClient(server.app) as c:
-            resp = c.put("/timezone", json={"tz": tz})
+            resp = c.put("/timezone", json={"tz": tz}, headers=headers.copy())
             assert resp.status_code == 200
 
     with ThreadPoolExecutor(max_workers=len(timezones)) as exc:
@@ -82,19 +115,23 @@ def test_timezone_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> None:
         assert tz_row.tz in timezones
 
     client = TestClient(server.app)
-    resp = client.get("/timezone")
+    resp = client.get("/timezone", headers=headers)
     assert resp.status_code == 200
     assert resp.json() == {"tz": tz_row.tz}
 
 
 @pytest.mark.asyncio
-async def test_timezone_async_writes(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_timezone_async_writes(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
     Session = setup_db(monkeypatch)
     timezones = ["Europe/Moscow", "America/New_York", "Asia/Tokyo", "Europe/Paris"]
 
+    headers = auth_headers
+
     async def write_tz(tz: str) -> None:
         async with AsyncClient(app=server.app, base_url="http://test") as ac:
-            resp = await ac.put("/timezone", json={"tz": tz})
+            resp = await ac.put("/timezone", json={"tz": tz}, headers=headers)
             assert resp.status_code == 200
 
     await asyncio.gather(*(write_tz(tz) for tz in timezones))
@@ -104,6 +141,12 @@ async def test_timezone_async_writes(monkeypatch: pytest.MonkeyPatch) -> None:
         assert tz_row.tz in timezones
 
     async with AsyncClient(app=server.app, base_url="http://test") as ac:
-        resp = await ac.get("/timezone")
+        resp = await ac.get("/timezone", headers=headers)
         assert resp.status_code == 200
         assert resp.json() == {"tz": tz_row.tz}
+
+
+def test_timezone_requires_header() -> None:
+    client = TestClient(server.app)
+    assert client.get("/timezone").status_code == 401
+    assert client.put("/timezone", json={"tz": "Europe/Moscow"}).status_code == 401
