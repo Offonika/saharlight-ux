@@ -57,13 +57,18 @@ class Settings(BaseSettings):
 
     @field_validator("log_level", mode="before")
     @classmethod
-    def parse_log_level(cls, v: object) -> int:  # pragma: no cover - simple parsing
-        if isinstance(v, str) and v.lower() in {"1", "true", "debug"}:
-            return logging.DEBUG
-        try:
-            return int(v)  # type: ignore[return-value]
-        except (TypeError, ValueError):
-            return logging.INFO
+    def parse_log_level(cls, v: int | str | None) -> int:  # pragma: no cover - simple parsing
+        if isinstance(v, str):
+            v_lower = v.lower()
+            if v_lower in {"1", "true", "debug"}:
+                return logging.DEBUG
+            try:
+                return int(v)
+            except ValueError:
+                return logging.INFO
+        if isinstance(v, int):
+            return v
+        return logging.INFO
 
 
 # Instantiate settings for external use
