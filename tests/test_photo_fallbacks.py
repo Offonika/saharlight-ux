@@ -33,8 +33,8 @@ def _find_handler(
 
 
 class DummyMessage:
-    def __init__(self, text: str = ""):
-        self.text = text
+    def __init__(self, text: str = "") -> None:
+        self.text: str = text
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

@@ -11,8 +11,8 @@ from services.api.app.diabetes.services.db import Base, Reminder, User
 
 
 class DummyMessage:
-    def __init__(self):
-        self.web_app_data = SimpleNamespace()
+    def __init__(self) -> None:
+        self.web_app_data: SimpleNamespace = SimpleNamespace()
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

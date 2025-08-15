@@ -18,7 +18,7 @@ import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
 class DummyMessage:
     def __init__(self, text: str) -> None:
-        self.text = text
+        self.text: str = text
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

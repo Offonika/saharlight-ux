@@ -14,10 +14,10 @@ from services.api.app.diabetes.services.db import Base, User, Entry
 
 
 class DummyMessage:
-    def __init__(self, text: str = "", chat_id: int = 1, message_id: int = 1):
-        self.text = text
-        self.chat_id = chat_id
-        self.message_id = message_id
+    def __init__(self, text: str = "", chat_id: int = 1, message_id: int = 1) -> None:
+        self.text: str = text
+        self.chat_id: int = chat_id
+        self.message_id: int = message_id
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

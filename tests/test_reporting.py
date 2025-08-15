@@ -167,7 +167,7 @@ async def test_send_report_uses_gpt(monkeypatch: pytest.MonkeyPatch) -> None:
         session.commit()
 
     class DummyMessage:
-        def __init__(self):
+        def __init__(self) -> None:
             self.docs: list[Any] = []
             self.kwargs: list[dict[str, Any]] = []
 

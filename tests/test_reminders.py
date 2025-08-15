@@ -17,8 +17,8 @@ from services.api.app.config import settings
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None):
-        self.text = text
+    def __init__(self, text: str | None = None) -> None:
+        self.text: str | None = text
         self.texts: list[str] = []
         self.edited: tuple[str, dict[str, Any]] | None = None
         self.kwargs: list[dict[str, Any]] = []

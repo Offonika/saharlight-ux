@@ -11,9 +11,9 @@ import services.api.app.diabetes.handlers.router as router
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None, photo: list[Any] | None = None):
-        self.text = text
-        self.photo = photo
+    def __init__(self, text: str | None = None, photo: list[Any] | None = None) -> None:
+        self.text: str | None = text
+        self.photo: list[Any] | None = photo
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

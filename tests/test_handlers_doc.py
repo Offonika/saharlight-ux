@@ -13,9 +13,11 @@ class DummyMessage(Message):
     def __setattr__(self, key: str, value: Any) -> None:
         object.__setattr__(self, key, value)
 
-    def __init__(self, text: str | None = None, photo: list[Any] | None = None) -> None:
-        self.text = text
-        self.photo = photo
+    def __init__(
+        self, text: str | None = None, photo: list[Any] | None = None
+    ) -> None:
+        self.text: str | None = text
+        self.photo: list[Any] | None = photo
         self.texts: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

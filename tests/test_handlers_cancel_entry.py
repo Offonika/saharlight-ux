@@ -9,7 +9,7 @@ from telegram.ext import CallbackContext
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

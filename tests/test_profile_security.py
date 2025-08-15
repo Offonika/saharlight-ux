@@ -14,7 +14,7 @@ from services.api.app.config import settings
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.texts: list[str] = []
         self.markups: list[Any] = []
         self.kwargs: list[dict[str, Any]] = []

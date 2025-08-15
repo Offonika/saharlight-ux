@@ -15,7 +15,7 @@ import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.texts: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 
@@ -40,9 +40,9 @@ class DummyQuery:
 
 
 class DummyWebAppMessage(DummyMessage):
-    def __init__(self, data: str):
+    def __init__(self, data: str) -> None:
         super().__init__()
-        self.web_app_data = SimpleNamespace(data=data)
+        self.web_app_data: SimpleNamespace = SimpleNamespace(data=data)
 
 
 @pytest.mark.asyncio

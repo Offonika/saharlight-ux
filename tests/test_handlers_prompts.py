@@ -12,7 +12,7 @@ from services.api.app.diabetes.utils.ui import sugar_keyboard
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.texts: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 
