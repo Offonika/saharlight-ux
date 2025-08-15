@@ -49,7 +49,7 @@
 
 ---
 ## 4 · Технологический стек
-* **Backend:** Python 3.10 · FastAPI · SQLAlchemy · Celery/Redis  
+* **Backend:** Python 3.12 · FastAPI · SQLAlchemy · Celery/Redis  
 * **CV:** PyTorch 2, YOLOv8‑seg → TensorRT → SnakeDNN (релиз)  
 * **LLM:** OpenAI GPT‑4o (fallback Llama‑3‑Ru)  
 * **DB:** PostgreSQL 15, Redis 7  
