@@ -1,6 +1,11 @@
 import logging
+import sys
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup for direct execution
+    sys.path.append(str(Path(__file__).resolve().parents[3]))
+    __package__ = "services.api.app"
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -119,4 +124,10 @@ async def post_history(data: HistoryRecordSchema) -> dict:
         logger.exception("failed to save history")
         raise HTTPException(status_code=500, detail="failed to save history") from exc
     return {"status": "ok"}
+
+
+if __name__ == "__main__":  # pragma: no cover - convenience for manual execution
+    import uvicorn
+
+    uvicorn.run("services.api.app.main:app", host="0.0.0.0", port=8000)
 
