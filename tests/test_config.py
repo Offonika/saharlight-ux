@@ -2,11 +2,12 @@
 
 import importlib
 import sys
+from types import ModuleType
 
 import pytest
 
 
-def _reload(module: str):
+def _reload(module: str) -> ModuleType:
     if module in sys.modules:
         del sys.modules[module]
     return importlib.import_module(module)
