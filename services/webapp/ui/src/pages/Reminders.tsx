@@ -5,8 +5,8 @@ import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react'
 import { MedicalHeader } from '@/components/MedicalHeader'
 import { useToast } from '@/hooks/use-toast'
 import { getReminders, updateReminder, deleteReminder } from '@/api/reminders'
-import { useTelegram } from '@/hooks/useTelegram'
 import MedicalButton from '@/components/MedicalButton'
+import { useTelegramContext } from '@/contexts/TelegramContext'
 import { cn } from '@/lib/utils'
 import { Reminder as ApiReminder } from '@sdk'
 
@@ -131,7 +131,7 @@ function ReminderRow({
 export default function Reminders() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { user, sendData, isReady } = useTelegram()
+  const { user, sendData, isReady } = useTelegramContext()
 
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loading, setLoading] = useState(true)

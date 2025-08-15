@@ -2,8 +2,8 @@ import { Clock, User, BookOpen, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
-import { useTelegram } from '@/hooks/useTelegram';
 import MedicalButton from '@/components/MedicalButton';
+import { useTelegramContext } from '@/contexts/TelegramContext';
 import { fetchDayStats, fallbackDayStats } from '@/api/stats';
 
 const menuItems = [
@@ -43,7 +43,7 @@ const menuItems = [
 
 const Home = () => {
   const navigate = useNavigate();
-  const { user } = useTelegram();
+  const { user } = useTelegramContext();
 
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['day-stats', user?.id],

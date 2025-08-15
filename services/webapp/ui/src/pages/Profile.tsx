@@ -5,12 +5,12 @@ import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
 import { getProfile, saveProfile } from '@/api/profile';
-import { useTelegram } from '@/hooks/useTelegram';
+import { useTelegramContext } from '@/contexts/TelegramContext';
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useTelegram();
+  const { user } = useTelegramContext();
 
   const [profile, setProfile] = useState({
     icr: '',

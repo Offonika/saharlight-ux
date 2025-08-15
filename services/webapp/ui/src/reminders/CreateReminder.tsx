@@ -4,7 +4,7 @@ import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
-import { useTelegram } from "@/hooks/useTelegram";
+import { useTelegramContext } from "@/contexts/TelegramContext";
 import { useToast } from "@/hooks/use-toast";
 
 // Reminder type returned from API may contain legacy value "meds",
@@ -53,7 +53,7 @@ export default function CreateReminder() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
-  const { user, sendData } = useTelegram();
+  const { user, sendData } = useTelegramContext();
   const { toast } = useToast();
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
