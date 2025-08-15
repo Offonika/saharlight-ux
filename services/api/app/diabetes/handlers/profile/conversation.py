@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     CommandHandler,
@@ -730,10 +731,13 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     return ConversationHandler.END
 
 
-async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    from ..dose_handlers import _cancel_then, photo_prompt
+async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    from .. import _cancel_then
+    from ..dose_handlers import photo_prompt
 
-    handler = _cancel_then(photo_prompt)
+    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]] = _cancel_then(
+        photo_prompt
+    )
     return await handler(update, context)
 
 

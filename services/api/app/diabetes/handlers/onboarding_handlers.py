@@ -444,7 +444,8 @@ async def onboarding_poll_answer(
 
 
 async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    from .dose_handlers import _cancel_then, photo_prompt
+    from . import _cancel_then
+    from .dose_handlers import photo_prompt
 
     message = update.message
     user_data = context.user_data
