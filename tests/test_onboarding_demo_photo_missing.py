@@ -1,7 +1,10 @@
 import logging
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
+
+from telegram import Update
+from telegram.ext import CallbackContext
 
 import pytest
 from sqlalchemy import create_engine
@@ -11,7 +14,7 @@ from services.api.app.diabetes.services.db import Base
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.texts: list[str] = []
         self.photos: list[tuple[Any, str | None]] = []
         self.markups: list[Any] = []
@@ -45,10 +48,17 @@ async def test_onboarding_demo_photo_missing(monkeypatch: pytest.MonkeyPatch, ca
     monkeypatch.setattr(onboarding, "menu_keyboard", "MK")
 
     message = DummyMessage()
-    update = SimpleNamespace(
-        message=message, effective_user=SimpleNamespace(id=1, first_name="Ann")
+    update = cast(
+        Update,
+        SimpleNamespace(
+            message=message,
+            effective_user=SimpleNamespace(id=1, first_name="Ann"),
+        ),
     )
-    context = SimpleNamespace(user_data={}, bot_data={})
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={}, bot_data={}),
+    )
 
     await onboarding.start_command(update, context)
     update.message.text = "10"
@@ -62,7 +72,7 @@ async def test_onboarding_demo_photo_missing(monkeypatch: pytest.MonkeyPatch, ca
 
     orig_open = pathlib.Path.open
 
-    def fake_open(self, *args, **kwargs):
+    def fake_open(self: pathlib.Path, *args: Any, **kwargs: Any) -> Any:
         if self == onboarding.DEMO_PHOTO_PATH:
             raise OSError("missing")
         return orig_open(self, *args, **kwargs)
