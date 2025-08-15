@@ -1,3 +1,5 @@
+import { tgFetch } from '../lib/tgFetch';
+
 export interface HistoryRecord {
   id: string;
   date: string;
@@ -12,7 +14,7 @@ export interface HistoryRecord {
 
 export async function getHistory(): Promise<HistoryRecord[]> {
   try {
-    const res = await fetch('/api/history');
+    const res = await tgFetch('/api/history');
     if (!res.ok) {
       throw new Error('Не удалось загрузить историю');
     }
@@ -29,7 +31,7 @@ export async function getHistory(): Promise<HistoryRecord[]> {
 
 export async function updateRecord(record: HistoryRecord) {
   try {
-    const res = await fetch('/api/history', {
+    const res = await tgFetch('/api/history', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(record),
@@ -47,7 +49,7 @@ export async function updateRecord(record: HistoryRecord) {
 
 export async function deleteRecord(id: string) {
   try {
-    const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
+    const res = await tgFetch(`/api/history/${id}`, { method: 'DELETE' });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.status !== 'ok') {
       throw new Error(data.detail || 'Не удалось удалить запись');

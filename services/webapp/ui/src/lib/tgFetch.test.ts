@@ -25,7 +25,7 @@ describe('tgFetch', () => {
 
   it('attaches X-Telegram-Init-Data header when init data is present', async () => {
     (window as TelegramWindow).Telegram = { WebApp: { initData: 'test-data' } };
-    await tgFetch('/api/test', { credentials: 'include' });
+    await tgFetch('/api/profile/self', { credentials: 'include' });
     const [, options] = (global.fetch as Mock).mock.calls[0] as [unknown, RequestInit];
     const headers = options.headers as Headers;
     expect(headers.get('X-Telegram-Init-Data')).toBe('test-data');
@@ -33,7 +33,7 @@ describe('tgFetch', () => {
 
   it('does not set header when init data is absent', async () => {
     (window as TelegramWindow).Telegram = { WebApp: {} };
-    await tgFetch('/api/test', { credentials: 'include' });
+    await tgFetch('/api/profile/self', { credentials: 'include' });
     const [, options] = (global.fetch as Mock).mock.calls[0] as [unknown, RequestInit];
     const headers = options.headers as Headers;
     expect(headers.has('X-Telegram-Init-Data')).toBe(false);
