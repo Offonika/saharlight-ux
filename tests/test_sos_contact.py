@@ -13,7 +13,7 @@ from .context_stub import AlertContext, ContextStub
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from telegram import Bot, Update
-from telegram.ext import ApplicationBuilder, CallbackContext, MessageHandler
+from telegram.ext import ApplicationBuilder, CallbackContext, MessageHandler, filters
 
 from services.api.app.diabetes.services.db import Base, User, Profile
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
@@ -163,7 +163,7 @@ async def test_sos_contact_menu_button_starts_conv(monkeypatch: pytest.MonkeyPat
         for h in app.handlers[0]
         if isinstance(h, MessageHandler) and h.callback is sos_handlers.sos_contact_start
     )
-    pattern = sos_handler.filters.pattern.pattern
+    pattern = cast(filters.Regex, sos_handler.filters).pattern.pattern
     assert re.fullmatch(pattern, "🆘 SOS контакт")
 
     message = DummyMessage("🆘 SOS контакт")
