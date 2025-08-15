@@ -1,3 +1,5 @@
+import { tgFetch } from '../lib/tgFetch';
+
 export interface AnalyticsPoint {
   date: string;
   sugar: number;
@@ -24,7 +26,7 @@ export const fallbackDayStats: DayStats = {
 };
 
 export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint[]> {
-  const res = await fetch(`/api/analytics?telegramId=${telegramId}`);
+  const res = await tgFetch(`/api/analytics?telegramId=${telegramId}`);
   if (!res.ok) {
     throw new Error('Failed to fetch analytics');
   }
@@ -36,7 +38,7 @@ export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint
 }
 
 export async function fetchDayStats(telegramId: number): Promise<DayStats> {
-  const res = await fetch(`/api/stats?telegramId=${telegramId}`);
+  const res = await tgFetch(`/api/stats?telegramId=${telegramId}`);
   if (!res.ok) {
     throw new Error('Failed to fetch stats');
   }
