@@ -1,4 +1,5 @@
-from typing import Any
+from types import ModuleType
+from typing import Any, cast
 
 import importlib
 import sys
@@ -6,18 +7,18 @@ import sys
 import pytest
 
 
-def _reload(module: str):
+def _reload(module: str) -> ModuleType:
     if module in sys.modules:
         del sys.modules[module]
     return importlib.import_module(module)
 
 
 class DummyEngine:
-    def __init__(self, url):
+    def __init__(self, url: Any) -> None:
         self.url = url
         self.disposed = False
 
-    def dispose(self):
+    def dispose(self) -> None:
         self.disposed = True
 
 
@@ -32,11 +33,11 @@ class DummyEngine:
 def test_init_db_recreates_engine_on_url_change(monkeypatch: pytest.MonkeyPatch, attr: Any, orig: Any, new: Any, url_attr: Any) -> None:
     monkeypatch.setenv("DB_PASSWORD", "pwd")
     _reload("services.api.app.config")
-    db = _reload("services.api.app.diabetes.services.db")
+    db = cast(Any, _reload("services.api.app.diabetes.services.db"))
 
     created = []
 
-    def fake_create_engine(url):
+    def fake_create_engine(url: Any) -> DummyEngine:
         engine = DummyEngine(url)
         created.append(engine)
         return engine
