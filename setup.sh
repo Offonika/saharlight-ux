@@ -15,6 +15,7 @@ command -v python3.12 >/dev/null 2>&1 || {
 }
 
 echo "Создание виртуального окружения…"
+[ -d "venv" ] && rm -rf venv
 python3.12 -m venv venv
 source venv/bin/activate
 
