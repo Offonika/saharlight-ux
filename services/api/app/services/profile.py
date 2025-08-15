@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
+
 from ..diabetes.services.db import Profile, SessionLocal, User, run_db
 from ..schemas.profile import ProfileSchema
 
 
 async def set_timezone(telegram_id: int, tz: str) -> None:
-    def _save(session):
+    def _save(session: Session) -> None:
         user = session.get(User, telegram_id)
         if user is None:
             user = User(telegram_id=telegram_id, thread_id="api", timezone=tz)
@@ -37,7 +39,7 @@ def _validate_profile(data: ProfileSchema) -> None:
 async def save_profile(data: ProfileSchema) -> None:
     _validate_profile(data)
 
-    def _save(session):
+    def _save(session: Session) -> None:
         profile = session.get(Profile, data.telegram_id)
         if profile is None:
             profile = Profile(telegram_id=data.telegram_id)
@@ -55,7 +57,7 @@ async def save_profile(data: ProfileSchema) -> None:
 
 
 async def get_profile(telegram_id: int) -> Profile | None:
-    def _get(session):
+    def _get(session: Session) -> Profile | None:
         return session.get(Profile, telegram_id)
 
     return await run_db(_get, sessionmaker=SessionLocal)
