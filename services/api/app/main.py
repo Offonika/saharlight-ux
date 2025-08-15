@@ -11,7 +11,9 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup f
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
     __package__ = "services.api.app"
 
-from fastapi import FastAPI, HTTPException, Request
+
+from fastapi import Depends, FastAPI, HTTPException
+
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
@@ -26,6 +28,7 @@ from .diabetes.services.db import (
     run_db,
 )
 from .legacy import router
+from .telegram_auth import require_tg_user
 from .schemas.history import HistoryRecordSchema
 
 logger = logging.getLogger(__name__)
@@ -91,34 +94,10 @@ async def put_timezone(data: Timezone) -> dict[str, str]:
 
 
 @app.get("/api/profile/self")
-async def profile_self(request: Request) -> dict:
-    """Return current user data and ensure it exists in the database."""
 
-    user_id_cookie = request.cookies.get("user_id") or request.cookies.get("id")
-    if user_id_cookie is None:
-        raise HTTPException(status_code=401, detail="user not authenticated")
-    try:
-        telegram_id = int(user_id_cookie)
-    except (TypeError, ValueError):
-        raise HTTPException(status_code=400, detail="invalid user id")
+async def profile_self(user: dict = Depends(require_tg_user)) -> dict:
+    return user
 
-    def _get_or_create_user(session, uid: int) -> UserDB:
-        user = session.get(UserDB, uid)
-        if user is None:
-            user = UserDB(telegram_id=uid, thread_id="api")
-            session.add(user)
-            session.commit()
-        return user
-
-    user = await run_db(_get_or_create_user, telegram_id)
-    return {
-        "id": user.telegram_id,
-        "thread_id": user.thread_id,
-        "onboarding_complete": user.onboarding_complete,
-        "plan": user.plan,
-        "timezone": user.timezone,
-        "org_id": user.org_id,
-    }
 
 
 @app.get("/ui/{full_path:path}", include_in_schema=False)
