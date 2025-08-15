@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from .diabetes.services.db import (
     HistoryRecord as HistoryRecordDB,
     Timezone as TimezoneDB,
-    User as DBUser,
+    User as UserDB,
     run_db,
 )
 from .legacy import router
