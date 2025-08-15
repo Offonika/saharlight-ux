@@ -81,6 +81,7 @@ export const useTelegram = (
   );
   const [isReady, setReady] = useState<boolean>(false);
   const [user, setUser] = useState<TelegramUser | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [colorScheme, setScheme] = useState<Scheme>("light");
   const mainClickRef = useRef<(() => void) | null>(null);
   const backClickRef = useRef<(() => void) | null>(null);
@@ -139,11 +140,46 @@ export const useTelegram = (
       }
       const finalUser = tg.initDataUnsafe?.user ?? userObj;
       setUser(finalUser);
+      setError(null);
       if (!finalUser?.id) {
         console.warn("[TG] failed to get user ID", {
           initData: tg.initData,
           initDataUnsafe: tg.initDataUnsafe,
         });
+        const tryFallback = async () => {
+          await new Promise((r) => setTimeout(r, 100));
+          let retryUser = tg.initDataUnsafe?.user;
+          if (!retryUser?.id) {
+            const again = new URLSearchParams(tg.initData ?? "").get("user");
+            try {
+              retryUser = again ? JSON.parse(again) : null;
+            } catch {
+              /* ignore */
+            }
+          }
+          if (retryUser?.id) {
+            setUser(retryUser);
+            return;
+          }
+          if (document.cookie) {
+            try {
+              const resp = await fetch("/api/profile/self", {
+                credentials: "include",
+              });
+              if (resp.ok) {
+                const data = await resp.json().catch(() => null);
+                if (data?.id) {
+                  setUser(data);
+                  return;
+                }
+              }
+            } catch (err) {
+              console.warn("[TG] profile fetch failed", err);
+            }
+          }
+          setError("no-user");
+        };
+        void tryFallback();
       }
       setReady(true);
       const onTheme = () => applyTheme(tg, forceLight);
@@ -180,5 +216,16 @@ export const useTelegram = (
   };
   const hideBackButton = () => tg?.BackButton?.hide?.();
 
-  return { tg, isReady, user, colorScheme, sendData, showMainButton, hideMainButton, showBackButton, hideBackButton };
+  return {
+    tg,
+    isReady,
+    user,
+    colorScheme,
+    error,
+    sendData,
+    showMainButton,
+    hideMainButton,
+    showBackButton,
+    hideBackButton,
+  };
 };
