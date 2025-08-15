@@ -396,7 +396,11 @@ async def reminder_webapp_save(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Save reminder data sent from the web app."""
-    raw = update.effective_message.web_app_data.data
+    msg = update.effective_message
+    web_app = getattr(msg, "web_app_data", None) if msg else None
+    if web_app is None:
+        return
+    raw = web_app.data
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:

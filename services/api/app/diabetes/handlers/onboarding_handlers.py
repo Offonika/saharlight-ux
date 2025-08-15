@@ -117,7 +117,7 @@ def _skip_markup() -> InlineKeyboardMarkup:
 async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
     message = update.message
-    if message is None:
+    if message is None or message.text is None:
         return ConversationHandler.END
     user_data = context.user_data
     if user_data is None:
@@ -141,7 +141,7 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
     message = update.message
-    if message is None:
+    if message is None or message.text is None:
         return ConversationHandler.END
     user_data = context.user_data
     if user_data is None:
@@ -167,7 +167,7 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     message = update.message
     user = update.effective_user
     user_data = context.user_data
-    if message is None or user is None or user_data is None:
+    if message is None or message.text is None or user is None or user_data is None:
         return ConversationHandler.END
     try:
         target = float(message.text.replace(",", "."))
@@ -222,10 +222,13 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
     user = update.effective_user
     if message is None or user is None:
         return ConversationHandler.END
-    if getattr(message, "web_app_data", None):
-        tz_name = message.web_app_data.data
-    else:
+    web_app = getattr(message, "web_app_data", None)
+    if web_app is not None:
+        tz_name = web_app.data
+    elif message.text is not None:
         tz_name = message.text.strip()
+    else:
+        return ConversationHandler.END
     buttons: list[InlineKeyboardButton] = []
     tz_button = build_timezone_webapp_button()
     if tz_button:
@@ -376,7 +379,10 @@ async def onboarding_reminders(
         is_anonymous=False,
     )
     polls = context.bot_data.setdefault("onboarding_polls", {})
-    polls[poll_msg.poll.id] = user_id
+    if poll_msg.poll is not None:
+        polls[poll_msg.poll.id] = user_id
+    else:
+        logger.warning("Poll message missing poll object for user %s", user_id)
 
     await query.message.reply_text(
         "Готово! Спасибо за настройку.", reply_markup=menu_keyboard
@@ -409,7 +415,11 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         ["👍", "🙂", "👎"],
         is_anonymous=False,
     )
-    context.bot_data.setdefault("onboarding_polls", {})[poll_msg.poll.id] = user_id
+    polls = context.bot_data.setdefault("onboarding_polls", {})
+    if poll_msg.poll is not None:
+        polls[poll_msg.poll.id] = user_id
+    else:
+        logger.warning("Poll message missing poll object for user %s", user_id)
 
     await query.message.reply_text(
         "Пропущено.", reply_markup=menu_keyboard

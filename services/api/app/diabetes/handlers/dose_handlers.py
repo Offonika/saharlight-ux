@@ -88,14 +88,17 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     chat_data = getattr(context, "chat_data", None)
     if chat_data is not None and not chat_data.get("sugar_active"):
         return ConversationHandler.END
-    text = update.message.text.strip().replace(",", ".")
+    message = update.message
+    if message is None or message.text is None:
+        return ConversationHandler.END
+    text = message.text.strip().replace(",", ".")
     try:
         sugar = float(text)
     except ValueError:
-        await update.message.reply_text("Введите сахар числом в ммоль/л.")
+        await message.reply_text("Введите сахар числом в ммоль/л.")
         return SUGAR_VAL
     if sugar < 0:
-        await update.message.reply_text("Сахар не может быть отрицательным.")
+        await message.reply_text("Сахар не может быть отрицательным.")
         return SUGAR_VAL
     entry_data = context.user_data.pop("pending_entry", None) or {
         "telegram_id": update.effective_user.id,
@@ -106,10 +109,10 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         entry = Entry(**entry_data)
         session.add(entry)
         if not commit(session):
-            await update.message.reply_text("⚠️ Не удалось сохранить запись.")
+            await message.reply_text("⚠️ Не удалось сохранить запись.")
             return ConversationHandler.END
     await check_alert(update, context, sugar)
-    await update.message.reply_text(
+    await message.reply_text(
         f"✅ Уровень сахара {sugar} ммоль/л сохранён.",
         reply_markup=menu_keyboard,
     )
@@ -132,18 +135,21 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle method selection for dose calculation."""
-    text = update.message.text.lower()
+    message = update.message
+    if message is None or message.text is None:
+        return ConversationHandler.END
+    text = message.text.lower()
     if "назад" in text:
         return await dose_cancel(update, context)
     if "углев" in text:
         context.user_data["dose_method"] = "carbs"
-        await update.message.reply_text("Введите количество углеводов (г).")
+        await message.reply_text("Введите количество углеводов (г).")
         return DOSE_CARBS
     if "xe" in text or "хе" in text:
         context.user_data["dose_method"] = "xe"
-        await update.message.reply_text("Введите количество ХЕ.")
+        await message.reply_text("Введите количество ХЕ.")
         return DOSE_XE
-    await update.message.reply_text(
+    await message.reply_text(
         "Пожалуйста, выберите метод: ХЕ или углеводы.",
         reply_markup=dose_keyboard,
     )
@@ -152,34 +158,40 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture XE amount from user."""
-    text = update.message.text.strip().replace(",", ".")
+    message = update.message
+    if message is None or message.text is None:
+        return ConversationHandler.END
+    text = message.text.strip().replace(",", ".")
     try:
         xe = float(text)
     except ValueError:
-        await update.message.reply_text("Введите число ХЕ.")
+        await message.reply_text("Введите число ХЕ.")
         return DOSE_XE
     if xe < 0:
-        await update.message.reply_text("Количество ХЕ не может быть отрицательным.")
+        await message.reply_text("Количество ХЕ не может быть отрицательным.")
         return DOSE_XE
     context.user_data["pending_entry"] = {
         "telegram_id": update.effective_user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
         "xe": xe,
     }
-    await update.message.reply_text("Введите текущий сахар (ммоль/л).")
+    await message.reply_text("Введите текущий сахар (ммоль/л).")
     return DOSE_SUGAR
 
 
 async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture carbohydrates in grams."""
-    text = update.message.text.strip().replace(",", ".")
+    message = update.message
+    if message is None or message.text is None:
+        return ConversationHandler.END
+    text = message.text.strip().replace(",", ".")
     try:
         carbs = float(text)
     except ValueError:
-        await update.message.reply_text("Введите углеводы числом в граммах.")
+        await message.reply_text("Введите углеводы числом в граммах.")
         return DOSE_CARBS
     if carbs < 0:
-        await update.message.reply_text(
+        await message.reply_text(
             "Количество углеводов не может быть отрицательным."
         )
         return DOSE_CARBS
@@ -188,20 +200,23 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         "event_time": datetime.datetime.now(datetime.timezone.utc),
         "carbs_g": carbs,
     }
-    await update.message.reply_text("Введите текущий сахар (ммоль/л).")
+    await message.reply_text("Введите текущий сахар (ммоль/л).")
     return DOSE_SUGAR
 
 
 async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Finalize dose calculation after receiving sugar level."""
-    text = update.message.text.strip().replace(",", ".")
+    message = update.message
+    if message is None or message.text is None:
+        return ConversationHandler.END
+    text = message.text.strip().replace(",", ".")
     try:
         sugar = float(text)
     except ValueError:
-        await update.message.reply_text("Введите сахар числом в ммоль/л.")
+        await message.reply_text("Введите сахар числом в ммоль/л.")
         return DOSE_SUGAR
     if sugar < 0:
-        await update.message.reply_text("Сахар не может быть отрицательным.")
+        await message.reply_text("Сахар не может быть отрицательным.")
         return DOSE_SUGAR
 
     entry = context.user_data.get("pending_entry", {})
@@ -209,7 +224,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     xe = entry.get("xe")
     carbs_g = entry.get("carbs_g")
     if carbs_g is None and xe is None:
-        await update.message.reply_text(
+        await message.reply_text(
             "Не указаны углеводы или ХЕ. Расчёт невозможен.",
             reply_markup=menu_keyboard,
         )
@@ -224,7 +239,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         profile = session.get(Profile, user_id)
 
     if not profile or None in (profile.icr, profile.cf, profile.target_bg):
-        await update.message.reply_text(
+        await message.reply_text(
             "Профиль не настроен. Установите коэффициенты через /profile.",
             reply_markup=menu_keyboard,
         )
@@ -242,7 +257,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["pending_entry"] = entry
 
     xe_info = f", ХЕ: {xe}" if xe is not None else ""
-    await update.message.reply_text(
+    await message.reply_text(
         text=(
             f"💉 Расчёт завершён:\n"
             f"• Углеводы: {carbs_g} г{xe_info}\n"
@@ -284,24 +299,27 @@ def _cancel_then(handler):
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle freeform text commands for adding diary entries."""
-    raw_text = update.message.text.strip()
+    message = update.message
+    if message is None or message.text is None:
+        return
+    raw_text = message.text.strip()
     user_id = update.effective_user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
 
     if context.user_data.get("awaiting_report_date"):
-        text = update.message.text.strip().lower()
+        text = raw_text.lower()
         if "назад" in text or text == "/cancel":
             context.user_data.pop("awaiting_report_date", None)
-            await update.message.reply_text(
+            await message.reply_text(
                 "📋 Выберите действие:", reply_markup=menu_keyboard
             )
             return
         try:
             date_from = datetime.datetime.strptime(
-                update.message.text.strip(), "%Y-%m-%d"
+                raw_text, "%Y-%m-%d"
             ).replace(tzinfo=datetime.timezone.utc)
         except ValueError:
-            await update.message.reply_text(
+            await message.reply_text(
                 "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
             )
             return
@@ -314,32 +332,32 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     edit_id = context.user_data.get("edit_id")
     if pending_entry is not None and edit_id is None and pending_fields:
         field = pending_fields[0]
-        text = update.message.text.strip().replace(",", ".")
+        text = raw_text.replace(",", ".")
         try:
             value = float(text)
         except ValueError:
             if field == "sugar":
-                await update.message.reply_text(
+                await message.reply_text(
                     "Введите сахар числом в ммоль/л."
                 )
             elif field == "xe":
-                await update.message.reply_text("Введите число ХЕ.")
+                await message.reply_text("Введите число ХЕ.")
             else:
-                await update.message.reply_text(
+                await message.reply_text(
                     "Введите дозу инсулина числом."
                 )
             return
         if value < 0:
             if field == "sugar":
-                await update.message.reply_text(
+                await message.reply_text(
                     "Сахар не может быть отрицательным."
                 )
             elif field == "xe":
-                await update.message.reply_text(
+                await message.reply_text(
                     "Количество ХЕ не может быть отрицательным."
                 )
             else:
-                await update.message.reply_text(
+                await message.reply_text(
                     "Доза инсулина не может быть отрицательной."
                 )
             return
@@ -354,13 +372,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if pending_fields:
             next_field = pending_fields[0]
             if next_field == "sugar":
-                await update.message.reply_text(
+                await message.reply_text(
                     "Введите уровень сахара (ммоль/л)."
                 )
             elif next_field == "xe":
-                await update.message.reply_text("Введите количество ХЕ.")
+                await message.reply_text("Введите количество ХЕ.")
             else:
-                await update.message.reply_text(
+                await message.reply_text(
                     "Введите дозу инсулина (ед.)."
                 )
             return
@@ -375,7 +393,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with SessionLocal() as session:
                 ok = db_save(session)
         if not ok:
-            await update.message.reply_text(
+            await message.reply_text(
                 "⚠️ Не удалось сохранить запись."
             )
             return
@@ -389,24 +407,24 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         xe_info = f", ХЕ {xe}" if xe is not None else ""
         dose_info = f", доза {dose} Ед." if dose is not None else ", доза —"
         sugar_info = f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
-        await update.message.reply_text(
+        await message.reply_text(
             f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
             reply_markup=menu_keyboard,
         )
         return
     if pending_entry is not None and edit_id is None:
         entry = pending_entry
-        text = update.message.text.lower().strip()
+        text = raw_text.lower()
         if re.fullmatch(r"-?\d+(?:[.,]\d+)?", text) and entry.get("sugar_before") is None:
             try:
                 sugar = float(text.replace(",", "."))
             except ValueError:
-                await update.message.reply_text(
+                await message.reply_text(
                     "Некорректное числовое значение."
                 )
                 return
             if sugar < 0:
-                await update.message.reply_text(
+                await message.reply_text(
                     "Сахар не может быть отрицательным."
                 )
                 return
@@ -430,7 +448,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     profile.cf,
                     profile.target_bg,
                 ):
-                    await update.message.reply_text(
+                    await message.reply_text(
                         "Профиль не настроен. Установите коэффициенты через /profile.",
                         reply_markup=menu_keyboard,
                     )
@@ -445,7 +463,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 entry["dose"] = dose
                 context.user_data["pending_entry"] = entry
                 xe_info = f", ХЕ: {xe}" if xe is not None else ""
-                await update.message.reply_text(
+                await message.reply_text(
                     text=(
                         f"💉 Расчёт завершён:\n"
                         f"• Углеводы: {carbs_g} г{xe_info}\n"
@@ -456,7 +474,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=confirm_keyboard(),
                 )
             else:
-                await update.message.reply_text(
+                await message.reply_text(
                     f"Сохранить уровень сахара {sugar} ммоль/л в дневник?",
                     reply_markup=confirm_keyboard(),
                 )
@@ -465,16 +483,16 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             re.findall(r"(\w+)\s*=\s*(-?\d+(?:[.,]\d+)?)(?=\s|$)", text)
         )
         if not parts:
-            await update.message.reply_text("Не вижу ни одного поля для изменения.")
+            await message.reply_text("Не вижу ни одного поля для изменения.")
             return
         if "xe" in parts:
             try:
                 xe_val = float(parts["xe"].replace(",", "."))
             except ValueError:
-                await update.message.reply_text("Некорректное числовое значение.")
+                await message.reply_text("Некорректное числовое значение.")
                 return
             if xe_val < 0:
-                await update.message.reply_text(
+                await message.reply_text(
                     "Количество ХЕ не может быть отрицательным."
                 )
                 return
@@ -484,10 +502,10 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 carbs_val = float(parts["carbs"].replace(",", "."))
             except ValueError:
-                await update.message.reply_text("Некорректное числовое значение.")
+                await message.reply_text("Некорректное числовое значение.")
                 return
             if carbs_val < 0:
-                await update.message.reply_text(
+                await message.reply_text(
                     "Количество углеводов не может быть отрицательным."
                 )
                 return
@@ -496,10 +514,10 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 dose_val = float(parts["dose"].replace(",", "."))
             except ValueError:
-                await update.message.reply_text("Некорректное числовое значение.")
+                await message.reply_text("Некорректное числовое значение.")
                 return
             if dose_val < 0:
-                await update.message.reply_text(
+                await message.reply_text(
                     "Доза инсулина не может быть отрицательной."
                 )
                 return
@@ -509,10 +527,10 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 sugar_val = float(sugar_value.replace(",", "."))
             except ValueError:
-                await update.message.reply_text("Некорректное числовое значение.")
+                await message.reply_text("Некорректное числовое значение.")
                 return
             if sugar_val < 0:
-                await update.message.reply_text(
+                await message.reply_text(
                     "Сахар не может быть отрицательным."
                 )
                 return
@@ -523,7 +541,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         dose = entry.get("dose")
         xe_info = f", ХЕ: {xe}" if xe is not None else ""
 
-        await update.message.reply_text(
+        await message.reply_text(
             text=(
                 f"💉 Расчёт завершён:\n"
                 f"• Углеводы: {carbs} г{xe_info}\n"
@@ -536,23 +554,23 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if "edit_id" in context.user_data:
         field = context.user_data.get("edit_field")
-        text = update.message.text.strip().replace(",", ".")
+        text = raw_text.replace(",", ".")
         try:
             value = float(text)
         except ValueError:
-            await update.message.reply_text("Некорректное числовое значение.")
+            await message.reply_text("Некорректное числовое значение.")
             return
         if value < 0:
             if field == "sugar":
-                await update.message.reply_text(
+                await message.reply_text(
                     "Сахар не может быть отрицательным."
                 )
             elif field == "xe":
-                await update.message.reply_text(
+                await message.reply_text(
                     "Количество ХЕ не может быть отрицательным."
                 )
             else:
-                await update.message.reply_text(
+                await message.reply_text(
                     "Доза инсулина не может быть отрицательной."
                 )
             return
@@ -574,12 +592,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             with SessionLocal() as session:
                 status, entry = db_update(session)
         if status == "missing":
-            await update.message.reply_text("Запись уже удалена.")
+            await message.reply_text("Запись уже удалена.")
             for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
                 context.user_data.pop(key, None)
             return
         if status == "fail" or entry is None:
-            await update.message.reply_text("⚠️ Не удалось обновить запись.")
+            await message.reply_text("⚠️ Не удалось обновить запись.")
             return
         if field == "sugar":
             await check_alert(update, context, value)
@@ -616,19 +634,19 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except ValueError as exc:
         msg = str(exc)
         if "mismatched unit for sugar" in msg:
-            await update.message.reply_text(
+            await message.reply_text(
                 "❗ Сахар указывается в ммоль/л, не в XE."
             )
         elif "mismatched unit for dose" in msg:
-            await update.message.reply_text(
+            await message.reply_text(
                 "❗ Доза указывается в ед., не в ммоль."
             )
         elif "mismatched unit for xe" in msg:
-            await update.message.reply_text(
+            await message.reply_text(
                 "❗ ХЕ указываются числом, без ммоль/л и ед."
             )
         else:
-            await update.message.reply_text(
+            await message.reply_text(
                 "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2"
             )
         return
@@ -637,7 +655,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         xe = quick["xe"]
         dose = quick["dose"]
         if any(v is not None and v < 0 for v in (sugar, xe, dose)):
-            await update.message.reply_text(
+            await message.reply_text(
                 "Значения не могут быть отрицательными."
             )
             return
@@ -662,13 +680,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 with SessionLocal() as session:
                     ok = db_save(session)
             if not ok:
-                await update.message.reply_text(
+                await message.reply_text(
                     "⚠️ Не удалось сохранить запись."
                 )
                 return
             if sugar is not None:
                 await check_alert(update, context, sugar)
-            await update.message.reply_text(
+            await message.reply_text(
                 f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
                 reply_markup=menu_keyboard,
             )
@@ -677,24 +695,24 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["pending_fields"] = missing
         next_field = missing[0]
         if next_field == "sugar":
-            await update.message.reply_text("Введите уровень сахара (ммоль/л).")
+            await message.reply_text("Введите уровень сахара (ммоль/л).")
         elif next_field == "xe":
-            await update.message.reply_text("Введите количество ХЕ.")
+            await message.reply_text("Введите количество ХЕ.")
         else:
-            await update.message.reply_text("Введите дозу инсулина (ед.).")
+            await message.reply_text("Введите дозу инсулина (ед.).")
         return
 
     parsed = await parse_command(raw_text)
     logger.info("FREEFORM parsed=%s", parsed)
     if not parsed or parsed.get("action") != "add_entry":
-        await update.message.reply_text(
+        await message.reply_text(
             "Не понял, воспользуйтесь /help или кнопками меню"
         )
         return
 
     fields = parsed.get("fields")
     if not isinstance(fields, dict):
-        await update.message.reply_text(
+        await message.reply_text(
             "Не удалось распознать данные, попробуйте ещё раз."
         )
         return
@@ -707,7 +725,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             fields.get("sugar_before"),
         )
     ):
-        await update.message.reply_text(
+        await message.reply_text(
             "Значения не могут быть отрицательными."
         )
         return
@@ -731,7 +749,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc
             )
         except (ValueError, TypeError):
-            await update.message.reply_text(
+            await message.reply_text(
                 "⏰ Неверный формат времени. Использую текущее время."
             )
             event_dt = datetime.datetime.now(datetime.timezone.utc)
@@ -760,13 +778,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
 
     reply = f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
-    await update.message.reply_text(text=reply, reply_markup=confirm_keyboard())
+    await message.reply_text(text=reply, reply_markup=confirm_keyboard())
     return ConversationHandler.END
 
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Placeholder GPT chat handler."""
-    await update.message.reply_text("🗨️ Чат с GPT временно недоступен.")
+    await message.reply_text("🗨️ Чат с GPT временно недоступен.")
 
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False):
