@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from .diabetes.services.db import (
     HistoryRecord as HistoryRecordDB,
     Timezone as TimezoneDB,
+    User as DBUser,
     run_db,
 )
 from .legacy import router
@@ -39,6 +40,10 @@ UI_DIR = UI_DIR.resolve()
 
 class Timezone(BaseModel):
     tz: str
+
+
+class WebUser(BaseModel):
+    telegram_id: int
 
 
 @app.get("/health", include_in_schema=False)
@@ -98,6 +103,20 @@ async def catch_all_ui(full_path: str) -> FileResponse:
 @app.get("/ui", include_in_schema=False)
 async def catch_root_ui() -> FileResponse:
     return await catch_all_ui("")
+
+
+@app.post("/api/user")
+async def create_user(data: WebUser) -> dict:
+    """Ensure a user exists in the database."""
+
+    def _create_user(session, telegram_id: int) -> None:
+        user = session.get(DBUser, telegram_id)
+        if user is None:
+            session.add(DBUser(telegram_id=telegram_id, thread_id="webapp"))
+        session.commit()
+
+    await run_db(_create_user, data.telegram_id)
+    return {"status": "ok"}
 
 
 @app.post("/api/history")
