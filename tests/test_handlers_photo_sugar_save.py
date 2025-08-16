@@ -1,6 +1,8 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
 from typing import Any, cast
+
+from sqlalchemy.orm import sessionmaker
 from unittest.mock import Mock, PropertyMock
 
 import pytest
@@ -8,7 +10,6 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
-from services.api.app.diabetes.handlers.dose_handlers import SessionLocal as SessionFactory
 import services.api.app.diabetes.handlers.router as router
 
 
@@ -161,7 +162,7 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
-    session_factory = cast(type(SessionFactory), lambda: session)
+    session_factory = cast(sessionmaker, lambda: session)
     dose_handlers.SessionLocal = session_factory
     await dose_handlers.freeform_handler(update_sugar, context)
     assert context.user_data["pending_entry"]["sugar_before"] == 5.5
