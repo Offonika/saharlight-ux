@@ -85,29 +85,29 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
         return
     elif data.startswith("edit:") or data.startswith("del:"):
-        action, entry_id = data.split(":", 1)
+        action, entry_id_str = data.split(":", 1)
         try:
-            entry_id = int(entry_id)
+            entry_id = int(entry_id_str)
         except ValueError:
-            logger.warning("Invalid entry_id in callback data: %s", entry_id)
+            logger.warning("Invalid entry_id in callback data: %s", entry_id_str)
             await query.edit_message_text("Некорректный идентификатор записи.")
             return
         with SessionLocal() as session:
-            entry = session.get(Entry, entry_id)
-            if not entry:
+            existing_entry: Entry | None = session.get(Entry, entry_id)
+            if existing_entry is None:
                 await query.edit_message_text("Запись не найдена (уже удалена).")
                 return
             user = update.effective_user
             if user is None:
                 return
             assert user is not None
-            if entry.telegram_id != user.id:
+            if existing_entry.telegram_id != user.id:
                 await query.edit_message_text(
                     "⚠️ Эта запись принадлежит другому пользователю."
                 )
                 return
             if action == "del":
-                session.delete(entry)
+                session.delete(existing_entry)
                 if not commit(session):
                     await query.edit_message_text("⚠️ Не удалось удалить запись.")
                     return
@@ -123,7 +123,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     return
                 assert message is not None
                 user_data["edit_entry"] = {
-                    "id": entry.id,
+                    "id": existing_entry.id,
                     "chat_id": message.chat_id,
                     "message_id": message.message_id,
                 }
@@ -132,17 +132,17 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                         [
                             InlineKeyboardButton(
                                 "сахар",
-                                callback_data=f"edit_field:{entry.id}:sugar",
+                                callback_data=f"edit_field:{existing_entry.id}:sugar",
                             )
                         ],
                         [
                             InlineKeyboardButton(
-                                "xe", callback_data=f"edit_field:{entry.id}:xe"
+                                "xe", callback_data=f"edit_field:{existing_entry.id}:xe"
                             )
                         ],
                         [
                             InlineKeyboardButton(
-                                "dose", callback_data=f"edit_field:{entry.id}:dose"
+                                "dose", callback_data=f"edit_field:{existing_entry.id}:dose"
                             )
                         ],
                     ]
@@ -152,7 +152,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif data.startswith("edit_field:"):
         try:
             _, entry_id_str, field = data.split(":")
-            entry_id = int(entry_id_str)
+            edit_entry_id = int(entry_id_str)
         except ValueError:
             logger.warning("Invalid edit_field data: %s", data)
             await query.edit_message_text("Некорректные данные для редактирования.")
@@ -161,7 +161,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if user_data is None:
             return
         assert user_data is not None
-        user_data["edit_id"] = entry_id
+        user_data["edit_id"] = edit_entry_id
         user_data["edit_field"] = field
         user_data["edit_query"] = query
         prompt = {

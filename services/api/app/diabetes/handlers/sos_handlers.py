@@ -48,10 +48,13 @@ async def sos_contact_save(
 ) -> int:
     """Save provided contact to profile."""
     message = update.message
-    if message is None or message.text is None:
+    if message is None:
+        return ConversationHandler.END
+    text = message.text
+    if text is None:
         return ConversationHandler.END
     assert message is not None
-    contact = message.text.strip()
+    contact = text.strip()
     if not _is_valid_contact(contact):
         await message.reply_text(
             "❗ Укажите @username или числовой ID. Телефоны не поддерживаются.",
