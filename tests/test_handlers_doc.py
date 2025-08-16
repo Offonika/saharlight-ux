@@ -1,6 +1,5 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from http import HTTPStatus
 from typing import Any, cast
 
 from sqlalchemy.orm import sessionmaker
@@ -38,7 +37,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
         context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
     ) -> int:
         called.flag = True
-        return HTTPStatus.OK.value
+        return 200
 
     class DummyFile:
         async def download_to_drive(self, path: str) -> None:
@@ -69,7 +68,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 
     result = await handlers.doc_handler(update, context)
 
-    assert result == HTTPStatus.OK.value
+    assert result == 200
     assert called.flag
     assert context.user_data["__file_path"] == "photos/1_uid.png"
     assert update.message.photo == ()
