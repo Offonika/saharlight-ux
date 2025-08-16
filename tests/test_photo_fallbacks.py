@@ -8,7 +8,8 @@ from typing import Any, Iterable, cast
 from telegram import Update
 
 import pytest
-from telegram.ext import BaseHandler, CallbackContext, MessageHandler
+from telegram.ext import CallbackContext, MessageHandler
+from telegram.ext._basehandler import BaseHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")

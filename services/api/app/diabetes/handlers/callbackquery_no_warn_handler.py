@@ -2,7 +2,8 @@ import re
 from typing import Any, Callable, Coroutine, Optional
 
 from telegram import CallbackQuery, Update
-from telegram.ext import BaseHandler, ContextTypes
+from telegram.ext import ContextTypes
+from telegram.ext._basehandler import BaseHandler
 
 CallbackQueryHandlerCallback = Callable[
     [Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, int | None]

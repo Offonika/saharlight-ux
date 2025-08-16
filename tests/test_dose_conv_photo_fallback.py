@@ -7,7 +7,8 @@ from typing import Any, Iterable, cast
 
 import pytest
 from telegram import Update
-from telegram.ext import BaseHandler, CallbackContext, MessageHandler
+from telegram.ext import CallbackContext, MessageHandler
+from telegram.ext._basehandler import BaseHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -16,9 +17,16 @@ from services.api.app.diabetes.handlers import dose_handlers
 
 
 def _find_handler(
-    fallbacks: Iterable[BaseHandler[Any]],
+    fallbacks: Iterable[
+        BaseHandler[
+            Update,
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        ]
+    ],
     regex: str,
-) -> MessageHandler[Any]:
+) -> MessageHandler[
+    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
+]:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
             filt = getattr(h, "filters", None)
