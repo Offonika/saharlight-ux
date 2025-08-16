@@ -53,11 +53,16 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     * ``/profile help`` → show usage instructions
     * ``/profile <args>`` → set profile directly
     """
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if message is None or user is None:
+        return ConversationHandler.END
 
     args = context.args
     api, ApiException, ProfileModel = get_api()
     if api is None:
-        await update.message.reply_text(
+        await message.reply_text(
             "⚠️ Функции профиля недоступны. Установите пакет 'diabetes_sdk'."
         )
         return ConversationHandler.END
@@ -71,7 +76,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             end_conv(update, context, ConversationHandler.END)
         else:
             chat_id = getattr(update.effective_chat, "id", None) if sugar_conv.per_chat else None
-            user_id = getattr(update.effective_user, "id", None) if sugar_conv.per_user else None
+            user_id = getattr(user, "id", None) if sugar_conv.per_user else None
             msg_id = (
                 getattr(update.effective_message, "message_id", None)
                 if sugar_conv.per_message
@@ -91,11 +96,11 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     )
 
     if len(args) == 1 and args[0].lower() == "help":
-        await update.message.reply_text(help_text, parse_mode="Markdown")
+        await message.reply_text(help_text, parse_mode="Markdown")
         return ConversationHandler.END
 
     if not args:
-        await update.message.reply_text(
+        await message.reply_text(
             "Введите коэффициент ИКХ (г/ед.) — сколько граммов углеводов покрывает 1 ед. быстрого инсулина:",
             reply_markup=back_keyboard,
         )
@@ -103,7 +108,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     values = parse_profile_args(args)
     if values is None:
-        await update.message.reply_text("❗ Неверный формат. Справка: /profile help")
+        await message.reply_text("❗ Неверный формат. Справка: /profile help")
         return ConversationHandler.END
 
     try:
@@ -113,7 +118,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         low = float(values["low"].replace(",", "."))
         high = float(values["high"].replace(",", "."))
     except ValueError:
-        await update.message.reply_text(
+        await message.reply_text(
             "❗ Пожалуйста, введите корректные числа. Справка: /profile help"
         )
         return ConversationHandler.END
@@ -129,7 +134,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             f"(ИКХ {cf}, КЧ {icr}, целевой {target}, низкий {low}, высокий {high})\n"
         )
 
-    user_id = update.effective_user.id
+    user_id = user.id
     ok, err = post_profile(
         api,
         ApiException,
@@ -142,10 +147,10 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         high,
     )
     if not ok:
-        await update.message.reply_text(err or "⚠️ Не удалось сохранить профиль.")
+        await message.reply_text(err or "⚠️ Не удалось сохранить профиль.")
         return ConversationHandler.END
 
-    await update.message.reply_text(
+    await message.reply_text(
         f"✅ Профиль обновлён:\n"
         f"• ИКХ: {icr} г/ед.\n"
         f"• КЧ: {cf} ммоль/л\n"
@@ -160,13 +165,18 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display current patient profile."""
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if message is None or user is None:
+        return
     api, ApiException, _ = get_api()
     if api is None:
-        await update.message.reply_text(
+        await message.reply_text(
             "⚠️ Функции профиля недоступны. Установите пакет 'diabetes_sdk'."
         )
         return
-    user_id = update.effective_user.id
+    user_id = user.id
     profile = fetch_profile(api, ApiException, user_id)
 
     if not profile:
@@ -181,11 +191,11 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                     ]
                 ]
             )
-            await update.message.reply_text(
+            await message.reply_text(
                 "Ваш профиль пока не настроен.", reply_markup=keyboard
             )
         else:
-            await update.message.reply_text(
+            await message.reply_text(
                 "Ваш профиль пока не настроен.\n\n"
                 "Чтобы настроить профиль, введите команду:\n"
                 "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой ммоль/л> <низкий ммоль/л> <высокий ммоль/л>\n"
@@ -220,13 +230,18 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             ],
         )
     keyboard = InlineKeyboardMarkup(rows)
-    await update.message.reply_text(msg, reply_markup=keyboard)
+    await message.reply_text(msg, reply_markup=keyboard)
 
 
 async def profile_webapp_save(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Save profile data sent from the web app."""
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if user is None:
+        return
     api, ApiException, ProfileModel = get_api()
     if api is None:
         await update.effective_message.reply_text(
@@ -267,7 +282,7 @@ async def profile_webapp_save(
             error_msg, reply_markup=menu_keyboard
         )
         return
-    user_id = update.effective_user.id
+    user_id = user.id
     ok, err = post_profile(
         api,
         ApiException,
@@ -298,19 +313,32 @@ async def profile_webapp_save(
 
 async def profile_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel profile creation conversation."""
-    await update.message.reply_text("Отменено.", reply_markup=menu_keyboard)
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if message is None:
+        return ConversationHandler.END
+    await message.reply_text("Отменено.", reply_markup=menu_keyboard)
     return ConversationHandler.END
 
 
 async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Return to main menu from profile view."""
-    query = update.callback_query
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if query is None:
+        return
     await query.answer()
     await query.message.delete()
     await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user to enter timezone."""
-    query = update.callback_query
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if query is None:
+        return ConversationHandler.END
     await query.answer()
     await query.message.reply_text(
         "Введите ваш часовой пояс (например Europe/Moscow):",
@@ -327,8 +355,10 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Save user timezone from input."""
-    message = update.message
-    if message is None:
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if message is None or user is None:
         return ConversationHandler.END
     web_app = getattr(message, "web_app_data", None)
     if web_app is not None:
@@ -343,33 +373,33 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
         ZoneInfo(raw)
     except ZoneInfoNotFoundError:
         logger.warning("Invalid timezone provided: %s", raw)
-        await update.message.reply_text(
+        await message.reply_text(
             "Некорректный часовой пояс. Пример: Europe/Moscow",
             reply_markup=back_keyboard,
         )
         button = build_timezone_webapp_button()
         if button:
             keyboard = InlineKeyboardMarkup([[button]])
-            await update.message.reply_text(
+            await message.reply_text(
                 "Можно определить автоматически:", reply_markup=keyboard
             )
         return PROFILE_TZ
-    user_id = update.effective_user.id
+    user_id = user.id
     exists, ok = await run_db(
         set_timezone, user_id, raw, sessionmaker=SessionLocal
     )
     if not exists:
-        await update.message.reply_text(
+        await message.reply_text(
             "Профиль не найден.", reply_markup=menu_keyboard
         )
         return ConversationHandler.END
     if not ok:
-        await update.message.reply_text(
+        await message.reply_text(
             "⚠️ Не удалось обновить часовой пояс.",
             reply_markup=menu_keyboard,
         )
         return ConversationHandler.END
-    await update.message.reply_text(
+    await message.reply_text(
         "✅ Часовой пояс обновлён.", reply_markup=menu_keyboard
     )
     return ConversationHandler.END
@@ -438,15 +468,19 @@ def _security_db(session, user_id: int, action: str | None):
 
 async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display and modify security settings."""
-    query = update.callback_query
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if query is None or user is None:
+        return
     await query.answer()
-    user_id = update.effective_user.id
+    user_id = user.id
     action = query.data.split(":", 1)[1] if ":" in query.data else None
 
     if action == "sos_contact":
         from services.api.app.diabetes.handlers import sos_handlers
 
-        await sos_handlers.sos_contact_start(update.callback_query, context)
+        await sos_handlers.sos_contact_start(query, context)
         return
     if action == "add" and settings.webapp_url:
         button = InlineKeyboardButton(
@@ -531,7 +565,11 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start step-by-step profile setup."""
-    query = update.callback_query
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if query is None:
+        return ConversationHandler.END
     await query.answer()
     await query.message.delete()
     await query.message.reply_text(
@@ -543,8 +581,12 @@ async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
-    message = update.message
-    if message is None or message.text is None:
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if message is None:
+        return ConversationHandler.END
+    if message.text is None:
         return ConversationHandler.END
     raw_text = message.text.strip()
     if "назад" in raw_text.lower():
@@ -568,8 +610,12 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
-    message = update.message
-    if message is None or message.text is None:
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if message is None:
+        return ConversationHandler.END
+    if message.text is None:
         return ConversationHandler.END
     raw_text = message.text.strip()
     if "назад" in raw_text.lower():
@@ -597,8 +643,12 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input."""
-    message = update.message
-    if message is None or message.text is None:
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if message is None:
+        return ConversationHandler.END
+    if message.text is None:
         return ConversationHandler.END
     raw_text = message.text.strip()
     if "назад" in raw_text.lower():
@@ -630,8 +680,12 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle low threshold input."""
-    message = update.message
-    if message is None or message.text is None:
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if message is None:
+        return ConversationHandler.END
+    if message.text is None:
         return ConversationHandler.END
     raw_text = message.text.strip()
     if "назад" in raw_text.lower():
@@ -661,8 +715,12 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return PROFILE_HIGH
 async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle high threshold input and save profile."""
-    message = update.message
-    if message is None or message.text is None:
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
+    if message is None or user is None:
+        return ConversationHandler.END
+    if message.text is None:
         return ConversationHandler.END
     raw_text = message.text.strip()
     if "назад" in raw_text.lower():
@@ -695,7 +753,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             "⚠️ Не хватает данных для сохранения профиля. Пожалуйста, начните заново."
         )
         return ConversationHandler.END
-    user_id = update.effective_user.id
+    user_id = user.id
     ok = await run_db(
         save_profile,
         user_id,
@@ -732,6 +790,9 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 
 async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    message = getattr(update, "message", None)
+    user = getattr(update, "effective_user", None)
+    query = getattr(update, "callback_query", None)
     from .. import _cancel_then
     from ..dose_handlers import photo_prompt
 
