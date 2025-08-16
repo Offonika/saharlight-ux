@@ -22,9 +22,9 @@ from services.api.app.diabetes.handlers import (
 
 
 def _find_handler(
-    fallbacks: Iterable[BaseHandler[Any]],
+    fallbacks: Iterable[BaseHandler[Update, CallbackContext]],
     regex: str,
-) -> MessageHandler[Any]:
+) -> MessageHandler[CallbackContext]:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
             filt = getattr(h, "filters", None)
@@ -45,13 +45,13 @@ class DummyMessage:
         self.kwargs.append(kwargs)
 
 
-async def _exercise(handler: MessageHandler[Any]) -> None:
+async def _exercise(handler: MessageHandler[CallbackContext]) -> None:
     message = DummyMessage("📷 Фото еды")
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"}),
     )
     await handler.callback(update, context)
