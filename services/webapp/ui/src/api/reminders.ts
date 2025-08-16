@@ -1,10 +1,10 @@
 import { DefaultApi, Reminder } from '@sdk';
 import { Configuration } from '@sdk/runtime';
-import { authFetch } from './authFetch';
+import { tgFetch } from '../lib/tgFetch';
 
 const API_BASE = import.meta.env.VITE_API_BASE;
 const api = new DefaultApi(
-  new Configuration({ basePath: API_BASE, fetchApi: authFetch }),
+  new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
 );
 
 export async function getReminders(telegramId: number): Promise<Reminder[]> {

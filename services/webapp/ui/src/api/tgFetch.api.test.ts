@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
-import { authFetch } from './authFetch';
+import { tgFetch } from '../lib/tgFetch';
 
 interface TelegramWebApp {
   initData?: string;
@@ -11,7 +11,7 @@ interface TelegramWindow extends Window {
 
 const originalFetch = global.fetch;
 
-describe('authFetch', () => {
+describe('tgFetch', () => {
   beforeEach(() => {
     global.fetch = vi.fn().mockResolvedValue(new Response());
     vi.stubGlobal('window', {} as TelegramWindow);
@@ -25,7 +25,7 @@ describe('authFetch', () => {
 
   it('sets credentials and attaches init data header', async () => {
     (window as TelegramWindow).Telegram = { WebApp: { initData: 'test-data' } };
-    await authFetch('/api/profile');
+    await tgFetch('/api/profile');
     const [, options] = (global.fetch as Mock).mock.calls[0] as [unknown, RequestInit];
     const headers = options.headers as Headers;
     expect(options.credentials).toBe('include');
