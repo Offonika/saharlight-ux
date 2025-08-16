@@ -71,15 +71,29 @@ const Profile = () => {
       });
       return;
     }
+    const icr = parseFloat(profile.icr);
+    const cf = parseFloat(profile.correctionFactor);
+    const target = parseFloat(profile.targetSugar);
+    const low = parseFloat(profile.lowThreshold);
+    const high = parseFloat(profile.highThreshold);
+
+    if (![icr, cf, target, low, high].every(Number.isFinite)) {
+      toast({
+        title: 'Ошибка',
+        description: 'Пожалуйста, введите корректные числовые значения',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       await saveProfile({
         telegramId: user.id,
-        icr: Number(profile.icr),
-        cf: Number(profile.correctionFactor),
-        target: Number(profile.targetSugar),
-        low: Number(profile.lowThreshold),
-        high: Number(profile.highThreshold),
+        icr,
+        cf,
+        target,
+        low,
+        high,
       });
       toast({
         title: 'Профиль сохранен',
