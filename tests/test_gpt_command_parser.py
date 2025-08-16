@@ -28,10 +28,7 @@ async def test_parse_command_timeout_non_blocking(monkeypatch: pytest.MonkeyPatc
 
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(
-                create=slow_create,
-                with_options=lambda **kwargs: SimpleNamespace(create=slow_create),
-            )
+            completions=SimpleNamespace(create=slow_create)
         )
     )
     monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
@@ -74,10 +71,7 @@ async def test_parse_command_with_explanatory_text(monkeypatch: pytest.MonkeyPat
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(
-                create=create,
-                with_options=lambda **kwargs: SimpleNamespace(create=create),
-            )
+            completions=SimpleNamespace(create=create)
         )
     )
     monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
@@ -102,10 +96,7 @@ async def test_parse_command_with_array_response(monkeypatch: pytest.MonkeyPatch
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(
-                create=create,
-                with_options=lambda **kwargs: SimpleNamespace(create=create),
-            )
+            completions=SimpleNamespace(create=create)
         )
     )
     monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
@@ -130,10 +121,7 @@ async def test_parse_command_with_scalar_response(monkeypatch: pytest.MonkeyPatc
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(
-                create=create,
-                with_options=lambda **kwargs: SimpleNamespace(create=create),
-            )
+            completions=SimpleNamespace(create=create)
         )
     )
     monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
@@ -163,10 +151,7 @@ async def test_parse_command_with_invalid_schema(monkeypatch: pytest.MonkeyPatch
 
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(
-                create=create,
-                with_options=lambda **kwargs: SimpleNamespace(create=create),
-            )
+            completions=SimpleNamespace(create=create)
         )
     )
     monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
@@ -187,10 +172,7 @@ async def test_parse_command_with_missing_content(monkeypatch: pytest.MonkeyPatc
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(
-                create=create,
-                with_options=lambda **kwargs: SimpleNamespace(create=create),
-            )
+            completions=SimpleNamespace(create=create)
         )
     )
     monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
@@ -217,10 +199,7 @@ async def test_parse_command_with_non_string_content(monkeypatch: pytest.MonkeyP
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(
-                create=create,
-                with_options=lambda **kwargs: SimpleNamespace(create=create),
-            )
+            completions=SimpleNamespace(create=create)
         )
     )
     monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
@@ -310,10 +289,7 @@ async def test_parse_command_with_multiple_jsons(monkeypatch: pytest.MonkeyPatch
 
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(
-                create=create,
-                with_options=lambda **kwargs: SimpleNamespace(create=create),
-            )
+            completions=SimpleNamespace(create=create)
         )
     )
     monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
@@ -347,10 +323,7 @@ async def test_parse_command_with_malformed_json(monkeypatch: pytest.MonkeyPatch
 
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
-            completions=SimpleNamespace(
-                create=create,
-                with_options=lambda **kwargs: SimpleNamespace(create=create),
-            )
+            completions=SimpleNamespace(create=create)
         )
     )
     monkeypatch.setattr(gpt_command_parser, "_get_client", lambda: fake_client)
