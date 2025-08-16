@@ -810,12 +810,12 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return END
 
 
-async def _profile_edit_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await profile_edit(update, context)
+async def _profile_edit_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    return await profile_edit(update, context)
 
 
-async def _profile_timezone_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await profile_timezone(update, context)
+async def _profile_timezone_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    return await profile_timezone(update, context)
 
 
 profile_conv = ConversationHandler(
