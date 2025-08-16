@@ -127,7 +127,9 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
         assert f"edit:{eid}" in all_callbacks
         assert f"del:{eid}" in all_callbacks
 
-    back_markup = message.kwargs[-1]["reply_markup"]
+    back_kwargs = message.kwargs[-1]
+    back_markup = back_kwargs.get("reply_markup")
+    assert isinstance(back_markup, InlineKeyboardMarkup)
     back_button = back_markup.inline_keyboard[0][0]
     assert back_button.callback_data == "report_back"
 
@@ -181,6 +183,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         "message_id": 24,
     }
     markup = query.markups[-1]
+    assert markup is not None
     buttons = [b.callback_data for row in markup.inline_keyboard for b in row]
     assert f"edit_field:{entry_id}:sugar" in buttons
     assert f"edit_field:{entry_id}:xe" in buttons
@@ -218,5 +221,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     edited_text, chat_id, message_id, kwargs = context.bot.edited[0]
     assert chat_id == 42 and message_id == 24
-    buttons = [b.callback_data for row in kwargs["reply_markup"].inline_keyboard for b in row]
+    reply_markup = kwargs.get("reply_markup")
+    assert reply_markup is not None
+    buttons = [b.callback_data for row in reply_markup.inline_keyboard for b in row]
     assert f"edit:{entry_id}" in buttons and f"del:{entry_id}" in buttons

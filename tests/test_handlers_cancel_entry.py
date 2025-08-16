@@ -51,10 +51,13 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
     await router.callback_router(update, context)
 
     assert query.edited == ["❌ Запись отменена."]
-    assert not query.edit_kwargs[0] or "reply_markup" not in query.edit_kwargs[0]
+    assert query.edit_kwargs
+    kwargs0 = query.edit_kwargs[0]
+    assert not kwargs0 or "reply_markup" not in kwargs0
     assert len(query.message.replies) == 1
+    assert query.message.kwargs
     kwargs = query.message.kwargs[0]
-    assert kwargs["reply_markup"] == common_handlers.menu_keyboard
+    assert kwargs.get("reply_markup") == common_handlers.menu_keyboard
     assert "pending_entry" not in context.user_data
 
 
