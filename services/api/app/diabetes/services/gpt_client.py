@@ -4,11 +4,16 @@ import asyncio
 import logging
 import os
 import threading
-from typing import Any
+from typing import Any, Iterable
 
 from openai import OpenAI, OpenAIError
 from openai.types.beta import Thread
-from openai.types.beta.threads import Run
+from openai.types.beta.threads import (
+    ImageFileContentBlockParam,
+    ImageURLContentBlockParam,
+    Run,
+    TextContentBlockParam,
+)
 
 from services.api.app.config import settings
 from services.api.app.diabetes.utils.openai_utils import get_openai_client
@@ -74,11 +79,16 @@ async def send_message(
         raise ValueError("Either 'content' or 'image_path' must be provided")
 
     # 1. Подготовка контента
-    text_block = {
+    text_block: TextContentBlockParam = {
         "type": "text",
         "text": content if content is not None else "Что изображено на фото?",
     }
     client: OpenAI = _get_client()
+    message_content: Iterable[
+        ImageFileContentBlockParam
+        | ImageURLContentBlockParam
+        | TextContentBlockParam
+    ]
     if image_path:
         try:
             def _upload() -> Any:
@@ -96,10 +106,11 @@ async def send_message(
             logger.info(
                 "[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id
             )
-            content_block = [
-                {"type": "image_file", "image_file": {"file_id": file.id}},
-                text_block,
-            ]
+            image_block: ImageFileContentBlockParam = {
+                "type": "image_file",
+                "image_file": {"file_id": file.id},
+            }
+            message_content = [image_block, text_block]
             if not keep_image:
                 try:
                     await asyncio.to_thread(os.remove, image_path)
@@ -108,7 +119,7 @@ async def send_message(
                         "[OpenAI] Failed to delete %s: %s", image_path, e
                     )
     else:
-        content_block = [text_block]
+        message_content = [text_block]
 
     # 2. Создаём сообщение в thread
     try:
@@ -116,7 +127,7 @@ async def send_message(
             client.beta.threads.messages.create,
             thread_id=thread_id,
             role="user",
-            content=content_block,
+            content=message_content,
         )
     except OpenAIError as exc:
         logger.exception("[OpenAI] Failed to create message: %s", exc)
