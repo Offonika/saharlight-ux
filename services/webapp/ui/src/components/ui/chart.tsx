@@ -12,9 +12,8 @@ function sanitizeColor(color?: string): string | null {
   }
 
   const option = new Option()
-  option.style.color = ""
   option.style.color = color
-  return option.style.color ? color : null
+  return option.style.color || null
 }
 
 function buildStyleContent(id: string, config: ChartConfig): string {
@@ -106,7 +105,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
-  return <style dangerouslySetInnerHTML={{ __html: styleContent }} />
+  return <style>{styleContent}</style>
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip
