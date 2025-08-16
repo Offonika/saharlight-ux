@@ -36,6 +36,10 @@ logger = logging.getLogger(__name__)
 # ────────────────── подключение к Postgres ──────────────────
 engine = None
 engine_lock = threading.Lock()
+# SQLite in-memory DBs share a single connection which is not threadsafe for
+# concurrent writes. A dedicated lock prevents race conditions in tests that
+# perform parallel timezone updates.
+sqlite_memory_lock = threading.Lock()
 SessionLocal = sessionmaker(autoflush=False, autocommit=False)
 
 
@@ -76,7 +80,8 @@ async def run_db(
         ) from exc
 
     if bind.url.drivername == "sqlite" and bind.url.database == ":memory:":
-        return wrapper()
+        with sqlite_memory_lock:
+            return wrapper()
 
     return await asyncio.to_thread(wrapper)
 
