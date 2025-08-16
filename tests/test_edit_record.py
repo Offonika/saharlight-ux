@@ -79,18 +79,26 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
 
     entry_message = DummyMessage(chat_id=42, message_id=24)
     query = DummyQuery(entry_message, f"edit:{entry_id}")
-    update_cb = SimpleNamespace(
-        callback_query=query, effective_user=SimpleNamespace(id=1)
+    update_cb = cast(
+        Update,
+        SimpleNamespace(
+            callback_query=query, effective_user=SimpleNamespace(id=1)
+        ),
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot=DummyBot()),
     )
 
     await router.callback_router(update_cb, context)
 
     field_query = DummyQuery(entry_message, f"edit_field:{entry_id}:dose")
-    update_cb2 = SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1))
+    update_cb2 = cast(
+        Update,
+        SimpleNamespace(
+            callback_query=field_query, effective_user=SimpleNamespace(id=1)
+        ),
+    )
     await router.callback_router(update_cb2, context)
     assert context.user_data["edit_field"] == "dose"
 
@@ -101,12 +109,12 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     await dose_handlers.freeform_handler(update_msg, context)
 
     with TestSession() as session:
-        updated = session.get(Entry, entry_id)
-        assert updated is not None
-        updated: Entry = updated
-        assert updated.dose == 5.0
+        entry_obj = session.get(Entry, entry_id)
+        assert entry_obj is not None
+        entry = cast(Entry, entry_obj)
+        assert entry.dose == 5.0
 
     assert field_query.answer_texts[-1] == "Изменено"
     edited_text, chat_id, message_id, kwargs = context.bot.edited[0]
     assert chat_id == 42 and message_id == 24
-    assert f"💉 Доза: <b>{updated.dose}</b>" in edited_text
+    assert f"💉 Доза: <b>{entry.dose}</b>" in edited_text
