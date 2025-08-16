@@ -16,9 +16,9 @@ export async function getProfile(telegramId: number): Promise<Profile | null> {
       return null;
     }
     if (error instanceof Error) {
-      throw new Error(`Не удалось загрузить профиль: ${error.message}`);
+      throw error;
     }
-    throw error;
+    throw new Error('Не удалось загрузить профиль');
   }
 }
 
@@ -28,8 +28,8 @@ export async function saveProfile(profile: Profile) {
   } catch (error) {
     console.error('Failed to save profile:', error);
     if (error instanceof Error) {
-      throw new Error(`Не удалось сохранить профиль: ${error.message}`);
+      throw error;
     }
-    throw error;
+    throw new Error('Не удалось сохранить профиль');
   }
 }
