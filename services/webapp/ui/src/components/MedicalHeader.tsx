@@ -1,4 +1,5 @@
 import { ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/ThemeToggle';
 
@@ -10,6 +11,9 @@ interface MedicalHeaderProps {
 }
 
 export const MedicalHeader = ({ title, showBack, onBack, children }: MedicalHeaderProps) => {
+  const navigate = useNavigate();
+  const handleBack = onBack ?? (() => navigate(-1));
+
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
       <div className="container mx-auto px-4 py-3">
@@ -17,7 +21,7 @@ export const MedicalHeader = ({ title, showBack, onBack, children }: MedicalHead
           <div className="flex items-center gap-3">
             {showBack && (
               <Button
-                onClick={onBack}
+                onClick={handleBack}
                 variant="ghost"
                 size="icon"
                 aria-label="Назад"
