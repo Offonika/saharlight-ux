@@ -12,12 +12,21 @@ const NewMeasurement = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const sugarValue = Number(sugar);
+    if (isNaN(sugarValue) || sugarValue < 0 || sugarValue > 50) {
+      toast({
+        title: 'Ошибка',
+        description: 'Уровень сахара должен быть от 0 до 50 ммоль/л',
+        variant: 'destructive',
+      });
+      return;
+    }
     const now = new Date();
     const record: HistoryRecord = {
       id: Date.now().toString(),
       date: now.toISOString().split('T')[0],
       time: now.toTimeString().slice(0, 5),
-      sugar: Number(sugar),
+      sugar: sugarValue,
       type: 'measurement',
     };
     try {
@@ -47,6 +56,8 @@ const NewMeasurement = () => {
             <input
               type="number"
               step="0.1"
+              min="0"
+              max="50"
               className="medical-input mt-2"
               value={sugar}
               onChange={(e) => setSugar(e.target.value)}
