@@ -25,7 +25,11 @@ async def sos_contact_start(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Prompt user to enter emergency contact."""
-    await update.message.reply_text(
+    message = update.message
+    if message is None:
+        return ConversationHandler.END
+    assert message is not None
+    await message.reply_text(
         "Введите контакт в Telegram (@username). Телефоны не поддерживаются.",
         reply_markup=back_keyboard,
     )
@@ -46,6 +50,7 @@ async def sos_contact_save(
     message = update.message
     if message is None or message.text is None:
         return ConversationHandler.END
+    assert message is not None
     contact = message.text.strip()
     if not _is_valid_contact(contact):
         await message.reply_text(
@@ -53,8 +58,11 @@ async def sos_contact_save(
             reply_markup=back_keyboard,
         )
         return SOS_CONTACT
-
-    user_id = update.effective_user.id
+    user = update.effective_user
+    if user is None:
+        return ConversationHandler.END
+    assert user is not None
+    user_id = user.id
     with SessionLocal() as session:
         profile = session.get(Profile, user_id)
         if not profile:
@@ -79,7 +87,11 @@ async def sos_contact_cancel(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Cancel SOS contact input."""
-    await update.message.reply_text("Отменено.", reply_markup=menu_keyboard)
+    message = update.message
+    if message is None:
+        return ConversationHandler.END
+    assert message is not None
+    await message.reply_text("Отменено.", reply_markup=menu_keyboard)
     return ConversationHandler.END
 
 
