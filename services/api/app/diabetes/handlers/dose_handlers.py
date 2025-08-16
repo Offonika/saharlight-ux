@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import logging
-import datetime
+# Re-export standard modules for tests and type checkers
+import datetime as datetime
 import asyncio
-import os
+import os as os
 import re
 from pathlib import Path
 
@@ -1172,6 +1173,8 @@ __all__ = [
     "PHOTO_SUGAR",
     "SUGAR_VAL",
     "WAITING_GPT_FLAG",
+    "datetime",
+    "os",
 
     "photo_prompt",
     "sugar_start",
