@@ -116,6 +116,29 @@ async def test_get_coords_and_link_invalid_loc(monkeypatch: pytest.MonkeyPatch, 
     assert any("Invalid location format" in msg for msg in caplog.messages)
 
 
+@pytest.mark.asyncio
+async def test_get_coords_and_link_custom_source(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_urlopen(url: str, timeout: int = 5) -> ContextManager[io.StringIO]:
+        assert url == "http://custom"
+
+        class Resp:
+            def __enter__(self) -> io.StringIO:
+                return io.StringIO('{"loc": "1,2"}')
+
+            def __exit__(
+                self, exc_type: object, exc: object, tb: object
+            ) -> Literal[False]:
+                return False
+
+        return Resp()
+
+    monkeypatch.setattr(utils, "urlopen", fake_urlopen)
+
+    coords, link = await utils.get_coords_and_link("http://custom")
+    assert coords == "1,2"
+    assert link == "https://maps.google.com/?q=1,2"
+
+
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
