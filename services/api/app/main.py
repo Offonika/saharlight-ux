@@ -1,7 +1,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Literal, cast
+from typing import Any, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup for direct execution
@@ -28,7 +28,7 @@ from .diabetes.services.db import (
 )
 from .legacy import router
 from .telegram_auth import require_tg_user
-from .schemas.history import HistoryRecordSchema
+from .schemas.history import HistoryRecordSchema, HistoryType
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +50,7 @@ class WebUser(BaseModel):
     telegram_id: int
 
 
-HistoryType = Literal["measurement", "meal", "insulin"]
-ALLOWED_HISTORY_TYPES: set[str] = {"measurement", "meal", "insulin"}
+ALLOWED_HISTORY_TYPES: set[HistoryType] = {"measurement", "meal", "insulin"}
 
 
 def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
@@ -66,7 +65,7 @@ async def health() -> dict[str, str]:
 
 
 @app.get("/timezone")
-async def get_timezone(_: dict = Depends(require_tg_user)) -> dict[str, str]:
+async def get_timezone(_: dict[str, Any] = Depends(require_tg_user)) -> dict[str, str]:
     def _get_timezone(session: Session) -> TimezoneDB | None:
         return session.get(TimezoneDB, 1)
 
@@ -81,7 +80,9 @@ async def get_timezone(_: dict = Depends(require_tg_user)) -> dict[str, str]:
 
 
 @app.put("/timezone")
-async def put_timezone(data: Timezone, _: dict = Depends(require_tg_user)) -> dict[str, str]:
+async def put_timezone(
+    data: Timezone, _: dict[str, Any] = Depends(require_tg_user)
+) -> dict[str, str]:
     try:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
@@ -104,7 +105,7 @@ async def put_timezone(data: Timezone, _: dict = Depends(require_tg_user)) -> di
 
 @app.get("/api/profile/self")
 
-async def profile_self(user: dict = Depends(require_tg_user)) -> dict:
+async def profile_self(user: dict[str, Any] = Depends(require_tg_user)) -> dict[str, Any]:
     return user
 
 
@@ -129,8 +130,8 @@ async def catch_root_ui() -> FileResponse:
 @app.post("/api/user")
 async def create_user(
     data: WebUser,
-    user: dict = Depends(require_tg_user),
-) -> dict:
+    user: dict[str, Any] = Depends(require_tg_user),
+) -> dict[str, str]:
     """Ensure a user exists in the database."""
 
 
@@ -143,13 +144,13 @@ async def create_user(
             session.add(UserDB(telegram_id=data.telegram_id, thread_id="webapp"))
         session.commit()
 
-    await run_db(_create_user)
+    await run_db(lambda session: _create_user(session))
     return {"status": "ok"}
 
 
 @app.post("/api/history")
 async def post_history(
-    data: HistoryRecordSchema, user: dict = Depends(require_tg_user)
+    data: HistoryRecordSchema, user: dict[str, Any] = Depends(require_tg_user)
 ) -> dict[str, str]:
     """Save or update a history record in the database."""
     validated_type = _validate_history_type(data.type)
@@ -195,7 +196,7 @@ async def post_history(
 
 
 @app.get("/api/history")
-async def get_history(user: dict = Depends(require_tg_user)) -> list[HistoryRecordSchema]:
+async def get_history(user: dict[str, Any] = Depends(require_tg_user)) -> list[HistoryRecordSchema]:
     """Return history records for the authenticated user."""
 
     def _get_history(session: Session) -> list[HistoryRecordDB]:
@@ -224,7 +225,9 @@ async def get_history(user: dict = Depends(require_tg_user)) -> list[HistoryReco
 
 
 @app.delete("/api/history/{record_id}")
-async def delete_history(record_id: str, user: dict = Depends(require_tg_user)) -> dict[str, str]:
+async def delete_history(
+    record_id: str, user: dict[str, Any] = Depends(require_tg_user)
+) -> dict[str, str]:
     """Delete a history record after verifying ownership."""
 
     def _get_record(session: Session) -> HistoryRecordDB | None:

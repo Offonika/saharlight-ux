@@ -5,6 +5,9 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 
+HistoryType = Literal["measurement", "meal", "insulin"]
+
+
 class HistoryRecordSchema(BaseModel):
     """Schema for user history records."""
 
@@ -16,4 +19,4 @@ class HistoryRecordSchema(BaseModel):
     breadUnits: Optional[float] = None
     insulin: Optional[float] = None
     notes: Optional[str] = None
-    type: Literal["measurement", "meal", "insulin"]
+    type: HistoryType
