@@ -1147,6 +1147,7 @@ dose_conv = ConversationHandler(
 
 
 __all__ = [
+    "SessionLocal",
     "DOSE_METHOD",
     "DOSE_XE",
     "DOSE_CARBS",
