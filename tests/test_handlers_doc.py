@@ -1,6 +1,5 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from http import HTTPStatus
 from typing import Any, cast
 
 import pytest
@@ -33,7 +32,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 
     async def fake_photo_handler(update, context) -> int:
         called.flag = True
-        return HTTPStatus.OK.value
+        return 200
 
     class DummyFile:
         async def download_to_drive(self, path) -> None:
@@ -64,7 +63,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 
     result = await handlers.doc_handler(update, context)
 
-    assert result == HTTPStatus.OK.value
+    assert result == 200
     assert called.flag
     assert context.user_data["__file_path"] == "photos/1_uid.png"
     assert update.message.photo == ()
