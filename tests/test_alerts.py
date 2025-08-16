@@ -191,6 +191,8 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
     )
     context = cast(AlertContext, ContextStub(bot=DummyBot()))
+    bot = cast(DummyBot, context.bot)
+
     async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
         return ("0,0", "link")
 
@@ -205,7 +207,7 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
             ),
             3,
         )
-    assert context.bot.sent == []
+    assert bot.sent == []
     await handlers.check_alert(
         update,
         cast(
@@ -214,9 +216,9 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
         ),
         3,
     )
-    assert len(context.bot.sent) == 2
-    assert context.bot.sent[0][0] == 1
-    assert context.bot.sent[1][0] == "@alice"
+    assert len(bot.sent) == 2
+    assert bot.sent[0][0] == 1
+    assert bot.sent[1][0] == "@alice"
     with TestSession() as session:
         alerts = session.query(Alert).all()
         assert all(a.resolved for a in alerts)
@@ -255,6 +257,7 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
         SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
     )
     context = cast(AlertContext, ContextStub(bot=DummyBot()))
+    bot = cast(DummyBot, context.bot)
 
     async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
         return None, None
@@ -272,4 +275,4 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
         )
 
     msg = "⚠️ У Ivan критический сахар 3 ммоль/л."
-    assert context.bot.sent == [(1, msg), ("@alice", msg)]
+    assert bot.sent == [(1, msg), ("@alice", msg)]
