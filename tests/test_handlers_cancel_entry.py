@@ -58,6 +58,7 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
     assert query.message.kwargs
     kwargs = query.message.kwargs[0]
     assert kwargs.get("reply_markup") == common_handlers.menu_keyboard
+    assert context.user_data is not None
     assert "pending_entry" not in context.user_data
 
 
@@ -124,4 +125,5 @@ async def test_callback_router_ignores_reminder_action() -> None:
     await router.callback_router(update, context)
 
     assert query.edited == []
+    assert context.user_data is not None
     assert "pending_entry" in context.user_data
