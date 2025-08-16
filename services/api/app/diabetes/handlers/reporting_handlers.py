@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 # Re-export for tests and type checkers
 import datetime as datetime
+import os as os
+
 import html
 import logging
 
@@ -380,6 +382,7 @@ async def send_report(
 
 __all__ = [
     "datetime",
+    "os",
     "send_report",
     "report_request",
     "history_view",

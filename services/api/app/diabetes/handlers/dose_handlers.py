@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import logging
-# Re-export standard modules for tests and type checkers
-import datetime as datetime
 import asyncio
-import os as os
+import logging
 import re
 from pathlib import Path
+
+# Re-export standard modules for tests and type checkers
+import datetime as datetime
+import os as os
 
 from openai import OpenAIError
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
