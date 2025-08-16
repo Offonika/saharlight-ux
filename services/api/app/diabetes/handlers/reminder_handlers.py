@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from datetime import time, timedelta, timezone
-from typing import Callable
+from typing import Any, Callable, Sequence, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -15,6 +15,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppI
 from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
+    JobQueue,
     MessageHandler,
     filters,
 )
@@ -75,7 +76,7 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
     dt_cls = getattr(datetime, "datetime", datetime)
     if user is None:
         user = rem.__dict__.get("user")
-    tz = timezone.utc
+    tz: datetime.tzinfo = timezone.utc
     tzname = getattr(user, "timezone", None)
     if tzname:
         try:
@@ -127,7 +128,7 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
 
 
 def _render_reminders(
-    session, user_id: int
+    session: Session, user_id: int
 ) -> tuple[str, InlineKeyboardMarkup | None]:
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
     user = session.query(User).filter_by(telegram_id=user_id).first()
@@ -136,7 +137,7 @@ def _render_reminders(
     header = f"Ваши напоминания  ({active_count} / {limit} 🔔)"
     if active_count > limit:
         header += " ⚠️"
-    add_button_row: list[InlineKeyboardButton] | None = None
+    add_button_row: Sequence[InlineKeyboardButton] | None = None
     if settings.webapp_url:
         add_button_row = [
             InlineKeyboardButton(
@@ -206,7 +207,10 @@ def _render_reminders(
     return text, InlineKeyboardMarkup(buttons)
 
 
-def schedule_reminder(rem: Reminder, job_queue) -> None:
+def schedule_reminder(rem: Reminder, job_queue: JobQueue | None) -> None:
+    if job_queue is None:
+        logger.warning("schedule_reminder called without job_queue")
+        return
     name = f"reminder_{rem.id}"
     for job in job_queue.get_jobs_by_name(name):
         job.schedule_removal()
@@ -221,7 +225,7 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
         )
         return
 
-    tz = timezone.utc
+    tz: datetime.tzinfo = timezone.utc
     user = rem.__dict__.get("user")
     if user is None or getattr(user, "timezone", None) is None:
         with SessionLocal() as session:
@@ -282,7 +286,7 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
     )
 
 
-def schedule_all(job_queue) -> None:
+def schedule_all(job_queue: JobQueue | None) -> None:
     if job_queue is None:
         logger.warning("schedule_all called without job_queue")
         return
@@ -296,22 +300,30 @@ def schedule_all(job_queue) -> None:
 
 
 async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_id = update.effective_user.id
+    user = update.effective_user
+    message = update.message
+    if user is None or message is None:
+        return
+    user_id = user.id
     text, keyboard = await run_db(
         _render_reminders, user_id, sessionmaker=SessionLocal
     )
-    kwargs = {"parse_mode": "HTML"}
     if keyboard is not None:
-        kwargs["reply_markup"] = keyboard
-    await update.message.reply_text(text, **kwargs)
+        await message.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
+    else:
+        await message.reply_text(text, parse_mode="HTML")
 
 
 async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Add a reminder using command arguments."""
-    user_id = update.effective_user.id
+    user = update.effective_user
+    message = update.message
+    if user is None or message is None:
+        return
+    user_id = user.id
     args = getattr(context, "args", [])
     if len(args) < 2:
-        await update.message.reply_text(
+        await message.reply_text(
             "Использование: /addreminder <type> <value>"  # noqa: RUF001
         )
         return
@@ -322,74 +334,76 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             try:
                 parsed = parse_time_interval(value)
             except ValueError:
-                await update.message.reply_text(INVALID_TIME_MSG)
+                await message.reply_text(INVALID_TIME_MSG)
                 return
             if isinstance(parsed, time):
                 reminder.time = parsed.strftime("%H:%M")
             else:
-                await update.message.reply_text(INVALID_TIME_MSG)
+                await message.reply_text(INVALID_TIME_MSG)
                 return
         else:
             try:
                 reminder.interval_hours = int(value)
             except ValueError:
-                await update.message.reply_text("Интервал должен быть числом.")
+                await message.reply_text("Интервал должен быть числом.")
                 return
     elif rtype in {"long_insulin", "medicine"}:
         try:
             parsed = parse_time_interval(value)
         except ValueError:
-            await update.message.reply_text(INVALID_TIME_MSG)
+            await message.reply_text(INVALID_TIME_MSG)
             return
         if isinstance(parsed, time):
             reminder.time = parsed.strftime("%H:%M")
         else:
-            await update.message.reply_text(INVALID_TIME_MSG)
+            await message.reply_text(INVALID_TIME_MSG)
             return
     elif rtype == "xe_after":
         try:
             reminder.minutes_after = int(value)
         except ValueError:
-            await update.message.reply_text("Значение должно быть числом.")
+            await message.reply_text("Значение должно быть числом.")
             return
     else:
-        await update.message.reply_text("Неизвестный тип напоминания.")
+        await message.reply_text("Неизвестный тип напоминания.")
         return
 
-    def db_add(session):
+    def db_add(session: Session) -> tuple[str, User | None, int, int]:
         count = session.query(Reminder).filter_by(telegram_id=user_id).count()
-        user = session.get(User, user_id)
-        limit = _limit_for(user)
+        db_user = session.get(User, user_id)
+        limit = _limit_for(db_user)
         if count >= limit:
-            return "limit", user, limit, count
+            return "limit", db_user, limit, count
         session.add(reminder)
         if not commit(session):
             logger.error("Failed to commit new reminder for user %s", user_id)
-            return "error", user, limit, count
-        return "ok", user, limit, reminder.id
+            return "error", db_user, limit, count
+        return "ok", db_user, limit, reminder.id
 
-    status, user, limit, rid_or_count = await run_db(
+    status, db_user, limit, rid_or_count = await run_db(
         db_add, sessionmaker=SessionLocal
     )
 
     if status == "limit":
         count = rid_or_count
-        await update.message.reply_text(
+        await message.reply_text(
             f"У вас уже {count} активных из {limit}. "
             "Отключите одно или Апгрейд до Pro, чтобы поднять лимит до 10",
         )
         return
     if status == "error":
-        await update.message.reply_text(
+        await message.reply_text(
             "⚠️ Не удалось сохранить напоминание."
         )
         return
 
     rid = rid_or_count
-    for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
-        job.schedule_removal()
-    schedule_reminder(reminder, context.job_queue)
-    await update.message.reply_text(f"Сохранено: {_describe(reminder, user)}")
+    job_queue = context.job_queue
+    if job_queue is not None:
+        for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
+            job.schedule_removal()
+        schedule_reminder(reminder, job_queue)
+    await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
 
 
 async def reminder_webapp_save(
@@ -397,7 +411,10 @@ async def reminder_webapp_save(
 ) -> None:
     """Save reminder data sent from the web app."""
     msg = update.effective_message
-    web_app = getattr(msg, "web_app_data", None) if msg else None
+    user = update.effective_user
+    if msg is None or user is None:
+        return
+    web_app = getattr(msg, "web_app_data", None)
     if web_app is None:
         return
     raw = web_app.data
@@ -414,18 +431,18 @@ async def reminder_webapp_save(
     if not value:
         return
     logger.debug("Received raw reminder value: %r", value)
-    user_id = update.effective_user.id
+    user_id = user.id
     if rtype == "xe_after":
         try:
             minutes = int(value)
         except ValueError:
-            await update.effective_message.reply_text("Неверный формат")
+            await msg.reply_text("Неверный формат")
             return
         parsed = None
     else:
         if not re.fullmatch(r"\d{1,2}:\d{2}|\d+h", value):
             logger.warning("Invalid reminder value format: %s", value)
-            await update.effective_message.reply_text(
+            await msg.reply_text(
                 "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h."
             )
             return
@@ -433,12 +450,14 @@ async def reminder_webapp_save(
             parsed = parse_time_interval(value)
         except ValueError:
             logger.warning("Failed to parse reminder value: %s", value)
-            await update.effective_message.reply_text(
+            await msg.reply_text(
                 "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h."
             )
             return
         minutes = None
-    def db_save(session):
+    def db_save(
+        session: Session,
+    ) -> tuple[str, Reminder | None, str | None, int | None]:
         if rid:
             rem = session.get(Reminder, int(rid))
             if not rem or rem.telegram_id != user_id:
@@ -478,28 +497,30 @@ async def reminder_webapp_save(
 
     status, rem, plan, limit = await run_db(db_save, sessionmaker=SessionLocal)
     if status == "not_found":
-        await update.effective_message.reply_text("Не найдено")
+        await msg.reply_text("Не найдено")
         return
     if status == "limit":
-        await update.effective_message.reply_text(
+        await msg.reply_text(
             f"У вас уже {limit} активных (лимит {plan.upper()}). "
             "Отключите одно или откройте PRO.",
         )
         return
     if status == "error":
-        await update.effective_message.reply_text(
+        await msg.reply_text(
             "⚠️ Не удалось сохранить напоминание."
         )
         return
 
-    schedule_reminder(rem, context.job_queue)
+    job_queue = context.job_queue
+    if job_queue is not None:
+        schedule_reminder(rem, job_queue)
     text, keyboard = await run_db(
         _render_reminders, user_id, sessionmaker=SessionLocal
     )
-    kwargs = {"parse_mode": "HTML"}
     if keyboard is not None:
-        kwargs["reply_markup"] = keyboard
-    await update.effective_message.reply_text(text, **kwargs)
+        await msg.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
+    else:
+        await msg.reply_text(text, parse_mode="HTML")
 
 
 
@@ -528,16 +549,23 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if message:
                 await message.reply_text("⚠️ Не удалось удалить напоминание.")
             return
-    for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
-        job.schedule_removal()
+    job_queue = context.job_queue
+    if job_queue is not None:
+        for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
+            job.schedule_removal()
     if message:
         await message.reply_text("Удалено")
 
 
 async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
-    data = context.job.data
-    rid = data["reminder_id"]
-    chat_id = data["chat_id"]
+    job = context.job
+    if job is None or job.data is None:
+        return
+    data = cast(dict[str, Any], job.data)
+    rid = data.get("reminder_id")
+    chat_id = data.get("chat_id")
+    if rid is None or chat_id is None:
+        return
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
         if not rem:
@@ -574,9 +602,12 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
+    user = update.effective_user
+    if query is None or query.data is None or user is None:
+        return
     action, rid_str = query.data.split(":")
     rid = int(rid_str)
-    chat_id = update.effective_user.id
+    chat_id = user.id
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != chat_id:
@@ -592,12 +623,14 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             )
             return
     if action == "remind_snooze":
-        context.job_queue.run_once(
-            reminder_job,
-            when=timedelta(minutes=10),
-            data={"reminder_id": rid, "chat_id": chat_id},
-            name=f"reminder_{rid}",
-        )
+        job_queue = context.job_queue
+        if job_queue is not None:
+            job_queue.run_once(
+                reminder_job,
+                when=timedelta(minutes=10),
+                data={"reminder_id": rid, "chat_id": chat_id},
+                name=f"reminder_{rid}",
+            )
         try:
             await query.edit_message_text("⏰ Отложено на 10 минут")
         except BadRequest as exc:
@@ -617,6 +650,9 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
+    user = update.effective_user
+    if query is None or query.data is None or user is None:
+        return
     action_raw, rid_str = query.data.split(":", 1)
     if not action_raw.startswith("rem_"):
         await query.answer("Некорректное действие", show_alert=True)
@@ -627,9 +663,9 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except ValueError:
         await query.answer("Некорректный ID", show_alert=True)
         return
-    user_id = update.effective_user.id
+    user_id = user.id
 
-    def db_action(session):
+    def db_action(session: Session) -> tuple[str, Reminder | None]:
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != user_id:
             return "not_found", None
@@ -658,24 +694,28 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if status == "error":
         return
 
+    job_queue = context.job_queue
     if status == "toggle":
         if rem and rem.is_enabled:
-            schedule_reminder(rem, context.job_queue)
-        else:
-            for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
+            schedule_reminder(rem, job_queue)
+        elif job_queue is not None:
+            for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()
     else:  # del
-        for job in context.job_queue.get_jobs_by_name(f"reminder_{rid}"):
-            job.schedule_removal()
+        if job_queue is not None:
+            for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
+                job.schedule_removal()
 
     text, keyboard = await run_db(
         _render_reminders, user_id, sessionmaker=SessionLocal
     )
-    kwargs = {"parse_mode": "HTML"}
-    if keyboard is not None:
-        kwargs["reply_markup"] = keyboard
     try:
-        await query.edit_message_text(text, **kwargs)
+        if keyboard is not None:
+            await query.edit_message_text(
+                text, parse_mode="HTML", reply_markup=keyboard
+            )
+        else:
+            await query.edit_message_text(text, parse_mode="HTML")
     except BadRequest as exc:
         if "Message is not modified" in str(exc):
             await query.answer()
@@ -686,7 +726,10 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 
-def schedule_after_meal(user_id: int, job_queue) -> None:
+def schedule_after_meal(user_id: int, job_queue: JobQueue | None) -> None:
+    if job_queue is None:
+        logger.warning("schedule_after_meal called without job_queue")
+        return
     with SessionLocal() as session:
         rems = (
             session.query(Reminder)
