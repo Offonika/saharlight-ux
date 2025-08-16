@@ -1,11 +1,7 @@
 import { DefaultApi, Reminder } from '@sdk';
 import { Configuration } from '@sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
-
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
-if (!API_BASE) {
-  throw new Error('VITE_API_BASE is not set and no default is provided');
-}
+import { API_BASE } from './base';
 
 const api = new DefaultApi(
   new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
