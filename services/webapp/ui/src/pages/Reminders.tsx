@@ -39,8 +39,12 @@ const TYPE_ICON: Record<NormalizedReminderType, string> = {
 }
 
 function parseTimeToMinutes(t: string): number {
-  const [h, m] = t.split(':').map(Number)
-  return (h || 0) * 60 + (m || 0)
+  const match = /^(\d{1,2}):(\d{2})$/.exec(t)
+  if (!match) return NaN
+  const h = Number(match[1])
+  const m = Number(match[2])
+  if (h > 23 || m > 59) return NaN
+  return h * 60 + m
 }
 
 function SkeletonItem() {
@@ -177,7 +181,22 @@ export default function Reminders() {
             interval: r.intervalHours != null ? r.intervalHours * 60 : undefined,
           }
         })
-        normalized.sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time))
+        const invalid = normalized.filter(r => Number.isNaN(parseTimeToMinutes(r.time)))
+        if (invalid.length > 0) {
+          toast({
+            title: 'Ошибка',
+            description: `Некорректное время напоминания: ${invalid.map(r => r.time).join(', ')}`,
+            variant: 'destructive',
+          })
+        }
+        normalized.sort((a, b) => {
+          const ta = parseTimeToMinutes(a.time)
+          const tb = parseTimeToMinutes(b.time)
+          if (Number.isNaN(ta) && Number.isNaN(tb)) return 0
+          if (Number.isNaN(ta)) return 1
+          if (Number.isNaN(tb)) return -1
+          return ta - tb
+        })
         setReminders(normalized)
       } catch (err) {
         if (!cancelled) {
