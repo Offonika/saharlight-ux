@@ -1,5 +1,3 @@
-# utils.py
-
 import json
 import logging
 import asyncio
@@ -9,6 +7,8 @@ from urllib.request import urlopen
 
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib.units import mm
+
+# utils.py
 
 
 def clean_markdown(text: str) -> str:
