@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import matplotlib.pyplot as plt
-from matplotlib.dates import date2num
+from matplotlib.dates import date2num as _date2num
 import pytest
 from pypdf import PdfReader
 from sqlalchemy import create_engine
@@ -17,6 +17,11 @@ from sqlalchemy.orm import sessionmaker
 os.environ.setdefault("DB_PASSWORD", "test")
 
 from services.api.app.diabetes.services.reporting import make_sugar_plot, generate_pdf_report
+
+
+def date2num(date: datetime.datetime) -> float:
+    """Typed wrapper around :func:`matplotlib.dates.date2num`."""
+    return float(_date2num(date))
 
 
 class DummyEntry:
