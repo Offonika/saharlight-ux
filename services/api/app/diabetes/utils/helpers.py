@@ -1,8 +1,11 @@
+import asyncio
 import json
 import logging
-import asyncio
+import os
 import re
 from datetime import datetime, time, timedelta
+from json import JSONDecodeError
+from urllib.error import URLError
 from urllib.request import urlopen
 
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -45,11 +48,18 @@ def parse_time_interval(value: str) -> time | timedelta:
         raise ValueError(INVALID_TIME_MSG)
 
 
-async def get_coords_and_link() -> tuple[str | None, str | None]:
+GEO_DATA_URL = os.getenv("GEO_DATA_URL", "https://ipinfo.io/json")
+
+
+async def get_coords_and_link(
+    source_url: str | None = None,
+) -> tuple[str | None, str | None]:
     """Return approximate coordinates and Google Maps link based on IP."""
 
+    url = source_url or GEO_DATA_URL
+
     def _fetch() -> tuple[str | None, str | None]:
-        with urlopen("https://ipinfo.io/json", timeout=5) as resp:
+        with urlopen(url, timeout=5) as resp:
             data = json.load(resp)
             loc = data.get("loc")
             if loc:
@@ -65,9 +75,13 @@ async def get_coords_and_link() -> tuple[str | None, str | None]:
 
     try:
         return await asyncio.to_thread(_fetch)
-    except Exception as exc:  # pragma: no cover - network failures
+    except (URLError, JSONDecodeError, TimeoutError, OSError) as exc:  # pragma: no cover - network failures
         logging.warning("Failed to fetch coordinates: %s", exc)
-    return None, None
+        return None, None
+    except Exception:
+        logging.exception("Unexpected error when fetching coordinates")
+        raise
+
 
 
 def split_text_by_width(
