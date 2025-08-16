@@ -119,9 +119,9 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     message = update.message
     if message is None or message.text is None:
         return ConversationHandler.END
+    if context.user_data is None:
+        context.user_data = {}
     user_data = context.user_data
-    if user_data is None:
-        return ConversationHandler.END
     try:
         icr = float(message.text.replace(",", "."))
     except ValueError:
@@ -143,9 +143,9 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     message = update.message
     if message is None or message.text is None:
         return ConversationHandler.END
+    if context.user_data is None:
+        context.user_data = {}
     user_data = context.user_data
-    if user_data is None:
-        return ConversationHandler.END
     try:
         cf = float(message.text.replace(",", "."))
     except ValueError:
@@ -166,8 +166,10 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     """Handle target BG input and proceed to demo."""
     message = update.message
     user = update.effective_user
+    if context.user_data is None:
+        context.user_data = {}
     user_data = context.user_data
-    if message is None or message.text is None or user is None or user_data is None:
+    if message is None or message.text is None or user is None:
         return ConversationHandler.END
     try:
         target = float(message.text.replace(",", "."))
@@ -448,8 +450,10 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     from .dose_handlers import photo_prompt
 
     message = update.message
+    if context.user_data is None:
+        context.user_data = {}
     user_data = context.user_data
-    if message is None or user_data is None:
+    if message is None:
         return ConversationHandler.END
 
     handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]] = _cancel_then(

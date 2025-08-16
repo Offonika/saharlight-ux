@@ -174,6 +174,8 @@ async def report_period_callback(
         )
         await send_report(update, context, date_from, "последний месяц", query=query)
     elif period == "custom":
+        if context.user_data is None:
+            context.user_data = {}
         user_data: dict[str, Any] = context.user_data
         user_data["awaiting_report_date"] = True
         await query.edit_message_text(
@@ -254,6 +256,8 @@ async def send_report(
 
     default_gpt_text = "Не удалось получить рекомендации."
     gpt_text = default_gpt_text
+    if context.user_data is None:
+        context.user_data = {}
     user_data: dict[str, Any] = context.user_data
     thread_id = cast(str | None, user_data.get("thread_id"))
     if thread_id is None:

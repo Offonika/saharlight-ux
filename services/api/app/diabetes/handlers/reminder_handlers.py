@@ -315,12 +315,11 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if user is None or message is None:
         return
     user_id = user.id
-    render_fn = cast(
-        Callable[[Any], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
-    )
-    text, keyboard = await run_db(
-        render_fn, user_id, sessionmaker=SessionLocal
-    )
+
+    def _render(session: Session) -> tuple[str, InlineKeyboardMarkup | None]:
+        return _render_reminders(session, user_id)
+
+    text, keyboard = await run_db(_render, sessionmaker=SessionLocal)
     if keyboard is not None:
         await message.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
     else:
@@ -527,12 +526,10 @@ async def reminder_webapp_save(
     job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None = context.job_queue
     if job_queue is not None and rem is not None:
         schedule_reminder(rem, job_queue)
-    render_fn = cast(
-        Callable[[Any], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
-    )
-    text, keyboard = await run_db(
-        render_fn, user_id, sessionmaker=SessionLocal
-    )
+    def _render(session: Session) -> tuple[str, InlineKeyboardMarkup | None]:
+        return _render_reminders(session, user_id)
+
+    text, keyboard = await run_db(_render, sessionmaker=SessionLocal)
     if keyboard is not None:
         await msg.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
     else:
@@ -724,12 +721,10 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
             for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()
 
-    render_fn = cast(
-        Callable[[Any], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
-    )
-    text, keyboard = await run_db(
-        render_fn, user_id, sessionmaker=SessionLocal
-    )
+    def _render(session: Session) -> tuple[str, InlineKeyboardMarkup | None]:
+        return _render_reminders(session, user_id)
+
+    text, keyboard = await run_db(_render, sessionmaker=SessionLocal)
     try:
         if keyboard is not None:
             await query.edit_message_text(

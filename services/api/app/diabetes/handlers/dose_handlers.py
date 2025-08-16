@@ -279,9 +279,9 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     message = update.message
     if message is None:
         return ConversationHandler.END
+    if context.user_data is None:
+        context.user_data = {}
     user_data = context.user_data
-    if user_data is None:
-        return ConversationHandler.END
     await message.reply_text("Отменено.", reply_markup=menu_keyboard)
     user_data.pop("pending_entry", None)
     user_data.pop("dose_method", None)

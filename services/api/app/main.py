@@ -144,7 +144,7 @@ async def create_user(
             session.add(UserDB(telegram_id=data.telegram_id, thread_id="webapp"))
         session.commit()
 
-    await run_db(lambda session: _create_user(session))
+    await run_db(_create_user)
     return {"status": "ok"}
 
 
