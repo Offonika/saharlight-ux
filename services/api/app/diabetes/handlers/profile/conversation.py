@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from typing import cast
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     CommandHandler,
@@ -26,7 +27,10 @@ from services.api.app.diabetes.services.db import (
     run_db,
 )
 
-from services.api.app.diabetes.handlers.alert_handlers import evaluate_sugar
+from services.api.app.diabetes.handlers.alert_handlers import (
+    evaluate_sugar,
+    DefaultJobQueue,
+)
 from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
     CallbackQueryNoWarnHandler,
 )
@@ -477,9 +481,8 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     alert_sugar = result.get("alert_sugar")
     if alert_sugar is not None:
-        await evaluate_sugar(
-            user_id, alert_sugar, context.application.job_queue
-        )
+        job_queue = cast(DefaultJobQueue, context.application.job_queue)
+        await evaluate_sugar(user_id, alert_sugar, job_queue)
 
     low = result["low"]
     high = result["high"]
