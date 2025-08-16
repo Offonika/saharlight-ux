@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from datetime import time, timedelta, timezone
-from typing import Any, Callable, cast
+from typing import Any, Callable, Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -113,9 +113,9 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
         type_icon = "⏱"
         next_dt = now + timedelta(hours=rem.interval_hours)
         base = f"каждые {rem.interval_hours} ч"
-    elif rem.minutes_after:
+    elif rem.minutes_after is not None:
         type_icon = "📸"
-        next_dt = now + timedelta(minutes=rem.minutes_after)
+        next_dt = now + timedelta(minutes=float(rem.minutes_after))
         base = f"{rem.minutes_after} мин"
     else:
         type_icon = "🕘"
@@ -474,7 +474,12 @@ async def reminder_webapp_save(
         minutes = None
     def db_save(
         session: Session,
-    ) -> tuple[str, Reminder | None, str | None, int | None]:
+    ) -> (
+        tuple[Literal["not_found"], None, None, None]
+        | tuple[Literal["limit"], None, str, int]
+        | tuple[Literal["error"], None, None, None]
+        | tuple[Literal["ok"], Reminder, None, None]
+    ):
         if rid:
             rem = session.get(Reminder, int(rid))
             if not rem or rem.telegram_id != user_id:
@@ -503,6 +508,8 @@ async def reminder_webapp_save(
                 rem.interval_hours = None
             else:
                 rem.time = None
+                if parsed is None:
+                    return "error", None, None, None
                 rem.interval_hours = int(parsed.total_seconds() // 3600)
         if not commit(session):
             logger.error(
@@ -517,6 +524,8 @@ async def reminder_webapp_save(
         await msg.reply_text("Не найдено")
         return
     if status == "limit":
+        if plan is None:
+            return
         await msg.reply_text(
             f"У вас уже {limit} активных (лимит {plan.upper()}). "
             "Отключите одно или откройте PRO.",
@@ -693,7 +702,15 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
     user_id = user.id
 
-    def db_action(session: Session) -> tuple[str, Reminder | None]:
+    def db_action(
+        session: Session,
+    ) -> (
+        tuple[Literal["not_found"], None]
+        | tuple[Literal["unknown"], None]
+        | tuple[Literal["error"], None]
+        | tuple[Literal["del"], None]
+        | tuple[Literal["toggle"], Reminder]
+    ):
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != user_id:
             return "not_found", None
@@ -708,9 +725,10 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 "Failed to commit reminder action %s for reminder %s", action, rid
             )
             return "error", None
-        if action != "del":
+        if action == "toggle":
             session.refresh(rem)
-        return action, rem
+            return "toggle", rem
+        return "del", None
 
     status, rem = await run_db(db_action, sessionmaker=SessionLocal)
     if status == "not_found":
@@ -772,9 +790,12 @@ def schedule_after_meal(
             .all()
         )
     for rem in rems:
+        minutes_after = rem.minutes_after
+        if minutes_after is None:
+            continue
         job_queue.run_once(
             reminder_job,
-            when=timedelta(minutes=rem.minutes_after),
+            when=timedelta(minutes=float(minutes_after)),
             data={"reminder_id": rem.id, "chat_id": user_id},
             name=f"reminder_{rem.id}",
         )
