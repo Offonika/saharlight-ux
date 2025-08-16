@@ -15,7 +15,7 @@
 - `services/` — микросервисы и приложения
   - `api/` — FastAPI‑сервер и телеграм‑бот (`services/api/app/diabetes/` — основной пакет с обработчиками)
   - `bot/`, `worker/`, `clinic-panel/` — дополнительные сервисы
-  - `webapp/` — React‑SPA (`services/webapp/ui` — исходники, сборка в `dist/`)
+  - `webapp/` — React‑SPA (`services/webapp/ui` — исходники, сборка в `services/webapp/ui/dist/`)
 - `libs/` — общие библиотеки и SDK
   - `contracts/openapi.yaml` — OpenAPI‑спецификация API
   - `py-sdk/`, `ts-sdk/` — сгенерированные клиентские SDK
