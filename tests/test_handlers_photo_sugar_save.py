@@ -1,7 +1,6 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
 from typing import Any, cast
-from unittest.mock import Mock, PropertyMock
 
 import pytest
 from telegram import Update
@@ -70,6 +69,33 @@ class DummySession:
 session = DummySession()
 
 
+class ContextStub:
+    """Lightweight stand-in for CallbackContext with read-only properties."""
+
+    def __init__(
+        self,
+        *,
+        bot: Any,
+        user_data: dict[str, Any] | None = None,
+        job_queue: Any | None = None,
+    ) -> None:
+        self._bot = bot
+        self._user_data = user_data or {}
+        self._job_queue = job_queue
+
+    @property
+    def bot(self) -> Any:  # pragma: no cover - simple property
+        return self._bot
+
+    @property
+    def user_data(self) -> dict[str, Any]:  # pragma: no cover - simple property
+        return self._user_data
+
+    @property
+    def job_queue(self) -> Any | None:  # pragma: no cover - simple property
+        return self._job_queue
+
+
 @pytest.mark.asyncio
 async def test_photo_flow_saves_entry(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
@@ -86,14 +112,6 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_start, effective_user=SimpleNamespace(id=1)),
     )
-    context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        Mock(spec=CallbackContext),
-    )
-    user_data: dict[str, Any] = {}
-    type(context).user_data = PropertyMock(return_value=user_data)
-    type(context).job_queue = PropertyMock(return_value=None)
-
     async def fake_get_file(file_id: str) -> Any:
         class File:
             async def download_to_drive(self, path: str) -> None:
@@ -102,7 +120,11 @@ async def test_photo_flow_saves_entry(
         return File()
 
     fake_bot = SimpleNamespace(get_file=fake_get_file)
-    type(context).bot = PropertyMock(return_value=fake_bot)
+    user_data: dict[str, Any] = {}
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        ContextStub(bot=fake_bot, user_data=user_data, job_queue=None),
+    )
 
     await dose_handlers.freeform_handler(update_start, context)
 
