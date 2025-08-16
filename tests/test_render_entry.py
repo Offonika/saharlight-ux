@@ -1,16 +1,8 @@
 import datetime
 from types import SimpleNamespace
-from typing import Any, Protocol, cast
+from typing import Any, cast
 
-from services.api.app.diabetes.handlers.reporting_handlers import render_entry
-
-
-class EntryLike(Protocol):
-    event_time: datetime.datetime
-    sugar_before: float | None
-    carbs_g: float | None
-    xe: float | None
-    dose: float | str | None
+from services.api.app.diabetes.handlers.reporting_handlers import EntryLike, render_entry
 
 
 def make_entry(**kwargs: Any) -> EntryLike:
