@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Callable
+from typing import Any, Callable, TypedDict
 
 from sqlalchemy.orm import Session, sessionmaker
+from telegram import Update
 from telegram.error import TelegramError
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, Job, JobQueue
 
 from services.api.app.diabetes.services.db import (
     Alert,
@@ -20,6 +21,16 @@ from services.api.app.diabetes.utils.helpers import get_coords_and_link
 SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], bool] = _commit
 
+CustomContext = ContextTypes.DEFAULT_TYPE
+
+
+class AlertJobData(TypedDict, total=False):
+    user_id: int
+    count: int
+    sugar: float
+    profile: dict[str, Any]
+    first_name: str
+
 logger = logging.getLogger(__name__)
 
 MAX_REPEATS = 3
@@ -28,23 +39,24 @@ ALERT_REPEAT_DELAY = datetime.timedelta(minutes=5)
 
 def schedule_alert(
     user_id: int,
-    job_queue,
+    job_queue: JobQueue[CustomContext],
     *,
     sugar: float,
-    profile: dict,
+    profile: dict[str, Any],
     first_name: str = "",
     count: int = 1,
 ) -> None:
+    data: AlertJobData = {
+        "user_id": user_id,
+        "count": count,
+        "sugar": sugar,
+        "profile": profile,
+        "first_name": first_name,
+    }
     job_queue.run_once(
         alert_job,
         when=ALERT_REPEAT_DELAY,
-        data={
-            "user_id": user_id,
-            "count": count,
-            "sugar": sugar,
-            "profile": profile,
-            "first_name": first_name,
-        },
+        data=data,
         name=f"alert_{user_id}",
     )
 
@@ -52,7 +64,7 @@ def schedule_alert(
 async def _send_alert_message(
     user_id: int,
     sugar: float,
-    profile_info: dict,
+    profile_info: dict[str, Any],
     context: ContextTypes.DEFAULT_TYPE,
     first_name: str,
 ) -> None:
@@ -101,12 +113,12 @@ async def _send_alert_message(
 async def evaluate_sugar(
     user_id: int,
     sugar: float,
-    job_queue=None,
+    job_queue: JobQueue[CustomContext] | None = None,
     *,
     context: ContextTypes.DEFAULT_TYPE | None = None,
     first_name: str = "",
 ) -> None:
-    def db_eval(session):
+    def db_eval(session: Session) -> tuple[bool, dict[str, Any] | None]:
         profile = session.get(Profile, user_id)
         if not profile:
             return False, None
@@ -166,7 +178,8 @@ async def evaluate_sugar(
         )
     elif action == "remove" and job_queue is not None:
         for job in job_queue.get_jobs_by_name(f"alert_{user_id}"):
-            job.schedule_removal()
+            if job is not None:
+                job.schedule_removal()
 
     if result.get("notify") and context is not None:
         await _send_alert_message(
@@ -174,9 +187,11 @@ async def evaluate_sugar(
         )
 
 
-async def check_alert(update, context: ContextTypes.DEFAULT_TYPE, sugar: float) -> None:
+async def check_alert(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, sugar: float
+) -> None:
     """Wrapper to evaluate sugar using :func:`evaluate_sugar`."""
-    job_queue = getattr(context, "job_queue", None)
+    job_queue: JobQueue[CustomContext] | None = getattr(context, "job_queue", None)
     if job_queue is None:
         job_queue = getattr(getattr(context, "application", None), "job_queue", None)
     await evaluate_sugar(
@@ -189,11 +204,20 @@ async def check_alert(update, context: ContextTypes.DEFAULT_TYPE, sugar: float) 
 
 
 async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
-    data = context.job.data
-    user_id = data["user_id"]
-    count = data.get("count", 1)
-    sugar = data.get("sugar")
-    profile = data.get("profile", {})
+    job: Job[CustomContext] | None = context.job
+    if job is None:
+        return
+    data: AlertJobData | None = job.data
+    if not data:
+        job.schedule_removal()
+        return
+    user_id = data.get("user_id")
+    sugar: float | None = data.get("sugar")
+    if user_id is None or sugar is None:
+        job.schedule_removal()
+        return
+    count: int = data.get("count", 1)
+    profile: dict[str, Any] = data.get("profile", {})
     first_name = data.get("first_name", "")
     with SessionLocal() as session:
         active = (
@@ -202,7 +226,7 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             .first()
         )
         if not active:
-            context.job.schedule_removal()
+            job.schedule_removal()
             return
     await _send_alert_message(user_id, sugar, profile, context, first_name)
     if count >= MAX_REPEATS:
@@ -215,11 +239,14 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             for a in alerts:
                 a.resolved = True
             commit(session)
-        context.job.schedule_removal()
+        job.schedule_removal()
+        return
+    job_queue: JobQueue[CustomContext] | None = context.job_queue
+    if job_queue is None:
         return
     schedule_alert(
         user_id,
-        context.job_queue,
+        job_queue,
         sugar=sugar,
         profile=profile,
         first_name=first_name,
@@ -227,7 +254,9 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-async def alert_stats(update, context) -> None:
+async def alert_stats(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Отправить статистику предупреждений за последние 7 дней."""
     user_id = update.effective_user.id
     now = datetime.datetime.now(tz=datetime.timezone.utc)
