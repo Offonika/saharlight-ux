@@ -11,7 +11,7 @@ from .context_stub import AlertContext, ContextStub
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from telegram import Bot, Update
-from telegram.ext import ApplicationBuilder, CallbackContext, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
 from services.api.app.diabetes.services.db import Base, User, Profile
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
@@ -57,7 +57,7 @@ async def test_soscontact_stores_contact(test_session: sessionmaker[Session], co
         Update,
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
-    context = cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace())
+    context = cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace())
 
     result = await sos_handlers.sos_contact_save(update, context)
 
@@ -84,7 +84,7 @@ async def test_alert_notifies_user_and_contact(test_session: sessionmaker[Sessio
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     await sos_handlers.sos_contact_save(
-        update, cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace())
+        update, cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace())
     )
 
     update_alert = cast(
@@ -101,7 +101,7 @@ async def test_alert_notifies_user_and_contact(test_session: sessionmaker[Sessio
 
     for _ in range(3):
         await alert_handlers.check_alert(
-            update_alert, cast(CallbackContext[Any, Any, Any, Any], context), 3
+            update_alert, cast(ContextTypes.DEFAULT_TYPE, context), 3
         )
 
     msg = "⚠️ У Ivan критический сахар 3 ммоль/л. 0,0 link"
@@ -141,7 +141,7 @@ async def test_alert_skips_phone_contact(test_session: sessionmaker[Session], mo
 
     for _ in range(3):
         await alert_handlers.check_alert(
-            update_alert, cast(CallbackContext[Any, Any, Any, Any], context), 3
+            update_alert, cast(ContextTypes.DEFAULT_TYPE, context), 3
         )
 
     msg = "⚠️ У Ivan критический сахар 3 ммоль/л. 0,0 link"
@@ -169,7 +169,7 @@ async def test_sos_contact_menu_button_starts_conv(monkeypatch: pytest.MonkeyPat
 
     message = DummyMessage("🆘 SOS контакт")
     update = cast(Update, SimpleNamespace(message=message))
-    context = cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace())
+    context = cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace())
     state = await sos_handler.callback(update, context)
 
     assert state == sos_handlers.SOS_CONTACT
