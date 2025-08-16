@@ -44,8 +44,14 @@ async def test_reminder_limit_free_vs_pro(plan: Any, limit: Any, monkeypatch: py
 
     msg = DummyMessage()
     msg.web_app_data.data = json.dumps({"type": "sugar", "value": "09:00"})
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=SimpleNamespace(run_daily=lambda *a, **k: None, run_repeating=lambda *a, **k: None, get_jobs_by_name=lambda name: []))
+    update: Any = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    context: Any = SimpleNamespace(
+        job_queue=SimpleNamespace(
+            run_daily=lambda *a, **k: None,
+            run_repeating=lambda *a, **k: None,
+            get_jobs_by_name=lambda name: [],
+        )
+    )
 
     await handlers.reminder_webapp_save(update, context)
 
