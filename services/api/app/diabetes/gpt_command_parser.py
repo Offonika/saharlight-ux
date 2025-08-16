@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any
+from typing import Any, cast
 
 from openai import OpenAIError
 from openai.types.chat import ChatCompletion
@@ -100,7 +100,10 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
 async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | None:
     try:
         def create_completion(*args: Any, **kwargs: Any) -> ChatCompletion:
-            return _get_client().chat.completions.create(*args, **kwargs)
+            return cast(
+                ChatCompletion,
+                _get_client().chat.completions.create(*args, **kwargs),
+            )
 
         # ``asyncio.to_thread`` runs the blocking OpenAI client in the event
         # loop's shared thread pool, so we reuse threads instead of spawning a
