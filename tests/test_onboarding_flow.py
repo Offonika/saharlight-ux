@@ -61,7 +61,10 @@ async def test_onboarding_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
     import services.api.app.diabetes.services.gpt_client as gpt_client
 
-    monkeypatch.setattr(gpt_client, "create_thread", lambda: "tid")
+    async def fake_create_thread() -> str:
+        return "tid"
+
+    monkeypatch.setattr(gpt_client, "create_thread", fake_create_thread)
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

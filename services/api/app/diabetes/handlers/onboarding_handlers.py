@@ -76,7 +76,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             from services.api.app.diabetes.services.gpt_client import create_thread
 
             try:
-                thread_id = create_thread()
+                thread_id = await create_thread()
             except OpenAIError as exc:  # pragma: no cover - network errors
                 logger.exception("Failed to create thread for user %s: %s", user_id, exc)
                 await message.reply_text(

@@ -62,17 +62,22 @@ async def test_send_message_openaierror(monkeypatch: pytest.MonkeyPatch, caplog:
     assert any("Failed to create message" in r.message for r in caplog.records)
 
 
-def test_create_thread_openaierror(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.asyncio
+async def test_create_thread_openaierror(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     def raise_error():
         raise OpenAIError("boom")
 
-    fake_client = SimpleNamespace(beta=SimpleNamespace(threads=SimpleNamespace(create=raise_error)))
+    fake_client = SimpleNamespace(
+        beta=SimpleNamespace(threads=SimpleNamespace(create=raise_error))
+    )
 
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(OpenAIError):
-            gpt_client.create_thread()
+            await gpt_client.create_thread()
 
     assert any("Failed to create thread" in r.message for r in caplog.records)
 
