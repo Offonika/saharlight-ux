@@ -266,7 +266,11 @@ async def alert_stats(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Отправить статистику предупреждений за последние 7 дней."""
-    user_id = update.effective_user.id
+    user = update.effective_user
+    message = update.message
+    if user is None or message is None:
+        return
+    user_id = user.id
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     week_ago = now - datetime.timedelta(days=7)
 
@@ -281,7 +285,7 @@ async def alert_stats(
     hyper = sum(1 for a in alerts if a.type == "hyper")
 
     text = f"За 7\u202Fдн.: гипо\u202F{hypo}, гипер\u202F{hyper}"
-    await update.message.reply_text(text)
+    await message.reply_text(text)
 
 
 __all__ = [
