@@ -15,3 +15,14 @@ def test_profile_state_constants() -> None:
     assert states == list(range(6))
     # ensure END constant matches ConversationHandler.END
     assert profile_handlers.END == ConversationHandler.END
+    # ensure constants are exported via __all__
+    exported = {
+        "PROFILE_ICR",
+        "PROFILE_CF",
+        "PROFILE_TARGET",
+        "PROFILE_LOW",
+        "PROFILE_HIGH",
+        "PROFILE_TZ",
+        "END",
+    }
+    assert exported <= set(profile_handlers.__all__)
