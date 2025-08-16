@@ -14,7 +14,8 @@ async def hypo_alert_faq(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         "Раннее предупреждение даёт шанс быстро принять углеводы и привлечь помощь, "
         "предотвращая тяжёлые последствия."
     )
-    await update.message.reply_text(text)
+    if update.message:
+        await update.message.reply_text(text)
 
 
 __all__ = ["hypo_alert_faq"]
