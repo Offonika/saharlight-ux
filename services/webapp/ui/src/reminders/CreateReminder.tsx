@@ -69,13 +69,20 @@ export default function CreateReminder() {
 
   useEffect(() => {
     if (!editing && params.id && user?.id) {
+      const id = Number(params.id);
+      if (Number.isNaN(id)) {
+        const message = "Некорректный ID напоминания";
+        setError(message);
+        toast({ title: "Ошибка", description: message, variant: "destructive" });
+        return;
+      }
       (async () => {
         try {
-          const data = await getReminder(user.id, Number(params.id));
+          const data = await getReminder(user.id, id);
           if (data) {
             const nt = normalizeReminderType(data.type as ReminderType);
             const loaded: Reminder = {
-              id: data.id ?? Number(params.id),
+              id: data.id ?? id,
               type: nt,
               title: data.title ?? TYPES[nt].label,
               time: data.time || "",
