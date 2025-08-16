@@ -7,6 +7,7 @@ from telegram.ext import (
     Application,
     CallbackQueryHandler,
     CommandHandler,
+    ContextTypes,
     ExtBot,
     MessageHandler,
     PollAnswerHandler,
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 def register_handlers(
     app: Application[
         ExtBot[None],
-        dict[str, Any],
+        ContextTypes.DEFAULT_TYPE,
         dict[str, Any],
         dict[str, Any],
         Any,
