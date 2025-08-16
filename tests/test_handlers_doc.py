@@ -1,8 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast
+from typing import Any, Callable, cast
 
-from sqlalchemy.orm import sessionmaker
 
 import pytest
 from telegram import Message, Update
@@ -70,7 +69,9 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 
     assert result == 200
     assert called.flag
-    assert context.user_data["__file_path"] == "photos/1_uid.png"
+    user_data = context.user_data
+    assert user_data is not None
+    assert user_data["__file_path"] == "photos/1_uid.png"
     assert update.message.photo == ()
 
 
@@ -267,7 +268,7 @@ async def test_photo_then_freeform_calculates_dose(
         def get(self, model: Any, user_id: int) -> SimpleNamespace:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    session_factory = cast(sessionmaker, lambda: DummySession())
+    session_factory = cast(Callable[[], DummySession], lambda: DummySession())
     handlers.SessionLocal = session_factory
 
     sugar_msg = DummyMessage(text="5")
@@ -282,4 +283,6 @@ async def test_photo_then_freeform_calculates_dose(
     assert "Углеводы: 10.0 г" in reply
     assert "Сахар: 5.0 ммоль/л" in reply
     assert "Ваша доза: 1.0 Ед" in reply
-    assert "dose" in context.user_data["pending_entry"]
+    user_data = context.user_data
+    assert user_data is not None
+    assert "dose" in user_data["pending_entry"]
