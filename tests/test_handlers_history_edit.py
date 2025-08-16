@@ -184,6 +184,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot=DummyBot()),
     )
+    assert context.user_data is not None
 
     await router.callback_router(update_cb, context)
     assert context.user_data is not None
