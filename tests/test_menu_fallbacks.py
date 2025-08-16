@@ -1,12 +1,10 @@
 import os
 from types import SimpleNamespace
-from typing import Any, cast
-
-from telegram import Update
-from telegram.ext import CallbackContext
+from typing import Any, Sequence, cast
 
 import pytest
-from telegram.ext import CommandHandler
+from telegram import Update
+from telegram.ext import BaseHandler, CallbackContext, CommandHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -26,7 +24,7 @@ class DummyMessage:
 
 
 def _get_menu_handler(
-    fallbacks: list[CommandHandler[Any]],
+    fallbacks: Sequence[BaseHandler[Update, Any]],
 ) -> CommandHandler[Any]:
     return next(
         h
@@ -37,7 +35,9 @@ def _get_menu_handler(
 
 @pytest.mark.asyncio
 async def test_sugar_conv_menu_then_photo() -> None:
-    handler = _get_menu_handler(dose_handlers.sugar_conv.fallbacks)
+    handler = _get_menu_handler(
+        cast(Sequence[BaseHandler[Update, Any]], dose_handlers.sugar_conv.fallbacks)
+    )
     message = DummyMessage("/menu")
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
@@ -62,7 +62,9 @@ async def test_sugar_conv_menu_then_photo() -> None:
 
 @pytest.mark.asyncio
 async def test_dose_conv_menu_then_photo() -> None:
-    handler = _get_menu_handler(dose_handlers.dose_conv.fallbacks)
+    handler = _get_menu_handler(
+        cast(Sequence[BaseHandler[Update, Any]], dose_handlers.dose_conv.fallbacks)
+    )
     message = DummyMessage("/menu")
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
