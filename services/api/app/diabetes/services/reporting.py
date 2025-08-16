@@ -37,7 +37,7 @@ def _register_font(name: str, filename: str) -> None:
         if isinstance(e, OSError):
             logging.warning("[PDF] Cannot register font %s at %s: %s", name, path, e)
         else:
-            logging.exception("[PDF] Invalid font %s at %s: %s", name, path, e)
+            logging.warning("[PDF] Invalid font %s at %s: %s", name, path, e)
         if _font_dir != DEFAULT_FONT_DIR:
             fallback = os.path.join(DEFAULT_FONT_DIR, filename)
             try:
@@ -51,7 +51,7 @@ def _register_font(name: str, filename: str) -> None:
                         e2,
                     )
                 else:
-                    logging.exception(
+                    logging.warning(
                         "[PDF] Invalid default font %s at %s: %s",
                         name,
                         fallback,
