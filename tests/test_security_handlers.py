@@ -1,6 +1,9 @@
-import pytest
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
+
+import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.security_handlers as handlers
 
@@ -18,8 +21,11 @@ class DummyMessage:
 @pytest.mark.asyncio
 async def test_hypoalert_faq_returns_message() -> None:
     message = DummyMessage()
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
 
     await handlers.hypo_alert_faq(update, context)
 

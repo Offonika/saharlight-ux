@@ -62,7 +62,7 @@ async def test_onboarding_demo_photo_missing(monkeypatch: pytest.MonkeyPatch, ca
         ),
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot_data={}),
     )
 

@@ -86,7 +86,8 @@ async def test_photo_flow_saves_entry(
         SimpleNamespace(message=msg_start, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
     )
     await dose_handlers.freeform_handler(update_start, context)
 

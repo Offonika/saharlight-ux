@@ -48,7 +48,8 @@ async def test_report_request_and_custom_flow(
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
     )
 
     await reporting_handlers.report_request(update, context)
@@ -125,7 +126,8 @@ async def test_report_period_callback_week(
         SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={})
     )
 
     await reporting_handlers.report_period_callback(update_cb, context)

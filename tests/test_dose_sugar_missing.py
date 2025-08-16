@@ -35,7 +35,7 @@ async def test_dose_sugar_requires_carbs_or_xe() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 

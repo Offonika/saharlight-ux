@@ -43,7 +43,7 @@ async def test_sugar_back_fallback_cancels() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
     result = await handler.callback(update, context)
@@ -59,7 +59,7 @@ async def test_cancel_command_clears_state() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
     result = await dose_handlers.dose_cancel(update, context)

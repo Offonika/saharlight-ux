@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 from telegram import Message, Update, User
 from telegram.ext import CallbackContext, Job
@@ -321,7 +321,10 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
-    context = make_context(job_queue=job_queue, user_data={"pending_entry": {}})
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        make_context(job_queue=job_queue, user_data={"pending_entry": {}}),
+    )
     await handlers.reminder_action_cb(update, context)
     await router.callback_router(update, context)
 

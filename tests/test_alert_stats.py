@@ -92,7 +92,10 @@ async def test_alert_stats_counts(monkeypatch: pytest.MonkeyPatch) -> None:
     msg = DummyMessage()
 
     update = cast("Update", DummyUpdate(message=msg, effective_user=DummyUser(id=1)))
-    context = cast(CallbackContext[Any, Any, Any, Any], DummyContext())
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        DummyContext(),
+    )
 
     await alert_handlers.alert_stats(update, context)
     assert msg.texts == ["За 7\u202Fдн.: гипо\u202F1, гипер\u202F1"]
@@ -106,7 +109,10 @@ async def test_alert_stats_returns_early(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(alert_handlers, "SessionLocal", fail_session_local)
 
     msg = DummyMessage()
-    context = cast(CallbackContext[Any, Any, Any, Any], DummyContext())
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        DummyContext(),
+    )
 
     update_no_user = cast("Update", DummyUpdate(message=msg, effective_user=None))
     await alert_handlers.alert_stats(update_no_user, context)
