@@ -29,7 +29,8 @@ export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint
   try {
     const res = await tgFetch(`/api/analytics?telegramId=${telegramId}`);
     if (!res.ok) {
-      throw new Error('Не удалось загрузить аналитику');
+      console.error('Analytics API request failed:', res.status);
+      return fallbackAnalytics;
     }
     const data = await res.json();
     if (!Array.isArray(data)) {
@@ -39,7 +40,7 @@ export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint
     return data as AnalyticsPoint[];
   } catch (error) {
     console.error('Failed to fetch analytics:', error);
-    throw new Error('Не удалось загрузить аналитику');
+    return fallbackAnalytics;
   }
 }
 
@@ -47,7 +48,8 @@ export async function fetchDayStats(telegramId: number): Promise<DayStats> {
   try {
     const res = await tgFetch(`/api/stats?telegramId=${telegramId}`);
     if (!res.ok) {
-      throw new Error('Не удалось загрузить статистику');
+      console.error('Stats API request failed:', res.status);
+      return fallbackDayStats;
     }
     const data = await res.json();
 
@@ -73,6 +75,6 @@ export async function fetchDayStats(telegramId: number): Promise<DayStats> {
     return { sugar, breadUnits, insulin };
   } catch (error) {
     console.error('Failed to fetch day stats:', error);
-    throw new Error('Не удалось загрузить статистику');
+    return fallbackDayStats;
   }
 }
