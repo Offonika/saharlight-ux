@@ -8,7 +8,7 @@ from typing import Any, Iterable, cast
 from telegram import Update
 
 import pytest
-from telegram.ext import BaseHandler, CallbackContext, MessageHandler
+from telegram.ext import BaseHandler, CallbackContext, ExtBot, MessageHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -25,12 +25,12 @@ def _find_handler(
     fallbacks: Iterable[
         BaseHandler[
             Update,
-            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         ]
     ],
     regex: str,
 ) -> MessageHandler[
-    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
+    CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]]
 ]:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
@@ -54,7 +54,7 @@ class DummyMessage:
 
 async def _exercise(
     handler: MessageHandler[
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]]
     ]
 ) -> None:
     message = DummyMessage("📷 Фото еды")
@@ -62,7 +62,7 @@ async def _exercise(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"}),
     )
     await handler.callback(update, context)

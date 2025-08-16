@@ -4,7 +4,7 @@ from typing import Any, cast
 
 import pytest
 from telegram import Message, Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
@@ -54,7 +54,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=dummy_bot, user_data={}),
     )
 
@@ -87,7 +87,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
 
@@ -107,7 +107,7 @@ async def test_photo_handler_handles_typeerror() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
 
@@ -145,7 +145,7 @@ async def test_photo_handler_preserves_file(
 
     dummy_bot = SimpleNamespace(get_file=fake_get_file)
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=dummy_bot, user_data={"thread_id": "tid"}),
     )
 
@@ -238,7 +238,7 @@ async def test_photo_then_freeform_calculates_dose(
         SimpleNamespace(message=photo_msg, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=dummy_bot, user_data={"thread_id": "tid"}),
     )
 

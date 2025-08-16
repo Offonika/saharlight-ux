@@ -4,7 +4,7 @@ from typing import Any, cast
 from unittest.mock import AsyncMock
 
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
@@ -30,7 +30,7 @@ async def test_freeform_handler_unknown_command(
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={})
     )
 

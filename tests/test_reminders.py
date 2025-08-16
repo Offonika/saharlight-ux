@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from typing import Any, Callable, cast
 
 from telegram import Message, Update, User
-from telegram.ext import CallbackContext, Job
+from telegram.ext import ExtBot, CallbackContext, Job
 
 from services.api.app.diabetes.services.db import Base, User as DbUser, Reminder, ReminderLog
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
@@ -137,7 +137,7 @@ def make_update(**kwargs: Any) -> MagicMock:
 
 
 def make_context(**kwargs: Any) -> MagicMock:
-    context = MagicMock(spec=CallbackContext)
+    context = MagicMock(spec=CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]])
     for key, value in kwargs.items():
         setattr(context, key, value)
     return context
@@ -337,7 +337,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         make_context(job_queue=job_queue, user_data={"pending_entry": {}}),
     )
     await handlers.reminder_action_cb(update, context)

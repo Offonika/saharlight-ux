@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 
 class DummyMessage:
@@ -44,7 +44,7 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
     query = DummyQuery(DummyMessage(), "cancel_entry")
     update = cast(Update, SimpleNamespace(callback_query=query))
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"telegram_id": 1}}),
     )
 
@@ -73,7 +73,7 @@ async def test_callback_router_invalid_entry_id(
     query = DummyQuery(DummyMessage(), "del:abc")
     update = cast(Update, SimpleNamespace(callback_query=query))
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
 
@@ -96,7 +96,7 @@ async def test_callback_router_unknown_data(
     query = DummyQuery(DummyMessage(), "foo")
     update = cast(Update, SimpleNamespace(callback_query=query))
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
 
@@ -117,7 +117,7 @@ async def test_callback_router_ignores_reminder_action() -> None:
     query = DummyQuery(DummyMessage(), "rem_toggle:1")
     update = cast(Update, SimpleNamespace(callback_query=query))
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {}}),
     )
 

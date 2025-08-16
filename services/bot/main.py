@@ -8,14 +8,13 @@ import sys
 from typing import Any
 
 from telegram import BotCommand
-from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
+from telegram.ext import Application, ContextTypes, ExtBot
 from sqlalchemy.exc import SQLAlchemyError
 
 from services.api.app.diabetes.services.db import init_db
 
 from services.api.app.config import settings
 
-DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 logger = logging.getLogger(__name__)
 
 
@@ -70,22 +69,18 @@ def main() -> None:
     async def post_init(
         app: Application[
             ExtBot[None],
-            ContextTypes.DEFAULT_TYPE,
             dict[str, Any],
             dict[str, Any],
             dict[str, Any],
-            DefaultJobQueue,
         ]
     ) -> None:
         await app.bot.set_my_commands(commands)
 
     application: Application[
         ExtBot[None],
-        ContextTypes.DEFAULT_TYPE,
         dict[str, Any],
         dict[str, Any],
         dict[str, Any],
-        DefaultJobQueue,
     ] = (
         Application.builder()
         .token(BOT_TOKEN)

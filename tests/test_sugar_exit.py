@@ -6,7 +6,7 @@ from typing import Any, cast
 from telegram import Update
 
 import pytest
-from telegram.ext import CallbackContext, ConversationHandler, MessageHandler
+from telegram.ext import ExtBot, CallbackContext, ConversationHandler, MessageHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -43,7 +43,7 @@ async def test_sugar_back_fallback_cancels() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
     result = await handler.callback(update, context)
@@ -59,7 +59,7 @@ async def test_cancel_command_clears_state() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
     result = await dose_handlers.dose_cancel(update, context)

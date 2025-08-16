@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
 from telegram import InlineKeyboardMarkup, Update
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import ExtBot, CallbackContext, ConversationHandler
 
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
@@ -60,7 +60,7 @@ async def test_profile_command_and_view(monkeypatch: pytest.MonkeyPatch, args: A
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=123))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=args, user_data={}),
     )
 
@@ -77,7 +77,7 @@ async def test_profile_command_and_view(monkeypatch: pytest.MonkeyPatch, args: A
         Update, SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=123))
     )
     context2 = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
 
@@ -124,7 +124,7 @@ async def test_profile_command_invalid_values(monkeypatch: pytest.MonkeyPatch, a
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=args, user_data={}),
     )
 
@@ -150,7 +150,7 @@ async def test_profile_command_help_and_dialog(monkeypatch: pytest.MonkeyPatch) 
         Update, SimpleNamespace(message=help_msg, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=["help"], user_data={}),
     )
     result = await handlers.profile_command(update, context)
@@ -163,7 +163,7 @@ async def test_profile_command_help_and_dialog(monkeypatch: pytest.MonkeyPatch) 
         Update, SimpleNamespace(message=dialog_msg, effective_user=SimpleNamespace(id=1))
     )
     context2 = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=[], user_data={}),
     )
     result2 = await handlers.profile_command(update2, context2)
@@ -197,7 +197,7 @@ async def test_profile_view_preserves_user_data(monkeypatch: pytest.MonkeyPatch)
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"thread_id": "tid", "foo": "bar"}),
     )
 
@@ -224,7 +224,7 @@ async def test_profile_view_missing_profile_shows_webapp_button(monkeypatch: pyt
         Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(),
     )
 

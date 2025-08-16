@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import ExtBot, CallbackContext, ConversationHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -35,7 +35,7 @@ async def test_dose_sugar_requires_carbs_or_xe() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 

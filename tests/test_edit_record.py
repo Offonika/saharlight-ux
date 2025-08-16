@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -84,7 +84,7 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot=DummyBot()),
     )
 

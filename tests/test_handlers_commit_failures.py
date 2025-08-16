@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from telegram import Bot, Update, User
-from telegram.ext import CallbackContext, ConversationHandler, Job, JobQueue
+from telegram.ext import ExtBot, CallbackContext, ConversationHandler, Job, JobQueue
 from services.api.app.diabetes.handlers import profile as profile_handlers
 import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.services.repository import commit
@@ -77,7 +77,7 @@ def make_update(**kwargs: Any) -> MagicMock:
 
 
 def make_context(**kwargs: Any) -> MagicMock:
-    context = MagicMock(spec=CallbackContext)
+    context = MagicMock(spec=CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]])
     for key, value in kwargs.items():
         setattr(context, key, value)
     return context

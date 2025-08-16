@@ -4,7 +4,7 @@ from typing import Any, cast
 
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
@@ -37,7 +37,7 @@ async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
@@ -82,7 +82,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
@@ -111,7 +111,7 @@ async def test_freeform_handler_sugar_only_flow() -> None:
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 

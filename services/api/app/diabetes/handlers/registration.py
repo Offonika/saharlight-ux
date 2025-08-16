@@ -9,7 +9,6 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     ExtBot,
-    JobQueue,
     MessageHandler,
     PollAnswerHandler,
     filters,
@@ -27,11 +26,9 @@ logger = logging.getLogger(__name__)
 def register_handlers(
     app: Application[
         ExtBot[None],
-        ContextTypes.DEFAULT_TYPE,
         dict[str, Any],
         dict[str, Any],
         dict[str, Any],
-        JobQueue[ContextTypes.DEFAULT_TYPE],
     ]
 ) -> None:
 

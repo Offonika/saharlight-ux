@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 import pytest
 
@@ -31,7 +31,7 @@ async def test_prompt_photo_sends_message() -> None:
     await dose_handlers.prompt_photo(
         update,
         cast(
-            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
             SimpleNamespace(),
         ),
     )
@@ -45,7 +45,7 @@ async def test_prompt_sugar_sends_message() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
     await dose_handlers.prompt_sugar(update, context)
@@ -60,7 +60,7 @@ async def test_prompt_dose_sends_message() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
     await dose_handlers.prompt_dose(update, context)

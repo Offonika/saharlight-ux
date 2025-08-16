@@ -7,7 +7,7 @@ from typing import Any, Iterable, cast
 
 import pytest
 from telegram import Update
-from telegram.ext import BaseHandler, CallbackContext, MessageHandler
+from telegram.ext import BaseHandler, CallbackContext, ExtBot, MessageHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -48,7 +48,7 @@ async def test_photo_button_cancels_and_prompts_photo() -> None:
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
     await handler.callback(update, context)

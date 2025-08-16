@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from telegram import Update
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import ExtBot, CallbackContext, ConversationHandler
 
 from services.api.app.diabetes.services.db import Base, User
 
@@ -80,7 +80,7 @@ async def test_onboarding_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         ),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot_data={}),
     )
 
@@ -140,7 +140,7 @@ async def test_onboarding_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         ),
     )
     context2 = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot_data={}),
     )
     state2 = await onboarding.start_command(update2, context2)

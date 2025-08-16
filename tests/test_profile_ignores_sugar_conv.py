@@ -2,12 +2,11 @@ import os
 from types import SimpleNamespace
 from typing import Any
 
-from types import SimpleNamespace
-from typing import Any, cast
+from typing import cast
 
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -54,7 +53,7 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch: pytest.MonkeyPatch
     )
     shared_chat_data: dict[str, Any] = {}
     sugar_context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, chat_data=shared_chat_data),
     )
     await dose_handlers.sugar_start(sugar_update, sugar_context)
@@ -70,7 +69,7 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch: pytest.MonkeyPatch
         ),
     )
     prof_context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=[], user_data={}, chat_data=shared_chat_data),
     )
     result = await profile_handlers.profile_command(prof_update, prof_context)
@@ -89,7 +88,7 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch: pytest.MonkeyPatch
         ),
     )
     icr_context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, chat_data=shared_chat_data),
     )
     result_icr = await profile_handlers.profile_icr(icr_update, icr_context)

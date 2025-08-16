@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 from services.api.app.diabetes.services.db import Base, Alert, User
 import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
@@ -93,7 +93,7 @@ async def test_alert_stats_counts(monkeypatch: pytest.MonkeyPatch) -> None:
 
     update = cast("Update", DummyUpdate(message=msg, effective_user=DummyUser(id=1)))
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         DummyContext(),
     )
 
@@ -110,7 +110,7 @@ async def test_alert_stats_returns_early(monkeypatch: pytest.MonkeyPatch) -> Non
 
     msg = DummyMessage()
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         DummyContext(),
     )
 

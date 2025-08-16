@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
@@ -41,7 +41,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch: pytest.MonkeyPatch, 
         pass
 
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(
             user_data={"thread_id": "tid"},
             bot=SimpleNamespace(

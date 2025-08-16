@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 import pytest
 
@@ -62,7 +62,7 @@ async def test_history_view_does_not_block_event_loop(monkeypatch: pytest.Monkey
         ),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(),
     )
 

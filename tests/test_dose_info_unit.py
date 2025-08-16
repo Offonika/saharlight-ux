@@ -8,7 +8,7 @@ from typing import Any, cast
 
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -53,7 +53,7 @@ async def test_entry_without_dose_has_no_unit(
         "xe": 2.0,
     }
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         DummyContext(
             user_data={"pending_entry": pending_entry, "pending_fields": ["sugar"]}
         ),
@@ -104,7 +104,7 @@ async def test_entry_without_sugar_has_placeholder(
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         DummyContext(
             user_data={"pending_entry": pending_entry, "pending_fields": ["dose"]}
         ),

@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from typing import Any, Callable, Optional, cast
 
 from telegram import Update
-from telegram.ext import CallbackContext, Job, JobQueue
+from telegram.ext import ExtBot, CallbackContext, Job, JobQueue
 
 from .context_stub import AlertContext, ContextStub
 
@@ -125,7 +125,7 @@ async def test_repeat_logic(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         await handlers.alert_job(
             cast(
-                CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
                 context,
             )
         )
@@ -200,7 +200,7 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
         await handlers.check_alert(
             update,
             cast(
-                CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
                 context,
             ),
             3,
@@ -209,7 +209,7 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
     await handlers.check_alert(
         update,
         cast(
-            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
             context,
         ),
         3,
@@ -265,7 +265,7 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
         await handlers.check_alert(
             update,
             cast(
-                CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
                 context,
             ),
             3,

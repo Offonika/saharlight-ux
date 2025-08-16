@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, ExtBot
 
 import services.api.app.diabetes.handlers.security_handlers as handlers
 
@@ -23,7 +23,7 @@ async def test_hypoalert_faq_returns_message() -> None:
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(),
     )
 

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ExtBot, CallbackContext
 
 import pytest
 from sqlalchemy import create_engine
@@ -62,7 +62,7 @@ async def test_onboarding_demo_photo_missing(monkeypatch: pytest.MonkeyPatch, ca
         ),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext[ExtBot[None], dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot_data={}),
     )
 
