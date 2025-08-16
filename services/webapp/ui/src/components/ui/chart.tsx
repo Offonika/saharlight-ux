@@ -6,6 +6,40 @@ import { cn } from "@/lib/utils"
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
 
+function sanitizeColor(color?: string): string | null {
+  if (!color) {
+    return null
+  }
+
+  const option = new Option()
+  option.style.color = ""
+  option.style.color = color
+  return option.style.color ? color : null
+}
+
+function buildStyleContent(id: string, config: ChartConfig): string {
+  const colorConfig = Object.entries(config).filter(
+    ([_, item]) => item.theme || item.color
+  )
+
+  return Object.entries(THEMES)
+    .map(([theme, prefix]) => {
+      const vars = colorConfig
+        .map(([key, itemConfig]) => {
+          const rawColor =
+            itemConfig.theme?.[theme as keyof typeof THEMES] ||
+            itemConfig.color
+          const color = sanitizeColor(rawColor)
+          return color ? `  --color-${key}: ${color};` : null
+        })
+        .filter(Boolean)
+        .join("\n")
+      return vars ? `${prefix} [data-chart=${id}] {\n${vars}\n}` : null
+    })
+    .filter(Boolean)
+    .join("\n")
+}
+
 export type ChartConfig = {
   [k in string]: {
     label?: React.ReactNode
@@ -66,36 +100,13 @@ const ChartContainer = React.forwardRef<
 ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(
-    ([_, config]) => config.theme || config.color
-  )
+  const styleContent = buildStyleContent(id, config)
 
-  if (!colorConfig.length) {
+  if (!styleContent) {
     return null
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join("\n")}
-}
-`
-          )
-          .join("\n"),
-      }}
-    />
-  )
+  return <style dangerouslySetInnerHTML={{ __html: styleContent }} />
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip
