@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 from telegram import (
     InlineKeyboardButton,
@@ -119,9 +120,12 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     message = update.message
     if message is None or message.text is None:
         return ConversationHandler.END
-    user_data = context.user_data
-    if user_data is None:
-        return ConversationHandler.END
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        user_data: dict[str, Any] = {}
+        context.user_data = user_data  # type: ignore[assignment]
+    else:
+        user_data = user_data_raw
     try:
         icr = float(message.text.replace(",", "."))
     except ValueError:
@@ -143,9 +147,12 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     message = update.message
     if message is None or message.text is None:
         return ConversationHandler.END
-    user_data = context.user_data
-    if user_data is None:
-        return ConversationHandler.END
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        user_data: dict[str, Any] = {}
+        context.user_data = user_data  # type: ignore[assignment]
+    else:
+        user_data = user_data_raw
     try:
         cf = float(message.text.replace(",", "."))
     except ValueError:
@@ -166,8 +173,13 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     """Handle target BG input and proceed to demo."""
     message = update.message
     user = update.effective_user
-    user_data = context.user_data
-    if message is None or message.text is None or user is None or user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        user_data: dict[str, Any] = {}
+        context.user_data = user_data  # type: ignore[assignment]
+    else:
+        user_data = user_data_raw
+    if message is None or message.text is None or user is None:
         return ConversationHandler.END
     try:
         target = float(message.text.replace(",", "."))
@@ -448,8 +460,13 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     from .dose_handlers import photo_prompt
 
     message = update.message
-    user_data = context.user_data
-    if message is None or user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        user_data: dict[str, Any] = {}
+        context.user_data = user_data  # type: ignore[assignment]
+    else:
+        user_data = user_data_raw
+    if message is None:
         return ConversationHandler.END
 
     handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]] = _cancel_then(

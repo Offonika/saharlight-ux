@@ -10,6 +10,7 @@ import logging
 from typing import Any, cast
 
 from openai import OpenAIError
+from openai.types.beta.threads import TextContentBlock
 from telegram import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -174,7 +175,12 @@ async def report_period_callback(
         )
         await send_report(update, context, date_from, "последний месяц", query=query)
     elif period == "custom":
-        user_data: dict[str, Any] = context.user_data
+        user_data_raw = context.user_data
+        if user_data_raw is None:
+            user_data = {}
+            context.user_data = user_data  # type: ignore[assignment]
+        else:
+            user_data = user_data_raw
         user_data["awaiting_report_date"] = True
         await query.edit_message_text(
             "Введите дату начала отчёта в формате YYYY-MM-DD\n"
@@ -254,7 +260,12 @@ async def send_report(
 
     default_gpt_text = "Не удалось получить рекомендации."
     gpt_text = default_gpt_text
-    user_data: dict[str, Any] = context.user_data
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        user_data: dict[str, Any] = {}
+        context.user_data = user_data  # type: ignore[assignment]
+    else:
+        user_data = user_data_raw
     thread_id = cast(str | None, user_data.get("thread_id"))
     if thread_id is None:
         with SessionLocal() as session:
@@ -296,10 +307,22 @@ async def send_report(
                         for m in messages.data
                         if m.role == "assistant"
                         for block in m.content
-                        if getattr(block, "type", None) == "text" or hasattr(block, "text")
+                        if isinstance(block, TextContentBlock)
                     ),
-                    default_gpt_text,
+                    None,
                 )
+                if gpt_text is None:
+                    gpt_text = next(
+                        (
+                            block.text.value
+                            for m in messages.data
+                            if m.role == "assistant"
+                            for block in m.content
+                            if hasattr(block, "text")
+                            and hasattr(block.text, "value")
+                        ),
+                        default_gpt_text,
+                    )
             else:
                 logging.error("[GPT][RUN_FAILED] status=%s", run.status)
         except OpenAIError:
