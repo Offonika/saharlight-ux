@@ -771,17 +771,24 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     from .. import _cancel_then
     from ..dose_handlers import photo_prompt
 
-    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]] = _cancel_then(
-        photo_prompt
-    )
-    return await handler(update, context)
+    handler = _cancel_then(photo_prompt)
+    await handler(update, context)
+    return ConversationHandler.END
+
+
+async def _profile_edit_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await profile_edit(update, context)
+
+
+async def _profile_timezone_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await profile_timezone(update, context)
 
 
 profile_conv = ConversationHandler(
     entry_points=[
         CommandHandler("profile", profile_command),
-        CallbackQueryNoWarnHandler(profile_edit, pattern="^profile_edit$"),
-        CallbackQueryNoWarnHandler(profile_timezone, pattern="^profile_timezone$"),
+        CallbackQueryNoWarnHandler(_profile_edit_entry, pattern="^profile_edit$"),
+        CallbackQueryNoWarnHandler(_profile_timezone_entry, pattern="^profile_timezone$"),
     ],
     states={
         PROFILE_ICR: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],
