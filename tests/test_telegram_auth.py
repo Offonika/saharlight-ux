@@ -57,3 +57,10 @@ def test_require_tg_user_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     with pytest.raises(HTTPException):
         require_tg_user("bad")
+
+
+def test_require_tg_user_empty_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", "")
+    with pytest.raises(HTTPException) as exc:
+        require_tg_user("whatever")
+    assert exc.value.status_code == 500
