@@ -54,7 +54,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     * ``/profile <args>`` → set profile directly
     """
 
-    args = context.args
+    args = context.args or []
     api, ApiException, ProfileModel = get_api()
     if api is None:
         await update.message.reply_text(
