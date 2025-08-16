@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Iterable, Protocol, Sequence, cast
 
 import matplotlib.pyplot as plt
+from matplotlib.dates import date2num
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
@@ -83,7 +84,7 @@ def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.Byte
         (e for e in entries if e.sugar_before is not None),
         key=lambda e: e.event_time,
     )
-    times: list[datetime] = [e.event_time for e in entries_sorted]
+    times: list[float] = [date2num(e.event_time) for e in entries_sorted]
     sugars_plot: list[float] = [cast(float, e.sugar_before) for e in entries_sorted]
 
     if not sugars_plot:
@@ -105,7 +106,9 @@ def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.Byte
         return buf
 
     plt.figure(figsize=(7, 3))
-    plt.plot(cast(Sequence[float], times), sugars_plot, marker='o', label='Сахар (ммоль/л)')
+    plt.plot(times, sugars_plot, marker='o', label='Сахар (ммоль/л)')
+    plt.gca().xaxis_date()
+    plt.gcf().autofmt_xdate()
     plt.title(f'Динамика сахара за {period_label}')
     plt.xlabel('Дата')
     plt.ylabel('Сахар, ммоль/л')
