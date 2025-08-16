@@ -121,11 +121,14 @@ export const useTelegram = (
   );
 
   useEffect(() => {
+    let cancelled = false;
     if (!tg) {
       console.warn("[TG] not in Telegram, enabling dev fallback");
       applyTheme(null, forceLight);
       setReady(true);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
     try {
       tg.expand?.();
@@ -159,6 +162,7 @@ export const useTelegram = (
             }
           }
           if (retryUser?.id) {
+            if (cancelled) return;
             setUser(retryUser);
             return;
           }
@@ -170,6 +174,7 @@ export const useTelegram = (
               if (resp.ok) {
                 const data = await resp.json().catch(() => null);
                 if (data?.id) {
+                  if (cancelled) return;
                   setUser(data);
                   return;
                 }
@@ -178,6 +183,7 @@ export const useTelegram = (
               console.warn("[TG] profile fetch failed", err);
             }
           }
+          if (cancelled) return;
           setError("no-user");
         };
         void tryFallback();
@@ -186,6 +192,7 @@ export const useTelegram = (
       const onTheme = () => applyTheme(tg, forceLight);
       tg.onEvent?.("themeChanged", onTheme);
       return () => {
+        cancelled = true;
         tg.offEvent?.("themeChanged", onTheme);
         if (mainClickRef.current) tg.MainButton?.offClick?.(mainClickRef.current);
         if (backClickRef.current) tg.BackButton?.offClick?.(backClickRef.current);
