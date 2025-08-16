@@ -1,27 +1,23 @@
 from pathlib import Path
+from dataclasses import dataclass, field
 from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
 from sqlalchemy.orm import sessionmaker
 
 import pytest
-from telegram import Message, Update
+from telegram import Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
 
-class DummyMessage(Message):
-    def __setattr__(self, key: str, value: Any) -> None:
-        object.__setattr__(self, key, value)
-
-    def __init__(
-        self, text: str | None = None, photo: list[Any] | None = None
-    ) -> None:
-        self.text: str | None = text
-        self.photo: list[Any] | None = photo
-        self.texts: list[str] = []
-        self.kwargs: list[dict[str, Any]] = []
+@dataclass
+class DummyMessage:
+    text: str | None = None
+    photo: list[Any] | None = None
+    texts: list[str] = field(default_factory=list)
+    kwargs: list[dict[str, Any]] = field(default_factory=list)
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
@@ -70,8 +66,12 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 
     assert result == 200
     assert called.flag
-    assert context.user_data["__file_path"] == "photos/1_uid.png"
-    assert update.message.photo == ()
+    user_data = context.user_data
+    assert user_data is not None
+    assert user_data["__file_path"] == "photos/1_uid.png"
+    message_after = update.message
+    assert message_after is not None
+    assert message_after.photo == ()
 
 
 @pytest.mark.asyncio
@@ -105,7 +105,9 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
 
     assert result == handlers.ConversationHandler.END
     assert not called.flag
-    assert "__file_path" not in context.user_data
+    user_data = context.user_data
+    assert user_data is not None
+    assert "__file_path" not in user_data
 
 
 @pytest.mark.asyncio
@@ -123,7 +125,9 @@ async def test_photo_handler_handles_typeerror() -> None:
 
     assert message.texts == ["❗ Файл не распознан как изображение."]
     assert result == handlers.ConversationHandler.END
-    assert handlers.WAITING_GPT_FLAG not in context.user_data
+    user_data = context.user_data
+    assert user_data is not None
+    assert handlers.WAITING_GPT_FLAG not in user_data
 
 
 @pytest.mark.asyncio
@@ -282,4 +286,6 @@ async def test_photo_then_freeform_calculates_dose(
     assert "Углеводы: 10.0 г" in reply
     assert "Сахар: 5.0 ммоль/л" in reply
     assert "Ваша доза: 1.0 Ед" in reply
-    assert "dose" in context.user_data["pending_entry"]
+    user_data = context.user_data
+    assert user_data is not None
+    assert "dose" in user_data["pending_entry"]
