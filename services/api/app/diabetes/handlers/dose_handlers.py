@@ -39,7 +39,8 @@ from services.api.app.diabetes.gpt_command_parser import parse_command
 from services.api.app.diabetes.utils.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from services.api.app.diabetes.services.repository import commit
 from collections.abc import Awaitable, Callable
-from typing import TypeVar, Any
+from typing import TypeVar, Any, Literal
+from sqlalchemy.orm import Session
 from .common_handlers import menu_command
 from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry
@@ -585,11 +586,11 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "Доза инсулина не может быть отрицательной."
                 )
             return
-        def db_update(session):
+        def db_update(session: Session) -> tuple[Literal["missing", "fail", "ok"], Entry | None]:
             entry = session.get(Entry, context.user_data["edit_id"])
-            if not entry:
+            if entry is None:
                 return "missing", None
-            field_map = {"sugar": "sugar_before", "xe": "xe", "dose": "dose"}
+            field_map: dict[str, str] = {"sugar": "sugar_before", "xe": "xe", "dose": "dose"}
             setattr(entry, field_map[field], value)
             entry.updated_at = datetime.datetime.now(datetime.timezone.utc)
             if not commit(session):
