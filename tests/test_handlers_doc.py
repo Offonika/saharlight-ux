@@ -3,6 +3,8 @@ from types import SimpleNamespace, TracebackType
 from http import HTTPStatus
 from typing import Any, cast
 
+from sqlalchemy.orm import sessionmaker
+
 import pytest
 from telegram import Message, Update
 from telegram.ext import CallbackContext
@@ -260,7 +262,7 @@ async def test_photo_then_freeform_calculates_dose(
         def get(self, model, user_id):
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    session_factory = cast(type(handlers.SessionLocal), lambda: DummySession())
+    session_factory = cast(sessionmaker, lambda: DummySession())
     handlers.SessionLocal = session_factory
 
     sugar_msg = DummyMessage(text="5")

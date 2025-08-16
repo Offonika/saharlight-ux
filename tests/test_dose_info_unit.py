@@ -9,6 +9,7 @@ from typing import Any, cast
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
+from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -81,7 +82,7 @@ async def test_entry_without_dose_has_no_unit(
     async def noop(*args: Any, **kwargs: Any) -> None:
         pass
 
-    session_factory = cast(type(dose_handlers.SessionLocal), lambda: DummySession())
+    session_factory = cast(sessionmaker, lambda: DummySession())
     monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
     monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
@@ -133,7 +134,7 @@ async def test_entry_without_sugar_has_placeholder(
     async def noop(*args: Any, **kwargs: Any) -> None:
         pass
 
-    session_factory = cast(type(dose_handlers.SessionLocal), lambda: DummySession())
+    session_factory = cast(sessionmaker, lambda: DummySession())
     monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
     monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
