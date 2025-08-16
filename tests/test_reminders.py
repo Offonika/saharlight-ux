@@ -358,7 +358,9 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     assert query.answers
     answer = query.answers[0]
     assert answer == "Готово ✅"
-    assert "pending_entry" in context.user_data
+    user_data = context.user_data
+    assert user_data is not None
+    assert "pending_entry" in user_data
 
 
 @pytest.mark.asyncio
