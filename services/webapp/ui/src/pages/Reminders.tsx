@@ -103,7 +103,7 @@ function ReminderRow({
         <MedicalButton
           size="icon"
           variant="ghost"
-          className={cn(reminder.active ? 'bg-success/10 text-success' : 'bg-secondary text-muted-foreground')}
+          className={cn(reminder.active ? 'bg-medical-success/10 text-medical-success' : 'bg-secondary text-muted-foreground')}
           onClick={() => onToggle(reminder.id)}
           aria-label=
             {reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
