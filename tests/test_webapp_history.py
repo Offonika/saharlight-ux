@@ -1,4 +1,8 @@
 import asyncio
+import hashlib
+import hmac
+import json
+import urllib.parse
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,7 +12,19 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
+from services.api.app.config import settings
 from services.api.app.diabetes.services import db
+
+TOKEN = "test-token"
+
+
+def build_init_data(user_id: int = 1) -> str:
+    user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
+    params = {"auth_date": "123", "query_id": "abc", "user": user}
+    data_check = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
+    secret = hmac.new(b"WebAppData", TOKEN.encode(), hashlib.sha256).digest()
+    params["hash"] = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
+    return urllib.parse.urlencode(params)
 
 
 def setup_db(monkeypatch):
@@ -25,22 +41,34 @@ def setup_db(monkeypatch):
     return Session
 
 
+def test_history_auth_required(monkeypatch: pytest.MonkeyPatch) -> None:
+    setup_db(monkeypatch)
+    client = TestClient(server.app)
+    rec = {"id": "1", "date": "2024-01-01", "time": "12:00", "type": "measurement"}
+    assert client.post("/api/history", json=rec).status_code == 401
+    assert client.get("/api/history").status_code == 401
+    assert client.delete("/api/history/1").status_code == 401
+
+
 def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
     client = TestClient(server.app)
+    headers1 = {"X-Telegram-Init-Data": build_init_data(1)}
+    headers2 = {"X-Telegram-Init-Data": build_init_data(2)}
 
     rec1 = {"id": "1", "date": "2024-01-01", "time": "12:00", "type": "measurement"}
-    resp = client.post("/api/history", json=rec1)
+    resp = client.post("/api/history", json=rec1, headers=headers1)
     assert resp.status_code == 200
 
     with Session() as session:
         stored = session.get(db.HistoryRecord, "1")
         assert stored is not None
         assert stored.date == "2024-01-01"
-        assert stored.sugar is None
+        assert stored.telegram_id == 1
 
     rec1_update = {**rec1, "sugar": 5.5}
-    resp = client.post("/api/history", json=rec1_update)
+    resp = client.post("/api/history", json=rec1_update, headers=headers1)
     assert resp.status_code == 200
 
     with Session() as session:
@@ -48,17 +76,34 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
         assert stored.sugar == 5.5
 
     rec2 = {"id": "2", "date": "2024-01-02", "time": "13:00", "type": "meal"}
-    resp = client.post("/api/history", json=rec2)
+    resp = client.post("/api/history", json=rec2, headers=headers1)
     assert resp.status_code == 200
 
-    with Session() as session:
-        records = session.query(db.HistoryRecord).order_by(db.HistoryRecord.id).all()
-        assert [r.id for r in records] == ["1", "2"]
+    rec3 = {"id": "3", "date": "2024-01-03", "time": "14:00", "type": "meal"}
+    resp = client.post("/api/history", json=rec3, headers=headers2)
+    assert resp.status_code == 200
+
+    resp = client.get("/api/history", headers=headers1)
+    assert [r["id"] for r in resp.json()] == ["1", "2"]
+
+    resp = client.get("/api/history", headers=headers2)
+    assert [r["id"] for r in resp.json()] == ["3"]
+
+    resp = client.delete("/api/history/1", headers=headers2)
+    assert resp.status_code == 403
+
+    resp = client.delete("/api/history/1", headers=headers1)
+    assert resp.status_code == 200
+
+    resp = client.get("/api/history", headers=headers1)
+    assert [r["id"] for r in resp.json()] == ["2"]
 
 
 @pytest.mark.asyncio
 async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    headers = {"X-Telegram-Init-Data": build_init_data(1)}
     records = [
         {"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"}
         for i in range(5)
@@ -66,11 +111,11 @@ async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> Non
 
     async def post_record(rec: dict) -> None:
         async with AsyncClient(app=server.app, base_url="http://test") as ac:
-            resp = await ac.post("/api/history", json=rec)
+            resp = await ac.post("/api/history", json=rec, headers=headers)
             assert resp.status_code == 200
 
     await asyncio.gather(*(post_record(r) for r in records))
 
     with Session() as session:
-        stored = session.query(db.HistoryRecord).all()
+        stored = session.query(db.HistoryRecord).filter_by(telegram_id=1).all()
         assert sorted([r.id for r in stored]) == [r["id"] for r in records]
