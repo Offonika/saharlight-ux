@@ -41,8 +41,8 @@ class DummyPhoto:
 
 
 class DummySession:
-    def __init__(self):
-        self.added = []
+    def __init__(self) -> None:
+        self.added: list[Any] = []
 
     def __enter__(self) -> "DummySession":
         return self
@@ -58,14 +58,14 @@ class DummySession:
     def add(self, entry: Any) -> None:
         self.added.append(entry)
 
-    def commit(self):
+    def commit(self) -> None:
         pass
 
-    def get(self, model, user_id):
+    def get(self, model: Any, user_id: int) -> SimpleNamespace:
         return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
 
-session = DummySession()
+session: DummySession = DummySession()
 
 
 @pytest.mark.asyncio
@@ -105,7 +105,7 @@ async def test_photo_flow_saves_entry(
         thread_id = "tid"
         id = "runid"
 
-    async def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs: Any) -> Run:
         return Run()
 
     class DummyClient:

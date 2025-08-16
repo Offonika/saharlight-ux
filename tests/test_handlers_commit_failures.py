@@ -54,17 +54,17 @@ async def test_profile_command_no_local_session(monkeypatch: pytest.MonkeyPatch)
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
 
-    session_factory = MagicMock()
+    session_factory: MagicMock = MagicMock()
     monkeypatch.setattr(profile_handlers, "SessionLocal", session_factory)
 
-    dummy_api = SimpleNamespace(profiles_post=MagicMock())
+    dummy_api: SimpleNamespace = SimpleNamespace(profiles_post=MagicMock())
     monkeypatch.setattr(
         profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock)
     )
 
-    message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(args=["10", "2", "6", "4", "9"], user_data={})
+    message: DummyMessage = DummyMessage()
+    update: SimpleNamespace = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    context: SimpleNamespace = SimpleNamespace(args=["10", "2", "6", "4", "9"], user_data={})
 
     result = await profile_handlers.profile_command(update, context)
 
@@ -81,13 +81,13 @@ async def test_callback_router_commit_failure(monkeypatch: pytest.MonkeyPatch, c
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
 
-    session = MagicMock()
+    session: MagicMock = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
     session.add = MagicMock()
     session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
-    rem = SimpleNamespace(id=1, telegram_id=1)
+    rem: SimpleNamespace = SimpleNamespace(id=1, telegram_id=1)
     session.get.return_value = rem
 
     monkeypatch.setattr(router, "SessionLocal", lambda: session)
@@ -96,9 +96,9 @@ async def test_callback_router_commit_failure(monkeypatch: pytest.MonkeyPatch, c
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
-    query = DummyQuery(DummyMessage(), "confirm_entry")
-    update = SimpleNamespace(callback_query=query)
-    context = SimpleNamespace(user_data={"pending_entry": pending_entry})
+    query: DummyQuery = DummyQuery(DummyMessage(), "confirm_entry")
+    update: SimpleNamespace = SimpleNamespace(callback_query=query)
+    context: SimpleNamespace = SimpleNamespace(user_data={"pending_entry": pending_entry})
 
     with caplog.at_level(logging.ERROR):
         await router.callback_router(update, context)
@@ -110,12 +110,12 @@ async def test_callback_router_commit_failure(monkeypatch: pytest.MonkeyPatch, c
 
 @pytest.mark.asyncio
 async def test_add_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
-    session = MagicMock()
+    session: MagicMock = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
     session.add = MagicMock()
-    query_mock = MagicMock()
-    filter_mock = MagicMock()
+    query_mock: MagicMock = MagicMock()
+    filter_mock: MagicMock = MagicMock()
     filter_mock.count.return_value = 0
     query_mock.filter_by.return_value = filter_mock
     session.query.return_value = query_mock
@@ -124,12 +124,12 @@ async def test_add_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, capl
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
     monkeypatch.setattr(reminder_handlers, "commit", commit)
-    schedule_mock = MagicMock()
+    schedule_mock: MagicMock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
 
-    message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(
+    message: DummyMessage = DummyMessage()
+    update: SimpleNamespace = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    context: SimpleNamespace = SimpleNamespace(
         args=["sugar", "23:00"],
         job_queue=SimpleNamespace(get_jobs_by_name=lambda name: []),
     )
@@ -145,10 +145,10 @@ async def test_add_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, capl
 
 @pytest.mark.asyncio
 async def test_reminder_webapp_save_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
-    session = MagicMock()
+    session: MagicMock = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
-    rem = SimpleNamespace(
+    rem: SimpleNamespace = SimpleNamespace(
         telegram_id=1,
         type="sugar",
         is_enabled=True,
@@ -162,18 +162,18 @@ async def test_reminder_webapp_save_commit_failure(monkeypatch: pytest.MonkeyPat
     session.refresh = MagicMock()
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
-    schedule_mock = MagicMock()
+    schedule_mock: MagicMock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
-    render_mock = MagicMock()
+    render_mock: MagicMock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "_render_reminders", render_mock)
 
-    message = DummyWebAppMessage(
+    message: DummyWebAppMessage = DummyWebAppMessage(
         json.dumps({"type": "sugar", "value": "23:00", "id": 1})
     )
-    update = SimpleNamespace(
+    update: SimpleNamespace = SimpleNamespace(
         effective_message=message, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(job_queue=SimpleNamespace())
+    context: SimpleNamespace = SimpleNamespace(job_queue=SimpleNamespace())
 
     with caplog.at_level(logging.ERROR):
         await reminder_handlers.reminder_webapp_save(update, context)
@@ -188,20 +188,20 @@ async def test_reminder_webapp_save_commit_failure(monkeypatch: pytest.MonkeyPat
 
 @pytest.mark.asyncio
 async def test_delete_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
-    session = MagicMock()
+    session: MagicMock = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
     session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
-    rem = SimpleNamespace(id=1, telegram_id=1)
+    rem: SimpleNamespace = SimpleNamespace(id=1, telegram_id=1)
     session.get.return_value = rem
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
 
-    job_queue = SimpleNamespace(get_jobs_by_name=MagicMock())
-    message = DummyMessage()
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace(args=["1"], job_queue=job_queue)
+    job_queue: SimpleNamespace = SimpleNamespace(get_jobs_by_name=MagicMock())
+    message: DummyMessage = DummyMessage()
+    update: SimpleNamespace = SimpleNamespace(message=message)
+    context: SimpleNamespace = SimpleNamespace(args=["1"], job_queue=job_queue)
 
     with caplog.at_level(logging.ERROR):
         await reminder_handlers.delete_reminder(update, context)
@@ -214,20 +214,20 @@ async def test_delete_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, c
 
 @pytest.mark.asyncio
 async def test_reminder_job_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
-    session = MagicMock()
+    session: MagicMock = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
-    rem = SimpleNamespace(id=1, telegram_id=1, is_enabled=True)
+    rem: SimpleNamespace = SimpleNamespace(id=1, telegram_id=1, is_enabled=True)
     session.get.side_effect = [rem]
     session.add = MagicMock()
     session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
-    describe_mock = MagicMock()
+    describe_mock: MagicMock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "_describe", describe_mock)
 
-    context = SimpleNamespace(
+    context: SimpleNamespace = SimpleNamespace(
         job=SimpleNamespace(data={"reminder_id": 1, "chat_id": 1}),
         bot=SimpleNamespace(send_message=MagicMock()),
     )
@@ -244,29 +244,29 @@ async def test_reminder_job_commit_failure(monkeypatch: pytest.MonkeyPatch, capl
 
 @pytest.mark.asyncio
 async def test_reminder_callback_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
-    session = MagicMock()
+    session: MagicMock = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
     session.add = MagicMock()
     session.rollback = MagicMock()
 
-    rem = SimpleNamespace(id=1, telegram_id=1)
+    rem: SimpleNamespace = SimpleNamespace(id=1, telegram_id=1)
     session.get.return_value = rem
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
     reminder_handlers.commit = commit
 
-    def failing_commit(sess):
+    def failing_commit(sess: Any) -> bool:
         sess.rollback()
         return False
 
     monkeypatch.setattr(reminder_handlers, "commit", failing_commit)
 
-    query = DummyQuery(DummyMessage(), "remind_snooze:1")
-    update = SimpleNamespace(
+    query: DummyQuery = DummyQuery(DummyMessage(), "remind_snooze:1")
+    update: SimpleNamespace = SimpleNamespace(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(job_queue=SimpleNamespace(run_once=MagicMock()))
+    context: SimpleNamespace = SimpleNamespace(job_queue=SimpleNamespace(run_once=MagicMock()))
 
     with caplog.at_level(logging.ERROR):
         await reminder_handlers.reminder_callback(update, context)
@@ -278,26 +278,28 @@ async def test_reminder_callback_commit_failure(monkeypatch: pytest.MonkeyPatch,
 
 
 @pytest.mark.asyncio
-async def test_reminder_action_cb_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
-    session = MagicMock()
+async def test_reminder_action_cb_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    session: MagicMock = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
-    rem = SimpleNamespace(id=1, telegram_id=1, is_enabled=True)
+    rem: SimpleNamespace = SimpleNamespace(id=1, telegram_id=1, is_enabled=True)
     session.get.return_value = rem
     session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
     session.refresh = MagicMock()
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
-    schedule_mock = MagicMock()
+    schedule_mock: MagicMock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
 
-    job_queue = SimpleNamespace(get_jobs_by_name=MagicMock())
-    query = DummyQuery(DummyMessage(), "rem_toggle:1")
-    update = SimpleNamespace(
+    job_queue: SimpleNamespace = SimpleNamespace(get_jobs_by_name=MagicMock())
+    query: DummyQuery = DummyQuery(DummyMessage(), "rem_toggle:1")
+    update: SimpleNamespace = SimpleNamespace(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(job_queue=job_queue)
+    context: SimpleNamespace = SimpleNamespace(job_queue=job_queue)
 
     with caplog.at_level(logging.ERROR):
         await reminder_handlers.reminder_action_cb(update, context)
