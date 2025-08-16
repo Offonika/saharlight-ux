@@ -1,13 +1,12 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
-from services.api.app.diabetes.handlers.dose_handlers import SessionLocal as SessionFactory
 import services.api.app.diabetes.handlers.router as router
 
 
@@ -42,7 +41,7 @@ class DummyPhoto:
 
 
 class DummySession:
-    def __init__(self):
+    def __init__(self) -> None:
         self.added = []
 
     def __enter__(self) -> "DummySession":
@@ -59,10 +58,10 @@ class DummySession:
     def add(self, entry: Any) -> None:
         self.added.append(entry)
 
-    def commit(self):
+    def commit(self) -> None:
         pass
 
-    def get(self, model, user_id):
+    def get(self, model: Any, user_id: Any) -> SimpleNamespace:
         return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
 
@@ -80,18 +79,6 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(dose_handlers, "confirm_keyboard", lambda: None)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
-    msg_start = DummyMessage("/dose")
-    update_start = cast(
-        Update,
-        SimpleNamespace(message=msg_start, effective_user=SimpleNamespace(id=1)),
-    )
-    context = cast(
-        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
-    )
-    await dose_handlers.freeform_handler(update_start, context)
-
-    monkeypatch.chdir(tmp_path)
-
     async def fake_get_file(file_id: str) -> Any:
         class File:
             async def download_to_drive(self, path: str) -> None:
@@ -99,14 +86,26 @@ async def test_photo_flow_saves_entry(
 
         return File()
 
-    context.bot = SimpleNamespace(get_file=fake_get_file)
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, bot=SimpleNamespace(get_file=fake_get_file)),
+    )
+
+    msg_start = DummyMessage("/dose")
+    update_start = cast(
+        Update,
+        SimpleNamespace(message=msg_start, effective_user=SimpleNamespace(id=1)),
+    )
+    await dose_handlers.freeform_handler(update_start, context)
+
+    monkeypatch.chdir(tmp_path)
 
     class Run:
         status = "completed"
         thread_id = "tid"
         id = "runid"
 
-    async def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs: Any) -> Run:
         return Run()
 
     class DummyClient:
@@ -154,7 +153,11 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
-    session_factory = cast(type(SessionFactory), lambda: session)
+
+    def _session_factory() -> DummySession:
+        return session
+
+    session_factory: Callable[[], DummySession] = _session_factory
     dose_handlers.SessionLocal = session_factory
     await dose_handlers.freeform_handler(update_sugar, context)
     assert context.user_data["pending_entry"]["sugar_before"] == 5.5
