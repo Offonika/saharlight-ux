@@ -38,8 +38,9 @@ from services.api.app.diabetes.services.gpt_client import create_thread, send_me
 from services.api.app.diabetes.gpt_command_parser import parse_command
 from services.api.app.diabetes.utils.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from services.api.app.diabetes.services.repository import commit
-from collections.abc import Awaitable, Callable
-from typing import TypeVar, Any
+from collections.abc import Callable, Coroutine
+from typing import TypeVar, Any, cast
+from sqlalchemy.orm import Session
 from .common_handlers import menu_command
 from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry
@@ -60,6 +61,7 @@ def _sanitize(text: str, max_len: int = 200) -> str:
 DOSE_METHOD, DOSE_XE, DOSE_CARBS, DOSE_SUGAR = range(3, 7)
 PHOTO_SUGAR = 7
 SUGAR_VAL = 8
+END: int = ConversationHandler.END
 WAITING_GPT_FLAG = "waiting_gpt_response"
 
 
@@ -78,7 +80,7 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user_data = context.user_data
     message = update.message
     if user_data is None or message is None or update.effective_user is None:
-        return ConversationHandler.END
+        return END
     user_data.pop("pending_entry", None)
     user_data["pending_entry"] = {
         "telegram_id": update.effective_user.id,
@@ -98,11 +100,11 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the provided sugar level to the diary."""
     chat_data = getattr(context, "chat_data", None)
     if chat_data is not None and not chat_data.get("sugar_active"):
-        return ConversationHandler.END
+        return END
     user_data = context.user_data
     message = update.message
     if user_data is None or message is None or message.text is None or update.effective_user is None:
-        return ConversationHandler.END
+        return END
     text = message.text.strip().replace(",", ".")
     try:
         sugar = float(text)
@@ -122,7 +124,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         session.add(entry)
         if not commit(session):
             await message.reply_text("⚠️ Не удалось сохранить запись.")
-            return ConversationHandler.END
+            return END
     await check_alert(update, context, sugar)
     await message.reply_text(
         f"✅ Уровень сахара {sugar} ммоль/л сохранён.",
@@ -130,7 +132,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     if chat_data is not None:
         chat_data.pop("sugar_active", None)
-    return ConversationHandler.END
+    return END
 
 
 async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -138,7 +140,7 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data = context.user_data
     message = update.message
     if user_data is None or message is None:
-        return ConversationHandler.END
+        return END
     user_data.pop("pending_entry", None)
     user_data.pop("edit_id", None)
     user_data.pop("dose_method", None)
@@ -154,7 +156,7 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_data = context.user_data
     message = update.message
     if user_data is None or message is None or message.text is None:
-        return ConversationHandler.END
+        return END
     text = message.text.lower()
     if "назад" in text:
         return await dose_cancel(update, context)
@@ -178,7 +180,7 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data = context.user_data
     message = update.message
     if user_data is None or message is None or message.text is None or update.effective_user is None:
-        return ConversationHandler.END
+        return END
     text = message.text.strip().replace(",", ".")
     try:
         xe = float(text)
@@ -202,7 +204,7 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data = context.user_data
     message = update.message
     if user_data is None or message is None or message.text is None or update.effective_user is None:
-        return ConversationHandler.END
+        return END
     text = message.text.strip().replace(",", ".")
     try:
         carbs = float(text)
@@ -228,7 +230,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data = context.user_data
     message = update.message
     if user_data is None or message is None or message.text is None or update.effective_user is None:
-        return ConversationHandler.END
+        return END
     text = message.text.strip().replace(",", ".")
     try:
         sugar = float(text)
@@ -249,7 +251,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             reply_markup=menu_keyboard,
         )
         user_data.pop("pending_entry", None)
-        return ConversationHandler.END
+        return END
     if carbs_g is None and xe is not None:
         carbs_g = xe * 12
         entry["carbs_g"] = carbs_g
@@ -258,13 +260,18 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     with SessionLocal() as session:
         profile = session.get(Profile, user_id)
 
-    if not profile or None in (profile.icr, profile.cf, profile.target_bg):
+    if (
+        profile is None
+        or profile.icr is None
+        or profile.cf is None
+        or profile.target_bg is None
+    ):
         await message.reply_text(
             "Профиль не настроен. Установите коэффициенты через /profile.",
             reply_markup=menu_keyboard,
         )
         user_data.pop("pending_entry", None)
-        return ConversationHandler.END
+        return END
 
     patient = PatientProfile(
         icr=profile.icr,
@@ -287,7 +294,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         ),
         reply_markup=confirm_keyboard(),
     )
-    return ConversationHandler.END
+    return END
 
 
 async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -295,19 +302,19 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user_data = context.user_data
     message = update.message
     if user_data is None or message is None:
-        return ConversationHandler.END
+        return END
     await message.reply_text("Отменено.", reply_markup=menu_keyboard)
     user_data.pop("pending_entry", None)
     user_data.pop("dose_method", None)
     chat_data = getattr(context, "chat_data", None)
     if chat_data is not None:
         chat_data.pop("sugar_active", None)
-    return ConversationHandler.END
+    return END
 
 
 def _cancel_then(
-    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[T]]
-) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[T]]:
+    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, T]]
+) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, T]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
     async def wrapped(
@@ -319,7 +326,7 @@ def _cancel_then(
     return wrapped
 
 
-async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle freeform text commands for adding diary entries."""
     user_data = context.user_data
     message = update.message
@@ -410,16 +417,16 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "Введите дозу инсулина (ед.)."
                 )
             return
-        def db_save(session) -> bool:
+        def db_save_entry(session: Session) -> bool:
             entry = Entry(**pending_entry)
             session.add(entry)
-            return commit(session)
+            return bool(commit(session))
 
         try:
-            ok = await run_db(db_save, sessionmaker=SessionLocal)
+            ok = await run_db(db_save_entry, sessionmaker=SessionLocal)
         except AttributeError:
             with SessionLocal() as session:
-                ok = db_save(session)
+                ok = db_save_entry(session)
         if not ok:
             await message.reply_text(
                 "⚠️ Не удалось сохранить запись."
@@ -471,10 +478,11 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except AttributeError:
                     with SessionLocal() as session:
                         profile = session.get(Profile, user_id)
-                if not profile or None in (
-                    profile.icr,
-                    profile.cf,
-                    profile.target_bg,
+                if (
+                    profile is None
+                    or profile.icr is None
+                    or profile.cf is None
+                    or profile.target_bg is None
                 ):
                     await message.reply_text(
                         "Профиль не настроен. Установите коэффициенты через /profile.",
@@ -515,54 +523,54 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if "xe" in parts:
             try:
-                xe_val = float(parts["xe"].replace(",", "."))
+                xe_val_input = float(parts["xe"].replace(",", "."))
             except ValueError:
                 await message.reply_text("Некорректное числовое значение.")
                 return
-            if xe_val < 0:
+            if xe_val_input < 0:
                 await message.reply_text(
                     "Количество ХЕ не может быть отрицательным."
                 )
                 return
-            entry["xe"] = xe_val
-            entry["carbs_g"] = xe_val * 12
+            entry["xe"] = xe_val_input
+            entry["carbs_g"] = xe_val_input * 12
         if "carbs" in parts:
             try:
-                carbs_val = float(parts["carbs"].replace(",", "."))
+                carbs_val_input = float(parts["carbs"].replace(",", "."))
             except ValueError:
                 await message.reply_text("Некорректное числовое значение.")
                 return
-            if carbs_val < 0:
+            if carbs_val_input < 0:
                 await message.reply_text(
                     "Количество углеводов не может быть отрицательным."
                 )
                 return
-            entry["carbs_g"] = carbs_val
+            entry["carbs_g"] = carbs_val_input
         if "dose" in parts:
             try:
-                dose_val = float(parts["dose"].replace(",", "."))
+                dose_val_input = float(parts["dose"].replace(",", "."))
             except ValueError:
                 await message.reply_text("Некорректное числовое значение.")
                 return
-            if dose_val < 0:
+            if dose_val_input < 0:
                 await message.reply_text(
                     "Доза инсулина не может быть отрицательной."
                 )
                 return
-            entry["dose"] = dose_val
+            entry["dose"] = dose_val_input
         if "сахар" in parts or "sugar" in parts:
             sugar_value = parts.get("сахар") or parts["sugar"]
             try:
-                sugar_val = float(sugar_value.replace(",", "."))
+                sugar_val_input = float(sugar_value.replace(",", "."))
             except ValueError:
                 await message.reply_text("Некорректное числовое значение.")
                 return
-            if sugar_val < 0:
+            if sugar_val_input < 0:
                 await message.reply_text(
                     "Сахар не может быть отрицательным."
                 )
                 return
-            entry["sugar_before"] = sugar_val
+            entry["sugar_before"] = sugar_val_input
         carbs = entry.get("carbs_g")
         xe = entry.get("xe")
         sugar = entry.get("sugar_before")
@@ -581,7 +589,11 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     if "edit_id" in user_data:
-        field = user_data.get("edit_field")
+        field_obj = user_data.get("edit_field")
+        if not isinstance(field_obj, str):
+            await message.reply_text("Некорректное поле для изменения.")
+            return
+        field = field_obj
         text = raw_text.replace(",", ".")
         try:
             value = float(text)
@@ -602,7 +614,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "Доза инсулина не может быть отрицательной."
                 )
             return
-        def db_update(session):
+        def db_update(session: Session) -> tuple[str, Entry | None]:
             entry = session.get(Entry, user_data["edit_id"])
             if not entry:
                 return "missing", None
@@ -697,16 +709,16 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
         if not missing:
-            def db_save(session):
+            def db_save_quick(session: Session) -> bool:
                 entry = Entry(**entry_data)
                 session.add(entry)
-                return commit(session)
+                return bool(commit(session))
 
             try:
-                ok = await run_db(db_save, sessionmaker=SessionLocal)
+                ok = await run_db(db_save_quick, sessionmaker=SessionLocal)
             except AttributeError:
                 with SessionLocal() as session:
-                    ok = db_save(session)
+                    ok = db_save_quick(session)
             if not ok:
                 await message.reply_text(
                     "⚠️ Не удалось сохранить запись."
@@ -757,21 +769,21 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Значения не могут быть отрицательными."
         )
         return
-    entry_date = parsed.get("entry_date")
-    time_str = parsed.get("time")
+    entry_date_obj = parsed.get("entry_date")
+    time_obj = parsed.get("time")
 
-    if entry_date:
+    if isinstance(entry_date_obj, str):
         try:
-            event_dt = datetime.datetime.fromisoformat(entry_date)
+            event_dt = datetime.datetime.fromisoformat(entry_date_obj)
             if event_dt.tzinfo is None:
                 event_dt = event_dt.replace(tzinfo=datetime.timezone.utc)
             else:
                 event_dt = event_dt.astimezone(datetime.timezone.utc)
         except ValueError:
             event_dt = datetime.datetime.now(datetime.timezone.utc)
-    elif time_str:
+    elif isinstance(time_obj, str):
         try:
-            hh, mm = map(int, time_str.split(":"))
+            hh, mm = map(int, time_obj.split(":"))
             today = datetime.datetime.now(datetime.timezone.utc).date()
             event_dt = datetime.datetime.combine(
                 today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc
@@ -794,10 +806,10 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "photo_path": None,
     }
 
-    xe_val = fields.get("xe")
-    carbs_val = fields.get("carbs_g")
-    dose_val = fields.get("dose")
-    sugar_val = fields.get("sugar_before")
+    xe_val: float | None = fields.get("xe")
+    carbs_val: float | None = fields.get("carbs_g")
+    dose_val: float | None = fields.get("dose")
+    sugar_val: float | None = fields.get("sugar_before")
     date_str = event_dt.strftime("%d.%m %H:%M")
     xe_part = f"{xe_val} ХЕ" if xe_val is not None else ""
     carb_part = f"{carbs_val:.0f} г углеводов" if carbs_val is not None else ""
@@ -807,7 +819,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     reply = f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
     await message.reply_text(text=reply, reply_markup=confirm_keyboard())
-    return ConversationHandler.END
+    return
 
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -818,18 +830,18 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await message.reply_text("🗨️ Чат с GPT временно недоступен.")
 
 
-async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False):
+async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False) -> int:
     """Process food photos and trigger nutrition analysis."""
     user_data = context.user_data
     message = update.message or (update.callback_query.message if update.callback_query else None)
     effective_user = update.effective_user
     if user_data is None or message is None or effective_user is None:
-        return ConversationHandler.END
+        return END
     user_id = effective_user.id
 
     if user_data.get(WAITING_GPT_FLAG):
         await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
-        return ConversationHandler.END
+        return END
     user_data[WAITING_GPT_FLAG] = True
 
     file_path = user_data.pop("__file_path", None)
@@ -839,7 +851,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         except (AttributeError, IndexError, TypeError):
             await message.reply_text("❗ Файл не распознан как изображение.")
             user_data.pop(WAITING_GPT_FLAG, None)
-            return ConversationHandler.END
+            return END
 
         os.makedirs("photos", exist_ok=True)
         file_path = f"photos/{user_id}_{photo.file_unique_id}.jpg"
@@ -850,7 +862,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             logging.exception("[PHOTO] Failed to save photo: %s", exc)
             await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
             user_data.pop(WAITING_GPT_FLAG, None)
-            return ConversationHandler.END
+            return END
 
     logger.info("[PHOTO] Saved to %s", file_path)
 
@@ -868,7 +880,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                         await message.reply_text(
                             "⚠️ Не удалось сохранить данные пользователя."
                         )
-                        return ConversationHandler.END
+                        return END
             user_data["thread_id"] = thread_id
 
         run = await send_message(
@@ -959,7 +971,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 await message.reply_text(
                     "⚠️ Время ожидания Vision истекло. Попробуйте позже."
                 )
-            return ConversationHandler.END
+            return END
 
         if run.status != "completed":
             logging.error("[VISION][RUN_FAILED] run.status=%s", run.status)
@@ -981,20 +993,24 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                     raise
             else:
                 await message.reply_text("⚠️ Vision не смог обработать фото.")
-            return ConversationHandler.END
+            return END
 
         messages = await asyncio.to_thread(
             _get_client().beta.threads.messages.list,
             thread_id=run.thread_id,
         )
         for m in messages.data:
-            content = _sanitize(m.content)
+            content = _sanitize(str(m.content))
             logger.debug("[VISION][MSG] m.role=%s; content=%s", m.role, content)
 
-        vision_text = next(
-            (m.content[0].text.value for m in messages.data if m.role == "assistant" and m.content),
-            "",
-        )
+        vision_text = ""
+        for m in messages.data:
+            if m.role == "assistant" and m.content:
+                first_block: Any = m.content[0]
+                text_block = getattr(first_block, "text", None)
+                if text_block is not None:
+                    vision_text = text_block.value
+                    break
         logger.debug(
             "[VISION][RESPONSE] Ответ Vision для %s:\n%s",
             file_path,
@@ -1015,7 +1031,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 parse_mode="HTML",
                 reply_markup=menu_keyboard,
             )
-            return ConversationHandler.END
+            return END
 
         pending_entry = user_data.get("pending_entry") or {
             "telegram_id": user_id,
@@ -1049,40 +1065,41 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
     except OSError as exc:
         logging.exception("[PHOTO] File processing error: %s", exc)
         await message.reply_text("⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз.")
-        return ConversationHandler.END
+        return END
     except OpenAIError as exc:
         logging.exception("[PHOTO] Vision API error: %s", exc)
         await message.reply_text("⚠️ Vision не смог обработать фото. Попробуйте ещё раз.")
-        return ConversationHandler.END
+        return END
     except ValueError as exc:
         logging.exception("[PHOTO] Parsing error: %s", exc)
         await message.reply_text("⚠️ Не удалось распознать фото. Попробуйте ещё раз.")
-        return ConversationHandler.END
+        return END
     except TelegramError as exc:
         logging.exception("[PHOTO] Telegram error: %s", exc)
-        return ConversationHandler.END
+        return END
     finally:
         user_data.pop(WAITING_GPT_FLAG, None)
 
 
-async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle images sent as documents."""
     user_data = context.user_data
     message = update.message
     effective_user = update.effective_user
     if user_data is None or message is None or effective_user is None:
-        return ConversationHandler.END
+        return END
 
     document = message.document
     if not document:
-        return ConversationHandler.END
+        return END
 
     mime_type = document.mime_type
     if not mime_type or not mime_type.startswith("image/"):
-        return ConversationHandler.END
+        return END
 
     user_id = effective_user.id
-    ext = Path(document.file_name).suffix or ".jpg"
+    filename = document.file_name or ""
+    ext = Path(filename).suffix or ".jpg"
     path = f"photos/{user_id}_{document.file_unique_id}{ext}"
     os.makedirs("photos", exist_ok=True)
 
@@ -1090,7 +1107,7 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await file.download_to_drive(path)
 
     user_data["__file_path"] = path
-    message.photo = []
+    message.photo = ()
     return await photo_handler(update, context)
 
 
@@ -1112,8 +1129,8 @@ sugar_conv = ConversationHandler(
     },
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
-        CommandHandler("menu", _cancel_then(menu_command)),
-        MessageHandler(filters.Regex("^📷 Фото еды$"), _cancel_then(photo_prompt)),
+        CommandHandler("menu", cast(Any, _cancel_then(menu_command))),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(Any, _cancel_then(photo_prompt))),
     ],
 )
 
@@ -1136,12 +1153,12 @@ dose_conv = ConversationHandler(
     },
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
-        CommandHandler("menu", _cancel_then(menu_command)),
-        MessageHandler(filters.Regex("^📷 Фото еды$"), _cancel_then(photo_prompt)),
-        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), _cancel_then(sugar_start)),
-        MessageHandler(filters.Regex("^📊 История$"), _cancel_then(history_view)),
-        MessageHandler(filters.Regex("^📈 Отчёт$"), _cancel_then(report_request)),
-        MessageHandler(filters.Regex("^📄 Мой профиль$"), _cancel_then(profile_view)),
+        CommandHandler("menu", cast(Any, _cancel_then(menu_command))),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(Any, _cancel_then(photo_prompt))),
+        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), cast(Any, _cancel_then(sugar_start))),
+        MessageHandler(filters.Regex("^📊 История$"), cast(Any, _cancel_then(history_view))),
+        MessageHandler(filters.Regex("^📈 Отчёт$"), cast(Any, _cancel_then(report_request))),
+        MessageHandler(filters.Regex("^📄 Мой профиль$"), cast(Any, _cancel_then(profile_view))),
     ],
 )
 
