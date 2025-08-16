@@ -8,8 +8,7 @@ from typing import Any, Iterable, cast
 from telegram import Update
 
 import pytest
-from telegram.ext import CallbackContext, MessageHandler
-from telegram.ext._basehandler import BaseHandler
+from telegram.ext import BaseHandler, CallbackContext, MessageHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -23,16 +22,9 @@ from services.api.app.diabetes.handlers import (
 
 
 def _find_handler(
-    fallbacks: Iterable[
-        BaseHandler[
-            Update,
-            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        ]
-    ],
+    fallbacks: Iterable[BaseHandler[Update, CallbackContext]],
     regex: str,
-) -> MessageHandler[
-    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
-]:
+) -> MessageHandler[CallbackContext]:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
             filt = getattr(h, "filters", None)
@@ -53,17 +45,13 @@ class DummyMessage:
         self.kwargs.append(kwargs)
 
 
-async def _exercise(
-    handler: MessageHandler[
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
-    ]
-) -> None:
+async def _exercise(handler: MessageHandler[CallbackContext]) -> None:
     message = DummyMessage("📷 Фото еды")
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext,
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"}),
     )
     await handler.callback(update, context)

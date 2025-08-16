@@ -7,8 +7,7 @@ from typing import Any, Iterable, cast
 
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext, MessageHandler
-from telegram.ext._basehandler import BaseHandler
+from telegram.ext import BaseHandler, CallbackContext, MessageHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -17,16 +16,9 @@ from services.api.app.diabetes.handlers import dose_handlers
 
 
 def _find_handler(
-    fallbacks: Iterable[
-        BaseHandler[
-            Update,
-            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        ]
-    ],
+    fallbacks: Iterable[BaseHandler[Update, CallbackContext]],
     regex: str,
-) -> MessageHandler[
-    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
-]:
+) -> MessageHandler[CallbackContext]:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
             filt = getattr(h, "filters", None)
@@ -56,7 +48,7 @@ async def test_photo_button_cancels_and_prompts_photo() -> None:
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        CallbackContext,
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
     await handler.callback(update, context)
