@@ -200,12 +200,15 @@ async def check_alert(
             DefaultJobQueue | None,
             getattr(getattr(context, "application", None), "job_queue", None),
         )
+    user = update.effective_user
+    if user is None:
+        return
     await evaluate_sugar(
-        update.effective_user.id,
+        user.id,
         sugar,
         job_queue,
         context=context,
-        first_name=update.effective_user.first_name or "",
+        first_name=user.first_name or "",
     )
 
 
