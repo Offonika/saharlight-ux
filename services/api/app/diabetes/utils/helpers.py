@@ -60,6 +60,19 @@ async def get_coords_and_link(
 
     def _fetch() -> tuple[str | None, str | None]:
         with urlopen(url, timeout=5) as resp:
+            status = getattr(resp, "getcode", lambda: 200)()
+            if status != 200:
+                logging.warning("Unexpected response code: %s", status)
+                return None, None
+            content_type = ""
+            if hasattr(resp, "headers"):
+                content_type = resp.headers.get("Content-Type", "")
+            elif hasattr(resp, "info"):
+                # ``info()`` returns mapping-like headers for ``urllib`` responses.
+                content_type = resp.info().get("Content-Type", "")
+            if content_type and "application/json" not in content_type:
+                logging.warning("Unexpected content type: %s", content_type)
+                return None, None
             data = json.load(resp)
             loc = data.get("loc")
             if loc:
