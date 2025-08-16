@@ -17,7 +17,7 @@ def _get_kwargs(
     headers: dict[str, Any] = {}
 
     _kwargs: dict[str, Any] = {
-        "method": "post",
+        "method": "put",
         "url": "/timezone",
     }
 
