@@ -1,8 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast
+from typing import Any, Callable, cast
 
-from sqlalchemy.orm import sessionmaker
 from unittest.mock import Mock, PropertyMock
 
 import pytest
@@ -95,6 +94,9 @@ async def test_photo_flow_saves_entry(
     type(context).user_data = PropertyMock(return_value=user_data)
     type(context).job_queue = PropertyMock(return_value=None)
 
+    user_data = context.user_data
+    assert user_data is not None
+
     async def fake_get_file(file_id: str) -> Any:
         class File:
             async def download_to_drive(self, path: str) -> None:
@@ -143,7 +145,7 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(dose_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(dose_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(dose_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0))
-    context.user_data["thread_id"] = "tid"
+    user_data["thread_id"] = "tid"
 
     msg_photo = DummyMessage(photo=[DummyPhoto()])
     update_photo = cast(
@@ -152,7 +154,7 @@ async def test_photo_flow_saves_entry(
     )
     await dose_handlers.photo_handler(update_photo, context)
 
-    entry = context.user_data["pending_entry"]
+    entry = user_data["pending_entry"]
     assert entry["carbs_g"] == 30.0
     assert entry["xe"] == 2.0
     assert entry["photo_path"].endswith("uid.jpg")
@@ -162,10 +164,10 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
-    session_factory = cast(sessionmaker, lambda: session)
+    session_factory = cast(Callable[[], DummySession], lambda: session)
     dose_handlers.SessionLocal = session_factory
     await dose_handlers.freeform_handler(update_sugar, context)
-    assert context.user_data["pending_entry"]["sugar_before"] == 5.5
+    assert user_data["pending_entry"]["sugar_before"] == 5.5
 
     monkeypatch.setattr(router, "SessionLocal", session_factory)
     import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
@@ -183,5 +185,5 @@ async def test_photo_flow_saves_entry(
     saved = session.added[0]
     assert saved.carbs_g == 30.0
     assert saved.sugar_before == 5.5
-    assert "pending_entry" not in context.user_data
+    assert "pending_entry" not in user_data
     assert query.edited == ["✅ Запись сохранена в дневник!"]

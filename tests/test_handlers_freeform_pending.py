@@ -1,8 +1,7 @@
 import datetime
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast
+from typing import Any, Callable, cast
 
-from sqlalchemy.orm import sessionmaker
 
 import pytest
 from telegram import Update
@@ -81,7 +80,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         def get(self, model: Any, user_id: int) -> SimpleNamespace:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    session_factory = cast(sessionmaker, lambda: DummySession())
+    session_factory = cast(Callable[[], DummySession], lambda: DummySession())
     handlers.SessionLocal = session_factory
     message = DummyMessage("5,6")
     update = cast(
