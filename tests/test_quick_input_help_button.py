@@ -21,8 +21,8 @@ async def test_quick_input_help_button() -> None:
     """Simulate the "🕹 Быстрый ввод" menu button and verify the hint."""
 
     message = DummyMessage("🕹 Быстрый ввод")
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace()
+    update: Any = SimpleNamespace(message=message)
+    context: Any = SimpleNamespace()
 
     await handlers.smart_input_help(update, context)
 
