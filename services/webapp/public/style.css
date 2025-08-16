@@ -108,3 +108,13 @@ form {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Buttons */
+.medical-button {
+  background: #0b7285;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
