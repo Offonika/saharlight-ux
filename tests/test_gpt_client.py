@@ -4,6 +4,7 @@ import logging
 import threading
 import time
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from openai import OpenAIError
@@ -16,7 +17,7 @@ def test_get_client_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_client = object()
     call_count = 0
 
-    def fake_get_openai_client():
+    def fake_get_openai_client() -> object:
         nonlocal call_count
         time.sleep(0.01)
         call_count += 1
@@ -26,7 +27,7 @@ def test_get_client_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(gpt_client, "_client", None)
     results = []
 
-    def worker():
+    def worker() -> None:
         results.append(gpt_client._get_client())
 
     threads = [threading.Thread(target=worker) for _ in range(10)]
@@ -41,7 +42,7 @@ def test_get_client_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_send_message_openaierror(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
-    def raise_error(**kwargs):
+    def raise_error(**kwargs: Any) -> None:
         raise OpenAIError("boom")
 
     fake_client = SimpleNamespace(
@@ -66,7 +67,7 @@ async def test_send_message_openaierror(monkeypatch: pytest.MonkeyPatch, caplog:
 async def test_create_thread_openaierror(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    def raise_error():
+    def raise_error() -> None:
         raise OpenAIError("boom")
 
     fake_client = SimpleNamespace(
@@ -87,7 +88,7 @@ async def test_send_message_upload_error_keeps_file(tmp_path: Path, monkeypatch:
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 
-    def raise_upload(*_, **__):
+    def raise_upload(*_: Any, **__: Any) -> None:
         raise OpenAIError("boom")
 
     fake_client = SimpleNamespace(files=SimpleNamespace(create=raise_upload))
@@ -106,10 +107,12 @@ async def test_send_message_empty_string_preserved(tmp_path: Path, monkeypatch: 
 
     captured = {}
 
-    def fake_files_create(file, purpose):
+    def fake_files_create(file: Any, purpose: str) -> SimpleNamespace:
         return SimpleNamespace(id="f1")
 
-    def fake_messages_create(*, thread_id, role, content):
+    def fake_messages_create(
+        *, thread_id: str, role: str, content: list[dict[str, Any]]
+    ) -> None:
         captured["content"] = content
 
     fake_client = SimpleNamespace(
