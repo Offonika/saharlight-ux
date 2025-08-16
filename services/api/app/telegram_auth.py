@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import logging
+import time
 from typing import Any
 from urllib.parse import parse_qsl
 
@@ -11,6 +12,9 @@ from .config import settings
 
 
 logger = logging.getLogger(__name__)
+
+# Maximum allowed age of auth_date in seconds (24 hours)
+AUTH_DATE_MAX_AGE = 24 * 60 * 60
 
 
 def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, Any]:
@@ -36,6 +40,14 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, Any]:
     check = hmac.new(secret, data_check_string.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(check, auth_hash):
         raise HTTPException(status_code=401, detail="invalid hash")
+
+    try:
+        auth_date: int = int(params.get("auth_date", 0))
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=401, detail="invalid auth date") from exc
+    if time.time() - auth_date > AUTH_DATE_MAX_AGE:
+        raise HTTPException(status_code=401, detail="expired auth data")
+    params["auth_date"] = auth_date
 
     if "user" in params:
         try:
