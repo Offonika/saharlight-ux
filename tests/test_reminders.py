@@ -1,7 +1,8 @@
 import json
 import logging
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time
+from zoneinfo import ZoneInfo
 from unittest.mock import MagicMock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -160,11 +161,15 @@ def test_schedule_reminder_replaces_existing_job() -> None:
         assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
         handlers.schedule_reminder(rem, job_queue)
-    jobs: list[DummyJob] = job_queue.get_jobs_by_name("reminder_1")
+    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
     active_jobs = [j for j in jobs if not j.removed]
     assert len(active_jobs) == 1
     job = active_jobs[0]
-    assert job.time.tzinfo.key == "Europe/Moscow"
+    assert job.time is not None
+    job_time = cast(datetime, job.time)
+    assert job_time.tzinfo is not None
+    assert isinstance(job_time.tzinfo, ZoneInfo)
+    assert job_time.tzinfo.key == "Europe/Moscow"
 
 
 def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -172,7 +177,7 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
 
     class DummyDatetime(datetime):
         @classmethod
-        def now(cls):  # type: ignore[override]
+        def now(cls) -> datetime:  # type: ignore[override]
             return now
 
     monkeypatch.setattr(handlers, "datetime", DummyDatetime)
@@ -198,9 +203,13 @@ def test_schedule_reminder_invalid_timezone_logs_warning(caplog: pytest.LogCaptu
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with caplog.at_level(logging.WARNING):
         handlers.schedule_reminder(rem, job_queue)
-    assert job_queue.jobs
-    job = job_queue.jobs[0]
-    assert job.time.tzinfo == timezone.utc
+    dummy_queue = cast(DummyJobQueue, job_queue)
+    assert dummy_queue.jobs
+    job = dummy_queue.jobs[0]
+    assert job.time is not None
+    job_time = cast(datetime, job.time)
+    assert job_time.tzinfo is not None
+    assert job_time.tzinfo == timezone.utc
     assert any("Invalid timezone" in r.message for r in caplog.records)
 
 
@@ -351,7 +360,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         rem_db = session.get(Reminder, 1)
         assert rem_db is not None
         assert not rem_db.is_enabled
-    jobs = job_queue.get_jobs_by_name("reminder_1")
+    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
     assert job.removed
@@ -359,7 +368,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     answer = query.answers[0]
     assert answer == "Готово ✅"
     user_data = context.user_data
-    assert user_data is not None
+    assert isinstance(user_data, dict)
     assert "pending_entry" in user_data
 
 
@@ -389,7 +398,7 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
-    jobs = job_queue.get_jobs_by_name("reminder_1")
+    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
     assert job.removed
@@ -427,10 +436,11 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         parsed = parse_time_interval("09:00")
+        assert isinstance(parsed, time)
         rem_db = session.get(Reminder, 1)
         assert rem_db is not None
         assert rem_db.time == parsed.strftime("%H:%M")
-    jobs = job_queue.get_jobs_by_name("reminder_1")
+    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
     assert len(jobs) == 2
     assert jobs[0].removed is True
     assert jobs[1].removed is False
