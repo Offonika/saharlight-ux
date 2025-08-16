@@ -1,13 +1,15 @@
 import re
-from typing import Any, Awaitable, Callable, Optional
+from typing import Any, Callable, Coroutine, Optional
 
 from telegram import CallbackQuery, Update
-from telegram.ext import BaseHandler, CallbackContext
+from telegram.ext import BaseHandler, ContextTypes
 
-CallbackQueryHandlerCallback = Callable[[Update, CallbackContext], Awaitable[Any]]
+CallbackQueryHandlerCallback = Callable[
+    [Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, None]
+]
 
 
-class CallbackQueryNoWarnHandler(BaseHandler[Update, CallbackContext]):
+class CallbackQueryNoWarnHandler(BaseHandler[Update, ContextTypes.DEFAULT_TYPE]):
     """Handle callback queries without triggering ConversationHandler warnings."""
 
     def __init__(
