@@ -23,9 +23,9 @@ export async function tgFetch(
 
   try {
     return await fetch(input, {
-      credentials: "include",
       ...init,
       headers,
+      credentials: init.credentials ?? "include",
       signal: controller.signal,
     });
   } catch (error) {
