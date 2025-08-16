@@ -84,7 +84,10 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 if sugar_conv.per_message
                 else None
             )
-            key = (chat_id, user_id, msg_id)
+            key = cast(
+                tuple[int | str, ...],
+                tuple(i for i in (chat_id, user_id, msg_id) if i is not None),
+            )
             if hasattr(sugar_conv, "_update_state"):
                 sugar_conv._update_state(ConversationHandler.END, key)
             else:
