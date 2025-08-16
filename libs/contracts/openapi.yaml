@@ -15,8 +15,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Status'
   /timezone:
-    post:
-      operationId: timezonePost
+    put:
+      operationId: timezonePut
       summary: Save timezone
       requestBody:
         required: true

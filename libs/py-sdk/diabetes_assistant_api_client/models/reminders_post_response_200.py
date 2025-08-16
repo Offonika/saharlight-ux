@@ -6,11 +6,11 @@ from attrs import field as _attrs_field
 
 from ..types import UNSET, Unset
 
-T = TypeVar("T", bound="PostApiRemindersResponse200")
+T = TypeVar("T", bound="RemindersPostResponse200")
 
 
 @_attrs_define
-class PostApiRemindersResponse200:
+class RemindersPostResponse200:
     """
     Attributes:
         status (Union[Unset, str]):
@@ -43,13 +43,13 @@ class PostApiRemindersResponse200:
 
         id = d.pop("id", UNSET)
 
-        post_api_reminders_response_200 = cls(
+        reminders_post_response_200 = cls(
             status=status,
             id=id,
         )
 
-        post_api_reminders_response_200.additional_properties = d
-        return post_api_reminders_response_200
+        reminders_post_response_200.additional_properties = d
+        return reminders_post_response_200
 
     @property
     def additional_keys(self) -> list[str]:

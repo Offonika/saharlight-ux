@@ -12,13 +12,8 @@
  * Do not edit the class manually.
  */
 
-const ENV_BASE =
-  (typeof import.meta !== 'undefined' &&
-    (import.meta as any).env?.VITE_API_BASE) ||
-  (typeof process !== 'undefined' &&
-    (process as any).env?.VITE_API_BASE) ||
-  'http://localhost';
-export const BASE_PATH = ENV_BASE.replace(/\/+$/, '');
+
+export const BASE_PATH = "http://localhost".replace(/\/+$/, "");
 
 export interface ConfigurationParameters {
     basePath?: string; // override base path
