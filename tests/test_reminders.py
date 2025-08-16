@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from typing import Any
+from typing import Any, Callable
 
 from services.api.app.diabetes.services.db import Base, User, Reminder, ReminderLog
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
@@ -73,19 +73,37 @@ class DummyJob:
 
 
 class DummyJobQueue:
-    def __init__(self):
-        self.jobs = []
+    def __init__(self) -> None:
+        self.jobs: list[DummyJob] = []
 
-    def run_daily(self, callback, time, data=None, name=None):
+    def run_daily(
+        self,
+        callback: Callable[..., Any],
+        time: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> None:
         self.jobs.append(DummyJob(callback, data, name, time))
 
-    def run_repeating(self, callback, interval, data=None, name=None):
+    def run_repeating(
+        self,
+        callback: Callable[..., Any],
+        interval: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> None:
         self.jobs.append(DummyJob(callback, data, name))
 
-    def run_once(self, callback, when, data=None, name=None):
+    def run_once(
+        self,
+        callback: Callable[..., Any],
+        when: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> None:
         self.jobs.append(DummyJob(callback, data, name))
 
-    def get_jobs_by_name(self, name):
+    def get_jobs_by_name(self, name: str) -> list[DummyJob]:
         return [j for j in self.jobs if j.name == name]
 
 
