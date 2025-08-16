@@ -4,11 +4,13 @@ import hmac
 import json
 import urllib.parse
 
+from typing import Any, Callable
+
 import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
@@ -27,18 +29,18 @@ def build_init_data(user_id: int = 1) -> str:
     return urllib.parse.urlencode(params)
 
 
-def setup_db(monkeypatch):
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
-    Session = sessionmaker(bind=engine)
+    SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
 
-    async def run_db_wrapper(fn, *args, **kwargs):
-        return await db.run_db(fn, *args, sessionmaker=Session, **kwargs)
+    async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
-    return Session
+    return SessionLocal
 
 
 def test_history_auth_required(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -73,6 +75,7 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with Session() as session:
         stored = session.get(db.HistoryRecord, "1")
+        assert stored is not None
         assert stored.sugar == 5.5
 
     rec2 = {"id": "2", "date": "2024-01-02", "time": "13:00", "type": "meal"}
@@ -109,7 +112,7 @@ async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> Non
         for i in range(5)
     ]
 
-    async def post_record(rec: dict) -> None:
+    async def post_record(rec: dict[str, Any]) -> None:
         async with AsyncClient(app=server.app, base_url="http://test") as ac:
             resp = await ac.post("/api/history", json=rec, headers=headers)
             assert resp.status_code == 200
