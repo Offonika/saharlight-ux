@@ -186,6 +186,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     await router.callback_router(update_cb, context)
+    assert context.user_data is not None
     assert context.user_data["edit_entry"] == {
         "id": entry_id,
         "chat_id": 42,
@@ -204,6 +205,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1)),
     )
     await router.callback_router(update_cb2, context)
+    assert context.user_data is not None
     assert context.user_data["edit_id"] == entry_id
     assert context.user_data["edit_field"] == "xe"
     assert context.user_data["edit_query"] is field_query
@@ -226,6 +228,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         assert entry_db.sugar_before == 5
 
     assert field_query.answer_texts[-1] == "Изменено"
+    assert context.user_data is not None
     assert not any(
         k in context.user_data for k in ("edit_id", "edit_field", "edit_entry", "edit_query")
     )
