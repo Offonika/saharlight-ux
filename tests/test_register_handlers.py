@@ -107,7 +107,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
         ep
         for ep in profile_handlers.profile_conv.entry_points
         if isinstance(ep, CallbackQueryNoWarnHandler)
-        and ep.callback is profile_handlers.profile_edit
+        and ep.callback is profile_handlers._profile_edit_entry
     ]
     assert profile_conv_cb
 
