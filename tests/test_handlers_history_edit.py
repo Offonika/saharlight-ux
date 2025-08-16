@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from telegram import InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
@@ -125,9 +125,11 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
         assert kwargs.get("parse_mode") == "HTML"
         assert text == expected
         assert isinstance(markup, InlineKeyboardMarkup)
-        buttons = [b for row in markup.inline_keyboard for b in row]
+        buttons: list[InlineKeyboardButton] = [
+            b for row in markup.inline_keyboard for b in row
+        ]
         all_callbacks.extend(
-            b.callback_data for b in buttons if b.callback_data is not None
+            [cast(str, b.callback_data) for b in buttons if b.callback_data is not None]
         )
     for eid in entry_ids:
         assert f"edit:{eid}" in all_callbacks
