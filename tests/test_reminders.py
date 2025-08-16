@@ -2,13 +2,16 @@ import json
 import logging
 import pytest
 from datetime import datetime, timezone
-from types import SimpleNamespace
+from unittest.mock import MagicMock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from typing import Any, Callable
 
-from services.api.app.diabetes.services.db import Base, User, Reminder, ReminderLog
+from telegram import Message, Update, User
+from telegram.ext import CallbackContext, Job
+
+from services.api.app.diabetes.services.db import Base, User as DbUser, Reminder, ReminderLog
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.services.repository import commit
@@ -107,13 +110,33 @@ class DummyJobQueue:
         return [j for j in self.jobs if j.name == name]
 
 
+def make_user(user_id: int) -> MagicMock:
+    user = MagicMock(spec=User)
+    user.id = user_id
+    return user
+
+
+def make_update(**kwargs: Any) -> MagicMock:
+    update = MagicMock(spec=Update)
+    for key, value in kwargs.items():
+        setattr(update, key, value)
+    return update
+
+
+def make_context(**kwargs: Any) -> MagicMock:
+    context = MagicMock(spec=CallbackContext)
+    for key, value in kwargs.items():
+        setattr(context, key, value)
+    return context
+
+
 def test_schedule_reminder_replaces_existing_job() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="Europe/Moscow"))
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow"))
         session.add(
             Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True)
         )
@@ -138,7 +161,7 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
             return now
 
     monkeypatch.setattr(handlers, "datetime", DummyDatetime)
-    user = User(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
+    user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
     rem = Reminder(telegram_id=1, type="sugar", interval_hours=2, is_enabled=True, user=user)
     icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏱"
@@ -146,7 +169,7 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_schedule_with_next_invalid_timezone_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
-    user = User(telegram_id=1, thread_id="t", timezone="Invalid/Zone")
+    user = DbUser(telegram_id=1, thread_id="t", timezone="Invalid/Zone")
     rem = Reminder(telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user)
     with caplog.at_level(logging.WARNING):
         icon, schedule = handlers._schedule_with_next(rem)
@@ -155,7 +178,7 @@ def test_schedule_with_next_invalid_timezone_logs_warning(caplog: pytest.LogCapt
 
 
 def test_schedule_reminder_invalid_timezone_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
-    user = User(telegram_id=1, thread_id="t", timezone="Bad/Zone")
+    user = DbUser(telegram_id=1, thread_id="t", timezone="Bad/Zone")
     rem = Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user)
     job_queue = DummyJobQueue()
     with caplog.at_level(logging.WARNING):
@@ -179,7 +202,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(settings, "webapp_url", "https://example.org")
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add_all(
             [
                 Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True),
@@ -219,7 +242,7 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     handlers.SessionLocal = TestSession
     monkeypatch.setattr(settings, "webapp_url", None)
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
         session.commit()
     with TestSession() as session:
@@ -238,7 +261,7 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
     handlers.SessionLocal = TestSession
     monkeypatch.setattr(settings, "webapp_url", None)
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
     with TestSession() as session:
         text, markup = handlers._render_reminders(session, 1)
@@ -254,7 +277,7 @@ async def test_reminders_list_no_keyboard(monkeypatch: pytest.MonkeyPatch) -> No
     handlers.SessionLocal = TestSession
     monkeypatch.setattr(settings, "webapp_url", None)
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
 
     captured: dict[str, dict] = {}
@@ -263,11 +286,10 @@ async def test_reminders_list_no_keyboard(monkeypatch: pytest.MonkeyPatch) -> No
         captured["text"] = text
         captured["kwargs"] = kwargs
 
-    update = SimpleNamespace(
-        effective_user=SimpleNamespace(id=1),
-        message=SimpleNamespace(reply_text=fake_reply_text),
-    )
-    context = SimpleNamespace()
+    message = MagicMock(spec=Message)
+    message.reply_text = fake_reply_text
+    update = make_update(effective_user=make_user(1), message=message)
+    context = make_context()
     await handlers.reminders_list(update, context)
     assert "У вас нет напоминаний" in captured["text"]
     assert "reply_markup" not in captured["kwargs"]
@@ -282,7 +304,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     handlers.commit = commit
 
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
         session.commit()
 
@@ -292,8 +314,8 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         handlers.schedule_reminder(rem, job_queue)
 
     query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue, user_data={"pending_entry": {}})
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=job_queue, user_data={"pending_entry": {}})
     await handlers.reminder_action_cb(update, context)
     await router.callback_router(update, context)
 
@@ -313,7 +335,7 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     handlers.commit = commit
 
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00"))
         session.commit()
 
@@ -323,8 +345,8 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         handlers.schedule_reminder(rem, job_queue)
 
     query = DummyCallbackQuery("rem_del:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue, user_data={})
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=job_queue, user_data={})
     await handlers.reminder_action_cb(update, context)
 
     with TestSession() as session:
@@ -342,7 +364,7 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     handlers.commit = commit
 
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="medicine", time="08:00"))
         session.commit()
 
@@ -352,11 +374,11 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
         handlers.schedule_reminder(rem, job_queue)
 
     msg = DummyMessage()
-    msg.web_app_data = SimpleNamespace(
-        data=json.dumps({"id": 1, "type": "medicine", "value": "09:00"})
-    )
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue)
+    web_app_data = MagicMock()
+    web_app_data.data = json.dumps({"id": 1, "type": "medicine", "value": "09:00"})
+    msg.web_app_data = web_app_data
+    update = make_update(effective_message=msg, effective_user=make_user(1))
+    context = make_context(job_queue=job_queue)
     await handlers.reminder_webapp_save(update, context)
 
     with TestSession() as session:
@@ -376,7 +398,7 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
     handlers.commit = commit
 
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="23:00"))
         session.commit()
 
@@ -391,11 +413,9 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
         )
     handlers.schedule_reminder(rem, job_queue)
     bot = DummyBot()
-    context = SimpleNamespace(
-        bot=bot,
-        job=SimpleNamespace(data={"reminder_id": 1, "chat_id": 1}),
-        job_queue=job_queue,
-    )
+    job = MagicMock(spec=Job)
+    job.data = {"reminder_id": 1, "chat_id": 1}
+    context = make_context(bot=bot, job=job, job_queue=job_queue)
     await handlers.reminder_job(context)
     assert bot.messages[0][1].startswith("🔔 Замерить сахар")
     keyboard = bot.messages[0][2]["reply_markup"].inline_keyboard[0]
@@ -415,13 +435,13 @@ async def test_cancel_callback(monkeypatch: pytest.MonkeyPatch) -> None:
     handlers.commit = commit
 
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00"))
         session.commit()
 
     query = DummyCallbackQuery("remind_cancel:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot())
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=DummyJobQueue(), bot=DummyBot())
     await handlers.reminder_callback(update, context)
 
     assert query.edited[0] == "❌ Напоминание отменено"
@@ -440,13 +460,13 @@ async def test_reminder_callback_foreign_rid(monkeypatch: pytest.MonkeyPatch) ->
     handlers.commit = commit
 
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00"))
         session.commit()
 
     query = DummyCallbackQuery("remind_cancel:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=2))
-    context = SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot())
+    update = make_update(callback_query=query, effective_user=make_user(2))
+    context = make_context(job_queue=DummyJobQueue(), bot=DummyBot())
     await handlers.reminder_callback(update, context)
 
     assert query.answers == ["Не найдено"]
