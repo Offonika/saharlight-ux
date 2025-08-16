@@ -38,7 +38,10 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, Any]:
         raise HTTPException(status_code=401, detail="invalid hash")
 
     if "user" in params:
-        params["user"] = json.loads(params["user"])
+        try:
+            params["user"] = json.loads(params["user"])
+        except json.JSONDecodeError as exc:
+            raise HTTPException(status_code=401, detail="invalid user data") from exc
     return params
 
 

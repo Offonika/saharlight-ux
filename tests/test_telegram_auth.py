@@ -41,6 +41,22 @@ def test_parse_and_verify_init_data_invalid_hash() -> None:
         parse_and_verify_init_data(tampered, TOKEN)
 
 
+def test_parse_and_verify_init_data_invalid_user_json() -> None:
+    params = {
+        "auth_date": "123",
+        "query_id": "abc",
+        "user": "{bad",
+    }
+    data_check = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
+    secret = hmac.new(b"WebAppData", TOKEN.encode(), hashlib.sha256).digest()
+    params["hash"] = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
+    init_data = urllib.parse.urlencode(params)
+    with pytest.raises(HTTPException) as exc:
+        parse_and_verify_init_data(init_data, TOKEN)
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "invalid user data"
+
+
 def test_require_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data: str = build_init_data()
