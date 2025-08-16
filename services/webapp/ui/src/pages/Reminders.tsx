@@ -8,10 +8,12 @@ import { getReminders, updateReminder, deleteReminder } from '@/api/reminders'
 import MedicalButton from '@/components/MedicalButton'
 import { useTelegramContext } from '@/contexts/TelegramContext'
 import { cn } from '@/lib/utils'
+import {
+  normalizeReminderType,
+  type ReminderType,
+  type NormalizedReminderType,
+} from '@/lib/reminders'
 import { Reminder as ApiReminder } from '@sdk'
-
-type NormalizedReminderType = 'sugar' | 'insulin' | 'meal' | 'medicine'
-type ReminderType = NormalizedReminderType | 'meds'
 
 interface Reminder {
   id: number
@@ -35,9 +37,6 @@ const TYPE_ICON: Record<NormalizedReminderType, string> = {
   meal: '🍽️',
   medicine: '💊',
 }
-
-const normalizeType = (t: ReminderType): NormalizedReminderType =>
-  t === 'meds' ? 'medicine' : t
 
 function parseTimeToMinutes(t: string): number {
   const [h, m] = t.split(':').map(Number)
@@ -77,7 +76,7 @@ function ReminderRow({
   onEdit: (reminder: Reminder) => void
   onDelete: (id: number) => void
 }) {
-  const nt = normalizeType(reminder.type)
+  const nt = normalizeReminderType(reminder.type)
   const icon = TYPE_ICON[nt]
   const label = TYPE_LABEL[nt]
 
@@ -168,7 +167,7 @@ export default function Reminders() {
         const data = await getReminders(user.id)
         if (cancelled) return
         const normalized: Reminder[] = (data || []).map((r: ApiReminder) => {
-          const nt = normalizeType(r.type as ReminderType)
+          const nt = normalizeReminderType(r.type as ReminderType)
           return {
             id: r.id ?? 0,
             type: nt,
