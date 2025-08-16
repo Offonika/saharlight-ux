@@ -71,7 +71,7 @@ async def test_freeform_handler_guidance_on_valueerror(
         SimpleNamespace(user_data={}),
     )
 
-    def fake_smart_input(_: str) -> NoReturn:
+    def fake_smart_input(_: str) -> NoReturn:  # pragma: no cover
         raise ValueError("boom")
 
     monkeypatch.setattr(handlers, "smart_input", fake_smart_input)
