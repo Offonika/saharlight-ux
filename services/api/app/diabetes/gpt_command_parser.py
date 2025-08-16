@@ -54,7 +54,7 @@ def _sanitize_sensitive_data(text: str) -> str:
     return re.sub(api_key_pattern, "[REDACTED]", text)
 
 
-def _extract_first_json(text: str) -> dict | None:
+def _extract_first_json(text: str) -> dict[str, object] | None:
     """Return the first standalone JSON object in *text* or ``None``."""
 
     start = text.find("{")
@@ -95,14 +95,14 @@ def _extract_first_json(text: str) -> dict | None:
     return None
 
 
-async def parse_command(text: str, timeout: float = 10) -> dict | None:
+async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | None:
     try:
         # ``asyncio.to_thread`` runs the blocking OpenAI client in the event
         # loop's shared thread pool, so we reuse threads instead of spawning a
         # fresh ``ThreadPoolExecutor`` for every invocation.
         response = await asyncio.wait_for(
             asyncio.to_thread(
-                _get_client().chat.completions.with_options(timeout=timeout).create,
+                _get_client().chat.completions.create,
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
@@ -110,6 +110,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict | None:
                 ],
                 temperature=0,
                 max_tokens=256,
+                timeout=timeout,
             ),
             timeout,
         )
