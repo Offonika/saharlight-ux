@@ -13,6 +13,15 @@ const NewMeal = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const carbsValue = Number(carbs);
+    if (isNaN(carbsValue) || carbsValue < 0 || carbsValue > 1000) {
+      toast({
+        title: 'Ошибка',
+        description: 'Количество углеводов должно быть от 0 до 1000 г',
+        variant: 'destructive',
+      });
+      return;
+    }
     const now = new Date();
     const record: HistoryRecord = {
       id: Date.now().toString(),
@@ -20,7 +29,7 @@ const NewMeal = () => {
       time: now.toTimeString().slice(0, 5),
       type: 'meal',
       notes: meal,
-      carbs: Number(carbs),
+      carbs: carbsValue,
     };
     try {
       await updateRecord(record);
@@ -57,6 +66,8 @@ const NewMeal = () => {
             Углеводы (г)
             <input
               type="number"
+              min="0"
+              max="1000"
               className="medical-input mt-2"
               value={carbs}
               onChange={(e) => setCarbs(e.target.value)}
