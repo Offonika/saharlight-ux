@@ -549,6 +549,8 @@ async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
+    user_data = context.user_data or {}
+    context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
         return ConversationHandler.END
@@ -564,7 +566,7 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     if icr <= 0:
         await message.reply_text("ИКХ должен быть больше 0.", reply_markup=back_keyboard)
         return PROFILE_ICR
-    context.user_data["profile_icr"] = icr
+    user_data["profile_icr"] = icr
     await message.reply_text(
         "Введите коэффициент чувствительности (КЧ) ммоль/л — на сколько ммоль/л 1 ед. инсулина снижает сахар:",
         reply_markup=back_keyboard,
@@ -574,6 +576,8 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
+    user_data = context.user_data or {}
+    context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
         return ConversationHandler.END
@@ -593,7 +597,7 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if cf <= 0:
         await message.reply_text("КЧ должен быть больше 0.", reply_markup=back_keyboard)
         return PROFILE_CF
-    context.user_data["profile_cf"] = cf
+    user_data["profile_cf"] = cf
     await message.reply_text(
         "Введите целевой уровень сахара (ммоль/л) — к какому значению вы стремитесь:",
         reply_markup=back_keyboard,
@@ -603,6 +607,8 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input."""
+    user_data = context.user_data or {}
+    context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
         return ConversationHandler.END
@@ -626,7 +632,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "Целевой сахар должен быть больше 0.", reply_markup=back_keyboard
         )
         return PROFILE_TARGET
-    context.user_data["profile_target"] = target
+    user_data["profile_target"] = target
     await message.reply_text(
         "Введите нижний порог сахара (ммоль/л) — ниже него бот предупредит о гипогликемии:",
         reply_markup=back_keyboard,
@@ -636,6 +642,8 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle low threshold input."""
+    user_data = context.user_data or {}
+    context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
         return ConversationHandler.END
@@ -659,7 +667,7 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
             "Нижний порог должен быть больше 0.", reply_markup=back_keyboard
         )
         return PROFILE_LOW
-    context.user_data["profile_low"] = low
+    user_data["profile_low"] = low
     await message.reply_text(
         "Введите верхний порог сахара (ммоль/л) — выше него бот предупредит о гипергликемии:",
         reply_markup=back_keyboard,
@@ -667,6 +675,8 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return PROFILE_HIGH
 async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle high threshold input and save profile."""
+    user_data = context.user_data or {}
+    context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
         return ConversationHandler.END
@@ -685,17 +695,17 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             "Введите верхний порог числом.", reply_markup=back_keyboard
         )
         return PROFILE_HIGH
-    low = context.user_data.get("profile_low")
+    low = user_data.get("profile_low")
     if high <= 0 or low is None or high <= low:
         await message.reply_text(
             "Верхний порог должен быть больше нижнего и больше 0.",
             reply_markup=back_keyboard,
         )
         return PROFILE_HIGH
-    icr = context.user_data.pop("profile_icr", None)
-    cf = context.user_data.pop("profile_cf", None)
-    target = context.user_data.pop("profile_target", None)
-    context.user_data.pop("profile_low", None)
+    icr = user_data.pop("profile_icr", None)
+    cf = user_data.pop("profile_cf", None)
+    target = user_data.pop("profile_target", None)
+    user_data.pop("profile_low", None)
     if icr is None or cf is None or target is None:
         await message.reply_text(
             "⚠️ Не хватает данных для сохранения профиля. Пожалуйста, начните заново."
