@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
 from telegram import InlineKeyboardMarkup, Update
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
@@ -154,7 +154,7 @@ async def test_profile_command_help_and_dialog(monkeypatch: pytest.MonkeyPatch) 
         SimpleNamespace(args=["help"], user_data={}),
     )
     result = await handlers.profile_command(update, context)
-    assert result == ConversationHandler.END
+    assert result == handlers.END
     assert "Формат команды" in help_msg.texts[0]
 
     # Test starting dialog with empty args
