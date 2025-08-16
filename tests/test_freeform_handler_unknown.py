@@ -30,7 +30,8 @@ async def test_freeform_handler_unknown_command(
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={})
     )
 
     monkeypatch.setattr(handlers, "parse_command", AsyncMock(return_value=None))

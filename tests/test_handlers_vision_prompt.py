@@ -41,7 +41,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch: pytest.MonkeyPatch, 
         pass
 
     context = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(
             user_data={"thread_id": "tid"},
             bot=SimpleNamespace(

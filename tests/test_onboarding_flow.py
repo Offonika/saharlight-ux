@@ -80,7 +80,7 @@ async def test_onboarding_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         ),
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot_data={}),
     )
 
@@ -140,7 +140,7 @@ async def test_onboarding_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         ),
     )
     context2 = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot_data={}),
     )
     state2 = await onboarding.start_command(update2, context2)

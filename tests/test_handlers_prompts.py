@@ -29,7 +29,11 @@ async def test_prompt_photo_sends_message() -> None:
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
     await dose_handlers.prompt_photo(
-        update, cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace())
+        update,
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            SimpleNamespace(),
+        ),
     )
     assert any("фото" in t.lower() for t in message.texts)
 
@@ -41,7 +45,8 @@ async def test_prompt_sugar_sends_message() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
     )
     await dose_handlers.prompt_sugar(update, context)
     assert any("сахар" in t.lower() for t in message.texts)
@@ -55,7 +60,8 @@ async def test_prompt_dose_sends_message() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
     )
     await dose_handlers.prompt_dose(update, context)
     assert any("доз" in t.lower() for t in message.texts)

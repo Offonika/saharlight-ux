@@ -1,7 +1,13 @@
 from types import SimpleNamespace
 from typing import Any
 
+from types import SimpleNamespace
+from typing import Any, cast
+
 import pytest
+from telegram import Update
+from telegram.ext import CallbackContext
+
 import services.api.app.diabetes.handlers.common_handlers as handlers
 
 
@@ -20,8 +26,11 @@ async def test_help_includes_new_features() -> None:
     """Ensure /help mentions wizard, smart-input and edit features."""
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
 
     await handlers.help_command(update, context)
 
@@ -38,8 +47,11 @@ async def test_help_includes_security_block() -> None:
     """Ensure /help mentions security settings."""
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
 
     await handlers.help_command(update, context)
 
@@ -57,8 +69,11 @@ async def test_help_lists_reminder_commands_and_menu_button() -> None:
     """Ensure reminder commands and menu button are documented."""
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
 
     await handlers.help_command(update, context)
 
@@ -74,8 +89,11 @@ async def test_help_lists_sos_contact_command() -> None:
     """Ensure /help documents SOS contact configuration."""
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
 
     await handlers.help_command(update, context)
 

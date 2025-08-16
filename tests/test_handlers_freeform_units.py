@@ -27,7 +27,8 @@ async def test_freeform_handler_warns_on_sugar_unit_mix() -> None:
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
     )
 
     await handlers.freeform_handler(update, context)
@@ -45,7 +46,8 @@ async def test_freeform_handler_warns_on_dose_unit_mix() -> None:
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
     )
 
     await handlers.freeform_handler(update, context)
@@ -65,7 +67,8 @@ async def test_freeform_handler_guidance_on_valueerror(
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
     )
 
     def fake_smart_input(_):

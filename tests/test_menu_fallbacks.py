@@ -41,7 +41,7 @@ async def test_sugar_conv_menu_then_photo() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
 
@@ -66,7 +66,7 @@ async def test_dose_conv_menu_then_photo() -> None:
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
-        CallbackContext[Any, Any, Any, Any],
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
 

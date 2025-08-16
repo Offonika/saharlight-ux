@@ -2,6 +2,7 @@ from datetime import timedelta
 from types import SimpleNamespace
 from typing import Any, Callable, Optional, cast
 
+from telegram import Update
 from telegram.ext import CallbackContext, Job, JobQueue
 
 from .context_stub import AlertContext, ContextStub
@@ -122,7 +123,12 @@ async def test_repeat_logic(monkeypatch: pytest.MonkeyPatch) -> None:
                 bot=SimpleNamespace(),
             ),
         )
-        await handlers.alert_job(cast(CallbackContext[Any, Any, Any, Any], context))
+        await handlers.alert_job(
+            cast(
+                CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                context,
+            )
+        )
 
     assert len(job_queue.jobs) == handlers.MAX_REPEATS
     assert len(calls) == handlers.MAX_REPEATS
@@ -180,7 +186,10 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
         async def send_message(self, chat_id: int | str, text: str) -> None:
             self.sent.append((chat_id, text))
 
-    update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
+    update = cast(
+        Update,
+        SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
+    )
     context = cast(AlertContext, ContextStub(bot=DummyBot()))
     async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
         return ("0,0", "link")
@@ -188,9 +197,23 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
 
     for _ in range(2):
-        await handlers.check_alert(update, cast(CallbackContext[Any, Any, Any, Any], context), 3)
+        await handlers.check_alert(
+            update,
+            cast(
+                CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                context,
+            ),
+            3,
+        )
     assert context.bot.sent == []
-    await handlers.check_alert(update, cast(CallbackContext[Any, Any, Any, Any], context), 3)
+    await handlers.check_alert(
+        update,
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            context,
+        ),
+        3,
+    )
     assert len(context.bot.sent) == 2
     assert context.bot.sent[0][0] == 1
     assert context.bot.sent[1][0] == "@alice"
@@ -227,7 +250,10 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
         async def send_message(self, chat_id: int | str, text: str) -> None:
             self.sent.append((chat_id, text))
 
-    update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
+    update = cast(
+        Update,
+        SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
+    )
     context = cast(AlertContext, ContextStub(bot=DummyBot()))
 
     async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
@@ -236,7 +262,14 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
 
     for _ in range(3):
-        await handlers.check_alert(update, cast(CallbackContext[Any, Any, Any, Any], context), 3)
+        await handlers.check_alert(
+            update,
+            cast(
+                CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                context,
+            ),
+            3,
+        )
 
     msg = "⚠️ У Ivan критический сахар 3 ммоль/л."
     assert context.bot.sent == [(1, msg), ("@alice", msg)]
