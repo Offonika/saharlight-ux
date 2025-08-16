@@ -784,6 +784,12 @@ profile_webapp_handler = MessageHandler(
 
 
 __all__ = [
+    "get_api",
+    "save_profile",
+    "set_timezone",
+    "fetch_profile",
+    "post_profile",
+    "parse_profile_args",
     "profile_command",
     "profile_view",
     "profile_cancel",
