@@ -1,6 +1,7 @@
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup for direct execution
@@ -55,7 +56,7 @@ async def health() -> dict[str, str]:
 
 
 @app.get("/timezone")
-async def get_timezone(_: dict = Depends(require_tg_user)) -> dict[str, str]:
+async def get_timezone(_: dict[str, Any] = Depends(require_tg_user)) -> dict[str, str]:
     def _get_timezone(session: Session) -> TimezoneDB | None:
         return session.get(TimezoneDB, 1)
 
@@ -70,7 +71,7 @@ async def get_timezone(_: dict = Depends(require_tg_user)) -> dict[str, str]:
 
 
 @app.put("/timezone")
-async def put_timezone(data: Timezone, _: dict = Depends(require_tg_user)) -> dict[str, str]:
+async def put_timezone(data: Timezone, _: dict[str, Any] = Depends(require_tg_user)) -> dict[str, str]:
     try:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
@@ -93,7 +94,7 @@ async def put_timezone(data: Timezone, _: dict = Depends(require_tg_user)) -> di
 
 @app.get("/api/profile/self")
 
-async def profile_self(user: dict = Depends(require_tg_user)) -> dict:
+async def profile_self(user: dict[str, Any] = Depends(require_tg_user)) -> dict[str, Any]:
     return user
 
 
@@ -118,8 +119,8 @@ async def catch_root_ui() -> FileResponse:
 @app.post("/api/user")
 async def create_user(
     data: WebUser,
-    user: dict = Depends(require_tg_user),
-) -> dict:
+    user: dict[str, Any] = Depends(require_tg_user),
+) -> dict[str, str]:
     """Ensure a user exists in the database."""
 
 
@@ -139,7 +140,7 @@ async def create_user(
 
 @app.post("/api/history")
 async def post_history(
-    data: HistoryRecordSchema, user: dict = Depends(require_tg_user)
+    data: HistoryRecordSchema, user: dict[str, Any] = Depends(require_tg_user)
 ) -> dict[str, str]:
     """Save or update a history record in the database."""
 
@@ -184,7 +185,7 @@ async def post_history(
 
 
 @app.get("/api/history")
-async def get_history(user: dict = Depends(require_tg_user)) -> list[HistoryRecordSchema]:
+async def get_history(user: dict[str, Any] = Depends(require_tg_user)) -> list[HistoryRecordSchema]:
     """Return history records for the authenticated user."""
 
     def _get_history(session: Session) -> list[HistoryRecordDB]:
@@ -213,7 +214,7 @@ async def get_history(user: dict = Depends(require_tg_user)) -> list[HistoryReco
 
 
 @app.delete("/api/history/{record_id}")
-async def delete_history(record_id: str, user: dict = Depends(require_tg_user)) -> dict[str, str]:
+async def delete_history(record_id: str, user: dict[str, Any] = Depends(require_tg_user)) -> dict[str, str]:
     """Delete a history record after verifying ownership."""
 
     def _get_record(session: Session) -> HistoryRecordDB | None:
