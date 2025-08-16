@@ -439,6 +439,11 @@ def _security_db(session, user_id: int, action: str | None):
 async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display and modify security settings."""
     query = update.callback_query
+    if query is None or query.data is None:
+        return
+    q_message = query.message
+    if q_message is None:
+        return
     await query.answer()
     user_id = update.effective_user.id
     action = query.data.split(":", 1)[1] if ":" in query.data else None
@@ -446,14 +451,14 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if action == "sos_contact":
         from services.api.app.diabetes.handlers import sos_handlers
 
-        await sos_handlers.sos_contact_start(update.callback_query, context)
+        await sos_handlers.sos_contact_start(query, context)
         return
     if action == "add" and settings.webapp_url:
         button = InlineKeyboardButton(
             "📝 Новое", web_app=WebAppInfo(f"{settings.webapp_url}/ui/reminders")
         )
         keyboard = InlineKeyboardMarkup([[button]])
-        await query.message.reply_text("Создать напоминание:", reply_markup=keyboard)
+        await q_message.reply_text("Создать напоминание:", reply_markup=keyboard)
     elif action == "del":
         await reminder_handlers.delete_reminder(update, context)
 
@@ -464,7 +469,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await query.edit_message_text("Профиль не найден.")
         return
     if not result.get("commit_ok", True):
-        await query.message.reply_text(
+        await q_message.reply_text(
             "⚠️ Не удалось сохранить настройки.",
             reply_markup=menu_keyboard,
         )
