@@ -123,7 +123,7 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user_data_raw = context.user_data
     if user_data_raw is None:
         user_data: dict[str, Any] = {}
-        context.user_data = user_data  # type: ignore[assignment]
+        context.user_data = user_data
     else:
         user_data = user_data_raw
     try:
@@ -150,7 +150,7 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     user_data_raw = context.user_data
     if user_data_raw is None:
         user_data: dict[str, Any] = {}
-        context.user_data = user_data  # type: ignore[assignment]
+        context.user_data = user_data
     else:
         user_data = user_data_raw
     try:
@@ -176,7 +176,7 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     user_data_raw = context.user_data
     if user_data_raw is None:
         user_data: dict[str, Any] = {}
-        context.user_data = user_data  # type: ignore[assignment]
+        context.user_data = user_data
     else:
         user_data = user_data_raw
     if message is None or message.text is None or user is None:
@@ -462,7 +462,7 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user_data_raw = context.user_data
     if user_data_raw is None:
         user_data: dict[str, Any] = {}
-        context.user_data = user_data  # type: ignore[assignment]
+        context.user_data = user_data
     else:
         user_data = user_data_raw
     if message is None:
