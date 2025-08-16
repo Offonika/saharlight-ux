@@ -6,13 +6,24 @@ import { cn } from "@/lib/utils"
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
 
+const COLOR_REGEX = /^[-#a-zA-Z0-9(),.%\s]+$/
+
 function sanitizeColor(color?: string): string | null {
   if (!color) {
     return null
   }
+  const value = color.trim()
+
+  if (!COLOR_REGEX.test(value)) {
+    return null
+  }
+
+  if (value.includes("var(")) {
+    return value
+  }
 
   const option = new Option()
-  option.style.color = color
+  option.style.color = value
   return option.style.color || null
 }
 
@@ -99,13 +110,22 @@ const ChartContainer = React.forwardRef<
 ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const styleContent = buildStyleContent(id, config)
+  React.useEffect(() => {
+    const styleContent = buildStyleContent(id, config)
+    if (!styleContent) {
+      return
+    }
 
-  if (!styleContent) {
-    return null
-  }
+    const style = document.createElement("style")
+    style.setAttribute("data-chart-style", id)
+    style.textContent = styleContent
+    document.head.appendChild(style)
+    return () => {
+      style.remove()
+    }
+  }, [id, config])
 
-  return <style>{styleContent}</style>
+  return null
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip

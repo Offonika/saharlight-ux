@@ -10,13 +10,18 @@ describe('ChartStyle', () => {
       unsafe: { color: "red; background: url(javascript:alert('xss'))" },
     }
 
-    const { container } = render(<ChartStyle id="test" config={config} />)
-    const styleTag = container.querySelector('style')
+    const { unmount } = render(<ChartStyle id="test" config={config} />)
+    const styleTag = document.head.querySelector(
+      'style[data-chart-style="test"]'
+    )
     const option = new Option()
     option.style.color = '#ff0000'
-    expect(styleTag?.textContent).toContain(`--color-safe: ${option.style.color}`)
+    expect(styleTag?.textContent).toContain(
+      `--color-safe: ${option.style.color}`
+    )
     expect(styleTag?.textContent).not.toContain('--color-unsafe')
     expect(styleTag?.textContent).not.toContain('javascript')
+    unmount()
   })
 
   it('blocks style injections', () => {
@@ -25,10 +30,13 @@ describe('ChartStyle', () => {
       inject: { color: "</style><script>window.xss=true</script>" },
     }
 
-    const { container } = render(<ChartStyle id="test" config={config} />)
-    const styleTag = container.querySelector('style')
+    const { unmount } = render(<ChartStyle id="test" config={config} />)
+    const styleTag = document.head.querySelector(
+      'style[data-chart-style="test"]'
+    )
     expect(styleTag?.textContent).toContain('--color-safe')
     expect(styleTag?.textContent).not.toContain('--color-inject')
-    expect(container.querySelector('script')).toBeNull()
+    expect(document.head.querySelector('script')).toBeNull()
+    unmount()
   })
 })
