@@ -1,8 +1,5 @@
 import os
 from types import SimpleNamespace
-from typing import Any
-
-from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest

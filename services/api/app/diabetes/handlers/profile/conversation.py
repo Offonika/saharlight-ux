@@ -387,7 +387,7 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
     user_id = user.id
 
     def db_set_timezone(session: Session) -> tuple[bool, bool]:
-        return cast(tuple[bool, bool], set_timezone(session, user_id, raw))
+        return set_timezone(session, user_id, raw)
 
     exists, ok = await run_db(
         db_set_timezone, sessionmaker=SessionLocal
