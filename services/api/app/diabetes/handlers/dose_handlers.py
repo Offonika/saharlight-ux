@@ -39,7 +39,7 @@ from services.api.app.diabetes.gpt_command_parser import parse_command
 from services.api.app.diabetes.utils.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from services.api.app.diabetes.services.repository import commit
 from collections.abc import Awaitable, Callable
-from typing import TypeVar
+from typing import TypeVar, Any
 from .common_handlers import menu_command
 from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry
@@ -279,9 +279,12 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     message = update.message
     if message is None:
         return ConversationHandler.END
-    user_data = context.user_data
-    if user_data is None:
-        return ConversationHandler.END
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        user_data: dict[str, Any] = {}
+        context.user_data = user_data  # type: ignore[assignment]
+    else:
+        user_data = user_data_raw
     await message.reply_text("Отменено.", reply_markup=menu_keyboard)
     user_data.pop("pending_entry", None)
     user_data.pop("dose_method", None)
