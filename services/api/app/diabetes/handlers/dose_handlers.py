@@ -71,6 +71,7 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message is None:
         return
+    assert message is not None
     await message.reply_text(
         "📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard
     )
@@ -79,12 +80,20 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user for current sugar level."""
     user_data = context.user_data
-    message = update.message
-    if user_data is None or message is None or update.effective_user is None:
+    if user_data is None:
         return END
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        return END
+    assert message is not None
+    user = update.effective_user
+    if user is None:
+        return END
+    assert user is not None
     user_data.pop("pending_entry", None)
     user_data["pending_entry"] = {
-        "telegram_id": update.effective_user.id,
+        "telegram_id": user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
     # Track that sugar conversation is active so it can be cancelled
@@ -103,10 +112,22 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if chat_data is not None and not chat_data.get("sugar_active"):
         return END
     user_data = context.user_data
-    message = update.message
-    if user_data is None or message is None or message.text is None or update.effective_user is None:
+    if user_data is None:
         return END
-    text = message.text.strip().replace(",", ".")
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        return END
+    text = message.text
+    if text is None:
+        return END
+    assert message is not None
+    assert text is not None
+    user = update.effective_user
+    if user is None:
+        return END
+    assert user is not None
+    text = text.strip().replace(",", ".")
     try:
         sugar = float(text)
     except ValueError:
@@ -116,7 +137,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await message.reply_text("Сахар не может быть отрицательным.")
         return SUGAR_VAL
     entry_data = user_data.pop("pending_entry", None) or {
-        "telegram_id": update.effective_user.id,
+        "telegram_id": user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
     entry_data["sugar_before"] = sugar
@@ -139,9 +160,13 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Entry point for dose calculation conversation."""
     user_data = context.user_data
-    message = update.message
-    if user_data is None or message is None:
+    if user_data is None:
         return END
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        return END
+    assert message is not None
     user_data.pop("pending_entry", None)
     user_data.pop("edit_id", None)
     user_data.pop("dose_method", None)
@@ -155,10 +180,18 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle method selection for dose calculation."""
     user_data = context.user_data
-    message = update.message
-    if user_data is None or message is None or message.text is None:
+    if user_data is None:
         return END
-    text = message.text.lower()
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        return END
+    text = message.text
+    if text is None:
+        return END
+    assert message is not None
+    assert text is not None
+    text = text.lower()
     if "назад" in text:
         return await dose_cancel(update, context)
     if "углев" in text:
@@ -179,10 +212,22 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture XE amount from user."""
     user_data = context.user_data
-    message = update.message
-    if user_data is None or message is None or message.text is None or update.effective_user is None:
+    if user_data is None:
         return END
-    text = message.text.strip().replace(",", ".")
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        return END
+    text = message.text
+    if text is None:
+        return END
+    assert message is not None
+    assert text is not None
+    user = update.effective_user
+    if user is None:
+        return END
+    assert user is not None
+    text = text.strip().replace(",", ".")
     try:
         xe = float(text)
     except ValueError:
@@ -192,7 +237,7 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await message.reply_text("Количество ХЕ не может быть отрицательным.")
         return DOSE_XE
     user_data["pending_entry"] = {
-        "telegram_id": update.effective_user.id,
+        "telegram_id": user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
         "xe": xe,
     }
@@ -203,10 +248,22 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture carbohydrates in grams."""
     user_data = context.user_data
-    message = update.message
-    if user_data is None or message is None or message.text is None or update.effective_user is None:
+    if user_data is None:
         return END
-    text = message.text.strip().replace(",", ".")
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        return END
+    text = message.text
+    if text is None:
+        return END
+    assert message is not None
+    assert text is not None
+    user = update.effective_user
+    if user is None:
+        return END
+    assert user is not None
+    text = text.strip().replace(",", ".")
     try:
         carbs = float(text)
     except ValueError:
@@ -218,7 +275,7 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         )
         return DOSE_CARBS
     user_data["pending_entry"] = {
-        "telegram_id": update.effective_user.id,
+        "telegram_id": user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
         "carbs_g": carbs,
     }
@@ -229,10 +286,22 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Finalize dose calculation after receiving sugar level."""
     user_data = context.user_data
-    message = update.message
-    if user_data is None or message is None or message.text is None or update.effective_user is None:
+    if user_data is None:
         return END
-    text = message.text.strip().replace(",", ".")
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        return END
+    text = message.text
+    if text is None:
+        return END
+    assert message is not None
+    assert text is not None
+    user = update.effective_user
+    if user is None:
+        return END
+    assert user is not None
+    text = text.strip().replace(",", ".")
     try:
         sugar = float(text)
     except ValueError:
@@ -257,7 +326,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         carbs_g = xe * 12
         entry["carbs_g"] = carbs_g
 
-    user_id = update.effective_user.id
+    user_id = user.id
     with SessionLocal() as session:
         profile = session.get(Profile, user_id)
 
@@ -301,9 +370,13 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel dose calculation conversation."""
     user_data = context.user_data
-    message = update.message
-    if user_data is None or message is None:
+    if user_data is None:
         return END
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        return END
+    assert message is not None
     await message.reply_text("Отменено.", reply_markup=menu_keyboard)
     user_data.pop("pending_entry", None)
     user_data.pop("dose_method", None)
@@ -330,16 +403,23 @@ def _cancel_then(
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle freeform text commands for adding diary entries."""
     user_data = context.user_data
-    message = update.message
-    if (
-        user_data is None
-        or message is None
-        or message.text is None
-        or update.effective_user is None
-    ):
+    if user_data is None:
         return
-    raw_text = message.text.strip()
-    user_id = update.effective_user.id
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        return
+    text = message.text
+    if text is None:
+        return
+    assert message is not None
+    assert text is not None
+    user = update.effective_user
+    if user is None:
+        return
+    assert user is not None
+    raw_text = text.strip()
+    user_id = user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
 
     if user_data.get("awaiting_report_date"):
@@ -471,7 +551,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 if carbs_g is None and xe is not None:
                     carbs_g = xe * 12
                     entry["carbs_g"] = carbs_g
-                user_id = update.effective_user.id
+                user_id = user.id
                 try:
                     profile = await run_db(
                         lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
@@ -834,10 +914,20 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False) -> int:
     """Process food photos and trigger nutrition analysis."""
     user_data = context.user_data
-    message = update.message or (update.callback_query.message if update.callback_query else None)
-    effective_user = update.effective_user
-    if user_data is None or message is None or effective_user is None:
+    if user_data is None:
         return END
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        query = update.callback_query
+        if query is None or query.message is None:
+            return END
+        message = query.message
+    assert message is not None
+    effective_user = update.effective_user
+    if effective_user is None:
+        return END
+    assert effective_user is not None
     user_id = effective_user.id
 
     if user_data.get(WAITING_GPT_FLAG):
@@ -1085,17 +1175,25 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle images sent as documents."""
     user_data = context.user_data
-    message = update.message
-    effective_user = update.effective_user
-    if user_data is None or message is None or effective_user is None:
+    if user_data is None:
         return END
+    assert user_data is not None
+    message = update.message
+    if message is None:
+        return END
+    assert message is not None
+    effective_user = update.effective_user
+    if effective_user is None:
+        return END
+    assert effective_user is not None
 
     document = message.document
-    if not document:
+    if document is None:
         return END
+    assert document is not None
 
     mime_type = document.mime_type
-    if not mime_type or not mime_type.startswith("image/"):
+    if mime_type is None or not mime_type.startswith("image/"):
         return END
 
     user_id = effective_user.id
