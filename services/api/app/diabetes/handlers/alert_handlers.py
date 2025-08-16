@@ -213,10 +213,10 @@ async def check_alert(
 
 
 async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
-    job: Job[CustomContext] | None = context.job
+    job = cast(Job[CustomContext] | None, context.job)
     if job is None:
         return
-    data: AlertJobData | None = job.data
+    data = cast(AlertJobData | None, job.data)
     if not data:
         job.schedule_removal()
         return
