@@ -1,6 +1,6 @@
 import json
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Callable, cast
 
 import pytest
 from sqlalchemy import create_engine
@@ -23,17 +23,29 @@ class DummyMessage:
 
 
 class DummyJobQueue:
-    def run_daily(self, *a, **k):
+    def run_daily(
+        self,
+        callback: Callable[..., Any],
+        time: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> None:
         pass
 
-    def run_repeating(self, *a, **k):
+    def run_repeating(
+        self,
+        callback: Callable[..., Any],
+        interval: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> None:
         pass
 
-    def get_jobs_by_name(self, name):
+    def get_jobs_by_name(self, name: str) -> list[Any]:
         return []
 
 
-def _setup_db():
+def _setup_db() -> sessionmaker[Any]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -50,8 +62,10 @@ def _setup_db():
 async def test_bad_input_does_not_create_entry() -> None:
     TestSession = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "bad"}))
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=DummyJobQueue())
+    update = cast(
+        Any, SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(Any, SimpleNamespace(job_queue=DummyJobQueue()))
     await handlers.reminder_webapp_save(update, context)
     assert msg.replies and "Неверный формат" in msg.replies[0]
     with TestSession() as session:
@@ -62,8 +76,10 @@ async def test_bad_input_does_not_create_entry() -> None:
 async def test_good_input_updates_and_ends() -> None:
     TestSession = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "09:30"}))
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=DummyJobQueue())
+    update = cast(
+        Any, SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(Any, SimpleNamespace(job_queue=DummyJobQueue()))
     await handlers.reminder_webapp_save(update, context)
     with TestSession() as session:
         rem = session.get(Reminder, 1)

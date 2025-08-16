@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 import pytest
 from sqlalchemy import create_engine
@@ -35,10 +35,22 @@ class DummyJobQueue:
     def __init__(self) -> None:
         self.jobs: list[Any] = []
 
-    def run_daily(self, *args: Any, **kwargs: Any) -> None:
+    def run_daily(
+        self,
+        callback: Callable[..., Any],
+        time: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> None:
         pass
 
-    def run_repeating(self, *args: Any, **kwargs: Any) -> None:
+    def run_repeating(
+        self,
+        callback: Callable[..., Any],
+        interval: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> None:
         pass
 
     def get_jobs_by_name(self, name: str) -> list[Any]:
