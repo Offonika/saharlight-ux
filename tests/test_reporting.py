@@ -19,7 +19,14 @@ from services.api.app.diabetes.services.reporting import make_sugar_plot, genera
 
 
 class DummyEntry:
-    def __init__(self, event_time, sugar_before, carbs_g, xe, dose):
+    def __init__(
+        self,
+        event_time: datetime.datetime,
+        sugar_before: float | None,
+        carbs_g: float,
+        xe: float,
+        dose: float,
+    ) -> None:
         self.event_time = event_time
         self.sugar_before = sugar_before
         self.carbs_g = carbs_g
@@ -69,7 +76,11 @@ def test_make_sugar_plot_sorts_entries(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     captured = {}
 
-    def fake_plot(x, y, **kwargs):
+    def fake_plot(
+        x: list[datetime.datetime],
+        y: list[float],
+        **kwargs: Any,
+    ) -> None:
         captured["x"] = x
         captured["y"] = y
 
@@ -127,7 +138,7 @@ def test_generate_pdf_report() -> None:
 @pytest.mark.parametrize("block", ["summary_lines", "errors", "day_lines"])
 def test_generate_pdf_report_page_breaks(block: Any) -> None:
     long_lines = [f"line {i}" for i in range(100)]
-    kwargs = {"summary_lines": [], "errors": [], "day_lines": []}
+    kwargs: dict[str, list[str]] = {"summary_lines": [], "errors": [], "day_lines": []}
     kwargs[block] = long_lines
     pdf_buf = generate_pdf_report(gpt_text="", plot_buf=None, **kwargs)
     pdf_buf.seek(0)
@@ -182,17 +193,17 @@ async def test_send_report_uses_gpt(monkeypatch: pytest.MonkeyPatch) -> None:
             self.kwargs.append(kwargs)
 
     message = DummyMessage()
-    update = SimpleNamespace(
+    update: Any = SimpleNamespace(
         message=message, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(user_data={"thread_id": "tid"})
+    context: Any = SimpleNamespace(user_data={"thread_id": "tid"})
 
     class Run:
         status = "completed"
         thread_id = "tid"
         id = "rid"
 
-    async def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs: Any) -> Run:
         return Run()
 
     class DummyClient:
