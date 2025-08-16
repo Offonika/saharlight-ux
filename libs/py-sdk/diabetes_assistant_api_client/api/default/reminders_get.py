@@ -5,35 +5,58 @@ import httpx
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
-from ...models.post_api_reminders_response_200 import PostApiRemindersResponse200
 from ...models.reminder import Reminder
-from ...types import Response
+from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
-    body: Reminder,
+    telegram_id: int,
+    id: Union[Unset, int] = UNSET,
 ) -> dict[str, Any]:
-    headers: dict[str, Any] = {}
+    params: dict[str, Any] = {}
+
+    params["telegram_id"] = telegram_id
+
+    params["id"] = id
+
+    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     _kwargs: dict[str, Any] = {
-        "method": "post",
+        "method": "get",
         "url": "/api/reminders",
+        "params": params,
     }
 
-    _kwargs["json"] = body.to_dict()
-
-    headers["Content-Type"] = "application/json"
-
-    _kwargs["headers"] = headers
     return _kwargs
 
 
 def _parse_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Optional[PostApiRemindersResponse200]:
+) -> Optional[Union["Reminder", list["Reminder"]]]:
     if response.status_code == 200:
-        response_200 = PostApiRemindersResponse200.from_dict(response.json())
+
+        def _parse_response_200(data: object) -> Union["Reminder", list["Reminder"]]:
+            try:
+                if not isinstance(data, dict):
+                    raise TypeError()
+                response_200_type_0 = Reminder.from_dict(data)
+
+                return response_200_type_0
+            except:  # noqa: E722
+                pass
+            if not isinstance(data, list):
+                raise TypeError()
+            response_200_type_1 = []
+            _response_200_type_1 = data
+            for response_200_type_1_item_data in _response_200_type_1:
+                response_200_type_1_item = Reminder.from_dict(response_200_type_1_item_data)
+
+                response_200_type_1.append(response_200_type_1_item)
+
+            return response_200_type_1
+
+        response_200 = _parse_response_200(response.json())
 
         return response_200
     if client.raise_on_unexpected_status:
@@ -44,7 +67,7 @@ def _parse_response(
 
 def _build_response(
     *, client: Union[AuthenticatedClient, Client], response: httpx.Response
-) -> Response[PostApiRemindersResponse200]:
+) -> Response[Union["Reminder", list["Reminder"]]]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -56,23 +79,26 @@ def _build_response(
 def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
-    body: Reminder,
-) -> Response[PostApiRemindersResponse200]:
-    """Save reminder
+    telegram_id: int,
+    id: Union[Unset, int] = UNSET,
+) -> Response[Union["Reminder", list["Reminder"]]]:
+    """List or retrieve reminders
 
     Args:
-        body (Reminder):
+        telegram_id (int):
+        id (Union[Unset, int]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[PostApiRemindersResponse200]
+        Response[Union['Reminder', list['Reminder']]]
     """
 
     kwargs = _get_kwargs(
-        body=body,
+        telegram_id=telegram_id,
+        id=id,
     )
 
     response = client.get_httpx_client().request(
@@ -85,47 +111,53 @@ def sync_detailed(
 def sync(
     *,
     client: Union[AuthenticatedClient, Client],
-    body: Reminder,
-) -> Optional[PostApiRemindersResponse200]:
-    """Save reminder
+    telegram_id: int,
+    id: Union[Unset, int] = UNSET,
+) -> Optional[Union["Reminder", list["Reminder"]]]:
+    """List or retrieve reminders
 
     Args:
-        body (Reminder):
+        telegram_id (int):
+        id (Union[Unset, int]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        PostApiRemindersResponse200
+        Union['Reminder', list['Reminder']]
     """
 
     return sync_detailed(
         client=client,
-        body=body,
+        telegram_id=telegram_id,
+        id=id,
     ).parsed
 
 
 async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
-    body: Reminder,
-) -> Response[PostApiRemindersResponse200]:
-    """Save reminder
+    telegram_id: int,
+    id: Union[Unset, int] = UNSET,
+) -> Response[Union["Reminder", list["Reminder"]]]:
+    """List or retrieve reminders
 
     Args:
-        body (Reminder):
+        telegram_id (int):
+        id (Union[Unset, int]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        Response[PostApiRemindersResponse200]
+        Response[Union['Reminder', list['Reminder']]]
     """
 
     kwargs = _get_kwargs(
-        body=body,
+        telegram_id=telegram_id,
+        id=id,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -136,24 +168,27 @@ async def asyncio_detailed(
 async def asyncio(
     *,
     client: Union[AuthenticatedClient, Client],
-    body: Reminder,
-) -> Optional[PostApiRemindersResponse200]:
-    """Save reminder
+    telegram_id: int,
+    id: Union[Unset, int] = UNSET,
+) -> Optional[Union["Reminder", list["Reminder"]]]:
+    """List or retrieve reminders
 
     Args:
-        body (Reminder):
+        telegram_id (int):
+        id (Union[Unset, int]):
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
         httpx.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
-        PostApiRemindersResponse200
+        Union['Reminder', list['Reminder']]
     """
 
     return (
         await asyncio_detailed(
             client=client,
-            body=body,
+            telegram_id=telegram_id,
+            id=id,
         )
     ).parsed

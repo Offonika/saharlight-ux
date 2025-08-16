@@ -29,9 +29,9 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
         /** Save timezone */
-        post: operations["timezonePost"];
+        put: operations["timezonePut"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -136,7 +136,7 @@ export interface operations {
             };
         };
     };
-    timezonePost: {
+    timezonePut: {
         parameters: {
             query?: never;
             header?: never;
