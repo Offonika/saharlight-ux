@@ -2,8 +2,10 @@ import asyncio
 import json
 import logging
 import re
+from typing import Any
 
 from openai import OpenAIError
+from openai.types.chat import ChatCompletion
 
 from pydantic import ValidationError
 
@@ -97,12 +99,15 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
 
 async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | None:
     try:
+        def create_completion(*args: Any, **kwargs: Any) -> ChatCompletion:
+            return _get_client().chat.completions.create(*args, **kwargs)
+
         # ``asyncio.to_thread`` runs the blocking OpenAI client in the event
         # loop's shared thread pool, so we reuse threads instead of spawning a
         # fresh ``ThreadPoolExecutor`` for every invocation.
         response = await asyncio.wait_for(
             asyncio.to_thread(
-                _get_client().chat.completions.create,
+                create_completion,
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
