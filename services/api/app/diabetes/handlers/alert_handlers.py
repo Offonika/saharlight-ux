@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any, Callable, TypedDict
+from typing import Any, Callable, TypedDict, cast
 
 from sqlalchemy.orm import Session, sessionmaker
 from telegram import Update
@@ -22,6 +22,7 @@ SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], bool] = _commit
 
 CustomContext = ContextTypes.DEFAULT_TYPE
+DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 
 
 class AlertJobData(TypedDict, total=False):
@@ -39,7 +40,7 @@ ALERT_REPEAT_DELAY = datetime.timedelta(minutes=5)
 
 def schedule_alert(
     user_id: int,
-    job_queue: JobQueue[CustomContext],
+    job_queue: DefaultJobQueue,
     *,
     sugar: float,
     profile: dict[str, Any],
@@ -113,7 +114,7 @@ async def _send_alert_message(
 async def evaluate_sugar(
     user_id: int,
     sugar: float,
-    job_queue: JobQueue[CustomContext] | None = None,
+    job_queue: DefaultJobQueue | None = None,
     *,
     context: ContextTypes.DEFAULT_TYPE | None = None,
     first_name: str = "",
@@ -191,9 +192,14 @@ async def check_alert(
     update: Update, context: ContextTypes.DEFAULT_TYPE, sugar: float
 ) -> None:
     """Wrapper to evaluate sugar using :func:`evaluate_sugar`."""
-    job_queue: JobQueue[CustomContext] | None = getattr(context, "job_queue", None)
+    job_queue: DefaultJobQueue | None = cast(
+        DefaultJobQueue | None, getattr(context, "job_queue", None)
+    )
     if job_queue is None:
-        job_queue = getattr(getattr(context, "application", None), "job_queue", None)
+        job_queue = cast(
+            DefaultJobQueue | None,
+            getattr(getattr(context, "application", None), "job_queue", None),
+        )
     await evaluate_sugar(
         update.effective_user.id,
         sugar,
@@ -241,7 +247,9 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             commit(session)
         job.schedule_removal()
         return
-    job_queue: JobQueue[CustomContext] | None = context.job_queue
+    job_queue: DefaultJobQueue | None = cast(
+        DefaultJobQueue | None, context.job_queue
+    )
     if job_queue is None:
         return
     schedule_alert(

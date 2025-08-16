@@ -14,6 +14,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from services.api.app.diabetes.services.db import init_db
 
 from services.api.app.config import settings
+
+DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 logger = logging.getLogger(__name__)
 
 
@@ -72,7 +74,7 @@ def main() -> None:
             dict[str, Any],
             dict[str, Any],
             dict[str, Any],
-            JobQueue[ContextTypes.DEFAULT_TYPE],
+            DefaultJobQueue,
         ]
     ) -> None:
         await app.bot.set_my_commands(commands)
@@ -83,7 +85,7 @@ def main() -> None:
         dict[str, Any],
         dict[str, Any],
         dict[str, Any],
-        JobQueue[ContextTypes.DEFAULT_TYPE],
+        DefaultJobQueue,
     ] = (
         Application.builder()
         .token(BOT_TOKEN)
