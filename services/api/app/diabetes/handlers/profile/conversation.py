@@ -14,6 +14,7 @@ from telegram.ext import (
 import json
 import logging
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from sqlalchemy.orm import Session
 
 from services.api.app.diabetes.services.db import (
     SessionLocal,
@@ -375,7 +376,9 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
     return ConversationHandler.END
 
 
-def _security_db(session, user_id: int, action: str | None):
+def _security_db(
+    session: Session, user_id: int, action: str | None
+) -> dict[str, object]:
     profile = session.get(Profile, user_id)
     user = session.get(User, user_id)
     if not profile:
@@ -428,11 +431,11 @@ def _security_db(session, user_id: int, action: str | None):
     return {
         "found": True,
         "commit_ok": commit_ok,
-        "low": profile.low_threshold or 0,
-        "high": profile.high_threshold or 0,
+        "low": float(profile.low_threshold or 0),
+        "high": float(profile.high_threshold or 0),
         "sos_enabled": profile.sos_alerts_enabled,
         "rem_text": rem_text,
-        "alert_sugar": alert_sugar,
+        "alert_sugar": float(alert_sugar) if alert_sugar is not None else None,
     }
 
 
