@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import time
 import urllib.parse
 
 from typing import Any, Callable
@@ -35,7 +36,7 @@ TOKEN = "test-token"
 
 def build_init_data(user_id: int = 1) -> str:
     user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
-    params = {"auth_date": "123", "query_id": "abc", "user": user}
+    params = {"auth_date": str(int(time.time())), "query_id": "abc", "user": user}
     data_check = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
     secret = hmac.new(b"WebAppData", TOKEN.encode(), hashlib.sha256).digest()
     params["hash"] = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
