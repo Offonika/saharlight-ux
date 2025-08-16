@@ -18,10 +18,13 @@ describe('tgFetch', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
-    global.fetch = originalFetch;
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
+    try {
+      global.fetch = originalFetch;
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('sets credentials and attaches init data header', async () => {
