@@ -4,9 +4,10 @@ import asyncio
 import logging
 import os
 import threading
-from typing import Any, Iterable
+from typing import Any, Iterable, cast
 
 from openai import OpenAI, OpenAIError
+from openai.types.chat import ChatCompletion
 from openai.types.beta import Thread
 from openai.types.beta.threads import (
     ImageFileContentBlockParam,
@@ -31,6 +32,14 @@ def _get_client() -> OpenAI:
             if _client is None:
                 _client = get_openai_client()
     return _client
+
+
+def create_chat_completion(*args: Any, **kwargs: Any) -> ChatCompletion:
+    """Create a chat completion with typed return value."""
+    return cast(
+        ChatCompletion,
+        _get_client().chat.completions.create(*args, **kwargs),
+    )
 
 
 async def create_thread() -> str:
