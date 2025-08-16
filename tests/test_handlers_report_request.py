@@ -79,7 +79,11 @@ async def test_report_request_and_custom_flow(
     called = {}
 
     async def dummy_send_report(
-        update, context, date_from, period_label, query=None
+        update: Update,
+        context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        date_from: dt.datetime,
+        period_label: str,
+        query: DummyQuery | None = None,
     ) -> None:
         called["called"] = True
         expected = dt.datetime(2024, 1, 1, tzinfo=dt.timezone.utc)
@@ -115,7 +119,11 @@ async def test_report_period_callback_week(
     called: dict[str, dt.datetime | str] = {}
 
     async def dummy_send_report(
-        update, context, date_from, period_label, query=None
+        update: Update,
+        context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        date_from: dt.datetime,
+        period_label: str,
+        query: DummyQuery | None = None,
     ) -> None:
         called["date_from"] = date_from
         called["period_label"] = period_label

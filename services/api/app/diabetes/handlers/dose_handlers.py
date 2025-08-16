@@ -80,10 +80,11 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user for current sugar level."""
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return END
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -112,10 +113,11 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     chat_data = getattr(context, "chat_data", None)
     if chat_data is not None and not chat_data.get("sugar_active"):
         return END
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return END
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -160,10 +162,11 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Entry point for dose calculation conversation."""
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return END
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -180,10 +183,11 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle method selection for dose calculation."""
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return END
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -212,10 +216,11 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture XE amount from user."""
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return END
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -248,10 +253,11 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture carbohydrates in grams."""
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return END
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -286,10 +292,11 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Finalize dose calculation after receiving sugar level."""
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return END
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -370,10 +377,11 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel dose calculation conversation."""
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return END
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -403,10 +411,11 @@ def _cancel_then(
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle freeform text commands for adding diary entries."""
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         return
@@ -914,10 +923,11 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False) -> int:
     """Process food photos and trigger nutrition analysis."""
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return END
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         query = update.callback_query
@@ -1175,10 +1185,11 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
 
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle images sent as documents."""
-    user_data = context.user_data
-    if user_data is None:
+    user_data_raw = context.user_data
+    if user_data_raw is None:
         return END
-    assert user_data is not None
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     message = update.message
     if message is None:
         return END

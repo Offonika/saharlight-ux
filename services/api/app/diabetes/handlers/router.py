@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
 from telegram.ext import ContextTypes
+from typing import Any, cast
 
 from services.api.app.diabetes.services.db import Entry, SessionLocal
 from services.api.app.diabetes.utils.ui import menu_keyboard
@@ -25,10 +26,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
 
     if data == "confirm_entry":
-        user_data = context.user_data
-        if user_data is None:
+        user_data_raw = context.user_data
+        if user_data_raw is None:
             return
-        assert user_data is not None
+        assert user_data_raw is not None
+        user_data = cast(dict[str, Any], user_data_raw)
         entry_data = user_data.pop("pending_entry", None)
         if not entry_data:
             await query.edit_message_text("❗ Нет данных для сохранения.")
@@ -55,10 +57,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reminder_handlers.schedule_after_meal(user.id, job_queue)
         return
     elif data == "edit_entry":
-        user_data = context.user_data
-        if user_data is None:
+        user_data_raw = context.user_data
+        if user_data_raw is None:
             return
-        assert user_data is not None
+        assert user_data_raw is not None
+        user_data = cast(dict[str, Any], user_data_raw)
         entry_data = user_data.get("pending_entry")
         if not entry_data:
             await query.edit_message_text("❗ Нет данных для редактирования.")
@@ -72,10 +75,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return
     elif data == "cancel_entry":
-        user_data = context.user_data
-        if user_data is None:
+        user_data_raw = context.user_data
+        if user_data_raw is None:
             return
-        assert user_data is not None
+        assert user_data_raw is not None
+        user_data = cast(dict[str, Any], user_data_raw)
         user_data.pop("pending_entry", None)
         await query.edit_message_text("❌ Запись отменена.")
         message = query.message
@@ -114,10 +118,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await query.edit_message_text("❌ Запись удалена.")
                 return
             if action == "edit":
-                user_data = context.user_data
-                if user_data is None:
+                user_data_raw = context.user_data
+                if user_data_raw is None:
                     return
-                assert user_data is not None
+                assert user_data_raw is not None
+                user_data = cast(dict[str, Any], user_data_raw)
                 message = query.message
                 if message is None:
                     return
@@ -157,10 +162,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             logger.warning("Invalid edit_field data: %s", data)
             await query.edit_message_text("Некорректные данные для редактирования.")
             return
-        user_data = context.user_data
-        if user_data is None:
+        user_data_raw = context.user_data
+        if user_data_raw is None:
             return
-        assert user_data is not None
+        assert user_data_raw is not None
+        user_data = cast(dict[str, Any], user_data_raw)
         user_data["edit_id"] = edit_entry_id
         user_data["edit_field"] = field
         user_data["edit_query"] = query
