@@ -32,11 +32,11 @@ const Profile = () => {
         const data = await getProfile(user.id);
         if (data && active) {
           setProfile({
-            icr: data.icr.toString(),
-            correctionFactor: data.cf.toString(),
-            targetSugar: data.target.toString(),
-            lowThreshold: data.low.toString(),
-            highThreshold: data.high.toString(),
+            icr: String(data.icr ?? ''),
+            correctionFactor: String(data.cf ?? ''),
+            targetSugar: String(data.target ?? ''),
+            lowThreshold: String(data.low ?? ''),
+            highThreshold: String(data.high ?? ''),
           });
         }
       } catch (error) {
