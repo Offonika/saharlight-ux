@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)
-END: int = cast(int, ConversationHandler.END)
+END: int = ConversationHandler.END
 
 
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -758,9 +758,9 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         await message.reply_text("⚠️ Не удалось определить пользователя.")
         return END
     user_id = user.id
+
     def db_save_profile(session: Session) -> bool:
-        return cast(
-            bool,
+        return bool(
             save_profile(
                 session,
                 user_id,
@@ -769,7 +769,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
                 target,
                 low,
                 high,
-            ),
+            )
         )
 
     ok = await run_db(
