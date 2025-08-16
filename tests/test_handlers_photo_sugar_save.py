@@ -1,6 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
 from typing import Any, cast
+from unittest.mock import Mock, PropertyMock
 
 import pytest
 from telegram import Update
@@ -87,11 +88,11 @@ async def test_photo_flow_saves_entry(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
+        Mock(spec=CallbackContext),
     )
-    await dose_handlers.freeform_handler(update_start, context)
-
-    monkeypatch.chdir(tmp_path)
+    user_data: dict[str, Any] = {}
+    type(context).user_data = PropertyMock(return_value=user_data)
+    type(context).job_queue = PropertyMock(return_value=None)
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
@@ -100,7 +101,12 @@ async def test_photo_flow_saves_entry(
 
         return File()
 
-    context.bot = SimpleNamespace(get_file=fake_get_file)
+    fake_bot = SimpleNamespace(get_file=fake_get_file)
+    type(context).bot = PropertyMock(return_value=fake_bot)
+
+    await dose_handlers.freeform_handler(update_start, context)
+
+    monkeypatch.chdir(tmp_path)
 
     class Run:
         status = "completed"
