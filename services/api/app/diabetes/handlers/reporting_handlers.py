@@ -190,10 +190,10 @@ async def report_period_callback(
     elif period == "custom":
         user_data_raw = context.user_data
         if user_data_raw is None:
-            user_data: dict[str, Any] = {}
-            context.user_data = user_data
-        else:
-            user_data = user_data_raw
+            context.user_data = {}
+            user_data_raw = context.user_data
+        assert user_data_raw is not None
+        user_data = cast(dict[str, Any], user_data_raw)
         user_data["awaiting_report_date"] = True
         await query.edit_message_text(
             "Введите дату начала отчёта в формате YYYY-MM-DD\n"
@@ -275,10 +275,10 @@ async def send_report(
     gpt_text: str | None = default_gpt_text
     user_data_raw = context.user_data
     if user_data_raw is None:
-        user_data: dict[str, Any] = {}
-        context.user_data = user_data
-    else:
-        user_data = user_data_raw
+        context.user_data = {}
+        user_data_raw = context.user_data
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     thread_id = cast(str | None, user_data.get("thread_id"))
     if thread_id is None:
         with SessionLocal() as session:

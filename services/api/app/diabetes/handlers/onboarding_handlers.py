@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import Any, cast
 
 from telegram import (
     InlineKeyboardButton,
@@ -122,10 +122,10 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return ConversationHandler.END
     user_data_raw = context.user_data
     if user_data_raw is None:
-        user_data: dict[str, Any] = {}
-        context.user_data = user_data
-    else:
-        user_data = user_data_raw
+        context.user_data = {}
+        user_data_raw = context.user_data
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     try:
         icr = float(message.text.replace(",", "."))
     except ValueError:
@@ -149,10 +149,10 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         return ConversationHandler.END
     user_data_raw = context.user_data
     if user_data_raw is None:
-        user_data: dict[str, Any] = {}
-        context.user_data = user_data
-    else:
-        user_data = user_data_raw
+        context.user_data = {}
+        user_data_raw = context.user_data
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     try:
         cf = float(message.text.replace(",", "."))
     except ValueError:
@@ -175,10 +175,10 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     user = update.effective_user
     user_data_raw = context.user_data
     if user_data_raw is None:
-        user_data: dict[str, Any] = {}
-        context.user_data = user_data
-    else:
-        user_data = user_data_raw
+        context.user_data = {}
+        user_data_raw = context.user_data
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     if message is None or message.text is None or user is None:
         return ConversationHandler.END
     try:
@@ -461,10 +461,10 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     message = update.message
     user_data_raw = context.user_data
     if user_data_raw is None:
-        user_data: dict[str, Any] = {}
-        context.user_data = user_data
-    else:
-        user_data = user_data_raw
+        context.user_data = {}
+        user_data_raw = context.user_data
+    assert user_data_raw is not None
+    user_data = cast(dict[str, Any], user_data_raw)
     if message is None:
         return ConversationHandler.END
 
