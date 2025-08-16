@@ -18,6 +18,7 @@ describe('tgFetch', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     global.fetch = originalFetch;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -50,6 +51,5 @@ describe('tgFetch', () => {
     const promise = tgFetch('/api/profile');
     vi.advanceTimersByTime(10_000);
     await expect(promise).rejects.toThrow('Превышено время ожидания');
-    vi.useRealTimers();
   });
 });
