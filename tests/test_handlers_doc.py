@@ -1,6 +1,6 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 from sqlalchemy.orm import sessionmaker
 
@@ -105,6 +105,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
 
     assert result == handlers.ConversationHandler.END
     assert not called.flag
+    assert context.user_data is not None
     assert "__file_path" not in context.user_data
 
 
@@ -123,6 +124,7 @@ async def test_photo_handler_handles_typeerror() -> None:
 
     assert message.texts == ["❗ Файл не распознан как изображение."]
     assert result == handlers.ConversationHandler.END
+    assert context.user_data is not None
     assert handlers.WAITING_GPT_FLAG not in context.user_data
 
 
@@ -267,7 +269,7 @@ async def test_photo_then_freeform_calculates_dose(
         def get(self, model: Any, user_id: int) -> SimpleNamespace:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    session_factory = cast(sessionmaker, lambda: DummySession())
+    session_factory = cast(Callable[[], DummySession], lambda: DummySession())
     handlers.SessionLocal = session_factory
 
     sugar_msg = DummyMessage(text="5")
