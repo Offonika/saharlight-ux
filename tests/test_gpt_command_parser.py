@@ -16,7 +16,7 @@ from services.api.app.diabetes import gpt_command_parser  # noqa: E402
 
 @pytest.mark.asyncio
 async def test_parse_command_timeout_non_blocking(monkeypatch: pytest.MonkeyPatch) -> None:
-    def slow_create(*args, **kwargs):
+    def slow_create(*args: Any, **kwargs: Any) -> Any:
         time.sleep(1)
 
         class FakeResponse:
@@ -70,7 +70,7 @@ async def test_parse_command_with_explanatory_text(monkeypatch: pytest.MonkeyPat
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
@@ -98,7 +98,7 @@ async def test_parse_command_with_array_response(monkeypatch: pytest.MonkeyPatch
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
@@ -126,7 +126,7 @@ async def test_parse_command_with_scalar_response(monkeypatch: pytest.MonkeyPatc
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
@@ -158,7 +158,7 @@ async def test_parse_command_with_invalid_schema(monkeypatch: pytest.MonkeyPatch
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     fake_client = SimpleNamespace(
@@ -183,7 +183,7 @@ async def test_parse_command_with_missing_content(monkeypatch: pytest.MonkeyPatc
     class FakeResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {})()})]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
@@ -213,7 +213,7 @@ async def test_parse_command_with_non_string_content(monkeypatch: pytest.MonkeyP
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
@@ -305,7 +305,7 @@ async def test_parse_command_with_multiple_jsons(monkeypatch: pytest.MonkeyPatch
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     fake_client = SimpleNamespace(
@@ -342,7 +342,7 @@ async def test_parse_command_with_malformed_json(monkeypatch: pytest.MonkeyPatch
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     fake_client = SimpleNamespace(
