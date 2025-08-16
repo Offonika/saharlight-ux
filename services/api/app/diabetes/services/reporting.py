@@ -23,6 +23,7 @@ date2num_typed = cast(Callable[[datetime], float], date2num)
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
 DEFAULT_FONT_DIR = '/usr/share/fonts/truetype/dejavu'
 _font_dir = settings.font_dir or DEFAULT_FONT_DIR
+_fonts_registered = False
 
 
 class SugarEntry(Protocol):
@@ -31,39 +32,61 @@ class SugarEntry(Protocol):
     event_time: datetime
     sugar_before: float | None
 
-
-def _register_font(name: str, filename: str) -> None:
+def _register_font(name: str, filename: str) -> str | None:
     path = os.path.join(_font_dir, filename)
     try:
         pdfmetrics.registerFont(TTFont(name, path))
+        return None
     except (OSError, TTFError) as e:
         if isinstance(e, OSError):
-            logging.warning("[PDF] Cannot register font %s at %s: %s", name, path, e)
+            msg = f"[PDF] Cannot register font {name} at {path}: {e}"
         else:
-            logging.warning("[PDF] Invalid font %s at %s: %s", name, path, e)
+            msg = f"[PDF] Invalid font {name} at {path}: {e}"
+        logging.warning(msg)
         if _font_dir != DEFAULT_FONT_DIR:
             fallback = os.path.join(DEFAULT_FONT_DIR, filename)
             try:
                 pdfmetrics.registerFont(TTFont(name, fallback))
+                return (
+                    f"Использован запасной шрифт {fallback} для {name}: {e}"
+                )
             except (OSError, TTFError) as e2:
                 if isinstance(e2, OSError):
-                    logging.warning(
-                        "[PDF] Failed to register default font %s at %s: %s",
-                        name,
-                        fallback,
-                        e2,
+                    msg2 = (
+                        f"[PDF] Failed to register default font {name} at {fallback}: {e2}"
                     )
                 else:
-                    logging.warning(
-                        "[PDF] Invalid default font %s at %s: %s",
-                        name,
-                        fallback,
-                        e2,
+                    msg2 = (
+                        f"[PDF] Invalid default font {name} at {fallback}: {e2}"
                     )
+                logging.warning(msg2)
+                return msg2
+        return msg
 
 
-_register_font('DejaVuSans', 'DejaVuSans.ttf')
-_register_font('DejaVuSans-Bold', 'DejaVuSans-Bold.ttf')
+def register_fonts() -> list[str]:
+    """Регистрация используемых шрифтов для отчётов.
+
+    Returns:
+        list[str]: Список сообщений об ошибках регистрации. Пустой, если
+        регистрация прошла успешно.
+    """
+
+    global _fonts_registered
+    if _fonts_registered:
+        return []
+
+    messages: list[str] = []
+    for name, filename in (
+        ("DejaVuSans", "DejaVuSans.ttf"),
+        ("DejaVuSans-Bold", "DejaVuSans-Bold.ttf"),
+    ):
+        msg = _register_font(name, filename)
+        if msg:
+            messages.append(msg)
+
+    _fonts_registered = True
+    return messages
 
 
 def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.BytesIO:
@@ -166,6 +189,10 @@ def generate_pdf_report(
         Использует библиотеку ``reportlab`` для записи PDF и может
         логировать предупреждения при ошибках чтения изображения.
     """
+    font_errors = register_fonts()
+    if font_errors:
+        logging.warning("[PDF] Font registration issues: %s", "; ".join(font_errors))
+
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
