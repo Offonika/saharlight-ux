@@ -4,5 +4,5 @@ export function tgFetch(input: RequestInfo | URL, init: RequestInit = {}) {
   if (tg?.initData) {
     headers.set("X-Telegram-Init-Data", tg.initData);
   }
-  return fetch(input, { ...init, headers });
+  return fetch(input, { credentials: "include", ...init, headers });
 }
