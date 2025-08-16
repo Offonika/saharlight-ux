@@ -62,7 +62,8 @@ export default function CreateReminder() {
   const [title, setTitle] = useState(editing?.title ?? "");
   const [time, setTime] = useState(editing?.time ?? "");
   // interval is stored in minutes for UI, API expects hours
-  const [interval, setInterval] = useState<number | undefined>(editing?.interval ?? 60);
+  const [intervalMinutes, setIntervalMinutes] =
+    useState<number | undefined>(editing?.interval ?? 60);
   const [error, setError] = useState<string | null>(null);
   const [typeOpen, setTypeOpen] = useState(false);
 
@@ -84,7 +85,7 @@ export default function CreateReminder() {
             setType(loaded.type);
             setTitle(loaded.title);
             setTime(loaded.time);
-            setInterval(loaded.interval ?? 60);
+            setIntervalMinutes(loaded.interval ?? 60);
           } else {
             const message = "Не удалось загрузить напоминание";
             setError(message);
@@ -102,7 +103,8 @@ export default function CreateReminder() {
 
   const validName = title.trim().length >= 2;
   const validTime = isValidTime(time);
-  const validInterval = typeof interval === "number" && interval >= 5;
+  const validInterval =
+    typeof intervalMinutes === "number" && intervalMinutes >= 5;
   const formValid = validName && validTime && validInterval;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,7 +115,8 @@ export default function CreateReminder() {
       telegramId: user.id,
       type,
       time,
-      intervalHours: interval != null ? interval / 60 : undefined,
+      intervalHours:
+        intervalMinutes != null ? intervalMinutes / 60 : undefined,
       isEnabled: true,
       ...(editing ? { id: editing.id } : {}),
     };
@@ -122,7 +125,8 @@ export default function CreateReminder() {
         ? await updateReminder(payload)
         : await createReminder(payload);
       const rid = editing ? editing.id : res?.id;
-      const hours = interval != null ? interval / 60 : undefined;
+      const hours =
+        intervalMinutes != null ? intervalMinutes / 60 : undefined;
       const value =
         hours != null && Number.isInteger(hours) ? `${hours}h` : time;
       if (rid) {
@@ -185,10 +189,10 @@ export default function CreateReminder() {
             type="number"
             min={5}
             step={5}
-            value={interval ?? ""}
+            value={intervalMinutes ?? ""}
             onChange={(e) => {
               const val = parseInt(e.target.value, 10);
-              setInterval(Number.isNaN(val) ? undefined : val);
+              setIntervalMinutes(Number.isNaN(val) ? undefined : val);
             }}
           />
           <div className="flex flex-wrap gap-2 mt-2">
@@ -196,10 +200,10 @@ export default function CreateReminder() {
               <button
                 key={n}
                 type="button"
-                onClick={() => setInterval(n)}
+                onClick={() => setIntervalMinutes(n)}
                 className={cn(
                   "px-3 py-1 rounded-full border text-sm",
-                  interval === n &&
+                  intervalMinutes === n &&
                     "bg-primary text-primary-foreground border-primary"
                 )}
               >
@@ -233,7 +237,7 @@ export default function CreateReminder() {
         <div className="text-sm">
           <span>{typeInfo.emoji} </span>
           {title.trim() || typeInfo.label}, {time}
-          {interval && ` • каждые ${interval} мин`}
+          {intervalMinutes && ` • каждые ${intervalMinutes} мин`}
         </div>
         <div className="flex gap-2">
           <MedicalButton
