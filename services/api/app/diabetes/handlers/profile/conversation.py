@@ -71,22 +71,50 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     # Ensure no pending sugar logging conversation captures profile input
     from ..dose_handlers import sugar_conv
+
     chat_data = getattr(context, "chat_data", {})
+    chat = getattr(update, "effective_chat", None)
+    chat_id = (
+        getattr(chat, "id", None)
+        if getattr(sugar_conv, "per_chat", False)
+        else None
+    )
+    user = getattr(update, "effective_user", None)
+    user_id = (
+        getattr(user, "id", None)
+        if getattr(sugar_conv, "per_user", False)
+        else None
+    )
+    message = getattr(update, "effective_message", None)
+    msg_id = (
+        getattr(message, "message_id", None)
+        if getattr(sugar_conv, "per_message", False)
+        else None
+    )
+
     if chat_data.pop("sugar_active", None):
         end_conv = getattr(sugar_conv, "update_state", None)
         if callable(end_conv):
             end_conv(update, context, ConversationHandler.END)
         else:
-            chat_id = getattr(update.effective_chat, "id", None) if sugar_conv.per_chat else None
-            user_id = getattr(update.effective_user, "id", None) if sugar_conv.per_user else None
-            msg_id = (
-                getattr(update.effective_message, "message_id", None)
-                if sugar_conv.per_message
-                else None
-            )
             key = (chat_id, user_id, msg_id)
             if hasattr(sugar_conv, "_update_state"):
-                sugar_conv._update_state(ConversationHandler.END, key)
+                cleaned_key: list[int | str | None] = []
+                for item in key:
+                    if item is None or isinstance(item, (int, str)):
+                        cleaned_key.append(item)
+                    else:
+                        try:
+                            cleaned_key.append(str(item))
+                        except Exception:  # pragma: no cover - defensive casting
+                            logger.warning(
+                                "Invalid key component for sugar_conv: %s", item
+                            )
+                            break
+                else:
+                    sugar_conv._update_state(
+                        ConversationHandler.END, tuple(cleaned_key)
+                    )
             else:
                 logger.warning("sugar_conv lacks _update_state method")
 
