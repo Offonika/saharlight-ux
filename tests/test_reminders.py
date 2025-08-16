@@ -311,8 +311,12 @@ async def test_reminders_list_no_keyboard(monkeypatch: pytest.MonkeyPatch) -> No
     update = make_update(effective_user=make_user(1), message=message)
     context = make_context()
     await handlers.reminders_list(update, context)
-    assert "У вас нет напоминаний" in captured["text"]
-    assert "reply_markup" not in captured["kwargs"]
+    text = captured.get("text")
+    assert text is not None
+    assert "У вас нет напоминаний" in text
+    kwargs = captured.get("kwargs")
+    assert kwargs is not None
+    assert "reply_markup" not in kwargs
 
 
 @pytest.mark.asyncio
@@ -460,6 +464,7 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
     await handlers.reminder_job(context)
     assert bot.messages
     _, text_msg, kwargs = bot.messages[0]
+    assert kwargs is not None
     assert text_msg.startswith("🔔 Замерить сахар")
     reply_markup = kwargs.get("reply_markup")
     assert reply_markup is not None
