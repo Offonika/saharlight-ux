@@ -40,7 +40,7 @@ def test_parse_and_verify_init_data_invalid_hash() -> None:
         parse_and_verify_init_data(tampered, TOKEN)
 
 
-def test_require_tg_user_valid(monkeypatch) -> None:
+def test_require_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data = build_init_data()
     user = require_tg_user(init_data)
@@ -52,7 +52,7 @@ def test_require_tg_user_missing() -> None:
         require_tg_user(None)
 
 
-def test_require_tg_user_invalid(monkeypatch) -> None:
+def test_require_tg_user_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     with pytest.raises(HTTPException):
         require_tg_user("bad")
