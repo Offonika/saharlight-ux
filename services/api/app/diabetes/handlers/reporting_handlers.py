@@ -187,8 +187,8 @@ async def report_period_callback(
     elif period == "custom":
         user_data_raw = context.user_data
         if user_data_raw is None:
-            user_data = {}
-            context.user_data = user_data  # type: ignore[assignment]
+            user_data: dict[str, Any] = {}
+            context.user_data = user_data
         else:
             user_data = user_data_raw
         user_data["awaiting_report_date"] = True
@@ -273,7 +273,7 @@ async def send_report(
     user_data_raw = context.user_data
     if user_data_raw is None:
         user_data: dict[str, Any] = {}
-        context.user_data = user_data  # type: ignore[assignment]
+        context.user_data = user_data
     else:
         user_data = user_data_raw
     thread_id = cast(str | None, user_data.get("thread_id"))
