@@ -6,14 +6,11 @@ import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
 import { useTelegramContext } from "@/contexts/TelegramContext";
 import { useToast } from "@/hooks/use-toast";
-
-// Reminder type returned from API may contain legacy value "meds",
-// normalize it to "medicine" for UI usage
-type ReminderType = "sugar" | "insulin" | "meal" | "medicine" | "meds";
-type NormalizedReminderType = "sugar" | "insulin" | "meal" | "medicine";
-
-const normalizeType = (t: ReminderType): NormalizedReminderType =>
-  t === "meds" ? "medicine" : t;
+import {
+  normalizeReminderType,
+  type ReminderType,
+  type NormalizedReminderType,
+} from "@/lib/reminders";
 
 const TYPES: Record<NormalizedReminderType, { label: string; emoji: string }> = {
   sugar: { label: "Сахар", emoji: "🩸" },
@@ -75,7 +72,7 @@ export default function CreateReminder() {
         try {
           const data = await getReminder(user.id, Number(params.id));
           if (data) {
-            const nt = normalizeType(data.type as ReminderType);
+            const nt = normalizeReminderType(data.type as ReminderType);
             const loaded: Reminder = {
               id: data.id ?? Number(params.id),
               type: nt,
