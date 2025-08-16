@@ -65,15 +65,22 @@ WAITING_GPT_FLAG = "waiting_gpt_response"
 
 async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompt user to send a food photo for analysis."""
-    await update.message.reply_text(
+    message = update.message
+    if message is None:
+        return
+    await message.reply_text(
         "📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard
     )
 
 
 async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user for current sugar level."""
-    context.user_data.pop("pending_entry", None)
-    context.user_data["pending_entry"] = {
+    user_data = context.user_data
+    message = update.message
+    if user_data is None or message is None or update.effective_user is None:
+        return ConversationHandler.END
+    user_data.pop("pending_entry", None)
+    user_data["pending_entry"] = {
         "telegram_id": update.effective_user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
@@ -81,7 +88,7 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     chat_data = getattr(context, "chat_data", None)
     if chat_data is not None:
         chat_data["sugar_active"] = True
-    await update.message.reply_text(
+    await message.reply_text(
         "Введите текущий уровень сахара (ммоль/л).", reply_markup=sugar_keyboard
     )
     return SUGAR_VAL
@@ -92,8 +99,9 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     chat_data = getattr(context, "chat_data", None)
     if chat_data is not None and not chat_data.get("sugar_active"):
         return ConversationHandler.END
+    user_data = context.user_data
     message = update.message
-    if message is None or message.text is None:
+    if user_data is None or message is None or message.text is None or update.effective_user is None:
         return ConversationHandler.END
     text = message.text.strip().replace(",", ".")
     try:
@@ -104,7 +112,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if sugar < 0:
         await message.reply_text("Сахар не может быть отрицательным.")
         return SUGAR_VAL
-    entry_data = context.user_data.pop("pending_entry", None) or {
+    entry_data = user_data.pop("pending_entry", None) or {
         "telegram_id": update.effective_user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
@@ -127,10 +135,14 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Entry point for dose calculation conversation."""
-    context.user_data.pop("pending_entry", None)
-    context.user_data.pop("edit_id", None)
-    context.user_data.pop("dose_method", None)
-    await update.message.reply_text(
+    user_data = context.user_data
+    message = update.message
+    if user_data is None or message is None:
+        return ConversationHandler.END
+    user_data.pop("pending_entry", None)
+    user_data.pop("edit_id", None)
+    user_data.pop("dose_method", None)
+    await message.reply_text(
         "💉 Как рассчитать дозу? Выберите метод:",
         reply_markup=dose_keyboard,
     )
@@ -139,18 +151,19 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle method selection for dose calculation."""
+    user_data = context.user_data
     message = update.message
-    if message is None or message.text is None:
+    if user_data is None or message is None or message.text is None:
         return ConversationHandler.END
     text = message.text.lower()
     if "назад" in text:
         return await dose_cancel(update, context)
     if "углев" in text:
-        context.user_data["dose_method"] = "carbs"
+        user_data["dose_method"] = "carbs"
         await message.reply_text("Введите количество углеводов (г).")
         return DOSE_CARBS
     if "xe" in text or "хе" in text:
-        context.user_data["dose_method"] = "xe"
+        user_data["dose_method"] = "xe"
         await message.reply_text("Введите количество ХЕ.")
         return DOSE_XE
     await message.reply_text(
@@ -162,8 +175,9 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture XE amount from user."""
+    user_data = context.user_data
     message = update.message
-    if message is None or message.text is None:
+    if user_data is None or message is None or message.text is None or update.effective_user is None:
         return ConversationHandler.END
     text = message.text.strip().replace(",", ".")
     try:
@@ -174,7 +188,7 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if xe < 0:
         await message.reply_text("Количество ХЕ не может быть отрицательным.")
         return DOSE_XE
-    context.user_data["pending_entry"] = {
+    user_data["pending_entry"] = {
         "telegram_id": update.effective_user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
         "xe": xe,
@@ -185,8 +199,9 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture carbohydrates in grams."""
+    user_data = context.user_data
     message = update.message
-    if message is None or message.text is None:
+    if user_data is None or message is None or message.text is None or update.effective_user is None:
         return ConversationHandler.END
     text = message.text.strip().replace(",", ".")
     try:
@@ -199,7 +214,7 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             "Количество углеводов не может быть отрицательным."
         )
         return DOSE_CARBS
-    context.user_data["pending_entry"] = {
+    user_data["pending_entry"] = {
         "telegram_id": update.effective_user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
         "carbs_g": carbs,
@@ -210,8 +225,9 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Finalize dose calculation after receiving sugar level."""
+    user_data = context.user_data
     message = update.message
-    if message is None or message.text is None:
+    if user_data is None or message is None or message.text is None or update.effective_user is None:
         return ConversationHandler.END
     text = message.text.strip().replace(",", ".")
     try:
@@ -223,7 +239,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await message.reply_text("Сахар не может быть отрицательным.")
         return DOSE_SUGAR
 
-    entry = context.user_data.get("pending_entry", {})
+    entry = user_data.get("pending_entry", {})
     entry["sugar_before"] = sugar
     xe = entry.get("xe")
     carbs_g = entry.get("carbs_g")
@@ -232,7 +248,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             "Не указаны углеводы или ХЕ. Расчёт невозможен.",
             reply_markup=menu_keyboard,
         )
-        context.user_data.pop("pending_entry", None)
+        user_data.pop("pending_entry", None)
         return ConversationHandler.END
     if carbs_g is None and xe is not None:
         carbs_g = xe * 12
@@ -247,7 +263,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             "Профиль не настроен. Установите коэффициенты через /profile.",
             reply_markup=menu_keyboard,
         )
-        context.user_data.pop("pending_entry", None)
+        user_data.pop("pending_entry", None)
         return ConversationHandler.END
 
     patient = PatientProfile(
@@ -258,7 +274,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     dose = calc_bolus(carbs_g, sugar, patient)
     entry["dose"] = dose
 
-    context.user_data["pending_entry"] = entry
+    user_data["pending_entry"] = entry
 
     xe_info = f", ХЕ: {xe}" if xe is not None else ""
     await message.reply_text(
@@ -276,15 +292,10 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel dose calculation conversation."""
+    user_data = context.user_data
     message = update.message
-    if message is None:
+    if user_data is None or message is None:
         return ConversationHandler.END
-    user_data_raw = context.user_data
-    if user_data_raw is None:
-        user_data: dict[str, Any] = {}
-        context.user_data = user_data  # type: ignore[assignment]
-    else:
-        user_data = user_data_raw
     await message.reply_text("Отменено.", reply_markup=menu_keyboard)
     user_data.pop("pending_entry", None)
     user_data.pop("dose_method", None)
@@ -310,17 +321,23 @@ def _cancel_then(
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle freeform text commands for adding diary entries."""
+    user_data = context.user_data
     message = update.message
-    if message is None or message.text is None:
+    if (
+        user_data is None
+        or message is None
+        or message.text is None
+        or update.effective_user is None
+    ):
         return
     raw_text = message.text.strip()
     user_id = update.effective_user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
 
-    if context.user_data.get("awaiting_report_date"):
+    if user_data.get("awaiting_report_date"):
         text = raw_text.lower()
         if "назад" in text or text == "/cancel":
-            context.user_data.pop("awaiting_report_date", None)
+            user_data.pop("awaiting_report_date", None)
             await message.reply_text(
                 "📋 Выберите действие:", reply_markup=menu_keyboard
             )
@@ -335,12 +352,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
         await send_report(update, context, date_from, "указанный период")
-        context.user_data.pop("awaiting_report_date", None)
+        user_data.pop("awaiting_report_date", None)
         return
 
-    pending_entry = context.user_data.get("pending_entry")
-    pending_fields = context.user_data.get("pending_fields")
-    edit_id = context.user_data.get("edit_id")
+    pending_entry = user_data.get("pending_entry")
+    pending_fields = user_data.get("pending_fields")
+    edit_id = user_data.get("edit_id")
     if pending_entry is not None and edit_id is None and pending_fields:
         field = pending_fields[0]
         text = raw_text.replace(",", ".")
@@ -411,8 +428,8 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sugar = pending_entry.get("sugar_before")
         if sugar is not None:
             await check_alert(update, context, sugar)
-        context.user_data.pop("pending_entry", None)
-        context.user_data.pop("pending_fields", None)
+        user_data.pop("pending_entry", None)
+        user_data.pop("pending_fields", None)
         xe = pending_entry.get("xe")
         dose = pending_entry.get("dose")
         xe_info = f", ХЕ {xe}" if xe is not None else ""
@@ -463,7 +480,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         "Профиль не настроен. Установите коэффициенты через /profile.",
                         reply_markup=menu_keyboard,
                     )
-                    context.user_data.pop("pending_entry", None)
+                    user_data.pop("pending_entry", None)
                     return
                 patient = PatientProfile(
                     icr=profile.icr,
@@ -472,7 +489,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 dose = calc_bolus(carbs_g, sugar, patient)
                 entry["dose"] = dose
-                context.user_data["pending_entry"] = entry
+                user_data["pending_entry"] = entry
                 xe_info = f", ХЕ: {xe}" if xe is not None else ""
                 await message.reply_text(
                     text=(
@@ -563,8 +580,8 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=confirm_keyboard(),
         )
         return
-    if "edit_id" in context.user_data:
-        field = context.user_data.get("edit_field")
+    if "edit_id" in user_data:
+        field = user_data.get("edit_field")
         text = raw_text.replace(",", ".")
         try:
             value = float(text)
@@ -586,7 +603,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             return
         def db_update(session):
-            entry = session.get(Entry, context.user_data["edit_id"])
+            entry = session.get(Entry, user_data["edit_id"])
             if not entry:
                 return "missing", None
             field_map = {"sugar": "sugar_before", "xe": "xe", "dose": "dose"}
@@ -605,7 +622,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if status == "missing":
             await message.reply_text("Запись уже удалена.")
             for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
-                context.user_data.pop(key, None)
+                user_data.pop(key, None)
             return
         if status == "fail" or entry is None:
             await message.reply_text("⚠️ Не удалось обновить запись.")
@@ -613,15 +630,15 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if field == "sugar":
             await check_alert(update, context, value)
         render_text = render_entry(entry)
-        edit_info = context.user_data.get("edit_entry", {})
+        edit_info = user_data.get("edit_entry", {})
         markup = InlineKeyboardMarkup(
             [
                 [
                     InlineKeyboardButton(
-                        "✏️ Изменить", callback_data=f"edit:{context.user_data['edit_id']}"
+                        "✏️ Изменить", callback_data=f"edit:{user_data['edit_id']}"
                     ),
                     InlineKeyboardButton(
-                        "🗑 Удалить", callback_data=f"del:{context.user_data['edit_id']}"
+                        "🗑 Удалить", callback_data=f"del:{user_data['edit_id']}"
                     ),
                 ]
             ]
@@ -633,11 +650,11 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="HTML",
             reply_markup=markup,
         )
-        query = context.user_data.get("edit_query")
+        query = user_data.get("edit_query")
         if query:
             await query.answer("Изменено")
         for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
-            context.user_data.pop(key, None)
+            user_data.pop(key, None)
         return
 
     try:
@@ -702,8 +719,8 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=menu_keyboard,
             )
             return
-        context.user_data["pending_entry"] = entry_data
-        context.user_data["pending_fields"] = missing
+        user_data["pending_entry"] = entry_data
+        user_data["pending_fields"] = missing
         next_field = missing[0]
         if next_field == "sugar":
             await message.reply_text("Введите уровень сахара (ммоль/л).")
@@ -766,8 +783,8 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             event_dt = datetime.datetime.now(datetime.timezone.utc)
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
-    context.user_data.pop("pending_entry", None)
-    context.user_data["pending_entry"] = {
+    user_data.pop("pending_entry", None)
+    user_data["pending_entry"] = {
         "telegram_id": user_id,
         "event_time": event_dt,
         "xe": fields.get("xe"),
@@ -795,26 +812,33 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Placeholder GPT chat handler."""
+    message = update.message
+    if message is None:
+        return
     await message.reply_text("🗨️ Чат с GPT временно недоступен.")
 
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False):
     """Process food photos and trigger nutrition analysis."""
-    message = update.message or update.callback_query.message
-    user_id = update.effective_user.id
+    user_data = context.user_data
+    message = update.message or (update.callback_query.message if update.callback_query else None)
+    effective_user = update.effective_user
+    if user_data is None or message is None or effective_user is None:
+        return ConversationHandler.END
+    user_id = effective_user.id
 
-    if context.user_data.get(WAITING_GPT_FLAG):
+    if user_data.get(WAITING_GPT_FLAG):
         await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
         return ConversationHandler.END
-    context.user_data[WAITING_GPT_FLAG] = True
+    user_data[WAITING_GPT_FLAG] = True
 
-    file_path = context.user_data.pop("__file_path", None)
+    file_path = user_data.pop("__file_path", None)
     if not file_path:
         try:
-            photo = update.message.photo[-1]
+            photo = message.photo[-1]
         except (AttributeError, IndexError, TypeError):
             await message.reply_text("❗ Файл не распознан как изображение.")
-            context.user_data.pop(WAITING_GPT_FLAG, None)
+            user_data.pop(WAITING_GPT_FLAG, None)
             return ConversationHandler.END
 
         os.makedirs("photos", exist_ok=True)
@@ -825,13 +849,13 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         except OSError as exc:
             logging.exception("[PHOTO] Failed to save photo: %s", exc)
             await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
-            context.user_data.pop(WAITING_GPT_FLAG, None)
+            user_data.pop(WAITING_GPT_FLAG, None)
             return ConversationHandler.END
 
     logger.info("[PHOTO] Saved to %s", file_path)
 
     try:
-        thread_id = context.user_data.get("thread_id")
+        thread_id = user_data.get("thread_id")
         if not thread_id:
             with SessionLocal() as session:
                 user = session.get(User, user_id)
@@ -845,7 +869,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                             "⚠️ Не удалось сохранить данные пользователя."
                         )
                         return ConversationHandler.END
-            context.user_data["thread_id"] = thread_id
+            user_data["thread_id"] = thread_id
 
         run = await send_message(
             thread_id=thread_id,
@@ -993,14 +1017,14 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             )
             return ConversationHandler.END
 
-        pending_entry = context.user_data.get("pending_entry") or {
+        pending_entry = user_data.get("pending_entry") or {
             "telegram_id": user_id,
             "event_time": datetime.datetime.now(datetime.timezone.utc),
         }
         pending_entry.update(
             {"carbs_g": carbs_g, "xe": xe, "photo_path": file_path}
         )
-        context.user_data["pending_entry"] = pending_entry
+        user_data["pending_entry"] = pending_entry
         if status_message and hasattr(status_message, "delete"):
             try:
                 await status_message.delete()
@@ -1038,12 +1062,18 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         logging.exception("[PHOTO] Telegram error: %s", exc)
         return ConversationHandler.END
     finally:
-        context.user_data.pop(WAITING_GPT_FLAG, None)
+        user_data.pop(WAITING_GPT_FLAG, None)
 
 
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle images sent as documents."""
-    document = update.message.document
+    user_data = context.user_data
+    message = update.message
+    effective_user = update.effective_user
+    if user_data is None or message is None or effective_user is None:
+        return ConversationHandler.END
+
+    document = message.document
     if not document:
         return ConversationHandler.END
 
@@ -1051,7 +1081,7 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not mime_type or not mime_type.startswith("image/"):
         return ConversationHandler.END
 
-    user_id = update.effective_user.id
+    user_id = effective_user.id
     ext = Path(document.file_name).suffix or ".jpg"
     path = f"photos/{user_id}_{document.file_unique_id}{ext}"
     os.makedirs("photos", exist_ok=True)
@@ -1059,8 +1089,8 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file = await context.bot.get_file(document.file_id)
     await file.download_to_drive(path)
 
-    context.user_data["__file_path"] = path
-    update.message.photo = []
+    user_data["__file_path"] = path
+    message.photo = []
     return await photo_handler(update, context)
 
 
