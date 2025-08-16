@@ -132,7 +132,7 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     await message.reply_text("📊 Последние записи:")
     for entry in entries:
-        text = render_entry(entry)
+        text = render_entry(cast(EntryLike, entry))
         markup = InlineKeyboardMarkup(
             [
                 [
