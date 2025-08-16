@@ -15,6 +15,8 @@ import json
 import logging
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from sqlalchemy.orm import Session
+
 from services.api.app.diabetes.services.db import (
     SessionLocal,
     Profile,
@@ -355,8 +357,12 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
             )
         return PROFILE_TZ
     user_id = update.effective_user.id
+
+    def db_set_timezone(session: Session) -> tuple[bool, bool]:
+        return set_timezone(session, user_id, raw)
+
     exists, ok = await run_db(
-        set_timezone, user_id, raw, sessionmaker=SessionLocal
+        db_set_timezone, sessionmaker=SessionLocal
     )
     if not exists:
         await update.message.reply_text(
