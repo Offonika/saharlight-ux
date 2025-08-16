@@ -104,7 +104,6 @@ async def put_timezone(
 
 
 @app.get("/api/profile/self")
-
 async def profile_self(user: dict[str, Any] = Depends(require_tg_user)) -> dict[str, Any]:
     return user
 
