@@ -126,7 +126,9 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
         assert text == expected
         assert isinstance(markup, InlineKeyboardMarkup)
         buttons = [b for row in markup.inline_keyboard for b in row]
-        all_callbacks.extend(b.callback_data for b in buttons)
+        all_callbacks.extend(
+            b.callback_data for b in buttons if b.callback_data is not None
+        )
     for eid in entry_ids:
         assert f"edit:{eid}" in all_callbacks
         assert f"del:{eid}" in all_callbacks
