@@ -1,12 +1,16 @@
 import hashlib
 import hmac
 import json
+import logging
 from typing import Any
 from urllib.parse import parse_qsl
 
 from fastapi import Header, HTTPException
 
 from .config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, Any]:
@@ -45,9 +49,12 @@ def require_tg_user(
     if not init_data:
         raise HTTPException(status_code=401, detail="missing init data")
 
-    data: dict[str, Any] = parse_and_verify_init_data(
-        init_data, settings.telegram_token or ""
-    )
+    token: str | None = settings.telegram_token
+    if not token:
+        logger.error("telegram token not configured")
+        raise HTTPException(status_code=500, detail="server misconfigured")
+
+    data: dict[str, Any] = parse_and_verify_init_data(init_data, token)
     user: dict[str, Any] | None = data.get("user")
     if not isinstance(user, dict) or "id" not in user:
         raise HTTPException(status_code=401, detail="invalid user")
