@@ -6,18 +6,20 @@ import os
 import threading
 from typing import Any
 
-from openai import OpenAIError
+from openai import OpenAI, OpenAIError
+from openai.types.beta import Thread
+from openai.types.beta.threads import Run
 
 from services.api.app.config import settings
 from services.api.app.diabetes.utils.openai_utils import get_openai_client
 
 logger = logging.getLogger(__name__)
 
-_client = None
+_client: OpenAI | None = None
 _client_lock = threading.Lock()
 
 
-def _get_client():
+def _get_client() -> OpenAI:
     global _client
     if _client is None:
         with _client_lock:
@@ -34,8 +36,9 @@ async def create_thread() -> str:
     str
         Идентификатор созданного thread.
     """
+    client: OpenAI = _get_client()
     try:
-        thread = await asyncio.to_thread(_get_client().beta.threads.create)
+        thread: Thread = await asyncio.to_thread(client.beta.threads.create)
     except OpenAIError as exc:
         logger.exception("[OpenAI] Failed to create thread: %s", exc)
         raise
@@ -48,7 +51,7 @@ async def send_message(
     image_path: str | None = None,
     *,
     keep_image: bool = False,
-):
+) -> Run:
     """Send text or (image + text) to the thread and start a run.
 
     Parameters
@@ -75,7 +78,7 @@ async def send_message(
         "type": "text",
         "text": content if content is not None else "Что изображено на фото?",
     }
-    client = _get_client()
+    client: OpenAI = _get_client()
     if image_path:
         try:
             def _upload() -> Any:
@@ -126,7 +129,7 @@ async def send_message(
 
     # 3. Запускаем ассистента
     try:
-        run = await asyncio.to_thread(
+        run: Run = await asyncio.to_thread(
             client.beta.threads.runs.create,
             thread_id=thread_id,
             assistant_id=settings.openai_assistant_id,
