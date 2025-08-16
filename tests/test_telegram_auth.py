@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import time
 import urllib.parse
 from typing import Any
 
@@ -8,15 +9,23 @@ import pytest
 from fastapi import HTTPException
 
 from services.api.app.config import settings
-from services.api.app.telegram_auth import parse_and_verify_init_data, require_tg_user
+from services.api.app.telegram_auth import (
+    AUTH_DATE_MAX_AGE,
+    parse_and_verify_init_data,
+    require_tg_user,
+)
 
 TOKEN = "test-token"
 
 
-def build_init_data(token: str = TOKEN, user_id: int = 1) -> str:
+def build_init_data(
+    token: str = TOKEN, user_id: int = 1, auth_date: int | None = None
+) -> str:
     user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
+    if auth_date is None:
+        auth_date = int(time.time())
     params = {
-        "auth_date": "123",
+        "auth_date": str(auth_date),
         "query_id": "abc",
         "user": user,
     }
@@ -43,7 +52,7 @@ def test_parse_and_verify_init_data_invalid_hash() -> None:
 
 def test_parse_and_verify_init_data_invalid_user_json() -> None:
     params = {
-        "auth_date": "123",
+        "auth_date": str(int(time.time())),
         "query_id": "abc",
         "user": "{bad",
     }
@@ -80,3 +89,22 @@ def test_require_tg_user_empty_token(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(HTTPException) as exc:
         require_tg_user("whatever")
     assert exc.value.status_code == 500
+
+
+def test_parse_and_verify_init_data_expired() -> None:
+    past = int(time.time()) - (AUTH_DATE_MAX_AGE + 1)
+    init_data = build_init_data(auth_date=past)
+    with pytest.raises(HTTPException) as exc:
+        parse_and_verify_init_data(init_data, TOKEN)
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "expired auth data"
+
+
+def test_require_tg_user_expired(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    past = int(time.time()) - (AUTH_DATE_MAX_AGE + 1)
+    init_data = build_init_data(auth_date=past)
+    with pytest.raises(HTTPException) as exc:
+        require_tg_user(init_data)
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "expired auth data"
