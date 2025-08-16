@@ -138,12 +138,16 @@ async def create_user(
 
 
 @app.post("/api/history")
-async def post_history(data: HistoryRecordSchema) -> dict[str, str]:
+async def post_history(
+    data: HistoryRecordSchema, user: dict = Depends(require_tg_user)
+) -> dict[str, str]:
     """Save or update a history record in the database."""
 
     def _save_history(session: Session) -> None:
         obj = session.get(HistoryRecordDB, data.id)
         if obj:
+            if obj.telegram_id != user["id"]:
+                raise HTTPException(status_code=403, detail="forbidden")
             obj.date = data.date
             obj.time = data.time
             obj.sugar = data.sugar
@@ -155,6 +159,7 @@ async def post_history(data: HistoryRecordSchema) -> dict[str, str]:
         else:
             obj = HistoryRecordDB(
                 id=data.id,
+                telegram_id=user["id"],
                 date=data.date,
                 time=data.time,
                 sugar=data.sugar,
@@ -175,6 +180,58 @@ async def post_history(data: HistoryRecordSchema) -> dict[str, str]:
     except RuntimeError as exc:  # pragma: no cover - misconfiguration
         logger.exception("database not initialized")
         raise HTTPException(status_code=500, detail="database not initialized") from exc
+    return {"status": "ok"}
+
+
+@app.get("/api/history")
+async def get_history(user: dict = Depends(require_tg_user)) -> list[HistoryRecordSchema]:
+    """Return history records for the authenticated user."""
+
+    def _get_history(session: Session) -> list[HistoryRecordDB]:
+        return (
+            session.query(HistoryRecordDB)
+            .filter(HistoryRecordDB.telegram_id == user["id"])
+            .order_by(HistoryRecordDB.date, HistoryRecordDB.time)
+            .all()
+        )
+
+    records = await run_db(_get_history)
+    return [
+        HistoryRecordSchema(
+            id=r.id,
+            date=r.date,
+            time=r.time,
+            sugar=r.sugar,
+            carbs=r.carbs,
+            breadUnits=r.bread_units,
+            insulin=r.insulin,
+            notes=r.notes,
+            type=r.type,
+        )
+        for r in records
+    ]
+
+
+@app.delete("/api/history/{record_id}")
+async def delete_history(record_id: str, user: dict = Depends(require_tg_user)) -> dict[str, str]:
+    """Delete a history record after verifying ownership."""
+
+    def _get_record(session: Session) -> HistoryRecordDB | None:
+        return session.get(HistoryRecordDB, record_id)
+
+    record = await run_db(_get_record)
+    if record is None:
+        raise HTTPException(status_code=404, detail="not found")
+    if record.telegram_id != user["id"]:
+        raise HTTPException(status_code=403, detail="forbidden")
+
+    def _delete_record(session: Session) -> None:
+        obj = session.get(HistoryRecordDB, record_id)
+        if obj:
+            session.delete(obj)
+            session.commit()
+
+    await run_db(_delete_record)
     return {"status": "ok"}
 
 

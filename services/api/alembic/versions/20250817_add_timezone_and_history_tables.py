@@ -34,6 +34,7 @@ def upgrade() -> None:
         op.create_table(
             "history_records",
             sa.Column("id", sa.String(), primary_key=True),
+            sa.Column("telegram_id", sa.BigInteger(), nullable=False),
             sa.Column("date", sa.String(), nullable=False),
             sa.Column("time", sa.String(), nullable=False),
             sa.Column("sugar", sa.Float(), nullable=True),
