@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 from telegram import Message, Update, User
 from telegram.ext import CallbackContext, Job
@@ -25,6 +25,7 @@ class DummyMessage:
         self.texts: list[str] = []
         self.edited: tuple[str, dict[str, Any]] | None = None
         self.kwargs: list[dict[str, Any]] = []
+        self.web_app_data: Any | None = None
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
@@ -64,14 +65,20 @@ class DummyBot:
 
 
 class DummyJob:
-    def __init__(self, callback, data, name, time=None):
-        self.callback = callback
-        self.data = data
-        self.name = name
-        self.time = time
-        self.removed = False
+    def __init__(
+        self,
+        callback: Callable[..., Any],
+        data: dict[str, Any] | None,
+        name: str | None,
+        time: Any | None = None,
+    ) -> None:
+        self.callback: Callable[..., Any] = callback
+        self.data: dict[str, Any] | None = data
+        self.name: str | None = name
+        self.time: Any | None = time
+        self.removed: bool = False
 
-    def schedule_removal(self):
+    def schedule_removal(self) -> None:
         self.removed = True
 
 
@@ -85,8 +92,10 @@ class DummyJobQueue:
         time: Any,
         data: dict[str, Any] | None = None,
         name: str | None = None,
-    ) -> None:
-        self.jobs.append(DummyJob(callback, data, name, time))
+    ) -> DummyJob:
+        job = DummyJob(callback, data, name, time)
+        self.jobs.append(job)
+        return job
 
     def run_repeating(
         self,
@@ -94,8 +103,10 @@ class DummyJobQueue:
         interval: Any,
         data: dict[str, Any] | None = None,
         name: str | None = None,
-    ) -> None:
-        self.jobs.append(DummyJob(callback, data, name))
+    ) -> DummyJob:
+        job = DummyJob(callback, data, name)
+        self.jobs.append(job)
+        return job
 
     def run_once(
         self,
@@ -103,8 +114,10 @@ class DummyJobQueue:
         when: Any,
         data: dict[str, Any] | None = None,
         name: str | None = None,
-    ) -> None:
-        self.jobs.append(DummyJob(callback, data, name))
+    ) -> DummyJob:
+        job = DummyJob(callback, data, name)
+        self.jobs.append(job)
+        return job
 
     def get_jobs_by_name(self, name: str) -> list[DummyJob]:
         return [j for j in self.jobs if j.name == name]
@@ -141,9 +154,10 @@ def test_schedule_reminder_replaces_existing_job() -> None:
             Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True)
         )
         session.commit()
-    job_queue = DummyJobQueue()
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
         handlers.schedule_reminder(rem, job_queue)
     jobs: list[DummyJob] = job_queue.get_jobs_by_name("reminder_1")
@@ -181,7 +195,7 @@ def test_schedule_with_next_invalid_timezone_logs_warning(caplog: pytest.LogCapt
 def test_schedule_reminder_invalid_timezone_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Bad/Zone")
     rem = Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user)
-    job_queue = DummyJobQueue()
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with caplog.at_level(logging.WARNING):
         handlers.schedule_reminder(rem, job_queue)
     assert job_queue.jobs
@@ -286,7 +300,7 @@ async def test_reminders_list_no_keyboard(monkeypatch: pytest.MonkeyPatch) -> No
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
 
-    captured: dict[str, dict] = {}
+    captured: dict[str, Any] = {}
 
     async def fake_reply_text(text: str, **kwargs: Any) -> None:
         captured["text"] = text
@@ -314,9 +328,10 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
         session.commit()
 
-    job_queue = DummyJobQueue()
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
 
     query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
@@ -326,7 +341,9 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     await router.callback_router(update, context)
 
     with TestSession() as session:
-        assert not session.get(Reminder, 1).is_enabled
+        rem_db = session.get(Reminder, 1)
+        assert rem_db is not None
+        assert not rem_db.is_enabled
     jobs = job_queue.get_jobs_by_name("reminder_1")
     assert jobs
     job = jobs[0]
@@ -350,9 +367,10 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00"))
         session.commit()
 
-    job_queue = DummyJobQueue()
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
 
     query = DummyCallbackQuery("rem_del:1", DummyMessage())
@@ -384,9 +402,10 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(Reminder(id=1, telegram_id=1, type="medicine", time="08:00"))
         session.commit()
 
-    job_queue = DummyJobQueue()
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
 
     msg = DummyMessage()
@@ -399,7 +418,9 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         parsed = parse_time_interval("09:00")
-        assert session.get(Reminder, 1).time == parsed.strftime("%H:%M")
+        rem_db = session.get(Reminder, 1)
+        assert rem_db is not None
+        assert rem_db.time == parsed.strftime("%H:%M")
     jobs = job_queue.get_jobs_by_name("reminder_1")
     assert len(jobs) == 2
     assert jobs[0].removed is True
@@ -418,9 +439,10 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time="23:00"))
         session.commit()
 
-    job_queue = DummyJobQueue()
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem_db = session.get(Reminder, 1)
+        assert rem_db is not None
         rem = Reminder(
             id=rem_db.id,
             telegram_id=rem_db.telegram_id,
@@ -445,6 +467,7 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert keyboard[1].callback_data == "remind_cancel:1"
     with TestSession() as session:
         log = session.query(ReminderLog).first()
+        assert log is not None
         assert log.action == "trigger"
 
 
@@ -471,6 +494,7 @@ async def test_cancel_callback(monkeypatch: pytest.MonkeyPatch) -> None:
     assert query.answers == [None]
     with TestSession() as session:
         log = session.query(ReminderLog).first()
+        assert log is not None
         assert log.action == "remind_cancel"
 
 
