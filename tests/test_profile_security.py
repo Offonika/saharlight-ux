@@ -221,7 +221,7 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch: pytest.Mo
 
     called = {"del": False}
 
-    async def fake_del(update, context) -> None:
+    async def fake_del(update: Any, context: Any) -> None:
         called["del"] = True
 
     monkeypatch.setattr(reminder_handlers, "delete_reminder", fake_del)
@@ -260,7 +260,7 @@ async def test_profile_security_sos_contact_calls_handler(monkeypatch: pytest.Mo
 
     called = False
 
-    async def fake_sos(update, context) -> None:
+    async def fake_sos(update: Any, context: Any) -> None:
         nonlocal called
         called = True
 

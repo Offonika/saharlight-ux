@@ -25,7 +25,9 @@ class DummyMessage:
         self.kwargs.append(kwargs)
 
 
-def _get_menu_handler(fallbacks):
+def _get_menu_handler(
+    fallbacks: list[CommandHandler[Any]],
+) -> CommandHandler[Any]:
     return next(
         h
         for h in fallbacks
