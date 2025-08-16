@@ -269,7 +269,7 @@ async def send_report(
     ).format(summary=summary_text, errors=errors_text, days=days_text)
 
     default_gpt_text = "Не удалось получить рекомендации."
-    gpt_text = default_gpt_text
+    gpt_text: str | None = default_gpt_text
     user_data_raw = context.user_data
     if user_data_raw is None:
         user_data: dict[str, Any] = {}
@@ -346,7 +346,9 @@ async def send_report(
     report_msg = "<b>Отчёт сформирован</b>\n\n" + "\n".join(summary_lines + day_lines)
 
     plot_buf = make_sugar_plot(entries, period_label)
-    pdf_buf = generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf)
+    pdf_buf = generate_pdf_report(
+        summary_lines, errors, day_lines, gpt_text or default_gpt_text, plot_buf
+    )
     plot_buf.seek(0)
     pdf_buf.seek(0)
     if query is not None:
