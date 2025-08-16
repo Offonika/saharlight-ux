@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import urllib.parse
+from typing import Any
 
 import pytest
 from fastapi import HTTPException
@@ -26,24 +27,24 @@ def build_init_data(token: str = TOKEN, user_id: int = 1) -> str:
 
 
 def test_parse_and_verify_init_data_valid() -> None:
-    init_data = build_init_data()
-    data = parse_and_verify_init_data(init_data, TOKEN)
+    init_data: str = build_init_data()
+    data: dict[str, Any] = parse_and_verify_init_data(init_data, TOKEN)
     assert data["user"]["id"] == 1
 
 
 def test_parse_and_verify_init_data_invalid_hash() -> None:
-    init_data = build_init_data()
-    parts = dict(urllib.parse.parse_qsl(init_data))
+    init_data: str = build_init_data()
+    parts: dict[str, str] = dict(urllib.parse.parse_qsl(init_data))
     parts["hash"] = "0" * 64
-    tampered = urllib.parse.urlencode(parts)
+    tampered: str = urllib.parse.urlencode(parts)
     with pytest.raises(HTTPException):
         parse_and_verify_init_data(tampered, TOKEN)
 
 
 def test_require_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
-    init_data = build_init_data()
-    user = require_tg_user(init_data)
+    init_data: str = build_init_data()
+    user: dict[str, Any] = require_tg_user(init_data)
     assert user["id"] == 1
 
 
