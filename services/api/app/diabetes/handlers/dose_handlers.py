@@ -835,7 +835,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 if user:
                     thread_id = user.thread_id
                 else:
-                    thread_id = create_thread()
+                    thread_id = await create_thread()
                     session.add(User(telegram_id=user_id, thread_id=thread_id))
                     if not commit(session):
                         await message.reply_text(

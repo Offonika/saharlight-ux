@@ -245,7 +245,7 @@ async def send_report(
             user = session.get(User, user_id)
             thread_id = getattr(user, "thread_id", None)
             if thread_id is None:
-                thread_id = create_thread()
+                thread_id = await create_thread()
                 if user:
                     user.thread_id = thread_id
                 else:
