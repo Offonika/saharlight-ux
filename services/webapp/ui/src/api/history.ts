@@ -49,7 +49,7 @@ export async function updateRecord(record: HistoryRecord) {
 
 export async function deleteRecord(id: string) {
   try {
-    const res = await tgFetch(`/api/history/${id}`, { method: 'DELETE' });
+    const res = await tgFetch(`/api/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.status !== 'ok') {
       throw new Error(data.detail || 'Не удалось удалить запись');
