@@ -4,12 +4,12 @@ import datetime
 import io
 import os
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, BinaryIO
 
 import matplotlib.pyplot as plt
 from matplotlib.dates import date2num as _date2num
 import pytest
-from pypdf import PdfReader
+from pypdf import PdfReader as _PdfReader
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
@@ -22,6 +22,11 @@ from services.api.app.diabetes.services.reporting import make_sugar_plot, genera
 def date2num(date: datetime.datetime) -> float:
     """Typed wrapper around :func:`matplotlib.dates.date2num`."""
     return float(_date2num(date))
+
+
+def read_pdf(stream: BinaryIO) -> _PdfReader:
+    """Typed wrapper around :class:`pypdf.PdfReader`."""
+    return _PdfReader(stream)
 
 
 class DummyEntry:
@@ -136,7 +141,7 @@ def test_generate_pdf_report() -> None:
     )
     assert hasattr(pdf_buf, 'read')
     pdf_buf.seek(0)
-    reader = PdfReader(pdf_buf)
+    reader = read_pdf(pdf_buf)
     text = "".join(page.extract_text() for page in reader.pages)
     assert "высокий сахар 15.0" in text
 
@@ -148,7 +153,7 @@ def test_generate_pdf_report_page_breaks(block: Any) -> None:
     kwargs[block] = long_lines
     pdf_buf = generate_pdf_report(gpt_text="", plot_buf=None, **kwargs)
     pdf_buf.seek(0)
-    reader = PdfReader(pdf_buf)
+    reader = read_pdf(pdf_buf)
     assert len(reader.pages) > 1
 
 
@@ -248,5 +253,5 @@ async def test_send_report_uses_gpt(monkeypatch: pytest.MonkeyPatch) -> None:
     assert message.docs
     pdf_buf = message.docs[0]
     pdf_buf.seek(0)
-    text = "".join(page.extract_text() for page in PdfReader(pdf_buf).pages)
+    text = "".join(page.extract_text() for page in read_pdf(pdf_buf).pages)
     assert "пейте больше воды" in text
