@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import matplotlib.pyplot as plt
+from matplotlib.dates import date2num
 import pytest
 from pypdf import PdfReader
 from sqlalchemy import create_engine
@@ -77,7 +78,7 @@ def test_make_sugar_plot_sorts_entries(monkeypatch: pytest.MonkeyPatch) -> None:
     captured = {}
 
     def fake_plot(
-        x: list[datetime.datetime],
+        x: list[float],
         y: list[float],
         **kwargs: Any,
     ) -> None:
@@ -88,8 +89,8 @@ def test_make_sugar_plot_sorts_entries(monkeypatch: pytest.MonkeyPatch) -> None:
     make_sugar_plot(entries, "период")
 
     assert captured["x"] == [
-        datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
-        datetime.datetime(2025, 7, 1, 14, tzinfo=datetime.timezone.utc),
+        date2num(datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc)),
+        date2num(datetime.datetime(2025, 7, 1, 14, tzinfo=datetime.timezone.utc)),
     ]
     assert captured["y"] == [7.0, 9.0]
 
