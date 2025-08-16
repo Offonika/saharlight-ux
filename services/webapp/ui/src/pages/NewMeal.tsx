@@ -2,15 +2,37 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import MedicalButton from '@/components/MedicalButton';
+import { useToast } from '@/hooks/use-toast';
+import { updateRecord, HistoryRecord } from '@/api/history';
 
 const NewMeal = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [meal, setMeal] = useState('');
   const [carbs, setCarbs] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/history');
+    const now = new Date();
+    const record: HistoryRecord = {
+      id: Date.now().toString(),
+      date: now.toISOString().split('T')[0],
+      time: now.toTimeString().slice(0, 5),
+      type: 'meal',
+      notes: meal,
+      carbs: Number(carbs),
+    };
+    try {
+      await updateRecord(record);
+      navigate('/history');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Неизвестная ошибка';
+      toast({
+        title: 'Ошибка',
+        description: message,
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
