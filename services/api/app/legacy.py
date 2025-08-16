@@ -24,13 +24,20 @@ async def profiles_get(telegram_id: int) -> ProfileSchema:
     profile = await get_profile(telegram_id)
     if profile is None:
         raise HTTPException(status_code=404, detail="profile not found")
+
+    icr: float | None = profile.icr
+    cf: float | None = profile.cf
+    target_bg: float | None = profile.target_bg
+    low_threshold: float | None = profile.low_threshold
+    high_threshold: float | None = profile.high_threshold
+
     return ProfileSchema(
         telegram_id=profile.telegram_id,
-        icr=float(profile.icr) if profile.icr is not None else 0.0,
-        cf=float(profile.cf) if profile.cf is not None else 0.0,
-        target=float(profile.target_bg) if profile.target_bg is not None else 0.0,
-        low=float(profile.low_threshold) if profile.low_threshold is not None else 0.0,
-        high=float(profile.high_threshold) if profile.high_threshold is not None else 0.0,
+        icr=float(icr) if icr is not None else 0.0,
+        cf=float(cf) if cf is not None else 0.0,
+        target=float(target_bg) if target_bg is not None else 0.0,
+        low=float(low_threshold) if low_threshold is not None else 0.0,
+        high=float(high_threshold) if high_threshold is not None else 0.0,
         org_id=profile.org_id,
     )
 
