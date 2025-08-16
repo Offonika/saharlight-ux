@@ -1,6 +1,6 @@
 import pytest
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, cast, NoReturn
 
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -71,7 +71,7 @@ async def test_freeform_handler_guidance_on_valueerror(
         SimpleNamespace(user_data={}),
     )
 
-    def fake_smart_input(_):
+    def fake_smart_input(_: str) -> NoReturn:
         raise ValueError("boom")
 
     monkeypatch.setattr(handlers, "smart_input", fake_smart_input)
