@@ -123,10 +123,11 @@ def test_schedule_reminder_replaces_existing_job() -> None:
         rem = session.get(Reminder, 1)
         handlers.schedule_reminder(rem, job_queue)
         handlers.schedule_reminder(rem, job_queue)
-    jobs = job_queue.get_jobs_by_name("reminder_1")
+    jobs: list[DummyJob] = job_queue.get_jobs_by_name("reminder_1")
     active_jobs = [j for j in jobs if not j.removed]
     assert len(active_jobs) == 1
-    assert active_jobs[0].time.tzinfo.key == "Europe/Moscow"
+    job = active_jobs[0]
+    assert job.time.tzinfo.key == "Europe/Moscow"
 
 
 def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -161,7 +162,8 @@ def test_schedule_reminder_invalid_timezone_logs_warning(caplog: pytest.LogCaptu
     with caplog.at_level(logging.WARNING):
         handlers.schedule_reminder(rem, job_queue)
     assert job_queue.jobs
-    assert job_queue.jobs[0].time.tzinfo == timezone.utc
+    job = job_queue.jobs[0]
+    assert job.time.tzinfo == timezone.utc
     assert any("Invalid timezone" in r.message for r in caplog.records)
 
 
@@ -202,12 +204,14 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         session.commit()
     with TestSession() as session:
         text, markup = handlers._render_reminders(session, 1)
+    assert markup is not None
     header, *rest = text.splitlines()
     assert header == "Ваши напоминания  (2 / 1 🔔) ⚠️"
     assert "⏰ По времени" in text
     assert "⏱ Интервал" in text
     assert "📸 Триггер-фото" in text
     assert "2. <s>🔕title2</s>" in text
+    assert markup.inline_keyboard
     btn = markup.inline_keyboard[-1][0]
     assert btn.web_app and btn.web_app.url.endswith("/ui/reminders")
 
@@ -224,11 +228,13 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
         session.commit()
     with TestSession() as session:
         text, markup = handlers._render_reminders(session, 1)
+    assert markup is not None
     assert "Нажмите кнопку" not in text
     assert len(markup.inline_keyboard) == 1
-    texts = [btn.text for btn in markup.inline_keyboard[0]]
+    first_row = markup.inline_keyboard[0]
+    texts = [btn.text for btn in first_row]
     assert texts == ["🗑️", "🔔"]
-    assert all(btn.web_app is None for btn in markup.inline_keyboard[0])
+    assert all(btn.web_app is None for btn in first_row)
 
 
 def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -299,8 +305,13 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         assert not session.get(Reminder, 1).is_enabled
-    assert job_queue.get_jobs_by_name("reminder_1")[0].removed
-    assert query.answers[0] == "Готово ✅"
+    jobs = job_queue.get_jobs_by_name("reminder_1")
+    assert jobs
+    job = jobs[0]
+    assert job.removed
+    assert query.answers
+    answer = query.answers[0]
+    assert answer == "Готово ✅"
     assert "pending_entry" in context.user_data
 
 
@@ -329,8 +340,13 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
-    assert job_queue.get_jobs_by_name("reminder_1")[0].removed
-    assert query.answers[-1] == "Готово ✅"
+    jobs = job_queue.get_jobs_by_name("reminder_1")
+    assert jobs
+    job = jobs[0]
+    assert job.removed
+    assert query.answers
+    answer = query.answers[-1]
+    assert answer == "Готово ✅"
 
 
 @pytest.mark.asyncio
@@ -397,8 +413,14 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
         job_queue=job_queue,
     )
     await handlers.reminder_job(context)
-    assert bot.messages[0][1].startswith("🔔 Замерить сахар")
-    keyboard = bot.messages[0][2]["reply_markup"].inline_keyboard[0]
+    assert bot.messages
+    _, text_msg, kwargs = bot.messages[0]
+    assert text_msg.startswith("🔔 Замерить сахар")
+    reply_markup = kwargs.get("reply_markup")
+    assert reply_markup is not None
+    assert reply_markup.inline_keyboard
+    keyboard = reply_markup.inline_keyboard[0]
+    assert len(keyboard) >= 2
     assert keyboard[0].callback_data == "remind_snooze:1"
     assert keyboard[1].callback_data == "remind_cancel:1"
     with TestSession() as session:
@@ -423,8 +445,9 @@ async def test_cancel_callback(monkeypatch: pytest.MonkeyPatch) -> None:
     update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
     context = SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot())
     await handlers.reminder_callback(update, context)
-
-    assert query.edited[0] == "❌ Напоминание отменено"
+    assert query.edited is not None
+    edited_text, _ = query.edited
+    assert edited_text == "❌ Напоминание отменено"
     assert query.answers == [None]
     with TestSession() as session:
         log = session.query(ReminderLog).first()
