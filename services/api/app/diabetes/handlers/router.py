@@ -17,6 +17,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     query = update.callback_query
     await query.answer()
     data = query.data or ""
+    user = getattr(update, "effective_user", None)
 
     if data.startswith("rem_"):
         return
@@ -40,8 +41,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         from . import reminder_handlers
 
         job_queue = getattr(context, "job_queue", None)
-        if job_queue:
-            reminder_handlers.schedule_after_meal(update.effective_user.id, job_queue)
+        if job_queue and user is not None:
+            reminder_handlers.schedule_after_meal(user.id, job_queue)
         return
     elif data == "edit_entry":
         entry_data = context.user_data.get("pending_entry")
@@ -74,7 +75,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if not entry:
                 await query.edit_message_text("Запись не найдена (уже удалена).")
                 return
-            if entry.telegram_id != update.effective_user.id:
+            if user is None or entry.telegram_id != user.id:
                 await query.edit_message_text(
                     "⚠️ Эта запись принадлежит другому пользователю."
                 )

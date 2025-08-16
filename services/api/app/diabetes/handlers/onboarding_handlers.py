@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from collections.abc import Awaitable, Callable
+from typing import cast
 
 from telegram import (
     InlineKeyboardButton,
@@ -32,6 +33,7 @@ from telegram.ext import (
 from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
     CallbackQueryNoWarnHandler,
 )
+from services.api.app.diabetes.types import Job, JobQueue
 
 from services.api.app.diabetes.services.db import SessionLocal, User, Profile, Reminder
 from services.api.app.diabetes.utils.ui import (
@@ -357,7 +359,7 @@ async def onboarding_reminders(
                 )
                 return ConversationHandler.END
 
-    job_queue = getattr(context, "job_queue", None)
+    job_queue = cast(JobQueue | None, getattr(context, "job_queue", None))
     if job_queue is not None:
         if enable:
             from . import reminder_handlers
@@ -366,7 +368,8 @@ async def onboarding_reminders(
                 reminder_handlers.schedule_reminder(rem, job_queue)
         else:
             for rem in reminders:
-                for job in job_queue.get_jobs_by_name(f"reminder_{rem.id}"):
+                jobs = cast(list[Job], job_queue.get_jobs_by_name(f"reminder_{rem.id}"))
+                for job in jobs:
                     job.schedule_removal()
     else:
         logger.warning("Job queue not available, skipping reminder scheduling")

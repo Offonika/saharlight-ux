@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any, Callable, TypedDict
+from typing import Any, Callable, TypedDict, cast
 
 from sqlalchemy.orm import Session, sessionmaker
 from telegram import Update
 from telegram.error import TelegramError
-from telegram.ext import ContextTypes, Job, JobQueue
+from telegram.ext import ContextTypes
+
+from services.api.app.diabetes.types import Job, JobQueue
 
 from services.api.app.diabetes.services.db import (
     Alert,
@@ -20,8 +22,6 @@ from services.api.app.diabetes.utils.helpers import get_coords_and_link
 
 SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], bool] = _commit
-
-CustomContext = ContextTypes.DEFAULT_TYPE
 
 
 class AlertJobData(TypedDict, total=False):
@@ -39,7 +39,7 @@ ALERT_REPEAT_DELAY = datetime.timedelta(minutes=5)
 
 def schedule_alert(
     user_id: int,
-    job_queue: JobQueue[CustomContext],
+    job_queue: JobQueue,
     *,
     sugar: float,
     profile: dict[str, Any],
@@ -113,7 +113,7 @@ async def _send_alert_message(
 async def evaluate_sugar(
     user_id: int,
     sugar: float,
-    job_queue: JobQueue[CustomContext] | None = None,
+    job_queue: JobQueue | None = None,
     *,
     context: ContextTypes.DEFAULT_TYPE | None = None,
     first_name: str = "",
@@ -177,9 +177,9 @@ async def evaluate_sugar(
             first_name=first_name,
         )
     elif action == "remove" and job_queue is not None:
-        for job in job_queue.get_jobs_by_name(f"alert_{user_id}"):
-            if job is not None:
-                job.schedule_removal()
+        jobs = cast(list[Job], job_queue.get_jobs_by_name(f"alert_{user_id}"))
+        for job in jobs:
+            job.schedule_removal()
 
     if result.get("notify") and context is not None:
         await _send_alert_message(
@@ -191,20 +191,25 @@ async def check_alert(
     update: Update, context: ContextTypes.DEFAULT_TYPE, sugar: float
 ) -> None:
     """Wrapper to evaluate sugar using :func:`evaluate_sugar`."""
-    job_queue: JobQueue[CustomContext] | None = getattr(context, "job_queue", None)
+    job_queue = cast(JobQueue | None, getattr(context, "job_queue", None))
     if job_queue is None:
-        job_queue = getattr(getattr(context, "application", None), "job_queue", None)
+        job_queue = cast(
+            JobQueue | None, getattr(getattr(context, "application", None), "job_queue", None)
+        )
+    user = update.effective_user
+    if user is None:
+        return
     await evaluate_sugar(
-        update.effective_user.id,
+        user.id,
         sugar,
         job_queue,
         context=context,
-        first_name=update.effective_user.first_name or "",
+        first_name=user.first_name or "",
     )
 
 
 async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
-    job: Job[CustomContext] | None = context.job
+    job = cast(Job | None, context.job)
     if job is None:
         return
     data: AlertJobData | None = job.data
@@ -241,7 +246,7 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             commit(session)
         job.schedule_removal()
         return
-    job_queue: JobQueue[CustomContext] | None = context.job_queue
+    job_queue = cast(JobQueue | None, context.job_queue)
     if job_queue is None:
         return
     schedule_alert(
@@ -258,7 +263,11 @@ async def alert_stats(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Отправить статистику предупреждений за последние 7 дней."""
-    user_id = update.effective_user.id
+    user = update.effective_user
+    message = update.message
+    if user is None or message is None:
+        return
+    user_id = user.id
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     week_ago = now - datetime.timedelta(days=7)
 
@@ -273,7 +282,7 @@ async def alert_stats(
     hyper = sum(1 for a in alerts if a.type == "hyper")
 
     text = f"За 7\u202Fдн.: гипо\u202F{hypo}, гипер\u202F{hyper}"
-    await update.message.reply_text(text)
+    await message.reply_text(text)
 
 
 __all__ = [

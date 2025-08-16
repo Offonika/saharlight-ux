@@ -21,10 +21,11 @@ from telegram import (
 from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
-    JobQueue,
     MessageHandler,
     filters,
 )
+
+from services.api.app.diabetes.types import Job, JobQueue
 from telegram.error import BadRequest, TelegramError
 
 from services.api.app.diabetes.services.db import (
@@ -216,13 +217,14 @@ def _render_reminders(
 
 
 def schedule_reminder(
-    rem: Reminder, job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None
+    rem: Reminder, job_queue: JobQueue | None
 ) -> None:
     if job_queue is None:
         logger.warning("schedule_reminder called without job_queue")
         return
     name = f"reminder_{rem.id}"
-    for job in job_queue.get_jobs_by_name(name):
+    jobs = cast(list[Job], job_queue.get_jobs_by_name(name))
+    for job in jobs:
         job.schedule_removal()
     if not rem.is_enabled:
         logger.debug(
@@ -296,7 +298,7 @@ def schedule_reminder(
     )
 
 
-def schedule_all(job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None) -> None:
+def schedule_all(job_queue: JobQueue | None) -> None:
     if job_queue is None:
         logger.warning("schedule_all called without job_queue")
         return
@@ -411,9 +413,10 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     rid = rid_or_count
-    job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None = context.job_queue
+    job_queue = cast(JobQueue | None, context.job_queue)
     if job_queue is not None:
-        for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
+        jobs = cast(list[Job], job_queue.get_jobs_by_name(f"reminder_{rid}"))
+        for job in jobs:
             job.schedule_removal()
         schedule_reminder(reminder, job_queue)
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
@@ -524,7 +527,7 @@ async def reminder_webapp_save(
         )
         return
 
-    job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None = context.job_queue
+    job_queue = cast(JobQueue | None, context.job_queue)
     if job_queue is not None and rem is not None:
         schedule_reminder(rem, job_queue)
     render_fn = cast(
@@ -567,9 +570,10 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if message:
                 await message.reply_text("⚠️ Не удалось удалить напоминание.")
             return
-    job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None = context.job_queue
+    job_queue = cast(JobQueue | None, context.job_queue)
     if job_queue is not None:
-        for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
+        jobs = cast(list[Job], job_queue.get_jobs_by_name(f"reminder_{rid}"))
+        for job in jobs:
             job.schedule_removal()
     if message:
         await message.reply_text("Удалено")
@@ -641,7 +645,7 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             )
             return
     if action == "remind_snooze":
-        job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None = context.job_queue
+        job_queue = cast(JobQueue | None, context.job_queue)
         if job_queue is not None:
             job_queue.run_once(
                 reminder_job,
@@ -712,16 +716,18 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if status == "error":
         return
 
-    job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None = context.job_queue
+    job_queue = cast(JobQueue | None, context.job_queue)
     if status == "toggle":
         if rem and rem.is_enabled:
             schedule_reminder(rem, job_queue)
         elif job_queue is not None:
-            for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
+            jobs = cast(list[Job], job_queue.get_jobs_by_name(f"reminder_{rid}"))
+            for job in jobs:
                 job.schedule_removal()
     else:  # del
         if job_queue is not None:
-            for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
+            jobs = cast(list[Job], job_queue.get_jobs_by_name(f"reminder_{rid}"))
+            for job in jobs:
                 job.schedule_removal()
 
     render_fn = cast(
@@ -748,7 +754,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 def schedule_after_meal(
-    user_id: int, job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None
+    user_id: int, job_queue: JobQueue | None
 ) -> None:
     if job_queue is None:
         logger.warning("schedule_after_meal called without job_queue")
