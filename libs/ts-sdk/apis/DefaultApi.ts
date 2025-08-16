@@ -54,16 +54,7 @@ export interface RemindersPostRequest {
     reminder: Reminder;
 }
 
-export interface RemindersPatchRequest {
-    reminder: Reminder;
-}
-
-export interface RemindersDeleteRequest {
-    telegramId: number;
-    id: number;
-}
-
-export interface TimezonePostRequest {
+export interface TimezonePutRequest {
     timezone: Timezone;
 }
 
@@ -264,94 +255,13 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Update reminder
-     */
-    async remindersPatchRaw(requestParameters: RemindersPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RemindersPost200Response>> {
-        if (requestParameters['reminder'] == null) {
-            throw new runtime.RequiredError(
-                'reminder',
-                'Required parameter "reminder" was null or undefined when calling remindersPatch().' 
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        let urlPath = `/api/reminders`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'PATCH',
-            headers: headerParameters,
-            query: queryParameters,
-            body: ReminderToJSON(requestParameters['reminder']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => RemindersPost200ResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Update reminder
-     */
-    async remindersPatch(requestParameters: RemindersPatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RemindersPost200Response> {
-        const response = await this.remindersPatchRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Delete reminder
-     */
-    async remindersDeleteRaw(requestParameters: RemindersDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Status>> {
-        if (requestParameters['telegramId'] == null) {
-            throw new runtime.RequiredError(
-                'telegramId',
-                'Required parameter "telegramId" was null or undefined when calling remindersDelete().' 
-            );
-        }
-        if (requestParameters['id'] == null) {
-            throw new runtime.RequiredError(
-                'id',
-                'Required parameter "id" was null or undefined when calling remindersDelete().' 
-            );
-        }
-
-        const queryParameters: any = {};
-        queryParameters['telegram_id'] = requestParameters['telegramId'];
-        queryParameters['id'] = requestParameters['id'];
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        let urlPath = `/api/reminders`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'DELETE',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => StatusFromJSON(jsonValue));
-    }
-
-    /**
-     * Delete reminder
-     */
-    async remindersDelete(requestParameters: RemindersDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Status> {
-        const response = await this.remindersDeleteRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
      * Save timezone
      */
-    async timezonePostRaw(requestParameters: TimezonePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Status>> {
+    async timezonePutRaw(requestParameters: TimezonePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Status>> {
         if (requestParameters['timezone'] == null) {
             throw new runtime.RequiredError(
                 'timezone',
-                'Required parameter "timezone" was null or undefined when calling timezonePost().'
+                'Required parameter "timezone" was null or undefined when calling timezonePut().'
             );
         }
 
@@ -366,7 +276,7 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const response = await this.request({
             path: urlPath,
-            method: 'POST',
+            method: 'PUT',
             headers: headerParameters,
             query: queryParameters,
             body: TimezoneToJSON(requestParameters['timezone']),
@@ -378,8 +288,8 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Save timezone
      */
-    async timezonePost(requestParameters: TimezonePostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Status> {
-        const response = await this.timezonePostRaw(requestParameters, initOverrides);
+    async timezonePut(requestParameters: TimezonePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Status> {
+        const response = await this.timezonePutRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
