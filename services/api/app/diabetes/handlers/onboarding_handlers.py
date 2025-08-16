@@ -458,7 +458,6 @@ async def onboarding_poll_answer(
 async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     from . import _cancel_then
     from .dose_handlers import photo_prompt
-
     message = update.message
     user_data_raw = context.user_data
     if user_data_raw is None:
@@ -469,10 +468,9 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if message is None:
         return ConversationHandler.END
 
-    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]] = _cancel_then(
-        photo_prompt
-    )
-    return await handler(update, context)
+    handler = _cancel_then(photo_prompt)
+    await handler(update, context)
+    return ConversationHandler.END
 
 
 onboarding_conv = ConversationHandler(

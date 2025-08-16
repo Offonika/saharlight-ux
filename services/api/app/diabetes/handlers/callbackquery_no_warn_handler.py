@@ -5,7 +5,7 @@ from telegram import CallbackQuery, Update
 from telegram.ext import BaseHandler, ContextTypes
 
 CallbackQueryHandlerCallback = Callable[
-    [Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, None]
+    [Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, int]
 ]
 
 
