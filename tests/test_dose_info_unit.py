@@ -81,7 +81,8 @@ async def test_entry_without_dose_has_no_unit(
     async def noop(*args: Any, **kwargs: Any) -> None:
         pass
 
-    monkeypatch.setattr(dose_handlers, "SessionLocal", lambda: DummySession())
+    session_factory = cast(type(dose_handlers.SessionLocal), lambda: DummySession())
+    monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
     monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
@@ -132,7 +133,8 @@ async def test_entry_without_sugar_has_placeholder(
     async def noop(*args: Any, **kwargs: Any) -> None:
         pass
 
-    monkeypatch.setattr(dose_handlers, "SessionLocal", lambda: DummySession())
+    session_factory = cast(type(dose_handlers.SessionLocal), lambda: DummySession())
+    monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
     monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)

@@ -259,7 +259,8 @@ async def test_photo_then_freeform_calculates_dose(
         def get(self, model, user_id):
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    handlers.SessionLocal = lambda: DummySession()
+    session_factory = cast(type(handlers.SessionLocal), lambda: DummySession())
+    handlers.SessionLocal = session_factory
 
     sugar_msg = DummyMessage(text="5")
     update_sugar = cast(
