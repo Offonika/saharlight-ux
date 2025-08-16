@@ -105,7 +105,7 @@ def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.Byte
         return buf
 
     plt.figure(figsize=(7, 3))
-    plt.plot(times, sugars_plot, marker='o', label='Сахар (ммоль/л)')
+    plt.plot(cast(Sequence[float], times), sugars_plot, marker='o', label='Сахар (ммоль/л)')
     plt.title(f'Динамика сахара за {period_label}')
     plt.xlabel('Дата')
     plt.ylabel('Сахар, ммоль/л')
