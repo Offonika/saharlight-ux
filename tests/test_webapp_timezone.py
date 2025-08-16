@@ -5,11 +5,13 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 import urllib.parse
 
+from typing import Any, Callable
+
 import pytest
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
@@ -35,18 +37,18 @@ def auth_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     return {"X-Telegram-Init-Data": build_init_data()}
 
 
-def setup_db(monkeypatch):
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
-    Session = sessionmaker(bind=engine)
+    SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
 
-    async def run_db_wrapper(fn, *args, **kwargs):
-        return await db.run_db(fn, *args, sessionmaker=Session, **kwargs)
+    async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
-    return Session
+    return SessionLocal
 
 
 def test_timezone_persist_and_validate(
@@ -65,6 +67,7 @@ def test_timezone_persist_and_validate(
 
     with Session() as session:
         tz_row = session.get(db.Timezone, 1)
+        assert tz_row is not None
         assert tz_row.tz == "Europe/Moscow"
 
     resp = client.put("/timezone", json={}, headers=auth_headers)
@@ -112,12 +115,14 @@ def test_timezone_concurrent_writes(
 
     with Session() as session:
         tz_row = session.get(db.Timezone, 1)
+        assert tz_row is not None
         assert tz_row.tz in timezones
+        tz_value = tz_row.tz
 
     client = TestClient(server.app)
     resp = client.get("/timezone", headers=headers)
     assert resp.status_code == 200
-    assert resp.json() == {"tz": tz_row.tz}
+    assert resp.json() == {"tz": tz_value}
 
 
 @pytest.mark.asyncio
@@ -138,12 +143,14 @@ async def test_timezone_async_writes(
 
     with Session() as session:
         tz_row = session.get(db.Timezone, 1)
+        assert tz_row is not None
         assert tz_row.tz in timezones
+        tz_value = tz_row.tz
 
     async with AsyncClient(app=server.app, base_url="http://test") as ac:
         resp = await ac.get("/timezone", headers=headers)
         assert resp.status_code == 200
-        assert resp.json() == {"tz": tz_row.tz}
+        assert resp.json() == {"tz": tz_value}
 
 
 def test_timezone_requires_header() -> None:
