@@ -26,41 +26,53 @@ export const fallbackDayStats: DayStats = {
 };
 
 export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint[]> {
-  const res = await tgFetch(`/api/analytics?telegramId=${telegramId}`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch analytics');
+  try {
+    const res = await tgFetch(`/api/analytics?telegramId=${telegramId}`);
+    if (!res.ok) {
+      throw new Error('Не удалось загрузить аналитику');
+    }
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      console.error('Unexpected analytics API response:', data);
+      return fallbackAnalytics;
+    }
+    return data as AnalyticsPoint[];
+  } catch (error) {
+    console.error('Failed to fetch analytics:', error);
+    throw new Error('Не удалось загрузить аналитику');
   }
-  const data = await res.json();
-  if (!Array.isArray(data)) {
-    throw new Error('Invalid analytics data');
-  }
-  return data as AnalyticsPoint[];
 }
 
 export async function fetchDayStats(telegramId: number): Promise<DayStats> {
-  const res = await tgFetch(`/api/stats?telegramId=${telegramId}`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch stats');
+  try {
+    const res = await tgFetch(`/api/stats?telegramId=${telegramId}`);
+    if (!res.ok) {
+      throw new Error('Не удалось загрузить статистику');
+    }
+    const data = await res.json();
+
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      console.error('Unexpected stats API response:', data);
+      return fallbackDayStats;
+    }
+
+    const { sugar, breadUnits, insulin } = data as Record<string, unknown>;
+
+    if (
+      typeof sugar !== 'number' ||
+      !Number.isFinite(sugar) ||
+      typeof breadUnits !== 'number' ||
+      !Number.isFinite(breadUnits) ||
+      typeof insulin !== 'number' ||
+      !Number.isFinite(insulin)
+    ) {
+      console.error('Unexpected stats API response:', data);
+      return fallbackDayStats;
+    }
+
+    return { sugar, breadUnits, insulin };
+  } catch (error) {
+    console.error('Failed to fetch day stats:', error);
+    throw new Error('Не удалось загрузить статистику');
   }
-  const data = await res.json();
-
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    throw new Error('Invalid stats data');
-  }
-
-  const { sugar, breadUnits, insulin } = data as Record<string, unknown>;
-
-  if (
-    typeof sugar !== 'number' ||
-    !Number.isFinite(sugar) ||
-    typeof breadUnits !== 'number' ||
-    !Number.isFinite(breadUnits) ||
-    typeof insulin !== 'number' ||
-    !Number.isFinite(insulin)
-  ) {
-    console.error('Unexpected stats API response:', data);
-    return fallbackDayStats;
-  }
-
-  return { sugar, breadUnits, insulin };
 }
