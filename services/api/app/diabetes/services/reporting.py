@@ -80,11 +80,16 @@ def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.Byte
         Логирует отсутствие данных и использует глобальное состояние
         ``matplotlib``.
     """
+    def _date_to_num(dt: datetime) -> float:
+        """Typed wrapper around ``matplotlib.dates.date2num``."""
+
+        return cast(float, date2num(dt))
+
     entries_sorted = sorted(
         (e for e in entries if e.sugar_before is not None),
         key=lambda e: e.event_time,
     )
-    times: list[float] = [date2num(e.event_time) for e in entries_sorted]
+    times: list[float] = [_date_to_num(e.event_time) for e in entries_sorted]
     sugars_plot: list[float] = [cast(float, e.sugar_before) for e in entries_sorted]
 
     if not sugars_plot:
