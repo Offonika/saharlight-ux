@@ -55,7 +55,10 @@ async def test_report_request_and_custom_flow(
     await reporting_handlers.report_request(update, context)
     assert "awaiting_report_date" not in context.user_data
     assert any("Выберите период" in t for t in message.replies)
-    assert message.kwargs[0].get("reply_markup") is not None
+    assert message.kwargs
+    first_kwargs = message.kwargs[0]
+    assert first_kwargs is not None
+    assert first_kwargs.get("reply_markup") is not None
 
     query = DummyQuery(DummyMessage(), "report_period:custom")
     update_cb = cast(
@@ -66,6 +69,7 @@ async def test_report_request_and_custom_flow(
     await reporting_handlers.report_period_callback(update_cb, context)
 
     assert context.user_data.get("awaiting_report_date") is True
+    assert query.edited
     assert any("YYYY-MM-DD" in text for text in query.edited)
 
     called = {}
@@ -135,5 +139,9 @@ async def test_report_period_callback_week(
     expected = (fixed_now - dt.timedelta(days=7)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
-    assert called["date_from"] == expected
-    assert called["period_label"] == "последнюю неделю"
+    date_from = called.get("date_from")
+    assert date_from is not None
+    assert date_from == expected
+    period_label = called.get("period_label")
+    assert period_label is not None
+    assert period_label == "последнюю неделю"
