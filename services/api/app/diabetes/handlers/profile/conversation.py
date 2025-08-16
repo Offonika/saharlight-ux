@@ -17,8 +17,6 @@ import logging
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy.orm import Session
 
-from sqlalchemy.orm import Session
-
 from services.api.app.diabetes.services.db import (
     SessionLocal,
     Profile,
@@ -467,7 +465,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if action == "sos_contact":
         from services.api.app.diabetes.handlers import sos_handlers
 
-        await sos_handlers.sos_contact_start(query, context)
+        await sos_handlers.sos_contact_start(update, context)
         return
     if action == "add" and settings.webapp_url:
         button = InlineKeyboardButton(
@@ -478,8 +476,11 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     elif action == "del":
         await reminder_handlers.delete_reminder(update, context)
 
+    def db_security(session: Session) -> dict[str, object]:
+        return _security_db(session, user_id, action)
+
     result = await run_db(
-        _security_db, user_id, action, sessionmaker=SessionLocal
+        db_security, sessionmaker=SessionLocal
     )
     if not result.get("found"):
         await query.edit_message_text("Профиль не найден.")
@@ -491,9 +492,9 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         )
         return
     alert_sugar = result.get("alert_sugar")
-    if alert_sugar is not None:
+    if isinstance(alert_sugar, (int, float, str)):
         job_queue = cast(DefaultJobQueue, context.application.job_queue)
-        await evaluate_sugar(user_id, alert_sugar, job_queue)
+        await evaluate_sugar(user_id, float(alert_sugar), job_queue)
 
     low = result["low"]
     high = result["high"]
@@ -726,14 +727,19 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         )
         return ConversationHandler.END
     user_id = update.effective_user.id
+    def db_save_profile(session: Session) -> bool:
+        return save_profile(
+            session,
+            user_id,
+            icr,
+            cf,
+            target,
+            low,
+            high,
+        )
+
     ok = await run_db(
-        save_profile,
-        user_id,
-        icr,
-        cf,
-        target,
-        low,
-        high,
+        db_save_profile,
         sessionmaker=SessionLocal,
     )
     if not ok:
