@@ -46,4 +46,25 @@ describe('tgFetch', () => {
     const [, options] = (global.fetch as Mock).mock.calls[0] as [unknown, RequestInit];
     expect(options.credentials).toBe('omit');
   });
+
+  it('throws a network error on fetch failure', async () => {
+    (global.fetch as Mock).mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(tgFetch('/api/profile/self')).rejects.toThrow('Проблема с сетью');
+  });
+
+  it('aborts request after timeout', async () => {
+    vi.useFakeTimers();
+    (global.fetch as Mock).mockImplementation((_, options: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        options.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError')),
+        );
+      }),
+    );
+
+    const promise = tgFetch('/api/profile/self');
+    vi.advanceTimersByTime(10_000);
+    await expect(promise).rejects.toThrow('Превышено время ожидания');
+    vi.useRealTimers();
+  });
 });

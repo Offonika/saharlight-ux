@@ -23,6 +23,9 @@ export async function getReminders(telegramId: number): Promise<Reminder[]> {
     return data;
   } catch (error) {
     console.error('Failed to fetch reminders:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Не удалось загрузить напоминания');
   }
 }
@@ -39,6 +42,9 @@ export async function getReminder(
     return data ?? null;
   } catch (error) {
     console.error('Failed to fetch reminder:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Не удалось загрузить напоминание');
   }
 }
@@ -48,6 +54,9 @@ export async function createReminder(reminder: Reminder) {
     return await api.remindersPost({ reminder });
   } catch (error) {
     console.error('Failed to create reminder:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Не удалось создать напоминание');
   }
 }
@@ -57,6 +66,9 @@ export async function updateReminder(reminder: Reminder) {
     return await api.remindersPatch({ reminder });
   } catch (error) {
     console.error('Failed to update reminder:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Не удалось обновить напоминание');
   }
 }
@@ -66,6 +78,9 @@ export async function deleteReminder(telegramId: number, id: number) {
     return await api.remindersDelete({ telegramId, id });
   } catch (error) {
     console.error('Failed to delete reminder:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Не удалось удалить напоминание');
   }
 }

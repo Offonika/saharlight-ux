@@ -31,4 +31,25 @@ describe('tgFetch', () => {
     expect(options.credentials).toBe('include');
     expect(headers.get('X-Telegram-Init-Data')).toBe('test-data');
   });
+
+  it('throws a network error on fetch failure', async () => {
+    (global.fetch as Mock).mockRejectedValue(new DOMException('fail', 'SecurityError'));
+    await expect(tgFetch('/api/profile')).rejects.toThrow('Проблема с сетью');
+  });
+
+  it('aborts request after timeout', async () => {
+    vi.useFakeTimers();
+    (global.fetch as Mock).mockImplementation((_, options: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        options.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError')),
+        );
+      }),
+    );
+
+    const promise = tgFetch('/api/profile');
+    vi.advanceTimersByTime(10_000);
+    await expect(promise).rejects.toThrow('Превышено время ожидания');
+    vi.useRealTimers();
+  });
 });

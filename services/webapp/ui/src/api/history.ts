@@ -25,6 +25,9 @@ export async function getHistory(): Promise<HistoryRecord[]> {
     return data as HistoryRecord[];
   } catch (error) {
     console.error('Failed to fetch history:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Не удалось загрузить историю');
   }
 }
@@ -43,6 +46,9 @@ export async function updateRecord(record: HistoryRecord) {
     return data;
   } catch (error) {
     console.error('Failed to update history record:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Не удалось обновить запись');
   }
 }
@@ -57,6 +63,9 @@ export async function deleteRecord(id: string) {
     return data;
   } catch (error) {
     console.error('Failed to delete history record:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error('Не удалось удалить запись');
   }
 }
