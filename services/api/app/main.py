@@ -1,6 +1,7 @@
 import logging
 import sys
 from pathlib import Path
+from typing import Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup for direct execution
@@ -47,6 +48,16 @@ class Timezone(BaseModel):
 
 class WebUser(BaseModel):
     telegram_id: int
+
+
+HistoryType = Literal["measurement", "meal", "insulin"]
+ALLOWED_HISTORY_TYPES: set[str] = {"measurement", "meal", "insulin"}
+
+
+def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
+    if value not in ALLOWED_HISTORY_TYPES:
+        raise HTTPException(status_code=status_code, detail="invalid history type")
+    return cast(HistoryType, value)
 
 
 @app.get("/health", include_in_schema=False)
@@ -142,6 +153,7 @@ async def post_history(
     data: HistoryRecordSchema, user: dict = Depends(require_tg_user)
 ) -> dict[str, str]:
     """Save or update a history record in the database."""
+    validated_type = _validate_history_type(data.type)
 
     def _save_history(session: Session) -> None:
         obj = session.get(HistoryRecordDB, data.id)
@@ -155,7 +167,7 @@ async def post_history(
             obj.bread_units = data.breadUnits
             obj.insulin = data.insulin
             obj.notes = data.notes
-            obj.type = data.type
+            obj.type = validated_type
         else:
             obj = HistoryRecordDB(
                 id=data.id,
@@ -167,7 +179,7 @@ async def post_history(
                 bread_units=data.breadUnits,
                 insulin=data.insulin,
                 notes=data.notes,
-                type=data.type,
+                type=validated_type,
             )
             session.add(obj)
         session.commit()
@@ -206,7 +218,7 @@ async def get_history(user: dict = Depends(require_tg_user)) -> list[HistoryReco
             breadUnits=r.bread_units,
             insulin=r.insulin,
             notes=r.notes,
-            type=r.type,
+            type=_validate_history_type(r.type, status_code=500),
         )
         for r in records
     ]
