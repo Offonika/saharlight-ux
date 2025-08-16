@@ -1,8 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast
+from typing import Any, Callable, cast
 
-from sqlalchemy.orm import sessionmaker
 from unittest.mock import Mock, PropertyMock
 
 import pytest
@@ -44,8 +43,8 @@ class DummyPhoto:
 
 
 class DummySession:
-    def __init__(self):
-        self.added = []
+    def __init__(self) -> None:
+        self.added: list[Any] = []
 
     def __enter__(self) -> "DummySession":
         return self
@@ -162,8 +161,10 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
-    session_factory = cast(sessionmaker, lambda: session)
-    dose_handlers.SessionLocal = session_factory
+    def session_factory() -> DummySession:
+        return session
+
+    dose_handlers.SessionLocal = cast(Callable[[], DummySession], session_factory)
     await dose_handlers.freeform_handler(update_sugar, context)
     assert context.user_data["pending_entry"]["sugar_before"] == 5.5
 

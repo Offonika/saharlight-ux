@@ -81,9 +81,8 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user for current sugar level."""
     user_data = context.user_data
-    if user_data is None:
+    if not isinstance(user_data, dict):
         return END
-    assert user_data is not None
     message = update.message
     if message is None:
         return END
@@ -213,9 +212,8 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture XE amount from user."""
     user_data = context.user_data
-    if user_data is None:
+    if not isinstance(user_data, dict):
         return END
-    assert user_data is not None
     message = update.message
     if message is None:
         return END
@@ -249,9 +247,8 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture carbohydrates in grams."""
     user_data = context.user_data
-    if user_data is None:
+    if not isinstance(user_data, dict):
         return END
-    assert user_data is not None
     message = update.message
     if message is None:
         return END
@@ -287,9 +284,8 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Finalize dose calculation after receiving sugar level."""
     user_data = context.user_data
-    if user_data is None:
+    if not isinstance(user_data, dict):
         return END
-    assert user_data is not None
     message = update.message
     if message is None:
         return END
@@ -404,9 +400,8 @@ def _cancel_then(
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle freeform text commands for adding diary entries."""
     user_data = context.user_data
-    if user_data is None:
+    if not isinstance(user_data, dict):
         return
-    assert user_data is not None
     message = update.message
     if message is None:
         return
@@ -915,9 +910,8 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False) -> int:
     """Process food photos and trigger nutrition analysis."""
     user_data = context.user_data
-    if user_data is None:
+    if not isinstance(user_data, dict):
         return END
-    assert user_data is not None
     message = update.message
     if message is None:
         query = update.callback_query
