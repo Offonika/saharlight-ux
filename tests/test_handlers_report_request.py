@@ -53,7 +53,9 @@ async def test_report_request_and_custom_flow(
     )
 
     await reporting_handlers.report_request(update, context)
-    assert "awaiting_report_date" not in context.user_data
+    user_data = context.user_data
+    assert user_data is not None
+    assert "awaiting_report_date" not in user_data
     assert any("Выберите период" in t for t in message.replies)
     assert message.kwargs
     first_kwargs = message.kwargs[0]
@@ -68,7 +70,9 @@ async def test_report_request_and_custom_flow(
 
     await reporting_handlers.report_period_callback(update_cb, context)
 
-    assert context.user_data.get("awaiting_report_date") is True
+    user_data = context.user_data
+    assert user_data is not None
+    assert user_data.get("awaiting_report_date") is True
     assert query.edited
     assert any("YYYY-MM-DD" in text for text in query.edited)
 
@@ -92,8 +96,11 @@ async def test_report_request_and_custom_flow(
     )
     await dose_handlers.freeform_handler(update2, context)
 
-    assert called.get("called")
-    assert "awaiting_report_date" not in context.user_data
+    called_flag = called.get("called")
+    assert called_flag is not None
+    user_data = context.user_data
+    assert user_data is not None
+    assert "awaiting_report_date" not in user_data
 
 
 @pytest.mark.asyncio

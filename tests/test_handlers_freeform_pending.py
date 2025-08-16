@@ -45,11 +45,13 @@ async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
 
     await handlers.freeform_handler(update, context)
 
-    pending = context.user_data.get("pending_entry")
+    user_data = context.user_data
+    assert user_data is not None
+    pending = user_data.get("pending_entry")
     assert pending is not None
     assert pending["dose"] == 3.5
     assert pending["carbs_g"] == 30.0
-    assert "pending_entry" in context.user_data
+    assert "pending_entry" in user_data
     assert message.replies
 
 
@@ -93,10 +95,12 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
 
     await handlers.freeform_handler(update, context)
 
-    pending = context.user_data.get("pending_entry")
+    user_data = context.user_data
+    assert user_data is not None
+    pending = user_data.get("pending_entry")
     assert pending is not None
     assert pending["sugar_before"] == 5.6
-    assert "pending_entry" in context.user_data
+    assert "pending_entry" in user_data
     assert message.replies
     text = message.replies[0]
     assert "5.6 ммоль/л" in text
@@ -125,7 +129,9 @@ async def test_freeform_handler_sugar_only_flow() -> None:
 
     await handlers.freeform_handler(update, context)
 
-    pending = context.user_data.get("pending_entry")
+    user_data = context.user_data
+    assert user_data is not None
+    pending = user_data.get("pending_entry")
     assert pending is not None
     assert pending["sugar_before"] == 4.2
-    assert "pending_entry" in context.user_data
+    assert "pending_entry" in user_data
