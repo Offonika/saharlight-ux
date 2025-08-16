@@ -54,6 +54,7 @@ async def sos_contact_save(
     if text is None:
         return ConversationHandler.END
     assert message is not None
+    assert text is not None
     contact = text.strip()
     if not _is_valid_contact(contact):
         await message.reply_text(
