@@ -3,7 +3,7 @@ import os
 from types import SimpleNamespace
 from typing import Any, cast
 
-from telegram import Message, Update
+from telegram import Update
 from telegram.ext import CallbackContext
 
 import pytest
@@ -68,13 +68,13 @@ async def test_onboarding_demo_photo_missing(monkeypatch: pytest.MonkeyPatch, ca
 
     await onboarding.start_command(update, context)
     assert update.message
-    cast(Message, update.message).text = "10"
+    update.message.text = "10"
     await onboarding.onboarding_icr(update, context)
     assert update.message
-    cast(Message, update.message).text = "3"
+    update.message.text = "3"
     await onboarding.onboarding_cf(update, context)
     assert update.message
-    cast(Message, update.message).text = "6"
+    update.message.text = "6"
     await onboarding.onboarding_target(update, context)
 
     import pathlib
@@ -89,7 +89,7 @@ async def test_onboarding_demo_photo_missing(monkeypatch: pytest.MonkeyPatch, ca
     monkeypatch.setattr(pathlib.Path, "open", fake_open)
 
     assert update.message
-    cast(Message, update.message).text = "Europe/Moscow"
+    update.message.text = "Europe/Moscow"
     with caplog.at_level(logging.ERROR):
         state = await onboarding.onboarding_timezone(update, context)
 

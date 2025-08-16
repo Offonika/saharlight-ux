@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from telegram import Message, Update
+from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
 
 from services.api.app.diabetes.services.db import Base, User
@@ -89,22 +89,22 @@ async def test_onboarding_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "1/3" in message.texts[-1]
 
     assert update.message
-    cast(Message, update.message).text = "10"
+    update.message.text = "10"
     state = await onboarding.onboarding_icr(update, context)
     assert state == onboarding.ONB_PROFILE_CF
 
     assert update.message
-    cast(Message, update.message).text = "3"
+    update.message.text = "3"
     state = await onboarding.onboarding_cf(update, context)
     assert state == onboarding.ONB_PROFILE_TARGET
 
     assert update.message
-    cast(Message, update.message).text = "6"
+    update.message.text = "6"
     state = await onboarding.onboarding_target(update, context)
     assert state == onboarding.ONB_PROFILE_TZ
 
     assert update.message
-    cast(Message, update.message).text = "Europe/Moscow"
+    update.message.text = "Europe/Moscow"
     state = await onboarding.onboarding_timezone(update, context)
     assert state == onboarding.ONB_DEMO
     assert message.photos
