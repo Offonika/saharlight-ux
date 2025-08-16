@@ -7,8 +7,11 @@ import datetime
 import html
 import logging
 
+from typing import Any, cast
+
 from openai import OpenAIError
 from telegram import (
+    CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     KeyboardButton,
@@ -86,14 +89,19 @@ def report_keyboard() -> InlineKeyboardMarkup:
 
 async def report_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompt the user to select a report period."""
-    await update.message.reply_text(
-        "Выберите период отчёта:", reply_markup=report_keyboard()
-    )
+    message = update.message
+    if message is None:
+        return
+    await message.reply_text("Выберите период отчёта:", reply_markup=report_keyboard())
 
 
 async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display recent diary entries as separate messages with action buttons."""
-    user_id = update.effective_user.id
+    message = update.message
+    user = update.effective_user
+    if message is None or user is None:
+        return
+    user_id = user.id
 
     def _fetch_entries() -> list[Entry]:
         with SessionLocal() as session:
@@ -108,10 +116,10 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     # Run DB work in a thread to keep the event loop responsive.
     entries = await asyncio.to_thread(_fetch_entries)
     if not entries:
-        await update.message.reply_text("В дневнике пока нет записей.")
+        await message.reply_text("В дневнике пока нет записей.")
         return
 
-    await update.message.reply_text("📊 Последние записи:")
+    await message.reply_text("📊 Последние записи:")
     for entry in entries:
         text = render_entry(entry)
         markup = InlineKeyboardMarkup(
@@ -126,14 +134,12 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 ]
             ]
         )
-        await update.message.reply_text(
-            text, parse_mode="HTML", reply_markup=markup
-        )
+        await message.reply_text(text, parse_mode="HTML", reply_markup=markup)
 
     back_markup = InlineKeyboardMarkup(
         [[InlineKeyboardButton("🔙 Назад", callback_data="report_back")]]
     )
-    await update.message.reply_text("Готово.", reply_markup=back_markup)
+    await message.reply_text("Готово.", reply_markup=back_markup)
 
 
 async def report_period_callback(
@@ -141,12 +147,16 @@ async def report_period_callback(
 ) -> None:
     """Handle report period selection via inline buttons."""
     query = update.callback_query
+    if query is None or query.data is None:
+        return
     await query.answer()
+    message = query.message
     if query.data == "report_back":
-        await query.message.delete()
-        await query.message.reply_text(
-            "📋 Выберите действие:", reply_markup=menu_keyboard
-        )
+        if message is not None:
+            await message.delete()
+            await message.reply_text(
+                "📋 Выберите действие:", reply_markup=menu_keyboard
+            )
         return
     period = query.data.split(":", 1)[1]
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -164,13 +174,14 @@ async def report_period_callback(
         )
         await send_report(update, context, date_from, "последний месяц", query=query)
     elif period == "custom":
-        context.user_data["awaiting_report_date"] = True
+        user_data: dict[str, Any] = context.user_data
+        user_data["awaiting_report_date"] = True
         await query.edit_message_text(
             "Введите дату начала отчёта в формате YYYY-MM-DD\n"
             "Отправьте «назад» для отмены."
         )
-        if getattr(query, "message", None):
-            await query.message.reply_text(
+        if message is not None:
+            await message.reply_text(
                 "Ожидаю дату…",
                 reply_markup=ReplyKeyboardMarkup(
                     [[KeyboardButton("↩️ Назад")]],
@@ -185,12 +196,16 @@ async def report_period_callback(
 async def send_report(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
-    date_from,
-    period_label,
-    query=None,
+    date_from: datetime.datetime,
+    period_label: str,
+    query: CallbackQuery | None = None,
 ) -> None:
     """Generate and send a PDF report for entries after ``date_from``."""
-    user_id = update.effective_user.id
+    tg_user = update.effective_user
+    if tg_user is None:
+        return
+    user_id = tg_user.id
+    message = update.message
 
     def _fetch_entries() -> list[Entry]:
         with SessionLocal() as session:
@@ -206,10 +221,10 @@ async def send_report(
     entries = await asyncio.to_thread(_fetch_entries)
     if not entries:
         text = f"Нет записей за {period_label}."
-        if query:
+        if query is not None:
             await query.edit_message_text(text)
-        else:
-            await update.message.reply_text(text)
+        elif message is not None:
+            await message.reply_text(text)
         return
 
     summary_lines = [f"Всего записей: {len(entries)}"]
@@ -239,23 +254,24 @@ async def send_report(
 
     default_gpt_text = "Не удалось получить рекомендации."
     gpt_text = default_gpt_text
-    thread_id = context.user_data.get("thread_id")
+    user_data: dict[str, Any] = context.user_data
+    thread_id = cast(str | None, user_data.get("thread_id"))
     if thread_id is None:
         with SessionLocal() as session:
-            user = session.get(User, user_id)
-            thread_id = getattr(user, "thread_id", None)
+            db_user = session.get(User, user_id)
+            thread_id = getattr(db_user, "thread_id", None)
             if thread_id is None:
                 thread_id = await create_thread()
-                if user:
-                    user.thread_id = thread_id
+                if db_user:
+                    db_user.thread_id = thread_id
                 else:
                     session.add(User(telegram_id=user_id, thread_id=thread_id))
                 if commit(session):
-                    context.user_data["thread_id"] = thread_id
+                    user_data["thread_id"] = thread_id
                 else:
                     thread_id = None
             else:
-                context.user_data["thread_id"] = thread_id
+                user_data["thread_id"] = thread_id
     if thread_id:
         try:
             run = await send_message(thread_id=thread_id, content=prompt)
@@ -276,9 +292,11 @@ async def send_report(
                 )
                 gpt_text = next(
                     (
-                        m.content[0].text.value
+                        block.text.value
                         for m in messages.data
-                        if m.role == "assistant" and m.content
+                        if m.role == "assistant"
+                        for block in m.content
+                        if getattr(block, "type", None) == "text" or hasattr(block, "text")
                     ),
                     default_gpt_text,
                 )
@@ -298,24 +316,26 @@ async def send_report(
     pdf_buf = generate_pdf_report(summary_lines, errors, day_lines, gpt_text, plot_buf)
     plot_buf.seek(0)
     pdf_buf.seek(0)
-    if query:
+    if query is not None:
         await query.edit_message_text(report_msg, parse_mode="HTML")
-        await query.message.reply_photo(
+        q_message = query.message
+        if q_message is not None:
+            await q_message.reply_photo(
+                plot_buf,
+                caption="График сахара за период",
+            )
+            await q_message.reply_document(
+                pdf_buf,
+                filename="diabetes_report.pdf",
+                caption="PDF-отчёт для врача",
+            )
+    elif message is not None:
+        await message.reply_text(report_msg, parse_mode="HTML")
+        await message.reply_photo(
             plot_buf,
             caption="График сахара за период",
         )
-        await query.message.reply_document(
-            pdf_buf,
-            filename="diabetes_report.pdf",
-            caption="PDF-отчёт для врача",
-        )
-    else:
-        await update.message.reply_text(report_msg, parse_mode="HTML")
-        await update.message.reply_photo(
-            plot_buf,
-            caption="График сахара за период",
-        )
-        await update.message.reply_document(
+        await message.reply_document(
             pdf_buf,
             filename="diabetes_report.pdf",
             caption="PDF-отчёт для врача",
