@@ -7,7 +7,7 @@ import datetime
 import html
 import logging
 
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 from openai import OpenAIError
 from openai.types.beta.threads import TextContentBlock
@@ -35,7 +35,17 @@ LOW_SUGAR_THRESHOLD = 3.0
 HIGH_SUGAR_THRESHOLD = 13.0
 
 
-def render_entry(entry: Entry) -> str:
+class EntryLike(Protocol):
+    """Protocol describing the fields required for ``render_entry``."""
+
+    event_time: datetime.datetime
+    sugar_before: float | None
+    carbs_g: float | None
+    xe: float | None
+    dose: float | str | None
+
+
+def render_entry(entry: EntryLike) -> str:
     """Render a single diary entry as HTML-formatted text."""
     day_str = html.escape(entry.event_time.strftime("%d.%m %H:%M"))
     sugar = (
