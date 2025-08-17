@@ -14,7 +14,7 @@ from sqlalchemy import (
     Boolean,
     func,
 )
-from sqlalchemy.engine import URL
+from sqlalchemy.engine import URL, Engine
 from sqlalchemy.exc import UnboundExecutionError
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -84,6 +84,27 @@ async def run_db(
             return wrapper()
 
     return await asyncio.to_thread(wrapper)
+
+
+def dispose_engine(target: Engine | None = None) -> None:
+    """Dispose of a SQLAlchemy engine.
+
+    Parameters
+    ----------
+    target:
+        The engine to dispose. If ``None`` the module's global engine is used
+        and reset.
+    """
+
+    global engine
+    with engine_lock:
+        eng = target or engine
+        if eng is None:
+            return
+        eng.dispose()
+        if target is None and eng is engine:
+            engine = None
+            SessionLocal.configure(bind=None)
 
 
 # ───────────────────────── модели ────────────────────────────

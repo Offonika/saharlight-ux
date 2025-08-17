@@ -1,3 +1,6 @@
+import warnings
+from contextlib import contextmanager
+
 import pytest
 from types import SimpleNamespace
 from typing import Any, cast
@@ -9,7 +12,20 @@ from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
-from services.api.app.diabetes.services.db import Base, User, Profile
+from services.api.app.diabetes.services.db import Base, User, Profile, dispose_engine
+
+
+@contextmanager
+def no_warnings() -> Any:
+    try:
+        with pytest.warns(None):
+            yield
+            return
+    except TypeError:
+        pass
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        yield
 
 
 class DummyMessage:
@@ -64,14 +80,6 @@ async def test_profile_command_and_view(monkeypatch: pytest.MonkeyPatch, args: A
         SimpleNamespace(args=args, user_data={}),
     )
 
-    await handlers.profile_command(update, context)
-    assert message.markups[0] is menu_keyboard
-    assert f"• ИКХ: {expected_icr} г/ед." in message.texts[0]
-    assert f"• КЧ: {expected_cf} ммоль/л" in message.texts[0]
-    assert f"• Целевой сахар: {expected_target} ммоль/л" in message.texts[0]
-    assert f"• Низкий порог: {expected_low} ммоль/л" in message.texts[0]
-    assert f"• Высокий порог: {expected_high} ммоль/л" in message.texts[0]
-
     message2 = DummyMessage()
     update2 = cast(
         Update, SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=123))
@@ -81,7 +89,18 @@ async def test_profile_command_and_view(monkeypatch: pytest.MonkeyPatch, args: A
         SimpleNamespace(user_data={}),
     )
 
-    await handlers.profile_view(update2, context2)
+    with no_warnings():
+        await handlers.profile_command(update, context)
+        await handlers.profile_view(update2, context2)
+        dispose_engine(engine)
+
+    assert message.markups[0] is menu_keyboard
+    assert f"• ИКХ: {expected_icr} г/ед." in message.texts[0]
+    assert f"• КЧ: {expected_cf} ммоль/л" in message.texts[0]
+    assert f"• Целевой сахар: {expected_target} ммоль/л" in message.texts[0]
+    assert f"• Низкий порог: {expected_low} ммоль/л" in message.texts[0]
+    assert f"• Высокий порог: {expected_high} ммоль/л" in message.texts[0]
+
     assert f"• ИКХ: {expected_icr} г/ед." in message2.texts[0]
     assert f"• КЧ: {expected_cf} ммоль/л" in message2.texts[0]
     assert f"• Целевой сахар: {expected_target} ммоль/л" in message2.texts[0]
@@ -201,7 +220,9 @@ async def test_profile_view_preserves_user_data(monkeypatch: pytest.MonkeyPatch)
         SimpleNamespace(user_data={"thread_id": "tid", "foo": "bar"}),
     )
 
-    await handlers.profile_view(update, context)
+    with no_warnings():
+        await handlers.profile_view(update, context)
+        dispose_engine(engine)
 
     assert context.user_data is not None
     user_data = context.user_data
@@ -238,3 +259,4 @@ async def test_profile_view_missing_profile_shows_webapp_button(monkeypatch: pyt
     assert button.text == "📝 Заполнить форму"
     assert button.web_app is not None
     assert urlparse(button.web_app.url).path == "/ui/profile"
+
