@@ -29,15 +29,12 @@ _original_create_engine: Callable[..., sqlalchemy.engine.Engine] = (
     sqlalchemy.create_engine
 )
 
-
 def _tracking_create_engine(*args: Any, **kwargs: Any) -> sqlalchemy.engine.Engine:
     engine = _original_create_engine(*args, **kwargs)
     _engines.append(engine)
     return engine
 
-
 setattr(sqlalchemy, "create_engine", _tracking_create_engine)
-
 
 @pytest.fixture(autouse=True, scope="session")
 def _close_sqlite_connections() -> Iterator[None]:
