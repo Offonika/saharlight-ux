@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { createRoot } from 'react-dom/client'
 
 import App from './App'
-import { TelegramProvider } from '@/contexts/TelegramContext'
+import { TelegramProvider } from '@/contexts/TelegramProvider'
 
 // Базовые стили проекта
 import './styles/theme.css'
