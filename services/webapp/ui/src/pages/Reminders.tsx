@@ -13,7 +13,7 @@ import {
   type NormalizedReminderType,
 } from '@/lib/reminders'
 import { parseTimeToMinutes } from '@/lib/time'
-import { Reminder as ApiReminder } from '@sdk'
+import type { Reminder as ApiReminder } from '@sdk/models'
 import type { Reminder } from '@/types/reminder'
 
 const TYPE_LABEL: Record<NormalizedReminderType, string> = {
