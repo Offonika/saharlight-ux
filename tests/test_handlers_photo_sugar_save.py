@@ -43,9 +43,13 @@ class DummyPhoto:
     file_unique_id = "uid"
 
 
-class DummySession:
+class DummySession(Session):
     def __init__(self) -> None:
+        super().__init__()
         self.added: list[Any] = []
+
+    def get_bind(self) -> SimpleNamespace:
+        return SimpleNamespace(url=SimpleNamespace(drivername="sqlite", database=":memory:"))
 
     def __enter__(self) -> "DummySession":
         return self
@@ -68,7 +72,7 @@ class DummySession:
         return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
 
-session = DummySession()
+session: DummySession = DummySession()
 
 
 @pytest.mark.asyncio
