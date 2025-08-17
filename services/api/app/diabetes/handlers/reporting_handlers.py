@@ -35,6 +35,8 @@ from services.api.app.diabetes.services.reporting import make_sugar_plot, genera
 from services.api.app.diabetes.utils.ui import menu_keyboard
 from . import UserData
 
+logger = logging.getLogger(__name__)
+
 LOW_SUGAR_THRESHOLD = 3.0
 HIGH_SUGAR_THRESHOLD = 13.0
 
@@ -338,15 +340,15 @@ async def send_report(
                         default_gpt_text,
                     )
             else:
-                logging.error("[GPT][RUN_FAILED] status=%s", run.status)
+                logger.error("[GPT][RUN_FAILED] status=%s", run.status)
         except OpenAIError:
-            logging.exception("[GPT] Failed to get recommendations")
+            logger.exception("[GPT] Failed to get recommendations")
         except OSError as exc:
-            logging.exception(
+            logger.exception(
                 "[GPT] OS error while getting recommendations: %s", exc
             )
     else:
-        logging.warning("[GPT] thread_id missing for user %s", user_id)
+        logger.warning("[GPT] thread_id missing for user %s", user_id)
     report_msg = "<b>Отчёт сформирован</b>\n\n" + "\n".join(summary_lines + day_lines)
 
     plot_buf = make_sugar_plot(entries, period_label)
