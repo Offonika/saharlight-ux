@@ -6,8 +6,9 @@ from typing import Any, Callable, cast
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
+from sqlalchemy.orm import sessionmaker
 
-import services.api.app.diabetes.handlers.dose_handlers as handlers
+import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
 
 class DummyMessage:
@@ -42,7 +43,7 @@ async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
-    await handlers.freeform_handler(update, context)
+    await dose_handlers.freeform_handler(update, context)
 
     user_data = context.user_data
     assert user_data is not None
@@ -81,7 +82,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
     session_factory = cast(Callable[[], DummySession], lambda: DummySession())
-    handlers.SessionLocal = session_factory
+    dose_handlers.SessionLocal = cast(sessionmaker, session_factory)
     message = DummyMessage("5,6")
     update = cast(
         Update,
@@ -92,7 +93,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
-    await handlers.freeform_handler(update, context)
+    await dose_handlers.freeform_handler(update, context)
 
     user_data = context.user_data
     assert user_data is not None
@@ -126,7 +127,7 @@ async def test_freeform_handler_sugar_only_flow() -> None:
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
-    await handlers.freeform_handler(update, context)
+    await dose_handlers.freeform_handler(update, context)
 
     user_data = context.user_data
     assert user_data is not None

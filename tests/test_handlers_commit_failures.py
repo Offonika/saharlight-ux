@@ -79,7 +79,7 @@ def make_update(**kwargs: Any) -> MagicMock:
 def make_context(**kwargs: Any) -> MagicMock:
     context = MagicMock(spec=CallbackContext)
     for key, value in kwargs.items():
-        setattr(context, key, value)
+        object.__setattr__(context, key, value)
     return context
 
 
