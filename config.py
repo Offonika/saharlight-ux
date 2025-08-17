@@ -46,8 +46,6 @@ def validate_tokens(required: Iterable[str] | None = None) -> None:
     """
 
     required_vars = list(required or [])
-    missing = [var for var in required_vars if not globals().get(var)]
+    missing = [var for var in required_vars if not os.getenv(var)]
     if missing:
-        raise RuntimeError(
-            "Missing required environment variables: " + ", ".join(missing)
-        )
+        raise RuntimeError("Missing required environment variables: " + ", ".join(missing))
