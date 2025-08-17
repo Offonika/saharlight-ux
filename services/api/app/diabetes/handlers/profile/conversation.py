@@ -74,11 +74,6 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     args = context.args or []
     api, ApiException, ProfileModel = get_api()
-    if api is None:
-        await message.reply_text(
-            "⚠️ Функции профиля недоступны. Установите пакет 'diabetes_sdk'."
-        )
-        return END
 
     # Ensure no pending sugar logging conversation captures profile input
     from ..dose_handlers import sugar_conv
@@ -186,11 +181,6 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if message is None or user is None:
         return
     api, ApiException, _ = get_api()
-    if api is None:
-        await message.reply_text(
-            "⚠️ Функции профиля недоступны. Установите пакет 'diabetes_sdk'."
-        )
-        return
     user_id = user.id
     profile = fetch_profile(api, ApiException, user_id)
 
@@ -254,13 +244,6 @@ async def profile_webapp_save(
     """Save profile data sent from the web app."""
     api, ApiException, ProfileModel = get_api()
     eff_msg = update.effective_message
-    if api is None:
-        if eff_msg:
-            await eff_msg.reply_text(
-                "⚠️ Функции профиля недоступны. Установите пакет 'diabetes_sdk'.",
-                reply_markup=menu_keyboard,
-            )
-        return
     if eff_msg is None:
         return
     web_app = getattr(eff_msg, "web_app_data", None)
