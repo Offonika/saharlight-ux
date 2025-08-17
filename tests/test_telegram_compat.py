@@ -1,4 +1,4 @@
-import services.api.app.telegram_compat  # noqa: F401
+import services.api.app  # noqa: F401  # ensures compatibility patch is applied
 from telegram.ext import ApplicationBuilder
 
 
