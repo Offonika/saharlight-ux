@@ -9,7 +9,8 @@ from telegram import PhotoSize, Update
 from telegram.ext import CallbackContext
 from sqlalchemy.orm import Session, sessionmaker
 
-import services.api.app.diabetes.handlers.dose_calc as dose_calc
+import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
+import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 import services.api.app.diabetes.handlers.router as router
 
 
@@ -79,10 +80,11 @@ async def test_photo_flow_saves_entry(
     async def fake_parse_command(text: str) -> dict[str, Any]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
-    monkeypatch.setattr(dose_calc, "parse_command", fake_parse_command)
-    monkeypatch.setattr(dose_calc, "confirm_keyboard", lambda: None)
-    monkeypatch.setattr(dose_calc, "menu_keyboard", None)
-
+    monkeypatch.setattr(gpt_handlers, "parse_command", fake_parse_command)
+    monkeypatch.setattr(gpt_handlers, "confirm_keyboard", lambda: None)
+    monkeypatch.setattr(gpt_handlers, "menu_keyboard", None)
+    monkeypatch.setattr(photo_handlers, "menu_keyboard", None)
+    
     msg_start = DummyMessage("/dose")
     update_start = cast(
         Update,
@@ -109,7 +111,7 @@ async def test_photo_flow_saves_entry(
     fake_bot = SimpleNamespace(get_file=fake_get_file)
     setattr(cast(Any, type(context)), "bot", PropertyMock(return_value=fake_bot))
 
-    await dose_calc.freeform_handler(update_start, context)
+    await gpt_handlers.freeform_handler(update_start, context)
 
     monkeypatch.chdir(tmp_path)
 
@@ -144,9 +146,9 @@ async def test_photo_flow_saves_entry(
             )
         )
 
-    monkeypatch.setattr(dose_calc, "send_message", fake_send_message)
-    monkeypatch.setattr(dose_calc, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(dose_calc, "extract_nutrition_info", lambda text: (30.0, 2.0))
+    monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0))
     user_data["thread_id"] = "tid"
 
     msg_photo = DummyMessage(photo=cast(tuple[PhotoSize, ...], (DummyPhoto(),)))
@@ -154,7 +156,7 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1)),
     )
-    await dose_calc.photo_handler(update_photo, context)
+    await photo_handlers.photo_handler(update_photo, context)
 
     entry = user_data["pending_entry"]
     assert entry["carbs_g"] == 30.0
@@ -167,8 +169,13 @@ async def test_photo_flow_saves_entry(
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
     session_factory = cast(Any, sessionmaker(class_=DummySession))
-    dose_calc.SessionLocal = session_factory
-    await dose_calc.freeform_handler(update_sugar, context)
+    photo_handlers.SessionLocal = session_factory
+    gpt_handlers.SessionLocal = session_factory
+    async def fake_run_db(func, sessionmaker):
+        with sessionmaker() as s:
+            return func(s)
+    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
+    await gpt_handlers.freeform_handler(update_sugar, context)
     assert user_data["pending_entry"]["sugar_before"] == 5.5
 
     monkeypatch.setattr(router, "SessionLocal", session_factory)

@@ -1,0 +1,375 @@
+import datetime
+import logging
+import re
+from typing import cast
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import ContextTypes
+from sqlalchemy.orm import Session
+
+from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile, run_db
+from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.utils.functions import (
+    PatientProfile,
+    calc_bolus,
+    smart_input,
+)
+from services.api.app.diabetes.gpt_command_parser import parse_command
+from services.api.app.diabetes.utils.ui import confirm_keyboard, menu_keyboard
+
+from .alert_handlers import check_alert
+from .dose_validation import _sanitize
+from .reporting_handlers import render_entry, send_report
+from . import UserData
+
+logger = logging.getLogger(__name__)
+
+
+async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle freeform text commands for adding diary entries."""
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        return
+    user_data = cast(UserData, user_data_raw)
+    message = update.message
+    if message is None:
+        return
+    text = message.text
+    if text is None:
+        return
+    user = update.effective_user
+    if user is None:
+        return
+    raw_text = text.strip()
+    user_id = user.id
+    logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
+
+    if user_data.get("awaiting_report_date"):
+        text = raw_text.lower()
+        if "назад" in text or text == "/cancel":
+            user_data.pop("awaiting_report_date", None)
+            await message.reply_text(
+                "📋 Выберите действие:", reply_markup=menu_keyboard
+            )
+            return
+        try:
+            date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(
+                tzinfo=datetime.timezone.utc
+            )
+        except ValueError:
+            await message.reply_text(
+                "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
+            )
+            return
+        await send_report(update, context, date_from, "указанный период")
+        user_data.pop("awaiting_report_date", None)
+        return
+
+    pending_entry = user_data.get("pending_entry")
+    pending_fields = user_data.get("pending_fields")
+    edit_id = user_data.get("edit_id")
+    if pending_entry is not None and edit_id is None and pending_fields:
+        field = pending_fields[0]
+        text = raw_text.replace(",", ".")
+        try:
+            value = float(text)
+        except ValueError:
+            if field == "sugar":
+                await message.reply_text("Введите сахар числом в ммоль/л.")
+            elif field == "xe":
+                await message.reply_text("Введите число ХЕ.")
+            else:
+                await message.reply_text("Введите дозу инсулина числом.")
+            return
+        if value < 0:
+            if field == "sugar":
+                await message.reply_text("Сахар не может быть отрицательным.")
+            elif field == "xe":
+                await message.reply_text("Количество ХЕ не может быть отрицательным.")
+            else:
+                await message.reply_text("Доза инсулина не может быть отрицательной.")
+            return
+        if field == "sugar":
+            pending_entry["sugar_before"] = value
+        elif field == "xe":
+            pending_entry["xe"] = value
+            pending_entry["carbs_g"] = value * 12
+        else:
+            pending_entry["dose"] = value
+        pending_fields.pop(0)
+        if pending_fields:
+            next_field = pending_fields[0]
+            if next_field == "sugar":
+                await message.reply_text("Введите уровень сахара (ммоль/л).")
+            elif next_field == "xe":
+                await message.reply_text("Введите количество ХЕ.")
+            else:
+                await message.reply_text("Введите дозу инсулина (ед.).")
+            return
+
+        def db_save_entry(session: Session) -> bool:
+            entry = Entry(**pending_entry)
+            session.add(entry)
+            return bool(commit(session))
+
+        try:
+            ok = await run_db(db_save_entry, sessionmaker=SessionLocal)
+        except AttributeError:
+            with SessionLocal() as session:
+                ok = db_save_entry(session)
+        if not ok:
+            await message.reply_text("⚠️ Не удалось сохранить запись.")
+            return
+        sugar = pending_entry.get("sugar_before")
+        if sugar is not None:
+            await check_alert(update, context, sugar)
+        user_data.pop("pending_entry", None)
+        user_data.pop("pending_fields", None)
+        xe = pending_entry.get("xe")
+        dose = pending_entry.get("dose")
+        xe_info = f", ХЕ {xe}" if xe is not None else ""
+        dose_info = f", доза {dose} Ед." if dose is not None else ", доза —"
+        sugar_info = f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
+        await message.reply_text(
+            f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
+            reply_markup=menu_keyboard,
+        )
+        return
+    if pending_entry is not None and edit_id is None:
+        entry = pending_entry
+        text = raw_text.lower()
+        if (
+            re.fullmatch(r"-?\d+(?:[.,]\d+)?", text)
+            and entry.get("sugar_before") is None
+        ):
+            try:
+                sugar = float(text.replace(",", "."))
+            except ValueError:
+                await message.reply_text("Некорректное числовое значение.")
+                return
+            if sugar < 0:
+                await message.reply_text("Сахар не может быть отрицательным.")
+                return
+            entry["sugar_before"] = sugar
+            if entry.get("carbs_g") is not None or entry.get("xe") is not None:
+                xe_val = entry.get("xe")
+                carbs_g = entry.get("carbs_g")
+                if carbs_g is None and xe_val is not None:
+                    carbs_g = xe_val * 12
+                    entry["carbs_g"] = carbs_g
+                user_id = user.id
+                try:
+                    profile = await run_db(
+                        lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
+                    )
+                except AttributeError:
+                    with SessionLocal() as session:
+                        profile = session.get(Profile, user_id)
+                if (
+                    profile is not None
+                    and profile.icr is not None
+                    and profile.cf is not None
+                    and profile.target_bg is not None
+                ):
+                    patient = PatientProfile(
+                        icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg
+                    )
+                    dose = calc_bolus(carbs_g, sugar, patient)
+                    entry["dose"] = dose
+                    await message.reply_text(
+                        f"💉 Расчёт дозы: {dose} Ед.", reply_markup=confirm_keyboard()
+                    )
+                    return
+            await message.reply_text(
+                "Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard
+            )
+            return
+        await message.reply_text(
+            "Не понял, воспользуйтесь /help или кнопками меню"
+        )
+        return
+    if edit_id is not None:
+        text = raw_text.replace(",", ".")
+        try:
+            value = float(text)
+        except ValueError:
+            await message.reply_text("Введите значение числом.")
+            return
+        if value < 0:
+            await message.reply_text("Значение не может быть отрицательным.")
+            return
+        field = user_data.get("edit_field")
+        if field == "sugar":
+            user_data.setdefault("edit_entry", {})["sugar_before"] = value
+        elif field == "xe":
+            user_data.setdefault("edit_entry", {})["xe"] = value
+            user_data.setdefault("edit_entry", {})["carbs_g"] = value * 12
+        else:
+            user_data.setdefault("edit_entry", {})["dose"] = value
+        edit_info = user_data.get("edit_entry", {})
+        markup = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "✏️ Изменить", callback_data=f"edit:{user_data['edit_id']}"
+                    ),
+                    InlineKeyboardButton(
+                        "🗑 Удалить", callback_data=f"del:{user_data['edit_id']}"
+                    ),
+                ]
+            ]
+        )
+        render_text = render_entry(edit_info)
+        await message.reply_text(render_text, reply_markup=markup, parse_mode="HTML")
+        user_data.pop("edit_id", None)
+        user_data.pop("edit_field", None)
+        user_data.pop("edit_entry", None)
+        return
+
+    try:
+        quick = smart_input(raw_text)
+    except ValueError as exc:
+        msg = str(exc)
+        if "mismatched unit for sugar" in msg:
+            await message.reply_text("❗ Сахар указывается в ммоль/л, не в XE.")
+        elif "mismatched unit for dose" in msg:
+            await message.reply_text("❗ Доза указывается в ед., не в ммоль.")
+        elif "mismatched unit for xe" in msg:
+            await message.reply_text("❗ ХЕ указываются числом, без ммоль/л и ед.")
+        else:
+            await message.reply_text(
+                "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2"
+            )
+        return
+    if any(v is not None for v in quick.values()):
+        sugar = quick["sugar"]
+        xe = quick["xe"]
+        dose = quick["dose"]
+        if any(v is not None and v < 0 for v in (sugar, xe, dose)):
+            await message.reply_text("Значения не могут быть отрицательными.")
+            return
+        entry_data = {
+            "telegram_id": user_id,
+            "event_time": datetime.datetime.now(datetime.timezone.utc),
+            "sugar_before": sugar,
+            "xe": xe,
+            "dose": dose,
+            "carbs_g": xe * 12 if xe is not None else None,
+        }
+        missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
+        if not missing:
+            def db_save_quick(session: Session) -> bool:
+                entry = Entry(**entry_data)
+                session.add(entry)
+                return bool(commit(session))
+            try:
+                ok = await run_db(db_save_quick, sessionmaker=SessionLocal)
+            except AttributeError:
+                with SessionLocal() as session:
+                    ok = db_save_quick(session)
+            if not ok:
+                await message.reply_text("⚠️ Не удалось сохранить запись.")
+                return
+            if sugar is not None:
+                await check_alert(update, context, sugar)
+            await message.reply_text(
+                f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
+                reply_markup=menu_keyboard,
+            )
+            return
+        user_data["pending_entry"] = entry_data
+        user_data["pending_fields"] = missing
+        next_field = missing[0]
+        if next_field == "sugar":
+            await message.reply_text("Введите уровень сахара (ммоль/л).")
+        elif next_field == "xe":
+            await message.reply_text("Введите количество ХЕ.")
+        else:
+            await message.reply_text("Введите дозу инсулина (ед.).")
+        return
+
+    parsed = await parse_command(raw_text)
+    logger.info("FREEFORM parsed=%s", parsed)
+    if not parsed or parsed.get("action") != "add_entry":
+        await message.reply_text("Не понял, воспользуйтесь /help или кнопками меню")
+        return
+
+    fields = parsed.get("fields")
+    if not isinstance(fields, dict):
+        await message.reply_text("Не удалось распознать данные, попробуйте ещё раз.")
+        return
+    if any(
+        v is not None and v < 0
+        for v in (
+            fields.get("xe"),
+            fields.get("carbs_g"),
+            fields.get("dose"),
+            fields.get("sugar_before"),
+        )
+    ):
+        await message.reply_text("Значения не могут быть отрицательными.")
+        return
+    entry_date_obj = parsed.get("entry_date")
+    time_obj = parsed.get("time")
+
+    if isinstance(entry_date_obj, str):
+        try:
+            event_dt = datetime.datetime.fromisoformat(entry_date_obj)
+            if event_dt.tzinfo is None:
+                event_dt = event_dt.replace(tzinfo=datetime.timezone.utc)
+            else:
+                event_dt = event_dt.astimezone(datetime.timezone.utc)
+        except ValueError:
+            event_dt = datetime.datetime.now(datetime.timezone.utc)
+    elif isinstance(time_obj, str):
+        try:
+            hh, mm = map(int, time_obj.split(":"))
+            today = datetime.datetime.now(datetime.timezone.utc).date()
+            event_dt = datetime.datetime.combine(
+                today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc
+            )
+        except (ValueError, TypeError):
+            await message.reply_text(
+                "⏰ Неверный формат времени. Использую текущее время."
+            )
+            event_dt = datetime.datetime.now(datetime.timezone.utc)
+    else:
+        event_dt = datetime.datetime.now(datetime.timezone.utc)
+    user_data.pop("pending_entry", None)
+    user_data["pending_entry"] = {
+        "telegram_id": user_id,
+        "event_time": event_dt,
+        "xe": fields.get("xe"),
+        "carbs_g": fields.get("carbs_g"),
+        "dose": fields.get("dose"),
+        "sugar_before": fields.get("sugar_before"),
+        "photo_path": None,
+    }
+
+    xe_val: float | None = fields.get("xe")
+    carbs_val: float | None = fields.get("carbs_g")
+    dose_val: float | None = fields.get("dose")
+    sugar_val: float | None = fields.get("sugar_before")
+    date_str = event_dt.strftime("%d.%m %H:%M")
+    xe_part = f"{xe_val} ХЕ" if xe_val is not None else ""
+    carb_part = f"{carbs_val:.0f} г углеводов" if carbs_val is not None else ""
+    dose_part = f"Инсулин: {dose_val} ед" if dose_val is not None else ""
+    sugar_part = f"Сахар: {sugar_val} ммоль/л" if sugar_val is not None else ""
+    lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
+
+    reply = (
+        f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
+    )
+    await message.reply_text(text=reply, reply_markup=confirm_keyboard())
+    return
+
+
+async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Placeholder GPT chat handler."""
+    message = update.message
+    if message is None:
+        return
+    await message.reply_text("🗨️ Чат с GPT временно недоступен.")
+
+
+__all__ = ["SessionLocal", "freeform_handler", "chat_with_gpt"]

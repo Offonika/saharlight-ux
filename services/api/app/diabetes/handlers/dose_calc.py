@@ -1,160 +1,36 @@
-"""Handlers for insulin dose calculations and related utilities."""
-
-from __future__ import annotations
-
-import asyncio
+import datetime
 import logging
-import re
-from pathlib import Path
+from collections.abc import Callable, Coroutine
+from typing import TypeVar, cast
 
-# Re-export standard modules for tests and type checkers
-import datetime as datetime
-import os as os
-
-from openai import OpenAIError
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
-from telegram.constants import ChatAction
-from telegram.error import TelegramError
+from telegram import Update
 from telegram.ext import (
     CommandHandler,
-    ConversationHandler,
     ContextTypes,
+    ConversationHandler,
     MessageHandler,
     filters,
 )
 
-from services.api.app.diabetes.services.db import (
-    SessionLocal,
-    User,
-    Entry,
-    Profile,
-    run_db,
-)
-from services.api.app.diabetes.utils.functions import (
-    extract_nutrition_info,
-    calc_bolus,
-    PatientProfile,
-    smart_input,
-)
-from services.api.app.diabetes.services.gpt_client import (
-    create_thread,
-    send_message,
-    _get_client,
-)
-from services.api.app.diabetes.gpt_command_parser import parse_command
+from services.api.app.diabetes.services.db import SessionLocal, Profile
+from services.api.app.diabetes.utils.functions import calc_bolus, PatientProfile
 from services.api.app.diabetes.utils.ui import (
-    menu_keyboard,
     confirm_keyboard,
     dose_keyboard,
-    sugar_keyboard,
+    menu_keyboard,
 )
-from services.api.app.diabetes.services.repository import commit
-from collections.abc import Callable, Coroutine
-from typing import TypeVar, cast
-from sqlalchemy.orm import Session
-from .common_handlers import menu_command
-from .alert_handlers import check_alert
-from .reporting_handlers import send_report, history_view, report_request, render_entry
-from .profile import profile_view
-from .dose_validation import _sanitize
-from . import UserData
 
+from .common_handlers import menu_command
+from .profile import profile_view
+from .reporting_handlers import history_view, report_request
+from . import UserData
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-
 DOSE_METHOD, DOSE_XE, DOSE_CARBS, DOSE_SUGAR = range(3, 7)
-PHOTO_SUGAR = 7
-SUGAR_VAL = 8
 END: int = ConversationHandler.END
-WAITING_GPT_FLAG = "waiting_gpt_response"
-
-
-async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Prompt user to send a food photo for analysis."""
-    message = update.message
-    if message is None:
-        return
-    await message.reply_text(
-        "📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard
-    )
-
-
-async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Prompt user for current sugar level."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
-        return END
-    user_data = cast(UserData, user_data_raw)
-    message = update.message
-    if message is None:
-        return END
-    user = update.effective_user
-    if user is None:
-        return END
-    user_data.pop("pending_entry", None)
-    user_data["pending_entry"] = {
-        "telegram_id": user.id,
-        "event_time": datetime.datetime.now(datetime.timezone.utc),
-    }
-    # Track that sugar conversation is active so it can be cancelled
-    chat_data = getattr(context, "chat_data", None)
-    if chat_data is not None:
-        chat_data["sugar_active"] = True
-    await message.reply_text(
-        "Введите текущий уровень сахара (ммоль/л).", reply_markup=sugar_keyboard
-    )
-    return SUGAR_VAL
-
-
-async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Store the provided sugar level to the diary."""
-    chat_data = getattr(context, "chat_data", None)
-    if chat_data is not None and not chat_data.get("sugar_active"):
-        return END
-    user_data_raw = context.user_data
-    if user_data_raw is None:
-        return END
-    user_data = cast(UserData, user_data_raw)
-    message = update.message
-    if message is None:
-        return END
-    text = message.text
-    if text is None:
-        return END
-    user = update.effective_user
-    if user is None:
-        return END
-    text = text.strip().replace(",", ".")
-    try:
-        sugar = float(text)
-    except ValueError:
-        await message.reply_text("Введите сахар числом в ммоль/л.")
-        return SUGAR_VAL
-    if sugar < 0:
-        await message.reply_text("Сахар не может быть отрицательным.")
-        return SUGAR_VAL
-    entry_data = user_data.pop("pending_entry", None) or {
-        "telegram_id": user.id,
-        "event_time": datetime.datetime.now(datetime.timezone.utc),
-    }
-    entry_data["sugar_before"] = sugar
-    with SessionLocal() as session:
-        entry = Entry(**entry_data)
-        session.add(entry)
-        if not commit(session):
-            await message.reply_text("⚠️ Не удалось сохранить запись.")
-            return END
-    await check_alert(update, context, sugar)
-    await message.reply_text(
-        f"✅ Уровень сахара {sugar} ммоль/л сохранён.",
-        reply_markup=menu_keyboard,
-    )
-    if chat_data is not None:
-        chat_data.pop("sugar_active", None)
-    return END
 
 
 async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -372,9 +248,7 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 
 def _cancel_then(
-    handler: Callable[
-        [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]
-    ],
+    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]
 ) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
@@ -385,791 +259,18 @@ def _cancel_then(
     return wrapped
 
 
-async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle freeform text commands for adding diary entries."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
-        return
-    user_data = cast(UserData, user_data_raw)
-    message = update.message
-    if message is None:
-        return
-    text = message.text
-    if text is None:
-        return
-    user = update.effective_user
-    if user is None:
-        return
-    raw_text = text.strip()
-    user_id = user.id
-    logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
-
-    if user_data.get("awaiting_report_date"):
-        text = raw_text.lower()
-        if "назад" in text or text == "/cancel":
-            user_data.pop("awaiting_report_date", None)
-            await message.reply_text(
-                "📋 Выберите действие:", reply_markup=menu_keyboard
-            )
-            return
-        try:
-            date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(
-                tzinfo=datetime.timezone.utc
-            )
-        except ValueError:
-            await message.reply_text(
-                "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
-            )
-            return
-        await send_report(update, context, date_from, "указанный период")
-        user_data.pop("awaiting_report_date", None)
-        return
-
-    pending_entry = user_data.get("pending_entry")
-    pending_fields = user_data.get("pending_fields")
-    edit_id = user_data.get("edit_id")
-    if pending_entry is not None and edit_id is None and pending_fields:
-        field = pending_fields[0]
-        text = raw_text.replace(",", ".")
-        try:
-            value = float(text)
-        except ValueError:
-            if field == "sugar":
-                await message.reply_text("Введите сахар числом в ммоль/л.")
-            elif field == "xe":
-                await message.reply_text("Введите число ХЕ.")
-            else:
-                await message.reply_text("Введите дозу инсулина числом.")
-            return
-        if value < 0:
-            if field == "sugar":
-                await message.reply_text("Сахар не может быть отрицательным.")
-            elif field == "xe":
-                await message.reply_text("Количество ХЕ не может быть отрицательным.")
-            else:
-                await message.reply_text("Доза инсулина не может быть отрицательной.")
-            return
-        if field == "sugar":
-            pending_entry["sugar_before"] = value
-        elif field == "xe":
-            pending_entry["xe"] = value
-            pending_entry["carbs_g"] = value * 12
-        else:
-            pending_entry["dose"] = value
-        pending_fields.pop(0)
-        if pending_fields:
-            next_field = pending_fields[0]
-            if next_field == "sugar":
-                await message.reply_text("Введите уровень сахара (ммоль/л).")
-            elif next_field == "xe":
-                await message.reply_text("Введите количество ХЕ.")
-            else:
-                await message.reply_text("Введите дозу инсулина (ед.).")
-            return
-
-        def db_save_entry(session: Session) -> bool:
-            entry = Entry(**pending_entry)
-            session.add(entry)
-            return bool(commit(session))
-
-        try:
-            ok = await run_db(db_save_entry, sessionmaker=SessionLocal)
-        except AttributeError:
-            with SessionLocal() as session:
-                ok = db_save_entry(session)
-        if not ok:
-            await message.reply_text("⚠️ Не удалось сохранить запись.")
-            return
-        sugar = pending_entry.get("sugar_before")
-        if sugar is not None:
-            await check_alert(update, context, sugar)
-        user_data.pop("pending_entry", None)
-        user_data.pop("pending_fields", None)
-        xe = pending_entry.get("xe")
-        dose = pending_entry.get("dose")
-        xe_info = f", ХЕ {xe}" if xe is not None else ""
-        dose_info = f", доза {dose} Ед." if dose is not None else ", доза —"
-        sugar_info = f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
-        await message.reply_text(
-            f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
-            reply_markup=menu_keyboard,
-        )
-        return
-    if pending_entry is not None and edit_id is None:
-        entry = pending_entry
-        text = raw_text.lower()
-        if (
-            re.fullmatch(r"-?\d+(?:[.,]\d+)?", text)
-            and entry.get("sugar_before") is None
-        ):
-            try:
-                sugar = float(text.replace(",", "."))
-            except ValueError:
-                await message.reply_text("Некорректное числовое значение.")
-                return
-            if sugar < 0:
-                await message.reply_text("Сахар не может быть отрицательным.")
-                return
-            entry["sugar_before"] = sugar
-            if entry.get("carbs_g") is not None or entry.get("xe") is not None:
-                xe = entry.get("xe")
-                carbs_g = entry.get("carbs_g")
-                if carbs_g is None and xe is not None:
-                    carbs_g = xe * 12
-                    entry["carbs_g"] = carbs_g
-                user_id = user.id
-                try:
-                    profile = await run_db(
-                        lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
-                    )
-                except AttributeError:
-                    with SessionLocal() as session:
-                        profile = session.get(Profile, user_id)
-                if (
-                    profile is None
-                    or profile.icr is None
-                    or profile.cf is None
-                    or profile.target_bg is None
-                ):
-                    await message.reply_text(
-                        "Профиль не настроен. Установите коэффициенты через /profile.",
-                        reply_markup=menu_keyboard,
-                    )
-                    user_data.pop("pending_entry", None)
-                    return
-                patient = PatientProfile(
-                    icr=profile.icr,
-                    cf=profile.cf,
-                    target_bg=profile.target_bg,
-                )
-                dose = calc_bolus(carbs_g, sugar, patient)
-                entry["dose"] = dose
-                user_data["pending_entry"] = entry
-                xe_info = f", ХЕ: {xe}" if xe is not None else ""
-                await message.reply_text(
-                    text=(
-                        f"💉 Расчёт завершён:\n"
-                        f"• Углеводы: {carbs_g} г{xe_info}\n"
-                        f"• Сахар: {sugar} ммоль/л\n"
-                        f"• Ваша доза: {dose} Ед\n\n"
-                        "Сохранить это в дневник?"
-                    ),
-                    reply_markup=confirm_keyboard(),
-                )
-            else:
-                await message.reply_text(
-                    f"Сохранить уровень сахара {sugar} ммоль/л в дневник?",
-                    reply_markup=confirm_keyboard(),
-                )
-            return
-        parts = dict(re.findall(r"(\w+)\s*=\s*(-?\d+(?:[.,]\d+)?)(?=\s|$)", text))
-        if not parts:
-            await message.reply_text("Не вижу ни одного поля для изменения.")
-            return
-        if "xe" in parts:
-            try:
-                xe_val_input = float(parts["xe"].replace(",", "."))
-            except ValueError:
-                await message.reply_text("Некорректное числовое значение.")
-                return
-            if xe_val_input < 0:
-                await message.reply_text("Количество ХЕ не может быть отрицательным.")
-                return
-            entry["xe"] = xe_val_input
-            entry["carbs_g"] = xe_val_input * 12
-        if "carbs" in parts:
-            try:
-                carbs_val_input = float(parts["carbs"].replace(",", "."))
-            except ValueError:
-                await message.reply_text("Некорректное числовое значение.")
-                return
-            if carbs_val_input < 0:
-                await message.reply_text(
-                    "Количество углеводов не может быть отрицательным."
-                )
-                return
-            entry["carbs_g"] = carbs_val_input
-        if "dose" in parts:
-            try:
-                dose_val_input = float(parts["dose"].replace(",", "."))
-            except ValueError:
-                await message.reply_text("Некорректное числовое значение.")
-                return
-            if dose_val_input < 0:
-                await message.reply_text("Доза инсулина не может быть отрицательной.")
-                return
-            entry["dose"] = dose_val_input
-        if "сахар" in parts or "sugar" in parts:
-            sugar_value = parts.get("сахар") or parts["sugar"]
-            try:
-                sugar_val_input = float(sugar_value.replace(",", "."))
-            except ValueError:
-                await message.reply_text("Некорректное числовое значение.")
-                return
-            if sugar_val_input < 0:
-                await message.reply_text("Сахар не может быть отрицательным.")
-                return
-            entry["sugar_before"] = sugar_val_input
-        carbs = entry.get("carbs_g")
-        xe = entry.get("xe")
-        sugar = entry.get("sugar_before")
-        dose = entry.get("dose")
-        xe_info = f", ХЕ: {xe}" if xe is not None else ""
-
-        await message.reply_text(
-            text=(
-                f"💉 Расчёт завершён:\n"
-                f"• Углеводы: {carbs} г{xe_info}\n"
-                f"• Сахар: {sugar} ммоль/л\n"
-                f"• Ваша доза: {dose} Ед\n\n"
-                "Сохранить это в дневник?"
-            ),
-            reply_markup=confirm_keyboard(),
-        )
-        return
-    if "edit_id" in user_data:
-        field_obj = user_data.get("edit_field")
-        if not isinstance(field_obj, str):
-            await message.reply_text("Некорректное поле для изменения.")
-            return
-        field = field_obj
-        text = raw_text.replace(",", ".")
-        try:
-            value = float(text)
-        except ValueError:
-            await message.reply_text("Некорректное числовое значение.")
-            return
-        if value < 0:
-            if field == "sugar":
-                await message.reply_text("Сахар не может быть отрицательным.")
-            elif field == "xe":
-                await message.reply_text("Количество ХЕ не может быть отрицательным.")
-            else:
-                await message.reply_text("Доза инсулина не может быть отрицательной.")
-            return
-
-        def db_update(session: Session) -> tuple[str, Entry | None]:
-            entry = session.get(Entry, user_data["edit_id"])
-            if not entry:
-                return "missing", None
-            field_map = {"sugar": "sugar_before", "xe": "xe", "dose": "dose"}
-            setattr(entry, field_map[field], value)
-            entry.updated_at = datetime.datetime.now(datetime.timezone.utc)
-            if not commit(session):
-                return "fail", None
-            session.refresh(entry)
-            return "ok", entry
-
-        try:
-            status, entry = await run_db(db_update, sessionmaker=SessionLocal)
-        except AttributeError:
-            with SessionLocal() as session:
-                status, entry = db_update(session)
-        if status == "missing":
-            await message.reply_text("Запись уже удалена.")
-            for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
-                user_data.pop(key, None)
-            return
-        if status == "fail" or entry is None:
-            await message.reply_text("⚠️ Не удалось обновить запись.")
-            return
-        if field == "sugar":
-            await check_alert(update, context, value)
-        render_text = render_entry(entry)
-        edit_info = user_data.get("edit_entry", {})
-        markup = InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(
-                        "✏️ Изменить", callback_data=f"edit:{user_data['edit_id']}"
-                    ),
-                    InlineKeyboardButton(
-                        "🗑 Удалить", callback_data=f"del:{user_data['edit_id']}"
-                    ),
-                ]
-            ]
-        )
-        await context.bot.edit_message_text(
-            render_text,
-            chat_id=edit_info.get("chat_id"),
-            message_id=edit_info.get("message_id"),
-            parse_mode="HTML",
-            reply_markup=markup,
-        )
-        query = user_data.get("edit_query")
-        if query:
-            await query.answer("Изменено")
-        for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
-            user_data.pop(key, None)
-        return
-
-    try:
-        quick = smart_input(raw_text)
-    except ValueError as exc:
-        msg = str(exc)
-        if "mismatched unit for sugar" in msg:
-            await message.reply_text("❗ Сахар указывается в ммоль/л, не в XE.")
-        elif "mismatched unit for dose" in msg:
-            await message.reply_text("❗ Доза указывается в ед., не в ммоль.")
-        elif "mismatched unit for xe" in msg:
-            await message.reply_text("❗ ХЕ указываются числом, без ммоль/л и ед.")
-        else:
-            await message.reply_text(
-                "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2"
-            )
-        return
-    if any(v is not None for v in quick.values()):
-        sugar = quick["sugar"]
-        xe = quick["xe"]
-        dose = quick["dose"]
-        if any(v is not None and v < 0 for v in (sugar, xe, dose)):
-            await message.reply_text("Значения не могут быть отрицательными.")
-            return
-        entry_data = {
-            "telegram_id": user_id,
-            "event_time": datetime.datetime.now(datetime.timezone.utc),
-            "sugar_before": sugar,
-            "xe": xe,
-            "dose": dose,
-            "carbs_g": xe * 12 if xe is not None else None,
-        }
-        missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
-        if not missing:
-
-            def db_save_quick(session: Session) -> bool:
-                entry = Entry(**entry_data)
-                session.add(entry)
-                return bool(commit(session))
-
-            try:
-                ok = await run_db(db_save_quick, sessionmaker=SessionLocal)
-            except AttributeError:
-                with SessionLocal() as session:
-                    ok = db_save_quick(session)
-            if not ok:
-                await message.reply_text("⚠️ Не удалось сохранить запись.")
-                return
-            if sugar is not None:
-                await check_alert(update, context, sugar)
-            await message.reply_text(
-                f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
-                reply_markup=menu_keyboard,
-            )
-            return
-        user_data["pending_entry"] = entry_data
-        user_data["pending_fields"] = missing
-        next_field = missing[0]
-        if next_field == "sugar":
-            await message.reply_text("Введите уровень сахара (ммоль/л).")
-        elif next_field == "xe":
-            await message.reply_text("Введите количество ХЕ.")
-        else:
-            await message.reply_text("Введите дозу инсулина (ед.).")
-        return
-
-    parsed = await parse_command(raw_text)
-    logger.info("FREEFORM parsed=%s", parsed)
-    if not parsed or parsed.get("action") != "add_entry":
-        await message.reply_text("Не понял, воспользуйтесь /help или кнопками меню")
-        return
-
-    fields = parsed.get("fields")
-    if not isinstance(fields, dict):
-        await message.reply_text("Не удалось распознать данные, попробуйте ещё раз.")
-        return
-    if any(
-        v is not None and v < 0
-        for v in (
-            fields.get("xe"),
-            fields.get("carbs_g"),
-            fields.get("dose"),
-            fields.get("sugar_before"),
-        )
-    ):
-        await message.reply_text("Значения не могут быть отрицательными.")
-        return
-    entry_date_obj = parsed.get("entry_date")
-    time_obj = parsed.get("time")
-
-    if isinstance(entry_date_obj, str):
-        try:
-            event_dt = datetime.datetime.fromisoformat(entry_date_obj)
-            if event_dt.tzinfo is None:
-                event_dt = event_dt.replace(tzinfo=datetime.timezone.utc)
-            else:
-                event_dt = event_dt.astimezone(datetime.timezone.utc)
-        except ValueError:
-            event_dt = datetime.datetime.now(datetime.timezone.utc)
-    elif isinstance(time_obj, str):
-        try:
-            hh, mm = map(int, time_obj.split(":"))
-            today = datetime.datetime.now(datetime.timezone.utc).date()
-            event_dt = datetime.datetime.combine(
-                today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc
-            )
-        except (ValueError, TypeError):
-            await message.reply_text(
-                "⏰ Неверный формат времени. Использую текущее время."
-            )
-            event_dt = datetime.datetime.now(datetime.timezone.utc)
-    else:
-        event_dt = datetime.datetime.now(datetime.timezone.utc)
-    user_data.pop("pending_entry", None)
-    user_data["pending_entry"] = {
-        "telegram_id": user_id,
-        "event_time": event_dt,
-        "xe": fields.get("xe"),
-        "carbs_g": fields.get("carbs_g"),
-        "dose": fields.get("dose"),
-        "sugar_before": fields.get("sugar_before"),
-        "photo_path": None,
-    }
-
-    xe_val: float | None = fields.get("xe")
-    carbs_val: float | None = fields.get("carbs_g")
-    dose_val: float | None = fields.get("dose")
-    sugar_val: float | None = fields.get("sugar_before")
-    date_str = event_dt.strftime("%d.%m %H:%M")
-    xe_part = f"{xe_val} ХЕ" if xe_val is not None else ""
-    carb_part = f"{carbs_val:.0f} г углеводов" if carbs_val is not None else ""
-    dose_part = f"Инсулин: {dose_val} ед" if dose_val is not None else ""
-    sugar_part = f"Сахар: {sugar_val} ммоль/л" if sugar_val is not None else ""
-    lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
-
-    reply = (
-        f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
-    )
-    await message.reply_text(text=reply, reply_markup=confirm_keyboard())
-    return
-
-
-async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Placeholder GPT chat handler."""
-    message = update.message
-    if message is None:
-        return
-    await message.reply_text("🗨️ Чат с GPT временно недоступен.")
-
-
-async def photo_handler(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False
-) -> int:
-    """Process food photos and trigger nutrition analysis."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
-        return END
-    user_data = cast(UserData, user_data_raw)
-    message = update.message
-    if message is None:
-        query = update.callback_query
-        if query is None or query.message is None:
-            return END
-        message = query.message
-    message = cast(Message, message)
-    effective_user = update.effective_user
-    if effective_user is None:
-        return END
-    user_id = effective_user.id
-
-    if user_data.get(WAITING_GPT_FLAG):
-        await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
-        return END
-    user_data[WAITING_GPT_FLAG] = True
-
-    file_path = user_data.pop("__file_path", None)
-    if not file_path:
-        try:
-            photo = message.photo[-1]
-        except (AttributeError, IndexError, TypeError):
-            await message.reply_text("❗ Файл не распознан как изображение.")
-            user_data.pop(WAITING_GPT_FLAG, None)
-            return END
-
-        os.makedirs("photos", exist_ok=True)
-        file_path = f"photos/{user_id}_{photo.file_unique_id}.jpg"
-        try:
-            file = await context.bot.get_file(photo.file_id)
-            await file.download_to_drive(file_path)
-        except OSError as exc:
-            logging.exception("[PHOTO] Failed to save photo: %s", exc)
-            await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
-            user_data.pop(WAITING_GPT_FLAG, None)
-            return END
-
-    logger.info("[PHOTO] Saved to %s", file_path)
-
-    try:
-        thread_id = user_data.get("thread_id")
-        if not thread_id:
-            with SessionLocal() as session:
-                user = session.get(User, user_id)
-                if user:
-                    thread_id = user.thread_id
-                else:
-                    thread_id = await create_thread()
-                    session.add(User(telegram_id=user_id, thread_id=thread_id))
-                    if not commit(session):
-                        await message.reply_text(
-                            "⚠️ Не удалось сохранить данные пользователя."
-                        )
-                        return END
-            user_data["thread_id"] = thread_id
-
-        run = await send_message(
-            thread_id=thread_id,
-            content=(
-                "Определи **название** блюда и количество углеводов/ХЕ. Ответ:\n"
-                "<название блюда>\n"
-                "Углеводы: <...>\n"
-                "ХЕ: <...>"
-            ),
-            image_path=file_path,
-            keep_image=True,
-        )
-        status_message = await message.reply_text(
-            "🔍 Анализирую фото (это займёт 5‑10 с)…"
-        )
-        chat_id = getattr(message, "chat_id", None)
-
-        async def send_typing_action() -> None:
-            if not chat_id:
-                return
-            try:
-                await context.bot.send_chat_action(
-                    chat_id=chat_id, action=ChatAction.TYPING
-                )
-            except TelegramError as exc:
-                logger.warning(
-                    "[PHOTO][TYPING_ACTION] Failed to send typing action: %s",
-                    exc,
-                )
-            except OSError as exc:
-                logger.exception(
-                    "[PHOTO][TYPING_ACTION] OS error: %s",
-                    exc,
-                )
-                raise
-
-        await send_typing_action()
-
-        max_attempts = 15
-        warn_after = 5
-        for attempt in range(max_attempts):
-            if run.status in ("completed", "failed", "cancelled", "expired"):
-                break
-            await asyncio.sleep(2)
-            run = await asyncio.to_thread(
-                _get_client().beta.threads.runs.retrieve,
-                thread_id=run.thread_id,
-                run_id=run.id,
-            )
-            if (
-                attempt == warn_after
-                and status_message
-                and hasattr(status_message, "edit_text")
-            ):
-                try:
-                    await status_message.edit_text("🔍 Всё ещё анализирую фото…")
-                except TelegramError as exc:
-                    logger.warning(
-                        "[PHOTO][STATUS_EDIT] Failed to update status message: %s",
-                        exc,
-                    )
-                except OSError as exc:
-                    logger.exception(
-                        "[PHOTO][STATUS_EDIT] OS error: %s",
-                        exc,
-                    )
-                    raise
-            await send_typing_action()
-
-        if run.status not in ("completed", "failed", "cancelled", "expired"):
-            logger.warning("[VISION][TIMEOUT] run.id=%s", run.id)
-            if status_message and hasattr(status_message, "edit_text"):
-                try:
-                    await status_message.edit_text(
-                        "⚠️ Время ожидания Vision истекло. Попробуйте позже."
-                    )
-                except TelegramError as exc:
-                    logger.warning(
-                        "[PHOTO][TIMEOUT_EDIT] Failed to send timeout notice: %s",
-                        exc,
-                    )
-                except OSError as exc:
-                    logger.exception(
-                        "[PHOTO][TIMEOUT_EDIT] OS error: %s",
-                        exc,
-                    )
-                    raise
-            else:
-                await message.reply_text(
-                    "⚠️ Время ожидания Vision истекло. Попробуйте позже."
-                )
-            return END
-
-        if run.status != "completed":
-            logging.error("[VISION][RUN_FAILED] run.status=%s", run.status)
-            if status_message and hasattr(status_message, "edit_text"):
-                try:
-                    await status_message.edit_text("⚠️ Vision не смог обработать фото.")
-                except TelegramError as exc:
-                    logger.warning(
-                        "[PHOTO][RUN_FAILED_EDIT] Failed to send Vision failure notice: %s",
-                        exc,
-                    )
-                except OSError as exc:
-                    logger.exception(
-                        "[PHOTO][RUN_FAILED_EDIT] OS error: %s",
-                        exc,
-                    )
-                    raise
-            else:
-                await message.reply_text("⚠️ Vision не смог обработать фото.")
-            return END
-
-        messages = await asyncio.to_thread(
-            _get_client().beta.threads.messages.list,
-            thread_id=run.thread_id,
-        )
-        for m in messages.data:
-            content = _sanitize(str(m.content))
-            logger.debug("[VISION][MSG] m.role=%s; content=%s", m.role, content)
-
-        vision_text = ""
-        for m in messages.data:
-            if m.role == "assistant" and m.content:
-                first_block: object = m.content[0]
-                text_block = getattr(first_block, "text", None)
-                if text_block is not None:
-                    vision_text = text_block.value
-                    break
-        logger.debug(
-            "[VISION][RESPONSE] Ответ Vision для %s:\n%s",
-            file_path,
-            _sanitize(vision_text),
-        )
-
-        carbs_g, xe = extract_nutrition_info(vision_text)
-        if carbs_g is None and xe is None:
-            logger.debug(
-                "[VISION][NO_PARSE] Ответ ассистента: %r для файла: %s",
-                _sanitize(vision_text),
-                file_path,
-            )
-            await message.reply_text(
-                "⚠️ Не смог разобрать углеводы на фото.\n\n"
-                f"Вот полный ответ Vision:\n<pre>{vision_text}</pre>\n"
-                "Введите /dose и укажите их вручную.",
-                parse_mode="HTML",
-                reply_markup=menu_keyboard,
-            )
-            return END
-
-        pending_entry = user_data.get("pending_entry") or {
-            "telegram_id": user_id,
-            "event_time": datetime.datetime.now(datetime.timezone.utc),
-        }
-        pending_entry.update({"carbs_g": carbs_g, "xe": xe, "photo_path": file_path})
-        user_data["pending_entry"] = pending_entry
-        if status_message and hasattr(status_message, "delete"):
-            try:
-                await status_message.delete()
-            except TelegramError as exc:
-                logger.warning(
-                    "[PHOTO][DELETE_STATUS] Failed to delete status message: %s",
-                    exc,
-                )
-            except OSError as exc:
-                logger.exception(
-                    "[PHOTO][DELETE_STATUS] OS error: %s",
-                    exc,
-                )
-                raise
-        await message.reply_text(
-            f"🍽️ На фото:\n{vision_text}\n\n"
-            "Введите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина.",
-            reply_markup=menu_keyboard,
-        )
-        return PHOTO_SUGAR
-
-    except OSError as exc:
-        logging.exception("[PHOTO] File processing error: %s", exc)
-        await message.reply_text(
-            "⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз."
-        )
-        return END
-    except OpenAIError as exc:
-        logging.exception("[PHOTO] Vision API error: %s", exc)
-        await message.reply_text(
-            "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
-        )
-        return END
-    except ValueError as exc:
-        logging.exception("[PHOTO] Parsing error: %s", exc)
-        await message.reply_text("⚠️ Не удалось распознать фото. Попробуйте ещё раз.")
-        return END
-    except TelegramError as exc:
-        logging.exception("[PHOTO] Telegram error: %s", exc)
-        return END
-    finally:
-        user_data.pop(WAITING_GPT_FLAG, None)
-
-
-async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handle images sent as documents."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
-        return END
-    user_data = cast(UserData, user_data_raw)
-    message = update.message
-    if message is None:
-        return END
-    effective_user = update.effective_user
-    if effective_user is None:
-        return END
-
-    document = message.document
-    if document is None:
-        return END
-
-    mime_type = document.mime_type
-    if mime_type is None or not mime_type.startswith("image/"):
-        return END
-
-    user_id = effective_user.id
-    filename = document.file_name or ""
-    ext = Path(filename).suffix or ".jpg"
-    path = f"photos/{user_id}_{document.file_unique_id}{ext}"
-    os.makedirs("photos", exist_ok=True)
-
-    file = await context.bot.get_file(document.file_id)
-    await file.download_to_drive(path)
-
-    user_data["__file_path"] = path
-    message.photo = ()
-    return await photo_handler(update, context)
-
-
-prompt_photo = photo_prompt
-prompt_sugar = sugar_start
-prompt_dose = dose_start
-
-sugar_conv = ConversationHandler(
-    entry_points=[
-        CommandHandler("sugar", sugar_start),
-        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), sugar_start),
-    ],
-    states={
-        SUGAR_VAL: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), sugar_val)],
-    },
-    fallbacks=[
-        MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
-        CommandHandler("menu", cast(object, _cancel_then(menu_command))),
-        MessageHandler(
-            filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
-        ),
-    ],
+# Import additional handlers after defining dose_cancel to avoid circular imports
+from .sugar_handlers import SUGAR_VAL, sugar_start, sugar_val, sugar_conv, prompt_sugar  # noqa: E402
+from .photo_handlers import (  # noqa: E402
+    PHOTO_SUGAR,
+    WAITING_GPT_FLAG,
+    doc_handler,
+    photo_handler,
+    photo_prompt,
+    prompt_photo,
 )
+from .gpt_handlers import chat_with_gpt, freeform_handler  # noqa: E402
+
 
 dose_conv = ConversationHandler(
     entry_points=[
@@ -1191,8 +292,7 @@ dose_conv = ConversationHandler(
             filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
         ),
         MessageHandler(
-            filters.Regex("^🩸 Уровень сахара$"),
-            cast(object, _cancel_then(sugar_start)),
+            filters.Regex("^🩸 Уровень сахара$"), cast(object, _cancel_then(sugar_start))
         ),
         MessageHandler(
             filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))
@@ -1206,6 +306,7 @@ dose_conv = ConversationHandler(
     ],
 )
 
+prompt_dose = dose_start
 
 __all__ = [
     "SessionLocal",
@@ -1213,23 +314,28 @@ __all__ = [
     "DOSE_XE",
     "DOSE_CARBS",
     "DOSE_SUGAR",
+    "END",
+    "dose_start",
+    "dose_method_choice",
+    "dose_xe",
+    "dose_carbs",
+    "dose_sugar",
+    "dose_cancel",
+    "_cancel_then",
+    "dose_conv",
+    "prompt_dose",
+    # re-exported handlers
+    "photo_prompt",
+    "photo_handler",
+    "doc_handler",
+    "prompt_photo",
+    "sugar_start",
+    "sugar_val",
+    "sugar_conv",
+    "prompt_sugar",
+    "freeform_handler",
+    "chat_with_gpt",
     "PHOTO_SUGAR",
     "SUGAR_VAL",
     "WAITING_GPT_FLAG",
-    "datetime",
-    "os",
-    "photo_prompt",
-    "sugar_start",
-    "sugar_val",
-    "dose_start",
-    "prompt_photo",
-    "prompt_sugar",
-    "prompt_dose",
-    "sugar_conv",
-    "freeform_handler",
-    "photo_handler",
-    "doc_handler",
-    "dose_conv",
-    "ConversationHandler",
-    "_cancel_then",
 ]

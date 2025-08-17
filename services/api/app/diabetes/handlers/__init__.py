@@ -24,7 +24,7 @@ class UserData(TypedDict, total=False):
     chat_id: int
 
 
-from .dose_calc import _cancel_then
+from .dose_calc import _cancel_then  # noqa: E402
 
 __all__ = ["_cancel_then", "UserData"]
 
