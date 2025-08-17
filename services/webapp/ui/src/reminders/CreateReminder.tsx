@@ -4,7 +4,7 @@ import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
-import { useTelegramContext } from "@/contexts/telegram-context";
+import { useTelegramContext } from "@/contexts/telegramContext";
 import { useToast } from "@/hooks/use-toast";
 import {
   normalizeReminderType,
