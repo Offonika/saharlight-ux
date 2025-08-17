@@ -21,11 +21,13 @@ def _tracking_sqlite_connect(*args: Any, **kwargs: Any) -> sqlite3.Connection:
     return conn
 
 
-sqlite3.connect = _tracking_sqlite_connect  # type: ignore[assignment]
+setattr(sqlite3, "connect", _tracking_sqlite_connect)
 
 
 _engines: list[sqlalchemy.engine.Engine] = []
-_original_create_engine = sqlalchemy.create_engine
+_original_create_engine: Callable[..., sqlalchemy.engine.Engine] = (
+    sqlalchemy.create_engine
+)
 
 
 def _tracking_create_engine(*args: Any, **kwargs: Any) -> sqlalchemy.engine.Engine:
@@ -34,7 +36,7 @@ def _tracking_create_engine(*args: Any, **kwargs: Any) -> sqlalchemy.engine.Engi
     return engine
 
 
-sqlalchemy.create_engine = _tracking_create_engine  # type: ignore[assignment]
+setattr(sqlalchemy, "create_engine", _tracking_create_engine)
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -44,10 +46,10 @@ def _close_sqlite_connections() -> Iterator[None]:
     try:
         yield
     finally:
-        sqlite3.connect = _original_sqlite_connect  # type: ignore[assignment]
+        setattr(sqlite3, "connect", _original_sqlite_connect)
         for conn in _sqlite_connections:
             conn.close()
-        sqlalchemy.create_engine = _original_create_engine  # type: ignore[assignment]
+        setattr(sqlalchemy, "create_engine", _original_create_engine)
         for engine in _engines:
             engine.dispose()
 
