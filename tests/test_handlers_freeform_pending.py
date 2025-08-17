@@ -6,7 +6,7 @@ from typing import Any, cast
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
@@ -84,7 +84,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         def get(self, model: Any, user_id: int) -> SimpleNamespace:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    session_factory = cast(sessionmaker[DummySession], sessionmaker(class_=DummySession))
+    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
     handlers.SessionLocal = session_factory
     message = DummyMessage("5,6")
     update = cast(
