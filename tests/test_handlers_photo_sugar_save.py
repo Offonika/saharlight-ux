@@ -92,8 +92,8 @@ async def test_photo_flow_saves_entry(
         Mock(spec=CallbackContext),
     )
     user_data: dict[str, Any] = {}
-    setattr(type(context), "user_data", PropertyMock(return_value=user_data))
-    setattr(type(context), "job_queue", PropertyMock(return_value=None))
+    setattr(cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data))
+    setattr(cast(Any, type(context)), "job_queue", PropertyMock(return_value=None))
 
     user_data = context.user_data
     assert user_data is not None
@@ -106,7 +106,7 @@ async def test_photo_flow_saves_entry(
         return File()
 
     fake_bot = SimpleNamespace(get_file=fake_get_file)
-    setattr(type(context), "bot", PropertyMock(return_value=fake_bot))
+    setattr(cast(Any, type(context)), "bot", PropertyMock(return_value=fake_bot))
 
     await dose_handlers.freeform_handler(update_start, context)
 
