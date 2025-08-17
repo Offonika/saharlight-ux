@@ -1,6 +1,6 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast
+from typing import Any, Callable, TypeVar, cast
 
 
 import pytest
@@ -12,10 +12,11 @@ import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
 
+T = TypeVar("T")
+
+
 class DummyMessage:
-    def __init__(
-        self, text: str | None = None, photo: tuple[Any, ...] | None = None
-    ) -> None:
+    def __init__(self, text: str | None = None, photo: tuple[Any, ...] | None = None) -> None:
         self.text: str | None = text
         self.photo: tuple[Any, ...] = () if photo is None else photo
         self.texts: list[str] = []
@@ -53,9 +54,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
         mime_type="image/png",
     )
     message = SimpleNamespace(document=document, photo=None)
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=dummy_bot, user_data={}),
@@ -93,9 +92,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
         mime_type=None,
     )
     message = SimpleNamespace(document=document, photo=None)
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
@@ -114,9 +111,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
 @pytest.mark.asyncio
 async def test_photo_handler_handles_typeerror() -> None:
     message = DummyMessage(photo=None)
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
@@ -131,9 +126,7 @@ async def test_photo_handler_handles_typeerror() -> None:
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_preserves_file(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_photo_handler_preserves_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.chdir(tmp_path)
 
     class DummyPhoto:
@@ -144,9 +137,7 @@ async def test_photo_handler_preserves_file(
         pass
 
     message = SimpleNamespace(photo=(DummyPhoto(),), reply_text=reply_text)
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
 
     class DummyFile:
         async def download_to_drive(self, path: str) -> None:
@@ -203,9 +194,7 @@ async def test_photo_handler_preserves_file(
 
 
 @pytest.mark.asyncio
-async def test_photo_then_freeform_calculates_dose(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_photo_then_freeform_calculates_dose(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """photo_handler + freeform_handler produce dose in reply and context."""
 
     class DummyPhoto:
@@ -277,9 +266,14 @@ async def test_photo_then_freeform_calculates_dose(
     session_factory = cast(Any, sessionmaker(class_=DummySession))
     photo_handlers.SessionLocal = session_factory
     gpt_handlers.SessionLocal = session_factory
-    async def fake_run_db(func, sessionmaker):
-        with sessionmaker() as s:
-            return func(s)
+
+    async def fake_run_db(
+        func: Callable[[Session], T],
+        sessionmaker: Callable[[], Session],
+    ) -> T:
+        with cast(Any, sessionmaker()) as s:
+            return func(cast(Session, s))
+
     monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
 
     sugar_msg = DummyMessage(text="5")
