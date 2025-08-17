@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any, Callable, TypedDict, cast
+from typing import Callable, TypedDict, cast
 
 from sqlalchemy.orm import Session, sessionmaker
 from telegram import Update
@@ -29,7 +29,7 @@ class AlertJobData(TypedDict, total=False):
     user_id: int
     count: int
     sugar: float
-    profile: dict[str, Any]
+    profile: dict[str, object]
     first_name: str
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ def schedule_alert(
     job_queue: DefaultJobQueue,
     *,
     sugar: float,
-    profile: dict[str, Any],
+    profile: dict[str, object],
     first_name: str = "",
     count: int = 1,
 ) -> None:
@@ -65,7 +65,7 @@ def schedule_alert(
 async def _send_alert_message(
     user_id: int,
     sugar: float,
-    profile_info: dict[str, Any],
+    profile_info: dict[str, object],
     context: ContextTypes.DEFAULT_TYPE,
     first_name: str,
 ) -> None:
@@ -119,7 +119,7 @@ async def evaluate_sugar(
     context: ContextTypes.DEFAULT_TYPE | None = None,
     first_name: str = "",
 ) -> None:
-    def db_eval(session: Session) -> tuple[bool, dict[str, Any] | None]:
+    def db_eval(session: Session) -> tuple[bool, dict[str, object] | None]:
         profile = session.get(Profile, user_id)
         if not profile:
             return False, None
@@ -226,7 +226,7 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         job.schedule_removal()
         return
     count: int = data.get("count", 1)
-    profile: dict[str, Any] = data.get("profile", {})
+    profile: dict[str, object] = data.get("profile", {})
     first_name = data.get("first_name", "")
     with SessionLocal() as session:
         active = (

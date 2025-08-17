@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from datetime import time, timedelta, timezone
-from typing import Any, Callable, Literal, cast
+from typing import Callable, Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -49,6 +49,8 @@ logger = logging.getLogger(__name__)
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 
 PLAN_LIMITS = {"free": 5, "pro": 10}
+
+from . import UserData
 
 # Map reminder type codes to display names
 REMINDER_NAMES = {
@@ -318,7 +320,7 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     user_id = user.id
     render_fn = cast(
-        Callable[[Any], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
+        Callable[[object], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
     )
     text, keyboard = await run_db(
         render_fn, user_id, sessionmaker=SessionLocal
@@ -543,7 +545,7 @@ async def reminder_webapp_save(
     if job_queue is not None and rem is not None:
         schedule_reminder(rem, job_queue)
     render_fn = cast(
-        Callable[[Any], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
+        Callable[[object], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
     )
     text, keyboard = await run_db(
         render_fn, user_id, sessionmaker=SessionLocal
@@ -596,7 +598,7 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     job = context.job
     if job is None or job.data is None:
         return
-    data = cast(dict[str, Any], job.data)
+    data = cast(UserData, job.data)
     rid = data.get("reminder_id")
     chat_id = data.get("chat_id")
     if rid is None or chat_id is None:
@@ -755,7 +757,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 job.schedule_removal()
 
     render_fn = cast(
-        Callable[[Any], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
+        Callable[[object], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
     )
     text, keyboard = await run_db(
         render_fn, user_id, sessionmaker=SessionLocal

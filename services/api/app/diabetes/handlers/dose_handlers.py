@@ -41,12 +41,13 @@ from services.api.app.diabetes.gpt_command_parser import parse_command
 from services.api.app.diabetes.utils.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
 from services.api.app.diabetes.services.repository import commit
 from collections.abc import Callable, Coroutine
-from typing import TypeVar, Any, cast
+from typing import TypeVar, cast
 from sqlalchemy.orm import Session
 from .common_handlers import menu_command
 from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry
 from .profile import profile_view
+from . import UserData
 
 
 logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     if user_data_raw is None:
         return END
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -117,7 +118,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if user_data_raw is None:
         return END
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -166,7 +167,7 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if user_data_raw is None:
         return END
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -187,7 +188,7 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if user_data_raw is None:
         return END
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -220,7 +221,7 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if user_data_raw is None:
         return END
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -257,7 +258,7 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if user_data_raw is None:
         return END
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -296,7 +297,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if user_data_raw is None:
         return END
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -381,7 +382,7 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     if user_data_raw is None:
         return END
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -396,8 +397,8 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 
 def _cancel_then(
-    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, T]]
-) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[Any, Any, T]]:
+    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]
+) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
     async def wrapped(
@@ -415,7 +416,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if user_data_raw is None:
         return
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return
@@ -927,7 +928,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
     if user_data_raw is None:
         return END
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         query = update.callback_query
@@ -1108,7 +1109,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         vision_text = ""
         for m in messages.data:
             if m.role == "assistant" and m.content:
-                first_block: Any = m.content[0]
+                first_block: object = m.content[0]
                 text_block = getattr(first_block, "text", None)
                 if text_block is not None:
                     vision_text = text_block.value
@@ -1189,7 +1190,7 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     if user_data_raw is None:
         return END
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -1240,8 +1241,8 @@ sugar_conv = ConversationHandler(
     },
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
-        CommandHandler("menu", cast(Any, _cancel_then(menu_command))),
-        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(Any, _cancel_then(photo_prompt))),
+        CommandHandler("menu", cast(object, _cancel_then(menu_command))),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))),
     ],
 )
 
@@ -1264,12 +1265,12 @@ dose_conv = ConversationHandler(
     },
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
-        CommandHandler("menu", cast(Any, _cancel_then(menu_command))),
-        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(Any, _cancel_then(photo_prompt))),
-        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), cast(Any, _cancel_then(sugar_start))),
-        MessageHandler(filters.Regex("^📊 История$"), cast(Any, _cancel_then(history_view))),
-        MessageHandler(filters.Regex("^📈 Отчёт$"), cast(Any, _cancel_then(report_request))),
-        MessageHandler(filters.Regex("^📄 Мой профиль$"), cast(Any, _cancel_then(profile_view))),
+        CommandHandler("menu", cast(object, _cancel_then(menu_command))),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))),
+        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), cast(object, _cancel_then(sugar_start))),
+        MessageHandler(filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))),
+        MessageHandler(filters.Regex("^📈 Отчёт$"), cast(object, _cancel_then(report_request))),
+        MessageHandler(filters.Regex("^📄 Мой профиль$"), cast(object, _cancel_then(profile_view))),
     ],
 )
 
