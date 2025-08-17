@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import pytest
 from openai import OpenAIError
@@ -117,6 +118,110 @@ async def test_parse_command_returns_none_without_content(
     result = await gpt_command_parser.parse_command("test")
 
     assert result is None
+
+
+@pytest.mark.anyio
+async def test_parse_command_empty_content(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    class EmptyContentResponse:
+        choices = [
+            type("Choice", (), {"message": type("Msg", (), {"content": ""})()})
+        ]
+
+    def create(*args: object, **kwargs: object) -> EmptyContentResponse:
+        return EmptyContentResponse()
+
+    monkeypatch.setattr(
+        gpt_command_parser, "create_chat_completion", create
+    )
+
+    with caplog.at_level(logging.ERROR):
+        result = await gpt_command_parser.parse_command("test")
+
+    assert result is None
+    assert "Content is empty in GPT response" in caplog.text
+
+
+@pytest.mark.anyio
+async def test_parse_command_non_string_content(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    class NonStringContentResponse:
+        choices = [
+            type("Choice", (), {"message": type("Msg", (), {"content": 123})()})
+        ]
+
+    def create(*args: object, **kwargs: object) -> NonStringContentResponse:
+        return NonStringContentResponse()
+
+    monkeypatch.setattr(
+        gpt_command_parser, "create_chat_completion", create
+    )
+
+    with caplog.at_level(logging.ERROR):
+        result = await gpt_command_parser.parse_command("test")
+
+    assert result is None
+    assert "Content is not a string in GPT response" in caplog.text
+
+
+@pytest.mark.anyio
+async def test_parse_command_string_without_json(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    class NoJsonResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {"message": type("Msg", (), {"content": "hello"})()},
+            )
+        ]
+
+    def create(*args: object, **kwargs: object) -> NoJsonResponse:
+        return NoJsonResponse()
+
+    monkeypatch.setattr(
+        gpt_command_parser, "create_chat_completion", create
+    )
+
+    with caplog.at_level(logging.ERROR):
+        result = await gpt_command_parser.parse_command("test")
+
+    assert result is None
+    assert "No JSON object found in response" in caplog.text
+
+
+@pytest.mark.anyio
+async def test_parse_command_json_invalid_structure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    class BadStructureResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {
+                    "message": type(
+                        "Msg", (), {"content": '{"action": "add_entry"}'}
+                    )()
+                },
+            )
+        ]
+
+    def create(*args: object, **kwargs: object) -> BadStructureResponse:
+        return BadStructureResponse()
+
+    monkeypatch.setattr(
+        gpt_command_parser, "create_chat_completion", create
+    )
+
+    with caplog.at_level(logging.ERROR):
+        result = await gpt_command_parser.parse_command("test")
+
+    assert result is None
+    assert "Invalid command structure" in caplog.text
 
 
 def test_sanitize_sensitive_data_masks_token() -> None:
