@@ -1,3 +1,4 @@
+export const REQUEST_TIMEOUT_MESSAGE = "Превышено время ожидания запроса";
 const REQUEST_TIMEOUT = 10_000; // 10 seconds
 
 interface TelegramWebApp {
@@ -34,7 +35,7 @@ export async function tgFetch(
     return response;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("Превышено время ожидания запроса");
+      throw new Error(REQUEST_TIMEOUT_MESSAGE);
     }
     if (error instanceof TypeError || error instanceof DOMException) {
       throw new Error("Проблема с сетью. Проверьте подключение");
