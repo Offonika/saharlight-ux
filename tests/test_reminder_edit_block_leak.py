@@ -55,7 +55,7 @@ class DummyJobQueue:
         return []
 
 
-def _setup_db() -> tuple[sessionmaker[Any], Any]:
+def _setup_db() -> tuple[sessionmaker, Any]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

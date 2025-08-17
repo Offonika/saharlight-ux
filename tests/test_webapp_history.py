@@ -28,7 +28,7 @@ def build_init_data(user_id: int = 1) -> str:
     return urllib.parse.urlencode(params)
 
 
-def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
