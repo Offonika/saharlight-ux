@@ -7,12 +7,19 @@ import MedicalButton from '@/components/MedicalButton';
 import { getProfile, saveProfile } from '@/api/profile';
 import { useTelegramContext } from '@/contexts/telegram-context';
 
+type ProfileField =
+  | 'icr'
+  | 'correctionFactor'
+  | 'targetSugar'
+  | 'lowThreshold'
+  | 'highThreshold';
+
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useTelegramContext();
 
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<Record<ProfileField, string>>({
     icr: '',
     correctionFactor: '',
     targetSugar: '',
@@ -58,7 +65,7 @@ const Profile = () => {
     };
   }, [user?.id, toast]);
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: ProfileField, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
