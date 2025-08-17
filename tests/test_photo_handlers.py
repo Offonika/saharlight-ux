@@ -79,5 +79,6 @@ async def test_photo_handler_get_file_telegram_error(
 
     assert result == photo_handlers.ConversationHandler.END
     assert message.texts == ["⚠️ Не удалось сохранить фото. Попробуйте ещё раз."]
+    assert context.user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
     assert "[PHOTO] Failed to save photo" in caplog.text
