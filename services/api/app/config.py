@@ -16,6 +16,9 @@ except ModuleNotFoundError as exc:  # pragma: no cover - executed at import time
     ) from exc
 
 
+logger = logging.getLogger(__name__)
+
+
 class Settings(BaseSettings):
     """Runtime application configuration.
 

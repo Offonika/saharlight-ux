@@ -5,9 +5,9 @@ from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import Response
 
-ALLOWED_ROLES = {"patient", "clinician", "org_admin", "superadmin"}
-
 logger = logging.getLogger(__name__)
+
+ALLOWED_ROLES = {"patient", "clinician", "org_admin", "superadmin"}
 
 
 class AuthMiddleware(BaseHTTPMiddleware):

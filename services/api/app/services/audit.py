@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("audit")
 
 
