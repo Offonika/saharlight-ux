@@ -68,7 +68,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
     assert result == 200
     assert called.flag
     assert context.user_data is not None
-    user_data = cast(dict[str, Any], context.user_data)
+    user_data = context.user_data
     assert user_data["__file_path"] == "photos/1_uid.png"
     assert update.message is not None
     msg = update.message
@@ -270,10 +270,10 @@ async def test_photo_then_freeform_calculates_dose(
         ) -> None:
             pass
 
-        def get(self, entity: Any, ident: Any, **kwargs: Any) -> Any:
+        def get(self, *args: Any, **kwargs: Any) -> Any:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
+    session_factory = cast(Any, sessionmaker(class_=DummySession))
     handlers.SessionLocal = session_factory
 
     sugar_msg = DummyMessage(text="5")
@@ -289,5 +289,5 @@ async def test_photo_then_freeform_calculates_dose(
     assert "Сахар: 5.0 ммоль/л" in reply
     assert "Ваша доза: 1.0 Ед" in reply
     assert context.user_data is not None
-    user_data = cast(dict[str, Any], context.user_data)
+    user_data = context.user_data
     assert "dose" in user_data["pending_entry"]

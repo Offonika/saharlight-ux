@@ -46,7 +46,7 @@ async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
     await handlers.freeform_handler(update, context)
 
     assert context.user_data is not None
-    user_data = cast(dict[str, Any], context.user_data)
+    user_data = context.user_data
     pending = user_data.get("pending_entry")
     assert pending is not None
     assert pending["dose"] == 3.5
@@ -81,10 +81,10 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         ) -> None:
             pass
 
-        def get(self, entity: Any, ident: Any, **kwargs: Any) -> Any:
+        def get(self, *args: Any, **kwargs: Any) -> Any:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
+    session_factory = cast(Any, sessionmaker(class_=DummySession))
     handlers.SessionLocal = session_factory
     message = DummyMessage("5,6")
     update = cast(
@@ -99,7 +99,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
     await handlers.freeform_handler(update, context)
 
     assert context.user_data is not None
-    user_data = cast(dict[str, Any], context.user_data)
+    user_data = context.user_data
     pending = user_data.get("pending_entry")
     assert pending is not None
     assert pending["sugar_before"] == 5.6
@@ -133,7 +133,7 @@ async def test_freeform_handler_sugar_only_flow() -> None:
     await handlers.freeform_handler(update, context)
 
     assert context.user_data is not None
-    user_data = cast(dict[str, Any], context.user_data)
+    user_data = context.user_data
     pending = user_data.get("pending_entry")
     assert pending is not None
     assert pending["sugar_before"] == 4.2

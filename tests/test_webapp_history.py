@@ -5,7 +5,7 @@ import json
 import time
 import urllib.parse
 
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 import pytest
 from fastapi.testclient import TestClient
@@ -114,7 +114,7 @@ async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> Non
 
     async def post_record(rec: dict[str, Any]) -> None:
         async with AsyncClient(
-            transport=ASGITransport(app=server.app), base_url="http://test"
+            transport=ASGITransport(app=cast(Any, server.app)), base_url="http://test"
         ) as ac:
             resp = await ac.post("/api/history", json=rec, headers=headers)
             assert resp.status_code == 200
