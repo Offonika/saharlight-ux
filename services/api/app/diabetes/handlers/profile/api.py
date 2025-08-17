@@ -93,9 +93,14 @@ def get_api() -> tuple[object, type[Exception], type]:
         from diabetes_sdk.configuration import Configuration
         from diabetes_sdk.exceptions import ApiException
         from diabetes_sdk.models.profile import Profile as ProfileModel
-    except Exception:  # pragma: no cover - import failure is tested separately
+    except ImportError:  # pragma: no cover - import failure is tested separately
         logger.warning(
             "diabetes_sdk is not installed. Falling back to local profile API.",
+        )
+        return LocalProfileAPI(), Exception, LocalProfile
+    except RuntimeError:  # pragma: no cover - initialization issues
+        logger.warning(
+            "diabetes_sdk could not be initialized. Falling back to local profile API.",
         )
         return LocalProfileAPI(), Exception, LocalProfile
     api = DefaultApi(ApiClient(Configuration(host=settings.api_url)))
@@ -144,6 +149,7 @@ def fetch_profile(
         return api.profiles_get(telegram_id=user_id)
     except ApiException:
         return None
+
 
 def post_profile(
     api: "DefaultApi",
