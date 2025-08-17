@@ -20,6 +20,7 @@ from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     Session,
+    close_all_sessions,
     mapped_column,
     relationship,
     sessionmaker,
@@ -112,6 +113,7 @@ def dispose_engine(target: Engine | None = None) -> None:
         eng = target or engine
         if eng is None:
             return
+        close_all_sessions()
         eng.dispose()
         if target is None and eng is engine:
             engine = None

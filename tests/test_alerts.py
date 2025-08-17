@@ -54,152 +54,201 @@ class DummyJobQueue:
 @pytest.mark.asyncio
 async def test_threshold_evaluation() -> None:
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
-    handlers.commit = commit
+    try:
+        Base.metadata.create_all(engine)
+        TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+        handlers.SessionLocal = TestSession
+        handlers.commit = commit
 
-    with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t1"))
-        session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8, sos_alerts_enabled=True))
-        session.add(User(telegram_id=2, thread_id="t2"))
-        session.add(Profile(telegram_id=2, low_threshold=4, high_threshold=8, sos_alerts_enabled=True))
-        session.commit()
+        with TestSession() as session:
+            session.add(User(telegram_id=1, thread_id="t1"))
+            session.add(
+                Profile(
+                    telegram_id=1,
+                    low_threshold=4,
+                    high_threshold=8,
+                    sos_alerts_enabled=True,
+                )
+            )
+            session.add(User(telegram_id=2, thread_id="t2"))
+            session.add(
+                Profile(
+                    telegram_id=2,
+                    low_threshold=4,
+                    high_threshold=8,
+                    sos_alerts_enabled=True,
+                )
+            )
+            session.commit()
 
-    job_queue_low = DummyJobQueue()
-    await handlers.evaluate_sugar(1, 3, cast(JobQueue[Any], job_queue_low))
-    with TestSession() as session:
-        alert = session.query(Alert).filter_by(user_id=1).first()
-        assert alert is not None
-        assert alert.type == "hypo"
-    assert job_queue_low.get_jobs_by_name("alert_1")
-    assert job_queue_low.jobs[0].when == handlers.ALERT_REPEAT_DELAY
+        job_queue_low = DummyJobQueue()
+        await handlers.evaluate_sugar(1, 3, cast(JobQueue[Any], job_queue_low))
+        with TestSession() as session:
+            alert = session.query(Alert).filter_by(user_id=1).first()
+            assert alert is not None
+            assert alert.type == "hypo"
+        assert job_queue_low.get_jobs_by_name("alert_1")
+        assert job_queue_low.jobs[0].when == handlers.ALERT_REPEAT_DELAY
 
-    job_queue_high = DummyJobQueue()
-    await handlers.evaluate_sugar(2, 9, cast(JobQueue[Any], job_queue_high))
-    with TestSession() as session:
-        alert2 = session.query(Alert).filter_by(user_id=2).first()
-        assert alert2 is not None
-        assert alert2.type == "hyper"
-    assert job_queue_high.get_jobs_by_name("alert_2")
+        job_queue_high = DummyJobQueue()
+        await handlers.evaluate_sugar(2, 9, cast(JobQueue[Any], job_queue_high))
+        with TestSession() as session:
+            alert2 = session.query(Alert).filter_by(user_id=2).first()
+            assert alert2 is not None
+            assert alert2.type == "hyper"
+        assert job_queue_high.get_jobs_by_name("alert_2")
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.asyncio
 async def test_repeat_logic(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
-    handlers.commit = commit
+    try:
+        Base.metadata.create_all(engine)
+        TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+        handlers.SessionLocal = TestSession
+        handlers.commit = commit
 
-    with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
-        session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8, sos_alerts_enabled=True))
-        session.commit()
-
-    job_queue = DummyJobQueue()
-    await handlers.evaluate_sugar(1, 3, cast(JobQueue[Any], job_queue))
-
-    calls: list[tuple[int, float]] = []
-
-    async def dummy_send_alert_message(
-        user_id: int,
-        sugar: float,
-        profile: dict[str, Any],
-        context: Any,
-        first_name: str,
-    ) -> None:
-        calls.append((user_id, sugar))
-
-    monkeypatch.setattr(handlers, "_send_alert_message", dummy_send_alert_message)
-
-    for i in range(handlers.MAX_REPEATS):
-        job = job_queue.jobs[i]
-        context = cast(
-            AlertContext,
-            ContextStub(
-                job=cast(Job[Any], job),
-                job_queue=cast(JobQueue[Any], job_queue),
-                bot=SimpleNamespace(),
-            ),
-        )
-        await handlers.alert_job(
-            cast(
-                CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-                context,
+        with TestSession() as session:
+            session.add(User(telegram_id=1, thread_id="t"))
+            session.add(
+                Profile(
+                    telegram_id=1,
+                    low_threshold=4,
+                    high_threshold=8,
+                    sos_alerts_enabled=True,
+                )
             )
-        )
+            session.commit()
 
-    assert len(job_queue.jobs) == handlers.MAX_REPEATS
-    assert len(calls) == handlers.MAX_REPEATS
-    assert job_queue.jobs[-1].removed
+        job_queue = DummyJobQueue()
+        await handlers.evaluate_sugar(1, 3, cast(JobQueue[Any], job_queue))
+
+        calls: list[tuple[int, float]] = []
+
+        async def dummy_send_alert_message(
+            user_id: int,
+            sugar: float,
+            profile: dict[str, Any],
+            context: Any,
+            first_name: str,
+        ) -> None:
+            calls.append((user_id, sugar))
+
+        monkeypatch.setattr(handlers, "_send_alert_message", dummy_send_alert_message)
+
+        for i in range(handlers.MAX_REPEATS):
+            job = job_queue.jobs[i]
+            context = cast(
+                AlertContext,
+                ContextStub(
+                    job=cast(Job[Any], job),
+                    job_queue=cast(JobQueue[Any], job_queue),
+                    bot=SimpleNamespace(),
+                ),
+            )
+            await handlers.alert_job(
+                cast(
+                    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                    context,
+                )
+            )
+
+        assert len(job_queue.jobs) == handlers.MAX_REPEATS
+        assert len(calls) == handlers.MAX_REPEATS
+        assert job_queue.jobs[-1].removed
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.asyncio
 async def test_normal_reading_resolves_alert() -> None:
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
-    handlers.commit = commit
+    try:
+        Base.metadata.create_all(engine)
+        TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+        handlers.SessionLocal = TestSession
+        handlers.commit = commit
 
-    with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
-        session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8, sos_alerts_enabled=True))
-        session.commit()
+        with TestSession() as session:
+            session.add(User(telegram_id=1, thread_id="t"))
+            session.add(
+                Profile(
+                    telegram_id=1,
+                    low_threshold=4,
+                    high_threshold=8,
+                    sos_alerts_enabled=True,
+                )
+            )
+            session.commit()
 
-    job_queue = DummyJobQueue()
-    await handlers.evaluate_sugar(1, 3, cast(JobQueue[Any], job_queue))
-    assert job_queue.jobs
+        job_queue = DummyJobQueue()
+        await handlers.evaluate_sugar(1, 3, cast(JobQueue[Any], job_queue))
+        assert job_queue.jobs
 
-    await handlers.evaluate_sugar(1, 5, cast(JobQueue[Any], job_queue))
-    with TestSession() as session:
-        alert = session.query(Alert).filter_by(user_id=1).first()
-        assert alert is not None
-        assert alert.resolved
-    assert job_queue.jobs[0].removed
+        await handlers.evaluate_sugar(1, 5, cast(JobQueue[Any], job_queue))
+        with TestSession() as session:
+            alert = session.query(Alert).filter_by(user_id=1).first()
+            assert alert is not None
+            assert alert.resolved
+        assert job_queue.jobs[0].removed
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.asyncio
 async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
-    handlers.commit = commit
+    try:
+        Base.metadata.create_all(engine)
+        TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+        handlers.SessionLocal = TestSession
+        handlers.commit = commit
 
-    with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t1"))
-        session.add(Profile(
-            telegram_id=1,
-            low_threshold=4,
-            high_threshold=8,
-            sos_contact="@alice",
-            sos_alerts_enabled=True,
-        ))
-        session.commit()
+        with TestSession() as session:
+            session.add(User(telegram_id=1, thread_id="t1"))
+            session.add(
+                Profile(
+                    telegram_id=1,
+                    low_threshold=4,
+                    high_threshold=8,
+                    sos_contact="@alice",
+                    sos_alerts_enabled=True,
+                )
+            )
+            session.commit()
 
-    class DummyBot:
-        def __init__(self) -> None:
-            self.sent: list[tuple[int | str, str]] = []
+        class DummyBot:
+            def __init__(self) -> None:
+                self.sent: list[tuple[int | str, str]] = []
 
-        async def send_message(self, chat_id: int | str, text: str) -> None:
-            self.sent.append((chat_id, text))
+            async def send_message(self, chat_id: int | str, text: str) -> None:
+                self.sent.append((chat_id, text))
 
-    update = cast(
-        Update,
-        SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
-    )
-    context = cast(AlertContext, ContextStub(bot=DummyBot()))
-    assert context.bot is not None
-    bot = cast(DummyBot, context.bot)
+        update = cast(
+            Update,
+            SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
+        )
+        context = cast(AlertContext, ContextStub(bot=DummyBot()))
+        assert context.bot is not None
+        bot = cast(DummyBot, context.bot)
 
-    async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
-        return ("0,0", "link")
+        async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
+            return ("0,0", "link")
 
-    monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
+        monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
 
-    for _ in range(2):
+        for _ in range(2):
+            await handlers.check_alert(
+                update,
+                cast(
+                    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                    context,
+                ),
+                3,
+            )
+        assert bot.sent == []
         await handlers.check_alert(
             update,
             cast(
@@ -208,73 +257,69 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
             ),
             3,
         )
-    assert bot.sent == []
-    await handlers.check_alert(
-        update,
-        cast(
-            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-            context,
-        ),
-        3,
-    )
-    assert len(bot.sent) == 2
-    assert bot.sent[0][0] == 1
-    assert bot.sent[1][0] == "@alice"
-    with TestSession() as session:
-        alerts = session.query(Alert).all()
-        assert all(a.resolved for a in alerts)
+        assert len(bot.sent) == 2
+        assert bot.sent[0][0] == 1
+        assert bot.sent[1][0] == "@alice"
+        with TestSession() as session:
+            alerts = session.query(Alert).all()
+            assert all(a.resolved for a in alerts)
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.asyncio
 async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
-    handlers.commit = commit
+    try:
+        Base.metadata.create_all(engine)
+        TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+        handlers.SessionLocal = TestSession
+        handlers.commit = commit
 
-    with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t1"))
-        session.add(
-            Profile(
-                telegram_id=1,
-                low_threshold=4,
-                high_threshold=8,
-                sos_contact="@alice",
-                sos_alerts_enabled=True,
+        with TestSession() as session:
+            session.add(User(telegram_id=1, thread_id="t1"))
+            session.add(
+                Profile(
+                    telegram_id=1,
+                    low_threshold=4,
+                    high_threshold=8,
+                    sos_contact="@alice",
+                    sos_alerts_enabled=True,
+                )
             )
+            session.commit()
+
+        class DummyBot:
+            def __init__(self) -> None:
+                self.sent: list[tuple[int | str, str]] = []
+
+            async def send_message(self, chat_id: int | str, text: str) -> None:
+                self.sent.append((chat_id, text))
+
+        update = cast(
+            Update,
+            SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
         )
-        session.commit()
+        context = cast(AlertContext, ContextStub(bot=DummyBot()))
+        assert context.bot is not None
+        bot = cast(DummyBot, context.bot)
 
-    class DummyBot:
-        def __init__(self) -> None:
-            self.sent: list[tuple[int | str, str]] = []
+        async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
+            return None, None
 
-        async def send_message(self, chat_id: int | str, text: str) -> None:
-            self.sent.append((chat_id, text))
+        monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
 
-    update = cast(
-        Update,
-        SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
-    )
-    context = cast(AlertContext, ContextStub(bot=DummyBot()))
-    assert context.bot is not None
-    bot = cast(DummyBot, context.bot)
+        for _ in range(3):
+            await handlers.check_alert(
+                update,
+                cast(
+                    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                    context,
+                ),
+                3,
+            )
 
-    async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
-        return None, None
-
-    monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
-
-    for _ in range(3):
-        await handlers.check_alert(
-            update,
-            cast(
-                CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-                context,
-            ),
-            3,
-        )
-
-    msg = "⚠️ У Ivan критический сахар 3 ммоль/л."
-    assert bot.sent == [(1, msg), ("@alice", msg)]
+        msg = "⚠️ У Ivan критический сахар 3 ммоль/л."
+        assert bot.sent == [(1, msg), ("@alice", msg)]
+    finally:
+        engine.dispose()

@@ -44,61 +44,64 @@ class DummyContext:
 @pytest.mark.asyncio
 async def test_alert_stats_counts(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    alert_handlers.SessionLocal = TestSession
+    try:
+        Base.metadata.create_all(engine)
+        TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+        alert_handlers.SessionLocal = TestSession
 
-    class DummyDateTime(dt.datetime):
-        @classmethod
-        def now(
-            cls, tz: dt.tzinfo | None = None
-        ) -> "DummyDateTime":  # pragma: no cover - used for typing
-            return fixed_now
+        class DummyDateTime(dt.datetime):
+            @classmethod
+            def now(
+                cls, tz: dt.tzinfo | None = None
+            ) -> "DummyDateTime":  # pragma: no cover - used for typing
+                return fixed_now
 
-    fixed_now = DummyDateTime(2024, 1, 10, tzinfo=dt.timezone.utc)
+        fixed_now = DummyDateTime(2024, 1, 10, tzinfo=dt.timezone.utc)
 
-    @dataclass
-    class DummyDateTimeModule:
-        datetime: type[dt.datetime]
-        timedelta: type[dt.timedelta]
-        timezone: type[dt.timezone]
+        @dataclass
+        class DummyDateTimeModule:
+            datetime: type[dt.datetime]
+            timedelta: type[dt.timedelta]
+            timezone: type[dt.timezone]
 
-    monkeypatch.setattr(
-        alert_handlers,
-        "datetime",
-        DummyDateTimeModule(
-            DummyDateTime,
-            dt.timedelta,
-            dt.timezone,
-        ),
-    )
-
-    with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
-        session.add(
-            Alert(user_id=1, type="hypo", ts=fixed_now - dt.timedelta(days=1))
+        monkeypatch.setattr(
+            alert_handlers,
+            "datetime",
+            DummyDateTimeModule(
+                DummyDateTime,
+                dt.timedelta,
+                dt.timezone,
+            ),
         )
-        session.add(
-            Alert(user_id=1, type="hyper", ts=fixed_now - dt.timedelta(days=2))
-        )
-        session.add(
-            Alert(user_id=1, type="hyper", ts=fixed_now - dt.timedelta(days=8))
-        )
-        session.add(
-            Alert(user_id=2, type="hypo", ts=fixed_now - dt.timedelta(days=1))
-        )
-        session.commit()
 
-    msg = DummyMessage()
+        with TestSession() as session:
+            session.add(User(telegram_id=1, thread_id="t"))
+            session.add(
+                Alert(user_id=1, type="hypo", ts=fixed_now - dt.timedelta(days=1))
+            )
+            session.add(
+                Alert(user_id=1, type="hyper", ts=fixed_now - dt.timedelta(days=2))
+            )
+            session.add(
+                Alert(user_id=1, type="hyper", ts=fixed_now - dt.timedelta(days=8))
+            )
+            session.add(
+                Alert(user_id=2, type="hypo", ts=fixed_now - dt.timedelta(days=1))
+            )
+            session.commit()
 
-    update = cast("Update", DummyUpdate(message=msg, effective_user=DummyUser(id=1)))
-    context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        DummyContext(),
-    )
+        msg = DummyMessage()
 
-    await alert_handlers.alert_stats(update, context)
-    assert msg.texts == ["За 7\u202Fдн.: гипо\u202F1, гипер\u202F1"]
+        update = cast("Update", DummyUpdate(message=msg, effective_user=DummyUser(id=1)))
+        context = cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            DummyContext(),
+        )
+
+        await alert_handlers.alert_stats(update, context)
+        assert msg.texts == ["За 7\u202Fдн.: гипо\u202F1, гипер\u202F1"]
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.asyncio
