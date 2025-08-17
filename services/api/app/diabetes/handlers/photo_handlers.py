@@ -79,7 +79,7 @@ async def photo_handler(
         try:
             file = await context.bot.get_file(photo.file_id)
             await file.download_to_drive(file_path)
-        except OSError as exc:
+        except (TelegramError, OSError) as exc:
             logging.exception("[PHOTO] Failed to save photo: %s", exc)
             await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
             user_data.pop(WAITING_GPT_FLAG, None)
@@ -276,7 +276,6 @@ async def photo_handler(
         return END
     finally:
         user_data.pop(WAITING_GPT_FLAG, None)
-
 
 
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
