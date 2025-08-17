@@ -16,13 +16,6 @@ from services.api.app.diabetes.services.db import Base, User, Reminder, Entry, d
 
 @contextmanager
 def no_warnings() -> Iterator[None]:
-    try:
-        warns = cast(Any, pytest.warns)
-        with warns(None):
-            yield
-            return
-    except TypeError:
-        pass
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         yield
