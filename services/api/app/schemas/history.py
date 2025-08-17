@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal, Optional, cast, get_args
 
 from pydantic import BaseModel
 
 
 HistoryType = Literal["measurement", "meal", "insulin"]
+
+ALLOWED_HISTORY_TYPES: set[HistoryType] = cast(
+    set[HistoryType], set(get_args(HistoryType))
+)
 
 
 class HistoryRecordSchema(BaseModel):

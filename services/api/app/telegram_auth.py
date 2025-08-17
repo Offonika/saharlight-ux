@@ -4,12 +4,13 @@ import json
 import logging
 import os
 import time
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qsl
 
 from fastapi import Header, HTTPException
 
 from .config import settings
+from .schemas.user import UserContext
 
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, Any]:
 
 def require_tg_user(
     init_data: str | None = Header(None, alias="X-Telegram-Init-Data"),
-) -> dict[str, Any]:
+) -> UserContext:
     """Dependency ensuring request contains valid Telegram user info."""
     if not init_data:
         raise HTTPException(status_code=401, detail="missing init data")
@@ -74,4 +75,4 @@ def require_tg_user(
     user: dict[str, Any] | None = data.get("user")
     if not isinstance(user, dict) or "id" not in user:
         raise HTTPException(status_code=401, detail="invalid user")
-    return user
+    return cast(UserContext, user)

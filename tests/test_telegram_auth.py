@@ -9,6 +9,7 @@ import pytest
 from fastapi import HTTPException
 
 from services.api.app.config import settings
+from services.api.app.schemas.user import UserContext
 from services.api.app.telegram_auth import (
     AUTH_DATE_MAX_AGE,
     parse_and_verify_init_data,
@@ -69,7 +70,7 @@ def test_parse_and_verify_init_data_invalid_user_json() -> None:
 def test_require_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data: str = build_init_data()
-    user: dict[str, Any] = require_tg_user(init_data)
+    user: UserContext = require_tg_user(init_data)
     assert user["id"] == 1
 
 
