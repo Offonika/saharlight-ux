@@ -1,7 +1,7 @@
 import datetime
 import logging
 import re
-from typing import cast
+from typing import TypedDict, cast
 
 from telegram import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
@@ -23,6 +23,13 @@ from .reporting_handlers import render_entry, send_report
 from . import UserData
 
 logger = logging.getLogger(__name__)
+
+
+class EditMessageMeta(TypedDict):
+    """Metadata about the message being edited."""
+
+    chat_id: int
+    message_id: int
 
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -221,11 +228,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if entry is None:
             await message.reply_text("⚠️ Не удалось сохранить запись.")
             return
-        edit_info = user_data.get("edit_entry")
-        if not isinstance(edit_info, dict):
+        edit_info_raw = user_data.get("edit_entry")
+        if not isinstance(edit_info_raw, dict):
             return
-        chat_id = cast(int, edit_info.get("chat_id"))
-        message_id = cast(int, edit_info.get("message_id"))
+        edit_info = cast(EditMessageMeta, edit_info_raw)
+        chat_id = edit_info["chat_id"]
+        message_id = edit_info["message_id"]
         markup = InlineKeyboardMarkup(
             [
                 [
