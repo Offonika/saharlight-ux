@@ -5,7 +5,7 @@ import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
 import { getProfile, saveProfile } from '@/api/profile';
-import { useTelegramContext } from '@/contexts/TelegramContext';
+import { useTelegramContext } from '@/contexts/telegram-context';
 
 const Profile = () => {
   const navigate = useNavigate();
