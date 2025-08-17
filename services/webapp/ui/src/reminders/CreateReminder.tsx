@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
 import { useTelegramContext } from "@/contexts/telegram-context";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   normalizeReminderType,
   type ReminderType,
@@ -40,6 +40,7 @@ export default function CreateReminder() {
   const location = useLocation();
   const params = useParams();
   const { user, sendData } = useTelegramContext();
+  const { toast } = useToast();
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
   );
@@ -93,7 +94,7 @@ export default function CreateReminder() {
         toast({ title: "Ошибка", description: message, variant: "destructive" });
       }
     })();
-  }, [params.id, user?.id]);
+  }, [params.id, user?.id, toast]);
 
   const validName = title.trim().length >= 2;
   const validTime = isValidTime(time);
