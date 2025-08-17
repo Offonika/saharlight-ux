@@ -50,6 +50,7 @@ export default function CreateReminder() {
   const [typeOpen, setTypeOpen] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     if (!params.id || !user?.id) return;
     const id = Number(params.id);
     if (Number.isNaN(id)) {
@@ -61,6 +62,7 @@ export default function CreateReminder() {
     (async () => {
       try {
         const data = await getReminder(user.id, id);
+        if (cancelled) return;
         if (data) {
           const nt = normalizeReminderType(data.type);
           const loaded: Reminder = {
@@ -87,6 +89,9 @@ export default function CreateReminder() {
         toast({ title: "Ошибка", description: message, variant: "destructive" });
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [params.id, user?.id, toast]);
 
   const validName = title.trim().length >= 2;
