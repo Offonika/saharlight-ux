@@ -177,7 +177,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     dose = calc_bolus(carbs_g, sugar, patient)
                     entry["dose"] = dose
                     await message.reply_text(
-                        f"💉 Расчёт дозы: {dose} Ед.\nСахар: {sugar} ммоль/л",
+                        f"💉\u202fРасчёт дозы: {dose}\u202fЕд.\nСахар: {sugar}\u202fммоль/л",
                         reply_markup=confirm_keyboard(),
                     )
                     return

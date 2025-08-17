@@ -106,7 +106,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
     assert "pending_entry" in user_data
     assert message.replies
     text = message.replies[0]
-    assert "5.6 ммоль/л" in text
+    assert "5.6\u202fммоль/л" in text
 
 
 @pytest.mark.asyncio
