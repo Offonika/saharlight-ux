@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useId, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface ModalProps {
@@ -12,6 +12,8 @@ interface ModalProps {
 const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {
   const overlayRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -67,11 +69,17 @@ const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {
       onMouseDown={handleOverlayClick}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={title ? titleId : undefined}
+      aria-describedby={descriptionId}
       className="fixed inset-0 z-50 flex items-center justify-center bg-overlay"
     >
       <div ref={modalRef} className="modal-card">
         <div className="flex items-center justify-between p-4 border-b border-border">
-          {title && <h2 className="text-lg font-semibold">{title}</h2>}
+          {title && (
+            <h2 id={titleId} className="text-lg font-semibold">
+              {title}
+            </h2>
+          )}
           <Button
             onClick={onClose}
             variant="ghost"
@@ -81,7 +89,9 @@ const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {
             ×
           </Button>
         </div>
-        <div className="p-4">{children}</div>
+        <div id={descriptionId} className="p-4">
+          {children}
+        </div>
         {footer && <div className="p-4 border-t border-border">{footer}</div>}
       </div>
     </div>
