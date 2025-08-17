@@ -11,6 +11,8 @@ from urllib.request import urlopen
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib.units import mm
 
+logger = logging.getLogger(__name__)
+
 # utils.py
 
 
@@ -18,11 +20,11 @@ def clean_markdown(text: str) -> str:
     """
     Удаляет простую Markdown-разметку: **жирный**, # заголовки, * списки, 1. списки и т.д.
     """
-    text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # **жирный**
-    text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)  # ### Заголовки
-    text = re.sub(r'^\s*\d+\.\s*', '', text, flags=re.MULTILINE)  # 1. списки
-    text = re.sub(r'^\s*\*\s*', '', text, flags=re.MULTILINE)      # * списки
-    text = re.sub(r'`([^`]+)`', r'\1', text)           # `код`
+    text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)  # **жирный**
+    text = re.sub(r"^#+\s*", "", text, flags=re.MULTILINE)  # ### Заголовки
+    text = re.sub(r"^\s*\d+\.\s*", "", text, flags=re.MULTILINE)  # 1. списки
+    text = re.sub(r"^\s*\*\s*", "", text, flags=re.MULTILINE)  # * списки
+    text = re.sub(r"`([^`]+)`", r"\1", text)  # `код`
     return text
 
 
@@ -62,7 +64,7 @@ async def get_coords_and_link(
         with urlopen(url, timeout=5) as resp:
             status = getattr(resp, "getcode", lambda: 200)()
             if status != 200:
-                logging.warning("Unexpected response code: %s", status)
+                logger.warning("Unexpected response code: %s", status)
                 return None, None
             content_type = ""
             if hasattr(resp, "headers"):
@@ -71,7 +73,7 @@ async def get_coords_and_link(
                 # ``info()`` returns mapping-like headers for ``urllib`` responses.
                 content_type = resp.info().get("Content-Type", "")
             if content_type and "application/json" not in content_type:
-                logging.warning("Unexpected content type: %s", content_type)
+                logger.warning("Unexpected content type: %s", content_type)
                 return None, None
             data = json.load(resp)
             loc = data.get("loc")
@@ -79,7 +81,7 @@ async def get_coords_and_link(
                 try:
                     lat, lon = loc.split(",")
                 except ValueError:
-                    logging.warning("Invalid location format: %s", loc)
+                    logger.warning("Invalid location format: %s", loc)
                     return None, None
                 coords = f"{lat},{lon}"
                 link = f"https://maps.google.com/?q={lat},{lon}"
@@ -89,12 +91,8 @@ async def get_coords_and_link(
     try:
         return await asyncio.to_thread(_fetch)
     except (URLError, JSONDecodeError, TimeoutError, OSError) as exc:  # pragma: no cover - network failures
-        logging.warning("Failed to fetch coordinates: %s", exc)
+        logger.warning("Failed to fetch coordinates from %s: %s", url, exc)
         return None, None
-    except Exception:
-        logging.exception("Unexpected error when fetching coordinates")
-        raise
-
 
 
 def split_text_by_width(
