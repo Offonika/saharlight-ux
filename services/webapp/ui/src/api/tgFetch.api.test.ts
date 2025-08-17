@@ -41,6 +41,13 @@ describe('tgFetch', () => {
     await expect(tgFetch('/api/profile')).rejects.toThrow('Проблема с сетью');
   });
 
+  it('throws on non-2xx responses', async () => {
+    (global.fetch as Mock).mockResolvedValue(
+      new Response(null, { status: 400, statusText: 'Bad Request' }),
+    );
+    await expect(tgFetch('/api/profile')).rejects.toThrow('Bad Request');
+  });
+
   it('aborts request after timeout', async () => {
     vi.useFakeTimers();
     (global.fetch as Mock).mockImplementation((_, options: RequestInit) =>

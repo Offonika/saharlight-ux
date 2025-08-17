@@ -22,12 +22,16 @@ export async function tgFetch(
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
   try {
-    return await fetch(input, {
+    const response = await fetch(input, {
       ...init,
       headers,
       credentials: init.credentials ?? "include",
       signal: controller.signal,
     });
+    if (!response.ok) {
+      throw new Error(response.statusText || `HTTP error ${response.status}`);
+    }
+    return response;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new Error("Превышено время ожидания запроса");
