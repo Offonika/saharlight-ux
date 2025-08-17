@@ -68,7 +68,7 @@ class DummySession(Session):
     def commit(self) -> None:
         pass
 
-    def get(self, entity: Any, ident: Any, **kwargs: Any) -> Any:
+    def get(self, *args: Any, **kwargs: Any) -> Any:
         return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
 
@@ -97,7 +97,7 @@ async def test_photo_flow_saves_entry(
     setattr(cast(Any, type(context)), "job_queue", PropertyMock(return_value=None))
 
     assert context.user_data is not None
-    user_data = cast(dict[str, Any], context.user_data)
+    user_data = context.user_data
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
@@ -149,7 +149,7 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(dose_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0))
     user_data["thread_id"] = "tid"
 
-    msg_photo = DummyMessage(photo=(DummyPhoto(),))
+    msg_photo = DummyMessage(photo=cast(tuple[PhotoSize, ...], (DummyPhoto(),)))
     update_photo = cast(
         Update,
         SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1)),
@@ -166,7 +166,7 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
-    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
+    session_factory = cast(Any, sessionmaker(class_=DummySession))
     dose_handlers.SessionLocal = session_factory
     await dose_handlers.freeform_handler(update_sugar, context)
     assert user_data["pending_entry"]["sugar_before"] == 5.5

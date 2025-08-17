@@ -6,7 +6,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 import urllib.parse
 
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 import pytest
 from fastapi.testclient import TestClient
@@ -136,7 +136,7 @@ async def test_timezone_async_writes(
 
     async def write_tz(tz: str) -> None:
         async with AsyncClient(
-            transport=ASGITransport(app=server.app), base_url="http://test"
+            transport=ASGITransport(app=cast(Any, server.app)), base_url="http://test"
         ) as ac:
             resp = await ac.put("/timezone", json={"tz": tz}, headers=headers)
             assert resp.status_code == 200
@@ -150,7 +150,7 @@ async def test_timezone_async_writes(
         tz_value = tz_row.tz
 
     async with AsyncClient(
-        transport=ASGITransport(app=server.app), base_url="http://test"
+        transport=ASGITransport(app=cast(Any, server.app)), base_url="http://test"
     ) as ac:
         resp = await ac.get("/timezone", headers=headers)
         assert resp.status_code == 200

@@ -56,7 +56,7 @@ async def test_report_request_and_custom_flow(
 
     await reporting_handlers.report_request(update, context)
     assert context.user_data is not None
-    user_data = cast(dict[str, Any], context.user_data)
+    user_data = context.user_data
     assert "awaiting_report_date" not in user_data
     assert any("Выберите период" in t for t in message.replies)
     assert message.kwargs
@@ -73,7 +73,7 @@ async def test_report_request_and_custom_flow(
     await reporting_handlers.report_period_callback(update_cb, context)
 
     assert context.user_data is not None
-    user_data = cast(dict[str, Any], context.user_data)
+    user_data = context.user_data
     assert user_data.get("awaiting_report_date") is True
     assert query.edited
     assert any("YYYY-MM-DD" in text for text in query.edited)
@@ -105,7 +105,7 @@ async def test_report_request_and_custom_flow(
     called_flag = called.get("called")
     assert called_flag is not None
     assert context.user_data is not None
-    user_data = cast(dict[str, Any], context.user_data)
+    user_data = context.user_data
     assert "awaiting_report_date" not in user_data
 
 

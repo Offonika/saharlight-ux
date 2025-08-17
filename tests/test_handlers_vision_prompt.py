@@ -100,7 +100,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch: pytest.MonkeyPatch, 
     # Final reply should include dish name from Vision response
     assert any("Борщ" in reply for reply in msg_photo.replies)
     assert context.user_data is not None
-    user_data = cast(dict[str, Any], context.user_data)
+    user_data = context.user_data
     entry = user_data.get("pending_entry")
     assert entry is not None
     assert entry["carbs_g"] == 30
