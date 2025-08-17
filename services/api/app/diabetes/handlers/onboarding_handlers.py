@@ -48,13 +48,18 @@ from . import UserData
 
 logger = logging.getLogger(__name__)
 
-DEMO_PHOTO_PATH = (
-    Path(__file__).resolve().parents[5] / "docs" / "assets" / "demo.jpg"
-)
+DEMO_PHOTO_PATH = Path(__file__).resolve().parents[5] / "docs" / "assets" / "demo.jpg"
 
 
 # Wizard states
-ONB_PROFILE_ICR, ONB_PROFILE_CF, ONB_PROFILE_TARGET, ONB_PROFILE_TZ, ONB_DEMO, ONB_REMINDERS = range(6)
+(
+    ONB_PROFILE_ICR,
+    ONB_PROFILE_CF,
+    ONB_PROFILE_TARGET,
+    ONB_PROFILE_TZ,
+    ONB_DEMO,
+    ONB_REMINDERS,
+) = range(6)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -80,7 +85,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             try:
                 thread_id = await create_thread()
             except OpenAIError as exc:  # pragma: no cover - network errors
-                logger.exception("Failed to create thread for user %s: %s", user_id, exc)
+                logger.exception(
+                    "Failed to create thread for user %s: %s", user_id, exc
+                )
                 await message.reply_text(
                     "⚠️ Не удалось инициализировать профиль. Попробуйте позже."
                 )
@@ -88,9 +95,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             user_obj = User(telegram_id=user_id, thread_id=thread_id)
             session.add(user_obj)
             if not commit(session):
-                await message.reply_text(
-                    "⚠️ Не удалось сохранить профиль пользователя."
-                )
+                await message.reply_text("⚠️ Не удалось сохранить профиль пользователя.")
                 return ConversationHandler.END
 
         if user_obj.onboarding_complete:
@@ -133,7 +138,9 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await message.reply_text("Введите ИКХ числом.", reply_markup=_skip_markup())
         return ONB_PROFILE_ICR
     if icr <= 0:
-        await message.reply_text("ИКХ должен быть больше 0.", reply_markup=_skip_markup())
+        await message.reply_text(
+            "ИКХ должен быть больше 0.", reply_markup=_skip_markup()
+        )
         return ONB_PROFILE_ICR
     user_data["profile_icr"] = icr
     await message.reply_text(
@@ -160,7 +167,9 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         await message.reply_text("Введите КЧ числом.", reply_markup=_skip_markup())
         return ONB_PROFILE_CF
     if cf <= 0:
-        await message.reply_text("КЧ должен быть больше 0.", reply_markup=_skip_markup())
+        await message.reply_text(
+            "КЧ должен быть больше 0.", reply_markup=_skip_markup()
+        )
         return ONB_PROFILE_CF
     user_data["profile_cf"] = cf
     await message.reply_text(
@@ -220,7 +229,9 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     tz_button = build_timezone_webapp_button()
     if tz_button:
         keyboard_buttons.append(tz_button)
-    keyboard_buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
+    keyboard_buttons.append(
+        InlineKeyboardButton("Пропустить", callback_data="onb_skip")
+    )
     await message.reply_text(
         "Введите ваш часовой пояс (например Europe/Moscow) или используйте кнопку ниже:",
         reply_markup=InlineKeyboardMarkup([keyboard_buttons]),
@@ -228,7 +239,9 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     return ONB_PROFILE_TZ
 
 
-async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def onboarding_timezone(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     """Handle user timezone (text or WebApp) and proceed to demo."""
 
     message = update.message
@@ -262,8 +275,13 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
             reply_markup=InlineKeyboardMarkup([buttons]),
         )
         return ONB_PROFILE_TZ
-    except Exception:  # pragma: no cover - unexpected errors
-        logger.exception("Unexpected error validating timezone %s", tz_name)
+    except (OSError, ValueError) as exc:  # pragma: no cover - unexpected errors
+        logger.exception(
+            "Error validating timezone %s (%s: %s)",
+            tz_name,
+            type(exc).__name__,
+            exc,
+        )
         await message.reply_text(
             "⚠️ Произошла ошибка при проверке часового пояса.",
             reply_markup=InlineKeyboardMarkup([buttons]),
@@ -365,9 +383,7 @@ async def onboarding_reminders(
                 for rem in reminders:
                     rem.is_enabled = False
             if not commit(session):
-                await query.message.reply_text(
-                    "⚠️ Не удалось сохранить настройки."
-                )
+                await query.message.reply_text("⚠️ Не удалось сохранить настройки.")
                 return ConversationHandler.END
 
     job_queue = getattr(context, "job_queue", None)
@@ -434,9 +450,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     else:
         logger.warning("Poll message missing poll object for user %s", user_id)
 
-    await query.message.reply_text(
-        "Пропущено.", reply_markup=menu_keyboard
-    )
+    await query.message.reply_text("Пропущено.", reply_markup=menu_keyboard)
     return ConversationHandler.END
 
 
@@ -459,6 +473,7 @@ async def onboarding_poll_answer(
 async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     from . import _cancel_then
     from .dose_calc import photo_prompt
+
     message = update.message
     user_data_raw = context.user_data
     if user_data_raw is None:
@@ -501,7 +516,9 @@ onboarding_conv = ConversationHandler(
             CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
         ONB_REMINDERS: [
-            CallbackQueryNoWarnHandler(onboarding_reminders, pattern="^onb_rem_(yes|no)$"),
+            CallbackQueryNoWarnHandler(
+                onboarding_reminders, pattern="^onb_rem_(yes|no)$"
+            ),
             CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
     },
