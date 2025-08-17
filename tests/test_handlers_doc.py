@@ -287,8 +287,7 @@ async def test_photo_then_freeform_calculates_dose(monkeypatch: pytest.MonkeyPat
     await gpt_handlers.freeform_handler(update_sugar, context)
 
     reply = sugar_msg.texts[0]
-    assert "Расчёт дозы" in reply
-    assert "Расчёт дозы: 1.0 Ед" in reply
+    assert reply == "💉\u202fРасчёт дозы: 1.0\u202fЕд.\nСахар: 5.0\u202fммоль/л"
     assert context.user_data is not None
     user_data = context.user_data
     assert "dose" in user_data["pending_entry"]
