@@ -53,6 +53,12 @@ def _close_sqlite_connections() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True, scope="session")
+def _apply_telegram_patch() -> None:
+    """Import the app package after coverage starts to apply Telegram patch."""
+    import services.api.app  # noqa: F401
+
+
+@pytest.fixture(autouse=True, scope="session")
 def _dispose_engine_after_tests() -> Iterator[None]:
     """Dispose the global database engine after the test session."""
     from services.api.app.diabetes.services.db import dispose_engine
