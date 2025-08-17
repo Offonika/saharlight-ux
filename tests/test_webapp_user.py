@@ -3,7 +3,6 @@ import hmac
 import json
 import time
 import urllib.parse
-
 from typing import Any, Callable
 
 import pytest
@@ -19,7 +18,9 @@ from services.api.app.diabetes.services import db
 
 def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
@@ -46,14 +47,13 @@ def build_init_data(user_id: int = 1) -> str:
 def test_create_user_authorized(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
-    client = TestClient(server.app)
-
     init_data = build_init_data(42)
-    resp = client.post(
-        "/api/user",
-        json={"telegram_id": 42},
-        headers={"X-Telegram-Init-Data": init_data},
-    )
+    with TestClient(server.app) as client:
+        resp = client.post(
+            "/api/user",
+            json={"telegram_id": 42},
+            headers={"X-Telegram-Init-Data": init_data},
+        )
     assert resp.status_code == 200
 
     with Session() as session:
@@ -65,12 +65,11 @@ def test_create_user_authorized(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_create_user_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
     setup_db(monkeypatch)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
-    client = TestClient(server.app)
-
     init_data = build_init_data(1)
-    resp = client.post(
-        "/api/user",
-        json={"telegram_id": 42},
-        headers={"X-Telegram-Init-Data": init_data},
-    )
+    with TestClient(server.app) as client:
+        resp = client.post(
+            "/api/user",
+            json={"telegram_id": 42},
+            headers={"X-Telegram-Init-Data": init_data},
+        )
     assert resp.status_code == 403
