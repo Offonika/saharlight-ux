@@ -12,23 +12,26 @@ from services.api.app.diabetes.services.db import run_db
 @pytest.mark.asyncio
 async def test_run_db_sqlite_in_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
-    Session = sessionmaker(bind=engine)
+    try:
+        Session = sessionmaker(bind=engine)
 
-    called = False
+        called = False
 
-    async def fake_to_thread(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-        nonlocal called
-        called = True
-        return fn(*args, **kwargs)
+        async def fake_to_thread(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+            nonlocal called
+            called = True
+            return fn(*args, **kwargs)
 
-    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
+        monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
 
-    def work(session: SASession) -> int:
-        return 42
+        def work(session: SASession) -> int:
+            return 42
 
-    result = await run_db(work, sessionmaker=Session)
-    assert result == 42
-    assert called is False
+        result = await run_db(work, sessionmaker=Session)
+        assert result == 42
+        assert called is False
+    finally:
+        engine.dispose()
 
 
 @pytest.mark.asyncio
