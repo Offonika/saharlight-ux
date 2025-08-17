@@ -151,6 +151,7 @@ export const useTelegram = (
       };
     } catch (e) {
       console.error("[TG] init error:", e);
+      setError(e instanceof Error ? e.message : String(e));
       setReady(true);
     }
   }, [tg, applyTheme, forceLight]);
