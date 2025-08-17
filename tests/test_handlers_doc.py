@@ -69,8 +69,8 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 
     assert result == 200
     assert called.flag
-    user_data = context.user_data
-    assert user_data is not None
+    assert context.user_data is not None
+    user_data = cast(dict[str, Any], context.user_data)
     assert user_data["__file_path"] == "photos/1_uid.png"
     assert update.message.photo == ()
 
@@ -107,7 +107,8 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
     assert result == handlers.ConversationHandler.END
     assert not called.flag
     assert context.user_data is not None
-    assert "__file_path" not in context.user_data
+    user_data = cast(dict[str, Any], context.user_data)
+    assert "__file_path" not in user_data
 
 
 @pytest.mark.asyncio
@@ -126,7 +127,8 @@ async def test_photo_handler_handles_typeerror() -> None:
     assert message.texts == ["❗ Файл не распознан как изображение."]
     assert result == handlers.ConversationHandler.END
     assert context.user_data is not None
-    assert handlers.WAITING_GPT_FLAG not in context.user_data
+    user_data = cast(dict[str, Any], context.user_data)
+    assert handlers.WAITING_GPT_FLAG not in user_data
 
 
 @pytest.mark.asyncio
