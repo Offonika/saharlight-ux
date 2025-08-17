@@ -8,5 +8,4 @@ omit =
     services/api/app/diabetes/handlers/alert_handlers.py
     services/api/app/diabetes/handlers/sos_handlers.py
     services/api/app/diabetes/services/gpt_client.py
-    services/api/app/diabetes/handlers/gpt_handlers.py
 
