@@ -20,14 +20,34 @@ export async function tgFetch(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+  let didTimeout = false;
+  const timeoutId = setTimeout(() => {
+    didTimeout = true;
+    controller.abort();
+  }, REQUEST_TIMEOUT);
+
+  let signal: AbortSignal = controller.signal;
+  if (init.signal) {
+    if (typeof AbortSignal.any === "function") {
+      signal = AbortSignal.any([controller.signal, init.signal]);
+    } else {
+      if (init.signal.aborted) {
+        controller.abort();
+      } else {
+        init.signal.addEventListener("abort", () => controller.abort(), {
+          once: true,
+        });
+      }
+      signal = controller.signal;
+    }
+  }
 
   try {
     const response = await fetch(input, {
       ...init,
       headers,
       credentials: init.credentials ?? "include",
-      signal: controller.signal,
+      signal,
     });
     if (!response.ok) {
       let errorMessage =
@@ -46,7 +66,10 @@ export async function tgFetch(
     return response;
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error(REQUEST_TIMEOUT_MESSAGE);
+      if (didTimeout) {
+        throw new Error(REQUEST_TIMEOUT_MESSAGE);
+      }
+      throw error;
     }
     if (error instanceof TypeError || error instanceof DOMException) {
       throw new Error("Проблема с сетью. Проверьте подключение");
