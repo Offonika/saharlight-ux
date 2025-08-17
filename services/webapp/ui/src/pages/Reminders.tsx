@@ -6,7 +6,7 @@ import { MedicalHeader } from '@/components/MedicalHeader'
 import { useToast } from '@/hooks/use-toast'
 import { getReminders, updateReminder, deleteReminder } from '@/api/reminders'
 import MedicalButton from '@/components/MedicalButton'
-import { useTelegramContext } from '@/contexts/TelegramContext'
+import { useTelegramContext } from '@/contexts/telegram-context'
 import { cn } from '@/lib/utils'
 import {
   normalizeReminderType,

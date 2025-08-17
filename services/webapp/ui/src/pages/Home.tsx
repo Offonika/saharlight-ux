@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import MedicalButton from '@/components/MedicalButton';
-import { useTelegramContext } from '@/contexts/TelegramContext';
+import { useTelegramContext } from '@/contexts/telegram-context';
 import { fetchDayStats, fallbackDayStats } from '@/api/stats';
 
 const menuItems = [

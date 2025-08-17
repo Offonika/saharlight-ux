@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { fetchAnalytics, fallbackAnalytics } from '@/api/stats';
-import { useTelegramContext } from '@/contexts/TelegramContext';
+import { useTelegramContext } from '@/contexts/telegram-context';
 
 const Analytics = () => {
   const navigate = useNavigate();
