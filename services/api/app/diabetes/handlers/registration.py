@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import services.api.app.telegram_compat  # noqa: F401
+
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
