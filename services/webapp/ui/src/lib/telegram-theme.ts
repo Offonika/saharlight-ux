@@ -60,3 +60,5 @@ export function applyTheme(
   root.classList.toggle("dark", scheme === "dark");
   return scheme;
 }
+
+export default applyTheme;

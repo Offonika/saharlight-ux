@@ -1,5 +1,6 @@
 (async function () {
-    const { applyTheme } = await import("/ui/src/lib/telegram-theme.ts");
+    const mod = await import("/assets/telegram-theme.js");
+    const applyTheme = mod.applyTheme ?? mod.default ?? mod.a;
     const app = window.Telegram?.WebApp;
     if (!app) {
         return;

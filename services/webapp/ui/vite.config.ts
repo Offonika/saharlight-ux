@@ -23,8 +23,19 @@ export default defineConfig(async ({ mode }) => {
     server: { host: '::', port },
     build: {
       outDir: 'dist', // Явно задаём dist (по умолчанию и так dist)
+      minify: false,
       rollupOptions: {
+        treeshake: false,
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          'telegram-theme': path.resolve(__dirname, './src/lib/telegram-theme.ts'),
+        },
         output: {
+          entryFileNames: (chunk) =>
+            chunk.name === 'telegram-theme'
+              ? 'assets/telegram-theme.js'
+              : 'assets/[name]-[hash].js',
+          exports: 'named',
           manualChunks: {
             vendor: [
               'react',
