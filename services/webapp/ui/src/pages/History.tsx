@@ -137,22 +137,30 @@ const History = () => {
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label
+                htmlFor="history-date"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
                 Дата
               </label>
               <input
+                id="history-date"
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="medical-input"
               />
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label
+                htmlFor="history-type"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
                 Тип записи
               </label>
               <select
+                id="history-type"
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
                 className="medical-input"
