@@ -37,3 +37,31 @@ describe('useTelegram hook fallback', () => {
     expect(result.current.user).toBeNull();
   });
 });
+
+describe('useTelegram hook init error', () => {
+  beforeEach(() => {
+    (window as any).Telegram = {
+      WebApp: {
+        initData: '',
+        initDataUnsafe: {},
+        ready: vi.fn(() => {
+          throw new Error('init failed');
+        }),
+        expand: vi.fn(),
+      },
+    };
+  });
+
+  afterEach(() => {
+    delete (window as any).Telegram;
+    vi.restoreAllMocks();
+  });
+
+  it('sets error when initialization fails', async () => {
+    const { result } = renderHook(() => useTelegram(false));
+    await waitFor(() => {
+      expect(result.current.error).toBe('init failed');
+    });
+    expect(result.current.isReady).toBe(true);
+  });
+});
