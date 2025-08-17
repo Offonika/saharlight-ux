@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
 import { useTelegramContext } from "@/contexts/telegram-context";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import {
   normalizeReminderType,
   type ReminderType,
@@ -40,7 +40,6 @@ export default function CreateReminder() {
   const location = useLocation();
   const params = useParams();
   const { user, sendData } = useTelegramContext();
-  const { toast } = useToast();
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
   );
@@ -57,45 +56,44 @@ export default function CreateReminder() {
   const [typeOpen, setTypeOpen] = useState(false);
 
   useEffect(() => {
-    if (!editing && params.id && user?.id) {
-      const id = Number(params.id);
-      if (Number.isNaN(id)) {
-        const message = "Некорректный ID напоминания";
-        setError(message);
-        toast({ title: "Ошибка", description: message, variant: "destructive" });
-        return;
-      }
-      (async () => {
-        try {
-          const data = await getReminder(user.id, id);
-          if (data) {
-            const nt = normalizeReminderType(data.type as ReminderType);
-            const loaded: Reminder = {
-              id: data.id ?? id,
-              type: nt,
-              title: data.title ?? TYPES[nt].label,
-              time: data.time || "",
-              interval: data.intervalHours != null ? data.intervalHours * 60 : undefined,
-            };
-            setEditing(loaded);
-            setType(loaded.type);
-            setTitle(loaded.title);
-            setTime(loaded.time);
-            setIntervalMinutes(loaded.interval ?? 60);
-          } else {
-            const message = "Не удалось загрузить напоминание";
-            setError(message);
-            toast({ title: "Ошибка", description: message, variant: "destructive" });
-          }
-        } catch (err) {
-          const message =
-            err instanceof Error ? err.message : "Не удалось загрузить напоминание";
+    if (!params.id || !user?.id) return;
+    const id = Number(params.id);
+    if (Number.isNaN(id)) {
+      const message = "Некорректный ID напоминания";
+      setError(message);
+      toast({ title: "Ошибка", description: message, variant: "destructive" });
+      return;
+    }
+    (async () => {
+      try {
+        const data = await getReminder(user.id, id);
+        if (data) {
+          const nt = normalizeReminderType(data.type as ReminderType);
+          const loaded: Reminder = {
+            id: data.id ?? id,
+            type: nt,
+            title: data.title ?? TYPES[nt].label,
+            time: data.time || "",
+            interval: data.intervalHours != null ? data.intervalHours * 60 : undefined,
+          };
+          setEditing(loaded);
+          setType(loaded.type);
+          setTitle(loaded.title);
+          setTime(loaded.time);
+          setIntervalMinutes(loaded.interval ?? 60);
+        } else {
+          const message = "Не удалось загрузить напоминание";
           setError(message);
           toast({ title: "Ошибка", description: message, variant: "destructive" });
         }
-      })();
-    }
-  }, [editing, params.id, user?.id, toast]);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Не удалось загрузить напоминание";
+        setError(message);
+        toast({ title: "Ошибка", description: message, variant: "destructive" });
+      }
+    })();
+  }, [params.id, user?.id]);
 
   const validName = title.trim().length >= 2;
   const validTime = isValidTime(time);
