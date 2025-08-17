@@ -4,10 +4,12 @@ import asyncio
 import logging
 import os
 import threading
-from typing import Any, Iterable, cast
+from typing import Iterable
 
-from openai import OpenAI, OpenAIError
-from openai.types.chat import ChatCompletion
+import httpx
+from openai import NOT_GIVEN, NotGiven, OpenAI, OpenAIError
+from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
+from openai.types.file_object import FileObject
 from openai.types.beta import Thread
 from openai.types.beta.threads import (
     ImageFileContentBlockParam,
@@ -34,11 +36,22 @@ def _get_client() -> OpenAI:
     return _client
 
 
-def create_chat_completion(*args: Any, **kwargs: Any) -> ChatCompletion:
+def create_chat_completion(
+    *,
+    model: str,
+    messages: Iterable[ChatCompletionMessageParam],
+    temperature: float | None = None,
+    max_tokens: int | None = None,
+    timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+) -> ChatCompletion:
     """Create a chat completion with typed return value."""
-    return cast(
-        ChatCompletion,
-        _get_client().chat.completions.create(*args, **kwargs),
+    return _get_client().chat.completions.create(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        timeout=timeout,
+        stream=False,
     )
 
 
@@ -94,13 +107,12 @@ async def send_message(
     }
     client: OpenAI = _get_client()
     message_content: Iterable[
-        ImageFileContentBlockParam
-        | ImageURLContentBlockParam
-        | TextContentBlockParam
+        ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam
     ]
     if image_path:
         try:
-            def _upload() -> Any:
+
+            def _upload() -> FileObject:
                 with open(image_path, "rb") as f:
                     return client.files.create(file=f, purpose="vision")
 
@@ -112,9 +124,7 @@ async def send_message(
             logger.exception("[OpenAI] Failed to upload %s: %s", image_path, exc)
             raise
         else:
-            logger.info(
-                "[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id
-            )
+            logger.info("[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id)
             image_block: ImageFileContentBlockParam = {
                 "type": "image_file",
                 "image_file": {"file_id": file.id},
@@ -124,9 +134,7 @@ async def send_message(
                 try:
                     await asyncio.to_thread(os.remove, image_path)
                 except OSError as e:
-                    logger.warning(
-                        "[OpenAI] Failed to delete %s: %s", image_path, e
-                    )
+                    logger.warning("[OpenAI] Failed to delete %s: %s", image_path, e)
     else:
         message_content = [text_block]
 
