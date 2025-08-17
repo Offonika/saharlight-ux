@@ -191,6 +191,7 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
     )
     context = cast(AlertContext, ContextStub(bot=DummyBot()))
+    assert context.bot is not None
     bot = cast(DummyBot, context.bot)
 
     async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
@@ -257,6 +258,7 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
         SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan")),
     )
     context = cast(AlertContext, ContextStub(bot=DummyBot()))
+    assert context.bot is not None
     bot = cast(DummyBot, context.bot)
 
     async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
