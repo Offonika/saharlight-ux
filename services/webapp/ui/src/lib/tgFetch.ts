@@ -12,7 +12,7 @@ interface TelegramWindow extends Window {
 export async function tgFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
-) {
+): Promise<Response> {
   const headers = new Headers(init.headers || {});
   const tg = (window as TelegramWindow).Telegram?.WebApp;
   if (tg?.initData) {
@@ -30,7 +30,18 @@ export async function tgFetch(
       signal: controller.signal,
     });
     if (!response.ok) {
-      throw new Error(response.statusText || `HTTP error ${response.status}`);
+      let errorMessage =
+        response.statusText || `HTTP error ${response.status}`;
+      try {
+        const data: unknown = await response.json();
+        if (typeof data === "object" && data !== null) {
+          const err = data as { detail?: string; message?: string };
+          errorMessage = err.detail ?? err.message ?? errorMessage;
+        }
+      } catch {
+        // ignore JSON parse errors
+      }
+      throw new Error(errorMessage);
     }
     return response;
   } catch (error) {
