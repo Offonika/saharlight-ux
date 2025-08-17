@@ -1,6 +1,6 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast
+from typing import Any, Callable, TypeVar, cast
 
 from unittest.mock import Mock, PropertyMock
 
@@ -14,10 +14,11 @@ import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 import services.api.app.diabetes.handlers.router as router
 
 
+T = TypeVar("T")
+
+
 class DummyMessage:
-    def __init__(
-        self, text: str | None = None, photo: tuple[PhotoSize, ...] | None = None
-    ) -> None:
+    def __init__(self, text: str | None = None, photo: tuple[PhotoSize, ...] | None = None) -> None:
         self.text: str | None = text
         self.photo: tuple[PhotoSize, ...] = () if photo is None else photo
         self.replies: list[str] = []
@@ -72,11 +73,12 @@ class DummySession(Session):
     def get(self, *args: Any, **kwargs: Any) -> Any:
         return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
+    def close(self) -> None:
+        pass
+
 
 @pytest.mark.asyncio
-async def test_photo_flow_saves_entry(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     async def fake_parse_command(text: str) -> dict[str, Any]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
@@ -84,7 +86,7 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(gpt_handlers, "confirm_keyboard", lambda: None)
     monkeypatch.setattr(gpt_handlers, "menu_keyboard", None)
     monkeypatch.setattr(photo_handlers, "menu_keyboard", None)
-    
+
     msg_start = DummyMessage("/dose")
     update_start = cast(
         Update,
@@ -126,19 +128,13 @@ async def test_photo_flow_saves_entry(
     class DummyClient:
         beta = SimpleNamespace(
             threads=SimpleNamespace(
-                runs=SimpleNamespace(
-                    retrieve=lambda thread_id, run_id: Run()
-                ),
+                runs=SimpleNamespace(retrieve=lambda thread_id, run_id: Run()),
                 messages=SimpleNamespace(
                     list=lambda thread_id: SimpleNamespace(
                         data=[
                             SimpleNamespace(
                                 role="assistant",
-                                content=[
-                                    SimpleNamespace(
-                                        text=SimpleNamespace(value="carbs 30g xe 2")
-                                    )
-                                ],
+                                content=[SimpleNamespace(text=SimpleNamespace(value="carbs 30g xe 2"))],
                             )
                         ]
                     )
@@ -171,9 +167,19 @@ async def test_photo_flow_saves_entry(
     session_factory = cast(Any, sessionmaker(class_=DummySession))
     photo_handlers.SessionLocal = session_factory
     gpt_handlers.SessionLocal = session_factory
-    async def fake_run_db(func, sessionmaker):
-        with sessionmaker() as s:
-            return func(s)
+
+    async def fake_run_db(
+        func: Callable[[Session], T],
+        *args: Any,
+        sessionmaker: Callable[[], Session],
+        **kwargs: Any,
+    ) -> T:
+        session = sessionmaker()
+        try:
+            return func(session, *args, **kwargs)
+        finally:
+            session.close()
+
     monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
     await gpt_handlers.freeform_handler(update_sugar, context)
     assert user_data["pending_entry"]["sugar_before"] == 5.5
