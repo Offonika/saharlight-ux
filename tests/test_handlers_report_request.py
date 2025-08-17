@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime as dt
 import os
 from types import SimpleNamespace
@@ -76,7 +78,7 @@ async def test_report_request_and_custom_flow(
     assert query.edited
     assert any("YYYY-MM-DD" in text for text in query.edited)
 
-    called = {}
+    called: dict[str, bool] = {}
 
     async def dummy_send_report(
         update: Update,
