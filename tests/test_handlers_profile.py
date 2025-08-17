@@ -115,17 +115,24 @@ async def test_profile_command_and_view(monkeypatch: pytest.MonkeyPatch, args: A
 
 
 @pytest.mark.parametrize(
-    "args",
+    "args, expected_attr",
     [
-        ["0", "3", "6", "4", "9"],
-        ["8", "0", "6", "4", "9"],
-        ["8", "3", "-1", "4", "9"],
-        ["8", "3", "6", "-1", "9"],
-        ["8", "3", "6", "4", "3"],
+        (["0", "3", "6", "4", "9"], "MSG_ICR_GT0"),
+        (["icr=0", "cf=3", "target=6", "low=4", "high=9"], "MSG_ICR_GT0"),
+        (["8", "0", "6", "4", "9"], "MSG_CF_GT0"),
+        (["icr=8", "cf=0", "target=6", "low=4", "high=9"], "MSG_CF_GT0"),
+        (["8", "3", "0", "4", "9"], "MSG_TARGET_GT0"),
+        (["icr=8", "cf=3", "target=0", "low=4", "high=9"], "MSG_TARGET_GT0"),
+        (["8", "3", "6", "0", "9"], "MSG_LOW_GT0"),
+        (["icr=8", "cf=3", "target=6", "low=0", "high=9"], "MSG_LOW_GT0"),
+        (["8", "3", "6", "4", "3"], "MSG_HIGH_GT_LOW"),
+        (["icr=8", "cf=3", "target=6", "low=4", "high=3"], "MSG_HIGH_GT_LOW"),
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_invalid_values(monkeypatch: pytest.MonkeyPatch, args: Any) -> None:
+async def test_profile_command_invalid_values(
+    monkeypatch: pytest.MonkeyPatch, args: Any, expected_attr: str
+) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -135,8 +142,10 @@ async def test_profile_command_invalid_values(monkeypatch: pytest.MonkeyPatch, a
 
     commit_mock = MagicMock()
     session_local_mock = MagicMock()
+    post_profile_mock = MagicMock()
     monkeypatch.setattr(handlers, "commit", commit_mock)
     monkeypatch.setattr(handlers, "SessionLocal", session_local_mock)
+    monkeypatch.setattr(handlers, "post_profile", post_profile_mock)
 
     message = DummyMessage()
     update = cast(
@@ -151,7 +160,9 @@ async def test_profile_command_invalid_values(monkeypatch: pytest.MonkeyPatch, a
 
     assert commit_mock.call_count == 0
     assert session_local_mock.call_count == 0
-    assert any("больше 0" in t for t in message.texts)
+    assert post_profile_mock.call_count == 0
+    expected_msg = getattr(handlers, expected_attr)
+    assert any(expected_msg in t for t in message.texts)
 
 
 @pytest.mark.asyncio
