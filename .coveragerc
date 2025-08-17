@@ -1,0 +1,5 @@
+[run]
+source = services/api/app/diabetes
+
+[report]
+fail_under = 85

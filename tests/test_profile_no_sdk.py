@@ -32,7 +32,13 @@ async def test_profile_command_and_view_without_sdk(monkeypatch: pytest.MonkeyPa
 
     real_import = builtins.__import__
 
-    def fake_import(name: str, globals: Any = None, locals: Any = None, fromlist: Any = (), level: int = 0):
+    def fake_import(
+        name: str,
+        globals: Any = None,
+        locals: Any = None,
+        fromlist: Any = (),
+        level: int = 0,
+    ) -> Any:
         if name.startswith("diabetes_sdk"):
             raise ImportError("diabetes_sdk not available")
         return real_import(name, globals, locals, fromlist, level)

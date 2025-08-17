@@ -17,7 +17,7 @@ from services.api.app.diabetes.services.db import Base, User, Reminder, Entry, d
 @contextmanager
 def no_warnings() -> Any:
     try:
-        with pytest.warns(None):
+        with pytest.warns(None):  # type: ignore[call-overload]
             yield
             return
     except TypeError:
