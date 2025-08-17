@@ -169,7 +169,7 @@ async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path:
     gpt_handlers.SessionLocal = session_factory
 
     async def fake_run_db(
-        func: Callable[[Session], T],
+        func: Callable[..., T],
         *args: Any,
         sessionmaker: Callable[[], Session],
         **kwargs: Any,
