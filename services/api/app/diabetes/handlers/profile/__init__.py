@@ -1,5 +1,7 @@
 """Expose profile conversation handlers and helpers."""
 
+from typing import Any
+
 from . import conversation as _conversation
 from .api import get_api, save_profile, set_timezone, fetch_profile, post_profile
 from services.api.app.diabetes.utils.ui import back_keyboard
@@ -96,4 +98,9 @@ _conversation.__all__ = [
 import sys as _sys
 
 _sys.modules[__name__] = _conversation
+profile_icr = _conversation.profile_icr
+
+
+def __getattr__(name: str) -> Any:
+    return getattr(_conversation, name)
 
