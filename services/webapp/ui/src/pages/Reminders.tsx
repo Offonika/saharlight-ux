@@ -14,15 +14,7 @@ import {
 } from '@/lib/reminders'
 import { parseTimeToMinutes } from '@/lib/time'
 import { Reminder as ApiReminder } from '@sdk'
-
-interface Reminder {
-  id: number
-  type: NormalizedReminderType
-  title: string
-  time: string   // "HH:MM"
-  active: boolean
-  interval?: number // stored in minutes
-}
+import type { Reminder } from '@/types/reminder'
 
 const TYPE_LABEL: Record<NormalizedReminderType, string> = {
   sugar: 'Измерение сахара',
