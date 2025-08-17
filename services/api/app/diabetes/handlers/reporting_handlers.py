@@ -10,7 +10,7 @@ import os as os
 import html
 import logging
 
-from typing import Any, Protocol, cast
+from typing import Protocol, cast
 
 from openai import OpenAIError
 from openai.types.beta.threads import TextContentBlock
@@ -188,12 +188,10 @@ async def report_period_callback(
         )
         await send_report(update, context, date_from, "последний месяц", query=query)
     elif period == "custom":
-        user_data_raw = context.user_data
-        if user_data_raw is None:
+        user_data = context.user_data
+        if user_data is None:
             context.user_data = {}
-            user_data_raw = context.user_data
-        assert user_data_raw is not None
-        user_data = cast(dict[str, Any], user_data_raw)
+            user_data = context.user_data
         user_data["awaiting_report_date"] = True
         await query.edit_message_text(
             "Введите дату начала отчёта в формате YYYY-MM-DD\n"
@@ -273,12 +271,10 @@ async def send_report(
 
     default_gpt_text = "Не удалось получить рекомендации."
     gpt_text: str | None = default_gpt_text
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    user_data = context.user_data
+    if user_data is None:
         context.user_data = {}
-        user_data_raw = context.user_data
-    assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+        user_data = context.user_data
     thread_id = cast(str | None, user_data.get("thread_id"))
     if thread_id is None:
         with SessionLocal() as session:

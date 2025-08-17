@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import (
     CommandHandler,
@@ -591,12 +591,10 @@ async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    user_data = context.user_data
+    if user_data is None:
         context.user_data = {}
-        user_data_raw = context.user_data
-    assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+        user_data = context.user_data
     context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
@@ -623,12 +621,10 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    user_data = context.user_data
+    if user_data is None:
         context.user_data = {}
-        user_data_raw = context.user_data
-    assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+        user_data = context.user_data
     context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
@@ -659,12 +655,10 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    user_data = context.user_data
+    if user_data is None:
         context.user_data = {}
-        user_data_raw = context.user_data
-    assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+        user_data = context.user_data
     context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
@@ -699,12 +693,10 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle low threshold input."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    user_data = context.user_data
+    if user_data is None:
         context.user_data = {}
-        user_data_raw = context.user_data
-    assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+        user_data = context.user_data
     context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
@@ -737,12 +729,10 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return PROFILE_HIGH
 async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle high threshold input and save profile."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    user_data = context.user_data
+    if user_data is None:
         context.user_data = {}
-        user_data_raw = context.user_data
-    assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+        user_data = context.user_data
     context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
