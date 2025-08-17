@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { tgFetch } from "../lib/tgFetch";
-
-type Scheme = "light" | "dark";
+import {
+  applyTheme as applyTelegramTheme,
+  type Scheme,
+  type TelegramWebApp as TelegramWebAppBase,
+} from "../lib/telegram-theme";
 
 interface TelegramUser {
   id: number;
@@ -14,16 +17,6 @@ interface TelegramUser {
   is_premium?: boolean;
   added_to_attachment_menu?: boolean;
   allows_write_to_pm?: boolean;
-}
-
-interface ThemeParams {
-  bg_color?: string;
-  text_color?: string;
-  hint_color?: string;
-  link_color?: string;
-  button_color?: string;
-  button_text_color?: string;
-  secondary_bg_color?: string;
 }
 
 interface MainButton {
@@ -41,17 +34,11 @@ interface BackButton {
   hide: () => void;
 }
 
-interface TelegramWebApp {
+interface TelegramWebApp extends TelegramWebAppBase {
   expand?: () => void;
   ready?: () => void;
-  version?: string;
-  platform?: string;
-  colorScheme?: Scheme;
-  themeParams?: ThemeParams;
   initDataUnsafe?: { user?: TelegramUser };
   initData?: string;
-  setBackgroundColor?: (color: string) => void;
-  setHeaderColor?: (color: string) => void;
   onEvent?: (eventType: string, handler: () => void) => void;
   offEvent?: (eventType: string, handler: () => void) => void;
   MainButton?: MainButton;
@@ -62,16 +49,6 @@ interface TelegramWebApp {
 interface TelegramWindow extends Window {
   Telegram?: { WebApp?: TelegramWebApp };
 }
-
-const supportsColorMethods = (app: TelegramWebApp | null): boolean => {
-  const [major = 0, minor = 0] = (app?.version || "0.0")
-    .split(".")
-    .map((n) => parseInt(n, 10));
-  if (app?.platform === "tdesktop") {
-    return major > 4 || (major === 4 && minor >= 8);
-  }
-  return major > 6 || (major === 6 && minor >= 1);
-};
 
 export const useTelegram = (
   forceLight: boolean = import.meta.env.VITE_FORCE_LIGHT === "true",
@@ -89,33 +66,8 @@ export const useTelegram = (
 
   const applyTheme = useCallback(
     (src: TelegramWebApp | null, ignoreScheme = false) => {
-      const root = document.documentElement;
-      const p = src?.themeParams ?? {};
-      const map: Record<string, string | undefined> = {
-        "--tg-theme-bg-color": p.bg_color,
-        "--tg-theme-text-color": p.text_color,
-        "--tg-theme-hint-color": p.hint_color,
-        "--tg-theme-link-color": p.link_color,
-        "--tg-theme-button-color": p.button_color,
-        "--tg-theme-button-text-color": p.button_text_color,
-        "--tg-theme-secondary-bg-color": p.secondary_bg_color,
-      };
-      if (ignoreScheme) {
-        // Remove Telegram theme overrides to fall back to default light colors
-        Object.keys(map).forEach((k) => root.style.removeProperty(k));
-        root.classList.remove("dark");
-        root.style.colorScheme = "light";
-        setScheme("light");
-        if (src && supportsColorMethods(src)) {
-          if (src.setBackgroundColor) src.setBackgroundColor("#ffffff");
-          if (src.setHeaderColor) src.setHeaderColor("#ffffff");
-        }
-      } else {
-        Object.entries(map).forEach(([k, v]) => v && root.style.setProperty(k, v));
-        root.style.colorScheme = "";
-        root.classList.toggle("dark", src?.colorScheme === "dark");
-        setScheme(src?.colorScheme ?? "light");
-      }
+      const scheme = applyTelegramTheme(src, ignoreScheme);
+      setScheme(scheme);
     },
     [],
   );
