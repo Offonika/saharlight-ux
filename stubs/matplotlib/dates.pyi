@@ -1,0 +1,3 @@
+from datetime import datetime
+
+def date2num(date: datetime) -> float: ...
