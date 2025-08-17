@@ -56,7 +56,9 @@ async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
+async def test_freeform_handler_adds_sugar_to_photo_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     entry = {
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -66,6 +68,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         "sugar_before": None,
         "photo_path": "photos/img.jpg",
     }
+
     class DummySession(Session):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
@@ -85,7 +88,6 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
     session_factory = cast(Any, sessionmaker(class_=DummySession))
-    handlers.SessionLocal = session_factory
     message = DummyMessage("5,6")
     update = cast(
         Update,
@@ -95,6 +97,13 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
+
+    monkeypatch.setattr(handlers, "SessionLocal", session_factory)
+
+    async def fake_run_db(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(handlers._gpt_handlers, "run_db", fake_run_db)  # type: ignore[attr-defined]
 
     await handlers.freeform_handler(update, context)
 

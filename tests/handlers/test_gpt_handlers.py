@@ -35,7 +35,7 @@ def make_context(
 ) -> CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
     return cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data=user_data or {}),
+        SimpleNamespace(user_data={} if user_data is None else user_data),
     )
 
 
@@ -265,4 +265,3 @@ async def test_parse_command_valid_time(monkeypatch: pytest.MonkeyPatch) -> None
     await gpt_handlers.freeform_handler(update, context)
     assert user_data["pending_entry"]["xe"] == 1
     assert "Расчёт завершён" in message.replies[0][0]
-

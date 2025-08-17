@@ -60,9 +60,7 @@ async def test_freeform_handler_awaiting_report_invalid_date() -> None:
         SimpleNamespace(user_data={"awaiting_report_date": True}),
     )
     await gpt_handlers.freeform_handler(update, context)
-    assert message.texts == [
-        "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
-    ]
+    assert message.texts == ["❗ Некорректная дата. Используйте формат YYYY-MM-DD."]
 
 
 @pytest.mark.asyncio
@@ -145,7 +143,9 @@ async def test_freeform_handler_pending_entry_next_field() -> None:
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_smart_input_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_freeform_handler_smart_input_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     message = DummyMessage("bad")
     update = cast(
         Update,
@@ -161,9 +161,7 @@ async def test_freeform_handler_smart_input_error(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
     await gpt_handlers.freeform_handler(update, context)
-    assert message.texts == [
-        "❗ ХЕ указываются числом, без ммоль/л и ед."
-    ]
+    assert message.texts == ["❗ ХЕ указываются числом, без ммоль/л и ед."]
 
 
 @pytest.mark.asyncio
@@ -220,6 +218,55 @@ async def test_freeform_handler_quick_entry_complete(
     monkeypatch.setattr(gpt_handlers, "check_alert", fake_check_alert)
 
     await gpt_handlers.freeform_handler(update, context)
+    assert message.texts[0].startswith("✅ Запись сохранена")
+
+
+@pytest.mark.asyncio
+async def test_freeform_handler_run_db_runtime_error_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    message = DummyMessage("sugar=5 xe=1 dose=2")
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+
+    def fake_smart_input(text: str) -> dict[str, float | None]:
+        return {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
+
+    class DummySession:
+        added: list[Any] = []
+
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, *args: Any) -> None:  # pragma: no cover - simple helper
+            pass
+
+        def add(self, entry: Any) -> None:
+            self.added.append(entry)
+
+    session_factory = cast(Any, lambda: DummySession())
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
+
+    async def boom(*args: Any, **kwargs: Any) -> bool:
+        raise RuntimeError("fail")
+
+    async def fake_check_alert(*args: Any, **kwargs: Any) -> None:
+        return None
+
+    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
+    monkeypatch.setattr(gpt_handlers, "run_db", boom)
+    monkeypatch.setattr(gpt_handlers, "commit", lambda session: True)
+    monkeypatch.setattr(gpt_handlers, "check_alert", fake_check_alert)
+
+    await gpt_handlers.freeform_handler(update, context)
+
+    assert DummySession.added
     assert message.texts[0].startswith("✅ Запись сохранена")
 
 

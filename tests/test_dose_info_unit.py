@@ -62,9 +62,7 @@ async def test_entry_without_dose_has_no_unit(
         ),
     )
     message = DummyMessage("5.5")
-    update = cast(
-        Update, DummyUpdate(message=message, effective_user=DummyUser(id=1))
-    )
+    update = cast(Update, DummyUpdate(message=message, effective_user=DummyUser(id=1)))
 
     class DummySession(Session):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -93,6 +91,10 @@ async def test_entry_without_dose_has_no_unit(
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
+    async def fake_run_db(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(dose_handlers._gpt_handlers, "run_db", fake_run_db)  # type: ignore[attr-defined]
 
     await dose_calc.freeform_handler(update, context)
 
@@ -118,9 +120,7 @@ async def test_entry_without_sugar_has_placeholder(
         ),
     )
     message = DummyMessage("5")
-    update = cast(
-        Update, DummyUpdate(message=message, effective_user=DummyUser(id=1))
-    )
+    update = cast(Update, DummyUpdate(message=message, effective_user=DummyUser(id=1)))
 
     class DummySession(Session):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -149,6 +149,10 @@ async def test_entry_without_sugar_has_placeholder(
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
+    async def fake_run_db(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(dose_handlers._gpt_handlers, "run_db", fake_run_db)  # type: ignore[attr-defined]
 
     await dose_calc.freeform_handler(update, context)
 
