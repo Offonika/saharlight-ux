@@ -1,4 +1,5 @@
-import { DefaultApi, Profile } from '@sdk';
+import { DefaultApi } from '@sdk';
+import type { Profile } from '@sdk/models';
 import { Configuration, ResponseError } from '@sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
