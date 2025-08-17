@@ -188,7 +188,8 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await router.callback_router(update_cb, context)
     assert context.user_data is not None
-    assert context.user_data["edit_entry"] == {
+    user_data = cast(dict[str, Any], context.user_data)
+    assert user_data["edit_entry"] == {
         "id": entry_id,
         "chat_id": 42,
         "message_id": 24,
@@ -207,9 +208,10 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     await router.callback_router(update_cb2, context)
     assert context.user_data is not None
-    assert context.user_data["edit_id"] == entry_id
-    assert context.user_data["edit_field"] == "xe"
-    assert context.user_data["edit_query"] is field_query
+    user_data = cast(dict[str, Any], context.user_data)
+    assert user_data["edit_id"] == entry_id
+    assert user_data["edit_field"] == "xe"
+    assert user_data["edit_query"] is field_query
     assert any("Введите" in t for t in entry_message.replies)
 
     reply_msg = DummyMessage(text="3")
@@ -230,8 +232,9 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert field_query.answer_texts[-1] == "Изменено"
     assert context.user_data is not None
+    user_data = cast(dict[str, Any], context.user_data)
     assert not any(
-        k in context.user_data for k in ("edit_id", "edit_field", "edit_entry", "edit_query")
+        k in user_data for k in ("edit_id", "edit_field", "edit_entry", "edit_query")
     )
     edited_text, chat_id, message_id, kwargs = context.bot.edited[0]
     assert chat_id == 42 and message_id == 24

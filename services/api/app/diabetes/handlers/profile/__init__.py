@@ -2,6 +2,7 @@
 
 from . import conversation as _conversation
 from .api import get_api, save_profile, set_timezone, fetch_profile, post_profile
+from services.api.app.diabetes.utils.ui import back_keyboard
 from .conversation import (
     profile_command,
     profile_view,
@@ -14,7 +15,6 @@ from .conversation import (
     profile_icr,
     profile_webapp_save,
     profile_webapp_handler,
-    back_keyboard,
     PROFILE_ICR,
     PROFILE_CF,
     PROFILE_TARGET,
@@ -61,6 +61,7 @@ _conversation.set_timezone = set_timezone
 _conversation.fetch_profile = fetch_profile
 _conversation.post_profile = post_profile
 _conversation.parse_profile_args = parse_profile_args
+_conversation.back_keyboard = back_keyboard
 
 # Ensure constants are visible when importing this package
 _conversation.__all__ = [
