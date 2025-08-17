@@ -51,7 +51,7 @@ export default function CreateReminder() {
   const [time, setTime] = useState(editing?.time ?? "");
   // interval is stored in minutes for UI, API expects hours
   const [intervalMinutes, setIntervalMinutes] =
-    useState<number | undefined>(editing?.interval ?? 60);
+    useState<number | undefined>(editing?.interval);
   const [error, setError] = useState<string | null>(null);
   const [typeOpen, setTypeOpen] = useState(false);
 
@@ -80,7 +80,7 @@ export default function CreateReminder() {
           setType(loaded.type);
           setTitle(loaded.title);
           setTime(loaded.time);
-          setIntervalMinutes(loaded.interval ?? 60);
+          setIntervalMinutes(loaded.interval);
         } else {
           const message = "Не удалось загрузить напоминание";
           setError(message);
@@ -97,8 +97,9 @@ export default function CreateReminder() {
 
   const validName = title.trim().length >= 2;
   const validTime = isValidTime(time);
-  const validInterval =
-    typeof intervalMinutes === "number" && intervalMinutes >= 5;
+  const validInterval = editing
+    ? intervalMinutes == null || intervalMinutes >= 5
+    : typeof intervalMinutes === "number" && intervalMinutes >= 5;
   const formValid = validName && validTime && validInterval;
 
   const handleSubmit = async (e: React.FormEvent) => {
