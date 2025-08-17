@@ -13,7 +13,12 @@ from telegram.ext import (
 )
 
 from services.api.app.diabetes.services.db import SessionLocal, Profile
-from services.api.app.diabetes.utils.functions import calc_bolus, PatientProfile
+from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.utils.functions import (
+    calc_bolus,
+    PatientProfile,
+    smart_input,
+)
 from services.api.app.diabetes.utils.ui import (
     confirm_keyboard,
     dose_keyboard,
@@ -22,7 +27,9 @@ from services.api.app.diabetes.utils.ui import (
 
 from .common_handlers import menu_command
 from .profile import profile_view
-from .reporting_handlers import history_view, report_request
+from services.api.app.diabetes.gpt_command_parser import parse_command
+from .alert_handlers import check_alert
+from .reporting_handlers import history_view, report_request, send_report
 from . import UserData
 
 logger = logging.getLogger(__name__)
@@ -269,7 +276,21 @@ from .photo_handlers import (  # noqa: E402
     photo_prompt,
     prompt_photo,
 )
-from .gpt_handlers import chat_with_gpt, freeform_handler  # noqa: E402
+from . import gpt_handlers as _gpt_handlers  # noqa: E402
+
+
+async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    _gpt_handlers.SessionLocal = SessionLocal
+    _gpt_handlers.commit = commit
+    _gpt_handlers.check_alert = check_alert
+    _gpt_handlers.menu_keyboard = menu_keyboard
+    _gpt_handlers.smart_input = smart_input
+    _gpt_handlers.parse_command = parse_command
+    _gpt_handlers.send_report = send_report
+    return await _gpt_handlers.freeform_handler(update, context)
+
+
+chat_with_gpt = _gpt_handlers.chat_with_gpt
 
 
 dose_conv = ConversationHandler(

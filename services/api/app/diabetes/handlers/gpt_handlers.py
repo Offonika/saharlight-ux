@@ -3,7 +3,7 @@ import logging
 import re
 from typing import cast
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session
 
@@ -177,17 +177,15 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     dose = calc_bolus(carbs_g, sugar, patient)
                     entry["dose"] = dose
                     await message.reply_text(
-                        f"💉 Расчёт дозы: {dose} Ед.", reply_markup=confirm_keyboard()
+                        f"💉 Расчёт дозы: {dose} Ед.\nСахар: {sugar} ммоль/л",
+                        reply_markup=confirm_keyboard(),
                     )
                     return
             await message.reply_text(
                 "Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard
             )
             return
-        await message.reply_text(
-            "Не понял, воспользуйтесь /help или кнопками меню"
-        )
-        return
+        # fall through to smart input parsing for non-numeric messages
     if edit_id is not None:
         text = raw_text.replace(",", ".")
         try:
@@ -198,32 +196,61 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if value < 0:
             await message.reply_text("Значение не может быть отрицательным.")
             return
-        field = user_data.get("edit_field")
-        if field == "sugar":
-            user_data.setdefault("edit_entry", {})["sugar_before"] = value
-        elif field == "xe":
-            user_data.setdefault("edit_entry", {})["xe"] = value
-            user_data.setdefault("edit_entry", {})["carbs_g"] = value * 12
-        else:
-            user_data.setdefault("edit_entry", {})["dose"] = value
-        edit_info = user_data.get("edit_entry", {})
+        field = cast(str | None, user_data.get("edit_field"))
+
+        def db_edit(session: Session) -> Entry | None:
+            entry = session.get(Entry, edit_id)
+            if entry is None:
+                return None
+            if field == "sugar":
+                entry.sugar_before = value
+            elif field == "xe":
+                entry.xe = value
+            else:
+                entry.dose = value
+            if not commit(session):
+                return None
+            session.refresh(entry)
+            return entry
+
+        try:
+            entry = await run_db(db_edit, sessionmaker=SessionLocal)
+        except AttributeError:
+            with SessionLocal() as session:
+                entry = db_edit(session)
+        if entry is None:
+            await message.reply_text("⚠️ Не удалось сохранить запись.")
+            return
+        edit_info = user_data.get("edit_entry")
+        if not isinstance(edit_info, dict):
+            return
+        chat_id = cast(int, edit_info.get("chat_id"))
+        message_id = cast(int, edit_info.get("message_id"))
         markup = InlineKeyboardMarkup(
             [
                 [
                     InlineKeyboardButton(
-                        "✏️ Изменить", callback_data=f"edit:{user_data['edit_id']}"
+                        "✏️ Изменить", callback_data=f"edit:{entry.id}"
                     ),
                     InlineKeyboardButton(
-                        "🗑 Удалить", callback_data=f"del:{user_data['edit_id']}"
+                        "🗑 Удалить", callback_data=f"del:{entry.id}"
                     ),
                 ]
             ]
         )
-        render_text = render_entry(edit_info)
-        await message.reply_text(render_text, reply_markup=markup, parse_mode="HTML")
-        user_data.pop("edit_id", None)
-        user_data.pop("edit_field", None)
-        user_data.pop("edit_entry", None)
+        render_text = render_entry(entry)
+        await context.bot.edit_message_text(
+            render_text,
+            chat_id=chat_id,
+            message_id=message_id,
+            reply_markup=markup,
+            parse_mode="HTML",
+        )
+        edit_query = cast(CallbackQuery | None, user_data.get("edit_query"))
+        if edit_query is not None:
+            await edit_query.answer("Изменено")
+        for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
+            user_data.pop(key, None)
         return
 
     try:
@@ -240,6 +267,20 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             await message.reply_text(
                 "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2"
             )
+        return
+    if pending_entry is not None and edit_id is None and any(v is not None for v in quick.values()):
+        if quick["sugar"] is not None:
+            pending_entry["sugar_before"] = quick["sugar"]
+        if quick["xe"] is not None:
+            pending_entry["xe"] = quick["xe"]
+            pending_entry["carbs_g"] = quick["xe"] * 12
+        else:
+            m = re.search(r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I)
+            if m:
+                pending_entry["carbs_g"] = float(m.group(1).replace(",", "."))
+        if quick["dose"] is not None:
+            pending_entry["dose"] = quick["dose"]
+        await message.reply_text("Данные обновлены.")
         return
     if any(v is not None for v in quick.values()):
         sugar = quick["sugar"]
