@@ -7,7 +7,7 @@ from unittest.mock import Mock, PropertyMock
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 import services.api.app.diabetes.handlers.router as router
@@ -168,7 +168,7 @@ async def test_photo_flow_saves_entry(
     class SessionFactory:
         def __new__(cls, *args: Any, **kwargs: Any) -> DummySession:
             return session
-    session_factory = cast(sessionmaker[DummySession], sessionmaker(class_=SessionFactory))
+    session_factory = cast(sessionmaker[Session], sessionmaker(class_=SessionFactory))
     dose_handlers.SessionLocal = session_factory
     await dose_handlers.freeform_handler(update_sugar, context)
     assert user_data["pending_entry"]["sugar_before"] == 5.5
