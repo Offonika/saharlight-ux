@@ -19,6 +19,7 @@ from sqlalchemy.exc import UnboundExecutionError
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
+    Session,
     mapped_column,
     relationship,
     sessionmaker,
@@ -27,20 +28,20 @@ import asyncio
 import logging
 import threading
 from datetime import datetime
-from typing import Any, Callable, TypeVar
+from typing import Callable, TypeVar, ParamSpec, Protocol, Concatenate
 
 from services.api.app.config import get_db_password, settings
 logger = logging.getLogger(__name__)
 
 
 # ────────────────── подключение к Postgres ──────────────────
-engine = None
+engine: Engine | None = None
 engine_lock = threading.Lock()
 # SQLite in-memory DBs share a single connection which is not threadsafe for
 # concurrent writes. A dedicated lock prevents race conditions in tests that
 # perform parallel timezone updates.
 sqlite_memory_lock = threading.Lock()
-SessionLocal = sessionmaker(autoflush=False, autocommit=False)
+SessionLocal: sessionmaker[Session] = sessionmaker(autoflush=False, autocommit=False)
 
 
 class Base(DeclarativeBase):
@@ -48,10 +49,20 @@ class Base(DeclarativeBase):
 
 
 T = TypeVar("T")
+P = ParamSpec("P")
+S = TypeVar("S", bound=Session)
+
+
+class SessionMaker(Protocol[S]):
+    def __call__(self) -> S:
+        ...
 
 
 async def run_db(
-    fn: Callable[[Any], T], *args: Any, sessionmaker: Callable[[], Any] = SessionLocal, **kwargs: Any
+    fn: Callable[Concatenate[S, P], T],
+    *args: P.args,
+    sessionmaker: SessionMaker[S] = SessionLocal,
+    **kwargs: P.kwargs,
 ) -> T:
     """Execute blocking DB work in a thread and return the result.
 
