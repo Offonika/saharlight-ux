@@ -55,41 +55,28 @@ def _sanitize_sensitive_data(text: str) -> str:
 def _extract_first_json(text: str) -> dict[str, object] | None:
     """Return the first standalone JSON object in *text* or ``None``."""
 
-    start = text.find("{")
-    if start == -1:
-        return None
+    decoder = json.JSONDecoder()
+    search_start = 0
+    while True:
+        start = text.find("{", search_start)
+        if start == -1:
+            return None
 
-    # If the object is preceded by ``[``, treat it as part of an array and
-    # ignore it so that we don't parse array responses like ``[{...}]``.
-    if text[:start].rstrip().endswith("["):
-        return None
+        # If the object is preceded by ``[``, treat it as part of an array and
+        # skip it so that we don't parse array responses like ``[{...}]``.
+        if text[:start].rstrip().endswith("["):
+            search_start = start + 1
+            continue
 
-    brace_count = 0
-    in_string = False
-    escape = False
-    for idx in range(start, len(text)):
-        ch = text[idx]
-        if in_string:
-            if escape:
-                escape = False
-            elif ch == "\\":
-                escape = True
-            elif ch == '"':
-                in_string = False
-        else:
-            if ch == '"':
-                in_string = True
-            elif ch == "{":
-                brace_count += 1
-            elif ch == "}":
-                brace_count -= 1
-                if brace_count == 0:
-                    candidate = text[start : idx + 1]
-                    try:
-                        obj = json.loads(candidate)
-                    except json.JSONDecodeError:
-                        return None
-                    return obj if isinstance(obj, dict) else None
+        try:
+            obj, _ = decoder.raw_decode(text, start)
+        except json.JSONDecodeError as exc:  # pragma: no cover - simple fallback
+            search_start = exc.pos + 1
+            continue
+        if isinstance(obj, dict):
+            return obj
+        search_start = start + 1
+
     return None
 
 

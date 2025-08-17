@@ -99,6 +99,76 @@ async def test_parse_command_with_array_response(
 
 
 @pytest.mark.asyncio
+async def test_parse_command_with_multiple_json_objects(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {
+                    "message": type(
+                        "Msg",
+                        (),
+                        {
+                            "content": (
+                                '{"action":"add_entry","time":"09:00","fields":{}} '
+                                '{"action":"update_profile","fields":{}}'
+                            )
+                        },
+                    )()
+                },
+            )
+        ]
+
+    def create(*args: Any, **kwargs: Any) -> Any:
+        return FakeResponse()
+
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
+
+    result = await gpt_command_parser.parse_command("test")
+
+    assert result == {"action": "add_entry", "time": "09:00", "fields": {}}
+
+
+@pytest.mark.asyncio
+async def test_parse_command_with_nested_json(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {
+                    "message": type(
+                        "Msg",
+                        (),
+                        {
+                            "content": (
+                                'prefix {"action":"add_entry","fields":{"nested":{"a":1},"note":"смесь {сахара}"}} suffix'
+                            )
+                        },
+                    )()
+                },
+            )
+        ]
+
+    def create(*args: Any, **kwargs: Any) -> Any:
+        return FakeResponse()
+
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
+
+    result = await gpt_command_parser.parse_command("test")
+
+    assert result == {
+        "action": "add_entry",
+        "fields": {"nested": {"a": 1}, "note": "смесь {сахара}"},
+    }
+
+
+@pytest.mark.asyncio
 async def test_parse_command_with_scalar_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
