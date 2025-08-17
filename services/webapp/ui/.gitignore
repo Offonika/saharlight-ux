@@ -8,7 +8,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-# keep dist in git so FastAPI can serve built files
+# Build outputs
+dist/
 dist-ssr
 *.local
 

@@ -1,6 +1,0 @@
-import{c as i,v as l,j as e}from"./index-DQBQ-MfV.js";import{S as d,B as m}from"./switch-D0WL0-E9.js";import{r as c}from"./vendor-CzhASIQC.js";/**
- * @license lucide-react v0.462.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */const x=i("ArrowLeft",[["path",{d:"m12 19-7-7 7-7",key:"1l729n"}],["path",{d:"M19 12H5",key:"x3x0zl"}]]),h=()=>{const{theme:s,setTheme:t}=l(),[r,a]=c.useState(!1);if(c.useEffect(()=>{a(!0)},[]),!r)return null;const o=s==="dark";return e.jsx(d,{checked:o,onCheckedChange:n=>t(n?"dark":"light"),"aria-label":"Переключить тему"})},p=({title:s,showBack:t,onBack:r,children:a})=>e.jsx("header",{className:"sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border",children:e.jsx("div",{className:"container mx-auto px-4 py-3",children:e.jsxs("div",{className:"flex items-center justify-between",children:[e.jsxs("div",{className:"flex items-center gap-3",children:[t&&e.jsx(m,{onClick:r,variant:"ghost",size:"icon","aria-label":"Назад",children:e.jsx(x,{className:"w-5 h-5"})}),e.jsx("h1",{className:"text-xl font-semibold text-foreground",children:s})]}),e.jsxs("div",{className:"flex items-center gap-2",children:[a,e.jsx(h,{})]})]})})});export{p as M};
