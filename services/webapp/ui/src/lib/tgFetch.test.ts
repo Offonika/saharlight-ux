@@ -59,6 +59,26 @@ describe('tgFetch', () => {
     await expect(tgFetch('/api/profile/self')).rejects.toThrow('Internal Error');
   });
 
+  it('uses detail from JSON error response', async () => {
+    (global.fetch as Mock).mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'Bad request' }), {
+        status: 400,
+      }),
+    );
+    await expect(tgFetch('/api/profile/self')).rejects.toThrow('Bad request');
+  });
+
+  it('uses message from JSON error response', async () => {
+    (global.fetch as Mock).mockResolvedValue(
+      new Response(JSON.stringify({ message: 'Unauthorized' }), {
+        status: 401,
+      }),
+    );
+    await expect(tgFetch('/api/profile/self')).rejects.toThrow(
+      'Unauthorized',
+    );
+  });
+
   it('aborts request after timeout', async () => {
     vi.useFakeTimers();
     (global.fetch as Mock).mockImplementation((_, options: RequestInit) =>
