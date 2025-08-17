@@ -192,23 +192,25 @@ const History = () => {
 
         {/* Список записей */}
         <div className="space-y-3">
-          {filteredRecords.map((record, index) => (
-            <div
-              key={record.id}
-              className="medical-list-item"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  getRecordColor(record.type) === 'medical-error' ? 'bg-medical-error/10' :
-                  getRecordColor(record.type) === 'medical-success' ? 'bg-medical-success/10' :
-                  getRecordColor(record.type) === 'medical-blue' ? 'bg-medical-blue/10' :
-                  'bg-neutral-500/10'
-                }`}>
-                  <span className="text-lg">{getRecordIcon(record.type)}</span>
-                </div>
-                
-                <div className="flex-1 min-w-0">
+          {filteredRecords.map((record, index) => {
+            const color = getRecordColor(record.type);
+            return (
+              <div
+                key={record.id}
+                className="medical-list-item"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    color === 'medical-error' ? 'bg-medical-error/10' :
+                    color === 'medical-success' ? 'bg-medical-success/10' :
+                    color === 'medical-blue' ? 'bg-medical-blue/10' :
+                    'bg-neutral-500/10'
+                  }`}>
+                    <span className="text-lg">{getRecordIcon(record.type)}</span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
@@ -277,7 +279,8 @@ const History = () => {
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
 
         {/* Форма редактирования */}
