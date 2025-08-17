@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import builtins
+import logging
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -26,18 +27,51 @@ class DummyMessage:
         pass
 
 
-@pytest.mark.asyncio
-async def test_profile_command_and_view_without_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Profile commands should work even when ``diabetes_sdk`` is missing."""
+def _patch_import(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Force ``ImportError`` for any ``diabetes_sdk`` imports."""
 
     real_import = builtins.__import__
 
-    def fake_import(name: str, globals: Any = None, locals: Any = None, fromlist: Any = (), level: int = 0):
+    def fake_import(
+        name: str,
+        globals: Any = None,
+        locals: Any = None,
+        fromlist: Any = (),
+        level: int = 0,
+    ):
         if name.startswith("diabetes_sdk"):
             raise ImportError("diabetes_sdk not available")
         return real_import(name, globals, locals, fromlist, level)
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
+
+
+def test_get_api_falls_back_to_local_client(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+    """``get_api`` should provide a local client and log a warning."""
+
+    _patch_import(monkeypatch)
+
+    from services.api.app.diabetes.handlers.profile.api import (
+        LocalProfileAPI,
+        LocalProfile,
+        get_api,
+    )
+
+    with caplog.at_level(logging.WARNING):
+        api, exc, model = get_api()
+
+    assert isinstance(api, LocalProfileAPI)
+    assert exc is Exception
+    assert model is LocalProfile
+    assert "diabetes_sdk is not installed" in caplog.text
+
+@pytest.mark.asyncio
+async def test_profile_command_and_view_without_sdk(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Profile commands should work even when ``diabetes_sdk`` is missing."""
+
+    _patch_import(monkeypatch)
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -60,8 +94,11 @@ async def test_profile_command_and_view_without_sdk(monkeypatch: pytest.MonkeyPa
         SimpleNamespace(args=["8", "3", "6", "4", "9"], user_data={}),
     )
 
-    await handlers.profile_command(update, context)
+    with caplog.at_level(logging.WARNING):
+        await handlers.profile_command(update, context)
+
     assert msg.texts and "ИКХ: 8.0 г/ед." in msg.texts[0]
+    assert all("Функции профиля недоступны" not in t for t in msg.texts)
 
     msg2 = DummyMessage()
     update2 = cast(Update, SimpleNamespace(message=msg2, effective_user=SimpleNamespace(id=123)))
@@ -70,5 +107,9 @@ async def test_profile_command_and_view_without_sdk(monkeypatch: pytest.MonkeyPa
         SimpleNamespace(user_data={}),
     )
 
-    await handlers.profile_view(update2, context2)
+    with caplog.at_level(logging.WARNING):
+        await handlers.profile_view(update2, context2)
+
     assert msg2.texts and "ИКХ: 8.0 г/ед." in msg2.texts[0]
+    assert all("Функции профиля недоступны" not in t for t in msg2.texts)
+    assert "diabetes_sdk is not installed" in caplog.text
