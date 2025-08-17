@@ -11,6 +11,7 @@ import {
   type ReminderType,
   type NormalizedReminderType,
 } from "@/lib/reminders";
+import { isValidTime } from "@/lib/time";
 
 const TYPES: Record<NormalizedReminderType, { label: string; emoji: string }> = {
   sugar: { label: "Сахар", emoji: "🩸" },
@@ -25,18 +26,6 @@ const PRESETS: Record<NormalizedReminderType, number[]> = {
   meal: [180, 240, 360],
   medicine: [240, 480, 720]
 };
-
-function isValidTime(time: string): boolean {
-  const [hours, minutes] = time.split(":").map(Number);
-  return (
-    Number.isInteger(hours) &&
-    Number.isInteger(minutes) &&
-    hours >= 0 &&
-    hours <= 23 &&
-    minutes >= 0 &&
-    minutes <= 59
-  );
-}
 
 interface Reminder {
   id: number;

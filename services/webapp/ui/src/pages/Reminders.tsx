@@ -13,6 +13,7 @@ import {
   type ReminderType,
   type NormalizedReminderType,
 } from '@/lib/reminders'
+import { parseTimeToMinutes } from '@/lib/time'
 import { Reminder as ApiReminder } from '@sdk'
 
 interface Reminder {
@@ -36,15 +37,6 @@ const TYPE_ICON: Record<NormalizedReminderType, string> = {
   insulin: '💉',
   meal: '🍽️',
   medicine: '💊',
-}
-
-function parseTimeToMinutes(t: string): number {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(t)
-  if (!match) return NaN
-  const h = Number(match[1])
-  const m = Number(match[2])
-  if (h > 23 || m > 59) return NaN
-  return h * 60 + m
 }
 
 function SkeletonItem() {
