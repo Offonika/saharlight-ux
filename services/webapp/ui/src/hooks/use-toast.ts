@@ -6,7 +6,8 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const DEFAULT_TOAST_REMOVE_DELAY = 5000
+let toastRemoveDelay = DEFAULT_TOAST_REMOVE_DELAY
 
 type ToasterToast = ToastProps & {
   id: string
@@ -66,7 +67,7 @@ const addToRemoveQueue = (toastId: string) => {
       type: "REMOVE_TOAST",
       toastId: toastId,
     })
-  }, TOAST_REMOVE_DELAY)
+  }, toastRemoveDelay)
 
   toastTimeouts.set(toastId, timeout)
 }
@@ -168,7 +169,14 @@ function toast({ ...props }: Toast) {
   }
 }
 
-function useToast() {
+interface UseToastOptions {
+  removeDelay?: number
+}
+
+function useToast(options: UseToastOptions = {}) {
+  if (options.removeDelay !== undefined) {
+    toastRemoveDelay = options.removeDelay
+  }
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {
