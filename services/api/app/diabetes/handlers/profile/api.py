@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import logging
 from typing import Any, TYPE_CHECKING
 
@@ -7,18 +8,83 @@ from services.api.app.config import settings
 from services.api.app.diabetes.services.db import Profile, User
 from services.api.app.diabetes.services.repository import commit
 
+
 logger = logging.getLogger(__name__)
 
 
-if TYPE_CHECKING:
+@dataclass
+class LocalProfile:
+    """Minimal profile model used when the external SDK is unavailable."""
+
+    telegram_id: int
+    icr: float | None = None
+    cf: float | None = None
+    target: float | None = None
+    low: float | None = None
+    high: float | None = None
+
+
+class LocalProfileAPI:
+    """Very small stand-in for :mod:`diabetes_sdk`'s API client.
+
+    It stores profile data directly in the local database using the project's
+    SQLAlchemy models.  The implementation is intentionally minimal – only the
+    calls used by the bot are provided.
+    """
+
+    @staticmethod
+    def _sessionmaker():
+        # Import here to avoid circular imports and to pick up monkeypatched
+        # session factories from tests.
+        from services.api.app.diabetes.handlers import profile as handlers
+
+        return handlers.SessionLocal
+
+    def profiles_post(self, profile: LocalProfile) -> None:
+        """Persist ``profile`` to the database."""
+
+        SessionLocal = self._sessionmaker()
+        with SessionLocal() as session:
+            ok = save_profile(
+                session,
+                profile.telegram_id,
+                profile.icr or 0.0,
+                profile.cf or 0.0,
+                profile.target or 0.0,
+                profile.low or 0.0,
+                profile.high or 0.0,
+            )
+            if not ok:
+                raise Exception("Failed to save profile")
+
+    def profiles_get(self, telegram_id: int) -> LocalProfile | None:
+        """Return a profile for ``telegram_id`` from the database."""
+
+        SessionLocal = self._sessionmaker()
+        with SessionLocal() as session:
+            prof = session.get(Profile, telegram_id)
+            if prof is None:
+                return None
+            return LocalProfile(
+                telegram_id=prof.telegram_id,
+                icr=prof.icr,
+                cf=prof.cf,
+                target=prof.target_bg,
+                low=prof.low_threshold,
+                high=prof.high_threshold,
+            )
+
+
+if TYPE_CHECKING:  # pragma: no cover - used only for type hints
     from diabetes_sdk.api.default_api import DefaultApi
 
 
 def get_api() -> tuple[Any, Any, Any]:
     """Return API client, its exception type and profile model.
 
-    Separate function to make API access testable without importing SDK in UI
-    modules.
+    If the external :mod:`diabetes_sdk` package is available, the real API
+    client is returned.  Otherwise a lightweight local implementation is used
+    that persists data directly to the project's database.
     """
     try:
         from diabetes_sdk.api.default_api import DefaultApi
@@ -28,9 +94,9 @@ def get_api() -> tuple[Any, Any, Any]:
         from diabetes_sdk.models.profile import Profile as ProfileModel
     except ImportError:
         logger.warning(
-            "diabetes_sdk is required but not installed. Install it with 'pip install -r requirements.txt'."
+            "diabetes_sdk is not installed. Falling back to local profile API.",
         )
-        return None, None, None
+        return LocalProfileAPI(), Exception, LocalProfile
     api = DefaultApi(ApiClient(Configuration(host=settings.api_url)))
     return api, ApiException, ProfileModel
 
