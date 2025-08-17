@@ -12,7 +12,7 @@ import datetime as datetime
 import os as os
 
 from openai import OpenAIError
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.constants import ChatAction
 from telegram.error import TelegramError
 from telegram.ext import (
@@ -36,9 +36,18 @@ from services.api.app.diabetes.utils.functions import (
     PatientProfile,
     smart_input,
 )
-from services.api.app.diabetes.services.gpt_client import create_thread, send_message, _get_client
+from services.api.app.diabetes.services.gpt_client import (
+    create_thread,
+    send_message,
+    _get_client,
+)
 from services.api.app.diabetes.gpt_command_parser import parse_command
-from services.api.app.diabetes.utils.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
+from services.api.app.diabetes.utils.ui import (
+    menu_keyboard,
+    confirm_keyboard,
+    dose_keyboard,
+    sugar_keyboard,
+)
 from services.api.app.diabetes.services.repository import commit
 from collections.abc import Callable, Coroutine
 from typing import TypeVar, cast
@@ -68,7 +77,6 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message is None:
         return
-    assert message is not None
     await message.reply_text(
         "📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard
     )
@@ -79,16 +87,13 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
-    assert message is not None
     user = update.effective_user
     if user is None:
         return END
-    assert user is not None
     user_data.pop("pending_entry", None)
     user_data["pending_entry"] = {
         "telegram_id": user.id,
@@ -112,7 +117,6 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
@@ -120,12 +124,9 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = message.text
     if text is None:
         return END
-    assert message is not None
-    assert text is not None
     user = update.effective_user
     if user is None:
         return END
-    assert user is not None
     text = text.strip().replace(",", ".")
     try:
         sugar = float(text)
@@ -161,12 +162,10 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
-    assert message is not None
     user_data.pop("pending_entry", None)
     user_data.pop("edit_id", None)
     user_data.pop("dose_method", None)
@@ -182,7 +181,6 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
@@ -190,8 +188,6 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
     text = message.text
     if text is None:
         return END
-    assert message is not None
-    assert text is not None
     text = text.lower()
     if "назад" in text:
         return await dose_cancel(update, context)
@@ -215,7 +211,6 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
@@ -223,12 +218,9 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = message.text
     if text is None:
         return END
-    assert message is not None
-    assert text is not None
     user = update.effective_user
     if user is None:
         return END
-    assert user is not None
     text = text.strip().replace(",", ".")
     try:
         xe = float(text)
@@ -252,7 +244,6 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
@@ -260,12 +251,9 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = message.text
     if text is None:
         return END
-    assert message is not None
-    assert text is not None
     user = update.effective_user
     if user is None:
         return END
-    assert user is not None
     text = text.strip().replace(",", ".")
     try:
         carbs = float(text)
@@ -273,9 +261,7 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await message.reply_text("Введите углеводы числом в граммах.")
         return DOSE_CARBS
     if carbs < 0:
-        await message.reply_text(
-            "Количество углеводов не может быть отрицательным."
-        )
+        await message.reply_text("Количество углеводов не может быть отрицательным.")
         return DOSE_CARBS
     user_data["pending_entry"] = {
         "telegram_id": user.id,
@@ -291,7 +277,6 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
@@ -299,12 +284,9 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = message.text
     if text is None:
         return END
-    assert message is not None
-    assert text is not None
     user = update.effective_user
     if user is None:
         return END
-    assert user is not None
     text = text.strip().replace(",", ".")
     try:
         sugar = float(text)
@@ -376,12 +358,10 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
-    assert message is not None
     await message.reply_text("Отменено.", reply_markup=menu_keyboard)
     user_data.pop("pending_entry", None)
     user_data.pop("dose_method", None)
@@ -392,13 +372,13 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 
 def _cancel_then(
-    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]
+    handler: Callable[
+        [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]
+    ],
 ) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
-    async def wrapped(
-        update: Update, context: ContextTypes.DEFAULT_TYPE
-    ) -> T:
+    async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE) -> T:
         await dose_cancel(update, context)
         return await handler(update, context)
 
@@ -410,7 +390,6 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     user_data_raw = context.user_data
     if user_data_raw is None:
         return
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
@@ -418,12 +397,9 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     text = message.text
     if text is None:
         return
-    assert message is not None
-    assert text is not None
     user = update.effective_user
     if user is None:
         return
-    assert user is not None
     raw_text = text.strip()
     user_id = user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
@@ -437,9 +413,9 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             )
             return
         try:
-            date_from = datetime.datetime.strptime(
-                raw_text, "%Y-%m-%d"
-            ).replace(tzinfo=datetime.timezone.utc)
+            date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(
+                tzinfo=datetime.timezone.utc
+            )
         except ValueError:
             await message.reply_text(
                 "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
@@ -459,29 +435,19 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             value = float(text)
         except ValueError:
             if field == "sugar":
-                await message.reply_text(
-                    "Введите сахар числом в ммоль/л."
-                )
+                await message.reply_text("Введите сахар числом в ммоль/л.")
             elif field == "xe":
                 await message.reply_text("Введите число ХЕ.")
             else:
-                await message.reply_text(
-                    "Введите дозу инсулина числом."
-                )
+                await message.reply_text("Введите дозу инсулина числом.")
             return
         if value < 0:
             if field == "sugar":
-                await message.reply_text(
-                    "Сахар не может быть отрицательным."
-                )
+                await message.reply_text("Сахар не может быть отрицательным.")
             elif field == "xe":
-                await message.reply_text(
-                    "Количество ХЕ не может быть отрицательным."
-                )
+                await message.reply_text("Количество ХЕ не может быть отрицательным.")
             else:
-                await message.reply_text(
-                    "Доза инсулина не может быть отрицательной."
-                )
+                await message.reply_text("Доза инсулина не может быть отрицательной.")
             return
         if field == "sugar":
             pending_entry["sugar_before"] = value
@@ -494,16 +460,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if pending_fields:
             next_field = pending_fields[0]
             if next_field == "sugar":
-                await message.reply_text(
-                    "Введите уровень сахара (ммоль/л)."
-                )
+                await message.reply_text("Введите уровень сахара (ммоль/л).")
             elif next_field == "xe":
                 await message.reply_text("Введите количество ХЕ.")
             else:
-                await message.reply_text(
-                    "Введите дозу инсулина (ед.)."
-                )
+                await message.reply_text("Введите дозу инсулина (ед.).")
             return
+
         def db_save_entry(session: Session) -> bool:
             entry = Entry(**pending_entry)
             session.add(entry)
@@ -515,9 +478,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             with SessionLocal() as session:
                 ok = db_save_entry(session)
         if not ok:
-            await message.reply_text(
-                "⚠️ Не удалось сохранить запись."
-            )
+            await message.reply_text("⚠️ Не удалось сохранить запись.")
             return
         sugar = pending_entry.get("sugar_before")
         if sugar is not None:
@@ -537,18 +498,17 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if pending_entry is not None and edit_id is None:
         entry = pending_entry
         text = raw_text.lower()
-        if re.fullmatch(r"-?\d+(?:[.,]\d+)?", text) and entry.get("sugar_before") is None:
+        if (
+            re.fullmatch(r"-?\d+(?:[.,]\d+)?", text)
+            and entry.get("sugar_before") is None
+        ):
             try:
                 sugar = float(text.replace(",", "."))
             except ValueError:
-                await message.reply_text(
-                    "Некорректное числовое значение."
-                )
+                await message.reply_text("Некорректное числовое значение.")
                 return
             if sugar < 0:
-                await message.reply_text(
-                    "Сахар не может быть отрицательным."
-                )
+                await message.reply_text("Сахар не может быть отрицательным.")
                 return
             entry["sugar_before"] = sugar
             if entry.get("carbs_g") is not None or entry.get("xe") is not None:
@@ -602,9 +562,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     reply_markup=confirm_keyboard(),
                 )
             return
-        parts = dict(
-            re.findall(r"(\w+)\s*=\s*(-?\d+(?:[.,]\d+)?)(?=\s|$)", text)
-        )
+        parts = dict(re.findall(r"(\w+)\s*=\s*(-?\d+(?:[.,]\d+)?)(?=\s|$)", text))
         if not parts:
             await message.reply_text("Не вижу ни одного поля для изменения.")
             return
@@ -615,9 +573,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 await message.reply_text("Некорректное числовое значение.")
                 return
             if xe_val_input < 0:
-                await message.reply_text(
-                    "Количество ХЕ не может быть отрицательным."
-                )
+                await message.reply_text("Количество ХЕ не может быть отрицательным.")
                 return
             entry["xe"] = xe_val_input
             entry["carbs_g"] = xe_val_input * 12
@@ -640,9 +596,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 await message.reply_text("Некорректное числовое значение.")
                 return
             if dose_val_input < 0:
-                await message.reply_text(
-                    "Доза инсулина не может быть отрицательной."
-                )
+                await message.reply_text("Доза инсулина не может быть отрицательной.")
                 return
             entry["dose"] = dose_val_input
         if "сахар" in parts or "sugar" in parts:
@@ -653,9 +607,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 await message.reply_text("Некорректное числовое значение.")
                 return
             if sugar_val_input < 0:
-                await message.reply_text(
-                    "Сахар не может быть отрицательным."
-                )
+                await message.reply_text("Сахар не может быть отрицательным.")
                 return
             entry["sugar_before"] = sugar_val_input
         carbs = entry.get("carbs_g")
@@ -689,18 +641,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             return
         if value < 0:
             if field == "sugar":
-                await message.reply_text(
-                    "Сахар не может быть отрицательным."
-                )
+                await message.reply_text("Сахар не может быть отрицательным.")
             elif field == "xe":
-                await message.reply_text(
-                    "Количество ХЕ не может быть отрицательным."
-                )
+                await message.reply_text("Количество ХЕ не может быть отрицательным.")
             else:
-                await message.reply_text(
-                    "Доза инсулина не может быть отрицательной."
-                )
+                await message.reply_text("Доза инсулина не может быть отрицательной.")
             return
+
         def db_update(session: Session) -> tuple[str, Entry | None]:
             entry = session.get(Entry, user_data["edit_id"])
             if not entry:
@@ -761,17 +708,11 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     except ValueError as exc:
         msg = str(exc)
         if "mismatched unit for sugar" in msg:
-            await message.reply_text(
-                "❗ Сахар указывается в ммоль/л, не в XE."
-            )
+            await message.reply_text("❗ Сахар указывается в ммоль/л, не в XE.")
         elif "mismatched unit for dose" in msg:
-            await message.reply_text(
-                "❗ Доза указывается в ед., не в ммоль."
-            )
+            await message.reply_text("❗ Доза указывается в ед., не в ммоль.")
         elif "mismatched unit for xe" in msg:
-            await message.reply_text(
-                "❗ ХЕ указываются числом, без ммоль/л и ед."
-            )
+            await message.reply_text("❗ ХЕ указываются числом, без ммоль/л и ед.")
         else:
             await message.reply_text(
                 "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2"
@@ -782,9 +723,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         xe = quick["xe"]
         dose = quick["dose"]
         if any(v is not None and v < 0 for v in (sugar, xe, dose)):
-            await message.reply_text(
-                "Значения не могут быть отрицательными."
-            )
+            await message.reply_text("Значения не могут быть отрицательными.")
             return
         entry_data = {
             "telegram_id": user_id,
@@ -796,6 +735,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         }
         missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
         if not missing:
+
             def db_save_quick(session: Session) -> bool:
                 entry = Entry(**entry_data)
                 session.add(entry)
@@ -807,9 +747,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 with SessionLocal() as session:
                     ok = db_save_quick(session)
             if not ok:
-                await message.reply_text(
-                    "⚠️ Не удалось сохранить запись."
-                )
+                await message.reply_text("⚠️ Не удалось сохранить запись.")
                 return
             if sugar is not None:
                 await check_alert(update, context, sugar)
@@ -832,16 +770,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     parsed = await parse_command(raw_text)
     logger.info("FREEFORM parsed=%s", parsed)
     if not parsed or parsed.get("action") != "add_entry":
-        await message.reply_text(
-            "Не понял, воспользуйтесь /help или кнопками меню"
-        )
+        await message.reply_text("Не понял, воспользуйтесь /help или кнопками меню")
         return
 
     fields = parsed.get("fields")
     if not isinstance(fields, dict):
-        await message.reply_text(
-            "Не удалось распознать данные, попробуйте ещё раз."
-        )
+        await message.reply_text("Не удалось распознать данные, попробуйте ещё раз.")
         return
     if any(
         v is not None and v < 0
@@ -852,9 +786,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             fields.get("sugar_before"),
         )
     ):
-        await message.reply_text(
-            "Значения не могут быть отрицательными."
-        )
+        await message.reply_text("Значения не могут быть отрицательными.")
         return
     entry_date_obj = parsed.get("entry_date")
     time_obj = parsed.get("time")
@@ -904,7 +836,9 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     sugar_part = f"Сахар: {sugar_val} ммоль/л" if sugar_val is not None else ""
     lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
 
-    reply = f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
+    reply = (
+        f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
+    )
     await message.reply_text(text=reply, reply_markup=confirm_keyboard())
     return
 
@@ -917,12 +851,13 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await message.reply_text("🗨️ Чат с GPT временно недоступен.")
 
 
-async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False) -> int:
+async def photo_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False
+) -> int:
     """Process food photos and trigger nutrition analysis."""
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
@@ -930,11 +865,10 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         if query is None or query.message is None:
             return END
         message = query.message
-    assert message is not None
+    message = cast(Message, message)
     effective_user = update.effective_user
     if effective_user is None:
         return END
-    assert effective_user is not None
     user_id = effective_user.id
 
     if user_data.get(WAITING_GPT_FLAG):
@@ -1029,8 +963,10 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
                 thread_id=run.thread_id,
                 run_id=run.id,
             )
-            if attempt == warn_after and status_message and hasattr(
-                status_message, "edit_text"
+            if (
+                attempt == warn_after
+                and status_message
+                and hasattr(status_message, "edit_text")
             ):
                 try:
                     await status_message.edit_text("🔍 Всё ещё анализирую фото…")
@@ -1075,9 +1011,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             logging.error("[VISION][RUN_FAILED] run.status=%s", run.status)
             if status_message and hasattr(status_message, "edit_text"):
                 try:
-                    await status_message.edit_text(
-                        "⚠️ Vision не смог обработать фото."
-                    )
+                    await status_message.edit_text("⚠️ Vision не смог обработать фото.")
                 except TelegramError as exc:
                     logger.warning(
                         "[PHOTO][RUN_FAILED_EDIT] Failed to send Vision failure notice: %s",
@@ -1135,9 +1069,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
             "telegram_id": user_id,
             "event_time": datetime.datetime.now(datetime.timezone.utc),
         }
-        pending_entry.update(
-            {"carbs_g": carbs_g, "xe": xe, "photo_path": file_path}
-        )
+        pending_entry.update({"carbs_g": carbs_g, "xe": xe, "photo_path": file_path})
         user_data["pending_entry"] = pending_entry
         if status_message and hasattr(status_message, "delete"):
             try:
@@ -1162,11 +1094,15 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
 
     except OSError as exc:
         logging.exception("[PHOTO] File processing error: %s", exc)
-        await message.reply_text("⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз.")
+        await message.reply_text(
+            "⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз."
+        )
         return END
     except OpenAIError as exc:
         logging.exception("[PHOTO] Vision API error: %s", exc)
-        await message.reply_text("⚠️ Vision не смог обработать фото. Попробуйте ещё раз.")
+        await message.reply_text(
+            "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
+        )
         return END
     except ValueError as exc:
         logging.exception("[PHOTO] Parsing error: %s", exc)
@@ -1184,21 +1120,17 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
-    assert message is not None
     effective_user = update.effective_user
     if effective_user is None:
         return END
-    assert effective_user is not None
 
     document = message.document
     if document is None:
         return END
-    assert document is not None
 
     mime_type = document.mime_type
     if mime_type is None or not mime_type.startswith("image/"):
@@ -1228,16 +1160,14 @@ sugar_conv = ConversationHandler(
         MessageHandler(filters.Regex("^🩸 Уровень сахара$"), sugar_start),
     ],
     states={
-        SUGAR_VAL: [
-            MessageHandler(
-                filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), sugar_val
-            )
-        ],
+        SUGAR_VAL: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), sugar_val)],
     },
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
-        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))),
+        MessageHandler(
+            filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
+        ),
     ],
 )
 
@@ -1247,25 +1177,32 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex("^💉 Доза инсулина$"), dose_start),
     ],
     states={
-        DOSE_METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
-        DOSE_XE: [
-            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)
+        DOSE_METHOD: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)
         ],
-        DOSE_CARBS: [
-            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)
-        ],
-        DOSE_SUGAR: [
-            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)
-        ],
+        DOSE_XE: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)],
+        DOSE_CARBS: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)],
+        DOSE_SUGAR: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)],
     },
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
-        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))),
-        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), cast(object, _cancel_then(sugar_start))),
-        MessageHandler(filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))),
-        MessageHandler(filters.Regex("^📈 Отчёт$"), cast(object, _cancel_then(report_request))),
-        MessageHandler(filters.Regex("^📄 Мой профиль$"), cast(object, _cancel_then(profile_view))),
+        MessageHandler(
+            filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
+        ),
+        MessageHandler(
+            filters.Regex("^🩸 Уровень сахара$"),
+            cast(object, _cancel_then(sugar_start)),
+        ),
+        MessageHandler(
+            filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))
+        ),
+        MessageHandler(
+            filters.Regex("^📈 Отчёт$"), cast(object, _cancel_then(report_request))
+        ),
+        MessageHandler(
+            filters.Regex("^📄 Мой профиль$"), cast(object, _cancel_then(profile_view))
+        ),
     ],
 )
 
@@ -1281,7 +1218,6 @@ __all__ = [
     "WAITING_GPT_FLAG",
     "datetime",
     "os",
-
     "photo_prompt",
     "sugar_start",
     "sugar_val",
@@ -1289,9 +1225,7 @@ __all__ = [
     "prompt_photo",
     "prompt_sugar",
     "prompt_dose",
-
     "sugar_conv",
-
     "freeform_handler",
     "photo_handler",
     "doc_handler",
