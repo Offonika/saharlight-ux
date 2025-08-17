@@ -14,7 +14,9 @@ from services.api.app.diabetes import gpt_command_parser  # noqa: E402
 
 
 @pytest.mark.asyncio
-async def test_parse_command_timeout_non_blocking(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_parse_command_timeout_non_blocking(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def slow_create(*args: Any, **kwargs: Any) -> Any:
         time.sleep(1)
 
@@ -25,9 +27,7 @@ async def test_parse_command_timeout_non_blocking(monkeypatch: pytest.MonkeyPatc
 
         return FakeResponse()
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", slow_create
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", slow_create)
 
     start = time.perf_counter()
     result, _ = await asyncio.gather(
@@ -41,7 +41,9 @@ async def test_parse_command_timeout_non_blocking(monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_explanatory_text(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_parse_command_with_explanatory_text(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -53,8 +55,8 @@ async def test_parse_command_with_explanatory_text(monkeypatch: pytest.MonkeyPat
                         (),
                         {
                             "content": (
-                                "Вот ответ: {\"action\":\"add_entry\","
-                                "\"time\":\"09:00\",\"fields\":{}}"
+                                'Вот ответ: {"action":"add_entry",'
+                                '"time":"09:00","fields":{}}'
                                 " Дополнительный текст"
                             )
                         },
@@ -65,6 +67,7 @@ async def test_parse_command_with_explanatory_text(monkeypatch: pytest.MonkeyPat
 
     def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
+
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     result = await gpt_command_parser.parse_command("test")
@@ -73,18 +76,21 @@ async def test_parse_command_with_explanatory_text(monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_array_response(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_parse_command_with_array_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class FakeResponse:
         choices = [
             type(
                 "Choice",
                 (),
-                {"message": type("Msg", (), {"content": "[{\"action\":\"add_entry\"}]"})()},
+                {"message": type("Msg", (), {"content": '[{"action":"add_entry"}]'})()},
             )
         ]
 
     def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
+
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     result = await gpt_command_parser.parse_command("test")
@@ -93,7 +99,9 @@ async def test_parse_command_with_array_response(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_scalar_response(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_parse_command_with_scalar_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -105,6 +113,7 @@ async def test_parse_command_with_scalar_response(monkeypatch: pytest.MonkeyPatc
 
     def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
+
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     result = await gpt_command_parser.parse_command("test")
@@ -113,7 +122,9 @@ async def test_parse_command_with_scalar_response(monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_invalid_schema(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_parse_command_with_invalid_schema(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -121,7 +132,9 @@ async def test_parse_command_with_invalid_schema(monkeypatch: pytest.MonkeyPatch
                 (),
                 {
                     "message": type(
-                        "Msg", (), {"content": "{\"action\":123,\"time\":\"09:00\",\"fields\":{}}"}
+                        "Msg",
+                        (),
+                        {"content": '{"action":123,"time":"09:00","fields":{}}'},
                     )()
                 },
             )
@@ -140,12 +153,15 @@ async def test_parse_command_with_invalid_schema(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_missing_content(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_parse_command_with_missing_content(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     class FakeResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {})()})]
 
     def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
+
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     with caplog.at_level(logging.ERROR):
@@ -156,7 +172,9 @@ async def test_parse_command_with_missing_content(monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_non_string_content(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_parse_command_with_non_string_content(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -168,6 +186,7 @@ async def test_parse_command_with_non_string_content(monkeypatch: pytest.MonkeyP
 
     def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
+
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     with caplog.at_level(logging.ERROR):
@@ -178,17 +197,16 @@ async def test_parse_command_with_non_string_content(monkeypatch: pytest.MonkeyP
 
 
 @pytest.mark.asyncio
-async def test_parse_command_handles_unexpected_exception(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_parse_command_propagates_unexpected_exception(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def bad_create(*args: Any, **kwargs: Any) -> None:
         raise RuntimeError("boom")
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", bad_create)
 
-    with caplog.at_level(logging.ERROR):
-        result = await gpt_command_parser.parse_command("test")
-
-    assert result is None
-    assert "Unexpected error during command parsing" in caplog.text
+    with pytest.raises(RuntimeError, match="boom"):
+        await gpt_command_parser.parse_command("test")
 
 
 @pytest.mark.parametrize(
@@ -201,8 +219,7 @@ async def test_parse_command_handles_unexpected_exception(monkeypatch: pytest.Mo
 def test_sanitize_masks_api_like_tokens(token: Any) -> None:
     text = f"before {token} after"
     assert (
-        gpt_command_parser._sanitize_sensitive_data(text)
-        == "before [REDACTED] after"
+        gpt_command_parser._sanitize_sensitive_data(text) == "before [REDACTED] after"
     )
 
 
@@ -213,10 +230,7 @@ def test_sanitize_leaves_numeric_strings() -> None:
 
 
 def test_extract_first_json_multiple_objects() -> None:
-    text = (
-        '{"action":"add_entry","fields":{}} '
-        '{"action":"delete_entry","fields":{}}'
-    )
+    text = '{"action":"add_entry","fields":{}} ' '{"action":"delete_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
@@ -229,7 +243,9 @@ def test_extract_first_json_malformed_input() -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_multiple_jsons(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_parse_command_with_multiple_jsons(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -261,7 +277,9 @@ async def test_parse_command_with_multiple_jsons(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_malformed_json(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_parse_command_with_malformed_json(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -271,9 +289,7 @@ async def test_parse_command_with_malformed_json(monkeypatch: pytest.MonkeyPatch
                     "message": type(
                         "Msg",
                         (),
-                        {
-                            "content": '{"action":"add_entry","fields":{}'
-                        },
+                        {"content": '{"action":"add_entry","fields":{}'},
                     )()
                 },
             )
