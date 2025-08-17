@@ -38,7 +38,7 @@ def _patch_import(monkeypatch: pytest.MonkeyPatch) -> None:
         locals: Any = None,
         fromlist: Any = (),
         level: int = 0,
-    ):
+    ) -> Any:
         if name.startswith("diabetes_sdk"):
             raise ImportError("diabetes_sdk not available")
         return real_import(name, globals, locals, fromlist, level)
