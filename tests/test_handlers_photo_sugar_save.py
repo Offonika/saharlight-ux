@@ -9,7 +9,7 @@ from telegram import PhotoSize, Update
 from telegram.ext import CallbackContext
 from sqlalchemy.orm import Session, sessionmaker
 
-import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+import services.api.app.diabetes.handlers.dose_calc as dose_calc
 import services.api.app.diabetes.handlers.router as router
 
 
@@ -79,9 +79,9 @@ async def test_photo_flow_saves_entry(
     async def fake_parse_command(text: str) -> dict[str, Any]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
-    monkeypatch.setattr(dose_handlers, "parse_command", fake_parse_command)
-    monkeypatch.setattr(dose_handlers, "confirm_keyboard", lambda: None)
-    monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
+    monkeypatch.setattr(dose_calc, "parse_command", fake_parse_command)
+    monkeypatch.setattr(dose_calc, "confirm_keyboard", lambda: None)
+    monkeypatch.setattr(dose_calc, "menu_keyboard", None)
 
     msg_start = DummyMessage("/dose")
     update_start = cast(
@@ -109,7 +109,7 @@ async def test_photo_flow_saves_entry(
     fake_bot = SimpleNamespace(get_file=fake_get_file)
     setattr(cast(Any, type(context)), "bot", PropertyMock(return_value=fake_bot))
 
-    await dose_handlers.freeform_handler(update_start, context)
+    await dose_calc.freeform_handler(update_start, context)
 
     monkeypatch.chdir(tmp_path)
 
@@ -144,9 +144,9 @@ async def test_photo_flow_saves_entry(
             )
         )
 
-    monkeypatch.setattr(dose_handlers, "send_message", fake_send_message)
-    monkeypatch.setattr(dose_handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(dose_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0))
+    monkeypatch.setattr(dose_calc, "send_message", fake_send_message)
+    monkeypatch.setattr(dose_calc, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(dose_calc, "extract_nutrition_info", lambda text: (30.0, 2.0))
     user_data["thread_id"] = "tid"
 
     msg_photo = DummyMessage(photo=cast(tuple[PhotoSize, ...], (DummyPhoto(),)))
@@ -154,7 +154,7 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1)),
     )
-    await dose_handlers.photo_handler(update_photo, context)
+    await dose_calc.photo_handler(update_photo, context)
 
     entry = user_data["pending_entry"]
     assert entry["carbs_g"] == 30.0
@@ -167,8 +167,8 @@ async def test_photo_flow_saves_entry(
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
     session_factory = cast(Any, sessionmaker(class_=DummySession))
-    dose_handlers.SessionLocal = session_factory
-    await dose_handlers.freeform_handler(update_sugar, context)
+    dose_calc.SessionLocal = session_factory
+    await dose_calc.freeform_handler(update_sugar, context)
     assert user_data["pending_entry"]["sugar_before"] == 5.5
 
     monkeypatch.setattr(router, "SessionLocal", session_factory)

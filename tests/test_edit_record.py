@@ -58,13 +58,13 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
-    import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+    import services.api.app.diabetes.handlers.dose_calc as dose_calc
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(router, "SessionLocal", TestSession)
-    monkeypatch.setattr(dose_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(dose_calc, "SessionLocal", TestSession)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -105,7 +105,7 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     update_msg = cast(
         Update, SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1))
     )
-    await dose_handlers.freeform_handler(update_msg, context)
+    await dose_calc.freeform_handler(update_msg, context)
 
     with TestSession() as session:
         entry_obj = session.get(Entry, entry_id)

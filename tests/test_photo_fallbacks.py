@@ -14,7 +14,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 from services.api.app.diabetes.handlers import (
-    dose_handlers,
+    dose_calc,
     profile as profile_handlers,
     onboarding_handlers,
     sos_handlers,
@@ -79,7 +79,7 @@ async def test_profile_conv_photo_fallback() -> None:
 
 @pytest.mark.asyncio
 async def test_sugar_conv_photo_fallback() -> None:
-    handler = _find_handler(dose_handlers.sugar_conv.fallbacks, "^📷 Фото еды$")
+    handler = _find_handler(dose_calc.sugar_conv.fallbacks, "^📷 Фото еды$")
     await _exercise(handler)
 
 

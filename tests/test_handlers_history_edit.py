@@ -60,7 +60,7 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
     import services.api.app.diabetes.handlers.router as router
-    import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+    import services.api.app.diabetes.handlers.dose_calc as dose_calc
 
     engine = create_engine(
         "sqlite:///:memory:",
@@ -72,7 +72,7 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(reporting_handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(router, "SessionLocal", TestSession)
-    monkeypatch.setattr(dose_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(dose_calc, "SessionLocal", TestSession)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -148,7 +148,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
-    import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+    import services.api.app.diabetes.handlers.dose_calc as dose_calc
 
     engine = create_engine(
         "sqlite:///:memory:",
@@ -158,7 +158,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(router, "SessionLocal", TestSession)
-    monkeypatch.setattr(dose_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(dose_calc, "SessionLocal", TestSession)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -219,7 +219,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         Update,
         SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1)),
     )
-    await dose_handlers.freeform_handler(update_msg, context)
+    await dose_calc.freeform_handler(update_msg, context)
 
     with TestSession() as session:
         entry_obj = session.get(Entry, entry_id)

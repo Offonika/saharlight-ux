@@ -47,18 +47,13 @@ from .common_handlers import menu_command
 from .alert_handlers import check_alert
 from .reporting_handlers import send_report, history_view, report_request, render_entry
 from .profile import profile_view
+from .dose_validation import _sanitize
 from . import UserData
 
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
-
-
-def _sanitize(text: str, max_len: int = 200) -> str:
-    """Strip control chars and truncate for safe logging."""
-    cleaned = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", str(text))
-    return cleaned[:max_len]
 
 
 DOSE_METHOD, DOSE_XE, DOSE_CARBS, DOSE_SUGAR = range(3, 7)

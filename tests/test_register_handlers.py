@@ -22,7 +22,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     from services.api.app.diabetes.handlers import (
-        dose_handlers,
+        dose_calc,
         profile as profile_handlers,
         reporting_handlers,
     )
@@ -33,19 +33,19 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
     handlers = app.handlers[0]
     callbacks = [getattr(h, "callback", None) for h in handlers]
 
-    assert dose_handlers.freeform_handler in callbacks
-    assert dose_handlers.photo_handler in callbacks
-    assert dose_handlers.doc_handler in callbacks
-    assert dose_handlers.prompt_photo in callbacks
-    assert dose_handlers.dose_cancel in callbacks
-    assert dose_handlers.prompt_sugar not in callbacks
+    assert dose_calc.freeform_handler in callbacks
+    assert dose_calc.photo_handler in callbacks
+    assert dose_calc.doc_handler in callbacks
+    assert dose_calc.prompt_photo in callbacks
+    assert dose_calc.dose_cancel in callbacks
+    assert dose_calc.prompt_sugar not in callbacks
     assert callback_router in callbacks
     assert reporting_handlers.report_period_callback in callbacks
     assert profile_handlers.profile_view in callbacks
     assert profile_handlers.profile_back in callbacks
     assert reporting_handlers.report_request in callbacks
     assert reporting_handlers.history_view in callbacks
-    assert dose_handlers.chat_with_gpt in callbacks
+    assert dose_calc.chat_with_gpt in callbacks
     assert security_handlers.hypo_alert_faq in callbacks
     # Reminder handlers should be registered
     assert any(
@@ -79,19 +79,19 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
 
 
     conv_handlers = [h for h in handlers if isinstance(h, ConversationHandler)]
-    assert dose_handlers.dose_conv in conv_handlers
-    assert dose_handlers.sugar_conv in conv_handlers
+    assert dose_calc.dose_conv in conv_handlers
+    assert dose_calc.sugar_conv in conv_handlers
     assert profile_handlers.profile_conv in conv_handlers
     assert onb_conv[0] in conv_handlers
     conv_cmds = [
         ep
-        for ep in dose_handlers.dose_conv.entry_points
+        for ep in dose_calc.dose_conv.entry_points
         if isinstance(ep, CommandHandler)
     ]
     assert conv_cmds and "dose" in conv_cmds[0].commands
     sugar_conv_cmds = [
         ep
-        for ep in dose_handlers.sugar_conv.entry_points
+        for ep in dose_calc.sugar_conv.entry_points
         if isinstance(ep, CommandHandler)
     ]
     assert sugar_conv_cmds and "sugar" in sugar_conv_cmds[0].commands
@@ -114,21 +114,21 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
     text_handlers = [
         h
         for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is dose_handlers.freeform_handler
+        if isinstance(h, MessageHandler) and h.callback is dose_calc.freeform_handler
     ]
     assert text_handlers
 
     photo_handlers = [
         h
         for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is dose_handlers.photo_handler
+        if isinstance(h, MessageHandler) and h.callback is dose_calc.photo_handler
     ]
     assert photo_handlers
 
     doc_handlers = [
         h
         for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is dose_handlers.doc_handler
+        if isinstance(h, MessageHandler) and h.callback is dose_calc.doc_handler
     ]
     assert doc_handlers
 
@@ -136,21 +136,21 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
     photo_prompt_handlers = [
         h
         for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is dose_handlers.photo_prompt
+        if isinstance(h, MessageHandler) and h.callback is dose_calc.photo_prompt
     ]
     assert photo_prompt_handlers
 
     sugar_cmd = [
         h
         for h in handlers
-        if isinstance(h, CommandHandler) and h.callback is dose_handlers.sugar_start
+        if isinstance(h, CommandHandler) and h.callback is dose_calc.sugar_start
     ]
     assert not sugar_cmd
 
     cancel_cmd = [
         h
         for h in handlers
-        if isinstance(h, CommandHandler) and h.callback is dose_handlers.dose_cancel
+        if isinstance(h, CommandHandler) and h.callback is dose_calc.dose_cancel
     ]
     assert cancel_cmd and "cancel" in cancel_cmd[0].commands
 
@@ -178,7 +178,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
     gpt_cmd = [
         h
         for h in handlers
-        if isinstance(h, CommandHandler) and h.callback is dose_handlers.chat_with_gpt
+        if isinstance(h, CommandHandler) and h.callback is dose_calc.chat_with_gpt
     ]
     assert gpt_cmd and "gpt" in gpt_cmd[0].commands
 

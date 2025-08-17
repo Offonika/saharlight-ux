@@ -16,7 +16,7 @@ from telegram.ext import (
 from services.api.app.diabetes.services.db import SessionLocal, Profile
 from services.api.app.diabetes.utils.ui import back_keyboard, menu_keyboard
 from services.api.app.diabetes.services.repository import commit
-from . import dose_handlers, _cancel_then
+from . import dose_calc, _cancel_then
 
 SOS_CONTACT, = range(1)
 
@@ -107,7 +107,7 @@ sos_contact_conv = ConversationHandler(
         CommandHandler("cancel", sos_contact_cancel),
         MessageHandler(
             filters.Regex("^📷 Фото еды$"),
-            _cancel_then(dose_handlers.photo_prompt),
+            _cancel_then(dose_calc.photo_prompt),
         ),
     ],
     per_message=False,

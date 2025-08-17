@@ -24,7 +24,7 @@ class UserData(TypedDict, total=False):
     chat_id: int
 
 
-from .dose_handlers import _cancel_then
+from .dose_calc import _cancel_then
 
 __all__ = ["_cancel_then", "UserData"]
 

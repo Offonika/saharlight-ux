@@ -39,7 +39,7 @@ def register_handlers(
     # Import inside the function to avoid heavy imports at module import time
     # (for example OpenAI client initialization).
     from . import (
-        dose_handlers,
+        dose_calc,
         profile,
         reporting_handlers,
         reminder_handlers,
@@ -51,16 +51,16 @@ def register_handlers(
     app.add_handler(onboarding_conv)
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("menu", menu_command))
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("report", reporting_handlers.report_request))
-    app.add_handler(dose_handlers.dose_conv)
+    app.add_handler(dose_calc.dose_conv)
     # Register profile conversation before sugar conversation so that numeric
     # inputs for profile aren't captured by sugar logging
     app.add_handler(profile.profile_conv)
     app.add_handler(profile.profile_webapp_handler)
-    app.add_handler(dose_handlers.sugar_conv)
+    app.add_handler(dose_calc.sugar_conv)
     app.add_handler(sos_handlers.sos_contact_conv)
-    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("cancel", dose_handlers.dose_cancel))
+    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("help", help_command))
-    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("gpt", dose_handlers.chat_with_gpt))
+    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("gpt", dose_calc.chat_with_gpt))
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("reminders", reminder_handlers.reminders_list))
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("addreminder", reminder_handlers.add_reminder))
     app.add_handler(reminder_handlers.reminder_action_handler)
@@ -79,7 +79,7 @@ def register_handlers(
         MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📊 История$"), reporting_handlers.history_view)
     )
     app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📷 Фото еды$"), dose_handlers.photo_prompt)
+        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📷 Фото еды$"), dose_calc.photo_prompt)
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^🕹 Быстрый ввод$"), smart_input_help)
@@ -99,12 +99,12 @@ def register_handlers(
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.TEXT & ~filters.COMMAND, dose_handlers.freeform_handler
+            filters.TEXT & ~filters.COMMAND, dose_calc.freeform_handler
         )
     )
-    app.add_handler(MessageHandler[ContextTypes.DEFAULT_TYPE](filters.PHOTO, dose_handlers.photo_handler))
+    app.add_handler(MessageHandler[ContextTypes.DEFAULT_TYPE](filters.PHOTO, dose_calc.photo_handler))
     app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Document.IMAGE, dose_handlers.doc_handler)
+        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Document.IMAGE, dose_calc.doc_handler)
     )
     app.add_handler(
         CallbackQueryHandler[ContextTypes.DEFAULT_TYPE](

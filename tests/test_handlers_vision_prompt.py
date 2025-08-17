@@ -6,7 +6,7 @@ from typing import Any, cast
 from telegram import Update
 from telegram.ext import CallbackContext
 
-import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+import services.api.app.diabetes.handlers.dose_calc as dose_calc
 
 
 class DummyMessage:
@@ -84,9 +84,9 @@ async def test_photo_prompt_includes_dish_name(monkeypatch: pytest.MonkeyPatch, 
             )
         )
 
-    monkeypatch.setattr(dose_handlers, "send_message", fake_send_message)
-    monkeypatch.setattr(dose_handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
+    monkeypatch.setattr(dose_calc, "send_message", fake_send_message)
+    monkeypatch.setattr(dose_calc, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(dose_calc, "menu_keyboard", None)
 
     msg_photo = DummyMessage(photo=[DummyPhoto()])
     update = cast(
@@ -94,7 +94,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch: pytest.MonkeyPatch, 
         SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1)),
     )
 
-    await dose_handlers.photo_handler(update, context)
+    await dose_calc.photo_handler(update, context)
 
     assert "название" in captured["content"]
     # Final reply should include dish name from Vision response
