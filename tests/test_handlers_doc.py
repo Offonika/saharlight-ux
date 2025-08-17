@@ -73,6 +73,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
     user_data = context.user_data
     assert user_data is not None
     assert user_data["__file_path"] == "photos/1_uid.png"
+    assert update.message is not None
     assert update.message.photo == ()
 
 
