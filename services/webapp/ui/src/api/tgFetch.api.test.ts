@@ -62,4 +62,19 @@ describe('tgFetch', () => {
     vi.advanceTimersByTime(10_000);
     await expect(promise).rejects.toThrow(REQUEST_TIMEOUT_MESSAGE);
   });
+
+  it('supports external abort signal', async () => {
+    (global.fetch as Mock).mockImplementation((_, options: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        options.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError')),
+        );
+      }),
+    );
+
+    const abortController = new AbortController();
+    const promise = tgFetch('/api/profile', { signal: abortController.signal });
+    abortController.abort();
+    await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
+  });
 });
