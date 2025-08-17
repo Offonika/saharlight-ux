@@ -10,7 +10,8 @@
     "build:dev": "npm run prebuild && vite build --mode development",
     "watch": "vite build --watch",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

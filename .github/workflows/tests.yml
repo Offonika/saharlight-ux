@@ -31,6 +31,9 @@ jobs:
         run: |
           npm ci
           npm run build
+      - name: Type-check webapp UI
+        working-directory: services/webapp/ui
+        run: npm run typecheck
       - name: Install Playwright browsers
         run: playwright install --with-deps
       - name: Run lint
