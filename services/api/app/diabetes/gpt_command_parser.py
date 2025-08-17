@@ -11,6 +11,8 @@ from pydantic import ValidationError
 from services.api.app.diabetes.services.gpt_client import create_chat_completion
 from services.api.app.schemas import CommandSchema
 
+logger = logging.getLogger(__name__)
+
 # Prompt guiding GPT to convert free-form diary text into a single JSON command
 SYSTEM_PROMPT = (
     "Ты — парсер дневника диабетика.\n"
@@ -100,49 +102,49 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
             timeout,
         )
     except asyncio.TimeoutError:
-        logging.error("Command parsing timed out")
+        logger.error("Command parsing timed out")
         return None
     except OpenAIError:
-        logging.exception("Command parsing failed")
+        logger.exception("Command parsing failed")
         return None
     except ValueError:
-        logging.exception("Invalid value during command parsing")
+        logger.exception("Invalid value during command parsing")
         return None
     except TypeError:
-        logging.exception("Invalid type during command parsing")
+        logger.exception("Invalid type during command parsing")
         return None
 
     choices = getattr(response, "choices", None)
     if not choices:
-        logging.error("No choices in GPT response")
+        logger.error("No choices in GPT response")
         return None
 
     first = choices[0]
     message = getattr(first, "message", None)
     if message is None:
-        logging.error("No message in first choice")
+        logger.error("No message in first choice")
         return None
 
     content = getattr(message, "content", None)
     if content is None:
-        logging.error("No content in GPT response")
+        logger.error("No content in GPT response")
         return None
     if not isinstance(content, str):
-        logging.error("Content is not a string in GPT response")
+        logger.error("Content is not a string in GPT response")
         return None
     content = content.strip()
     if not content:
-        logging.error("Content is empty in GPT response")
+        logger.error("Content is empty in GPT response")
         return None
 
     safe_content = _sanitize_sensitive_data(content)
-    logging.info("GPT raw response: %s", safe_content[:200])
+    logger.info("GPT raw response: %s", safe_content[:200])
     parsed = _extract_first_json(content)
     if parsed is None:
-        logging.error("No JSON object found in response")
+        logger.error("No JSON object found in response")
         return None
     try:
         return CommandSchema.model_validate(parsed).model_dump(exclude_none=True)
     except ValidationError:
-        logging.exception("Invalid command structure")
+        logger.exception("Invalid command structure")
         return None
