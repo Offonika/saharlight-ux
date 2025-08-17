@@ -204,7 +204,7 @@ async def test_profile_view_preserves_user_data(monkeypatch: pytest.MonkeyPatch)
     await handlers.profile_view(update, context)
 
     assert context.user_data is not None
-    user_data = context.user_data
+    user_data = cast(dict[str, Any], context.user_data)
     assert user_data["thread_id"] == "tid"
     assert user_data["foo"] == "bar"
 

@@ -45,8 +45,8 @@ async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
 
     await handlers.freeform_handler(update, context)
 
-    user_data = context.user_data
-    assert user_data is not None
+    assert context.user_data is not None
+    user_data = cast(dict[str, Any], context.user_data)
     pending = user_data.get("pending_entry")
     assert pending is not None
     assert pending["dose"] == 3.5
@@ -98,8 +98,8 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
 
     await handlers.freeform_handler(update, context)
 
-    user_data = context.user_data
-    assert user_data is not None
+    assert context.user_data is not None
+    user_data = cast(dict[str, Any], context.user_data)
     pending = user_data.get("pending_entry")
     assert pending is not None
     assert pending["sugar_before"] == 5.6
@@ -132,8 +132,8 @@ async def test_freeform_handler_sugar_only_flow() -> None:
 
     await handlers.freeform_handler(update, context)
 
-    user_data = context.user_data
-    assert user_data is not None
+    assert context.user_data is not None
+    user_data = cast(dict[str, Any], context.user_data)
     pending = user_data.get("pending_entry")
     assert pending is not None
     assert pending["sugar_before"] == 4.2
