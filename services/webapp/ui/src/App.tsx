@@ -42,6 +42,7 @@ const AppContent = () => {
         <div className="text-center space-y-2">
           <p className="text-lg font-medium">Что-то пошло не так</p>
           <p className="text-muted-foreground">Попробуйте обновить приложение.</p>
+          <p className="text-sm text-muted-foreground">{error}</p>
         </div>
       </div>
     );
