@@ -80,7 +80,7 @@ async def photo_handler(
             file = await context.bot.get_file(photo.file_id)
             await file.download_to_drive(file_path)
         except (TelegramError, OSError) as exc:
-            logging.exception("[PHOTO] Failed to save photo: %s", exc)
+            logger.exception("[PHOTO] Failed to save photo: %s", exc)
             await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
             user_data.pop(WAITING_GPT_FLAG, None)
             return END
@@ -175,7 +175,7 @@ async def photo_handler(
             return END
 
         if run.status != "completed":
-            logging.error("[VISION][RUN_FAILED] run.status=%s", run.status)
+            logger.error("[VISION][RUN_FAILED] run.status=%s", run.status)
             if status_message and hasattr(status_message, "edit_text"):
                 try:
                     await status_message.edit_text("⚠️ Vision не смог обработать фото.")
@@ -256,23 +256,23 @@ async def photo_handler(
         return PHOTO_SUGAR
 
     except OSError as exc:
-        logging.exception("[PHOTO] File processing error: %s", exc)
+        logger.exception("[PHOTO] File processing error: %s", exc)
         await message.reply_text(
             "⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз."
         )
         return END
     except OpenAIError as exc:
-        logging.exception("[PHOTO] Vision API error: %s", exc)
+        logger.exception("[PHOTO] Vision API error: %s", exc)
         await message.reply_text(
             "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
         )
         return END
     except ValueError as exc:
-        logging.exception("[PHOTO] Parsing error: %s", exc)
+        logger.exception("[PHOTO] Parsing error: %s", exc)
         await message.reply_text("⚠️ Не удалось распознать фото. Попробуйте ещё раз.")
         return END
     except TelegramError as exc:
-        logging.exception("[PHOTO] Telegram error: %s", exc)
+        logger.exception("[PHOTO] Telegram error: %s", exc)
         return END
     finally:
         user_data.pop(WAITING_GPT_FLAG, None)

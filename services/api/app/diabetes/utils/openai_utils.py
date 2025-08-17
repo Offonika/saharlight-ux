@@ -5,6 +5,8 @@ from openai import OpenAI
 
 from services.api.app.config import settings
 
+logger = logging.getLogger(__name__)
+
 
 def get_openai_client() -> OpenAI:
     """Return a configured OpenAI client.
@@ -16,7 +18,7 @@ def get_openai_client() -> OpenAI:
 
     if not settings.openai_api_key:
         message = "OPENAI_API_KEY is not set"
-        logging.error("[OpenAI] %s", message)
+        logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
     http_client: httpx.Client | None = None
@@ -25,5 +27,5 @@ def get_openai_client() -> OpenAI:
 
     client = OpenAI(api_key=settings.openai_api_key, http_client=http_client)
     if settings.openai_assistant_id:
-        logging.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)
+        logger.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)
     return client

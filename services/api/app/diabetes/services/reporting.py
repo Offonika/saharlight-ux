@@ -18,6 +18,8 @@ from reportlab.pdfgen import canvas
 
 from services.api.app.config import settings
 
+logger = logging.getLogger(__name__)
+
 date2num_typed: Callable[[datetime], float] = date2num
 
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
@@ -42,7 +44,7 @@ def _register_font(name: str, filename: str) -> str | None:
             msg = f"[PDF] Cannot register font {name} at {path}: {e}"
         else:
             msg = f"[PDF] Invalid font {name} at {path}: {e}"
-        logging.warning(msg)
+        logger.warning(msg)
         if _font_dir != DEFAULT_FONT_DIR:
             fallback = os.path.join(DEFAULT_FONT_DIR, filename)
             try:
@@ -59,7 +61,7 @@ def _register_font(name: str, filename: str) -> str | None:
                     msg2 = (
                         f"[PDF] Invalid default font {name} at {fallback}: {e2}"
                     )
-                logging.warning(msg2)
+                logger.warning(msg2)
                 return msg2
         return msg
 
@@ -113,7 +115,7 @@ def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.Byte
     sugars_plot: list[float] = [cast(float, e.sugar_before) for e in entries_sorted]
 
     if not sugars_plot:
-        logging.info("No sugar data available for %s", period_label)
+        logger.info("No sugar data available for %s", period_label)
         buf = io.BytesIO()
         plt.figure(figsize=(7, 3))
         plt.text(
@@ -191,7 +193,7 @@ def generate_pdf_report(
     """
     font_errors = register_fonts()
     if font_errors:
-        logging.warning("[PDF] Font registration issues: %s", "; ".join(font_errors))
+        logger.warning("[PDF] Font registration issues: %s", "; ".join(font_errors))
 
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -264,9 +266,9 @@ def generate_pdf_report(
             )
             y -= 65 * mm
         except OSError as e:
-            logging.warning("[PDF] Cannot read plot image: %s", e)
+            logger.warning("[PDF] Cannot read plot image: %s", e)
         except ValueError as e:
-            logging.exception("[PDF] Invalid plot image: %s", e)
+            logger.exception("[PDF] Invalid plot image: %s", e)
 
     # Анализ и рекомендации
     y -= 8 * mm

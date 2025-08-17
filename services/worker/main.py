@@ -3,11 +3,13 @@
 import logging
 import sys
 
+logger = logging.getLogger(__name__)
+
 try:
     from diabetes_sdk import Configuration
     from diabetes_sdk.api import default_api
 except ImportError:
-    logging.error(
+    logger.error(
         "diabetes_sdk is required to run the worker. "
         "Install it with 'pip install diabetes_sdk'."
     )
@@ -17,7 +19,7 @@ except ImportError:
 def run() -> None:
     """Entry point for the worker service."""
     api = default_api.DefaultApi(configuration=Configuration())
-    logging.info("Worker started. API client ready: %s", api)
+    logger.info("Worker started. API client ready: %s", api)
 
 
 if __name__ == "__main__":
