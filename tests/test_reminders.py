@@ -1,7 +1,7 @@
 import json
 import logging
 import pytest
-from datetime import datetime, timezone, time
+from datetime import datetime, timezone, time, tzinfo
 from zoneinfo import ZoneInfo
 from unittest.mock import MagicMock
 from sqlalchemy import create_engine
@@ -161,7 +161,7 @@ def test_schedule_reminder_replaces_existing_job() -> None:
         assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
         handlers.schedule_reminder(rem, job_queue)
-    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
+    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
     active_jobs = [j for j in jobs if not j.removed]
     assert len(active_jobs) == 1
     job = active_jobs[0]
@@ -177,8 +177,11 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
 
     class DummyDatetime(datetime):
         @classmethod
-        def now(cls) -> datetime:  # type: ignore[override]
-            return now
+        def now(cls, tz: tzinfo | None = None) -> "DummyDatetime":  # type: ignore[override]
+            result = now
+            if tz is not None:
+                result = result.replace(tzinfo=tz)
+            return cast("DummyDatetime", result)
 
     monkeypatch.setattr(handlers, "datetime", DummyDatetime)
     user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
@@ -360,7 +363,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         rem_db = session.get(Reminder, 1)
         assert rem_db is not None
         assert not rem_db.is_enabled
-    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
+    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
     assert job.removed
@@ -398,7 +401,7 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
-    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
+    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
     assert job.removed
@@ -440,7 +443,7 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
         rem_db = session.get(Reminder, 1)
         assert rem_db is not None
         assert rem_db.time == parsed.strftime("%H:%M")
-    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
+    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
     assert len(jobs) == 2
     assert jobs[0].removed is True
     assert jobs[1].removed is False
