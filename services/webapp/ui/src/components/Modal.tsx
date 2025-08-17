@@ -1,12 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
-  footer?: React.ReactNode;
-  children: React.ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
 }
 
 const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {

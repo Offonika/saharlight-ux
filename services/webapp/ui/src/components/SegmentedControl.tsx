@@ -1,8 +1,8 @@
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 
 export interface SegmentedItem {
   value: string;
-  icon?: React.ReactNode;
+  icon?: ReactNode;
   label?: string;
 }
 

@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 interface SheetProps {
   open: boolean;
   onClose: () => void;
   side?: 'top' | 'bottom' | 'left' | 'right';
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 const Sheet = ({ open, onClose, side = 'bottom', children }: SheetProps) => {
