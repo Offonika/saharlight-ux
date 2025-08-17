@@ -1,13 +1,14 @@
 import { ArrowLeft } from 'lucide-react';
+import { type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/ThemeToggle';
+import { Button } from '@/components/ui/button';
 
 interface MedicalHeaderProps {
   title: string;
   showBack?: boolean;
   onBack?: () => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 export const MedicalHeader = ({ title, showBack, onBack, children }: MedicalHeaderProps) => {
