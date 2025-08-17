@@ -10,7 +10,8 @@ Remove this module once ``python-telegram-bot`` is upgraded and includes the
 fix natively.
 """
 
-from telegram.ext import _application
+import telegram.ext as ext
+from telegram.ext import _application, _applicationbuilder
 
 Base = _application.Application
 
@@ -20,3 +21,5 @@ if not hasattr(Base, "__weakref__"):  # pragma: no branch
         __slots__ = (*Base.__slots__, "__weakref__")
 
     _application.Application = _CompatApplication
+    _applicationbuilder.Application = _CompatApplication
+    ext.Application = _CompatApplication
