@@ -26,7 +26,7 @@ def date2num(date: datetime.datetime) -> float:
 
 def read_pdf(stream: BinaryIO) -> _PdfReader:
     """Typed wrapper around :class:`pypdf.PdfReader`."""
-    return _PdfReader(stream)
+    return cast(Callable[[BinaryIO], _PdfReader], _PdfReader)(stream)
 
 
 class DummyEntry:
