@@ -345,6 +345,10 @@ __all__ = [
     "_cancel_then",
     "dose_conv",
     "prompt_dose",
+    "commit",
+    "parse_command",
+    "smart_input",
+    "send_report",
     # re-exported handlers
     "photo_prompt",
     "photo_handler",
