@@ -88,6 +88,7 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(user_data={}, bot=DummyBot()),
     )
     assert context.user_data is not None
+    user_data = cast(dict[str, Any], context.user_data)
 
     await router.callback_router(update_cb, context)
 
@@ -98,7 +99,8 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     await router.callback_router(update_cb2, context)
     assert context.user_data is not None
-    assert context.user_data["edit_field"] == "dose"
+    user_data = cast(dict[str, Any], context.user_data)
+    assert user_data["edit_field"] == "dose"
 
     reply_msg = DummyMessage(text="5")
     update_msg = cast(
