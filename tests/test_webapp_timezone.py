@@ -3,9 +3,8 @@ import hashlib
 import hmac
 import json
 import time
-from concurrent.futures import ThreadPoolExecutor
 import urllib.parse
-
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, cast
 
 import pytest
@@ -17,7 +16,6 @@ from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
 from services.api.app.diabetes.services import db
-
 
 TOKEN = "test-token"
 
@@ -55,33 +53,36 @@ def test_timezone_persist_and_validate(
     monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
 ) -> None:
     Session = setup_db(monkeypatch)
-    client = TestClient(server.app)
+    with TestClient(server.app) as client:
+        resp = client.put(
+            "/timezone", json={"tz": "Europe/Moscow"}, headers=auth_headers
+        )
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
 
-    resp = client.put("/timezone", json={"tz": "Europe/Moscow"}, headers=auth_headers)
-    assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+        resp = client.get("/timezone", headers=auth_headers)
+        assert resp.status_code == 200
+        assert resp.json() == {"tz": "Europe/Moscow"}
 
-    resp = client.get("/timezone", headers=auth_headers)
-    assert resp.status_code == 200
-    assert resp.json() == {"tz": "Europe/Moscow"}
+        with Session() as session:
+            tz_row = session.get(db.Timezone, 1)
+            assert tz_row is not None
+            assert tz_row.tz == "Europe/Moscow"
 
-    with Session() as session:
-        tz_row = session.get(db.Timezone, 1)
-        assert tz_row is not None
-        assert tz_row.tz == "Europe/Moscow"
+        resp = client.put("/timezone", json={}, headers=auth_headers)
+        assert resp.status_code == 422
 
-    resp = client.put("/timezone", json={}, headers=auth_headers)
-    assert resp.status_code == 422
+        resp = client.put(
+            "/timezone", json={"tz": "Invalid/Zone"}, headers=auth_headers
+        )
+        assert resp.status_code == 400
 
-    resp = client.put("/timezone", json={"tz": "Invalid/Zone"}, headers=auth_headers)
-    assert resp.status_code == 400
-
-    resp = client.put(
-        "/timezone",
-        content=b"not json",
-        headers={**auth_headers, "Content-Type": "application/json"},
-    )
-    assert resp.status_code in {400, 422}
+        resp = client.put(
+            "/timezone",
+            content=b"not json",
+            headers={**auth_headers, "Content-Type": "application/json"},
+        )
+        assert resp.status_code in {400, 422}
 
 
 def test_timezone_partial_file(
@@ -92,9 +93,9 @@ def test_timezone_partial_file(
         session.add(db.Timezone(id=1, tz="Europe/Mosc"))
         session.commit()
 
-    client = TestClient(server.app)
-    resp = client.get("/timezone", headers=auth_headers)
-    assert resp.status_code == 500
+    with TestClient(server.app) as client:
+        resp = client.get("/timezone", headers=auth_headers)
+        assert resp.status_code == 500
 
 
 def test_timezone_concurrent_writes(
@@ -119,10 +120,10 @@ def test_timezone_concurrent_writes(
         assert tz_row.tz in timezones
         tz_value = tz_row.tz
 
-    client = TestClient(server.app)
-    resp = client.get("/timezone", headers=headers)
-    assert resp.status_code == 200
-    assert resp.json() == {"tz": tz_value}
+    with TestClient(server.app) as client:
+        resp = client.get("/timezone", headers=headers)
+        assert resp.status_code == 200
+        assert resp.json() == {"tz": tz_value}
 
 
 @pytest.mark.asyncio
@@ -158,6 +159,6 @@ async def test_timezone_async_writes(
 
 
 def test_timezone_requires_header() -> None:
-    client = TestClient(server.app)
-    assert client.get("/timezone").status_code == 401
-    assert client.put("/timezone", json={"tz": "Europe/Moscow"}).status_code == 401
+    with TestClient(server.app) as client:
+        assert client.get("/timezone").status_code == 401
+        assert client.put("/timezone", json={"tz": "Europe/Moscow"}).status_code == 401

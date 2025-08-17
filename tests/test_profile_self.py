@@ -11,7 +11,6 @@ from services.api.app.config import settings
 from services.api.app.main import app
 
 TOKEN = "test-token"
-client = TestClient(app)
 
 
 def build_init_data(user_id: int = 1) -> str:
@@ -26,17 +25,24 @@ def build_init_data(user_id: int = 1) -> str:
 def test_profile_self_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data = build_init_data(42)
-    resp = client.get("/api/profile/self", headers={"X-Telegram-Init-Data": init_data})
+    with TestClient(app) as client:
+        resp = client.get(
+            "/api/profile/self", headers={"X-Telegram-Init-Data": init_data}
+        )
     assert resp.status_code == 200
     assert resp.json()["id"] == 42
 
 
 def test_profile_self_missing_header() -> None:
-    resp = client.get("/api/profile/self")
+    with TestClient(app) as client:
+        resp = client.get("/api/profile/self")
     assert resp.status_code == 401
 
 
 def test_profile_self_invalid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
-    resp = client.get("/api/profile/self", headers={"X-Telegram-Init-Data": "bad"})
+    with TestClient(app) as client:
+        resp = client.get(
+            "/api/profile/self", headers={"X-Telegram-Init-Data": "bad"}
+        )
     assert resp.status_code == 401
