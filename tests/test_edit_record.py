@@ -112,8 +112,10 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
         assert entry_obj is not None
         entry_db: Entry = entry_obj
         assert entry_db.dose == 5.0
+        day_str = entry_db.event_time.strftime("%d.%m %H:%M")
 
     assert field_query.answer_texts[-1] == "Изменено"
     edited_text, chat_id, message_id, kwargs = context.bot.edited[0]
     assert chat_id == 42 and message_id == 24
+    assert f"<b>{day_str}</b>" in edited_text
     assert f"💉 Доза: <b>{entry_db.dose}</b>" in edited_text
