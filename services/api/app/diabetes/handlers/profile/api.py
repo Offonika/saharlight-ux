@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
@@ -79,7 +79,7 @@ if TYPE_CHECKING:  # pragma: no cover - used only for type hints
     from diabetes_sdk.api.default_api import DefaultApi
 
 
-def get_api() -> tuple[Any, type[Exception], type]:
+def get_api() -> tuple[object, type[Exception], type]:
     """Return API client, its exception type and profile model.
 
     The function attempts to import and configure the external
@@ -138,7 +138,7 @@ def fetch_profile(
     api: "DefaultApi",
     ApiException: type[Exception],
     user_id: int,
-) -> Any:
+) -> object | None:
     """Fetch profile via synchronous SDK call."""
     try:
         return api.profiles_get(telegram_id=user_id)

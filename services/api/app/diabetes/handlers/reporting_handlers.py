@@ -10,7 +10,7 @@ import os as os
 import html
 import logging
 
-from typing import Any, Protocol, cast
+from typing import Protocol, cast
 
 from openai import OpenAIError
 from openai.types.beta.threads import TextContentBlock
@@ -33,6 +33,7 @@ from services.api.app.diabetes.services.gpt_client import (
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.services.reporting import make_sugar_plot, generate_pdf_report
 from services.api.app.diabetes.utils.ui import menu_keyboard
+from . import UserData
 
 LOW_SUGAR_THRESHOLD = 3.0
 HIGH_SUGAR_THRESHOLD = 13.0
@@ -193,7 +194,7 @@ async def report_period_callback(
             context.user_data = {}
             user_data_raw = context.user_data
         assert user_data_raw is not None
-        user_data = cast(dict[str, Any], user_data_raw)
+        user_data = cast(UserData, user_data_raw)
         user_data["awaiting_report_date"] = True
         await query.edit_message_text(
             "Введите дату начала отчёта в формате YYYY-MM-DD\n"
@@ -278,7 +279,7 @@ async def send_report(
         context.user_data = {}
         user_data_raw = context.user_data
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     thread_id = cast(str | None, user_data.get("thread_id"))
     if thread_id is None:
         with SessionLocal() as session:

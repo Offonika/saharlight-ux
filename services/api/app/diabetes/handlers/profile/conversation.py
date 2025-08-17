@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 from telegram import (
     Update,
     InlineKeyboardButton,
@@ -53,6 +53,8 @@ from .validation import parse_profile_args
 back_keyboard: ReplyKeyboardMarkup = _back_keyboard
 
 logger = logging.getLogger(__name__)
+
+from .. import UserData
 
 
 MSG_ICR_GT0 = "ИКХ должен быть больше 0."
@@ -610,7 +612,7 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         context.user_data = {}
         user_data_raw = context.user_data
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
@@ -642,7 +644,7 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         context.user_data = {}
         user_data_raw = context.user_data
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
@@ -678,7 +680,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         context.user_data = {}
         user_data_raw = context.user_data
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
@@ -718,7 +720,7 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         context.user_data = {}
         user_data_raw = context.user_data
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     context.user_data = user_data
     message = update.message
     if message is None or message.text is None:
@@ -756,7 +758,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         context.user_data = {}
         user_data_raw = context.user_data
     assert user_data_raw is not None
-    user_data = cast(dict[str, Any], user_data_raw)
+    user_data = cast(UserData, user_data_raw)
     context.user_data = user_data
     message = update.message
     if message is None or message.text is None:

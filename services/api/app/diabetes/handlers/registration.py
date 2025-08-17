@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from telegram.ext import (
     Application,
@@ -28,9 +27,9 @@ def register_handlers(
     app: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
-        dict[str, Any],
-        dict[str, Any],
-        dict[str, Any],
+        dict[str, object],
+        dict[str, object],
+        dict[str, object],
         JobQueue[ContextTypes.DEFAULT_TYPE],
     ]
 ) -> None:
