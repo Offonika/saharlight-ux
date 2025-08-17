@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
+import threading
+from datetime import datetime
+from typing import Callable, Concatenate, ParamSpec, Protocol, TypeVar
+
 from sqlalchemy import (
     create_engine,
     Integer,
@@ -25,13 +31,9 @@ from sqlalchemy.orm import (
     relationship,
     sessionmaker,
 )
-import asyncio
-import logging
-import threading
-from datetime import datetime
-from typing import Callable, TypeVar, ParamSpec, Protocol, Concatenate
 
 from services.api.app.config import get_db_password, settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -55,8 +57,7 @@ S = TypeVar("S", bound=Session)
 
 
 class SessionMaker(Protocol[S]):
-    def __call__(self) -> S:
-        ...
+    def __call__(self) -> S: ...
 
 
 async def run_db(
@@ -86,7 +87,9 @@ async def run_db(
         with sessionmaker() as _session:
             bind = _session.get_bind()
     except UnboundExecutionError as exc:
-        logger.error("Database engine is not initialized. Call init_db() to configure it.")
+        logger.error(
+            "Database engine is not initialized. Call init_db() to configure it."
+        )
         raise RuntimeError(
             "Database engine is not initialized; run init_db() before calling run_db()."
         ) from exc
@@ -123,9 +126,7 @@ def dispose_engine(target: Engine | None = None) -> None:
 # ───────────────────────── модели ────────────────────────────
 class User(Base):
     __tablename__ = "users"
-    telegram_id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, index=True
-    )
+    telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
     thread_id: Mapped[str] = mapped_column(String, nullable=False)
     first_name: Mapped[str | None] = mapped_column(String)
     last_name: Mapped[str | None] = mapped_column(String)
@@ -218,9 +219,7 @@ class Reminder(Base):
 class ReminderLog(Base):
     __tablename__ = "reminder_logs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    reminder_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("reminders.id")
-    )
+    reminder_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("reminders.id"))
     telegram_id: Mapped[int | None] = mapped_column(BigInteger)
     org_id: Mapped[int | None] = mapped_column(Integer)
     action: Mapped[str | None] = mapped_column(String)
