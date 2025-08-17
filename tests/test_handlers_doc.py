@@ -269,10 +269,12 @@ async def test_photo_then_freeform_calculates_dose(monkeypatch: pytest.MonkeyPat
 
     async def fake_run_db(
         func: Callable[[Session], T],
+        *args: Any,
         sessionmaker: Callable[[], Session],
+        **kwargs: Any,
     ) -> T:
         with cast(Any, sessionmaker()) as s:
-            return func(cast(Session, s))
+            return func(cast(Session, s), *args, **kwargs)
 
     monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
 
