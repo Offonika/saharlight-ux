@@ -10,7 +10,13 @@ Remove this module once ``python-telegram-bot`` is upgraded and includes the
 fix natively.
 """
 
-from telegram.ext._application import Application
+from telegram.ext import _application
 
-if "__weakref__" not in getattr(Application, "__slots__", ()):
-    Application.__slots__ = (*Application.__slots__, "__weakref__")  # type: ignore[attr-defined]
+BaseApplication = _application.Application
+
+if not hasattr(BaseApplication, "__weakref__"):
+
+    class _CompatApplication(BaseApplication):
+        __slots__ = (*getattr(BaseApplication, "__slots__", ()), "__weakref__")
+
+    _application.Application = _CompatApplication
