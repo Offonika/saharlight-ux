@@ -83,6 +83,22 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
 
 
 async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | None:
+    """Parse *text* with GPT and return a command dictionary.
+
+    Parameters
+    ----------
+    text:
+        Free-form diary message that should be interpreted.
+    timeout:
+        Maximum time in seconds to wait for the OpenAI response.
+
+    Returns
+    -------
+    dict[str, object] | None
+        A dictionary with keys like ``action``, ``entry_date`` or ``time`` and
+        nested ``fields`` describing the command, or ``None`` if parsing fails.
+    """
+
     try:
         # ``asyncio.to_thread`` runs the blocking OpenAI client in the event
         # loop's shared thread pool, so we reuse threads instead of spawning a
