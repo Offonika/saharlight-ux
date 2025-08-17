@@ -4,7 +4,7 @@ import datetime
 import io
 import os
 from types import SimpleNamespace
-from typing import Any, BinaryIO, Callable, cast
+from typing import Any, BinaryIO
 
 import matplotlib.pyplot as plt
 from matplotlib.dates import date2num as _date2num
@@ -21,12 +21,12 @@ from services.api.app.diabetes.services.reporting import make_sugar_plot, genera
 
 def date2num(date: datetime.datetime) -> float:
     """Typed wrapper around :func:`matplotlib.dates.date2num`."""
-    return float(cast(Callable[[datetime.datetime], float], _date2num)(date))
+    return float(_date2num(date))
 
 
 def read_pdf(stream: BinaryIO) -> _PdfReader:
     """Typed wrapper around :class:`pypdf.PdfReader`."""
-    return cast(Callable[[BinaryIO], _PdfReader], _PdfReader)(stream)
+    return _PdfReader(stream)
 
 
 class DummyEntry:

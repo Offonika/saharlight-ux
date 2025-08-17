@@ -18,7 +18,7 @@ from reportlab.pdfgen import canvas
 
 from services.api.app.config import settings
 
-date2num_typed = cast(Callable[[datetime], float], date2num)
+date2num_typed: Callable[[datetime], float] = date2num
 
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
 DEFAULT_FONT_DIR = '/usr/share/fonts/truetype/dejavu'
