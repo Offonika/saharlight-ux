@@ -35,7 +35,7 @@ async def test_run_db_sqlite_in_memory(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_run_db_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
     dummy_engine = SimpleNamespace(url=SimpleNamespace(drivername="postgresql", database="db"))
 
-    class DummySession:
+    class DummySession(SASession):
         def get_bind(self) -> SimpleNamespace:
             return dummy_engine
 
