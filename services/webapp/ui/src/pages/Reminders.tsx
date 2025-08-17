@@ -89,7 +89,7 @@ function ReminderRow({
       )}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <div className="rem-left" aria-hidden>{icon}</div>
+      <div className="rem-left" aria-hidden="true">{icon}</div>
 
       <div className="rem-main">
         <div className="rem-title font-medium text-foreground">{reminder.title}</div>
