@@ -265,19 +265,25 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             await message.reply_text("❗ ХЕ указываются числом, без ммоль/л и ед.")
         else:
             await message.reply_text(
-                "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2"
+                "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2",
             )
         return
-    if pending_entry is not None and edit_id is None and any(v is not None for v in quick.values()):
+
+    carbs_match = re.search(
+        r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I
+    )
+    if pending_entry is not None and edit_id is None and (
+        any(v is not None for v in quick.values()) or carbs_match
+    ):
         if quick["sugar"] is not None:
             pending_entry["sugar_before"] = quick["sugar"]
         if quick["xe"] is not None:
             pending_entry["xe"] = quick["xe"]
             pending_entry["carbs_g"] = quick["xe"] * 12
-        else:
-            m = re.search(r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I)
-            if m:
-                pending_entry["carbs_g"] = float(m.group(1).replace(",", "."))
+        elif carbs_match:
+            pending_entry["carbs_g"] = float(
+                carbs_match.group(1).replace(",", ".")
+            )
         if quick["dose"] is not None:
             pending_entry["dose"] = quick["dose"]
         await message.reply_text("Данные обновлены.")

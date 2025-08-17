@@ -70,8 +70,11 @@ SUGAR_VALUE_RE = re.compile(
 SUGAR_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(ммоль/?л|mmol/?l)\b")
 XE_VALUE_RE = re.compile(rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*({NUMBER_RE})\b")
 XE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:xe|хе)\b")
+# ``dose`` may be followed immediately by another token (e.g. ``"carbs=30"``).
+# ``\b`` would fail in such cases, so we use a lookahead that ensures the
+# number is terminated by a non-numeric character or end of string.
 DOSE_VALUE_RE = re.compile(
-    rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})\b"
+    rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=$|\s|[^0-9a-zA-Z.,])"
 )
 DOSE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:ед\.?|units?|u)\b")
 ONLY_NUMBER_RE = re.compile(rf"\s*({NUMBER_RE})\s*")
