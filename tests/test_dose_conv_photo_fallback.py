@@ -16,9 +16,16 @@ from services.api.app.diabetes.handlers import dose_handlers
 
 
 def _find_handler(
-    fallbacks: Iterable[BaseHandler[Update, CallbackContext]],
+    fallbacks: Iterable[
+        BaseHandler[
+            Update,
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        ]
+    ],
     regex: str,
-) -> MessageHandler[CallbackContext]:
+) -> MessageHandler[
+    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
+]:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
             filt = getattr(h, "filters", None)
@@ -48,7 +55,7 @@ async def test_photo_button_cancels_and_prompts_photo() -> None:
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(
-        CallbackContext,
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
     await handler.callback(update, context)
