@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 from typing import Any, cast
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+    WebAppInfo,
+)
 from telegram.ext import (
     CommandHandler,
     ContextTypes,
@@ -34,7 +40,7 @@ from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
 )
 from services.api.app.diabetes.utils.ui import (
     build_timezone_webapp_button,
-    back_keyboard,
+    back_keyboard as _back_keyboard,
     menu_keyboard,
 )
 from services.api.app.config import settings
@@ -43,6 +49,8 @@ import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
 from .api import get_api, save_profile, set_timezone, fetch_profile, post_profile
 from .validation import parse_profile_args
+
+back_keyboard: ReplyKeyboardMarkup = _back_keyboard
 
 logger = logging.getLogger(__name__)
 
