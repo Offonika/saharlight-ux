@@ -46,6 +46,9 @@ def register_handlers(
         alert_handlers,
         sos_handlers,
         security_handlers,
+        photo_handlers,
+        sugar_handlers,
+        gpt_handlers,
     )
 
     app.add_handler(onboarding_conv)
@@ -56,11 +59,11 @@ def register_handlers(
     # inputs for profile aren't captured by sugar logging
     app.add_handler(profile.profile_conv)
     app.add_handler(profile.profile_webapp_handler)
-    app.add_handler(dose_calc.sugar_conv)
+    app.add_handler(sugar_handlers.sugar_conv)
     app.add_handler(sos_handlers.sos_contact_conv)
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("help", help_command))
-    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("gpt", dose_calc.chat_with_gpt))
+    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("gpt", gpt_handlers.chat_with_gpt))
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("reminders", reminder_handlers.reminders_list))
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("addreminder", reminder_handlers.add_reminder))
     app.add_handler(reminder_handlers.reminder_action_handler)
@@ -79,7 +82,7 @@ def register_handlers(
         MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📊 История$"), reporting_handlers.history_view)
     )
     app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📷 Фото еды$"), dose_calc.photo_prompt)
+        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📷 Фото еды$"), photo_handlers.photo_prompt)
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^🕹 Быстрый ввод$"), smart_input_help)
@@ -99,12 +102,12 @@ def register_handlers(
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.TEXT & ~filters.COMMAND, dose_calc.freeform_handler
+            filters.TEXT & ~filters.COMMAND, gpt_handlers.freeform_handler
         )
     )
-    app.add_handler(MessageHandler[ContextTypes.DEFAULT_TYPE](filters.PHOTO, dose_calc.photo_handler))
+    app.add_handler(MessageHandler[ContextTypes.DEFAULT_TYPE](filters.PHOTO, photo_handlers.photo_handler))
     app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Document.IMAGE, dose_calc.doc_handler)
+        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Document.IMAGE, photo_handlers.doc_handler)
     )
     app.add_handler(
         CallbackQueryHandler[ContextTypes.DEFAULT_TYPE](

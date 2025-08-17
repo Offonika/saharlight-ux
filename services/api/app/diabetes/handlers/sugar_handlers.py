@@ -1,0 +1,123 @@
+import datetime
+import logging
+from typing import cast
+
+from telegram import Update
+from telegram.ext import (
+    CommandHandler,
+    ContextTypes,
+    ConversationHandler,
+    MessageHandler,
+    filters,
+)
+
+from services.api.app.diabetes.services.db import SessionLocal, Entry
+from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.utils.ui import menu_keyboard, sugar_keyboard
+
+from .alert_handlers import check_alert
+from .common_handlers import menu_command
+from .photo_handlers import photo_prompt
+from .dose_calc import dose_cancel, _cancel_then
+from . import UserData
+
+logger = logging.getLogger(__name__)
+
+SUGAR_VAL = 8
+END = ConversationHandler.END
+
+
+async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Prompt user for current sugar level."""
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        return END
+    user_data = cast(UserData, user_data_raw)
+    message = update.message
+    if message is None:
+        return END
+    user = update.effective_user
+    if user is None:
+        return END
+    user_data.pop("pending_entry", None)
+    user_data["pending_entry"] = {
+        "telegram_id": user.id,
+        "event_time": datetime.datetime.now(datetime.timezone.utc),
+    }
+    chat_data = getattr(context, "chat_data", None)
+    if chat_data is not None:
+        chat_data["sugar_active"] = True
+    await message.reply_text(
+        "Введите текущий уровень сахара (ммоль/л).", reply_markup=sugar_keyboard
+    )
+    return SUGAR_VAL
+
+
+async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Store the provided sugar level to the diary."""
+    chat_data = getattr(context, "chat_data", None)
+    if chat_data is not None and not chat_data.get("sugar_active"):
+        return END
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        return END
+    user_data = cast(UserData, user_data_raw)
+    message = update.message
+    if message is None:
+        return END
+    text = message.text
+    if text is None:
+        return END
+    user = update.effective_user
+    if user is None:
+        return END
+    text = text.strip().replace(",", ".")
+    try:
+        sugar = float(text)
+    except ValueError:
+        await message.reply_text("Введите сахар числом в ммоль/л.")
+        return SUGAR_VAL
+    if sugar < 0:
+        await message.reply_text("Сахар не может быть отрицательным.")
+        return SUGAR_VAL
+    entry_data = user_data.pop("pending_entry", None) or {
+        "telegram_id": user.id,
+        "event_time": datetime.datetime.now(datetime.timezone.utc),
+    }
+    entry_data["sugar_before"] = sugar
+    with SessionLocal() as session:
+        entry = Entry(**entry_data)
+        session.add(entry)
+        if not commit(session):
+            await message.reply_text("⚠️ Не удалось сохранить запись.")
+            return END
+    await check_alert(update, context, sugar)
+    await message.reply_text(
+        f"✅ Уровень сахара {sugar} ммоль/л сохранён.",
+        reply_markup=menu_keyboard,
+    )
+    if chat_data is not None:
+        chat_data.pop("sugar_active", None)
+    return END
+
+
+prompt_sugar = sugar_start
+
+sugar_conv = ConversationHandler(
+    entry_points=[
+        CommandHandler("sugar", sugar_start),
+        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), sugar_start),
+    ],
+    states={
+        SUGAR_VAL: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), sugar_val)],
+    },
+    fallbacks=[
+        MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
+        CommandHandler("menu", cast(object, _cancel_then(menu_command))),
+        MessageHandler(
+            filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
+        ),
+    ],
+)
+
+__all__ = ["SUGAR_VAL", "sugar_start", "sugar_val", "sugar_conv", "prompt_sugar"]

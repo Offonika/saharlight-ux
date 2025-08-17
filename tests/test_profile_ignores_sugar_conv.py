@@ -9,7 +9,8 @@ from telegram.ext import CallbackContext
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-from services.api.app.diabetes.handlers import dose_calc, profile as profile_handlers
+import services.api.app.diabetes.handlers.sugar_handlers as sugar_handlers
+from services.api.app.diabetes.handlers import profile as profile_handlers
 from services.api.app.diabetes.services.db import Base, Entry, User
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -33,7 +34,7 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch: pytest.MonkeyPatch
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
     monkeypatch.setattr(profile_handlers, "SessionLocal", TestSession)
-    monkeypatch.setattr(dose_calc, "SessionLocal", TestSession)
+    monkeypatch.setattr(sugar_handlers, "SessionLocal", TestSession)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -54,7 +55,7 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch: pytest.MonkeyPatch
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, chat_data=shared_chat_data),
     )
-    await dose_calc.sugar_start(sugar_update, sugar_context)
+    await sugar_handlers.sugar_start(sugar_update, sugar_context)
 
     # Start profile conversation which should cancel sugar conversation
     prof_msg = DummyMessage("/profile")
