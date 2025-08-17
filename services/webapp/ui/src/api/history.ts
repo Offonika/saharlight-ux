@@ -16,9 +16,6 @@ export interface HistoryRecord {
 export async function getHistory(): Promise<HistoryRecord[]> {
   try {
     const res = await tgFetch(`${API_BASE}/history`);
-    if (!res.ok) {
-      throw new Error('Не удалось загрузить историю');
-    }
     const data = await res.json();
     if (!Array.isArray(data)) {
       throw new Error('Некорректный ответ');
@@ -41,7 +38,7 @@ export async function updateRecord(record: HistoryRecord) {
       body: JSON.stringify(record),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.status !== 'ok') {
+    if (data.status !== 'ok') {
       throw new Error(data.detail || 'Не удалось обновить запись');
     }
     return data;
@@ -58,7 +55,7 @@ export async function deleteRecord(id: string) {
   try {
     const res = await tgFetch(`${API_BASE}/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.status !== 'ok') {
+    if (data.status !== 'ok') {
       throw new Error(data.detail || 'Не удалось удалить запись');
     }
     return data;

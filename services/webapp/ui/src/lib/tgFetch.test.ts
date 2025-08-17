@@ -52,6 +52,13 @@ describe('tgFetch', () => {
     await expect(tgFetch('/api/profile/self')).rejects.toThrow('Проблема с сетью');
   });
 
+  it('throws on non-2xx responses', async () => {
+    (global.fetch as Mock).mockResolvedValue(
+      new Response(null, { status: 500, statusText: 'Internal Error' }),
+    );
+    await expect(tgFetch('/api/profile/self')).rejects.toThrow('Internal Error');
+  });
+
   it('aborts request after timeout', async () => {
     vi.useFakeTimers();
     (global.fetch as Mock).mockImplementation((_, options: RequestInit) =>

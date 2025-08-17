@@ -29,10 +29,6 @@ export const fallbackDayStats: DayStats = {
 export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint[]> {
   try {
     const res = await tgFetch(`${API_BASE}/analytics?telegramId=${telegramId}`);
-    if (!res.ok) {
-      console.error('Analytics API request failed:', res.status);
-      return fallbackAnalytics;
-    }
     const data = await res.json();
     if (!Array.isArray(data)) {
       console.error('Unexpected analytics API response:', data);
@@ -48,10 +44,6 @@ export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint
 export async function fetchDayStats(telegramId: number): Promise<DayStats> {
   try {
     const res = await tgFetch(`${API_BASE}/stats?telegramId=${telegramId}`);
-    if (!res.ok) {
-      console.error('Stats API request failed:', res.status);
-      return fallbackDayStats;
-    }
     const data = await res.json();
 
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
