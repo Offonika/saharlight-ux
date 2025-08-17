@@ -164,12 +164,15 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
-    session_factory = cast(Callable[[], DummySession], lambda: session)
-    dose_handlers.SessionLocal = session_factory
+    def session_factory() -> DummySession:
+        return session
+
+    SessionLocal: Callable[[], DummySession] = session_factory
+    dose_handlers.SessionLocal = SessionLocal
     await dose_handlers.freeform_handler(update_sugar, context)
     assert user_data["pending_entry"]["sugar_before"] == 5.5
 
-    monkeypatch.setattr(router, "SessionLocal", session_factory)
+    monkeypatch.setattr(router, "SessionLocal", SessionLocal)
     import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 
     async def noop(*args: Any, **kwargs: Any) -> None:
