@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import hmac
 import json
+import time
 from concurrent.futures import ThreadPoolExecutor
 import urllib.parse
 
@@ -16,7 +17,6 @@ from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
 from services.api.app.diabetes.services import db
-from services.api.app.config import settings
 
 
 TOKEN = "test-token"
@@ -24,7 +24,7 @@ TOKEN = "test-token"
 
 def build_init_data(user_id: int = 1) -> str:
     user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
-    params = {"auth_date": "123", "query_id": "abc", "user": user}
+    params = {"auth_date": str(int(time.time())), "query_id": "abc", "user": user}
     data_check = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
     secret = hmac.new(b"WebAppData", TOKEN.encode(), hashlib.sha256).digest()
     params["hash"] = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
@@ -33,7 +33,7 @@ def build_init_data(user_id: int = 1) -> str:
 
 @pytest.fixture
 def auth_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
     return {"X-Telegram-Init-Data": build_init_data()}
 
 

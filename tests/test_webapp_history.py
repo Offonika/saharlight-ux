@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import hmac
 import json
+import time
 import urllib.parse
 
 from typing import Any, Callable
@@ -14,7 +15,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
-from services.api.app.config import settings
 from services.api.app.diabetes.services import db
 
 TOKEN = "test-token"
@@ -22,7 +22,7 @@ TOKEN = "test-token"
 
 def build_init_data(user_id: int = 1) -> str:
     user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
-    params = {"auth_date": "123", "query_id": "abc", "user": user}
+    params = {"auth_date": str(int(time.time())), "query_id": "abc", "user": user}
     data_check = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
     secret = hmac.new(b"WebAppData", TOKEN.encode(), hashlib.sha256).digest()
     params["hash"] = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
@@ -54,7 +54,7 @@ def test_history_auth_required(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
     client = TestClient(server.app)
     headers1 = {"X-Telegram-Init-Data": build_init_data(1)}
     headers2 = {"X-Telegram-Init-Data": build_init_data(2)}
@@ -105,7 +105,7 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
     headers = {"X-Telegram-Init-Data": build_init_data(1)}
     records = [
         {"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"}
