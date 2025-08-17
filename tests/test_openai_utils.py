@@ -43,3 +43,19 @@ def test_get_openai_client_logs_assistant(
         openai_utils.get_openai_client()
 
     assert any("Using assistant: assistant" in r.message for r in caplog.records)
+
+
+
+def test_get_openai_client_without_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    openai_mock = Mock()
+    monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
+    monkeypatch.setattr(settings, "openai_api_key", "key")
+    http_client_mock = Mock()
+    monkeypatch.setattr(settings, "openai_proxy", None)
+    monkeypatch.setattr(httpx, "Client", http_client_mock)
+
+    client = openai_utils.get_openai_client()
+
+    http_client_mock.assert_not_called()
+    openai_mock.assert_called_once_with(api_key="key", http_client=None)
+    assert client is openai_mock.return_value
