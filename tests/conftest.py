@@ -16,3 +16,10 @@ def _dispose_engine_after_tests() -> Iterator[None]:
     """Dispose the global database engine after the test session."""
     yield
     dispose_engine()
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _dispose_engine_per_module() -> Iterator[None]:
+    """Dispose the global database engine after each test module."""
+    yield
+    dispose_engine()
