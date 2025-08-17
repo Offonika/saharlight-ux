@@ -16,6 +16,8 @@ os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 import services.api.app.diabetes.handlers.dose_calc as dose_calc
 
+dose_handlers = dose_calc
+
 
 class DummyMessage:
     def __init__(self, text: str) -> None:
