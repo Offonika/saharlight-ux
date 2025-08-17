@@ -12,11 +12,11 @@ fix natively.
 
 from telegram.ext import _application
 
-BaseApplication = _application.Application
+Base = _application.Application
 
-if not hasattr(BaseApplication, "__weakref__"):
+if not hasattr(Base, "__weakref__"):  # pragma: no branch
 
-    class _CompatApplication(BaseApplication):
-        __slots__ = (*getattr(BaseApplication, "__slots__", ()), "__weakref__")
+    class _CompatApplication(Base):
+        __slots__ = (*Base.__slots__, "__weakref__")
 
     _application.Application = _CompatApplication
