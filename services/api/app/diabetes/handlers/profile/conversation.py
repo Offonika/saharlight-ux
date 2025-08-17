@@ -55,6 +55,13 @@ back_keyboard: ReplyKeyboardMarkup = _back_keyboard
 logger = logging.getLogger(__name__)
 
 
+MSG_ICR_GT0 = "ИКХ должен быть больше 0."
+MSG_CF_GT0 = "КЧ должен быть больше 0."
+MSG_TARGET_GT0 = "Целевой сахар должен быть больше 0."
+MSG_LOW_GT0 = "Нижний порог должен быть больше 0."
+MSG_HIGH_GT_LOW = "Верхний порог должен быть больше нижнего и больше 0."
+
+
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)
 END: int = ConversationHandler.END
 
@@ -137,6 +144,22 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await message.reply_text(
             "❗ Пожалуйста, введите корректные числа. Справка: /profile help"
         )
+        return END
+
+    if icr <= 0:
+        await message.reply_text(MSG_ICR_GT0)
+        return END
+    if cf <= 0:
+        await message.reply_text(MSG_CF_GT0)
+        return END
+    if target <= 0:
+        await message.reply_text(MSG_TARGET_GT0)
+        return END
+    if low <= 0:
+        await message.reply_text(MSG_LOW_GT0)
+        return END
+    if high <= low:
+        await message.reply_text(MSG_HIGH_GT_LOW)
         return END
 
     warning_msg = ""
@@ -619,7 +642,7 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         await message.reply_text("Введите ИКХ числом.", reply_markup=back_keyboard)
         return PROFILE_ICR
     if icr <= 0:
-        await message.reply_text("ИКХ должен быть больше 0.", reply_markup=back_keyboard)
+        await message.reply_text(MSG_ICR_GT0, reply_markup=back_keyboard)
         return PROFILE_ICR
     user_data["profile_icr"] = icr
     await message.reply_text(
@@ -655,7 +678,7 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await message.reply_text("Введите КЧ числом.", reply_markup=back_keyboard)
         return PROFILE_CF
     if cf <= 0:
-        await message.reply_text("КЧ должен быть больше 0.", reply_markup=back_keyboard)
+        await message.reply_text(MSG_CF_GT0, reply_markup=back_keyboard)
         return PROFILE_CF
     user_data["profile_cf"] = cf
     await message.reply_text(
@@ -694,7 +717,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return PROFILE_TARGET
     if target <= 0:
         await message.reply_text(
-            "Целевой сахар должен быть больше 0.", reply_markup=back_keyboard
+            MSG_TARGET_GT0, reply_markup=back_keyboard
         )
         return PROFILE_TARGET
     user_data["profile_target"] = target
@@ -734,7 +757,7 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         return PROFILE_LOW
     if low <= 0:
         await message.reply_text(
-            "Нижний порог должен быть больше 0.", reply_markup=back_keyboard
+            MSG_LOW_GT0, reply_markup=back_keyboard
         )
         return PROFILE_LOW
     user_data["profile_low"] = low
@@ -773,7 +796,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     low = user_data.get("profile_low")
     if high <= 0 or low is None or high <= low:
         await message.reply_text(
-            "Верхний порог должен быть больше нижнего и больше 0.",
+            MSG_HIGH_GT_LOW,
             reply_markup=back_keyboard,
         )
         return PROFILE_HIGH
@@ -911,6 +934,11 @@ __all__ = [
     "profile_webapp_save",
     "profile_webapp_handler",
     "back_keyboard",
+    "MSG_ICR_GT0",
+    "MSG_CF_GT0",
+    "MSG_TARGET_GT0",
+    "MSG_LOW_GT0",
+    "MSG_HIGH_GT_LOW",
     "PROFILE_ICR",
     "PROFILE_CF",
     "PROFILE_TARGET",
