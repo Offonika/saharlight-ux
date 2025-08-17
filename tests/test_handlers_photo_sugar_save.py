@@ -5,7 +5,7 @@ from typing import Any, Callable, cast
 from unittest.mock import Mock, PropertyMock
 
 import pytest
-from telegram import Update
+from telegram import PhotoSize, Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
@@ -13,9 +13,11 @@ import services.api.app.diabetes.handlers.router as router
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None, photo: list[Any] | None = None) -> None:
+    def __init__(
+        self, text: str | None = None, photo: tuple[PhotoSize, ...] | None = None
+    ) -> None:
         self.text: str | None = text
-        self.photo: list[Any] | None = photo
+        self.photo: tuple[PhotoSize, ...] | None = photo
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 
@@ -40,6 +42,8 @@ class DummyQuery:
 class DummyPhoto:
     file_id = "fid"
     file_unique_id = "uid"
+    width = 1
+    height = 1
 
 
 class DummySession:
@@ -147,7 +151,7 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(dose_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0))
     user_data["thread_id"] = "tid"
 
-    msg_photo = DummyMessage(photo=[DummyPhoto()])
+    msg_photo = DummyMessage(photo=(cast(PhotoSize, DummyPhoto()),))
     update_photo = cast(
         Update,
         SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1)),

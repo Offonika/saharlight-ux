@@ -3,16 +3,18 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
-from telegram import Update
+from telegram import PhotoSize, Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None, photo: list[Any] | None = None) -> None:
+    def __init__(
+        self, text: str | None = None, photo: tuple[PhotoSize, ...] | None = None
+    ) -> None:
         self.text: str | None = text
-        self.photo: list[Any] | None = photo
+        self.photo: tuple[PhotoSize, ...] | None = photo
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 
@@ -24,6 +26,8 @@ class DummyMessage:
 class DummyPhoto:
     file_id = "fid"
     file_unique_id = "uid"
+    width = 1
+    height = 1
 
 
 @pytest.mark.asyncio
@@ -88,7 +92,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch: pytest.MonkeyPatch, 
     monkeypatch.setattr(dose_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
-    msg_photo = DummyMessage(photo=[DummyPhoto()])
+    msg_photo = DummyMessage(photo=(cast(PhotoSize, DummyPhoto()),))
     update = cast(
         Update,
         SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1)),

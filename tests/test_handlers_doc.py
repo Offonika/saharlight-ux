@@ -1,11 +1,24 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from typing import Any, Callable, cast
+from typing import Any, Callable, Sequence, cast
 
 
 import pytest
-from telegram import Message, Update
+from telegram import (
+    ForceReply,
+    InlineKeyboardMarkup,
+    Message,
+    MessageEntity,
+    PhotoSize,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Update,
+)
 from telegram.ext import CallbackContext
+try:
+    from typing import override
+except ImportError:  # pragma: no cover - py311
+    from typing_extensions import override
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
@@ -15,16 +28,66 @@ class DummyMessage(Message):
         object.__setattr__(self, key, value)
 
     def __init__(
-        self, text: str | None = None, photo: list[Any] | None = None
+        self, text: str | None = None, photo: tuple[PhotoSize, ...] | None = None
     ) -> None:
         self.text: str | None = text
-        self.photo: list[Any] | None = photo
+        self.photo: tuple[PhotoSize, ...] | None = photo
         self.texts: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
+        self._bot = None
+        self.api_kwargs = None
 
-    async def reply_text(self, text: str, **kwargs: Any) -> None:
+    @override
+    async def reply_text(
+        self,
+        text: str,
+        parse_mode: str | None = None,
+        disable_web_page_preview: bool | None = None,
+        disable_notification: bool | None = None,
+        reply_to_message_id: int | None = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
+        allow_sending_without_reply: bool | None = None,
+        entities: Sequence[MessageEntity] | None = None,
+        protect_content: bool | None = None,
+        message_thread_id: int | None = None,
+        *,
+        quote: bool | None = None,
+        read_timeout: float | None = None,
+        write_timeout: float | None = None,
+        connect_timeout: float | None = None,
+        pool_timeout: float | None = None,
+        api_kwargs: dict[str, Any] | None = None,
+    ) -> Message:
         self.texts.append(text)
-        self.kwargs.append(kwargs)
+        self.kwargs.append(
+            {
+                "parse_mode": parse_mode,
+                "disable_web_page_preview": disable_web_page_preview,
+                "disable_notification": disable_notification,
+                "reply_to_message_id": reply_to_message_id,
+                "reply_markup": reply_markup,
+                "allow_sending_without_reply": allow_sending_without_reply,
+                "entities": entities,
+                "protect_content": protect_content,
+                "message_thread_id": message_thread_id,
+                "quote": quote,
+                "read_timeout": read_timeout,
+                "write_timeout": write_timeout,
+                "connect_timeout": connect_timeout,
+                "pool_timeout": pool_timeout,
+                "api_kwargs": api_kwargs,
+            }
+        )
+
+        class _StatusMessage:
+            async def delete(self) -> None:
+                pass
+
+        return cast(Message, _StatusMessage())
 
 
 @pytest.mark.asyncio
@@ -138,11 +201,17 @@ async def test_photo_handler_preserves_file(
     class DummyPhoto:
         file_id = "fid"
         file_unique_id = "uid"
+        width = 1
+        height = 1
+        width = 1
+        height = 1
 
     async def reply_text(*args: Any, **kwargs: Any) -> None:
         pass
 
-    message = SimpleNamespace(photo=[DummyPhoto()], reply_text=reply_text)
+    message = SimpleNamespace(
+        photo=(cast(PhotoSize, DummyPhoto()),), reply_text=reply_text
+    )
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
@@ -210,6 +279,8 @@ async def test_photo_then_freeform_calculates_dose(
     class DummyPhoto:
         file_id = "fid"
         file_unique_id = "uid"
+        width = 1
+        height = 1
 
     class DummyFile:
         async def download_to_drive(self, path: str) -> None:
@@ -243,7 +314,7 @@ async def test_photo_then_freeform_calculates_dose(
     monkeypatch.setattr(handlers, "menu_keyboard", None)
     monkeypatch.setattr(handlers, "confirm_keyboard", lambda: None)
 
-    photo_msg = DummyMessage(photo=[DummyPhoto()])
+    photo_msg = DummyMessage(photo=(cast(PhotoSize, DummyPhoto()),))
     update_photo = cast(
         Update,
         SimpleNamespace(message=photo_msg, effective_user=SimpleNamespace(id=1)),
