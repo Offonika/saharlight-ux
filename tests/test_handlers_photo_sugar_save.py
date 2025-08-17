@@ -44,7 +44,7 @@ class DummyPhoto:
 
 
 class DummySession:
-    def __init__(self) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.added: list[Any] = []
 
     def __enter__(self) -> "DummySession":
@@ -66,9 +66,6 @@ class DummySession:
 
     def get(self, model: Any, user_id: int) -> SimpleNamespace:
         return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
-
-
-session = DummySession()
 
 
 @pytest.mark.asyncio
@@ -165,15 +162,13 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
-    class SessionFactory:
-        def __new__(cls, *args: Any, **kwargs: Any) -> DummySession:
-            return session
-    session_factory = cast(sessionmaker[Session], sessionmaker(class_=SessionFactory))
+    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
     dose_handlers.SessionLocal = session_factory
     await dose_handlers.freeform_handler(update_sugar, context)
     assert user_data["pending_entry"]["sugar_before"] == 5.5
 
-    monkeypatch.setattr(router, "SessionLocal", session_factory)
+    session = session_factory()
+    monkeypatch.setattr(router, "SessionLocal", lambda: session)
     import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 
     async def noop(*args: Any, **kwargs: Any) -> None:
