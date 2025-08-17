@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import re
@@ -240,9 +242,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     InlineKeyboardButton(
                         "✏️ Изменить", callback_data=f"edit:{entry.id}"
                     ),
-                    InlineKeyboardButton(
-                        "🗑 Удалить", callback_data=f"del:{entry.id}"
-                    ),
+                    InlineKeyboardButton("🗑 Удалить", callback_data=f"del:{entry.id}"),
                 ]
             ]
         )
@@ -280,8 +280,10 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     carbs_match = re.search(
         r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I
     )
-    if pending_entry is not None and edit_id is None and (
-        any(v is not None for v in quick.values()) or carbs_match
+    if (
+        pending_entry is not None
+        and edit_id is None
+        and (any(v is not None for v in quick.values()) or carbs_match)
     ):
         if quick["sugar"] is not None:
             pending_entry["sugar_before"] = quick["sugar"]
@@ -289,9 +291,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             pending_entry["xe"] = quick["xe"]
             pending_entry["carbs_g"] = quick["xe"] * 12
         elif carbs_match:
-            pending_entry["carbs_g"] = float(
-                carbs_match.group(1).replace(",", ".")
-            )
+            pending_entry["carbs_g"] = float(carbs_match.group(1).replace(",", "."))
         if quick["dose"] is not None:
             pending_entry["dose"] = quick["dose"]
         await message.reply_text("Данные обновлены.")
@@ -313,10 +313,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         }
         missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
         if not missing:
+
             def db_save_quick(session: Session) -> bool:
                 entry = Entry(**entry_data)
                 session.add(entry)
                 return bool(commit(session))
+
             try:
                 ok = await run_db(db_save_quick, sessionmaker=SessionLocal)
             except AttributeError:
