@@ -11,6 +11,7 @@ import {
   type NormalizedReminderType,
 } from "@/lib/reminders";
 import { isValidTime } from "@/lib/time";
+import type { Reminder } from "@/types/reminder";
 
 const TYPES: Record<NormalizedReminderType, { label: string; emoji: string }> = {
   sugar: { label: "Сахар", emoji: "🩸" },
@@ -26,13 +27,6 @@ const PRESETS: Record<NormalizedReminderType, number[]> = {
   medicine: [240, 480, 720]
 };
 
-interface Reminder {
-  id: number;
-  type: NormalizedReminderType;
-  title: string;
-  time: string;
-  interval?: number;
-}
 
 export default function CreateReminder() {
   const navigate = useNavigate();
