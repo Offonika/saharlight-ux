@@ -16,7 +16,7 @@ from services.api.app.config import settings
 from services.api.app.diabetes.services import db
 
 
-def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},

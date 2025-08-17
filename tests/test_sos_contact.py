@@ -9,7 +9,7 @@ import pytest
 from .context_stub import AlertContext, ContextStub
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from telegram import Bot, Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
@@ -33,7 +33,7 @@ class DummyMessage:
 
 
 @pytest.fixture
-def test_session(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
+def test_session(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -46,7 +46,7 @@ def test_session(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("contact", ["@alice", "123456"])
-async def test_soscontact_stores_contact(test_session: sessionmaker[Session], contact: Any) -> None:
+async def test_soscontact_stores_contact(test_session: sessionmaker, contact: Any) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1))
@@ -71,7 +71,7 @@ async def test_soscontact_stores_contact(test_session: sessionmaker[Session], co
 
 
 @pytest.mark.asyncio
-async def test_alert_notifies_user_and_contact(test_session: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_alert_notifies_user_and_contact(test_session: sessionmaker, monkeypatch: pytest.MonkeyPatch) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8))
@@ -112,7 +112,7 @@ async def test_alert_notifies_user_and_contact(test_session: sessionmaker[Sessio
 
 
 @pytest.mark.asyncio
-async def test_alert_skips_phone_contact(test_session: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_alert_skips_phone_contact(test_session: sessionmaker, monkeypatch: pytest.MonkeyPatch) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(

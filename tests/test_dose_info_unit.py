@@ -85,11 +85,12 @@ async def test_entry_without_dose_has_no_unit(
     async def noop(*args: Any, **kwargs: Any) -> None:
         pass
 
-    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
-    monkeypatch.setattr(dose_calc, "SessionLocal", session_factory)
-    monkeypatch.setattr(dose_calc, "commit", lambda session: True)
-    monkeypatch.setattr(dose_calc, "check_alert", noop)
-    monkeypatch.setattr(dose_calc, "menu_keyboard", None)
+    session_factory: sessionmaker = sessionmaker(class_=DummySession)
+    monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
+    monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
+    monkeypatch.setattr(dose_handlers, "check_alert", noop)
+    monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
+
 
     await dose_calc.freeform_handler(update, context)
 
@@ -140,11 +141,12 @@ async def test_entry_without_sugar_has_placeholder(
     async def noop(*args: Any, **kwargs: Any) -> None:
         pass
 
-    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
-    monkeypatch.setattr(dose_calc, "SessionLocal", session_factory)
-    monkeypatch.setattr(dose_calc, "commit", lambda session: True)
-    monkeypatch.setattr(dose_calc, "check_alert", noop)
-    monkeypatch.setattr(dose_calc, "menu_keyboard", None)
+    session_factory: sessionmaker = sessionmaker(class_=DummySession)
+    monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
+    monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
+    monkeypatch.setattr(dose_handlers, "check_alert", noop)
+    monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
+
 
     await dose_calc.freeform_handler(update, context)
 

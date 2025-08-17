@@ -35,7 +35,7 @@ def auth_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     return {"X-Telegram-Init-Data": build_init_data()}
 
 
-def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
