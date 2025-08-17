@@ -97,8 +97,8 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1)),
     )
     await router.callback_router(update_cb2, context)
-    user_data = context.user_data
-    assert user_data is not None
+    assert context.user_data is not None
+    user_data = cast(dict[str, Any], context.user_data)
     assert user_data["edit_field"] == "dose"
 
     reply_msg = DummyMessage(text="5")

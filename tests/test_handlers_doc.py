@@ -70,8 +70,8 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 
     assert result == 200
     assert called.flag
-    user_data = context.user_data
-    assert user_data is not None
+    assert context.user_data is not None
+    user_data = cast(dict[str, Any], context.user_data)
     assert user_data["__file_path"] == "photos/1_uid.png"
     assert update.message.photo == ()
 
@@ -289,6 +289,6 @@ async def test_photo_then_freeform_calculates_dose(
     assert "Углеводы: 10.0 г" in reply
     assert "Сахар: 5.0 ммоль/л" in reply
     assert "Ваша доза: 1.0 Ед" in reply
-    user_data = context.user_data
-    assert user_data is not None
+    assert context.user_data is not None
+    user_data = cast(dict[str, Any], context.user_data)
     assert "dose" in user_data["pending_entry"]

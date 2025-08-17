@@ -95,8 +95,8 @@ async def test_photo_flow_saves_entry(
     setattr(type(context), "user_data", PropertyMock(return_value=user_data))
     setattr(type(context), "job_queue", PropertyMock(return_value=None))
 
-    user_data = context.user_data
-    assert user_data is not None
+    assert context.user_data is not None
+    user_data = cast(dict[str, Any], context.user_data)
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
