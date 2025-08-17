@@ -177,7 +177,7 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
 
     class DummyDatetime(datetime):
         @classmethod
-        def now(cls, tz: tzinfo | None = None) -> "DummyDatetime":  # type: ignore[override]
+        def now(cls, tz: tzinfo | None = None) -> "DummyDatetime":
             result = now
             if tz is not None:
                 result = result.replace(tzinfo=tz)

@@ -5,7 +5,7 @@ from typing import Any, cast
 from unittest.mock import Mock, PropertyMock
 
 import pytest
-from telegram import Update
+from telegram import PhotoSize, Update
 from telegram.ext import CallbackContext
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -14,9 +14,11 @@ import services.api.app.diabetes.handlers.router as router
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None, photo: list[Any] | None = None) -> None:
+    def __init__(
+        self, text: str | None = None, photo: tuple[PhotoSize, ...] | None = None
+    ) -> None:
         self.text: str | None = text
-        self.photo: list[Any] | None = photo
+        self.photo: tuple[PhotoSize, ...] = () if photo is None else photo
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 
@@ -60,13 +62,13 @@ class DummySession(Session):
     ) -> None:
         pass
 
-    def add(self, entry: Any) -> None:
-        DummySession.added_entries.append(entry)
+    def add(self, instance: object, _warn: bool = False) -> None:
+        DummySession.added_entries.append(instance)
 
     def commit(self) -> None:
         pass
 
-    def get(self, model: Any, user_id: int) -> SimpleNamespace:
+    def get(self, entity: Any, ident: Any, **kwargs: Any) -> Any:
         return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
 
@@ -90,8 +92,8 @@ async def test_photo_flow_saves_entry(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         Mock(spec=CallbackContext),
     )
-    user_data: dict[str, Any] = {}
-    setattr(cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data))
+    user_data_ref: dict[str, Any] = {}
+    setattr(cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref))
     setattr(cast(Any, type(context)), "job_queue", PropertyMock(return_value=None))
 
     assert context.user_data is not None
@@ -147,7 +149,7 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(dose_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0))
     user_data["thread_id"] = "tid"
 
-    msg_photo = DummyMessage(photo=[DummyPhoto()])
+    msg_photo = DummyMessage(photo=(DummyPhoto(),))
     update_photo = cast(
         Update,
         SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1)),
@@ -164,7 +166,7 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
-    session_factory = sessionmaker(class_=DummySession)
+    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
     dose_handlers.SessionLocal = session_factory
     await dose_handlers.freeform_handler(update_sugar, context)
     assert user_data["pending_entry"]["sugar_before"] == 5.5

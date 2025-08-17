@@ -10,7 +10,7 @@ from typing import Any, Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -135,7 +135,9 @@ async def test_timezone_async_writes(
     headers = auth_headers
 
     async def write_tz(tz: str) -> None:
-        async with AsyncClient(app=server.app, base_url="http://test") as ac:
+        async with AsyncClient(
+            transport=ASGITransport(app=server.app), base_url="http://test"
+        ) as ac:
             resp = await ac.put("/timezone", json={"tz": tz}, headers=headers)
             assert resp.status_code == 200
 
@@ -147,7 +149,9 @@ async def test_timezone_async_writes(
         assert tz_row.tz in timezones
         tz_value = tz_row.tz
 
-    async with AsyncClient(app=server.app, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=server.app), base_url="http://test"
+    ) as ac:
         resp = await ac.get("/timezone", headers=headers)
         assert resp.status_code == 200
         assert resp.json() == {"tz": tz_value}
