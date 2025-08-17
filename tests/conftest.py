@@ -4,31 +4,52 @@ from typing import Any, Callable
 import warnings
 
 import pytest
+import sqlalchemy
 
 warnings.filterwarnings(
     "ignore", category=ResourceWarning, module=r"anyio\.streams\.memory"
 )
 
 
+_sqlite_connections: list[sqlite3.Connection] = []
+_original_sqlite_connect: Callable[..., sqlite3.Connection] = sqlite3.connect
+
+
+def _tracking_sqlite_connect(*args: Any, **kwargs: Any) -> sqlite3.Connection:
+    conn = _original_sqlite_connect(*args, **kwargs)
+    _sqlite_connections.append(conn)
+    return conn
+
+
+sqlite3.connect = _tracking_sqlite_connect  # type: ignore[assignment]
+
+
+_engines: list[sqlalchemy.engine.Engine] = []
+_original_create_engine = sqlalchemy.create_engine
+
+
+def _tracking_create_engine(*args: Any, **kwargs: Any) -> sqlalchemy.engine.Engine:
+    engine = _original_create_engine(*args, **kwargs)
+    _engines.append(engine)
+    return engine
+
+
+sqlalchemy.create_engine = _tracking_create_engine  # type: ignore[assignment]
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _close_sqlite_connections() -> Iterator[None]:
-    """Ensure that all sqlite3 connections are closed after the test session."""
+    """Ensure that all sqlite3 connections and engines are closed after the test session."""
 
-    connections: list[sqlite3.Connection] = []
-    original_connect: Callable[..., sqlite3.Connection] = sqlite3.connect
-
-    def tracking_connect(*args: Any, **kwargs: Any) -> sqlite3.Connection:
-        conn = original_connect(*args, **kwargs)
-        connections.append(conn)
-        return conn
-
-    sqlite3.connect = tracking_connect  # type: ignore[assignment]
     try:
         yield
     finally:
-        sqlite3.connect = original_connect  # type: ignore[assignment]
-        for conn in connections:
+        sqlite3.connect = _original_sqlite_connect  # type: ignore[assignment]
+        for conn in _sqlite_connections:
             conn.close()
+        sqlalchemy.create_engine = _original_create_engine  # type: ignore[assignment]
+        for engine in _engines:
+            engine.dispose()
 
 
 @pytest.fixture(autouse=True, scope="session")
