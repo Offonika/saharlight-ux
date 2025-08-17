@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
@@ -33,6 +34,7 @@ interface Reminder {
   title: string;
   time: string;
   interval?: number;
+  isEnabled: boolean;
 }
 
 export default function CreateReminder() {
@@ -40,18 +42,30 @@ export default function CreateReminder() {
   const location = useLocation();
   const params = useParams();
   const { user, sendData } = useTelegramContext();
-  const [editing, setEditing] = useState<Reminder | undefined>(
-    (location.state as Reminder | undefined) ?? undefined,
-  );
+
+  const locationState = location.state as
+    | (Reminder & { active?: boolean })
+    | undefined;
+  const initialEditing =
+    locationState != null
+      ? {
+          ...locationState,
+          isEnabled:
+            locationState.isEnabled ?? locationState.active ?? true,
+        }
+      : undefined;
+
+  const [editing, setEditing] = useState<Reminder | undefined>(initialEditing);
 
   const [type, setType] = useState<NormalizedReminderType>(
-    editing?.type ?? "sugar",
+    initialEditing?.type ?? "sugar",
   );
-  const [title, setTitle] = useState(editing?.title ?? "");
-  const [time, setTime] = useState(editing?.time ?? "");
+  const [title, setTitle] = useState(initialEditing?.title ?? "");
+  const [time, setTime] = useState(initialEditing?.time ?? "");
   // interval is stored in minutes for UI, API expects hours
   const [intervalMinutes, setIntervalMinutes] =
-    useState<number | undefined>(editing?.interval ?? 60);
+    useState<number | undefined>(initialEditing?.interval ?? 60);
+  const [enabled, setEnabled] = useState(initialEditing?.isEnabled ?? true);
   const [error, setError] = useState<string | null>(null);
   const [typeOpen, setTypeOpen] = useState(false);
 
@@ -75,12 +89,14 @@ export default function CreateReminder() {
             title: data.title ?? TYPES[nt].label,
             time: data.time || "",
             interval: data.intervalHours != null ? data.intervalHours * 60 : undefined,
+            isEnabled: data.isEnabled ?? true,
           };
           setEditing(loaded);
           setType(loaded.type);
           setTitle(loaded.title);
           setTime(loaded.time);
           setIntervalMinutes(loaded.interval ?? 60);
+          setEnabled(loaded.isEnabled);
         } else {
           const message = "Не удалось загрузить напоминание";
           setError(message);
@@ -111,7 +127,7 @@ export default function CreateReminder() {
       time,
       intervalHours:
         intervalMinutes != null ? intervalMinutes / 60 : undefined,
-      isEnabled: true,
+      isEnabled: enabled,
       ...(editing ? { id: editing.id } : {}),
     };
     try {
@@ -206,6 +222,11 @@ export default function CreateReminder() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <label htmlFor="enabled">Включено</label>
+        <Switch id="enabled" checked={enabled} onCheckedChange={setEnabled} />
       </div>
 
       <Sheet open={typeOpen} onClose={() => setTypeOpen(false)}>
