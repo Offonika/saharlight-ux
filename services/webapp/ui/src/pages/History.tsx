@@ -238,7 +238,7 @@ const History = () => {
                   </div>
 
                   <div className="grid grid-cols-4 gap-4 text-sm mb-2">
-                    {record.sugar && (
+                    {record.sugar !== undefined && (
                       <div>
                         <div className={`font-semibold ${getSugarColor(record.sugar)}`}>
                           {record.sugar}
@@ -246,22 +246,22 @@ const History = () => {
                         <div className="text-xs text-muted-foreground">ммоль/л</div>
                       </div>
                     )}
-                    
-                    {record.carbs && (
+
+                    {record.carbs !== undefined && (
                       <div>
                         <div className="font-semibold text-foreground">{record.carbs}</div>
                         <div className="text-xs text-muted-foreground">г углев.</div>
                       </div>
                     )}
-                    
-                    {record.breadUnits && (
+
+                    {record.breadUnits !== undefined && (
                       <div>
                         <div className="font-semibold text-foreground">{record.breadUnits}</div>
                         <div className="text-xs text-muted-foreground">ХЕ</div>
                       </div>
                     )}
-                    
-                    {record.insulin && (
+
+                    {record.insulin !== undefined && (
                       <div>
                         <div className="font-semibold text-medical-blue">{record.insulin}</div>
                         <div className="text-xs text-muted-foreground">ед.</div>
