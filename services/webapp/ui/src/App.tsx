@@ -7,6 +7,7 @@ import { Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Suspense, lazy } from "react";
 import { useTelegramContext } from "@/contexts/telegram-context";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const Home = lazy(() => import("./pages/Home"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -48,19 +49,21 @@ const AppContent = () => {
 
   return (
     <Suspense fallback={<div>Загрузка...</div>}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/reminders" element={<Reminders />} />
-        <Route path="/reminders/new" element={<CreateReminder />} />
-        <Route path="/reminders/:id/edit" element={<CreateReminder />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/history/new-measurement" element={<NewMeasurement />} />
-        <Route path="/history/new-meal" element={<NewMeal />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/subscription" element={<Subscription />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/reminders" element={<Reminders />} />
+          <Route path="/reminders/new" element={<CreateReminder />} />
+          <Route path="/reminders/:id/edit" element={<CreateReminder />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/history/new-measurement" element={<NewMeasurement />} />
+          <Route path="/history/new-meal" element={<NewMeal />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/subscription" element={<Subscription />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </ErrorBoundary>
     </Suspense>
   );
 };
