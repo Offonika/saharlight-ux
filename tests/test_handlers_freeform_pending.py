@@ -66,6 +66,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         "sugar_before": None,
         "photo_path": "photos/img.jpg",
     }
+
     class DummySession(Session):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
@@ -106,7 +107,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
     assert "pending_entry" in user_data
     assert message.replies
     text = message.replies[0]
-    assert "5.6 ммоль/л" in text
+    assert "🩸 Сахар: 5.6 ммоль/л" in text
 
 
 @pytest.mark.asyncio
@@ -138,3 +139,5 @@ async def test_freeform_handler_sugar_only_flow() -> None:
     assert pending is not None
     assert pending["sugar_before"] == 4.2
     assert "pending_entry" in user_data
+    assert message.replies
+    assert "🩸 Сахар: 4.2 ммоль/л" in message.replies[0]
