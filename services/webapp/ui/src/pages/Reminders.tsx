@@ -65,12 +65,16 @@ function ReminderRow({
   onToggle,
   onEdit,
   onDelete,
+  invalid,
+  canToggle = true,
 }: {
   reminder: Reminder
   index: number
-  onToggle: (id: number) => void
+  onToggle?: (id: number) => void
   onEdit: (reminder: Reminder) => void
   onDelete: (id: number) => void
+  invalid?: boolean
+  canToggle?: boolean
 }) {
   const nt = normalizeReminderType(reminder.type)
   const icon = TYPE_ICON[nt]
@@ -78,7 +82,11 @@ function ReminderRow({
 
   return (
     <div
-      className={cn('rem-card', !reminder.active && 'opacity-60')}
+      className={cn(
+        'rem-card',
+        !reminder.active && 'opacity-60',
+        invalid && 'border border-destructive',
+      )}
       style={{ animationDelay: `${index * 80}ms` }}
     >
       <div className="rem-left" aria-hidden>{icon}</div>
@@ -92,16 +100,22 @@ function ReminderRow({
       </div>
 
       <div className="rem-actions">
-        <MedicalButton
-          size="icon"
-          variant="ghost"
-          className={cn(reminder.active ? 'bg-medical-success/10 text-medical-success' : 'bg-secondary text-muted-foreground')}
-          onClick={() => onToggle(reminder.id)}
-          aria-label=
-            {reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
-        >
-          <Bell className="w-4 h-4" />
-        </MedicalButton>
+        {canToggle && onToggle && (
+          <MedicalButton
+            size="icon"
+            variant="ghost"
+            className={cn(
+              reminder.active
+                ? 'bg-medical-success/10 text-medical-success'
+                : 'bg-secondary text-muted-foreground',
+            )}
+            onClick={() => onToggle(reminder.id)}
+            aria-label=
+              {reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
+          >
+            <Bell className="w-4 h-4" />
+          </MedicalButton>
+        )}
         <MedicalButton
           size="icon"
           variant="ghost"
@@ -129,6 +143,7 @@ export default function Reminders() {
   const { user, sendData, isReady } = useTelegramContext()
 
   const [reminders, setReminders] = useState<Reminder[]>([])
+  const [invalidReminders, setInvalidReminders] = useState<Reminder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -159,13 +174,19 @@ export default function Reminders() {
         })
         const invalid = normalized.filter(r => Number.isNaN(parseTimeToMinutes(r.time)))
         if (invalid.length > 0) {
+          setInvalidReminders(invalid)
           toast({
             title: 'Ошибка',
-            description: `Некорректное время напоминания: ${invalid.map(r => r.time).join(', ')}`,
+            description: `Некорректное время напоминания: ${invalid
+              .map(r => r.time)
+              .join(', ')}`,
             variant: 'destructive',
           })
+        } else {
+          setInvalidReminders([])
         }
-        normalized.sort((a, b) => {
+        const valid = normalized.filter(r => !invalid.includes(r))
+        valid.sort((a, b) => {
           const ta = parseTimeToMinutes(a.time)
           const tb = parseTimeToMinutes(b.time)
           if (Number.isNaN(ta) && Number.isNaN(tb)) return 0
@@ -173,7 +194,7 @@ export default function Reminders() {
           if (Number.isNaN(tb)) return -1
           return ta - tb
         })
-        setReminders(normalized)
+        setReminders(valid)
       } catch (err) {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : 'Не удалось загрузить напоминания'
@@ -227,7 +248,9 @@ export default function Reminders() {
   const handleDeleteReminder = async (id: number) => {
     if (!user?.id) return
     const prevReminders = [...reminders]
+    const prevInvalid = [...invalidReminders]
     setReminders(prev => prev.filter(r => r.id !== id))
+    setInvalidReminders(prev => prev.filter(r => r.id !== id))
     try {
       await deleteReminder(user.id, id)
       toast({
@@ -236,6 +259,7 @@ export default function Reminders() {
       })
     } catch (err) {
       setReminders(prevReminders)
+      setInvalidReminders(prevInvalid)
       const message = err instanceof Error ? err.message : 'Не удалось удалить напоминание'
       toast({
         title: 'Ошибка',
@@ -313,6 +337,27 @@ export default function Reminders() {
 
       <main className="container mx-auto px-4 py-6">
         {content}
+        {invalidReminders.length > 0 && (
+          <div className="space-y-3 mb-6 mt-8">
+            <h3 className="text-sm font-medium text-destructive">
+              Некорректные напоминания
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Исправьте время, чтобы они отображались корректно
+            </p>
+            {invalidReminders.map((reminder, index) => (
+              <ReminderRow
+                key={reminder.id}
+                reminder={reminder}
+                index={index}
+                onEdit={(r) => navigate(`/reminders/${r.id}/edit`, { state: r })}
+                onDelete={handleDeleteReminder}
+                invalid
+                canToggle={false}
+              />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   )
