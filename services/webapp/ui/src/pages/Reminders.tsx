@@ -1,5 +1,5 @@
 // Файл: webapp/ui/src/pages/Reminders.tsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react'
 import { MedicalHeader } from '@/components/MedicalHeader'
@@ -138,6 +138,22 @@ export default function Reminders() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const telegramBot = import.meta.env.VITE_TELEGRAM_BOT
+  const telegramLink = telegramBot
+    ? `https://t.me/${telegramBot}?startapp=reminders`
+    : '#'
+
+  const handleMissingBot = (
+    event: MouseEvent<HTMLAnchorElement>,
+  ): void => {
+    event.preventDefault()
+    toast({
+      title: 'Ссылка недоступна',
+      description: 'Телеграм-бот не настроен',
+      variant: 'destructive',
+    })
+  }
+
   useEffect(() => {
     if (!isReady) return
     if (!user?.id) {
@@ -275,9 +291,10 @@ export default function Reminders() {
           <MedicalButton onClick={() => window.location.reload()}>Повторить</MedicalButton>
           <MedicalButton asChild variant="outline">
             <a
-              href={`https://t.me/${import.meta.env.VITE_TELEGRAM_BOT}?startapp=reminders`}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={telegramLink}
+              target={telegramBot ? '_blank' : undefined}
+              rel={telegramBot ? 'noopener noreferrer' : undefined}
+              onClick={!telegramBot ? handleMissingBot : undefined}
             >
               Открыть в Telegram
             </a>
