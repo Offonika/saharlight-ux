@@ -10,7 +10,7 @@ import pytest
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-from services.api.app.diabetes.handlers import dose_handlers
+from services.api.app.diabetes.handlers import dose_calc
 from services.api.app.diabetes.utils.ui import sugar_keyboard
 
 
@@ -28,7 +28,7 @@ class DummyMessage:
 async def test_prompt_photo_sends_message() -> None:
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
-    await dose_handlers.prompt_photo(
+    await dose_calc.prompt_photo(
         update,
         cast(
             CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -48,7 +48,7 @@ async def test_prompt_sugar_sends_message() -> None:
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
-    await dose_handlers.prompt_sugar(update, context)
+    await dose_calc.prompt_sugar(update, context)
     assert any("сахар" in t.lower() for t in message.texts)
     assert message.kwargs and message.kwargs[0].get("reply_markup") is sugar_keyboard
 
@@ -63,5 +63,5 @@ async def test_prompt_dose_sends_message() -> None:
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
-    await dose_handlers.prompt_dose(update, context)
+    await dose_calc.prompt_dose(update, context)
     assert any("доз" in t.lower() for t in message.texts)

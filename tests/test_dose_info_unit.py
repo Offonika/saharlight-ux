@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+import services.api.app.diabetes.handlers.dose_calc as dose_calc
 
 
 class DummyMessage:
@@ -86,12 +86,12 @@ async def test_entry_without_dose_has_no_unit(
         pass
 
     session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
-    monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
-    monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
-    monkeypatch.setattr(dose_handlers, "check_alert", noop)
-    monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
+    monkeypatch.setattr(dose_calc, "SessionLocal", session_factory)
+    monkeypatch.setattr(dose_calc, "commit", lambda session: True)
+    monkeypatch.setattr(dose_calc, "check_alert", noop)
+    monkeypatch.setattr(dose_calc, "menu_keyboard", None)
 
-    await dose_handlers.freeform_handler(update, context)
+    await dose_calc.freeform_handler(update, context)
 
     assert not context.user_data
     assert message.replies
@@ -141,12 +141,12 @@ async def test_entry_without_sugar_has_placeholder(
         pass
 
     session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
-    monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
-    monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
-    monkeypatch.setattr(dose_handlers, "check_alert", noop)
-    monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
+    monkeypatch.setattr(dose_calc, "SessionLocal", session_factory)
+    monkeypatch.setattr(dose_calc, "commit", lambda session: True)
+    monkeypatch.setattr(dose_calc, "check_alert", noop)
+    monkeypatch.setattr(dose_calc, "menu_keyboard", None)
 
-    await dose_handlers.freeform_handler(update, context)
+    await dose_calc.freeform_handler(update, context)
 
     assert not context.user_data
     assert message.replies

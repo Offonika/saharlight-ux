@@ -85,7 +85,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     api, ApiException, ProfileModel = get_api()
 
     # Ensure no pending sugar logging conversation captures profile input
-    from ..dose_handlers import sugar_conv
+    from ..dose_calc import sugar_conv
     chat_data = getattr(context, "chat_data", {})
     if chat_data.pop("sugar_active", None):
         end_conv = getattr(sugar_conv, "update_state", None)
@@ -844,7 +844,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     from .. import _cancel_then
-    from ..dose_handlers import photo_prompt
+    from ..dose_calc import photo_prompt
 
     handler = _cancel_then(photo_prompt)
     await handler(update, context)

@@ -8,7 +8,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from sqlalchemy.orm import Session, sessionmaker
 
-import services.api.app.diabetes.handlers.dose_handlers as handlers
+import services.api.app.diabetes.handlers.dose_calc as handlers
 
 
 class DummyMessage:

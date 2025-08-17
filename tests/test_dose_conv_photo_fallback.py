@@ -12,7 +12,7 @@ from telegram.ext import BaseHandler, CallbackContext, MessageHandler
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-from services.api.app.diabetes.handlers import dose_handlers
+from services.api.app.diabetes.handlers import dose_calc
 
 
 def _find_handler(
@@ -48,7 +48,7 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 async def test_photo_button_cancels_and_prompts_photo() -> None:
-    handler = _find_handler(dose_handlers.dose_conv.fallbacks, "^📷 Фото еды$")
+    handler = _find_handler(dose_calc.dose_conv.fallbacks, "^📷 Фото еды$")
     message = DummyMessage("📷 Фото еды")
     update = cast(
         Update,

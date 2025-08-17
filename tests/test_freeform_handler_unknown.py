@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 from telegram import Update
 from telegram.ext import CallbackContext
 
-import services.api.app.diabetes.handlers.dose_handlers as handlers
+import services.api.app.diabetes.handlers.dose_calc as handlers
 
 
 class DummyMessage:
