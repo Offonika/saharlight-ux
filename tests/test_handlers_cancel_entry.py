@@ -58,8 +58,9 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
     assert query.message.kwargs
     kwargs = query.message.kwargs[0]
     assert kwargs.get("reply_markup") == common_handlers.menu_keyboard
-    assert context.user_data is not None
-    assert "pending_entry" not in context.user_data
+    user_data = context.user_data
+    assert user_data is not None
+    assert "pending_entry" not in user_data
 
 
 @pytest.mark.asyncio
