@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+import services.api.app.diabetes.handlers.dose_calc as dose_calc
 
 
 class DummyMessage:
@@ -91,7 +91,8 @@ async def test_entry_without_dose_has_no_unit(
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
-    await dose_handlers.freeform_handler(update, context)
+
+    await dose_calc.freeform_handler(update, context)
 
     assert not context.user_data
     assert message.replies
@@ -146,7 +147,8 @@ async def test_entry_without_sugar_has_placeholder(
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
-    await dose_handlers.freeform_handler(update, context)
+
+    await dose_calc.freeform_handler(update, context)
 
     assert not context.user_data
     assert message.replies

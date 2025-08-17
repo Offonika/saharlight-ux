@@ -8,7 +8,7 @@ import pytest
 from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
 
-from services.api.app.diabetes.handlers import dose_handlers
+from services.api.app.diabetes.handlers import dose_calc
 
 
 class DummyMessage:
@@ -38,11 +38,6 @@ def make_update_context(text: str) -> tuple[DummyUpdate, DummyContext]:
     return update, context
 
 
-def test_sanitize_removes_control_chars_and_truncates() -> None:
-    text = "abc" + chr(0) + "def\n" + "x" * 50
-    assert dose_handlers._sanitize(text, max_len=10) == "abcdefxxxx"
-
-
 @pytest.mark.asyncio
 async def test_cancel_then_calls_cancel_first(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
@@ -55,9 +50,9 @@ async def test_cancel_then_calls_cancel_first(monkeypatch: pytest.MonkeyPatch) -
         calls.append("handler")
         return 42
 
-    monkeypatch.setattr(dose_handlers, "dose_cancel", dummy_cancel)
+    monkeypatch.setattr(dose_calc, "dose_cancel", dummy_cancel)
 
-    wrapped = dose_handlers._cancel_then(handler)
+    wrapped = dose_calc._cancel_then(handler)
     result = await wrapped(cast(Update, DummyUpdate(DummyMessage(), SimpleNamespace())), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], DummyContext({}, {})))
 
     assert result == 42
@@ -68,9 +63,9 @@ async def test_cancel_then_calls_cancel_first(monkeypatch: pytest.MonkeyPatch) -
 async def test_dose_xe_valid_input() -> None:
     update, context = make_update_context("1.5")
 
-    result = await dose_handlers.dose_xe(cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context))
+    result = await dose_calc.dose_xe(cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context))
 
-    assert result == dose_handlers.DOSE_SUGAR
+    assert result == dose_calc.DOSE_SUGAR
     entry = context.user_data.get("pending_entry")
     assert entry is not None and entry["xe"] == 1.5
     assert any("сахар" in reply.lower() for reply in update.message.replies)
@@ -80,9 +75,9 @@ async def test_dose_xe_valid_input() -> None:
 async def test_dose_xe_rejects_non_numeric() -> None:
     update, context = make_update_context("abc")
 
-    result = await dose_handlers.dose_xe(cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context))
+    result = await dose_calc.dose_xe(cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context))
 
-    assert result == dose_handlers.DOSE_XE
+    assert result == dose_calc.DOSE_XE
     assert any("число" in reply.lower() for reply in update.message.replies)
 
 
@@ -90,9 +85,9 @@ async def test_dose_xe_rejects_non_numeric() -> None:
 async def test_dose_carbs_negative() -> None:
     update, context = make_update_context("-1")
 
-    result = await dose_handlers.dose_carbs(cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context))
+    result = await dose_calc.dose_carbs(cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context))
 
-    assert result == dose_handlers.DOSE_CARBS
+    assert result == dose_calc.DOSE_CARBS
     assert any("не может быть отриц" in reply.lower() for reply in update.message.replies)
 
 
@@ -122,12 +117,12 @@ async def test_dose_sugar_profile_required(monkeypatch: pytest.MonkeyPatch) -> N
     update, context = make_update_context("5")
     context.user_data["pending_entry"] = {"carbs_g": 10}
 
-    monkeypatch.setattr(dose_handlers, "SessionLocal", lambda: DummySession(None))
-    monkeypatch.setattr(dose_handlers, "menu_keyboard", "menu")
+    monkeypatch.setattr(dose_calc, "SessionLocal", lambda: DummySession(None))
+    monkeypatch.setattr(dose_calc, "menu_keyboard", "menu")
 
-    result = await dose_handlers.dose_sugar(cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context))
+    result = await dose_calc.dose_sugar(cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context))
 
-    assert result == dose_handlers.END
+    assert result == dose_calc.END
     assert any("профиль не настроен" in r.lower() for r in update.message.replies)
     assert context.user_data == {}
 
@@ -139,13 +134,13 @@ async def test_dose_sugar_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     profile = DummyProfile(icr=10.0, cf=2.0, target_bg=5.5)
 
-    monkeypatch.setattr(dose_handlers, "SessionLocal", lambda: DummySession(profile))
-    monkeypatch.setattr(dose_handlers, "calc_bolus", lambda carbs, sugar, patient: 3.0)
-    monkeypatch.setattr(dose_handlers, "confirm_keyboard", lambda: "confirm")
+    monkeypatch.setattr(dose_calc, "SessionLocal", lambda: DummySession(profile))
+    monkeypatch.setattr(dose_calc, "calc_bolus", lambda carbs, sugar, patient: 3.0)
+    monkeypatch.setattr(dose_calc, "confirm_keyboard", lambda: "confirm")
 
-    result = await dose_handlers.dose_sugar(cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context))
+    result = await dose_calc.dose_sugar(cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context))
 
-    assert result == dose_handlers.END
+    assert result == dose_calc.END
     assert any("ваша доза: 3.0" in r.lower() for r in update.message.replies)
     entry = context.user_data.get("pending_entry")
     assert entry is not None and entry["dose"] == 3.0

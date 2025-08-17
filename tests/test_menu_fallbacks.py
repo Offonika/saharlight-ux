@@ -9,7 +9,7 @@ from telegram.ext import CallbackContext, CommandHandler
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-from services.api.app.diabetes.handlers import dose_handlers
+from services.api.app.diabetes.handlers import dose_calc
 
 
 class DummyMessage:
@@ -38,7 +38,7 @@ async def test_sugar_conv_menu_then_photo() -> None:
             Sequence[CommandHandler[Any]],
             [
                 h
-                for h in dose_handlers.sugar_conv.fallbacks
+                for h in dose_calc.sugar_conv.fallbacks
                 if isinstance(h, CommandHandler)
             ],
         )
@@ -62,7 +62,7 @@ async def test_sugar_conv_menu_then_photo() -> None:
     next_update = cast(
         Update, SimpleNamespace(message=next_message, effective_user=SimpleNamespace(id=1))
     )
-    await dose_handlers.photo_prompt(next_update, context)
+    await dose_calc.photo_prompt(next_update, context)
     assert any("фото" in r.lower() for r in next_message.replies)
 
 @pytest.mark.asyncio
@@ -72,7 +72,7 @@ async def test_dose_conv_menu_then_photo() -> None:
             Sequence[CommandHandler[Any]],
             [
                 h
-                for h in dose_handlers.dose_conv.fallbacks
+                for h in dose_calc.dose_conv.fallbacks
                 if isinstance(h, CommandHandler)
             ],
         )
@@ -96,5 +96,5 @@ async def test_dose_conv_menu_then_photo() -> None:
     next_update = cast(
         Update, SimpleNamespace(message=next_message, effective_user=SimpleNamespace(id=1))
     )
-    await dose_handlers.photo_prompt(next_update, context)
+    await dose_calc.photo_prompt(next_update, context)
     assert any("фото" in r.lower() for r in next_message.replies)

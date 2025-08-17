@@ -10,7 +10,7 @@ from telegram.ext import CallbackContext, ConversationHandler
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-from services.api.app.diabetes.handlers import dose_handlers
+from services.api.app.diabetes.handlers import dose_calc
 
 
 class DummyMessage:
@@ -39,7 +39,7 @@ async def test_dose_sugar_requires_carbs_or_xe() -> None:
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
-    result = await dose_handlers.dose_sugar(update, context)
+    result = await dose_calc.dose_sugar(update, context)
 
     assert result == ConversationHandler.END
     assert message.replies and "углев" in message.replies[0].lower()

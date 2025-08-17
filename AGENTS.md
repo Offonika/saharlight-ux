@@ -51,7 +51,8 @@
     - **onboarding_handlers.py** — сценарий регистрации и стартовые команды
     - **profile_handlers.py** — управление профилем пользователя
     - **reporting_handlers.py** — дневник питания и отчётность
-    - **dose_handlers.py** — расчёт доз инсулина
+    - **dose_calc.py** — расчёт доз инсулина
+    - **dose_validation.py** — вспомогательные проверки
     - новые модули `*_handlers.py` — для дополнительных сценариев
     - **db.py, models.py** — работа с БД
     - **functions.py** — расчёты и парсинг

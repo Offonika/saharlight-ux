@@ -42,7 +42,7 @@ async def test_report_request_and_custom_flow(
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
-    import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+    import services.api.app.diabetes.handlers.dose_calc as dose_calc
 
     message = DummyMessage()
     update = cast(
@@ -91,7 +91,7 @@ async def test_report_request_and_custom_flow(
         expected = dt.datetime(2024, 1, 1, tzinfo=dt.timezone.utc)
         assert date_from == expected
 
-    monkeypatch.setattr(dose_handlers, "send_report", dummy_send_report)
+    monkeypatch.setattr(dose_calc, "send_report", dummy_send_report)
 
     update2 = cast(
         Update,
@@ -100,7 +100,7 @@ async def test_report_request_and_custom_flow(
             effective_user=SimpleNamespace(id=1),
         ),
     )
-    await dose_handlers.freeform_handler(update2, context)
+    await dose_calc.freeform_handler(update2, context)
 
     called_flag = called.get("called")
     assert called_flag is not None
