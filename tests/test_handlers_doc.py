@@ -4,22 +4,19 @@ from typing import Any, cast
 
 
 import pytest
-from telegram import Message, Update
+from telegram import Update
 from telegram.ext import CallbackContext
 from sqlalchemy.orm import sessionmaker
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
 
 
-class DummyMessage(Message):
-    def __setattr__(self, key: str, value: Any) -> None:
-        object.__setattr__(self, key, value)
-
+class DummyMessage:
     def __init__(
-        self, text: str | None = None, photo: list[Any] | None = None
+        self, text: str | None = None, photo: tuple[Any, ...] | None = None
     ) -> None:
         self.text: str | None = text
-        self.photo: list[Any] | None = photo
+        self.photo: tuple[Any, ...] | None = photo
         self.texts: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 
@@ -143,7 +140,7 @@ async def test_photo_handler_preserves_file(
     async def reply_text(*args: Any, **kwargs: Any) -> None:
         pass
 
-    message = SimpleNamespace(photo=[DummyPhoto()], reply_text=reply_text)
+    message = SimpleNamespace(photo=(DummyPhoto(),), reply_text=reply_text)
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
@@ -244,7 +241,7 @@ async def test_photo_then_freeform_calculates_dose(
     monkeypatch.setattr(handlers, "menu_keyboard", None)
     monkeypatch.setattr(handlers, "confirm_keyboard", lambda: None)
 
-    photo_msg = DummyMessage(photo=[DummyPhoto()])
+    photo_msg = DummyMessage(photo=(DummyPhoto(),))
     update_photo = cast(
         Update,
         SimpleNamespace(message=photo_msg, effective_user=SimpleNamespace(id=1)),
