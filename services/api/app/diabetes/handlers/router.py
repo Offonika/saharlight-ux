@@ -19,7 +19,8 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     query = update.callback_query
     if query is None:
         return
-    assert query is not None
+    if query is None:
+        return
     await query.answer()
     data = query.data or ""
 
@@ -30,7 +31,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         user_data_raw = context.user_data
         if user_data_raw is None:
             return
-        assert user_data_raw is not None
         user_data = cast(UserData, user_data_raw)
         entry_data = user_data.pop("pending_entry", None)
         if not entry_data:
@@ -54,14 +54,12 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             user = update.effective_user
             if user is None:
                 return
-            assert user is not None
             reminder_handlers.schedule_after_meal(user.id, job_queue)
         return
     elif data == "edit_entry":
         user_data_raw = context.user_data
         if user_data_raw is None:
             return
-        assert user_data_raw is not None
         user_data = cast(UserData, user_data_raw)
         entry_data = user_data.get("pending_entry")
         if not entry_data:
@@ -79,14 +77,12 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         user_data_raw = context.user_data
         if user_data_raw is None:
             return
-        assert user_data_raw is not None
         user_data = cast(UserData, user_data_raw)
         user_data.pop("pending_entry", None)
         await query.edit_message_text("❌ Запись отменена.")
         message = query.message
         if message is None:
             return
-        assert message is not None
         await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
         return
     elif data.startswith("edit:") or data.startswith("del:"):
@@ -105,7 +101,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             user = update.effective_user
             if user is None:
                 return
-            assert user is not None
             if existing_entry.telegram_id != user.id:
                 await query.edit_message_text(
                     "⚠️ Эта запись принадлежит другому пользователю."
@@ -122,12 +117,10 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 user_data_raw = context.user_data
                 if user_data_raw is None:
                     return
-                assert user_data_raw is not None
                 user_data = cast(UserData, user_data_raw)
                 message = query.message
                 if message is None:
                     return
-                assert message is not None
                 user_data["edit_entry"] = {
                     "id": existing_entry.id,
                     "chat_id": message.chat_id,
@@ -166,7 +159,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         user_data_raw = context.user_data
         if user_data_raw is None:
             return
-        assert user_data_raw is not None
         user_data = cast(UserData, user_data_raw)
         user_data["edit_id"] = edit_entry_id
         user_data["edit_field"] = field
@@ -179,7 +171,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         message = query.message
         if message is None:
             return
-        assert message is not None
         await message.reply_text(prompt, reply_markup=ForceReply(selective=True))
         return
     else:
