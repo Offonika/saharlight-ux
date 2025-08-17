@@ -81,10 +81,10 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         ) -> None:
             pass
 
-        def get(self, model: Any, user_id: int) -> SimpleNamespace:
+        def get(self, entity: Any, ident: Any, **kwargs: Any) -> Any:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    session_factory = sessionmaker(class_=DummySession)
+    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
     handlers.SessionLocal = session_factory
     message = DummyMessage("5,6")
     update = cast(

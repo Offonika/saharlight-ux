@@ -79,13 +79,13 @@ async def test_entry_without_dose_has_no_unit(
         ) -> None:
             pass
 
-        def add(self, entry: Any) -> None:
-            self.entry = entry
+        def add(self, instance: object, _warn: bool = False) -> None:
+            self.entry = instance
 
     async def noop(*args: Any, **kwargs: Any) -> None:
         pass
 
-    session_factory = sessionmaker(class_=DummySession)
+    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
     monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
     monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
@@ -134,13 +134,13 @@ async def test_entry_without_sugar_has_placeholder(
         ) -> None:
             pass
 
-        def add(self, entry: Any) -> None:
-            self.entry = entry
+        def add(self, instance: object, _warn: bool = False) -> None:
+            self.entry = instance
 
     async def noop(*args: Any, **kwargs: Any) -> None:
         pass
 
-    session_factory = sessionmaker(class_=DummySession)
+    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
     monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
     monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
     monkeypatch.setattr(dose_handlers, "check_alert", noop)

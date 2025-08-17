@@ -36,7 +36,16 @@ async def test_run_db_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
     dummy_engine = SimpleNamespace(url=SimpleNamespace(drivername="postgresql", database="db"))
 
     class DummySession(SASession):
-        def get_bind(self) -> SimpleNamespace:
+        def get_bind(
+            self,
+            mapper: Any | None = None,
+            *,
+            clause: Any | None = None,
+            bind: Any | None = None,
+            _sa_skip_events: bool | None = None,
+            _sa_skip_for_implicit_returning: bool = False,
+            **kw: Any,
+        ) -> Any:
             return dummy_engine
 
         def __enter__(self) -> "DummySession":

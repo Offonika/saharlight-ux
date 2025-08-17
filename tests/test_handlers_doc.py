@@ -16,7 +16,7 @@ class DummyMessage:
         self, text: str | None = None, photo: tuple[Any, ...] | None = None
     ) -> None:
         self.text: str | None = text
-        self.photo: tuple[Any, ...] | None = photo
+        self.photo: tuple[Any, ...] = () if photo is None else photo
         self.texts: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 
@@ -71,7 +71,8 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
     user_data = cast(dict[str, Any], context.user_data)
     assert user_data["__file_path"] == "photos/1_uid.png"
     assert update.message is not None
-    assert update.message.photo == ()
+    msg = update.message
+    assert msg.photo == ()
 
 
 @pytest.mark.asyncio
@@ -269,10 +270,10 @@ async def test_photo_then_freeform_calculates_dose(
         ) -> None:
             pass
 
-        def get(self, model: Any, user_id: int) -> SimpleNamespace:
+        def get(self, entity: Any, ident: Any, **kwargs: Any) -> Any:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    session_factory = sessionmaker(class_=DummySession)
+    session_factory = cast(sessionmaker[Session], sessionmaker(class_=DummySession))
     handlers.SessionLocal = session_factory
 
     sugar_msg = DummyMessage(text="5")

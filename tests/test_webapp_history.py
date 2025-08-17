@@ -9,7 +9,7 @@ from typing import Any, Callable
 
 import pytest
 from fastapi.testclient import TestClient
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -113,7 +113,9 @@ async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> Non
     ]
 
     async def post_record(rec: dict[str, Any]) -> None:
-        async with AsyncClient(app=server.app, base_url="http://test") as ac:
+        async with AsyncClient(
+            transport=ASGITransport(app=server.app), base_url="http://test"
+        ) as ac:
             resp = await ac.post("/api/history", json=rec, headers=headers)
             assert resp.status_code == 200
 
