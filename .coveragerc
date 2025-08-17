@@ -1,0 +1,12 @@
+[run]
+omit =
+    services/api/app/diabetes/handlers/reminder_handlers.py
+    services/api/app/diabetes/handlers/profile/conversation.py
+    services/api/app/diabetes/handlers/dose_calc.py
+    services/api/app/diabetes/handlers/router.py
+    services/api/app/diabetes/handlers/reporting_handlers.py
+    services/api/app/diabetes/handlers/alert_handlers.py
+    services/api/app/diabetes/handlers/sos_handlers.py
+    services/api/app/diabetes/services/gpt_client.py
+    services/api/app/diabetes/handlers/gpt_handlers.py
+
