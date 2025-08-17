@@ -3,7 +3,7 @@ from contextlib import contextmanager
 
 import pytest
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Iterator, cast
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
@@ -16,9 +16,10 @@ from services.api.app.diabetes.services.db import Base, User, Profile, dispose_e
 
 
 @contextmanager
-def no_warnings() -> Any:
+def no_warnings() -> Iterator[None]:
     try:
-        with pytest.warns(None):
+        warns = cast(Any, pytest.warns)
+        with warns(None):
             yield
             return
     except TypeError:

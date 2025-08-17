@@ -1,6 +1,6 @@
 import json
 from types import SimpleNamespace
-from typing import Any, Callable, cast
+from typing import Any, Callable, Iterator, cast
 
 import warnings
 from contextlib import contextmanager
@@ -15,9 +15,10 @@ from services.api.app.diabetes.services.db import Base, User, Reminder, Entry, d
 
 
 @contextmanager
-def no_warnings() -> Any:
+def no_warnings() -> Iterator[None]:
     try:
-        with pytest.warns(None):
+        warns = cast(Any, pytest.warns)
+        with warns(None):
             yield
             return
     except TypeError:
