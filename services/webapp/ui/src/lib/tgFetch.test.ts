@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
-import { tgFetch } from './tgFetch';
+import { tgFetch, REQUEST_TIMEOUT_MESSAGE } from './tgFetch';
 
 interface TelegramWebApp {
   initData?: string;
@@ -71,7 +71,7 @@ describe('tgFetch', () => {
 
     const promise = tgFetch('/api/profile/self');
     vi.advanceTimersByTime(10_000);
-    await expect(promise).rejects.toThrow('Превышено время ожидания');
+    await expect(promise).rejects.toThrow(REQUEST_TIMEOUT_MESSAGE);
     vi.useRealTimers();
   });
 });
