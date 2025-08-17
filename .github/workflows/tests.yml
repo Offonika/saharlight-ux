@@ -43,7 +43,7 @@ jobs:
       - name: Run tests
         run: |
           set -o pipefail
-          pytest --cov=diabetes --cov-report=term-missing --cov-report=xml --cov-fail-under=85 | tee coverage.txt
+          pytest --cov=services.api.app.diabetes --cov-report=term-missing --cov-report=xml --cov-fail-under=85 | tee coverage.txt
           cat coverage.txt >> $GITHUB_STEP_SUMMARY
       - name: Run e2e reminder flow
         run: python tests/e2e_reminder_flow.py
