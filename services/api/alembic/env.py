@@ -1,6 +1,7 @@
 # file: services/api/alembic/env.py
 from __future__ import annotations
 
+import logging
 import os
 from logging.config import fileConfig
 from urllib.parse import quote_plus
@@ -8,6 +9,8 @@ from pathlib import Path
 
 from alembic import context
 from sqlalchemy import create_engine, pool  # используем create_engine — без set_main_option
+
+logger = logging.getLogger(__name__)
 
 # Загружаем .env: сначала корень, затем сервисный (сервисный перекрывает)
 try:
@@ -18,8 +21,11 @@ try:
     service_env = _HERE.parents[1] / ".env"  # services/api/.env
     load_dotenv(root_env)
     load_dotenv(service_env, override=True)
-except Exception:
-    pass
+except ImportError:
+    logger.info("python-dotenv is not installed; skipping .env loading")
+except (FileNotFoundError, OSError) as exc:
+    logger.error("Failed to load .env file: %s", exc)
+    raise
 
 config = context.config
 if config.config_file_name:
