@@ -10,7 +10,6 @@ import { useTelegramContext } from '@/contexts/telegram-context'
 import { cn } from '@/lib/utils'
 import {
   normalizeReminderType,
-  type ReminderType,
   type NormalizedReminderType,
 } from '@/lib/reminders'
 import { parseTimeToMinutes } from '@/lib/time'
@@ -162,7 +161,7 @@ export default function Reminders() {
         const data = await getReminders(user.id)
         if (cancelled) return
         const normalized: Reminder[] = (data || []).map((r: ApiReminder) => {
-          const nt = normalizeReminderType(r.type as ReminderType)
+          const nt = normalizeReminderType(r.type)
           return {
             id: r.id ?? 0,
             type: nt,

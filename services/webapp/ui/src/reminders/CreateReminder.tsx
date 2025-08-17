@@ -8,7 +8,6 @@ import { useTelegramContext } from "@/contexts/telegram-context";
 import { useToast } from "@/hooks/use-toast";
 import {
   normalizeReminderType,
-  type ReminderType,
   type NormalizedReminderType,
 } from "@/lib/reminders";
 import { isValidTime } from "@/lib/time";
@@ -69,7 +68,7 @@ export default function CreateReminder() {
       try {
         const data = await getReminder(user.id, id);
         if (data) {
-          const nt = normalizeReminderType(data.type as ReminderType);
+          const nt = normalizeReminderType(data.type);
           const loaded: Reminder = {
             id: data.id ?? id,
             type: nt,
