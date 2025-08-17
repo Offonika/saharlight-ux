@@ -43,9 +43,11 @@ class DummyPhoto:
     file_unique_id = "uid"
 
 
-class DummySession:
-    def __init__(self) -> None:
-        self.added: list[Any] = []
+class DummySession(Session):
+    added_entries: list[Any] = []
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        pass
 
     def __enter__(self) -> "DummySession":
         return self
@@ -59,16 +61,13 @@ class DummySession:
         pass
 
     def add(self, entry: Any) -> None:
-        self.added.append(entry)
+        DummySession.added_entries.append(entry)
 
     def commit(self) -> None:
         pass
 
     def get(self, model: Any, user_id: int) -> SimpleNamespace:
         return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
-
-
-session = DummySession()
 
 
 @pytest.mark.asyncio
@@ -165,10 +164,7 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
-    class SessionFactory:
-        def __new__(cls, *args: Any, **kwargs: Any) -> DummySession:
-            return session
-    session_factory = cast(sessionmaker[Session], sessionmaker(class_=SessionFactory))
+    session_factory = sessionmaker(class_=DummySession)
     dose_handlers.SessionLocal = session_factory
     await dose_handlers.freeform_handler(update_sugar, context)
     assert user_data["pending_entry"]["sugar_before"] == 5.5
@@ -185,8 +181,8 @@ async def test_photo_flow_saves_entry(
     update_confirm = cast(Update, SimpleNamespace(callback_query=query))
     await router.callback_router(update_confirm, context)
 
-    assert len(session.added) == 1
-    saved = session.added[0]
+    assert len(DummySession.added_entries) == 1
+    saved = DummySession.added_entries[0]
     assert saved.carbs_g == 30.0
     assert saved.sugar_before == 5.5
     assert "pending_entry" not in user_data
