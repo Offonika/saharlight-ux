@@ -7,8 +7,6 @@ import logging
 import sys
 from typing import Any
 
-import services.api.app.telegram_compat  # noqa: F401
-
 from telegram import BotCommand
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
 from sqlalchemy.exc import SQLAlchemyError
