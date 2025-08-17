@@ -4,6 +4,9 @@ const mockRemindersGet = vi.hoisted(() => vi.fn());
 
 vi.mock('@sdk', () => ({
   DefaultApi: vi.fn(() => ({ remindersGet: mockRemindersGet })),
+}));
+
+vi.mock('@sdk/models', () => ({
   instanceOfReminder: vi.fn(),
 }));
 
