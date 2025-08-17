@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react';
 import { Clock, User, BookOpen, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -6,7 +7,35 @@ import MedicalButton from '@/components/MedicalButton';
 import { useTelegramContext } from '@/contexts/telegram-context';
 import { fetchDayStats, fallbackDayStats } from '@/api/stats';
 
-const menuItems = [
+const COLOR_MAP = {
+  'medical-blue': {
+    bg: 'bg-medical-blue/10',
+    text: 'text-medical-blue',
+  },
+  'medical-teal': {
+    bg: 'bg-medical-teal/10',
+    text: 'text-medical-teal',
+  },
+  'medical-success': {
+    bg: 'bg-medical-success/10',
+    text: 'text-medical-success',
+  },
+  'medical-warning': {
+    bg: 'bg-medical-warning/10',
+    text: 'text-medical-warning',
+  },
+} as const;
+
+interface MenuItem {
+  id: string;
+  title: string;
+  icon: LucideIcon;
+  description: string;
+  route: string;
+  color: keyof typeof COLOR_MAP;
+}
+
+const menuItems: MenuItem[] = [
   {
     id: 'reminders',
     title: 'Напоминания',
@@ -41,7 +70,7 @@ const menuItems = [
   }
 ];
 
-const Home = () => {
+const Home = (): JSX.Element => {
   const navigate = useNavigate();
   const { user } = useTelegramContext();
 
@@ -54,7 +83,7 @@ const Home = () => {
 
   const dayStats = stats ?? fallbackDayStats;
 
-  const handleTileClick = (route: string) => {
+  const handleTileClick = (route: string): void => {
     navigate(route);
   };
 
@@ -77,6 +106,7 @@ const Home = () => {
         <div className="grid grid-cols-2 gap-4 mb-8">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
+            const { bg, text } = COLOR_MAP[item.color];
             return (
               <div
                 key={item.id}
@@ -84,18 +114,10 @@ const Home = () => {
                 style={{ animationDelay: `${index * 100}ms` }}
                 onClick={() => handleTileClick(item.route)}
               >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${
-                item.color === 'medical-blue' ? 'bg-medical-blue/10' :
-                item.color === 'medical-teal' ? 'bg-medical-teal/10' :
-                item.color === 'medical-success' ? 'bg-medical-success/10' :
-                'bg-medical-warning/10'
-              }`}>
-                <Icon className={`w-6 h-6 ${
-                  item.color === 'medical-blue' ? 'text-medical-blue' :
-                  item.color === 'medical-teal' ? 'text-medical-teal' :
-                  item.color === 'medical-success' ? 'text-medical-success' :
-                  'text-medical-warning'
-                }`} />
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${bg}`}
+                >
+                  <Icon className={`w-6 h-6 ${text}`} />
                 </div>
                 <h3 className="font-semibold text-foreground mb-1">{item.title}</h3>
                 <p className="text-sm text-muted-foreground">{item.description}</p>
