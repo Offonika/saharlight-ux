@@ -19,8 +19,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     query = update.callback_query
     if query is None:
         return
-    if query is None:
-        return
     await query.answer()
     data = query.data or ""
 
