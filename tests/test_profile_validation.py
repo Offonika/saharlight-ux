@@ -1,7 +1,6 @@
 from typing import Any
 
 import pytest
-from fastapi import HTTPException
 
 from services.api.app.schemas.profile import ProfileSchema
 from services.api.app.services.profile import _validate_profile
@@ -29,7 +28,6 @@ def test_validate_profile_rejects_target_outside_limits(target: Any) -> None:
         low=4.0,
         high=7.0,
     )
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(ValueError) as exc:
         _validate_profile(data)
-    assert exc.value.status_code == 400
-    assert exc.value.detail == "target must be between low and high"
+    assert str(exc.value) == "target must be between low and high"
