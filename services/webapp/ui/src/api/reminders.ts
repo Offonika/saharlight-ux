@@ -7,9 +7,12 @@ const api = new DefaultApi(
   new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
 );
 
-export async function getReminders(telegramId: number): Promise<Reminder[]> {
+export async function getReminders(
+  telegramId: number,
+  signal?: AbortSignal,
+): Promise<Reminder[]> {
   try {
-    const data = await api.remindersGet({ telegramId });
+    const data = await api.remindersGet({ telegramId }, { signal });
 
     if (!data) {
       return [];
@@ -22,6 +25,9 @@ export async function getReminders(telegramId: number): Promise<Reminder[]> {
 
     return data;
   } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw error;
+    }
     console.error('Failed to fetch reminders:', error);
     if (error instanceof Error) {
       throw error;
