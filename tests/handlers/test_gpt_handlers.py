@@ -112,7 +112,7 @@ async def test_pending_entry_next_field(monkeypatch: pytest.MonkeyPatch) -> None
     await gpt_handlers.freeform_handler(update, context)
     assert entry["xe"] == 1
     assert user_data["pending_fields"] == ["dose"]
-    assert "дозу инсулина" in message.replies[0][0]
+    assert message.replies[0][0] == "Введите дозу инсулина (ед.)."
 
 
 @pytest.mark.asyncio
@@ -176,11 +176,12 @@ async def test_smart_input_missing_fields(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
     message = DummyMessage("sugar=5")
     update = make_update(message)
-    user_data: dict[str, Any] = {}
-    context = make_context(user_data)
+    context = make_context({})
     await gpt_handlers.freeform_handler(update, context)
-    assert user_data["pending_fields"] == ["xe", "dose"]
-    assert "количество ХЕ" in message.replies[0][0]
+    data = cast(dict[str, Any], context.user_data)
+    assert data["pending_fields"] == ["xe", "dose"]
+    assert data["pending_entry"]["sugar_before"] == 5.0
+    assert message.replies[0][0] == "Введите количество ХЕ."
 
 
 @pytest.mark.asyncio
@@ -260,9 +261,9 @@ async def test_parse_command_valid_time(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(gpt_handlers, "parse_command", fake_parse)
     message = DummyMessage("entry")
     update = make_update(message)
-    user_data: dict[str, Any] = {}
-    context = make_context(user_data)
+    context = make_context({})
     await gpt_handlers.freeform_handler(update, context)
-    assert user_data["pending_entry"]["xe"] == 1
+    data = cast(dict[str, Any], context.user_data)
+    assert data["pending_entry"]["xe"] == 1
     assert "Расчёт завершён" in message.replies[0][0]
 

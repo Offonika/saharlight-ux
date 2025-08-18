@@ -334,15 +334,18 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 reply_markup=menu_keyboard,
             )
             return
+        # Save the partially filled entry and prompt for the next field
+        # before returning early.  This ensures that the conversation
+        # state is preserved even if some values are still missing.
         user_data["pending_entry"] = entry_data
         user_data["pending_fields"] = missing
         next_field = missing[0]
-        if next_field == "sugar":
-            await message.reply_text("Введите уровень сахара (ммоль/л).")
-        elif next_field == "xe":
-            await message.reply_text("Введите количество ХЕ.")
-        else:
-            await message.reply_text("Введите дозу инсулина (ед.).")
+        prompts = {
+            "sugar": "Введите уровень сахара (ммоль/л).",
+            "xe": "Введите количество ХЕ.",
+            "dose": "Введите дозу инсулина (ед.).",
+        }
+        await message.reply_text(prompts[next_field])
         return
 
     parsed = await parse_command(raw_text)
