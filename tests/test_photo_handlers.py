@@ -43,7 +43,7 @@ async def test_photo_handler_waiting_flag_returns_end() -> None:
         SimpleNamespace(user_data={photo_handlers.WAITING_GPT_FLAG: True}),
     )
     result = await photo_handlers.photo_handler(update, context)
-    assert result == photo_handlers.ConversationHandler.END
+    assert result == photo_handlers.END
     assert message.texts and "подождите" in message.texts[0].lower()
 
 
@@ -77,7 +77,7 @@ async def test_photo_handler_get_file_telegram_error(
     with caplog.at_level(logging.ERROR):
         result = await photo_handlers.photo_handler(update, context)
 
-    assert result == photo_handlers.ConversationHandler.END
+    assert result == photo_handlers.END
     assert message.texts == ["⚠️ Не удалось сохранить фото. Попробуйте ещё раз."]
     assert context.user_data is not None
     user_data = context.user_data

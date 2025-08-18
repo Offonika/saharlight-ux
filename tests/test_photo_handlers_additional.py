@@ -77,7 +77,7 @@ async def test_photo_handler_commit_failure(
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
-    assert result == photo_handlers.ConversationHandler.END
+    assert result == photo_handlers.END
     assert message.texts == ["⚠️ Не удалось сохранить данные пользователя."]
     user_data = context.user_data
     assert user_data is not None
@@ -141,7 +141,7 @@ async def test_photo_handler_run_failure(
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
-    assert result == photo_handlers.ConversationHandler.END
+    assert result == photo_handlers.END
     assert message.status is not None
     assert message.status.edits == ["⚠️ Vision не смог обработать фото."]
     user_data = context.user_data
@@ -211,7 +211,7 @@ async def test_photo_handler_unparsed_response(
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
-    assert result == photo_handlers.ConversationHandler.END
+    assert result == photo_handlers.END
     assert any("Не смог разобрать" in t for t in message.texts)
     user_data = context.user_data
     assert user_data is not None
@@ -245,6 +245,6 @@ async def test_doc_handler_rejects_non_image(
 
     result = await photo_handlers.doc_handler(update, context)
 
-    assert result == photo_handlers.ConversationHandler.END
+    assert result == photo_handlers.END
     assert not photo_mock.called
     assert not bot.get_file.called

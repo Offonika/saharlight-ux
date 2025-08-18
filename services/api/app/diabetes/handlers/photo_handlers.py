@@ -310,9 +310,6 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 prompt_photo = photo_prompt
 
 __all__ = [
-    "os",
-    "SessionLocal",
-    "ConversationHandler",
     "PHOTO_SUGAR",
     "WAITING_GPT_FLAG",
     "photo_prompt",

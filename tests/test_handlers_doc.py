@@ -61,7 +61,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
     )
 
     monkeypatch.setattr(photo_handlers, "photo_handler", fake_photo_handler)
-    monkeypatch.setattr(photo_handlers.os, "makedirs", lambda *args, **kwargs: None)
+    monkeypatch.setattr(photo_handlers.os, "makedirs", lambda *args, **kwargs: None)  # type: ignore[attr-defined]
 
     result = await photo_handlers.doc_handler(update, context)
 
@@ -102,7 +102,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
 
     result = await photo_handlers.doc_handler(update, context)
 
-    assert result == photo_handlers.ConversationHandler.END
+    assert result == photo_handlers.END
     assert not called.flag
     assert context.user_data is not None
     assert "__file_path" not in context.user_data
@@ -120,7 +120,7 @@ async def test_photo_handler_handles_typeerror() -> None:
     result = await photo_handlers.photo_handler(update, context)
 
     assert message.texts == ["❗ Файл не распознан как изображение."]
-    assert result == photo_handlers.ConversationHandler.END
+    assert result == photo_handlers.END
     assert context.user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
 
@@ -181,7 +181,7 @@ async def test_photo_handler_removes_file(monkeypatch: pytest.MonkeyPatch, tmp_p
     monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
     monkeypatch.setattr(photo_handlers, "menu_keyboard", None)
     monkeypatch.setattr(
-        photo_handlers.os,
+        photo_handlers.os,  # type: ignore[attr-defined]
         "makedirs",
         lambda path, **kwargs: Path(path).mkdir(parents=True, exist_ok=True),
     )
@@ -264,7 +264,7 @@ async def test_photo_then_freeform_calculates_dose(monkeypatch: pytest.MonkeyPat
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
     session_factory = cast(Any, sessionmaker(class_=DummySession))
-    photo_handlers.SessionLocal = session_factory
+    photo_handlers.SessionLocal = session_factory  # type: ignore[attr-defined]
     gpt_handlers.SessionLocal = session_factory
 
     async def fake_run_db(
