@@ -29,9 +29,7 @@ def build_init_data(user_id: int = 1) -> str:
 
 
 def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
-    engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
 
@@ -49,6 +47,19 @@ def test_history_auth_required(monkeypatch: pytest.MonkeyPatch) -> None:
         assert client.post("/api/history", json=rec).status_code == 401
         assert client.get("/api/history").status_code == 401
         assert client.delete("/api/history/1").status_code == 401
+
+
+def test_history_invalid_date_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    setup_db(monkeypatch)
+    monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
+    headers = {"X-Telegram-Init-Data": build_init_data(1)}
+    with TestClient(server.app) as client:
+        bad_date = {"id": "1", "date": "2024-13-01", "time": "12:00", "type": "measurement"}
+        resp = client.post("/api/history", json=bad_date, headers=headers)
+        assert resp.status_code == 422
+        bad_time = {"id": "1", "date": "2024-01-01", "time": "24:00", "type": "measurement"}
+        resp = client.post("/api/history", json=bad_time, headers=headers)
+        assert resp.status_code == 422
 
 
 def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -90,7 +101,10 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
         assert resp.status_code == 200
 
         resp = client.get("/api/history", headers=headers1)
-        assert [r["id"] for r in resp.json()] == ["1", "2"]
+        body = resp.json()
+        assert [r["id"] for r in body] == ["1", "2"]
+        assert body[0]["time"] == "12:00"
+        assert body[1]["time"] == "13:00"
 
         resp = client.get("/api/history", headers=headers2)
         assert [r["id"] for r in resp.json()] == ["3"]
@@ -110,15 +124,10 @@ async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> Non
     Session = setup_db(monkeypatch)
     monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
     headers = {"X-Telegram-Init-Data": build_init_data(1)}
-    records = [
-        {"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"}
-        for i in range(5)
-    ]
+    records = [{"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"} for i in range(5)]
 
     async def post_record(rec: dict[str, Any]) -> None:
-        async with AsyncClient(
-            transport=ASGITransport(app=cast(Any, server.app)), base_url="http://test"
-        ) as ac:
+        async with AsyncClient(transport=ASGITransport(app=cast(Any, server.app)), base_url="http://test") as ac:
             resp = await ac.post("/api/history", json=rec, headers=headers)
             assert resp.status_code == 200
 
