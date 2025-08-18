@@ -62,7 +62,7 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
     while True:
         start = text.find("{", search_start)
         if start == -1:
-            return None
+            break
 
         # If the object is preceded by ``[``, treat it as part of an array and
         # skip it so that we don't parse array responses like ``[{...}]``.
