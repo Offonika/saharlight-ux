@@ -1,7 +1,9 @@
 import { createContext, useContext } from "react"
-import type { useTelegram } from "@/hooks/useTelegram"
+import { useTelegram } from "@/hooks/useTelegram"
 
-const TelegramContext = createContext<ReturnType<typeof useTelegram> | null>(null)
+type TelegramHook = ReturnType<typeof useTelegram>
+
+const TelegramContext = createContext<TelegramHook | null>(null)
 
 const useTelegramContext = () => {
   const context = useContext(TelegramContext)
