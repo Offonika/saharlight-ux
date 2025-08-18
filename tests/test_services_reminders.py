@@ -2,7 +2,7 @@ import pytest
 from collections.abc import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 
 from services.api.app.diabetes.services.db import Base, User, Reminder
 from services.api.app.schemas.reminders import ReminderSchema
@@ -70,5 +70,5 @@ async def test_save_reminder_not_found_or_wrong_user(
         session.commit()
 
     schema = ReminderSchema(id=rem_id, telegram_id=telegram_id, type="sugar")
-    with pytest.raises(SQLAlchemyError):
+    with pytest.raises(HTTPException):
         await reminders.save_reminder(schema)
