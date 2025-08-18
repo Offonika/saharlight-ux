@@ -66,7 +66,7 @@ export async function createReminder(reminder: Reminder) {
 
 export async function updateReminder(reminder: Reminder) {
   try {
-    return await api.remindersPatch({ reminder });
+    return await api.remindersPost({ reminder });
   } catch (error) {
     console.error('Failed to update reminder:', error);
     if (error instanceof Error) {
@@ -78,7 +78,8 @@ export async function updateReminder(reminder: Reminder) {
 
 export async function deleteReminder(telegramId: number, id: number) {
   try {
-    return await api.remindersDelete({ telegramId, id });
+    const reminder = await getReminder(telegramId, id);
+    return await updateReminder({ ...reminder, isEnabled: false });
   } catch (error) {
     console.error('Failed to delete reminder:', error);
     if (error instanceof Error) {

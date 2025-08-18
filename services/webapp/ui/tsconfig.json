@@ -12,9 +12,10 @@
     },
     "noImplicitAny": true,
     "noUnusedParameters": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "allowJs": true,
     "noUnusedLocals": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "strict": true
   }
 }

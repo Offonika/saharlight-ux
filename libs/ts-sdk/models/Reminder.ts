@@ -38,6 +38,12 @@ export interface Reminder {
      */
     type: string;
     /**
+     *
+     * @type {string}
+     * @memberof Reminder
+     */
+    title?: string;
+    /**
      * 
      * @type {string}
      * @memberof Reminder
@@ -75,10 +81,11 @@ export function ReminderFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
         return json;
     }
     return {
-        
+
         'telegramId': json['telegram_id'],
         'id': json['id'] == null ? undefined : json['id'],
         'type': json['type'],
+        'title': json['title'] == null ? undefined : json['title'],
         'time': json['time'] == null ? undefined : json['time'],
         'intervalHours': json['interval_hours'] == null ? undefined : json['interval_hours'],
         'isEnabled': json['is_enabled'] == null ? undefined : json['is_enabled'],
@@ -95,10 +102,11 @@ export function ReminderToJSONTyped(value?: Reminder | null, ignoreDiscriminator
     }
 
     return {
-        
+
         'telegram_id': value['telegramId'],
         'id': value['id'],
         'type': value['type'],
+        'title': value['title'],
         'time': value['time'],
         'interval_hours': value['intervalHours'],
         'is_enabled': value['isEnabled'],
