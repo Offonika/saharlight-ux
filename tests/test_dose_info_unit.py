@@ -15,6 +15,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 import services.api.app.diabetes.handlers.dose_calc as dose_calc
+import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
 dose_handlers = dose_calc
 
@@ -93,6 +94,11 @@ async def test_entry_without_dose_has_no_unit(
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
+    async def fake_run_db(fn: Any, *args: Any, **kwargs: Any) -> Any:
+        with session_factory() as session:
+            return fn(session)
+
+    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
 
     await dose_calc.freeform_handler(update, context)
 
@@ -149,6 +155,11 @@ async def test_entry_without_sugar_has_placeholder(
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
+    async def fake_run_db(fn: Any, *args: Any, **kwargs: Any) -> Any:
+        with session_factory() as session:
+            return fn(session)
+
+    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
 
     await dose_calc.freeform_handler(update, context)
 

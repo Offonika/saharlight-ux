@@ -121,11 +121,11 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             session.add(entry)
             return bool(commit(session))
 
-        try:
-            ok = await run_db(db_save_entry, sessionmaker=SessionLocal)
-        except AttributeError:
+        if not hasattr(run_db, "__call__"):
             with SessionLocal() as session:
                 ok = db_save_entry(session)
+        else:
+            ok = await run_db(db_save_entry, sessionmaker=SessionLocal)
         if not ok:
             await message.reply_text("⚠️ Не удалось сохранить запись.")
             return
@@ -167,13 +167,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     carbs_g = xe_val * 12
                     entry["carbs_g"] = carbs_g
                 user_id = user.id
-                try:
+                if not hasattr(run_db, "__call__"):
+                    with SessionLocal() as session:
+                        profile = session.get(Profile, user_id)
+                else:
                     profile = await run_db(
                         lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
                     )
-                except AttributeError:
-                    with SessionLocal() as session:
-                        profile = session.get(Profile, user_id)
                 if (
                     profile is not None
                     and profile.icr is not None
@@ -222,11 +222,11 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             session.refresh(entry)
             return entry
 
-        try:
-            entry = await run_db(db_edit, sessionmaker=SessionLocal)
-        except AttributeError:
+        if not hasattr(run_db, "__call__"):
             with SessionLocal() as session:
                 entry = db_edit(session)
+        else:
+            entry = await run_db(db_edit, sessionmaker=SessionLocal)
         if entry is None:
             await message.reply_text("⚠️ Не удалось сохранить запись.")
             return
@@ -322,11 +322,11 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             session.add(entry)
             return bool(commit(session))
 
-        try:
-            ok = await run_db(db_save_pending, sessionmaker=SessionLocal)
-        except AttributeError:
+        if not hasattr(run_db, "__call__"):
             with SessionLocal() as session:
                 ok = db_save_pending(session)
+        else:
+            ok = await run_db(db_save_pending, sessionmaker=SessionLocal)
         if not ok:
             await message.reply_text("⚠️ Не удалось сохранить запись.")
             return
@@ -372,11 +372,11 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 session.add(entry)
                 return bool(commit(session))
 
-            try:
-                ok = await run_db(db_save_quick, sessionmaker=SessionLocal)
-            except AttributeError:
+            if not hasattr(run_db, "__call__"):
                 with SessionLocal() as session:
                     ok = db_save_quick(session)
+            else:
+                ok = await run_db(db_save_quick, sessionmaker=SessionLocal)
             if not ok:
                 await message.reply_text("⚠️ Не удалось сохранить запись.")
                 return

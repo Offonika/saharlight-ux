@@ -68,7 +68,9 @@ async def test_freeform_handler_edits_pending_entry_keeps_state(
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
+async def test_freeform_handler_adds_sugar_to_photo_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     entry = {
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -98,6 +100,12 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
 
     session_factory = cast(Any, sessionmaker(class_=DummySession))
     handlers.SessionLocal = session_factory
+
+    async def fake_run_db(fn: Any, *args: Any, **kwargs: Any) -> Any:
+        with session_factory() as session:
+            return fn(session)
+
+    monkeypatch.setattr(handlers, "run_db", fake_run_db)
     message = DummyMessage("5,6")
     update = cast(
         Update,
