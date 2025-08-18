@@ -21,18 +21,35 @@ from services.api.app.diabetes.utils.helpers import (
     split_text_by_width,
 )
 
+
 def test_clean_markdown() -> None:
-    text = "**Жирный**\n# Заголовок\n* элемент\n1. Первый"
+    text = (
+        "**Жирный** __подчёркнутый__ _курсив_ *italic* "
+        "[ссылка](http://example.com) ![alt](img.png) `код` ~~зачёркнуто~~\n"
+        "# Заголовок\n* элемент\n1. Первый"
+    )
     cleaned = clean_markdown(text)
     assert "Жирный" in cleaned
-    assert "Заголовок" in cleaned
+    assert "подчёркнутый" in cleaned
+    assert "курсив" in cleaned
+    assert "italic" in cleaned
+    assert "ссылка" in cleaned
+    assert "alt" in cleaned
+    assert "код" in cleaned
+    assert "зачёркнуто" in cleaned
     assert "#" not in cleaned
     assert "*" not in cleaned
     assert "1." not in cleaned
+    assert "__" not in cleaned
+    assert "_" not in cleaned
+    assert "~~" not in cleaned
+
 
 def test_split_text_by_width_simple() -> None:
     text = "Это короткая строка"
-    pdfmetrics.registerFont(TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+    pdfmetrics.registerFont(
+        TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    )
     lines = split_text_by_width(text, "DejaVuSans", 12, 50)
     assert isinstance(lines, list)
     assert all(isinstance(line, str) for line in lines)
@@ -46,7 +63,9 @@ def test_split_text_by_width_simple() -> None:
     ],
 )
 def test_split_text_by_width_respects_limit(text: Any) -> None:
-    pdfmetrics.registerFont(TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+    pdfmetrics.registerFont(
+        TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    )
     max_width = 20
     lines = split_text_by_width(text, "DejaVuSans", 12, max_width)
     for line in lines:
@@ -54,7 +73,9 @@ def test_split_text_by_width_respects_limit(text: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_coords_and_link_non_blocking(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_get_coords_and_link_non_blocking(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def slow_urlopen(*args: object, **kwargs: object) -> ContextManager[io.StringIO]:
         time.sleep(0.2)
 
@@ -80,7 +101,9 @@ async def test_get_coords_and_link_non_blocking(monkeypatch: pytest.MonkeyPatch)
 
 
 @pytest.mark.asyncio
-async def test_get_coords_and_link_logs_warning(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_get_coords_and_link_logs_warning(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     def failing_urlopen(*args: object, **kwargs: object) -> None:
         raise OSError("network down")
 
@@ -94,7 +117,9 @@ async def test_get_coords_and_link_logs_warning(monkeypatch: pytest.MonkeyPatch,
 
 
 @pytest.mark.asyncio
-async def test_get_coords_and_link_invalid_loc(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_get_coords_and_link_invalid_loc(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     def bad_urlopen(*args: object, **kwargs: object) -> ContextManager[io.StringIO]:
         class Resp:
             def __enter__(self) -> io.StringIO:
@@ -117,7 +142,9 @@ async def test_get_coords_and_link_invalid_loc(monkeypatch: pytest.MonkeyPatch, 
 
 
 @pytest.mark.asyncio
-async def test_get_coords_and_link_custom_source(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_get_coords_and_link_custom_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def fake_urlopen(url: str, timeout: int = 5) -> ContextManager[io.StringIO]:
         assert url == "http://custom"
 
