@@ -393,7 +393,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
     user_data.pop("pending_entry", None)
-    user_data["pending_entry"] = {
+    entry = {
         "telegram_id": user_id,
         "event_time": event_dt,
         "xe": fields.get("xe"),
@@ -402,6 +402,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         "sugar_before": fields.get("sugar_before"),
         "photo_path": None,
     }
+    user_data["pending_entry"] = entry
 
     xe_val: float | None = fields.get("xe")
     carbs_val: float | None = fields.get("carbs_g")

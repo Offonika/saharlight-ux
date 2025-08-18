@@ -35,7 +35,7 @@ def make_context(
 ) -> CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
     return cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data=user_data or {}),
+        SimpleNamespace(user_data={} if user_data is None else user_data),
     )
 
 
@@ -263,6 +263,24 @@ async def test_parse_command_valid_time(monkeypatch: pytest.MonkeyPatch) -> None
     user_data: dict[str, Any] = {}
     context = make_context(user_data)
     await gpt_handlers.freeform_handler(update, context)
-    assert user_data["pending_entry"]["xe"] == 1
-    assert "Расчёт завершён" in message.replies[0][0]
+    entry = user_data["pending_entry"]
+    assert entry == {
+        "telegram_id": 1,
+        "event_time": entry["event_time"],
+        "xe": 1,
+        "carbs_g": None,
+        "dose": 2,
+        "sugar_before": 5,
+        "photo_path": None,
+    }
+    assert entry["event_time"].hour == 12
+    assert entry["event_time"].minute == 34
+    expected_date = entry["event_time"].strftime("%d.%m %H:%M")
+    expected_reply = (
+        "💉 Расчёт завершён:\n\n"
+        f"{expected_date}  \n- 1 ХЕ  \n- Инсулин: 2 ед  \n- Сахар: 5 ммоль/л\n\n"
+        "Сохранить это в дневник?"
+    )
+    assert message.replies[0][0] == expected_reply
+    assert message.replies[0][1]["reply_markup"] == gpt_handlers.confirm_keyboard()  # type: ignore[attr-defined]
 
