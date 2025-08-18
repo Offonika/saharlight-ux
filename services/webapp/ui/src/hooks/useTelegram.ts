@@ -123,13 +123,11 @@ export const useTelegram = (
               const resp = await tgFetch("/api/profile/self", {
                 credentials: "include",
               });
-              if (resp.ok) {
-                const data = await resp.json().catch(() => null);
-                if (data?.id) {
-                  if (cancelled) return;
-                  setUser(data);
-                  return;
-                }
+              const data = await resp.json().catch(() => null);
+              if (data?.id) {
+                if (cancelled) return;
+                setUser(data);
+                return;
               }
             } catch (err) {
               console.warn("[TG] profile fetch failed", err);
