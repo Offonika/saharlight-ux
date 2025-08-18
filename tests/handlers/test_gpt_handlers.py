@@ -176,10 +176,9 @@ async def test_smart_input_missing_fields(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
     message = DummyMessage("sugar=5")
     update = make_update(message)
-    user_data: dict[str, Any] = {}
-    context = make_context(user_data)
+    context = make_context({})
     await gpt_handlers.freeform_handler(update, context)
-    assert user_data["pending_fields"] == ["xe", "dose"]
+    assert cast(dict[str, Any], context.user_data)["pending_fields"] == ["xe", "dose"]
     assert "количество ХЕ" in message.replies[0][0]
 
 
@@ -260,9 +259,8 @@ async def test_parse_command_valid_time(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(gpt_handlers, "parse_command", fake_parse)
     message = DummyMessage("entry")
     update = make_update(message)
-    user_data: dict[str, Any] = {}
-    context = make_context(user_data)
+    context = make_context({})
     await gpt_handlers.freeform_handler(update, context)
-    assert user_data["pending_entry"]["xe"] == 1
+    assert cast(dict[str, Any], context.user_data)["pending_entry"]["xe"] == 1
     assert "Расчёт завершён" in message.replies[0][0]
 
