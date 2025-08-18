@@ -33,6 +33,12 @@ def test_calc_bolus_no_correction() -> None:
     assert result == 3.0
 
 
+def test_calc_bolus_decimal_precision() -> None:
+    profile = PatientProfile(icr=3, cf=1, target_bg=5)
+    result = calc_bolus(carbs_g=1, current_bg=5, profile=profile)
+    assert result == 0.3
+
+
 def test_calc_bolus_invalid_icr() -> None:
     profile = PatientProfile(icr=0, cf=2, target_bg=6)
     with pytest.raises(ValueError, match="icr"):
@@ -74,7 +80,7 @@ def test_extract_nutrition_info_ranges() -> None:
     text = "Углеводы: 30–50 г, XE: 2–3"
     carbs, xe = extract_nutrition_info(text)
     assert carbs == 40  # (30+50)/2
-    assert xe == 2.5    # (2+3)/2
+    assert xe == 2.5  # (2+3)/2
 
 
 def test_extract_nutrition_info_plus_minus() -> None:
