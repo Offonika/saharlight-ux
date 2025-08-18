@@ -1,5 +1,7 @@
 # test_functions.py
 
+from decimal import getcontext
+
 import pytest
 
 from services.api.app.diabetes.utils.functions import (
@@ -37,6 +39,16 @@ def test_calc_bolus_decimal_precision() -> None:
     profile = PatientProfile(icr=3, cf=1, target_bg=5)
     result = calc_bolus(carbs_g=1, current_bg=5, profile=profile)
     assert result == 0.3
+
+
+def test_calc_bolus_no_precision_leak() -> None:
+    ctx = getcontext()
+    original = ctx.prec
+    ctx.prec = 10
+    profile = PatientProfile(icr=12, cf=2, target_bg=6)
+    calc_bolus(carbs_g=60, current_bg=8, profile=profile)
+    assert ctx.prec == 10
+    ctx.prec = original
 
 
 def test_calc_bolus_invalid_icr() -> None:

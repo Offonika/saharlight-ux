@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import re
-from decimal import Decimal, getcontext
+from decimal import Decimal, localcontext
 
 # ---------------------------------------------------------------------------
 # Regex helpers
@@ -142,17 +142,18 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
         raise ValueError("carbs_g must be non-negative")
     if current_bg < 0:
         raise ValueError("current_bg must be non-negative")
-    getcontext().prec = 6
-    carbs = Decimal(str(carbs_g))
-    icr = Decimal(str(profile.icr))
-    cf = Decimal(str(profile.cf))
-    target_bg = Decimal(str(profile.target_bg))
-    current = Decimal(str(current_bg))
-    meal = carbs / icr
-    correction = (current - target_bg) / cf
-    if correction < 0:
-        correction = Decimal("0")
-    return float(round(meal + correction, 1))
+    with localcontext() as ctx:
+        ctx.prec = 6
+        carbs = Decimal(str(carbs_g))
+        icr = Decimal(str(profile.icr))
+        cf = Decimal(str(profile.cf))
+        target_bg = Decimal(str(profile.target_bg))
+        current = Decimal(str(current_bg))
+        meal = carbs / icr
+        correction = (current - target_bg) / cf
+        if correction < 0:
+            correction = Decimal("0")
+        return float(round(meal + correction, 1))
 
 
 def extract_nutrition_info(text: object) -> tuple[float | None, float | None]:
