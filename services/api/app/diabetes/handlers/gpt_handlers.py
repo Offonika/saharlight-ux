@@ -363,6 +363,8 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             "carbs_g": xe * 12 if xe is not None else None,
         }
         missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
+        user_data["pending_entry"] = entry_data
+        user_data["pending_fields"] = missing
         if not missing:
 
             def db_save_quick(session: Session) -> bool:
@@ -380,13 +382,13 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 return
             if sugar is not None:
                 await check_alert(update, context, sugar)
+            user_data.pop("pending_entry", None)
+            user_data.pop("pending_fields", None)
             await message.reply_text(
                 f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
                 reply_markup=menu_keyboard,
             )
             return
-        user_data["pending_entry"] = entry_data
-        user_data["pending_fields"] = missing
         next_field = missing[0]
         if next_field == "sugar":
             await message.reply_text("Введите уровень сахара (ммоль/л).")
