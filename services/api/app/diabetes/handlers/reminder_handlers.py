@@ -345,6 +345,9 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         return
     rtype, value = args[0], args[1]
+    if rtype not in REMINDER_NAMES:
+        await message.reply_text("Неизвестный тип напоминания.")
+        return
     reminder = Reminder(telegram_id=user_id, type=rtype)
     if rtype == "sugar":
         if ":" in value:
@@ -381,9 +384,6 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         except ValueError:
             await message.reply_text("Значение должно быть числом.")
             return
-    else:
-        await message.reply_text("Неизвестный тип напоминания.")
-        return
 
     def db_add(session: Session) -> tuple[str, User | None, int, int]:
         count = session.query(Reminder).filter_by(telegram_id=user_id).count()
@@ -445,6 +445,9 @@ async def reminder_webapp_save(
     raw_value = data.get("value")
     rid = data.get("id")
     if not rtype or raw_value is None:
+        return
+    if rtype not in REMINDER_NAMES:
+        await msg.reply_text("Неизвестный тип напоминания.")
         return
     value = str(raw_value).strip()
     if not value:

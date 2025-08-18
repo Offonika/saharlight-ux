@@ -1,7 +1,8 @@
-import pytest
+import json
 from typing import Any
 from unittest.mock import MagicMock
 
+import pytest
 from telegram import Update, User
 from telegram.ext import CallbackContext
 
@@ -18,6 +19,16 @@ class DummyMessage:
         self.texts.append(text)
         self.kwargs.append(kwargs)
 
+
+class DummyWebAppData:
+    def __init__(self, data: str) -> None:
+        self.data = data
+
+
+class DummyWebAppMessage(DummyMessage):
+    def __init__(self, data: str) -> None:
+        super().__init__()
+        self.web_app_data = DummyWebAppData(data)
 
 def make_user(user_id: int) -> MagicMock:
     user = MagicMock(spec=User)
@@ -82,3 +93,42 @@ async def test_add_reminder_sugar_non_numeric_interval(
 
     assert message.texts == ["Интервал должен быть числом."]
     parse_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_add_reminder_unknown_type() -> None:
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["unknown", "1"])
+
+    await reminder_handlers.add_reminder(update, context)
+
+    assert message.texts == ["Неизвестный тип напоминания."]
+
+
+@pytest.mark.asyncio
+async def test_add_reminder_valid_type(monkeypatch: pytest.MonkeyPatch) -> None:
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["sugar", "2"], job_queue=None)
+
+    async def fake_run_db(*args: Any, **kwargs: Any) -> tuple[str, None, int, int]:
+        return "ok", None, 5, 1
+
+    monkeypatch.setattr(reminder_handlers, "run_db", fake_run_db)
+    monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
+
+    await reminder_handlers.add_reminder(update, context)
+
+    assert message.texts == ["Сохранено: desc"]
+
+
+@pytest.mark.asyncio
+async def test_reminder_webapp_save_unknown_type() -> None:
+    message = DummyWebAppMessage(json.dumps({"type": "bad", "value": "10:00"}))
+    update = make_update(effective_message=message, effective_user=make_user(1))
+    context = make_context()
+
+    await reminder_handlers.reminder_webapp_save(update, context)
+
+    assert message.texts == ["Неизвестный тип напоминания."]
