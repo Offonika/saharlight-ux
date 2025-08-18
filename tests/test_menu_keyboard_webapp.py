@@ -1,12 +1,18 @@
-import pytest
-
 import importlib
 from urllib.parse import urlparse
 
+import pytest
 
-def test_menu_keyboard_webapp_urls(monkeypatch: pytest.MonkeyPatch) -> None:
+
+@pytest.mark.parametrize(
+    "base_url",
+    ["https://example.com", "https://example.com/"],
+)
+def test_menu_keyboard_webapp_urls(
+    monkeypatch: pytest.MonkeyPatch, base_url: str
+) -> None:
     """Menu buttons should open webapp paths for profile and reminders."""
-    monkeypatch.setenv("WEBAPP_URL", "https://example.com")
+    monkeypatch.setenv("WEBAPP_URL", base_url)
 
     import services.api.app.config as config
     import services.api.app.diabetes.utils.ui as ui
