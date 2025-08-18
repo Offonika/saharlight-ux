@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -9,8 +7,8 @@ from ..diabetes.services.db import Reminder, SessionLocal, run_db
 from ..schemas.reminders import ReminderSchema
 
 
-async def list_reminders(telegram_id: int) -> List[Reminder]:
-    def _list(session: Session) -> List[Reminder]:
+async def list_reminders(telegram_id: int) -> list[Reminder]:
+    def _list(session: Session) -> list[Reminder]:
         return session.query(Reminder).filter_by(telegram_id=telegram_id).all()
 
     return await run_db(_list, sessionmaker=SessionLocal)
