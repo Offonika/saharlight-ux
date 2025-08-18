@@ -170,7 +170,6 @@ async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path:
     )
     session_factory = cast(Any, sessionmaker(class_=DummySession))
     photo_handlers.SessionLocal = session_factory
-    gpt_handlers.SessionLocal = session_factory
 
     async def fake_run_db(
         func: Callable[..., T],
@@ -185,7 +184,9 @@ async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path:
             session.close()
 
     monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
-    await gpt_handlers.freeform_handler(update_sugar, context)
+    deps = gpt_handlers.default_deps()
+    deps.SessionLocal = session_factory
+    await gpt_handlers.freeform_handler(update_sugar, context, deps=deps)
     assert user_data["pending_entry"]["sugar_before"] == 5.5
 
     monkeypatch.setattr(router, "SessionLocal", session_factory)

@@ -280,14 +280,16 @@ from . import gpt_handlers as _gpt_handlers  # noqa: E402
 
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    _gpt_handlers.SessionLocal = SessionLocal
-    _gpt_handlers.commit = commit
-    _gpt_handlers.check_alert = check_alert
-    _gpt_handlers.menu_keyboard = menu_keyboard
-    _gpt_handlers.smart_input = smart_input
-    _gpt_handlers.parse_command = parse_command
-    _gpt_handlers.send_report = send_report
-    return await _gpt_handlers.freeform_handler(update, context)
+    deps = _gpt_handlers.FreeformDeps(
+        SessionLocal=SessionLocal,
+        commit=commit,
+        check_alert=check_alert,
+        menu_keyboard=menu_keyboard,
+        smart_input=smart_input,
+        parse_command=parse_command,
+        send_report=send_report,
+    )
+    return await _gpt_handlers.freeform_handler(update, context, deps=deps)
 
 
 chat_with_gpt = _gpt_handlers.chat_with_gpt

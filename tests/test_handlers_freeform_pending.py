@@ -99,7 +99,6 @@ async def test_freeform_handler_adds_sugar_to_photo_entry(
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
     session_factory = cast(Any, sessionmaker(class_=DummySession))
-    handlers.SessionLocal = session_factory
 
     async def fake_run_db(fn: Any, *args: Any, **kwargs: Any) -> Any:
         with session_factory() as session:
@@ -116,7 +115,9 @@ async def test_freeform_handler_adds_sugar_to_photo_entry(
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
-    await handlers.freeform_handler(update, context)
+    deps = handlers.default_deps()
+    deps.SessionLocal = session_factory
+    await handlers.freeform_handler(update, context, deps=deps)
 
     assert context.user_data is not None
     user_data = context.user_data

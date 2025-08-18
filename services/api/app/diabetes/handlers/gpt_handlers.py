@@ -3,13 +3,15 @@ from __future__ import annotations
 import datetime
 import logging
 import re
-from typing import Any, TypedDict, cast
+from dataclasses import dataclass
+from typing import Any, Awaitable, Callable, TypedDict, cast
 
 from telegram import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
+    ReplyKeyboardMarkup,
     Update,
 )
 from telegram.ext import ContextTypes
@@ -33,6 +35,33 @@ from . import UserData
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class FreeformDeps:
+    """Dependencies for :func:`freeform_handler`."""
+
+    SessionLocal: Callable[[], Session]
+    commit: Callable[[Session], bool]
+    check_alert: Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[None]]
+    menu_keyboard: ReplyKeyboardMarkup | None
+    smart_input: Callable[[str], dict[str, float | None]]
+    parse_command: Callable[[str], Awaitable[dict[str, Any] | None]]
+    send_report: Callable[[Update, ContextTypes.DEFAULT_TYPE, datetime.datetime, str], Awaitable[None]]
+
+
+def default_deps() -> FreeformDeps:
+    """Return default dependencies for :func:`freeform_handler`."""
+
+    return FreeformDeps(
+        SessionLocal=SessionLocal,
+        commit=commit,
+        check_alert=check_alert,
+        menu_keyboard=menu_keyboard,
+        smart_input=smart_input,
+        parse_command=parse_command,
+        send_report=send_report,
+    )
+
+
 class EditMessageMeta(TypedDict):
     """Metadata about the message being edited."""
 
@@ -46,6 +75,7 @@ async def _handle_report_request(
     message: Message,
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
+    deps: FreeformDeps,
 ) -> bool:
     """Handle the awaiting report date flow."""
     if not user_data.get("awaiting_report_date"):
@@ -53,7 +83,9 @@ async def _handle_report_request(
     text = raw_text.lower()
     if "назад" in text or text == "/cancel":
         user_data.pop("awaiting_report_date", None)
-        await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
+        await message.reply_text(
+            "📋 Выберите действие:", reply_markup=deps.menu_keyboard
+        )
         return True
     try:
         date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(
@@ -62,23 +94,23 @@ async def _handle_report_request(
     except ValueError:
         await message.reply_text("❗ Некорректная дата. Используйте формат YYYY-MM-DD.")
         return True
-    await send_report(update, context, date_from, "указанный период")
+    await deps.send_report(update, context, date_from, "указанный период")
     user_data.pop("awaiting_report_date", None)
     return True
 
 
-async def _save_entry(entry_data: dict[str, Any]) -> bool:
+async def _save_entry(entry_data: dict[str, Any], deps: FreeformDeps) -> bool:
     """Persist an entry in the database."""
 
     def _db_save(session: Session) -> bool:
         entry = Entry(**entry_data)
         session.add(entry)
-        return bool(commit(session))
+        return bool(deps.commit(session))
 
     if not callable(run_db):
-        with SessionLocal() as session:
+        with deps.SessionLocal() as session:
             return _db_save(session)
-    return await run_db(_db_save, sessionmaker=SessionLocal)
+    return await run_db(_db_save, sessionmaker=deps.SessionLocal)
 
 
 async def _handle_pending_entry(
@@ -88,6 +120,7 @@ async def _handle_pending_entry(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     user_id: int,
+    deps: FreeformDeps,
 ) -> bool:
     """Process numeric input for a pending entry."""
     pending_entry = user_data.get("pending_entry")
@@ -135,13 +168,13 @@ async def _handle_pending_entry(
                 await message.reply_text("Введите дозу инсулина (ед.).")
             return True
 
-        ok = await _save_entry(pending_entry)
+        ok = await _save_entry(pending_entry, deps)
         if not ok:
             await message.reply_text("⚠️ Не удалось сохранить запись.")
             return True
         sugar = pending_entry.get("sugar_before")
         if sugar is not None:
-            await check_alert(update, context, sugar)
+            await deps.check_alert(update, context, sugar)
         user_data.pop("pending_entry", None)
         user_data.pop("pending_fields", None)
         xe = pending_entry.get("xe")
@@ -151,7 +184,7 @@ async def _handle_pending_entry(
         sugar_info = f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
         await message.reply_text(
             f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
-            reply_markup=menu_keyboard,
+            reply_markup=deps.menu_keyboard,
         )
         return True
 
@@ -179,11 +212,11 @@ async def _handle_pending_entry(
                 carbs_g = xe_val * 12
                 pending_entry["carbs_g"] = carbs_g
             if not callable(run_db):
-                with SessionLocal() as session:
+                with deps.SessionLocal() as session:
                     profile = session.get(Profile, user_id)
             else:
                 profile = await run_db(
-                    lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
+                    lambda s: s.get(Profile, user_id), sessionmaker=deps.SessionLocal
                 )
             if (
                 profile is not None
@@ -202,7 +235,7 @@ async def _handle_pending_entry(
                 )
                 return True
         await message.reply_text(
-            "Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard
+            "Введите количество углеводов или ХЕ.", reply_markup=deps.menu_keyboard
         )
         return True
 
@@ -215,6 +248,7 @@ async def _handle_edit_entry(
     user_data: UserData,
     message: Message,
     context: ContextTypes.DEFAULT_TYPE,
+    deps: FreeformDeps,
 ) -> bool:
     """Apply edits to an existing entry."""
     edit_id = user_data.get("edit_id")
@@ -241,16 +275,16 @@ async def _handle_edit_entry(
             entry.xe = value
         else:
             entry.dose = value
-        if not commit(session):
+        if not deps.commit(session):
             return None
         session.refresh(entry)
         return entry
 
     if not callable(run_db):
-        with SessionLocal() as session:
+        with deps.SessionLocal() as session:
             entry = db_edit(session)
     else:
-        entry = await run_db(db_edit, sessionmaker=SessionLocal)
+        entry = await run_db(db_edit, sessionmaker=deps.SessionLocal)
     if entry is None:
         await message.reply_text("⚠️ Не удалось сохранить запись.")
         return True
@@ -291,10 +325,11 @@ async def _handle_smart_input(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     user_id: int,
+    deps: FreeformDeps,
 ) -> None:
     """Process smart input or GPT command."""
     try:
-        quick = smart_input(raw_text)
+        quick = deps.smart_input(raw_text)
     except ValueError as exc:
         msg = str(exc)
         if "mismatched unit for sugar" in msg:
@@ -349,13 +384,13 @@ async def _handle_smart_input(
                 await message.reply_text("Введите дозу инсулина (ед.).")
             return
 
-        ok = await _save_entry(pending_entry)
+        ok = await _save_entry(pending_entry, deps)
         if not ok:
             await message.reply_text("⚠️ Не удалось сохранить запись.")
             return
         sugar = pending_entry.get("sugar_before")
         if sugar is not None:
-            await check_alert(update, context, sugar)
+            await deps.check_alert(update, context, sugar)
         user_data.pop("pending_entry", None)
         user_data.pop("pending_fields", None)
         xe = pending_entry.get("xe")
@@ -365,7 +400,7 @@ async def _handle_smart_input(
         sugar_info = f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
         await message.reply_text(
             f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
-            reply_markup=menu_keyboard,
+            reply_markup=deps.menu_keyboard,
         )
         return
 
@@ -388,17 +423,17 @@ async def _handle_smart_input(
         user_data["pending_entry"] = entry_data
         user_data["pending_fields"] = missing
         if not missing:
-            ok = await _save_entry(entry_data)
+            ok = await _save_entry(entry_data, deps)
             if not ok:
                 await message.reply_text("⚠️ Не удалось сохранить запись.")
                 return
             if sugar is not None:
-                await check_alert(update, context, sugar)
+                await deps.check_alert(update, context, sugar)
             user_data.pop("pending_entry", None)
             user_data.pop("pending_fields", None)
             await message.reply_text(
                 f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
-                reply_markup=menu_keyboard,
+                reply_markup=deps.menu_keyboard,
             )
             return
         next_field = missing[0]
@@ -410,7 +445,7 @@ async def _handle_smart_input(
             await message.reply_text("Введите дозу инсулина (ед.).")
         return
 
-    parsed = await parse_command(raw_text)
+    parsed = await deps.parse_command(raw_text)
     logger.info("FREEFORM parsed=%s", parsed)
     if not parsed or parsed.get("action") != "add_entry":
         await message.reply_text("Не понял, воспользуйтесь /help или кнопками меню")
@@ -486,8 +521,13 @@ async def _handle_smart_input(
     await message.reply_text(text=reply, reply_markup=confirm_keyboard())
 
 
-async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def freeform_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    deps: FreeformDeps | None = None,
+) -> None:
     """Handle freeform text commands for adding diary entries."""
+    deps = default_deps() if deps is None else deps
     user_data_raw = context.user_data
     if user_data_raw is None:
         return
@@ -505,15 +545,17 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     user_id = user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
 
-    if await _handle_report_request(raw_text, user_data, message, update, context):
+    if await _handle_report_request(raw_text, user_data, message, update, context, deps):
         return
     if await _handle_pending_entry(
-        raw_text, user_data, message, update, context, user_id
+        raw_text, user_data, message, update, context, user_id, deps
     ):
         return
-    if await _handle_edit_entry(raw_text, user_data, message, context):
+    if await _handle_edit_entry(raw_text, user_data, message, context, deps):
         return
-    await _handle_smart_input(raw_text, user_data, message, update, context, user_id)
+    await _handle_smart_input(
+        raw_text, user_data, message, update, context, user_id, deps
+    )
 
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -524,4 +566,4 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await message.reply_text("🗨️ Чат с GPT временно недоступен.")
 
 
-__all__ = ["SessionLocal", "freeform_handler", "chat_with_gpt"]
+__all__ = ["freeform_handler", "chat_with_gpt", "FreeformDeps", "default_deps"]

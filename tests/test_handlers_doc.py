@@ -265,7 +265,6 @@ async def test_photo_then_freeform_calculates_dose(monkeypatch: pytest.MonkeyPat
 
     session_factory = cast(Any, sessionmaker(class_=DummySession))
     photo_handlers.SessionLocal = session_factory
-    gpt_handlers.SessionLocal = session_factory
 
     async def fake_run_db(
         func: Callable[[Session], T],
@@ -284,7 +283,9 @@ async def test_photo_then_freeform_calculates_dose(monkeypatch: pytest.MonkeyPat
         SimpleNamespace(message=sugar_msg, effective_user=SimpleNamespace(id=1)),
     )
 
-    await gpt_handlers.freeform_handler(update_sugar, context)
+    deps = gpt_handlers.default_deps()
+    deps.SessionLocal = session_factory
+    await gpt_handlers.freeform_handler(update_sugar, context, deps=deps)
 
     reply = sugar_msg.texts[0]
     assert reply == "💉\u202fРасчёт дозы: 1.0\u202fЕд.\nСахар: 5.0\u202fммоль/л"
