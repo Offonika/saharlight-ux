@@ -126,7 +126,7 @@ async def test_photo_handler_handles_typeerror() -> None:
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_preserves_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+async def test_photo_handler_removes_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.chdir(tmp_path)
 
     class DummyPhoto:
@@ -189,7 +189,7 @@ async def test_photo_handler_preserves_file(monkeypatch: pytest.MonkeyPatch, tmp
     result = await photo_handlers.photo_handler(update, context)
 
     assert call["keep_image"] is True
-    assert Path(call["image_path"]).exists()
+    assert not Path(call["image_path"]).exists()
     assert result == photo_handlers.PHOTO_SUGAR
 
 
