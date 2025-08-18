@@ -299,6 +299,16 @@ def test_sanitize_leaves_numeric_strings() -> None:
     assert gpt_command_parser._sanitize_sensitive_data(text) == text
 
 
+def test_sanitize_masks_multiple_tokens() -> None:
+    token1 = "sk-" + "A1b2_" * 8 + "Z9"
+    token2 = "ghp_" + "A1b2" * 9 + "Cd"
+    text = f"{token1} middle {token2}"
+    assert (
+        gpt_command_parser._sanitize_sensitive_data(text)
+        == "[REDACTED] middle [REDACTED]"
+    )
+
+
 def test_extract_first_json_multiple_objects() -> None:
     text = '{"action":"add_entry","fields":{}} ' '{"action":"delete_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
