@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import { Clock, User, BookOpen, Star } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import MedicalButton from '@/components/MedicalButton';
@@ -83,10 +83,6 @@ const Home = (): JSX.Element => {
 
   const dayStats = stats ?? fallbackDayStats;
 
-  const handleTileClick = (route: string): void => {
-    navigate(route);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
       <MedicalHeader title="СахарФото" />
@@ -108,11 +104,11 @@ const Home = (): JSX.Element => {
             const Icon = item.icon;
             const { bg, text } = COLOR_MAP[item.color];
             return (
-              <div
+              <Link
                 key={item.id}
+                to={item.route}
                 className="medical-tile"
                 style={{ animationDelay: `${index * 100}ms` }}
-                onClick={() => handleTileClick(item.route)}
               >
                 <div
                   className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${bg}`}
@@ -121,7 +117,7 @@ const Home = (): JSX.Element => {
                 </div>
                 <h3 className="font-semibold text-foreground mb-1">{item.title}</h3>
                 <p className="text-sm text-muted-foreground">{item.description}</p>
-              </div>
+              </Link>
             );
           })}
         </div>

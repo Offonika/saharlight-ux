@@ -19,7 +19,8 @@ Design tokens and base styles live in styles/theme.css
   .medical-tile {
     @apply medical-card hover:bg-card/80 active:scale-95 cursor-pointer
            flex flex-col items-center justify-center min-h-[120px] text-center
-           transition-all duration-200 touch-manipulation;
+           transition-all duration-200 touch-manipulation
+           focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-medical-blue;
   }
 
   .medical-list-item {
