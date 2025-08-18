@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import re
+from decimal import Decimal, getcontext
 
 # ---------------------------------------------------------------------------
 # Regex helpers
@@ -35,9 +36,7 @@ XE_COLON_RANGE_RE = re.compile(
     rf"\b{XE_WORD_RE.pattern}\s*:\s*{DASH_RANGE_RE.pattern}",
     re.IGNORECASE,
 )
-XE_COLON_SINGLE_RE = re.compile(
-    rf"\b{XE_WORD_RE.pattern}\s*:\s*([\d.,]+)", re.IGNORECASE
-)
+XE_COLON_SINGLE_RE = re.compile(rf"\b{XE_WORD_RE.pattern}\s*:\s*([\d.,]+)", re.IGNORECASE)
 XE_PM_RE = re.compile(
     rf"{PLUS_MINUS_RANGE_RE.pattern}\s*{XE_WORD_RE.pattern}",
     re.IGNORECASE,
@@ -46,17 +45,11 @@ XE_RANGE_RE = re.compile(
     rf"{DASH_RANGE_RE.pattern}\s*{XE_WORD_RE.pattern}",
     re.IGNORECASE,
 )
-CARBS_PM_RE = re.compile(
-    rf"({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г", re.IGNORECASE
-)
-CARBS_RANGE_RE = re.compile(
-    rf"{DASH_RANGE_RE.pattern}\s*г", re.IGNORECASE
-)
+CARBS_PM_RE = re.compile(rf"({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г", re.IGNORECASE)
+CARBS_RANGE_RE = re.compile(rf"{DASH_RANGE_RE.pattern}\s*г", re.IGNORECASE)
 
 # Patterns for ``smart_input``.
-BAD_SUGAR_UNIT_RE = re.compile(
-    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:xe|хе|ед)\b(?!\s*[\d=:])"
-)
+BAD_SUGAR_UNIT_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:xe|хе|ед)\b(?!\s*[\d=:])")
 BAD_XE_UNIT_RE = re.compile(
     rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:ммоль(?:/л)?|mmol(?:/l)?|ед)\b(?![=:])"
 )
@@ -64,18 +57,14 @@ BAD_DOSE_UNIT_RE = re.compile(
     rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:ммоль(?:/л)?|mmol(?:/l)?|xe|хе)\b(?![=:])"
 )
 
-SUGAR_VALUE_RE = re.compile(
-    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)"
-)
+SUGAR_VALUE_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)")
 SUGAR_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(ммоль/?л|mmol/?l)\b")
 XE_VALUE_RE = re.compile(rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*({NUMBER_RE})\b")
 XE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:xe|хе)\b")
 # ``dose`` may be followed immediately by another token (e.g. ``"carbs=30"``).
 # ``\b`` would fail in such cases, so we use a lookahead that ensures the
 # number is terminated by a non-numeric character or end of string.
-DOSE_VALUE_RE = re.compile(
-    rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=$|\s|[^0-9a-zA-Z.,])"
-)
+DOSE_VALUE_RE = re.compile(rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=$|\s|[^0-9a-zA-Z.,])")
 DOSE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:ед\.?|units?|u)\b")
 ONLY_NUMBER_RE = re.compile(rf"\s*({NUMBER_RE})\s*")
 
@@ -153,9 +142,17 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
         raise ValueError("carbs_g must be non-negative")
     if current_bg < 0:
         raise ValueError("current_bg must be non-negative")
-    meal = carbs_g / profile.icr
-    correction = max(0, (current_bg - profile.target_bg) / profile.cf)
-    return round(meal + correction, 1)
+    getcontext().prec = 6
+    carbs = Decimal(str(carbs_g))
+    icr = Decimal(str(profile.icr))
+    cf = Decimal(str(profile.cf))
+    target_bg = Decimal(str(profile.target_bg))
+    current = Decimal(str(current_bg))
+    meal = carbs / icr
+    correction = (current - target_bg) / cf
+    if correction < 0:
+        correction = Decimal("0")
+    return float(round(meal + correction, 1))
 
 
 def extract_nutrition_info(text: object) -> tuple[float | None, float | None]:
