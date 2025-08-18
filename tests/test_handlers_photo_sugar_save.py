@@ -169,7 +169,7 @@ async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path:
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
     session_factory = cast(Any, sessionmaker(class_=DummySession))
-    photo_handlers.SessionLocal = session_factory
+    photo_handlers.SessionLocal = session_factory  # type: ignore[attr-defined]
     gpt_handlers.SessionLocal = session_factory
 
     async def fake_run_db(
