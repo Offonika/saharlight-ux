@@ -26,6 +26,7 @@ from .diabetes.services.db import (
     User as UserDB,
     run_db,
 )
+from .diabetes.services.repository import commit
 from .legacy import router
 from .schemas.history import ALLOWED_HISTORY_TYPES, HistoryRecordSchema, HistoryType
 from .schemas.user import UserContext
@@ -93,9 +94,14 @@ async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)
             session.add(obj)
         else:
             obj.tz = tz
-        session.commit()
+        if not commit(session):
+            raise HTTPException(status_code=500, detail="db commit failed")
 
-    await run_db(_save_timezone)
+    try:
+        await run_db(_save_timezone)
+    except SQLAlchemyError as exc:  # pragma: no cover - database errors
+        logger.exception("database error while saving timezone")
+        raise HTTPException(status_code=500, detail="database error") from exc
     return {"status": "ok"}
 
 
@@ -135,9 +141,14 @@ async def create_user(
         db_user = session.get(UserDB, data.telegram_id)
         if db_user is None:
             session.add(UserDB(telegram_id=data.telegram_id, thread_id="webapp"))
-        session.commit()
+        if not commit(session):
+            raise HTTPException(status_code=500, detail="db commit failed")
 
-    await run_db(_create_user)
+    try:
+        await run_db(_create_user)
+    except SQLAlchemyError as exc:  # pragma: no cover - database errors
+        logger.exception("database error while creating user")
+        raise HTTPException(status_code=500, detail="database error") from exc
     return {"status": "ok"}
 
 
@@ -173,7 +184,8 @@ async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(re
                 type=validated_type,
             )
             session.add(obj)
-        session.commit()
+        if not commit(session):
+            raise HTTPException(status_code=500, detail="db commit failed")
 
     try:
         await run_db(_save_history)
@@ -232,9 +244,14 @@ async def delete_history(record_id: str, user: UserContext = Depends(require_tg_
         obj = session.get(HistoryRecordDB, record_id)
         if obj:
             session.delete(obj)
-            session.commit()
+            if not commit(session):
+                raise HTTPException(status_code=500, detail="db commit failed")
 
-    await run_db(_delete_record)
+    try:
+        await run_db(_delete_record)
+    except SQLAlchemyError as exc:  # pragma: no cover - database errors
+        logger.exception("database error while deleting record")
+        raise HTTPException(status_code=500, detail="database error") from exc
     return {"status": "ok"}
 
 
