@@ -21,6 +21,7 @@ describe('tgFetch', () => {
     global.fetch = originalFetch;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it('attaches X-Telegram-Init-Data header when init data is present', async () => {
@@ -47,8 +48,15 @@ describe('tgFetch', () => {
     expect(options.credentials).toBe('omit');
   });
 
-  it('throws a network error on fetch failure', async () => {
+  it('throws a network error on fetch TypeError', async () => {
     (global.fetch as Mock).mockRejectedValue(new TypeError('Failed to fetch'));
+    await expect(tgFetch('/api/profile/self')).rejects.toThrow('Проблема с сетью');
+  });
+
+  it('throws a network error on fetch DOMException', async () => {
+    (global.fetch as Mock).mockRejectedValue(
+      new DOMException('fail', 'SecurityError'),
+    );
     await expect(tgFetch('/api/profile/self')).rejects.toThrow('Проблема с сетью');
   });
 
@@ -92,6 +100,20 @@ describe('tgFetch', () => {
     const promise = tgFetch('/api/profile/self');
     vi.advanceTimersByTime(10_000);
     await expect(promise).rejects.toThrow(REQUEST_TIMEOUT_MESSAGE);
-    vi.useRealTimers();
+  });
+
+  it('supports external abort signal', async () => {
+    (global.fetch as Mock).mockImplementation((_, options: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        options.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError')),
+        );
+      }),
+    );
+
+    const abortController = new AbortController();
+    const promise = tgFetch('/api/profile/self', { signal: abortController.signal });
+    abortController.abort();
+    await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
   });
 });
