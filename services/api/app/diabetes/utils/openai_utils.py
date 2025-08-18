@@ -7,6 +7,8 @@ from services.api.app.config import settings
 
 logger = logging.getLogger(__name__)
 
+_http_client: httpx.Client | None = None
+
 
 def get_openai_client() -> OpenAI:
     """Return a configured OpenAI client.
@@ -23,13 +25,21 @@ def get_openai_client() -> OpenAI:
 
     client: OpenAI
     if settings.openai_proxy:
-        with httpx.Client(proxies=settings.openai_proxy) as http_client:
-            client = OpenAI(
-                api_key=settings.openai_api_key, http_client=http_client
-            )
+        global _http_client
+        if _http_client is None:
+            _http_client = httpx.Client(proxies=settings.openai_proxy)
+        client = OpenAI(api_key=settings.openai_api_key, http_client=_http_client)
     else:
         client = OpenAI(api_key=settings.openai_api_key, http_client=None)
 
     if settings.openai_assistant_id:
         logger.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)
     return client
+
+
+def dispose_http_client() -> None:
+    """Close and reset the HTTP client used by OpenAI."""
+    global _http_client
+    if _http_client is not None:
+        _http_client.close()
+        _http_client = None
