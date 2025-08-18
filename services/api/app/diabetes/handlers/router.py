@@ -28,6 +28,7 @@ Handler = Callable[
 async def handle_confirm_entry(
     update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str
 ) -> None:
+    """Save pending entry to DB, check alerts and schedule reminders."""
     user_data_raw = context.user_data
     if user_data_raw is None:
         return
@@ -61,6 +62,7 @@ async def handle_confirm_entry(
 async def handle_edit_entry(
     update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str
 ) -> None:
+    """Prompt user to resend data to update the pending entry."""
     user_data_raw = context.user_data
     if user_data_raw is None:
         return
@@ -81,6 +83,7 @@ async def handle_edit_entry(
 async def handle_cancel_entry(
     update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str
 ) -> None:
+    """Discard pending entry and show main menu keyboard."""
     user_data_raw = context.user_data
     if user_data_raw is None:
         return
@@ -96,6 +99,7 @@ async def handle_cancel_entry(
 async def handle_edit_or_delete(
     update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, data: str
 ) -> None:
+    """Edit or delete an existing entry based on callback action."""
     action, entry_id_str = data.split(":", 1)
     try:
         entry_id = int(entry_id_str)
@@ -158,6 +162,7 @@ async def handle_edit_or_delete(
 async def handle_edit_field(
     update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, data: str
 ) -> None:
+    """Request new value for a specific field during entry editing."""
     try:
         _, entry_id_str, field = data.split(":")
         edit_entry_id = int(entry_id_str)
@@ -194,7 +199,7 @@ callback_handlers: dict[str, Handler] = {
 
 
 async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle inline button callbacks for pending entries and history actions."""
+    """Route callbacks for entry confirmation, editing and deletion."""
     query = update.callback_query
     if query is None:
         return
