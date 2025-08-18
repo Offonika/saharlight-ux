@@ -312,6 +312,20 @@ def test_extract_first_json_malformed_input() -> None:
     assert gpt_command_parser._extract_first_json(text) is None
 
 
+def test_extract_first_json_simple_object() -> None:
+    text = '{"action":"add_entry","fields":{}}'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
+def test_extract_first_json_no_object() -> None:
+    assert (
+        gpt_command_parser._extract_first_json("just some text without json") is None
+    )
+
+
 @pytest.mark.asyncio
 async def test_parse_command_with_multiple_jsons(
     monkeypatch: pytest.MonkeyPatch,
