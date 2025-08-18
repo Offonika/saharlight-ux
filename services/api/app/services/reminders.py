@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import Reminder, SessionLocal, run_db
@@ -21,7 +21,7 @@ async def save_reminder(data: ReminderSchema) -> int:
         if data.id is not None:
             rem = session.get(Reminder, data.id)
             if rem is None or rem.telegram_id != data.telegram_id:
-                raise SQLAlchemyError("not found")
+                raise HTTPException(status_code=404, detail="reminder not found")
         else:
             rem = Reminder(telegram_id=data.telegram_id)
             session.add(rem)
