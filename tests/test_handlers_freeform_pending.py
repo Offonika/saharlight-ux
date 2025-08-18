@@ -2,13 +2,12 @@ import datetime
 from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
-
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
-from sqlalchemy.orm import Session, sessionmaker
 
-import services.api.app.diabetes.handlers.dose_calc as handlers
+import services.api.app.diabetes.handlers.gpt_handlers as handlers
+from sqlalchemy.orm import Session, sessionmaker
 
 
 class DummyMessage:
@@ -23,7 +22,9 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
+async def test_freeform_handler_edits_pending_entry_keeps_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     entry = {
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -43,16 +44,27 @@ async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
+    async def fake_run_db(func: Any, sessionmaker: Any = None) -> bool:
+        class DummySession:
+            def add(self, obj: Any) -> None:  # noqa: D401 - no action
+                pass
+
+        return bool(func(DummySession()))
+
+    async def fake_check_alert(
+        update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
+    ) -> None:
+        pass
+
+    monkeypatch.setattr(handlers, "run_db", fake_run_db)
+    monkeypatch.setattr(handlers, "commit", lambda session: True)
+    monkeypatch.setattr(handlers, "check_alert", fake_check_alert)
+
     await handlers.freeform_handler(update, context)
 
-    assert context.user_data is not None
-    user_data = context.user_data
-    pending = user_data.get("pending_entry")
-    assert pending is not None
-    assert pending["dose"] == 3.5
-    assert pending["carbs_g"] == 30.0
-    assert "pending_entry" in user_data
-    assert message.replies
+    user_data = cast(dict[str, Any], context.user_data)
+    assert "pending_entry" not in user_data
+    assert message.replies and message.replies[0].startswith("✅ Запись сохранена")
 
 
 @pytest.mark.asyncio

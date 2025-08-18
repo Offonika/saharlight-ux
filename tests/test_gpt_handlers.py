@@ -294,7 +294,8 @@ async def test_freeform_handler_quick_update_pending_entry(
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
     await gpt_handlers.freeform_handler(update, context)
     assert user_data["pending_entry"]["sugar_before"] == 5.0
-    assert message.texts == ["Данные обновлены."]
+    assert user_data["pending_fields"] == ["xe", "dose"]
+    assert message.texts == ["Введите количество ХЕ."]
 
 
 @pytest.mark.asyncio
@@ -319,7 +320,8 @@ async def test_freeform_handler_quick_update_pending_entry_xe(
     await gpt_handlers.freeform_handler(update, context)
     assert user_data["pending_entry"]["xe"] == 2.0
     assert user_data["pending_entry"]["carbs_g"] == 24.0
-    assert message.texts == ["Данные обновлены."]
+    assert user_data["pending_fields"] == ["sugar", "dose"]
+    assert message.texts == ["Введите уровень сахара (ммоль/л)."]
 
 
 @pytest.mark.asyncio

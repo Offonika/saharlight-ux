@@ -41,4 +41,6 @@ async def test_freeform_pending_updates_dose_and_carbs() -> None:
 
     assert entry["dose"] == 3.5
     assert entry["carbs_g"] == 30.0
-    assert message.replies and "обновлены" in message.replies[0].lower()
+    user_data = cast(dict[str, Any], context.user_data)
+    assert user_data.get("pending_fields") == ["sugar", "xe"]
+    assert message.replies == ["Введите уровень сахара (ммоль/л)."]

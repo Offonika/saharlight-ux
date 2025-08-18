@@ -291,10 +291,61 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             pending_entry["xe"] = quick["xe"]
             pending_entry["carbs_g"] = quick["xe"] * 12
         elif carbs_match:
-            pending_entry["carbs_g"] = float(carbs_match.group(1).replace(",", "."))
+            pending_entry["carbs_g"] = float(
+                carbs_match.group(1).replace(",", ".")
+            )
         if quick["dose"] is not None:
             pending_entry["dose"] = quick["dose"]
-        await message.reply_text("Данные обновлены.")
+        missing = [
+            f
+            for f, key in (
+                ("sugar", "sugar_before"),
+                ("xe", "xe"),
+                ("dose", "dose"),
+            )
+            if pending_entry.get(key) is None
+        ]
+        user_data["pending_entry"] = pending_entry
+        user_data["pending_fields"] = missing
+        if missing:
+            next_field = missing[0]
+            if next_field == "sugar":
+                await message.reply_text("Введите уровень сахара (ммоль/л).")
+            elif next_field == "xe":
+                await message.reply_text("Введите количество ХЕ.")
+            else:
+                await message.reply_text("Введите дозу инсулина (ед.).")
+            return
+
+        def db_save_pending(session: Session) -> bool:
+            entry = Entry(**pending_entry)
+            session.add(entry)
+            return bool(commit(session))
+
+        try:
+            ok = await run_db(db_save_pending, sessionmaker=SessionLocal)
+        except AttributeError:
+            with SessionLocal() as session:
+                ok = db_save_pending(session)
+        if not ok:
+            await message.reply_text("⚠️ Не удалось сохранить запись.")
+            return
+        sugar = pending_entry.get("sugar_before")
+        if sugar is not None:
+            await check_alert(update, context, sugar)
+        user_data.pop("pending_entry", None)
+        user_data.pop("pending_fields", None)
+        xe = pending_entry.get("xe")
+        dose = pending_entry.get("dose")
+        xe_info = f", ХЕ {xe}" if xe is not None else ""
+        dose_info = f", доза {dose} Ед." if dose is not None else ", доза —"
+        sugar_info = (
+            f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
+        )
+        await message.reply_text(
+            f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
+            reply_markup=menu_keyboard,
+        )
         return
     if any(v is not None for v in quick.values()):
         sugar = quick["sugar"]
