@@ -21,11 +21,15 @@ def get_openai_client() -> OpenAI:
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
-    http_client: httpx.Client | None = None
+    client: OpenAI
     if settings.openai_proxy:
-        http_client = httpx.Client(proxies=settings.openai_proxy)
+        with httpx.Client(proxies=settings.openai_proxy) as http_client:
+            client = OpenAI(
+                api_key=settings.openai_api_key, http_client=http_client
+            )
+    else:
+        client = OpenAI(api_key=settings.openai_api_key, http_client=None)
 
-    client = OpenAI(api_key=settings.openai_api_key, http_client=http_client)
     if settings.openai_assistant_id:
         logger.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)
     return client

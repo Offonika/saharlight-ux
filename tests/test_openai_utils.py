@@ -15,8 +15,12 @@ def test_get_openai_client_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_get_openai_client_uses_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
-    fake_http_client = object()
-    http_client_mock = Mock(return_value=fake_http_client)
+    fake_http_client = Mock()
+    http_client_cm = Mock(
+        __enter__=Mock(return_value=fake_http_client),
+        __exit__=Mock(return_value=None),
+    )
+    http_client_mock = Mock(return_value=http_client_cm)
     openai_mock = Mock()
 
     monkeypatch.setattr(settings, "openai_api_key", "key")
@@ -27,6 +31,8 @@ def test_get_openai_client_uses_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
     client = openai_utils.get_openai_client()
 
     http_client_mock.assert_called_once_with(proxies="http://proxy")
+    http_client_cm.__enter__.assert_called_once()
+    http_client_cm.__exit__.assert_called_once()
     openai_mock.assert_called_once_with(api_key="key", http_client=fake_http_client)
     assert client is openai_mock.return_value
 
