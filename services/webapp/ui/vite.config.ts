@@ -1,10 +1,39 @@
 // file: services/webapp/ui/vite.config.ts
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
+import { readFile } from 'node:fs/promises'
+
+function telegramInitPlugin(): Plugin {
+  const shared = path.resolve(__dirname, '../public')
+  const serve = async (res: any, file: string) => {
+    res.setHeader('Content-Type', 'application/javascript')
+    res.end(await readFile(path.join(shared, file), 'utf8'))
+  }
+  return {
+    name: 'telegram-init',
+    async configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url === '/telegram-init.js') return serve(res, 'telegram-init.js')
+        if (req.url === '/assets/telegram-theme.js')
+          return serve(res, 'assets/telegram-theme.js')
+        return next()
+      })
+    },
+    async generateBundle() {
+      for (const file of ['telegram-init.js', 'assets/telegram-theme.js']) {
+        this.emitFile({
+          type: 'asset',
+          fileName: file,
+          source: await readFile(path.join(shared, file), 'utf8'),
+        })
+      }
+    },
+  }
+}
 
 export default defineConfig(async ({ mode }) => {
-  const plugins = [react()]
+  const plugins = [react(), telegramInitPlugin()]
   if (mode === 'development') {
     const { componentTagger } = await import('lovable-tagger')
     plugins.push(componentTagger())
