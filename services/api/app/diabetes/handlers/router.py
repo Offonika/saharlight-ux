@@ -149,11 +149,7 @@ async def handle_edit_or_delete(
                 )
             ],
             [InlineKeyboardButton("xe", callback_data=f"edit_field:{entry_id}:xe")],
-            [
-                InlineKeyboardButton(
-                    "dose", callback_data=f"edit_field:{entry_id}:dose"
-                )
-            ],
+            [InlineKeyboardButton("dose", callback_data=f"edit_field:{entry_id}:dose")],
         ]
     )
     await query.edit_message_reply_markup(reply_markup=keyboard)
@@ -209,11 +205,17 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if data.startswith("rem_"):
         return
 
-    for key, handler in callback_handlers.items():
-        if data == key or data.startswith(key):
+    handler = callback_handlers.get(data)
+    if handler is not None:
+        await handler(update, context, query, data)
+        return
+
+    if ":" in data:
+        prefix = data.split(":", 1)[0] + ":"
+        handler = callback_handlers.get(prefix)
+        if handler is not None:
             await handler(update, context, query, data)
             return
 
     logger.warning("Unrecognized callback data: %s", data)
     await query.edit_message_text("Команда не распознана")
-
