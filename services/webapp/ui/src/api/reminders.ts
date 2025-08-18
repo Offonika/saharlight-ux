@@ -1,5 +1,5 @@
 import { DefaultApi, instanceOfReminder, type Reminder } from '@sdk';
-import { Configuration } from '@sdk/runtime';
+import { Configuration, ResponseError } from '@sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 
@@ -33,7 +33,7 @@ export async function getReminders(telegramId: number): Promise<Reminder[]> {
 export async function getReminder(
   telegramId: number,
   id: number,
-): Promise<Reminder> {
+): Promise<Reminder | null> {
   try {
     const data = await api.remindersGet({ telegramId, id });
 
@@ -45,6 +45,9 @@ export async function getReminder(
     return data;
   } catch (error) {
     console.error('Failed to fetch reminder:', error);
+    if (error instanceof ResponseError && error.response.status === 404) {
+      return null;
+    }
     if (error instanceof Error) {
       throw error;
     }
