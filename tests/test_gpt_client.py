@@ -84,7 +84,9 @@ async def test_create_thread_openaierror(
 
 
 @pytest.mark.asyncio
-async def test_send_message_upload_error_keeps_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_message_upload_error_removes_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 
@@ -97,7 +99,7 @@ async def test_send_message_upload_error_keeps_file(tmp_path: Path, monkeypatch:
     with pytest.raises(OpenAIError):
         await gpt_client.send_message(thread_id="t", image_path=str(img))
 
-    assert img.exists()
+    assert not img.exists()
 
 
 @pytest.mark.asyncio

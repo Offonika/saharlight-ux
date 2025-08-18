@@ -111,7 +111,6 @@ async def send_message(
     ]
     if image_path:
         try:
-
             def _upload() -> FileObject:
                 with open(image_path, "rb") as f:
                     return client.files.create(file=f, purpose="vision")
@@ -130,6 +129,7 @@ async def send_message(
                 "image_file": {"file_id": file.id},
             }
             message_content = [image_block, text_block]
+        finally:
             if not keep_image:
                 try:
                     await asyncio.to_thread(os.remove, image_path)
