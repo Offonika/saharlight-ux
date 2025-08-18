@@ -278,6 +278,15 @@ async def photo_handler(
         return END
     finally:
         user_data.pop(WAITING_GPT_FLAG, None)
+        if file_path:
+            try:
+                Path(file_path).unlink()
+            except OSError as exc:
+                logger.warning(
+                    "[PHOTO][CLEANUP] Failed to remove file %s: %s",
+                    file_path,
+                    exc,
+                )
 
 
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

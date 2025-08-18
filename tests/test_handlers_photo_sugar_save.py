@@ -5,6 +5,7 @@ from typing import Any, Callable, TypeVar, cast
 from unittest.mock import Mock, PropertyMock
 
 import pytest
+from openai import OpenAIError
 from telegram import PhotoSize, Update
 from telegram.ext import CallbackContext
 from sqlalchemy.orm import Session, sessionmaker
@@ -154,6 +155,9 @@ async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path:
     )
     await photo_handlers.photo_handler(update_photo, context)
 
+    assert photo_handlers.WAITING_GPT_FLAG not in user_data_ref
+    assert not Path("photos/1_uid.jpg").exists()
+
     entry = user_data["pending_entry"]
     assert entry["carbs_g"] == 30.0
     assert entry["xe"] == 2.0
@@ -202,3 +206,43 @@ async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path:
     assert saved.sugar_before == 5.5
     assert "pending_entry" not in user_data
     assert query.edited == ["✅ Запись сохранена в дневник!"]
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_removes_file_on_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(photo_handlers, "menu_keyboard", None)
+
+    async def fake_get_file(file_id: str) -> Any:
+        class File:
+            async def download_to_drive(self, path: str) -> None:
+                Path(path).write_bytes(b"img")
+
+        return File()
+
+    monkeypatch.chdir(tmp_path)
+
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        Mock(spec=CallbackContext),
+    )
+    user_data_ref: dict[str, Any] = {"thread_id": "tid"}
+    setattr(cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref))
+    fake_bot = SimpleNamespace(get_file=fake_get_file)
+    setattr(cast(Any, type(context)), "bot", PropertyMock(return_value=fake_bot))
+
+    async def fail_send_message(**kwargs: Any) -> Any:
+        raise OpenAIError("boom")
+
+    monkeypatch.setattr(photo_handlers, "send_message", fail_send_message)
+
+    msg_photo = DummyMessage(photo=cast(tuple[PhotoSize, ...], (DummyPhoto(),)))
+    update_photo = cast(
+        Update,
+        SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1)),
+    )
+    await photo_handlers.photo_handler(update_photo, context)
+
+    assert photo_handlers.WAITING_GPT_FLAG not in user_data_ref
+    assert not Path("photos/1_uid.jpg").exists()
