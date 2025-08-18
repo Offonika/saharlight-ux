@@ -6,13 +6,15 @@ import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
 import { getHistory, updateRecord, deleteRecord, HistoryRecord } from '@/api/history';
 
+type HistoryFilter = 'all' | 'measurement' | 'meal' | 'insulin';
+
 const History = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<HistoryFilter>('all');
   const [editingRecord, setEditingRecord] = useState<HistoryRecord | null>(null);
 
   useEffect(() => {
@@ -162,7 +164,7 @@ const History = () => {
               <select
                 id="history-type"
                 value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
+                onChange={(e) => setSelectedType(e.target.value as HistoryFilter)}
                 className="medical-input"
               >
                 <option value="all">Все записи</option>
