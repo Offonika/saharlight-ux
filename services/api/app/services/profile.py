@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import Profile, SessionLocal, User, run_db
+from ..diabetes.services.repository import commit
 from ..schemas.profile import ProfileSchema
 
 
@@ -15,7 +16,8 @@ async def set_timezone(telegram_id: int, tz: str) -> None:
             session.add(user)
         else:
             user.timezone = tz
-        session.commit()
+        if not commit(session):
+            raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_save, sessionmaker=SessionLocal)
 
@@ -30,10 +32,10 @@ def _validate_profile(data: ProfileSchema) -> None:
         or data.high <= 0
         or data.low >= data.high
     ):
-        raise HTTPException(status_code=400, detail="invalid profile values")
+        raise ValueError("invalid profile values")
 
     if not (data.low < data.target < data.high):
-        raise HTTPException(status_code=400, detail="target must be between low and high")
+        raise ValueError("target must be between low and high")
 
 
 async def save_profile(data: ProfileSchema) -> None:
@@ -51,7 +53,8 @@ async def save_profile(data: ProfileSchema) -> None:
         profile.target_bg = data.target
         profile.low_threshold = data.low
         profile.high_threshold = data.high
-        session.commit()
+        if not commit(session):
+            raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_save, sessionmaker=SessionLocal)
 
