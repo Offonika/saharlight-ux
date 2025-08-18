@@ -444,7 +444,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
     user_data.pop("pending_entry", None)
-    entry_data = {
+    user_data["pending_entry"] = {
         "telegram_id": user_id,
         "event_time": event_dt,
         "xe": fields.get("xe"),
@@ -453,12 +453,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         "sugar_before": fields.get("sugar_before"),
         "photo_path": None,
     }
-    user_data["pending_entry"] = entry_data
+    pending_entry = user_data["pending_entry"]
 
-    xe_val: float | None = entry_data.get("xe")
-    carbs_val: float | None = entry_data.get("carbs_g")
-    dose_val: float | None = entry_data.get("dose")
-    sugar_val: float | None = entry_data.get("sugar_before")
+    xe_val: float | None = pending_entry.get("xe")
+    carbs_val: float | None = pending_entry.get("carbs_g")
+    dose_val: float | None = pending_entry.get("dose")
+    sugar_val: float | None = pending_entry.get("sugar_before")
     date_str = event_dt.strftime("%d.%m %H:%M")
     xe_part = f"{xe_val} ХЕ" if xe_val is not None else ""
     carb_part = f"{carbs_val:.0f} г углеводов" if carbs_val is not None else ""
