@@ -161,13 +161,12 @@ export default function Reminders() {
       setError('Не удалось получить данные пользователя.')
       return
     }
+    const controller = new AbortController()
     setLoading(true)
     setError(null)
-    let cancelled = false
     ;(async () => {
       try {
-        const data = await getReminders(user.id)
-        if (cancelled) return
+        const data = await getReminders(user.id, controller.signal)
         const normalized: Reminder[] = (data || []).map((r: ApiReminder) => {
           const nt = normalizeReminderType(r.type)
           return {
@@ -203,16 +202,18 @@ export default function Reminders() {
         })
         setReminders(valid)
       } catch (err) {
-        if (!cancelled) {
-          const message = err instanceof Error ? err.message : 'Не удалось загрузить напоминания'
-          setError(message)
-          toast({ title: 'Ошибка', description: message, variant: 'destructive' })
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return
         }
+        const message = err instanceof Error ? err.message : 'Не удалось загрузить напоминания'
+        setError(message)
+        toast({ title: 'Ошибка', description: message, variant: 'destructive' })
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
+        controller.abort()
       }
     })()
-    return () => { cancelled = true }
+    return () => controller.abort()
   }, [toast, user?.id, isReady])
 
   const handleToggleReminder = async (id: number) => {
