@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import List
 
-from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import Reminder, SessionLocal, run_db
+from ..diabetes.services.repository import commit
 from ..schemas.reminders import ReminderSchema
 
 
@@ -21,7 +22,7 @@ async def save_reminder(data: ReminderSchema) -> int:
         if data.id is not None:
             rem = session.get(Reminder, data.id)
             if rem is None or rem.telegram_id != data.telegram_id:
-                raise SQLAlchemyError("not found")
+                raise HTTPException(status_code=404, detail="reminder not found")
         else:
             rem = Reminder(telegram_id=data.telegram_id)
             session.add(rem)
@@ -32,8 +33,8 @@ async def save_reminder(data: ReminderSchema) -> int:
         rem.interval_hours = data.interval_hours
         rem.minutes_after = data.minutes_after
         rem.is_enabled = data.is_enabled
-        session.commit()
-        session.refresh(rem)
+        if not commit(session):
+            raise HTTPException(status_code=500, detail="db commit failed")
         return rem.id
 
     return await run_db(_save, sessionmaker=SessionLocal)
