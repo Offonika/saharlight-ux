@@ -170,15 +170,16 @@ async def test_smart_input_negative(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_smart_input_missing_fields(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_smart_input(text: str) -> dict[str, float | None]:
+    def fake_smart_input_first(text: str) -> dict[str, float | None]:
         return {"sugar": 5.0, "xe": None, "dose": None}
 
-    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
+    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input_first)
     message = DummyMessage("sugar=5")
     update = make_update(message)
-    user_data: dict[str, Any] = {}
+    user_data: dict[str, Any] = {"state": 0}
     context = make_context(user_data)
     await gpt_handlers.freeform_handler(update, context)
+    assert user_data["pending_entry"]["sugar_before"] == 5.0
     assert user_data["pending_fields"] == ["xe", "dose"]
     assert "количество ХЕ" in message.replies[0][0]
 
@@ -260,7 +261,7 @@ async def test_parse_command_valid_time(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(gpt_handlers, "parse_command", fake_parse)
     message = DummyMessage("entry")
     update = make_update(message)
-    user_data: dict[str, Any] = {}
+    user_data: dict[str, Any] = {"state": 0}
     context = make_context(user_data)
     await gpt_handlers.freeform_handler(update, context)
     assert user_data["pending_entry"]["xe"] == 1
