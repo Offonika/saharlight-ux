@@ -50,6 +50,11 @@ interface TelegramWindow extends Window {
   Telegram?: { WebApp?: TelegramWebApp };
 }
 
+interface TelegramError {
+  code: string;
+  message?: string;
+}
+
 export const useTelegram = (
   forceLight: boolean = import.meta.env.VITE_FORCE_LIGHT === "true",
 ) => {
@@ -59,7 +64,7 @@ export const useTelegram = (
   );
   const [isReady, setReady] = useState<boolean>(false);
   const [user, setUser] = useState<TelegramUser | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<TelegramError | null>(null);
   const [colorScheme, setScheme] = useState<Scheme>("light");
   const mainClickRef = useRef<(() => void) | null>(null);
   const backClickRef = useRef<(() => void) | null>(null);
@@ -136,7 +141,7 @@ export const useTelegram = (
             }
           }
           if (cancelled) return;
-          setError("no-user");
+          setError({ code: "no-user" });
         };
         void tryFallback();
       }
@@ -151,7 +156,10 @@ export const useTelegram = (
       };
     } catch (e) {
       console.error("[TG] init error:", e);
-      setError(e instanceof Error ? e.message : String(e));
+      setError({
+        code: "unknown",
+        message: e instanceof Error ? e.message : String(e),
+      });
       setReady(true);
     }
   }, [tg, applyTheme, forceLight]);
