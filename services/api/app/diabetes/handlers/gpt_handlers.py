@@ -121,7 +121,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             session.add(entry)
             return bool(commit(session))
 
-        if not hasattr(run_db, "__call__"):
+        if not callable(run_db):
             with SessionLocal() as session:
                 ok = db_save_entry(session)
         else:
@@ -167,7 +167,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     carbs_g = xe_val * 12
                     entry["carbs_g"] = carbs_g
                 user_id = user.id
-                if not hasattr(run_db, "__call__"):
+                if not callable(run_db):
                     with SessionLocal() as session:
                         profile = session.get(Profile, user_id)
                 else:
@@ -222,7 +222,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             session.refresh(entry)
             return entry
 
-        if not hasattr(run_db, "__call__"):
+        if not callable(run_db):
             with SessionLocal() as session:
                 entry = db_edit(session)
         else:
@@ -291,9 +291,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             pending_entry["xe"] = quick["xe"]
             pending_entry["carbs_g"] = quick["xe"] * 12
         elif carbs_match:
-            pending_entry["carbs_g"] = float(
-                carbs_match.group(1).replace(",", ".")
-            )
+            pending_entry["carbs_g"] = float(carbs_match.group(1).replace(",", "."))
         if quick["dose"] is not None:
             pending_entry["dose"] = quick["dose"]
         missing = [
@@ -322,7 +320,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             session.add(entry)
             return bool(commit(session))
 
-        if not hasattr(run_db, "__call__"):
+        if not callable(run_db):
             with SessionLocal() as session:
                 ok = db_save_pending(session)
         else:
@@ -339,9 +337,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         dose = pending_entry.get("dose")
         xe_info = f", ХЕ {xe}" if xe is not None else ""
         dose_info = f", доза {dose} Ед." if dose is not None else ", доза —"
-        sugar_info = (
-            f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
-        )
+        sugar_info = f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
         await message.reply_text(
             f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
             reply_markup=menu_keyboard,
@@ -372,7 +368,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 session.add(entry)
                 return bool(commit(session))
 
-            if not hasattr(run_db, "__call__"):
+            if not callable(run_db):
                 with SessionLocal() as session:
                     ok = db_save_quick(session)
             else:
