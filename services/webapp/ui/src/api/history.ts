@@ -1,5 +1,5 @@
-import { tgFetch } from '../lib/tgFetch';
-import { API_BASE } from './base';
+import { tgFetch } from "../lib/tgFetch";
+import { API_BASE } from "./base";
 
 export interface HistoryRecord {
   id: string;
@@ -10,61 +10,64 @@ export interface HistoryRecord {
   breadUnits?: number;
   insulin?: number;
   notes?: string;
-  type: 'measurement' | 'meal' | 'insulin';
+  type: "measurement" | "meal" | "insulin";
 }
 
-export async function getHistory(): Promise<HistoryRecord[]> {
+export async function getHistory(
+  signal?: AbortSignal,
+): Promise<HistoryRecord[]> {
   try {
-    const res = await tgFetch(`${API_BASE}/history`);
+    const res = await tgFetch(`${API_BASE}/history`, { signal });
     const data = await res.json();
     if (!Array.isArray(data)) {
-      throw new Error('Некорректный ответ');
+      throw new Error("Некорректный ответ");
     }
     return data as HistoryRecord[];
   } catch (error) {
-    console.error('Failed to fetch history:', error);
+    console.error("Failed to fetch history:", error);
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error('Не удалось загрузить историю');
+    throw new Error("Не удалось загрузить историю");
   }
 }
 
 export async function updateRecord(record: HistoryRecord) {
   try {
     const res = await tgFetch(`${API_BASE}/history`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(record),
     });
     const data = await res.json().catch(() => ({}));
-    if (data.status !== 'ok') {
-      throw new Error(data.detail || 'Не удалось обновить запись');
+    if (data.status !== "ok") {
+      throw new Error(data.detail || "Не удалось обновить запись");
     }
     return data;
   } catch (error) {
-    console.error('Failed to update history record:', error);
+    console.error("Failed to update history record:", error);
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error('Не удалось обновить запись');
+    throw new Error("Не удалось обновить запись");
   }
 }
 
 export async function deleteRecord(id: string) {
   try {
-    const res = await tgFetch(`${API_BASE}/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const res = await tgFetch(`${API_BASE}/history/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
     const data = await res.json().catch(() => ({}));
-    if (data.status !== 'ok') {
-      throw new Error(data.detail || 'Не удалось удалить запись');
+    if (data.status !== "ok") {
+      throw new Error(data.detail || "Не удалось удалить запись");
     }
     return data;
   } catch (error) {
-    console.error('Failed to delete history record:', error);
+    console.error("Failed to delete history record:", error);
     if (error instanceof Error) {
       throw error;
     }
-    throw new Error('Не удалось удалить запись');
+    throw new Error("Не удалось удалить запись");
   }
 }
-
