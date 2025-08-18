@@ -12,6 +12,7 @@ from telegram.ext import CallbackContext
 import pytest
 
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
+from services.api.app.diabetes.utils.ui import confirm_keyboard
 
 
 class DummyMessage:
@@ -35,7 +36,7 @@ def make_context(
 ) -> CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
     return cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data=user_data or {}),
+        SimpleNamespace(user_data=user_data if user_data is not None else {}),
     )
 
 
@@ -263,6 +264,21 @@ async def test_parse_command_valid_time(monkeypatch: pytest.MonkeyPatch) -> None
     user_data: dict[str, Any] = {}
     context = make_context(user_data)
     await gpt_handlers.freeform_handler(update, context)
-    assert user_data["pending_entry"]["xe"] == 1
-    assert "Расчёт завершён" in message.replies[0][0]
+    entry = user_data["pending_entry"]
+    assert entry["telegram_id"] == 1
+    assert entry["sugar_before"] == 5
+    assert entry["xe"] == 1
+    assert entry["dose"] == 2
+    assert entry["carbs_g"] is None
+    event_time = entry["event_time"]
+    assert isinstance(event_time, dt.datetime)
+    assert event_time.hour == 12 and event_time.minute == 34
+
+    reply_text, kwargs = message.replies[0]
+    assert "Расчёт завершён" in reply_text
+    assert "12:34" in reply_text
+    assert "1 ХЕ" in reply_text
+    assert "Инсулин: 2 ед" in reply_text
+    assert "Сахар: 5 ммоль/л" in reply_text
+    assert kwargs["reply_markup"].to_dict() == confirm_keyboard().to_dict()
 
