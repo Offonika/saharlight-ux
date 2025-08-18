@@ -32,7 +32,8 @@ describe('useTelegram hook fallback', () => {
       expect(result.current.isReady).toBe(true);
     });
     await waitFor(() => {
-      expect(result.current.error).toBe('no-user');
+      expect(result.current.error?.code).toBe('no-user');
+      expect(result.current.error?.message).toBeUndefined();
     });
     expect(result.current.user).toBeNull();
   });
@@ -60,7 +61,8 @@ describe('useTelegram hook init error', () => {
   it('sets error when initialization fails', async () => {
     const { result } = renderHook(() => useTelegram(false));
     await waitFor(() => {
-      expect(result.current.error).toBe('init failed');
+      expect(result.current.error?.code).toBe('unknown');
+      expect(result.current.error?.message).toBe('init failed');
     });
     expect(result.current.isReady).toBe(true);
   });
