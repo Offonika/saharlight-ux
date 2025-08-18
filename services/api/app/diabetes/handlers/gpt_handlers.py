@@ -5,7 +5,13 @@ import logging
 import re
 from typing import TypedDict, cast
 
-from telegram import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    Update,
+)
 from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session
 
@@ -34,50 +40,21 @@ class EditMessageMeta(TypedDict):
     message_id: int
 
 
-async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle freeform text commands for adding diary entries."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
-        return
-    user_data = cast(UserData, user_data_raw)
-    message = update.message
-    if message is None:
-        return
-    text = message.text
-    if text is None:
-        return
-    user = update.effective_user
-    if user is None:
-        return
-    raw_text = text.strip()
-    user_id = user.id
-    logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
-
-    if user_data.get("awaiting_report_date"):
-        text = raw_text.lower()
-        if "назад" in text or text == "/cancel":
-            user_data.pop("awaiting_report_date", None)
-            await message.reply_text(
-                "📋 Выберите действие:", reply_markup=menu_keyboard
-            )
-            return
-        try:
-            date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(
-                tzinfo=datetime.timezone.utc
-            )
-        except ValueError:
-            await message.reply_text(
-                "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
-            )
-            return
-        await send_report(update, context, date_from, "указанный период")
-        user_data.pop("awaiting_report_date", None)
-        return
-
+async def handle_pending_entry(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    raw_text: str,
+    user_data: UserData,
+    message: Message,
+    user_id: int,
+) -> bool:
+    """Process state when an entry is being filled step by step."""
     pending_entry = user_data.get("pending_entry")
-    pending_fields = user_data.get("pending_fields")
     edit_id = user_data.get("edit_id")
-    if pending_entry is not None and edit_id is None and pending_fields:
+    if pending_entry is None or edit_id is not None:
+        return False
+    pending_fields = user_data.get("pending_fields")
+    if pending_fields:
         field = pending_fields[0]
         text = raw_text.replace(",", ".")
         try:
@@ -89,7 +66,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 await message.reply_text("Введите число ХЕ.")
             else:
                 await message.reply_text("Введите дозу инсулина числом.")
-            return
+            return True
         if value < 0:
             if field == "sugar":
                 await message.reply_text("Сахар не может быть отрицательным.")
@@ -97,7 +74,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 await message.reply_text("Количество ХЕ не может быть отрицательным.")
             else:
                 await message.reply_text("Доза инсулина не может быть отрицательной.")
-            return
+            return True
         if field == "sugar":
             pending_entry["sugar_before"] = value
         elif field == "xe":
@@ -114,7 +91,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 await message.reply_text("Введите количество ХЕ.")
             else:
                 await message.reply_text("Введите дозу инсулина (ед.).")
-            return
+            return True
 
         def db_save_entry(session: Session) -> bool:
             entry = Entry(**pending_entry)
@@ -128,7 +105,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 ok = db_save_entry(session)
         if not ok:
             await message.reply_text("⚠️ Не удалось сохранить запись.")
-            return
+            return True
         sugar = pending_entry.get("sugar_before")
         if sugar is not None:
             await check_alert(update, context, sugar)
@@ -143,124 +120,147 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
             reply_markup=menu_keyboard,
         )
-        return
-    if pending_entry is not None and edit_id is None:
-        entry = pending_entry
-        text = raw_text.lower()
-        if (
-            re.fullmatch(r"-?\d+(?:[.,]\d+)?", text)
-            and entry.get("sugar_before") is None
-        ):
-            try:
-                sugar = float(text.replace(",", "."))
-            except ValueError:
-                await message.reply_text("Некорректное числовое значение.")
-                return
-            if sugar < 0:
-                await message.reply_text("Сахар не может быть отрицательным.")
-                return
-            entry["sugar_before"] = sugar
-            if entry.get("carbs_g") is not None or entry.get("xe") is not None:
-                xe_val = entry.get("xe")
-                carbs_g = entry.get("carbs_g")
-                if carbs_g is None and xe_val is not None:
-                    carbs_g = xe_val * 12
-                    entry["carbs_g"] = carbs_g
-                user_id = user.id
-                try:
-                    profile = await run_db(
-                        lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
-                    )
-                except AttributeError:
-                    with SessionLocal() as session:
-                        profile = session.get(Profile, user_id)
-                if (
-                    profile is not None
-                    and profile.icr is not None
-                    and profile.cf is not None
-                    and profile.target_bg is not None
-                ):
-                    patient = PatientProfile(
-                        icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg
-                    )
-                    dose = calc_bolus(carbs_g, sugar, patient)
-                    entry["dose"] = dose
-                    await message.reply_text(
-                        f"💉\u202fРасчёт дозы: {dose}\u202fЕд.\nСахар: {sugar}\u202fммоль/л",
-                        reply_markup=confirm_keyboard(),
-                    )
-                    return
-            await message.reply_text(
-                "Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard
-            )
-            return
-        # fall through to smart input parsing for non-numeric messages
-    if edit_id is not None:
-        text = raw_text.replace(",", ".")
+        return True
+    # handle sugar input after photo
+    text = raw_text.lower()
+    if (
+        re.fullmatch(r"-?\d+(?:[.,]\d+)?", text)
+        and pending_entry.get("sugar_before") is None
+    ):
         try:
-            value = float(text)
+            sugar = float(text.replace(",", "."))
         except ValueError:
-            await message.reply_text("Введите значение числом.")
-            return
-        if value < 0:
-            await message.reply_text("Значение не может быть отрицательным.")
-            return
-        field = cast(str | None, user_data.get("edit_field"))
+            await message.reply_text("Некорректное числовое значение.")
+            return True
+        if sugar < 0:
+            await message.reply_text("Сахар не может быть отрицательным.")
+            return True
+        pending_entry["sugar_before"] = sugar
+        if (
+            pending_entry.get("carbs_g") is not None
+            or pending_entry.get("xe") is not None
+        ):
+            xe_val = pending_entry.get("xe")
+            carbs_g = pending_entry.get("carbs_g")
+            if carbs_g is None and xe_val is not None:
+                carbs_g = xe_val * 12
+                pending_entry["carbs_g"] = carbs_g
+            try:
+                profile = await run_db(
+                    lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
+                )
+            except AttributeError:
+                with SessionLocal() as session:
+                    profile = session.get(Profile, user_id)
+            if (
+                profile is not None
+                and profile.icr is not None
+                and profile.cf is not None
+                and profile.target_bg is not None
+                and carbs_g is not None
+            ):
+                patient = PatientProfile(
+                    icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg
+                )
+                dose = calc_bolus(carbs_g, sugar, patient)
+                pending_entry["dose"] = dose
+                await message.reply_text(
+                    f"💉\u202fРасчёт дозы: {dose}\u202fЕд.\nСахар: {sugar}\u202fммоль/л",
+                    reply_markup=confirm_keyboard(),
+                )
+                return True
+        await message.reply_text(
+            "Введите количество углеводов или ХЕ.",
+            reply_markup=menu_keyboard,
+        )
+        return True
+    return False
 
-        def db_edit(session: Session) -> Entry | None:
-            entry = session.get(Entry, edit_id)
-            if entry is None:
-                return None
-            if field == "sugar":
-                entry.sugar_before = value
-            elif field == "xe":
-                entry.xe = value
-            else:
-                entry.dose = value
-            if not commit(session):
-                return None
-            session.refresh(entry)
-            return entry
 
-        try:
-            entry = await run_db(db_edit, sessionmaker=SessionLocal)
-        except AttributeError:
-            with SessionLocal() as session:
-                entry = db_edit(session)
+async def handle_edit_mode(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    raw_text: str,
+    user_data: UserData,
+    message: Message,
+) -> bool:
+    """Handle numeric edits for existing entries."""
+    edit_id = user_data.get("edit_id")
+    if edit_id is None:
+        return False
+    text = raw_text.replace(",", ".")
+    try:
+        value = float(text)
+    except ValueError:
+        await message.reply_text("Введите значение числом.")
+        return True
+    if value < 0:
+        await message.reply_text("Значение не может быть отрицательным.")
+        return True
+    field = cast(str | None, user_data.get("edit_field"))
+
+    def db_edit(session: Session) -> Entry | None:
+        entry = session.get(Entry, edit_id)
         if entry is None:
-            await message.reply_text("⚠️ Не удалось сохранить запись.")
-            return
-        edit_info_raw = user_data.get("edit_entry")
-        if not isinstance(edit_info_raw, dict):
-            return
-        edit_info = cast(EditMessageMeta, edit_info_raw)
-        chat_id = edit_info["chat_id"]
-        message_id = edit_info["message_id"]
-        markup = InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(
-                        "✏️ Изменить", callback_data=f"edit:{entry.id}"
-                    ),
-                    InlineKeyboardButton("🗑 Удалить", callback_data=f"del:{entry.id}"),
-                ]
-            ]
-        )
-        render_text = render_entry(entry)
-        await context.bot.edit_message_text(
-            render_text,
-            chat_id=chat_id,
-            message_id=message_id,
-            reply_markup=markup,
-            parse_mode="HTML",
-        )
-        edit_query = cast(CallbackQuery | None, user_data.get("edit_query"))
-        if edit_query is not None:
-            await edit_query.answer("Изменено")
-        for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
-            user_data.pop(key, None)
-        return
+            return None
+        if field == "sugar":
+            entry.sugar_before = value
+        elif field == "xe":
+            entry.xe = value
+        else:
+            entry.dose = value
+        if not commit(session):
+            return None
+        session.refresh(entry)
+        return entry
 
+    try:
+        entry = await run_db(db_edit, sessionmaker=SessionLocal)
+    except AttributeError:
+        with SessionLocal() as session:
+            entry = db_edit(session)
+    if entry is None:
+        await message.reply_text("⚠️ Не удалось сохранить запись.")
+        return True
+    edit_info_raw = user_data.get("edit_entry")
+    if not isinstance(edit_info_raw, dict):
+        return True
+    edit_info = cast(EditMessageMeta, edit_info_raw)
+    chat_id = edit_info["chat_id"]
+    message_id = edit_info["message_id"]
+    markup = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("✏️ Изменить", callback_data=f"edit:{entry.id}"),
+                InlineKeyboardButton("🗑 Удалить", callback_data=f"del:{entry.id}"),
+            ]
+        ]
+    )
+    render_text = render_entry(entry)
+    await context.bot.edit_message_text(
+        render_text,
+        chat_id=chat_id,
+        message_id=message_id,
+        reply_markup=markup,
+        parse_mode="HTML",
+    )
+    edit_query = cast(CallbackQuery | None, user_data.get("edit_query"))
+    if edit_query is not None:
+        await edit_query.answer("Изменено")
+    for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
+        user_data.pop(key, None)
+    return True
+
+
+async def handle_smart_input(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    raw_text: str,
+    user_data: UserData,
+    message: Message,
+    user_id: int,
+) -> bool:
+    """Parse quick sugar/xe/dose input and save or request missing fields."""
     try:
         quick = smart_input(raw_text)
     except ValueError as exc:
@@ -275,11 +275,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             await message.reply_text(
                 "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2",
             )
-        return
-
+        return True
     carbs_match = re.search(
         r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I
     )
+    pending_entry = user_data.get("pending_entry")
+    edit_id = user_data.get("edit_id")
     if (
         pending_entry is not None
         and edit_id is None
@@ -295,14 +296,14 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if quick["dose"] is not None:
             pending_entry["dose"] = quick["dose"]
         await message.reply_text("Данные обновлены.")
-        return
+        return True
     if any(v is not None for v in quick.values()):
         sugar = quick["sugar"]
         xe = quick["xe"]
         dose = quick["dose"]
         if any(v is not None and v < 0 for v in (sugar, xe, dose)):
             await message.reply_text("Значения не могут быть отрицательными.")
-            return
+            return True
         entry_data = {
             "telegram_id": user_id,
             "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -326,14 +327,14 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     ok = db_save_quick(session)
             if not ok:
                 await message.reply_text("⚠️ Не удалось сохранить запись.")
-                return
+                return True
             if sugar is not None:
                 await check_alert(update, context, sugar)
             await message.reply_text(
                 f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
                 reply_markup=menu_keyboard,
             )
-            return
+            return True
         user_data["pending_entry"] = entry_data
         user_data["pending_fields"] = missing
         next_field = missing[0]
@@ -343,18 +344,27 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             await message.reply_text("Введите количество ХЕ.")
         else:
             await message.reply_text("Введите дозу инсулина (ед.).")
-        return
+        return True
+    return False
 
+
+async def handle_parsed_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    raw_text: str,
+    user_data: UserData,
+    message: Message,
+    user_id: int,
+) -> bool:
+    """Process full-text commands parsed by GPT."""
     parsed = await parse_command(raw_text)
     logger.info("FREEFORM parsed=%s", parsed)
     if not parsed or parsed.get("action") != "add_entry":
-        await message.reply_text("Не понял, воспользуйтесь /help или кнопками меню")
-        return
-
+        return False
     fields = parsed.get("fields")
     if not isinstance(fields, dict):
         await message.reply_text("Не удалось распознать данные, попробуйте ещё раз.")
-        return
+        return True
     if any(
         v is not None and v < 0
         for v in (
@@ -365,10 +375,9 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         )
     ):
         await message.reply_text("Значения не могут быть отрицательными.")
-        return
+        return True
     entry_date_obj = parsed.get("entry_date")
     time_obj = parsed.get("time")
-
     if isinstance(entry_date_obj, str):
         try:
             event_dt = datetime.datetime.fromisoformat(entry_date_obj)
@@ -402,7 +411,6 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         "sugar_before": fields.get("sugar_before"),
         "photo_path": None,
     }
-
     xe_val: float | None = fields.get("xe")
     carbs_val: float | None = fields.get("carbs_g")
     dose_val: float | None = fields.get("dose")
@@ -413,12 +421,66 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     dose_part = f"Инсулин: {dose_val} ед" if dose_val is not None else ""
     sugar_part = f"Сахар: {sugar_val} ммоль/л" if sugar_val is not None else ""
     lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
-
     reply = (
         f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
     )
     await message.reply_text(text=reply, reply_markup=confirm_keyboard())
-    return
+    return True
+
+
+async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle freeform text commands for adding diary entries."""
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        return
+    user_data = cast(UserData, user_data_raw)
+    message = update.message
+    if message is None:
+        return
+    text = message.text
+    if text is None:
+        return
+    user = update.effective_user
+    if user is None:
+        return
+    raw_text = text.strip()
+    user_id = user.id
+    logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
+
+    if user_data.get("awaiting_report_date"):
+        text_lower = raw_text.lower()
+        if "назад" in text_lower or text_lower == "/cancel":
+            user_data.pop("awaiting_report_date", None)
+            await message.reply_text(
+                "📋 Выберите действие:", reply_markup=menu_keyboard
+            )
+            return
+        try:
+            date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(
+                tzinfo=datetime.timezone.utc
+            )
+        except ValueError:
+            await message.reply_text(
+                "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
+            )
+            return
+        await send_report(update, context, date_from, "указанный период")
+        user_data.pop("awaiting_report_date", None)
+        return
+
+    if await handle_pending_entry(
+        update, context, raw_text, user_data, message, user_id
+    ):
+        return
+    if await handle_edit_mode(update, context, raw_text, user_data, message):
+        return
+    if await handle_smart_input(update, context, raw_text, user_data, message, user_id):
+        return
+    if await handle_parsed_command(
+        update, context, raw_text, user_data, message, user_id
+    ):
+        return
+    await message.reply_text("Не понял, воспользуйтесь /help или кнопками меню")
 
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -429,4 +491,12 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await message.reply_text("🗨️ Чат с GPT временно недоступен.")
 
 
-__all__ = ["SessionLocal", "freeform_handler", "chat_with_gpt"]
+__all__ = [
+    "SessionLocal",
+    "freeform_handler",
+    "chat_with_gpt",
+    "handle_pending_entry",
+    "handle_edit_mode",
+    "handle_smart_input",
+    "handle_parsed_command",
+]
