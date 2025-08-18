@@ -78,9 +78,7 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
 
 
 @app.put("/timezone")
-async def put_timezone(
-    data: Timezone, _: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     try:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
@@ -104,7 +102,6 @@ async def put_timezone(
 @app.get("/api/profile/self")
 async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserContext:
     return user
-
 
 
 @app.get("/ui/{full_path:path}", include_in_schema=False)
@@ -131,7 +128,6 @@ async def create_user(
 ) -> dict[str, str]:
     """Ensure a user exists in the database."""
 
-
     if data.telegram_id != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
 
@@ -146,9 +142,7 @@ async def create_user(
 
 
 @app.post("/api/history")
-async def post_history(
-    data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     """Save or update a history record in the database."""
     validated_type = _validate_history_type(data.type)
 
@@ -157,8 +151,8 @@ async def post_history(
         if obj:
             if obj.telegram_id != user["id"]:
                 raise HTTPException(status_code=403, detail="forbidden")
-            obj.date = data.date
-            obj.time = data.time
+            obj.date = data.date.isoformat()
+            obj.time = data.time.strftime("%H:%M")
             obj.sugar = data.sugar
             obj.carbs = data.carbs
             obj.bread_units = data.breadUnits
@@ -169,8 +163,8 @@ async def post_history(
             obj = HistoryRecordDB(
                 id=data.id,
                 telegram_id=user["id"],
-                date=data.date,
-                time=data.time,
+                date=data.date.isoformat(),
+                time=data.time.strftime("%H:%M"),
                 sugar=data.sugar,
                 carbs=data.carbs,
                 bread_units=data.breadUnits,
@@ -222,9 +216,7 @@ async def get_history(user: UserContext = Depends(require_tg_user)) -> list[Hist
 
 
 @app.delete("/api/history/{record_id}")
-async def delete_history(
-    record_id: str, user: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def delete_history(record_id: str, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     """Delete a history record after verifying ownership."""
 
     def _get_record(session: Session) -> HistoryRecordDB | None:
@@ -250,4 +242,3 @@ if __name__ == "__main__":  # pragma: no cover - convenience for manual executio
     import uvicorn
 
     uvicorn.run("services.api.app.main:app", host="0.0.0.0", port=8000)
-
