@@ -29,6 +29,8 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, Any]:
     token:
         Bot token used to compute the validation hash.
     """
+    if len(init_data) > 1024:
+        raise HTTPException(status_code=413, detail="init data too long")
     try:
         params: dict[str, Any] = dict(parse_qsl(init_data, strict_parsing=True))
     except ValueError as exc:

@@ -67,6 +67,14 @@ def test_parse_and_verify_init_data_invalid_user_json() -> None:
     assert exc.value.detail == "invalid user data"
 
 
+def test_parse_and_verify_init_data_too_long() -> None:
+    init_data = "a" * 1025
+    with pytest.raises(HTTPException) as exc:
+        parse_and_verify_init_data(init_data, TOKEN)
+    assert exc.value.status_code == 413
+    assert exc.value.detail == "init data too long"
+
+
 def test_require_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data: str = build_init_data()
