@@ -13,6 +13,11 @@ from services.api.app.schemas import CommandSchema
 
 logger = logging.getLogger(__name__)
 
+
+class ParserTimeoutError(Exception):
+    """Raised when GPT parsing exceeds the allotted *timeout*."""
+
+
 # Prompt guiding GPT to convert free-form diary text into a single JSON command
 SYSTEM_PROMPT = (
     "Ты — парсер дневника диабетика.\n"
@@ -119,9 +124,9 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
             ),
             timeout,
         )
-    except asyncio.TimeoutError:
+    except asyncio.TimeoutError as exc:
         logger.error("Command parsing timed out")
-        return None
+        raise ParserTimeoutError from exc
     except OpenAIError:
         logger.exception("Command parsing failed")
         return None

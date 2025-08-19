@@ -22,7 +22,10 @@ from services.api.app.diabetes.utils.functions import (
     calc_bolus,
     smart_input,
 )
-from services.api.app.diabetes.gpt_command_parser import parse_command
+from services.api.app.diabetes.gpt_command_parser import (
+    ParserTimeoutError,
+    parse_command,
+)
 from services.api.app.diabetes.utils.ui import confirm_keyboard, menu_keyboard
 
 from .alert_handlers import check_alert
@@ -410,7 +413,12 @@ async def _handle_smart_input(
             await message.reply_text("Введите дозу инсулина (ед.).")
         return
 
-    parsed = await parse_command(raw_text)
+    try:
+        parsed = await parse_command(raw_text)
+    except ParserTimeoutError:
+        await message.reply_text("Парсер недоступен, попробуйте позже")
+        return
+
     logger.info("FREEFORM parsed=%s", parsed)
     if not parsed or parsed.get("action") != "add_entry":
         await message.reply_text("Не понял, воспользуйтесь /help или кнопками меню")
@@ -524,4 +532,4 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await message.reply_text("🗨️ Чат с GPT временно недоступен.")
 
 
-__all__ = ["SessionLocal", "freeform_handler", "chat_with_gpt"]
+__all__ = ["SessionLocal", "freeform_handler", "chat_with_gpt", "ParserTimeoutError"]

@@ -30,13 +30,14 @@ async def test_parse_command_timeout_non_blocking(
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", slow_create)
 
     start = time.perf_counter()
-    result, _ = await asyncio.gather(
+    results = await asyncio.gather(
         gpt_command_parser.parse_command("test", timeout=0.1),
         asyncio.sleep(0.1),
+        return_exceptions=True,
     )
     elapsed = time.perf_counter() - start
 
-    assert result is None
+    assert isinstance(results[0], gpt_command_parser.ParserTimeoutError)
     assert elapsed < 0.5
 
 
@@ -331,9 +332,7 @@ def test_extract_first_json_simple_object() -> None:
 
 
 def test_extract_first_json_no_object() -> None:
-    assert (
-        gpt_command_parser._extract_first_json("just some text without json") is None
-    )
+    assert gpt_command_parser._extract_first_json("just some text without json") is None
 
 
 @pytest.mark.asyncio
