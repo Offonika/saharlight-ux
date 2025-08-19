@@ -5,7 +5,9 @@ from typing import Any, Callable, TypeVar, cast
 
 import pytest
 from telegram import Update
+from telegram.error import TelegramError
 from telegram.ext import CallbackContext
+from unittest.mock import AsyncMock
 from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
@@ -29,13 +31,15 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) -> None:
-    called = SimpleNamespace(flag=False)
+    called = SimpleNamespace(flag=False, path=None)
 
     async def fake_photo_handler(
         update: Update,
         context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        file_path: str | None = None,
     ) -> int:
         called.flag = True
+        called.path = file_path
         return 200
 
     class DummyFile:
@@ -67,12 +71,11 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 
     assert result == 200
     assert called.flag
-    assert context.user_data is not None
-    user_data = context.user_data
-    assert user_data["__file_path"] == "photos/1_uid.png"
+    assert called.path == "photos/1_uid.png"
+    assert context.user_data == {}
     assert update.message is not None
     msg = update.message
-    assert msg.photo == ()
+    assert getattr(msg, "photo", None) is None
 
 
 @pytest.mark.asyncio
@@ -82,6 +85,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
     async def fake_photo_handler(
         update: Update,
         context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        file_path: str | None = None,
     ) -> None:
         called.flag = True
 
@@ -106,6 +110,58 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
     assert not called.flag
     assert context.user_data is not None
     assert "__file_path" not in context.user_data
+
+
+@pytest.mark.asyncio
+async def test_doc_handler_get_file_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    document = SimpleNamespace(
+        file_name="img.png",
+        file_unique_id="uid",
+        file_id="fid",
+        mime_type="image/png",
+    )
+    message = SimpleNamespace(document=document, reply_text=AsyncMock())
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    bot = SimpleNamespace(get_file=AsyncMock(side_effect=TelegramError("boom")))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(bot=bot, user_data={}),
+    )
+    monkeypatch.setattr(photo_handlers.os, "makedirs", lambda *args, **kwargs: None)  # type: ignore[attr-defined]
+
+    result = await photo_handlers.doc_handler(update, context)
+
+    assert result == photo_handlers.END
+    message.reply_text.assert_awaited_once()
+    assert not context.user_data
+
+
+@pytest.mark.asyncio
+async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    class DummyFile:
+        async def download_to_drive(self, path: str) -> None:
+            raise OSError("disk full")
+
+    document = SimpleNamespace(
+        file_name="img.png",
+        file_unique_id="uid",
+        file_id="fid",
+        mime_type="image/png",
+    )
+    message = SimpleNamespace(document=document, reply_text=AsyncMock())
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    bot = SimpleNamespace(get_file=AsyncMock(return_value=DummyFile()))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(bot=bot, user_data={}),
+    )
+    monkeypatch.setattr(photo_handlers.os, "makedirs", lambda *args, **kwargs: None)  # type: ignore[attr-defined]
+
+    result = await photo_handlers.doc_handler(update, context)
+
+    assert result == photo_handlers.END
+    message.reply_text.assert_awaited_once()
+    assert not context.user_data
 
 
 @pytest.mark.asyncio

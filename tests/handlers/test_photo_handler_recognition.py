@@ -394,11 +394,9 @@ async def test_doc_handler_valid_image(
     result = await photo_handlers.doc_handler(update, context)
 
     assert result == photo_handlers.PHOTO_SUGAR
-    user_data_valid = context.user_data
-    assert user_data_valid is not None
-    assert "__file_path" in user_data_valid
-    assert message.photo == ()
-    photo_mock.assert_called_once()
+    assert context.user_data == {}
+    assert message.photo is None
+    photo_mock.assert_awaited_once_with(update, context, file_path="photos/1_uid.png")
 
 
 @pytest.mark.asyncio
