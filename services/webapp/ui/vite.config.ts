@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises'
 
 function telegramInitPlugin(): Plugin {
   const shared = path.resolve(__dirname, '../public')
+  const files = ['telegram-init.js']
   const serve = async (res: any, file: string) => {
     res.setHeader('Content-Type', 'application/javascript')
     res.end(await readFile(path.join(shared, file), 'utf8'))
@@ -14,17 +15,20 @@ function telegramInitPlugin(): Plugin {
     name: 'telegram-init',
     async configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (req.url === '/telegram-init.js') return serve(res, 'telegram-init.js')
+        for (const file of files) {
+          if (req.url === `/${file}`) return serve(res, file)
+        }
         return next()
       })
     },
     async generateBundle() {
-      const file = 'telegram-init.js'
-      this.emitFile({
-        type: 'asset',
-        fileName: file,
-        source: await readFile(path.join(shared, file), 'utf8'),
-      })
+      for (const file of files) {
+        this.emitFile({
+          type: 'asset',
+          fileName: file,
+          source: await readFile(path.join(shared, file), 'utf8'),
+        })
+      }
     },
   }
 }
