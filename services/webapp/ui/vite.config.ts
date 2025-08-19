@@ -42,7 +42,7 @@ export default defineConfig(async ({ mode }) => {
   const port   = 5173                                   // или оставьте 8080 и укажите его в .lovable.yml
   const rollupOptions = {
     ...(mode === 'development' ? { treeshake: false } : {}),
-    external: ['telegram-init.js', '/telegram-init.js'],
+    external: ['telegram-init.js', '/telegram-init.js', '/ui/telegram-init.js'],
     input: {
       main: path.resolve(__dirname, 'index.html'),
       'telegram-theme': path.resolve(
