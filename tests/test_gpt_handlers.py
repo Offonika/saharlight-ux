@@ -70,9 +70,7 @@ async def test_freeform_handler_awaiting_report_invalid_date() -> None:
         SimpleNamespace(user_data={"awaiting_report_date": True}),
     )
     await gpt_handlers.freeform_handler(update, context)
-    assert message.texts == [
-        "❗ Некорректная дата. Используйте формат YYYY-MM-DD."
-    ]
+    assert message.texts == ["❗ Некорректная дата. Используйте формат YYYY-MM-DD."]
 
 
 @pytest.mark.asyncio
@@ -252,7 +250,9 @@ async def test_freeform_handler_pending_entry_prompt_sugar() -> None:
 
 
 @pytest.mark.asyncio
-async def test_freeform_handler_smart_input_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_freeform_handler_smart_input_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     message = DummyMessage("bad")
     update = cast(
         Update,
@@ -268,9 +268,7 @@ async def test_freeform_handler_smart_input_error(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
     await gpt_handlers.freeform_handler(update, context)
-    assert message.texts == [
-        "❗ ХЕ указываются числом, без ммоль/л и ед."
-    ]
+    assert message.texts == ["❗ ХЕ указываются числом, без ммоль/л и ед."]
 
 
 @pytest.mark.asyncio
@@ -460,6 +458,31 @@ async def test_freeform_handler_smart_input_negative(
 
 
 @pytest.mark.asyncio
+async def test_freeform_handler_parser_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    message = DummyMessage("привет")
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+
+    def fake_smart_input(text: str) -> dict[str, float | None]:
+        return {"sugar": None, "xe": None, "dose": None}
+
+    async def fake_parse_command(text: str) -> dict[str, Any] | None:
+        raise gpt_handlers.ParserTimeoutError
+
+    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
+    monkeypatch.setattr(gpt_handlers, "parse_command", fake_parse_command)
+
+    await gpt_handlers.freeform_handler(update, context)
+    assert message.texts == ["Парсер недоступен, попробуйте позже"]
+
+
+@pytest.mark.asyncio
 async def test_freeform_handler_smart_input_missing_fields(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -576,6 +599,7 @@ async def test_freeform_handler_pending_entry_numeric_add_carbs(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),
     )
+
     async def fake_run_db(func: Any, sessionmaker: Any = None) -> Any:
         return None
 

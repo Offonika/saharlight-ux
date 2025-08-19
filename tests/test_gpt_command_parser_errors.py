@@ -8,27 +8,26 @@ from services.api.app.diabetes import gpt_command_parser
 
 
 @pytest.mark.anyio
-async def test_parse_command_handles_asyncio_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_parse_command_handles_asyncio_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def raise_timeout(*args: object, **kwargs: object) -> None:
         raise asyncio.TimeoutError
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", raise_timeout
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_timeout)
 
-    result = await gpt_command_parser.parse_command("test")
-
-    assert result is None
+    with pytest.raises(gpt_command_parser.ParserTimeoutError):
+        await gpt_command_parser.parse_command("test")
 
 
 @pytest.mark.anyio
-async def test_parse_command_handles_openai_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_parse_command_handles_openai_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def raise_openai(*args: object, **kwargs: object) -> None:
         raise OpenAIError("boom")
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", raise_openai
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_openai)
 
     result = await gpt_command_parser.parse_command("test")
 
@@ -36,13 +35,13 @@ async def test_parse_command_handles_openai_error(monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.mark.anyio
-async def test_parse_command_handles_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_parse_command_handles_value_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def raise_value(*args: object, **kwargs: object) -> None:
         raise ValueError
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", raise_value
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_value)
 
     result = await gpt_command_parser.parse_command("test")
 
@@ -50,13 +49,13 @@ async def test_parse_command_handles_value_error(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.anyio
-async def test_parse_command_handles_type_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_parse_command_handles_type_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def raise_type(*args: object, **kwargs: object) -> None:
         raise TypeError
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", raise_type
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_type)
 
     result = await gpt_command_parser.parse_command("test")
 
@@ -73,9 +72,7 @@ async def test_parse_command_returns_none_without_choices(
     def create(*args: object, **kwargs: object) -> NoChoices:
         return NoChoices()
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", create
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     result = await gpt_command_parser.parse_command("test")
 
@@ -92,9 +89,7 @@ async def test_parse_command_returns_none_without_message(
     def create(*args: object, **kwargs: object) -> NoMessageResponse:
         return NoMessageResponse()
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", create
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     result = await gpt_command_parser.parse_command("test")
 
@@ -111,9 +106,7 @@ async def test_parse_command_returns_none_without_content(
     def create(*args: object, **kwargs: object) -> NoContentResponse:
         return NoContentResponse()
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", create
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     result = await gpt_command_parser.parse_command("test")
 
@@ -125,16 +118,12 @@ async def test_parse_command_empty_content(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     class EmptyContentResponse:
-        choices = [
-            type("Choice", (), {"message": type("Msg", (), {"content": ""})()})
-        ]
+        choices = [type("Choice", (), {"message": type("Msg", (), {"content": ""})()})]
 
     def create(*args: object, **kwargs: object) -> EmptyContentResponse:
         return EmptyContentResponse()
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", create
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     with caplog.at_level(logging.ERROR):
         result = await gpt_command_parser.parse_command("test")
@@ -148,16 +137,12 @@ async def test_parse_command_non_string_content(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     class NonStringContentResponse:
-        choices = [
-            type("Choice", (), {"message": type("Msg", (), {"content": 123})()})
-        ]
+        choices = [type("Choice", (), {"message": type("Msg", (), {"content": 123})()})]
 
     def create(*args: object, **kwargs: object) -> NonStringContentResponse:
         return NonStringContentResponse()
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", create
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     with caplog.at_level(logging.ERROR):
         result = await gpt_command_parser.parse_command("test")
@@ -182,9 +167,7 @@ async def test_parse_command_string_without_json(
     def create(*args: object, **kwargs: object) -> NoJsonResponse:
         return NoJsonResponse()
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", create
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     with caplog.at_level(logging.ERROR):
         result = await gpt_command_parser.parse_command("test")
@@ -202,20 +185,14 @@ async def test_parse_command_json_invalid_structure(
             type(
                 "Choice",
                 (),
-                {
-                    "message": type(
-                        "Msg", (), {"content": '{"action": "add_entry"}'}
-                    )()
-                },
+                {"message": type("Msg", (), {"content": '{"action": "add_entry"}'})()},
             )
         ]
 
     def create(*args: object, **kwargs: object) -> BadStructureResponse:
         return BadStructureResponse()
 
-    monkeypatch.setattr(
-        gpt_command_parser, "create_chat_completion", create
-    )
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     with caplog.at_level(logging.ERROR):
         result = await gpt_command_parser.parse_command("test")
@@ -227,10 +204,7 @@ async def test_parse_command_json_invalid_structure(
 def test_sanitize_sensitive_data_masks_token() -> None:
     token = "sk-" + "A1b2" * 10
     text = f"key {token} end"
-    assert (
-        gpt_command_parser._sanitize_sensitive_data(text)
-        == "key [REDACTED] end"
-    )
+    assert gpt_command_parser._sanitize_sensitive_data(text) == "key [REDACTED] end"
 
 
 def test_extract_first_json_ignores_array() -> None:
