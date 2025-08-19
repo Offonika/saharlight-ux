@@ -259,7 +259,9 @@ async def _handle_edit_entry(
         return True
     edit_info_raw = user_data.get("edit_entry")
     if not isinstance(edit_info_raw, dict):
-        return True
+        for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
+            user_data.pop(key, None)
+        return False
     edit_info = cast(EditMessageMeta, edit_info_raw)
     chat_id = edit_info["chat_id"]
     message_id = edit_info["message_id"]

@@ -4,14 +4,16 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import CallbackContext
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
+from telegram.ext import CallbackContext, ContextTypes
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("DB_PASSWORD", "test")
 from services.api.app.diabetes.services.db import Base, User, Entry
+from services.api.app.diabetes.handlers import UserData
+import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
 
 class DummyMessage:
@@ -242,3 +244,47 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert reply_markup is not None
     buttons = [b.callback_data for row in reply_markup.inline_keyboard for b in row]
     assert f"edit:{entry_id}" in buttons and f"del:{entry_id}" in buttons
+
+
+@pytest.mark.asyncio
+async def test_handle_edit_entry_missing_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    os.environ.setdefault("OPENAI_API_KEY", "test")
+    os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
+    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", TestSession)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        entry = Entry(
+            telegram_id=1,
+            event_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
+            xe=1,
+        )
+        session.add(entry)
+        session.commit()
+        entry_id = entry.id
+
+    user_data = cast(UserData, {"edit_id": entry_id, "edit_field": "xe"})
+    message = cast(Message, DummyMessage(text="2"))
+    context = cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace(bot=DummyBot()))
+
+    result = await gpt_handlers._handle_edit_entry("2", user_data, message, context)
+
+    assert result is False
+    assert not any(
+        k in user_data for k in ("edit_id", "edit_field", "edit_entry", "edit_query")
+    )
+    with TestSession() as session:
+        entry_obj = session.get(Entry, entry_id)
+        assert entry_obj is not None
+        assert entry_obj.xe == 2
