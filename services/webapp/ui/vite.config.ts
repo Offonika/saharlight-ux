@@ -15,19 +15,16 @@ function telegramInitPlugin(): Plugin {
     async configureServer(server) {
       server.middlewares.use((req, res, next) => {
         if (req.url === '/telegram-init.js') return serve(res, 'telegram-init.js')
-        if (req.url === '/assets/telegram-theme.js')
-          return serve(res, 'assets/telegram-theme.js')
         return next()
       })
     },
     async generateBundle() {
-      for (const file of ['telegram-init.js', 'assets/telegram-theme.js']) {
-        this.emitFile({
-          type: 'asset',
-          fileName: file,
-          source: await readFile(path.join(shared, file), 'utf8'),
-        })
-      }
+      const file = 'telegram-init.js'
+      this.emitFile({
+        type: 'asset',
+        fileName: file,
+        source: await readFile(path.join(shared, file), 'utf8'),
+      })
     },
   }
 }
@@ -50,12 +47,12 @@ export default defineConfig(async ({ mode }) => {
         './src/lib/telegram-theme.ts',
       ),
     },
+    preserveEntrySignatures: 'strict',
     output: {
       entryFileNames: (chunk) =>
         chunk.name === 'telegram-theme'
           ? 'assets/telegram-theme.js'
           : 'assets/[name]-[hash].js',
-      exports: 'named',
       manualChunks: {
         vendor: ['react', 'react-dom', 'react-router-dom'],
       },
@@ -75,6 +72,7 @@ export default defineConfig(async ({ mode }) => {
       outDir: 'dist', // Явно задаём dist (по умолчанию и так dist)
       minify: mode === 'development' ? false : 'esbuild',
       rollupOptions,
+      minifyInternalExports: false,
     },
   }
 })

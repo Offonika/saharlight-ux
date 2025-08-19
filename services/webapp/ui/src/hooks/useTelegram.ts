@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { tgFetch } from "../lib/tgFetch";
-import {
-  applyTheme as applyTelegramTheme,
+import applyTelegramTheme, {
   type Scheme,
   type TelegramWebApp as TelegramWebAppBase,
 } from "../lib/telegram-theme";
