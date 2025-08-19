@@ -39,13 +39,14 @@ export const SegmentedControl = ({ value, onChange, items }: SegmentedControlPro
   };
 
   return (
-    <div className="segmented" role="group">
+    <div className="segmented" role="radiogroup">
       {items.map((item, index) => (
         <div className="segmented__item" key={item.value}>
           <button
             ref={(el) => (itemRefs.current[index] = el!)}
             type="button"
-            aria-pressed={value === item.value}
+            role="radio"
+            aria-checked={value === item.value}
             tabIndex={value === item.value ? 0 : -1}
             onKeyDown={(e) => handleKeyDown(e, index)}
             onClick={() => onChange(item.value)}
