@@ -13,6 +13,7 @@ from telegram.ext import (
 
 from services.api.app.diabetes.services.db import SessionLocal, Entry
 from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.utils.functions import _safe_float
 from services.api.app.diabetes.utils.ui import menu_keyboard, sugar_keyboard
 
 from .alert_handlers import check_alert
@@ -71,10 +72,8 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.effective_user
     if user is None:
         return END
-    text = text.strip().replace(",", ".")
-    try:
-        sugar = float(text)
-    except ValueError:
+    sugar = _safe_float(text)
+    if sugar is None:
         await message.reply_text("Введите сахар числом в ммоль/л.")
         return SUGAR_VAL
     if sugar < 0:
