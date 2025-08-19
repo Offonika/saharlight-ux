@@ -15,8 +15,9 @@ from telegram.ext import (
 from services.api.app.diabetes.services.db import SessionLocal, Profile
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import (
-    calc_bolus,
     PatientProfile,
+    _safe_float,
+    calc_bolus,
     smart_input,
 )
 from services.api.app.diabetes.utils.ui import (
@@ -104,10 +105,8 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.effective_user
     if user is None:
         return END
-    text = text.strip().replace(",", ".")
-    try:
-        xe = float(text)
-    except ValueError:
+    xe = _safe_float(text)
+    if xe is None:
         await message.reply_text("Введите число ХЕ.")
         return DOSE_XE
     if xe < 0:
@@ -137,10 +136,8 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.effective_user
     if user is None:
         return END
-    text = text.strip().replace(",", ".")
-    try:
-        carbs = float(text)
-    except ValueError:
+    carbs = _safe_float(text)
+    if carbs is None:
         await message.reply_text("Введите углеводы числом в граммах.")
         return DOSE_CARBS
     if carbs < 0:
@@ -170,10 +167,8 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.effective_user
     if user is None:
         return END
-    text = text.strip().replace(",", ".")
-    try:
-        sugar = float(text)
-    except ValueError:
+    sugar = _safe_float(text)
+    if sugar is None:
         await message.reply_text("Введите сахар числом в ммоль/л.")
         return DOSE_SUGAR
     if sugar < 0:
