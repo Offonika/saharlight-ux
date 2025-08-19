@@ -40,7 +40,11 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await message.reply_text("📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard)
 
 
-async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def photo_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    file_path: str | None = None,
+) -> int:
     """Process food photos and trigger nutrition analysis."""
     user_data_raw = context.user_data
     if user_data_raw is None:
@@ -63,7 +67,9 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         return END
     user_data[WAITING_GPT_FLAG] = True
 
-    file_path = user_data.pop("__file_path", None)
+    if file_path is None:
+        file_path = user_data.pop("__file_path", None)
+
     if not file_path:
         try:
             photo = message.photo[-1]
@@ -299,12 +305,16 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     path = f"photos/{user_id}_{document.file_unique_id}{ext}"
     os.makedirs("photos", exist_ok=True)
 
-    file = await context.bot.get_file(document.file_id)
-    await file.download_to_drive(path)
+    try:
+        file = await context.bot.get_file(document.file_id)
+        await file.download_to_drive(path)
+    except (TelegramError, OSError) as exc:
+        logger.exception("[DOC] Failed to save document: %s", exc)
+        await message.reply_text("⚠️ Не удалось сохранить документ. Попробуйте ещё раз.")
+        return END
 
-    user_data["__file_path"] = path
-    message.photo = ()
-    return await photo_handler(update, context)
+    user_data.pop("__file_path", None)
+    return await photo_handler(update, context, file_path=path)
 
 
 prompt_photo = photo_prompt
