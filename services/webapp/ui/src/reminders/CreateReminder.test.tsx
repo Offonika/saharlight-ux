@@ -7,11 +7,11 @@ vi.mock("react-router-dom", () => ({
   useParams: () => ({ id: "1" }),
 }));
 
-vi.mock("@/contexts/telegram-context", () => ({
+vi.mock("../contexts/telegram-context", () => ({
   useTelegramContext: () => ({ user: { id: 123 }, sendData: vi.fn() }),
 }));
 
-vi.mock("@/api/reminders", () => ({
+vi.mock("../api/reminders", () => ({
   getReminder: vi.fn().mockResolvedValue({
     id: 1,
     type: "sugar",
@@ -24,11 +24,13 @@ vi.mock("@/api/reminders", () => ({
 }));
 
 import CreateReminder from "./CreateReminder";
-import { getReminder } from "@/api/reminders";
+import { getReminder } from "../api/reminders";
 
 describe("CreateReminder", () => {
   it("requests reminder only once", async () => {
     render(<CreateReminder />);
     await waitFor(() => expect(getReminder).toHaveBeenCalledTimes(1));
+    const [, , signal] = vi.mocked(getReminder).mock.calls[0];
+    expect(signal).toBeInstanceOf(AbortSignal);
   });
 });

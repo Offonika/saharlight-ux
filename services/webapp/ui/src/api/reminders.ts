@@ -39,9 +39,10 @@ export async function getReminders(
 export async function getReminder(
   telegramId: number,
   id: number,
+  signal?: AbortSignal,
 ): Promise<Reminder | null> {
   try {
-    const data = await api.remindersGet({ telegramId, id });
+    const data = await api.remindersGet({ telegramId, id }, { signal });
 
     if (!data || Array.isArray(data) || !instanceOfReminder(data)) {
       console.error('Unexpected reminder API response:', data);
@@ -50,6 +51,9 @@ export async function getReminder(
 
     return data;
   } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw error;
+    }
     console.error('Failed to fetch reminder:', error);
     if (error instanceof ResponseError && error.response.status === 404) {
       return null;

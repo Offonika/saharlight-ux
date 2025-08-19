@@ -5,6 +5,7 @@ const mockRemindersGet = vi.hoisted(() => vi.fn());
 const mockRemindersPost = vi.hoisted(() => vi.fn());
 const mockRemindersPatch = vi.hoisted(() => vi.fn());
 const mockRemindersDelete = vi.hoisted(() => vi.fn());
+const mockInstanceOfReminder = vi.hoisted(() => vi.fn());
 
 vi.mock('@sdk', () => ({
   DefaultApi: vi.fn(() => ({
@@ -13,7 +14,7 @@ vi.mock('@sdk', () => ({
     remindersPatch: mockRemindersPatch,
     remindersDelete: mockRemindersDelete,
   })),
-  instanceOfReminder: vi.fn(),
+  instanceOfReminder: mockInstanceOfReminder,
 }), { virtual: true });
 
 import {
@@ -29,6 +30,7 @@ afterEach(() => {
   mockRemindersPost.mockReset();
   mockRemindersPatch.mockReset();
   mockRemindersDelete.mockReset();
+  mockInstanceOfReminder.mockReset();
 });
 
 describe('getReminder', () => {
@@ -42,6 +44,24 @@ describe('getReminder', () => {
       new ResponseError(new Response(null, { status: 404 })),
     );
     await expect(getReminder(1, 1)).resolves.toBeNull();
+  });
+
+  it('passes signal to API', async () => {
+    const controller = new AbortController();
+    mockRemindersGet.mockResolvedValueOnce({} as any);
+    mockInstanceOfReminder.mockReturnValueOnce(true);
+    await getReminder(1, 1, controller.signal);
+    expect(mockRemindersGet).toHaveBeenCalledWith(
+      { telegramId: 1, id: 1 },
+      { signal: controller.signal },
+    );
+  });
+
+  it('rethrows AbortError', async () => {
+    const controller = new AbortController();
+    const abortErr = new DOMException('Aborted', 'AbortError');
+    mockRemindersGet.mockRejectedValueOnce(abortErr);
+    await expect(getReminder(1, 1, controller.signal)).rejects.toBe(abortErr);
   });
 });
 
