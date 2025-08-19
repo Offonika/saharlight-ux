@@ -10,10 +10,18 @@ import { TelegramProvider } from '@/contexts/TelegramProvider'
 import './styles/theme.css'
 import './index.css'
 
-createRoot(document.getElementById('root')!).render(
-  <BrowserRouter basename={import.meta.env.BASE_URL}>
-    <TelegramProvider>
-      <App />
-    </TelegramProvider>
-  </BrowserRouter>
+const rootElement = document.getElementById('root')
+
+if (rootElement === null) {
+  throw new Error('Root element with id "root" not found')
+}
+
+createRoot(rootElement).render(
+  <React.StrictMode>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <TelegramProvider>
+        <App />
+      </TelegramProvider>
+    </BrowserRouter>
+  </React.StrictMode>,
 )
