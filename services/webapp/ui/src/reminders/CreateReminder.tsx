@@ -50,19 +50,18 @@ export default function CreateReminder() {
   const [typeOpen, setTypeOpen] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
     if (!params.id || !user?.id) return;
+    const controller = new AbortController();
     const id = Number(params.id);
     if (Number.isNaN(id)) {
       const message = "Некорректный ID напоминания";
       setError(message);
       toast({ title: "Ошибка", description: message, variant: "destructive" });
-      return;
+      return () => controller.abort();
     }
     (async () => {
       try {
-        const data = await getReminder(user.id, id);
-        if (cancelled) return;
+        const data = await getReminder(user.id, id, controller.signal);
         if (data) {
           const nt = normalizeReminderType(data.type);
           const loaded: Reminder = {
@@ -83,6 +82,9 @@ export default function CreateReminder() {
           toast({ title: "Ошибка", description: message, variant: "destructive" });
         }
       } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return;
+        }
         const message =
           err instanceof Error ? err.message : "Не удалось загрузить напоминание";
         setError(message);
@@ -90,7 +92,7 @@ export default function CreateReminder() {
       }
     })();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [params.id, user?.id, toast]);
 
