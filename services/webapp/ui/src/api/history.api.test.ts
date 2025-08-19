@@ -32,6 +32,16 @@ describe('getHistory', () => {
       'Некорректная запись истории',
     );
   });
+
+  it('forwards signal to tgFetch', async () => {
+    const controller = new AbortController();
+    mockTgFetch.mockResolvedValueOnce(new Response(JSON.stringify([])));
+    await getHistory(controller.signal);
+    expect(mockTgFetch).toHaveBeenCalledWith(
+      `${API_BASE}/history`,
+      { signal: controller.signal },
+    );
+  });
 });
 
 describe('updateRecord', () => {

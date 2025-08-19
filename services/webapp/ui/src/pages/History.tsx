@@ -18,27 +18,24 @@ const History = () => {
   const [editingRecord, setEditingRecord] = useState<HistoryRecord | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     (async () => {
       try {
-        const data = await getHistory();
-        if (!cancelled) {
-          setRecords(data);
-        }
+        const data = await getHistory(controller.signal);
+        setRecords(data);
       } catch (err) {
-        if (!cancelled) {
-          const message =
-            err instanceof Error ? err.message : 'Неизвестная ошибка';
-          toast({
-            title: 'Ошибка',
-            description: message,
-            variant: 'destructive',
-          });
-        }
+        if (controller.signal.aborted) return;
+        const message =
+          err instanceof Error ? err.message : 'Неизвестная ошибка';
+        toast({
+          title: 'Ошибка',
+          description: message,
+          variant: 'destructive',
+        });
       }
     })();
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [toast]);
 
