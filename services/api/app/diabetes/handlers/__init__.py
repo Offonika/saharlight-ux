@@ -2,6 +2,8 @@
 
 from typing import TypedDict
 
+from telegram import CallbackQuery
+
 
 class UserData(TypedDict, total=False):
     """Mutable mapping used to store per-user state in handlers."""
@@ -14,7 +16,7 @@ class UserData(TypedDict, total=False):
     edit_id: int | None
     edit_entry: dict[str, object]
     edit_field: str
-    edit_query: str
+    edit_query: CallbackQuery | None
     profile_icr: float
     profile_cf: float
     profile_target: float
