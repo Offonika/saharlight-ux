@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import asyncio
 # Re-export for tests and type checkers
-import datetime as datetime
-import os as os
+import datetime
+import os
 
 import html
 import logging
