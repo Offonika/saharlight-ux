@@ -29,7 +29,7 @@ export const supportsColorMethods = (app: TelegramWebApp | null): boolean => {
   return major > 6 || (major === 6 && minor >= 1);
 };
 
-export function applyTheme(
+function applyTheme(
   src: TelegramWebApp | null,
   ignoreScheme = false,
 ): Scheme {
@@ -61,4 +61,5 @@ export function applyTheme(
   return scheme;
 }
 
+export { applyTheme };
 export default applyTheme;
