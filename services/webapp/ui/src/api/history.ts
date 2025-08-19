@@ -26,9 +26,9 @@ const historyRecordSchema = z.object({
   type: z.enum(['measurement', 'meal', 'insulin']),
 });
 
-export async function getHistory(): Promise<HistoryRecord[]> {
+export async function getHistory(signal?: AbortSignal): Promise<HistoryRecord[]> {
   try {
-    const res = await tgFetch(`${API_BASE}/history`);
+    const res = await tgFetch(`${API_BASE}/history`, { signal });
     const data = await res.json();
     if (!Array.isArray(data)) {
       throw new Error('Некорректный ответ API');
