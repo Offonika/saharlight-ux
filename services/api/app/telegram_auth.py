@@ -15,6 +15,9 @@ from .schemas.user import UserContext
 
 logger = logging.getLogger(__name__)
 
+# Header carrying Telegram WebApp init data
+TG_INIT_DATA_HEADER = "X-Telegram-Init-Data"
+
 # Maximum allowed age of auth_date in seconds (24 hours)
 AUTH_DATE_MAX_AGE = 24 * 60 * 60
 
@@ -62,7 +65,7 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, Any]:
 
 
 def require_tg_user(
-    init_data: str | None = Header(None, alias="X-Telegram-Init-Data"),
+    init_data: str | None = Header(None, alias=TG_INIT_DATA_HEADER),
 ) -> UserContext:
     """Dependency ensuring request contains valid Telegram user info."""
     if not init_data:

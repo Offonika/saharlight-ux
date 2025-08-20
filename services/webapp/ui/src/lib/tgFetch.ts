@@ -1,3 +1,4 @@
+export const TG_INIT_DATA_HEADER = "X-Telegram-Init-Data";
 export const REQUEST_TIMEOUT_MESSAGE = "Превышено время ожидания запроса";
 const REQUEST_TIMEOUT = 10_000; // 10 seconds
 
@@ -16,7 +17,7 @@ export async function tgFetch(
   const headers = new Headers(init.headers || {});
   const tg = (window as TelegramWindow).Telegram?.WebApp;
   if (tg?.initData) {
-    headers.set("X-Telegram-Init-Data", tg.initData);
+    headers.set(TG_INIT_DATA_HEADER, tg.initData);
   }
 
   const controller = new AbortController();
