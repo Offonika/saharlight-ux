@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
-import { tgFetch, REQUEST_TIMEOUT_MESSAGE } from './tgFetch';
+import { tgFetch, REQUEST_TIMEOUT_MESSAGE, TG_INIT_DATA_HEADER } from './tgFetch';
 
 interface TelegramWebApp {
   initData?: string;
@@ -24,12 +24,12 @@ describe('tgFetch', () => {
     vi.useRealTimers();
   });
 
-  it('attaches X-Telegram-Init-Data header when init data is present', async () => {
+  it(`attaches ${TG_INIT_DATA_HEADER} header when init data is present`, async () => {
     (window as TelegramWindow).Telegram = { WebApp: { initData: 'test-data' } };
     await tgFetch('/api/profile/self');
     const [, options] = (global.fetch as Mock).mock.calls[0] as [unknown, RequestInit];
     const headers = options.headers as Headers;
-    expect(headers.get('X-Telegram-Init-Data')).toBe('test-data');
+    expect(headers.get(TG_INIT_DATA_HEADER)).toBe('test-data');
     expect(options.credentials).toBe('include');
   });
 
@@ -38,7 +38,7 @@ describe('tgFetch', () => {
     await tgFetch('/api/profile/self');
     const [, options] = (global.fetch as Mock).mock.calls[0] as [unknown, RequestInit];
     const headers = options.headers as Headers;
-    expect(headers.has('X-Telegram-Init-Data')).toBe(false);
+    expect(headers.has(TG_INIT_DATA_HEADER)).toBe(false);
     expect(options.credentials).toBe('include');
   });
 

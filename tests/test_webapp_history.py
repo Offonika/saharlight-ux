@@ -15,6 +15,7 @@ from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
 from services.api.app.diabetes.services import db
+from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 TOKEN = "test-token"
 
@@ -52,7 +53,7 @@ def test_history_auth_required(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_history_invalid_date_time(monkeypatch: pytest.MonkeyPatch) -> None:
     setup_db(monkeypatch)
     monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
-    headers = {"X-Telegram-Init-Data": build_init_data(1)}
+    headers = {TG_INIT_DATA_HEADER: build_init_data(1)}
     with TestClient(server.app) as client:
         bad_date = {"id": "1", "date": "2024-13-01", "time": "12:00", "type": "measurement"}
         resp = client.post("/api/history", json=bad_date, headers=headers)
@@ -65,8 +66,8 @@ def test_history_invalid_date_time(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
     monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
-    headers1 = {"X-Telegram-Init-Data": build_init_data(1)}
-    headers2 = {"X-Telegram-Init-Data": build_init_data(2)}
+    headers1 = {TG_INIT_DATA_HEADER: build_init_data(1)}
+    headers2 = {TG_INIT_DATA_HEADER: build_init_data(2)}
     with TestClient(server.app) as client:
         rec1 = {
             "id": "1",
@@ -123,7 +124,7 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
     monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
-    headers = {"X-Telegram-Init-Data": build_init_data(1)}
+    headers = {TG_INIT_DATA_HEADER: build_init_data(1)}
     records = [{"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"} for i in range(5)]
 
     async def post_record(rec: dict[str, Any]) -> None:

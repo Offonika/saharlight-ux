@@ -14,6 +14,7 @@ from sqlalchemy.pool import StaticPool
 import services.api.app.main as server
 from services.api.app.config import settings
 from services.api.app.diabetes.services import db
+from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 
 def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
@@ -52,7 +53,7 @@ def test_create_user_authorized(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.post(
             "/api/user",
             json={"telegram_id": 42},
-            headers={"X-Telegram-Init-Data": init_data},
+            headers={TG_INIT_DATA_HEADER: init_data},
         )
     assert resp.status_code == 200
 
@@ -70,6 +71,6 @@ def test_create_user_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.post(
             "/api/user",
             json={"telegram_id": 42},
-            headers={"X-Telegram-Init-Data": init_data},
+            headers={TG_INIT_DATA_HEADER: init_data},
         )
     assert resp.status_code == 403
