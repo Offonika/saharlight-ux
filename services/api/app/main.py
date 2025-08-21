@@ -37,7 +37,7 @@ from .telegram_auth import require_tg_user
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+app = FastAPI(title="Diabetes Assistant API", version="1.0.0")
 app.include_router(router)
 
 BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"

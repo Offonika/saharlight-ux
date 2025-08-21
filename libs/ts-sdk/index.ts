@@ -4,17 +4,36 @@
  */
 
 export interface paths {
-    "/health": {
+    "/profiles": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Health check */
-        get: operations["healthGet"];
+        /** Profiles Get */
+        get: operations["profiles_get_profiles_get"];
         put?: never;
-        post?: never;
+        /** Profiles Post */
+        post: operations["profiles_post_profiles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Api Reminders */
+        get: operations["api_reminders_reminders_get"];
+        put?: never;
+        /** Api Reminders Post */
+        post: operations["api_reminders_post_reminders_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -28,9 +47,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        /** Save timezone */
-        put: operations["timezonePut"];
+        /** Get Timezone */
+        get: operations["get_timezone_timezone_get"];
+        /** Put Timezone */
+        put: operations["put_timezone_timezone_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -38,37 +58,116 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/profiles": {
+    "/profile/self": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get user profile */
-        get: operations["profilesGet"];
+        /** Profile Self */
+        get: operations["profile_self_profile_self_get"];
         put?: never;
-        /** Save user profile */
-        post: operations["profilesPost"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/reminders": {
+    "/stats": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List or retrieve reminders */
-        get: operations["remindersGet"];
+        /** Get Stats */
+        get: operations["get_stats_stats_get"];
         put?: never;
-        /** Save reminder */
-        post: operations["remindersPost"];
+        post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Analytics */
+        get: operations["get_analytics_analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create User
+         * @description Ensure a user exists in the database.
+         */
+        post: operations["create_user_user_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get History
+         * @description Return history records for the authenticated user.
+         */
+        get: operations["get_history_history_get"];
+        put?: never;
+        /**
+         * Post History
+         * @description Save or update a history record in the database.
+         */
+        post: operations["post_history_history_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/history/{record_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete History
+         * @description Delete a history record after verifying ownership.
+         */
+        delete: operations["delete_history_history__record_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -78,34 +177,162 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        Status: {
-            status: string;
+        /** AnalyticsPoint */
+        AnalyticsPoint: {
+            /** Date */
+            date: string;
+            /** Sugar */
+            sugar: number;
         };
-        Timezone: {
-            telegram_id: number;
-            tz: string;
+        /** DayStats */
+        DayStats: {
+            /** Sugar */
+            sugar: number;
+            /** Breadunits */
+            breadUnits: number;
+            /** Insulin */
+            insulin: number;
         };
-        Profile: {
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HistoryRecordSchema
+         * @description Schema for user history records.
+         */
+        "HistoryRecordSchema-Input": {
+            /** Id */
+            id: string;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Time
+             * Format: time
+             */
+            time: string;
+            /** Sugar */
+            sugar?: number | null;
+            /** Carbs */
+            carbs?: number | null;
+            /** Breadunits */
+            breadUnits?: number | null;
+            /** Insulin */
+            insulin?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "measurement" | "meal" | "insulin";
+        };
+        /**
+         * HistoryRecordSchema
+         * @description Schema for user history records.
+         */
+        "HistoryRecordSchema-Output": {
+            /** Id */
+            id: string;
+            /** Date */
+            date: string;
+            /** Time */
+            time: string;
+            /** Sugar */
+            sugar?: number | null;
+            /** Carbs */
+            carbs?: number | null;
+            /** Breadunits */
+            breadUnits?: number | null;
+            /** Insulin */
+            insulin?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "measurement" | "meal" | "insulin";
+        };
+        /** ProfileSchema */
+        ProfileSchema: {
+            /** Telegram Id */
             telegram_id: number;
-            /** Format: float */
+            /** Icr */
             icr: number;
-            /** Format: float */
+            /** Cf */
             cf: number;
-            /** Format: float */
+            /** Target */
             target: number;
-            /** Format: float */
+            /** Low */
             low: number;
-            /** Format: float */
+            /** High */
             high: number;
+            /** Org Id */
             org_id?: number | null;
         };
-        Reminder: {
+        /** ReminderSchema */
+        ReminderSchema: {
+            /** Telegram Id */
             telegram_id: number;
-            id?: number;
+            /** Id */
+            id?: number | null;
+            /** Type */
             type: string;
-            time?: string;
+            /** Time */
+            time?: string | null;
+            /** Interval Hours */
             interval_hours?: number | null;
-            is_enabled?: boolean;
+            /** Minutes After */
+            minutes_after?: number | null;
+            /**
+             * Is Enabled
+             * @default true
+             */
+            is_enabled: boolean;
+            /** Org Id */
+            org_id?: number | null;
+        };
+        /** Timezone */
+        Timezone: {
+            /** Tz */
+            tz: string;
+        };
+        /**
+         * UserContext
+         * @description Telegram user data supplied via WebApp init data.
+         */
+        UserContext: {
+            /** Id */
+            id: number;
+            /** First Name */
+            first_name?: string;
+            /** Last Name */
+            last_name?: string;
+            /** Username */
+            username?: string;
+            /** Language Code */
+            language_code?: string;
+            /** Is Premium */
+            is_premium?: boolean;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
+        /** WebUser */
+        WebUser: {
+            /** Telegram Id */
+            telegram_id: number;
         };
     };
     responses: never;
@@ -116,30 +343,186 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    healthGet: {
+    profiles_get_profiles_get: {
         parameters: {
-            query?: never;
+            query: {
+                telegram_id: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Status"];
+                    "application/json": components["schemas"]["ProfileSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
     };
-    timezonePut: {
+    profiles_post_profiles_post: {
         parameters: {
             query?: never;
             header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileSchema"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    api_reminders_reminders_get: {
+        parameters: {
+            query: {
+                telegram_id: number;
+                id?: number | null;
+            };
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[] | {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    api_reminders_post_reminders_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReminderSchema"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_timezone_timezone_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_timezone_timezone_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -149,109 +532,261 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Status"];
-                };
-            };
-        };
-    };
-    profilesGet: {
-        parameters: {
-            query: {
-                telegram_id: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Profile"];
-                };
-            };
-        };
-    };
-    profilesPost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Profile"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Status"];
-                };
-            };
-        };
-    };
-    remindersGet: {
-        parameters: {
-            query: {
-                telegram_id: number;
-                id?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Reminder"] | components["schemas"]["Reminder"][];
-                };
-            };
-        };
-    };
-    remindersPost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Reminder"];
-            };
-        };
-        responses: {
-            /** @description OK */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        status?: string;
-                        id?: number;
+                        [key: string]: string;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    profile_self_profile_self_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserContext"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stats_stats_get: {
+        parameters: {
+            query: {
+                telegramId: number;
+            };
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DayStats"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_analytics_analytics_get: {
+        parameters: {
+            query: {
+                telegramId: number;
+            };
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsPoint"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_user_user_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebUser"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_history_history_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HistoryRecordSchema-Output"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_history_history_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HistoryRecordSchema-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_history_history__record_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Telegram-Init-Data"?: string | null;
+            };
+            path: {
+                record_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

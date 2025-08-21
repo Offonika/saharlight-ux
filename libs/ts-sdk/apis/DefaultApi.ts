@@ -15,47 +15,102 @@
 
 import * as runtime from '../runtime';
 import type {
-  Profile,
-  Reminder,
-  RemindersGet200Response,
-  RemindersPost200Response,
-  Status,
+  AnalyticsPoint,
+  DayStats,
+  HTTPValidationError,
+  HistoryRecordSchemaInput,
+  HistoryRecordSchemaOutput,
+  ProfileSchema,
+  ReminderSchema,
+  ResponseApiRemindersRemindersGet,
   Timezone,
+  UserContext,
+  WebUser,
 } from '../models/index';
 import {
-    ProfileFromJSON,
-    ProfileToJSON,
-    ReminderFromJSON,
-    ReminderToJSON,
-    RemindersGet200ResponseFromJSON,
-    RemindersGet200ResponseToJSON,
-    RemindersPost200ResponseFromJSON,
-    RemindersPost200ResponseToJSON,
-    StatusFromJSON,
-    StatusToJSON,
+    AnalyticsPointFromJSON,
+    AnalyticsPointToJSON,
+    DayStatsFromJSON,
+    DayStatsToJSON,
+    HTTPValidationErrorFromJSON,
+    HTTPValidationErrorToJSON,
+    HistoryRecordSchemaInputFromJSON,
+    HistoryRecordSchemaInputToJSON,
+    HistoryRecordSchemaOutputFromJSON,
+    HistoryRecordSchemaOutputToJSON,
+    ProfileSchemaFromJSON,
+    ProfileSchemaToJSON,
+    ReminderSchemaFromJSON,
+    ReminderSchemaToJSON,
+    ResponseApiRemindersRemindersGetFromJSON,
+    ResponseApiRemindersRemindersGetToJSON,
     TimezoneFromJSON,
     TimezoneToJSON,
+    UserContextFromJSON,
+    UserContextToJSON,
+    WebUserFromJSON,
+    WebUserToJSON,
 } from '../models/index';
 
-export interface ProfilesGetRequest {
+export interface ApiRemindersPostRemindersPostRequest {
+    reminderSchema: ReminderSchema;
+    xTelegramInitData?: string | null;
+}
+
+export interface ApiRemindersRemindersGetRequest {
+    telegramId: number;
+    id?: number | null;
+    xTelegramInitData?: string | null;
+}
+
+export interface CreateUserUserPostRequest {
+    webUser: WebUser;
+    xTelegramInitData?: string | null;
+}
+
+export interface DeleteHistoryHistoryRecordIdDeleteRequest {
+    recordId: string;
+    xTelegramInitData?: string | null;
+}
+
+export interface GetAnalyticsAnalyticsGetRequest {
+    telegramId: number;
+    xTelegramInitData?: string | null;
+}
+
+export interface GetHistoryHistoryGetRequest {
+    xTelegramInitData?: string | null;
+}
+
+export interface GetStatsStatsGetRequest {
+    telegramId: number;
+    xTelegramInitData?: string | null;
+}
+
+export interface GetTimezoneTimezoneGetRequest {
+    xTelegramInitData?: string | null;
+}
+
+export interface PostHistoryHistoryPostRequest {
+    historyRecordSchemaInput: HistoryRecordSchemaInput;
+    xTelegramInitData?: string | null;
+}
+
+export interface ProfileSelfProfileSelfGetRequest {
+    xTelegramInitData?: string | null;
+}
+
+export interface ProfilesGetProfilesGetRequest {
     telegramId: number;
 }
 
-export interface ProfilesPostRequest {
-    profile: Profile;
+export interface ProfilesPostProfilesPostRequest {
+    profileSchema: ProfileSchema;
 }
 
-export interface RemindersGetRequest {
-    telegramId: number;
-    id?: number;
-}
-
-export interface RemindersPostRequest {
-    reminder: Reminder;
-}
-
-export interface TimezonePutRequest {
+export interface PutTimezoneTimezonePutRequest {
     timezone: Timezone;
+    xTelegramInitData?: string | null;
 }
 
 /**
@@ -64,82 +119,13 @@ export interface TimezonePutRequest {
 export class DefaultApi extends runtime.BaseAPI {
 
     /**
-     * Health check
+     * Api Reminders Post
      */
-    async healthGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Status>> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/health`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => StatusFromJSON(jsonValue));
-    }
-
-    /**
-     * Health check
-     */
-    async healthGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Status> {
-        const response = await this.healthGetRaw(initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Get user profile
-     */
-    async profilesGetRaw(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Profile>> {
-        if (requestParameters['telegramId'] == null) {
+    async apiRemindersPostRemindersPostRaw(requestParameters: ApiRemindersPostRemindersPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any; }>> {
+        if (requestParameters['reminderSchema'] == null) {
             throw new runtime.RequiredError(
-                'telegramId',
-                'Required parameter "telegramId" was null or undefined when calling profilesGet().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        if (requestParameters['telegramId'] != null) {
-            queryParameters['telegram_id'] = requestParameters['telegramId'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/profiles`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileFromJSON(jsonValue));
-    }
-
-    /**
-     * Get user profile
-     */
-    async profilesGet(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Profile> {
-        const response = await this.profilesGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Save user profile
-     */
-    async profilesPostRaw(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Status>> {
-        if (requestParameters['profile'] == null) {
-            throw new runtime.RequiredError(
-                'profile',
-                'Required parameter "profile" was null or undefined when calling profilesPost().'
+                'reminderSchema',
+                'Required parameter "reminderSchema" was null or undefined when calling apiRemindersPostRemindersPost().'
             );
         }
 
@@ -149,36 +135,40 @@ export class DefaultApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
 
-        let urlPath = `/profiles`;
+
+        let urlPath = `/reminders`;
 
         const response = await this.request({
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: ProfileToJSON(requestParameters['profile']),
+            body: ReminderSchemaToJSON(requestParameters['reminderSchema']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => StatusFromJSON(jsonValue));
+        return new runtime.JSONApiResponse<any>(response);
     }
 
     /**
-     * Save user profile
+     * Api Reminders Post
      */
-    async profilesPost(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Status> {
-        const response = await this.profilesPostRaw(requestParameters, initOverrides);
+    async apiRemindersPostRemindersPost(requestParameters: ApiRemindersPostRemindersPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any; }> {
+        const response = await this.apiRemindersPostRemindersPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * List or retrieve reminders
+     * Api Reminders
      */
-    async remindersGetRaw(requestParameters: RemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RemindersGet200Response>> {
+    async apiRemindersRemindersGetRaw(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponseApiRemindersRemindersGet>> {
         if (requestParameters['telegramId'] == null) {
             throw new runtime.RequiredError(
                 'telegramId',
-                'Required parameter "telegramId" was null or undefined when calling remindersGet().'
+                'Required parameter "telegramId" was null or undefined when calling apiRemindersRemindersGet().'
             );
         }
 
@@ -194,8 +184,12 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
 
-        let urlPath = `/api/reminders`;
+
+        let urlPath = `/reminders`;
 
         const response = await this.request({
             path: urlPath,
@@ -204,25 +198,26 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => RemindersGet200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => ResponseApiRemindersRemindersGetFromJSON(jsonValue));
     }
 
     /**
-     * List or retrieve reminders
+     * Api Reminders
      */
-    async remindersGet(requestParameters: RemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RemindersGet200Response> {
-        const response = await this.remindersGetRaw(requestParameters, initOverrides);
+    async apiRemindersRemindersGet(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponseApiRemindersRemindersGet> {
+        const response = await this.apiRemindersRemindersGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * Save reminder
+     * Ensure a user exists in the database.
+     * Create User
      */
-    async remindersPostRaw(requestParameters: RemindersPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RemindersPost200Response>> {
-        if (requestParameters['reminder'] == null) {
+    async createUserUserPostRaw(requestParameters: CreateUserUserPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        if (requestParameters['webUser'] == null) {
             throw new runtime.RequiredError(
-                'reminder',
-                'Required parameter "reminder" was null or undefined when calling remindersPost().'
+                'webUser',
+                'Required parameter "webUser" was null or undefined when calling createUserUserPost().'
             );
         }
 
@@ -232,36 +227,241 @@ export class DefaultApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
 
-        let urlPath = `/api/reminders`;
+
+        let urlPath = `/user`;
 
         const response = await this.request({
             path: urlPath,
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: ReminderToJSON(requestParameters['reminder']),
+            body: WebUserToJSON(requestParameters['webUser']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => RemindersPost200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse<any>(response);
     }
 
     /**
-     * Save reminder
+     * Ensure a user exists in the database.
+     * Create User
      */
-    async remindersPost(requestParameters: RemindersPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RemindersPost200Response> {
-        const response = await this.remindersPostRaw(requestParameters, initOverrides);
+    async createUserUserPost(requestParameters: CreateUserUserPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.createUserUserPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * Save timezone
+     * Delete a history record after verifying ownership.
+     * Delete History
      */
-    async timezonePutRaw(requestParameters: TimezonePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Status>> {
-        if (requestParameters['timezone'] == null) {
+    async deleteHistoryHistoryRecordIdDeleteRaw(requestParameters: DeleteHistoryHistoryRecordIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        if (requestParameters['recordId'] == null) {
             throw new runtime.RequiredError(
-                'timezone',
-                'Required parameter "timezone" was null or undefined when calling timezonePut().'
+                'recordId',
+                'Required parameter "recordId" was null or undefined when calling deleteHistoryHistoryRecordIdDelete().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
+
+
+        let urlPath = `/history/{record_id}`;
+        urlPath = urlPath.replace(`{${"record_id"}}`, encodeURIComponent(String(requestParameters['recordId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Delete a history record after verifying ownership.
+     * Delete History
+     */
+    async deleteHistoryHistoryRecordIdDelete(requestParameters: DeleteHistoryHistoryRecordIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.deleteHistoryHistoryRecordIdDeleteRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get Analytics
+     */
+    async getAnalyticsAnalyticsGetRaw(requestParameters: GetAnalyticsAnalyticsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<AnalyticsPoint>>> {
+        if (requestParameters['telegramId'] == null) {
+            throw new runtime.RequiredError(
+                'telegramId',
+                'Required parameter "telegramId" was null or undefined when calling getAnalyticsAnalyticsGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['telegramId'] != null) {
+            queryParameters['telegramId'] = requestParameters['telegramId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
+
+
+        let urlPath = `/analytics`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(AnalyticsPointFromJSON));
+    }
+
+    /**
+     * Get Analytics
+     */
+    async getAnalyticsAnalyticsGet(requestParameters: GetAnalyticsAnalyticsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AnalyticsPoint>> {
+        const response = await this.getAnalyticsAnalyticsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Return history records for the authenticated user.
+     * Get History
+     */
+    async getHistoryHistoryGetRaw(requestParameters: GetHistoryHistoryGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<HistoryRecordSchemaOutput>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
+
+
+        let urlPath = `/history`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(HistoryRecordSchemaOutputFromJSON));
+    }
+
+    /**
+     * Return history records for the authenticated user.
+     * Get History
+     */
+    async getHistoryHistoryGet(requestParameters: GetHistoryHistoryGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<HistoryRecordSchemaOutput>> {
+        const response = await this.getHistoryHistoryGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get Stats
+     */
+    async getStatsStatsGetRaw(requestParameters: GetStatsStatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DayStats>> {
+        if (requestParameters['telegramId'] == null) {
+            throw new runtime.RequiredError(
+                'telegramId',
+                'Required parameter "telegramId" was null or undefined when calling getStatsStatsGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['telegramId'] != null) {
+            queryParameters['telegramId'] = requestParameters['telegramId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
+
+
+        let urlPath = `/stats`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DayStatsFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Stats
+     */
+    async getStatsStatsGet(requestParameters: GetStatsStatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DayStats> {
+        const response = await this.getStatsStatsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get Timezone
+     */
+    async getTimezoneTimezoneGetRaw(requestParameters: GetTimezoneTimezoneGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
+
+
+        let urlPath = `/timezone`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Get Timezone
+     */
+    async getTimezoneTimezoneGet(requestParameters: GetTimezoneTimezoneGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.getTimezoneTimezoneGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Save or update a history record in the database.
+     * Post History
+     */
+    async postHistoryHistoryPostRaw(requestParameters: PostHistoryHistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        if (requestParameters['historyRecordSchemaInput'] == null) {
+            throw new runtime.RequiredError(
+                'historyRecordSchemaInput',
+                'Required parameter "historyRecordSchemaInput" was null or undefined when calling postHistoryHistoryPost().'
             );
         }
 
@@ -270,6 +470,166 @@ export class DefaultApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
+
+
+        let urlPath = `/history`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: HistoryRecordSchemaInputToJSON(requestParameters['historyRecordSchemaInput']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Save or update a history record in the database.
+     * Post History
+     */
+    async postHistoryHistoryPost(requestParameters: PostHistoryHistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.postHistoryHistoryPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Profile Self
+     */
+    async profileSelfProfileSelfGetRaw(requestParameters: ProfileSelfProfileSelfGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserContext>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
+
+
+        let urlPath = `/profile/self`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UserContextFromJSON(jsonValue));
+    }
+
+    /**
+     * Profile Self
+     */
+    async profileSelfProfileSelfGet(requestParameters: ProfileSelfProfileSelfGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserContext> {
+        const response = await this.profileSelfProfileSelfGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Profiles Get
+     */
+    async profilesGetProfilesGetRaw(requestParameters: ProfilesGetProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileSchema>> {
+        if (requestParameters['telegramId'] == null) {
+            throw new runtime.RequiredError(
+                'telegramId',
+                'Required parameter "telegramId" was null or undefined when calling profilesGetProfilesGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['telegramId'] != null) {
+            queryParameters['telegram_id'] = requestParameters['telegramId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/profiles`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileSchemaFromJSON(jsonValue));
+    }
+
+    /**
+     * Profiles Get
+     */
+    async profilesGetProfilesGet(requestParameters: ProfilesGetProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSchema> {
+        const response = await this.profilesGetProfilesGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Profiles Post
+     */
+    async profilesPostProfilesPostRaw(requestParameters: ProfilesPostProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        if (requestParameters['profileSchema'] == null) {
+            throw new runtime.RequiredError(
+                'profileSchema',
+                'Required parameter "profileSchema" was null or undefined when calling profilesPostProfilesPost().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/profiles`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ProfileSchemaToJSON(requestParameters['profileSchema']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Profiles Post
+     */
+    async profilesPostProfilesPost(requestParameters: ProfilesPostProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.profilesPostProfilesPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Put Timezone
+     */
+    async putTimezoneTimezonePutRaw(requestParameters: PutTimezoneTimezonePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        if (requestParameters['timezone'] == null) {
+            throw new runtime.RequiredError(
+                'timezone',
+                'Required parameter "timezone" was null or undefined when calling putTimezoneTimezonePut().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
 
 
         let urlPath = `/timezone`;
@@ -282,14 +642,14 @@ export class DefaultApi extends runtime.BaseAPI {
             body: TimezoneToJSON(requestParameters['timezone']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => StatusFromJSON(jsonValue));
+        return new runtime.JSONApiResponse<any>(response);
     }
 
     /**
-     * Save timezone
+     * Put Timezone
      */
-    async timezonePut(requestParameters: TimezonePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Status> {
-        const response = await this.timezonePutRaw(requestParameters, initOverrides);
+    async putTimezoneTimezonePut(requestParameters: PutTimezoneTimezonePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.putTimezoneTimezonePutRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
