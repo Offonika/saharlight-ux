@@ -10,9 +10,13 @@ describe("useIsMobile", () => {
       result = useIsMobile();
       return null;
     };
+    const originalWindow = (global as any).window;
+    // @ts-expect-error simulate absence of window
+    delete (global as any).window;
     act(() => {
       TestRenderer.create(<TestComponent />);
     });
+    (global as any).window = originalWindow;
     expect(result).toBe(false);
-  }, { environment: "node" });
+  });
 });
