@@ -58,7 +58,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
 def test_reminders_authorized_without_role(client: TestClient) -> None:
     init_data = build_init_data()
     resp = client.get(
-        "/api/reminders",
+        "/reminders",
         params={"telegram_id": 1},
         headers={TG_INIT_DATA_HEADER: init_data},
     )

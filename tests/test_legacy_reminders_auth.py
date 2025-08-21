@@ -57,7 +57,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
 def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
     init_data = build_init_data()
     resp_post = client.post(
-        "/api/reminders",
+        "/reminders",
         json={"telegram_id": 1, "type": "sugar"},
         headers={"X-Telegram-Init-Data": init_data},
     )
@@ -65,7 +65,7 @@ def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
     reminder_id = resp_post.json()["id"]
 
     resp_get = client.get(
-        "/api/reminders",
+        "/reminders",
         params={"telegram_id": 1},
         headers={"X-Telegram-Init-Data": init_data},
     )
@@ -74,5 +74,5 @@ def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
 
 
 def test_reminders_missing_auth(client: TestClient) -> None:
-    resp = client.get("/api/reminders", params={"telegram_id": 1})
+    resp = client.get("/reminders", params={"telegram_id": 1})
     assert resp.status_code == 401
