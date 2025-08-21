@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import cast
@@ -42,6 +43,7 @@ UI_DIR = BASE_DIR / "ui" / "dist"
 if not UI_DIR.exists():
     UI_DIR = BASE_DIR / "ui"
 UI_DIR = UI_DIR.resolve()
+UI_BASE_URL = os.getenv("VITE_BASE_URL", "/ui/").rstrip("/")
 
 
 class Timezone(BaseModel):
@@ -147,7 +149,7 @@ async def get_analytics(
     ]
 
 
-@app.get("/ui/{full_path:path}", include_in_schema=False)
+@app.get(f"{UI_BASE_URL}/{{full_path:path}}", include_in_schema=False)
 async def catch_all_ui(full_path: str) -> FileResponse:
     requested_file = (UI_DIR / full_path).resolve()
     try:
@@ -159,7 +161,7 @@ async def catch_all_ui(full_path: str) -> FileResponse:
     return FileResponse(UI_DIR / "index.html")
 
 
-@app.get("/ui", include_in_schema=False)
+@app.get(UI_BASE_URL or "/", include_in_schema=False)
 async def catch_root_ui() -> FileResponse:
     return await catch_all_ui("")
 

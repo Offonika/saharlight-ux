@@ -79,6 +79,7 @@ sudo apt install python3.12 python3.12-venv
    (cd services/webapp/ui && npm ci && npm run build)
 
    ```
+   Используйте только `npm run build` (production) для деплоя — попытка собрать с `--mode development` завершится ошибкой.
    Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `services/webapp/ui`.
 4. **Скопируйте шаблон .env и заполните своими данными:**
    ```bash
@@ -96,7 +97,7 @@ sudo apt install python3.12 python3.12-venv
 Приложение автоматически загружает переменные окружения из этого файла в корне проекта.
 
 - обязательные значения: `TELEGRAM_TOKEN` (токен бота), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-- дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `VITE_API_URL`, `UVICORN_WORKERS`
+- дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `VITE_API_URL`, `VITE_BASE_URL`, `UVICORN_WORKERS`
 - при необходимости настройте прокси для OpenAI через переменные окружения
 Переменная `VITE_API_URL` задаёт базовый URL API для WebApp и используется SDK‑клиентом.
 Если переменная не задана, используется путь `/api`.
@@ -107,6 +108,8 @@ VITE_API_URL=
 # или задайте полный URL
 # VITE_API_URL=http://localhost:8000
 ```
+
+`VITE_BASE_URL` задаёт базовый путь веб-приложения. Значение по умолчанию — `/ui/`.
 
 Telegram‑клиенты не могут обращаться к `localhost`, поэтому `WEBAPP_URL` должен быть публичным **HTTPS**‑адресом. Для локальной разработки используйте туннель (например, [ngrok](https://ngrok.com/)).
 Не коммитьте `.env` в репозиторий.
