@@ -5,7 +5,9 @@ from pathlib import Path
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup for direct execution
+if (
+    __name__ == "__main__" and __package__ is None
+):  # pragma: no cover - setup for direct execution
     # Ensure repository root is the first entry so that the correct `services`
     # package is imported when running this file directly.  There is another
     # third-party package named ``services`` installed in the environment which
@@ -92,7 +94,9 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
 
 
 @app.put("/timezone")
-async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+async def put_timezone(
+    data: Timezone, _: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     try:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
@@ -192,7 +196,9 @@ async def create_user(
 
 
 @app.post("/api/history")
-async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+async def post_history(
+    data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     """Save or update a history record in the database."""
     validated_type = _validate_history_type(data.type)
 
@@ -238,7 +244,9 @@ async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(re
 
 
 @app.get("/api/history")
-async def get_history(user: UserContext = Depends(require_tg_user)) -> list[HistoryRecordSchema]:
+async def get_history(
+    user: UserContext = Depends(require_tg_user),
+) -> list[HistoryRecordSchema]:
     """Return history records for the authenticated user."""
 
     def _get_history(session: Session) -> list[HistoryRecordDB]:
@@ -250,24 +258,33 @@ async def get_history(user: UserContext = Depends(require_tg_user)) -> list[Hist
         )
 
     records = await run_db(_get_history)
-    return [
-        HistoryRecordSchema(
-            id=r.id,
-            date=r.date,
-            time=r.time,
-            sugar=r.sugar,
-            carbs=r.carbs,
-            breadUnits=r.bread_units,
-            insulin=r.insulin,
-            notes=r.notes,
-            type=_validate_history_type(r.type, status_code=500),
+    result: list[HistoryRecordSchema] = []
+    for r in records:
+        if r.type not in ALLOWED_HISTORY_TYPES:
+            logger.warning(
+                "Skipping history record %s with invalid type %s", r.id, r.type
+            )
+            continue
+        result.append(
+            HistoryRecordSchema(
+                id=r.id,
+                date=r.date,
+                time=r.time,
+                sugar=r.sugar,
+                carbs=r.carbs,
+                breadUnits=r.bread_units,
+                insulin=r.insulin,
+                notes=r.notes,
+                type=cast(HistoryType, r.type),
+            )
         )
-        for r in records
-    ]
+    return result
 
 
 @app.delete("/api/history/{record_id}")
-async def delete_history(record_id: str, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+async def delete_history(
+    record_id: str, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     """Delete a history record after verifying ownership."""
 
     def _get_record(session: Session) -> HistoryRecordDB | None:
