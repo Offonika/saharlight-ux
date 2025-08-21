@@ -21,6 +21,11 @@ def test_safe_float_none() -> None:
     assert _safe_float(None) is None
 
 
+@pytest.mark.parametrize("value", ["NaN", "inf", "-inf"])
+def test_safe_float_non_finite(value: str) -> None:
+    assert _safe_float(value) is None
+
+
 def test_calc_bolus_basic() -> None:
     profile = PatientProfile(icr=12, cf=2, target_bg=6)
     result = calc_bolus(carbs_g=60, current_bg=8, profile=profile)

@@ -1,6 +1,7 @@
 """Утилиты для расчёта болюса и разбора пищевой информации."""
 
 from dataclasses import dataclass
+import math
 import re
 from decimal import Decimal, localcontext
 
@@ -87,7 +88,8 @@ def _safe_float(value: object) -> float | None:
         value: Произвольный объект. Нестроковые значения приводят к ``None``.
 
     Returns:
-        Число с плавающей точкой или ``None``.
+        Число с плавающей точкой или ``None``. Значения ``NaN`` и
+        бесконечности также преобразуются в ``None``.
 
     Examples:
         >>> _safe_float("1,5")
@@ -96,9 +98,10 @@ def _safe_float(value: object) -> float | None:
     if not isinstance(value, str):
         return None
     try:
-        return float(value.strip().replace(",", "."))
+        result = float(value.strip().replace(",", "."))
     except ValueError:
         return None
+    return result if math.isfinite(result) else None
 
 
 @dataclass
