@@ -20,6 +20,7 @@ from services.api.app.diabetes.utils.functions import (
     calc_bolus,
     smart_input,
 )
+from services.api.app.diabetes.utils.constants import XE_GRAMS
 from services.api.app.diabetes.utils.ui import (
     confirm_keyboard,
     dose_keyboard,
@@ -187,19 +188,14 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         user_data.pop("pending_entry", None)
         return END
     if carbs_g is None and xe is not None:
-        carbs_g = xe * 12
+        carbs_g = XE_GRAMS * xe
         entry["carbs_g"] = carbs_g
 
     user_id = user.id
     with SessionLocal() as session:
         profile = session.get(Profile, user_id)
 
-    if (
-        profile is None
-        or profile.icr is None
-        or profile.cf is None
-        or profile.target_bg is None
-    ):
+    if profile is None or profile.icr is None or profile.cf is None or profile.target_bg is None:
         await message.reply_text(
             "Профиль не настроен. Установите коэффициенты через /profile.",
             reply_markup=menu_keyboard,
@@ -250,7 +246,7 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 
 def _cancel_then(
-    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]
+    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]],
 ) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
@@ -294,9 +290,7 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex("^💉 Доза инсулина$"), dose_start),
     ],
     states={
-        DOSE_METHOD: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)
-        ],
+        DOSE_METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
         DOSE_XE: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)],
         DOSE_CARBS: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)],
         DOSE_SUGAR: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)],
@@ -304,21 +298,11 @@ dose_conv = ConversationHandler(
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
-        MessageHandler(
-            filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
-        ),
-        MessageHandler(
-            filters.Regex("^🩸 Уровень сахара$"), cast(object, _cancel_then(sugar_start))
-        ),
-        MessageHandler(
-            filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))
-        ),
-        MessageHandler(
-            filters.Regex("^📈 Отчёт$"), cast(object, _cancel_then(report_request))
-        ),
-        MessageHandler(
-            filters.Regex("^📄 Мой профиль$"), cast(object, _cancel_then(profile_view))
-        ),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))),
+        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), cast(object, _cancel_then(sugar_start))),
+        MessageHandler(filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))),
+        MessageHandler(filters.Regex("^📈 Отчёт$"), cast(object, _cancel_then(report_request))),
+        MessageHandler(filters.Regex("^📄 Мой профиль$"), cast(object, _cancel_then(profile_view))),
     ],
 )
 
