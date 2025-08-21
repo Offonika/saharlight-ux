@@ -23,7 +23,20 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  const { isReady, error } = useTelegramContext();
+  const { isReady, error, tg } = useTelegramContext();
+
+  const openInTelegram = (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center space-y-2">
+        <p className="text-lg font-medium">
+          Не удалось определить пользователя Telegram
+        </p>
+        <p className="text-muted-foreground">
+          Попробуйте открыть приложение из Telegram.
+        </p>
+      </div>
+    </div>
+  );
 
   if (!isReady) {
     return (
@@ -36,21 +49,11 @@ const AppContent = () => {
     );
   }
 
+  if (!tg || error?.code === "no-user") {
+    return openInTelegram;
+  }
+
   if (error) {
-    if (error.code === "no-user") {
-      return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center space-y-2">
-            <p className="text-lg font-medium">
-              Не удалось определить пользователя Telegram
-            </p>
-            <p className="text-muted-foreground">
-              Попробуйте открыть приложение из Telegram.
-            </p>
-          </div>
-        </div>
-      );
-    }
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-2">
