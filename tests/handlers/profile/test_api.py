@@ -1,0 +1,174 @@
+import pytest
+from collections.abc import Generator
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from unittest.mock import MagicMock
+
+import importlib
+
+from services.api.app.diabetes.services.db import Base, User, Profile
+
+profile_api = importlib.import_module(
+    "services.api.app.diabetes.handlers.profile.api"
+)
+
+
+@pytest.fixture()
+def session_factory() -> Generator[sessionmaker, None, None]:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    try:
+        yield TestSession
+    finally:
+        engine.dispose()
+
+
+def test_post_profile_success() -> None:
+    class DummyAPI:
+        def __init__(self) -> None:
+            self.called_with: object | None = None
+
+        def profiles_post(self, profile: object) -> None:
+            self.called_with = profile
+
+    class DummyProfile:
+        def __init__(
+            self,
+            telegram_id: int,
+            icr: float,
+            cf: float,
+            target: float,
+            low: float,
+            high: float,
+        ) -> None:
+            self.telegram_id = telegram_id
+            self.icr = icr
+            self.cf = cf
+            self.target = target
+            self.low = low
+            self.high = high
+
+    api = DummyAPI()
+    ok, err = profile_api.post_profile(
+        api,
+        Exception,
+        DummyProfile,
+        1,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+    )
+    assert ok is True and err is None
+    assert isinstance(api.called_with, DummyProfile)
+    assert api.called_with.icr == 1.0
+
+
+def test_post_profile_error() -> None:
+    class ApiExc(Exception):
+        pass
+
+    class DummyAPI:
+        def profiles_post(self, profile: object) -> None:
+            raise ApiExc("boom")
+
+    class DummyProfile:
+        def __init__(self, telegram_id: int, icr: float, cf: float, target: float, low: float, high: float) -> None:
+            self.telegram_id = telegram_id
+            self.icr = icr
+            self.cf = cf
+            self.target = target
+            self.low = low
+            self.high = high
+
+    ok, err = profile_api.post_profile(
+        DummyAPI(),
+        ApiExc,
+        DummyProfile,
+        1,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+    )
+    assert ok is False
+    assert err == "boom"
+
+
+def test_save_profile_persists(session_factory: sessionmaker) -> None:
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+        ok = profile_api.save_profile(session, 1, 10.0, 2.0, 5.0, 3.0, 8.0)
+        assert ok is True
+
+    with session_factory() as session:
+        prof = session.get(Profile, 1)
+        assert prof is not None
+        assert prof.icr == 10.0
+        assert prof.cf == 2.0
+        assert prof.target_bg == 5.0
+        assert prof.low_threshold == 3.0
+        assert prof.high_threshold == 8.0
+
+
+def test_save_profile_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
+    def fail_commit(session: object) -> bool:
+        return False
+    monkeypatch.setattr(profile_api, "commit", fail_commit)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+        ok = profile_api.save_profile(session, 1, 1.0, 1.0, 1.0, 1.0, 1.0)
+        assert ok is False
+
+    with session_factory() as session:
+        prof = session.get(Profile, 1)
+        assert prof is None
+
+
+def test_set_timezone_persists(session_factory: sessionmaker) -> None:
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+        found, ok = profile_api.set_timezone(session, 1, "Europe/Moscow")
+        assert (found, ok) == (True, True)
+
+    with session_factory() as session:
+        user = session.get(User, 1)
+        assert user is not None
+        assert user.timezone == "Europe/Moscow"
+
+
+def test_set_timezone_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
+    def fail_commit(session: object) -> bool:
+        return False
+    monkeypatch.setattr(profile_api, "commit", fail_commit)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+        found, ok = profile_api.set_timezone(session, 1, "Europe/Moscow")
+        assert (found, ok) == (True, False)
+
+    with session_factory() as session:
+        user = session.get(User, 1)
+        assert user is not None
+        assert user.timezone == "UTC"
+
+
+def test_set_timezone_user_missing(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
+    commit_mock = MagicMock(return_value=True)
+    monkeypatch.setattr(profile_api, "commit", commit_mock)
+    with session_factory() as session:
+        found, ok = profile_api.set_timezone(session, 999, "UTC")
+        assert (found, ok) == (False, False)
+        commit_mock.assert_not_called()
