@@ -1,12 +1,13 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from .middleware.auth import require_role
 from .services.audit import log_patient_access
 from .schemas.profile import ProfileSchema
 from .schemas.reminders import ReminderSchema
+from .schemas.user import UserContext
 from .services.profile import get_profile, save_profile
 from .services.reminders import list_reminders, save_reminder
+from .telegram_auth import require_tg_user
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ async def api_reminders(
     telegram_id: int,
     request: Request,
     id: int | None = None,
-    _: None = Depends(require_role("patient", "clinician", "org_admin", "superadmin")),
+    _: UserContext = Depends(require_tg_user),
 ) -> list[dict[str, object]] | dict[str, object]:
     log_patient_access(getattr(request.state, "user_id", None), telegram_id)
     rems = await list_reminders(telegram_id)
@@ -79,7 +80,7 @@ async def api_reminders(
 @router.post("/api/reminders")
 async def api_reminders_post(
     data: ReminderSchema,
-    _: None = Depends(require_role("patient", "clinician", "org_admin", "superadmin")),
+    _: UserContext = Depends(require_tg_user),
 ) -> dict[str, object]:
     rid = await save_reminder(data)
     return {"status": "ok", "id": rid}
