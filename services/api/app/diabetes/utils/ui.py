@@ -26,7 +26,11 @@ __all__ = (
 )
 
 # ─────────────── Reply-клавиатуры (отображаются на экране чата) ───────────────
-_WEBAPP_URL = settings.webapp_url.rstrip("/") if settings.webapp_url else None
+_WEBAPP_URL = (
+    settings.webapp_url.rstrip("/").removesuffix("/ui")
+    if settings.webapp_url
+    else None
+)
 
 # Create WebApp buttons when WebApp is configured, fall back to text buttons otherwise
 profile_button = (
