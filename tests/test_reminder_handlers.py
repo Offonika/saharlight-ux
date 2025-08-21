@@ -7,6 +7,7 @@ from telegram import Update, User
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
+from services.api.app.config import settings
 from services.api.app.diabetes.utils.helpers import INVALID_TIME_MSG
 
 
@@ -132,3 +133,19 @@ async def test_reminder_webapp_save_unknown_type() -> None:
     await reminder_handlers.reminder_webapp_save(update, context)
 
     assert message.texts == ["Неизвестный тип напоминания."]
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "https://example.com",
+        "https://example.com/",
+        "https://example.com/ui",
+        "https://example.com/ui/",
+    ],
+)
+def test_build_webapp_url(monkeypatch: pytest.MonkeyPatch, base_url: str) -> None:
+    monkeypatch.setattr(settings, "webapp_url", base_url)
+    url = reminder_handlers.build_webapp_url("/ui/reminders")
+    assert url == "https://example.com/ui/reminders"
+    assert "//" not in url.split("://", 1)[1]
