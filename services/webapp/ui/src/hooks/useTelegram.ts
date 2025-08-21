@@ -81,6 +81,7 @@ export const useTelegram = (
     if (!tg) {
       console.warn("[TG] not in Telegram, enabling dev fallback");
       applyTheme(null, forceLight);
+      setError({ code: "no-user" });
       setReady(true);
       return () => {
         cancelled = true;
