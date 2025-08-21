@@ -6,6 +6,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Suspense, lazy } from "react";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import useHardwareAcceleration from "@/hooks/use-hardware-acceleration";
 import { useTelegramContext } from "@/contexts/telegram-context";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -24,6 +30,7 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { isReady, error, tg } = useTelegramContext();
+  const hasAcceleration = useHardwareAcceleration();
 
   const openInTelegram = (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -70,6 +77,18 @@ const AppContent = () => {
   return (
     <Suspense fallback={<div>Загрузка...</div>}>
       <ErrorBoundary>
+        {!hasAcceleration && (
+          <div className="m-4">
+            <Alert variant="destructive">
+              <AlertTitle>Аппаратное ускорение недоступно</AlertTitle>
+              <AlertDescription>
+                Графические функции могут быть отключены. В доверенной среде можно
+                запустить браузер с флагом <code>--enable-unsafe-swiftshader</code> для
+                программного рендеринга.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/profile" element={<Profile />} />

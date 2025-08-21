@@ -60,6 +60,14 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Hardware acceleration
+
+The web client prefers hardware-accelerated rendering via WebGL. If the browser
+falls back to software rendering, the application will show a warning and some
+graphics features may be disabled. In trusted environments that still require
+software rendering, start the browser with
+`--enable-unsafe-swiftshader` to allow SwiftShader.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/a6cc1696-4643-4e14-b587-2421843125e1) and click on Share -> Publish.
