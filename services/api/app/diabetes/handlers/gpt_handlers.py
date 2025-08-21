@@ -26,6 +26,7 @@ from services.api.app.diabetes.gpt_command_parser import (
     ParserTimeoutError,
     parse_command,
 )
+from services.api.app.diabetes.utils.constants import XE_GRAMS
 from services.api.app.diabetes.utils.ui import confirm_keyboard, menu_keyboard
 
 from .alert_handlers import check_alert
@@ -59,9 +60,7 @@ async def _handle_report_request(
         await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
         return True
     try:
-        date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(
-            tzinfo=datetime.timezone.utc
-        )
+        date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
     except ValueError:
         await message.reply_text("❗ Некорректная дата. Используйте формат YYYY-MM-DD.")
         return True
@@ -124,7 +123,7 @@ async def _handle_pending_entry(
             pending_entry["sugar_before"] = value
         elif field == "xe":
             pending_entry["xe"] = value
-            pending_entry["carbs_g"] = value * 12
+            pending_entry["carbs_g"] = XE_GRAMS * value
         else:
             pending_entry["dose"] = value
         pending_fields.pop(0)
@@ -159,10 +158,7 @@ async def _handle_pending_entry(
         return True
 
     text = raw_text.lower()
-    if (
-        re.fullmatch(r"-?\d+(?:[.,]\d+)?", text)
-        and pending_entry.get("sugar_before") is None
-    ):
+    if re.fullmatch(r"-?\d+(?:[.,]\d+)?", text) and pending_entry.get("sugar_before") is None:
         try:
             sugar = float(text.replace(",", "."))
         except ValueError:
@@ -172,31 +168,24 @@ async def _handle_pending_entry(
             await message.reply_text("Сахар не может быть отрицательным.")
             return True
         pending_entry["sugar_before"] = sugar
-        if (
-            pending_entry.get("carbs_g") is not None
-            or pending_entry.get("xe") is not None
-        ):
+        if pending_entry.get("carbs_g") is not None or pending_entry.get("xe") is not None:
             xe_val = pending_entry.get("xe")
             carbs_g = pending_entry.get("carbs_g")
             if carbs_g is None and xe_val is not None:
-                carbs_g = xe_val * 12
+                carbs_g = XE_GRAMS * xe_val
                 pending_entry["carbs_g"] = carbs_g
             if not callable(run_db):
                 with SessionLocal() as session:
                     profile = session.get(Profile, user_id)
             else:
-                profile = await run_db(
-                    lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
-                )
+                profile = await run_db(lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal)
             if (
                 profile is not None
                 and profile.icr is not None
                 and profile.cf is not None
                 and profile.target_bg is not None
             ):
-                patient = PatientProfile(
-                    icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg
-                )
+                patient = PatientProfile(icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg)
                 dose = calc_bolus(carbs_g, sugar, patient)
                 pending_entry["dose"] = dose
                 await message.reply_text(
@@ -204,9 +193,7 @@ async def _handle_pending_entry(
                     reply_markup=confirm_keyboard(),
                 )
                 return True
-        await message.reply_text(
-            "Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard
-        )
+        await message.reply_text("Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard)
         return True
 
     # not handled here
@@ -314,21 +301,15 @@ async def _handle_smart_input(
             )
         return
 
-    carbs_match = re.search(
-        r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I
-    )
+    carbs_match = re.search(r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I)
     pending_entry = user_data.get("pending_entry")
     edit_id = user_data.get("edit_id")
-    if (
-        pending_entry is not None
-        and edit_id is None
-        and (any(v is not None for v in quick.values()) or carbs_match)
-    ):
+    if pending_entry is not None and edit_id is None and (any(v is not None for v in quick.values()) or carbs_match):
         if quick["sugar"] is not None:
             pending_entry["sugar_before"] = quick["sugar"]
         if quick["xe"] is not None:
             pending_entry["xe"] = quick["xe"]
-            pending_entry["carbs_g"] = quick["xe"] * 12
+            pending_entry["carbs_g"] = XE_GRAMS * quick["xe"]
         elif carbs_match:
             pending_entry["carbs_g"] = float(carbs_match.group(1).replace(",", "."))
         if quick["dose"] is not None:
@@ -387,7 +368,7 @@ async def _handle_smart_input(
             "sugar_before": sugar,
             "xe": xe,
             "dose": dose,
-            "carbs_g": xe * 12 if xe is not None else None,
+            "carbs_g": XE_GRAMS * xe if xe is not None else None,
         }
         missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
         user_data["pending_entry"] = entry_data
@@ -457,13 +438,9 @@ async def _handle_smart_input(
         try:
             hh, mm = map(int, time_obj.split(":"))
             today = datetime.datetime.now(datetime.timezone.utc).date()
-            event_dt = datetime.datetime.combine(
-                today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc
-            )
+            event_dt = datetime.datetime.combine(today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc)
         except (ValueError, TypeError):
-            await message.reply_text(
-                "⏰ Неверный формат времени. Использую текущее время."
-            )
+            await message.reply_text("⏰ Неверный формат времени. Использую текущее время.")
             event_dt = datetime.datetime.now(datetime.timezone.utc)
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
@@ -490,9 +467,7 @@ async def _handle_smart_input(
     sugar_part = f"Сахар: {sugar_val}\u202fммоль/л" if sugar_val is not None else ""
     lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
 
-    reply = (
-        f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
-    )
+    reply = f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
     await message.reply_text(text=reply, reply_markup=confirm_keyboard())
 
 
@@ -517,9 +492,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     if await _handle_report_request(raw_text, user_data, message, update, context):
         return
-    if await _handle_pending_entry(
-        raw_text, user_data, message, update, context, user_id
-    ):
+    if await _handle_pending_entry(raw_text, user_data, message, update, context, user_id):
         return
     if await _handle_edit_entry(raw_text, user_data, message, context):
         return

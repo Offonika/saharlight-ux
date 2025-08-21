@@ -12,6 +12,7 @@ from telegram.ext import CallbackContext
 import pytest
 
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
+from services.api.app.diabetes.utils.constants import XE_GRAMS
 from services.api.app.diabetes.utils.ui import confirm_keyboard
 
 
@@ -66,9 +67,7 @@ async def test_report_date_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_report_date_valid(monkeypatch: pytest.MonkeyPatch) -> None:
     called: dict[str, Any] = {}
 
-    async def fake_send_report(
-        update: Any, context: Any, date_from: dt.datetime, period: str
-    ) -> None:
+    async def fake_send_report(update: Any, context: Any, date_from: dt.datetime, period: str) -> None:
         called["date_from"] = date_from
         called["period"] = period
 
@@ -112,6 +111,7 @@ async def test_pending_entry_next_field(monkeypatch: pytest.MonkeyPatch) -> None
     context = make_context(user_data)
     await gpt_handlers.freeform_handler(update, context)
     assert entry["xe"] == 1
+    assert entry["carbs_g"] == XE_GRAMS
     assert user_data["pending_fields"] == ["dose"]
     assert "дозу инсулина" in message.replies[0][0]
 
@@ -282,4 +282,3 @@ async def test_parse_command_valid_time(monkeypatch: pytest.MonkeyPatch) -> None
     assert "Инсулин: 2 ед" in reply_text
     assert "Сахар: 5 ммоль/л" in reply_text
     assert kwargs["reply_markup"].to_dict() == confirm_keyboard().to_dict()
-
