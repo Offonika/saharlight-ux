@@ -15,6 +15,7 @@ vi.mock("../lib/telegram-theme", () => ({
 describe("useTelegram start_param", () => {
   afterEach(() => {
     delete (window as any).Telegram;
+    delete (window as any).tgWebAppStartParam;
     navigate.mockReset();
   });
 
@@ -29,6 +30,31 @@ describe("useTelegram start_param", () => {
         offEvent: vi.fn(),
       },
     };
+
+    const TestComponent = () => {
+      useTelegram();
+      return null;
+    };
+
+    render(<TestComponent />);
+
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith("/reminders");
+    });
+  });
+
+  it("navigates to reminders when tgWebAppStartParam is reminders", async () => {
+    (window as any).Telegram = {
+      WebApp: {
+        initDataUnsafe: { user: { id: 1 } },
+        initData: "",
+        expand: vi.fn(),
+        ready: vi.fn(),
+        onEvent: vi.fn(),
+        offEvent: vi.fn(),
+      },
+    };
+    (window as any).tgWebAppStartParam = "reminders";
 
     const TestComponent = () => {
       useTelegram();
