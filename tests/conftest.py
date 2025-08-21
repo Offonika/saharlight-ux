@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 import sqlite3
+import subprocess
 from typing import Any, Callable
 import warnings
 
@@ -11,7 +12,6 @@ import sqlalchemy
 warnings.filterwarnings(
     "ignore", category=ResourceWarning, module=r"anyio\.streams\.memory"
 )
-
 
 _sqlite_connections: list[sqlite3.Connection] = []
 _original_sqlite_connect: Callable[..., sqlite3.Connection] = sqlite3.connect
@@ -39,6 +39,17 @@ def _tracking_create_engine(*args: Any, **kwargs: Any) -> sqlalchemy.engine.Engi
 
 
 setattr(sqlalchemy, "create_engine", _tracking_create_engine)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _build_ui_assets() -> Iterator[None]:
+    """Build webapp UI if static assets are missing."""
+    from services.api.app.main import BASE_DIR, UI_DIR
+
+    if not (UI_DIR / "real-file.js").is_file():
+        subprocess.run(["npm", "ci"], cwd=BASE_DIR / "ui", check=True)
+        subprocess.run(["npm", "run", "build"], cwd=BASE_DIR / "ui", check=True)
+    yield
 
 
 @pytest.fixture(autouse=True, scope="session")
