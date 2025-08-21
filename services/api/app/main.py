@@ -13,7 +13,7 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup f
     __package__ = "services.api.app"
 
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -50,6 +50,17 @@ class Timezone(BaseModel):
 
 class WebUser(BaseModel):
     telegram_id: int
+
+
+class DayStats(BaseModel):
+    sugar: float
+    breadUnits: float
+    insulin: float
+
+
+class AnalyticsPoint(BaseModel):
+    date: str
+    sugar: float
 
 
 def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
@@ -108,6 +119,32 @@ async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)
 @app.get("/api/profile/self")
 async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserContext:
     return user
+
+
+@app.get("/api/stats")
+async def get_stats(
+    telegram_id: int = Query(alias="telegramId"),
+    user: UserContext = Depends(require_tg_user),
+) -> DayStats:
+    if telegram_id != user["id"]:
+        raise HTTPException(status_code=403, detail="telegram id mismatch")
+    return DayStats(sugar=5.7, breadUnits=3, insulin=10)
+
+
+@app.get("/api/analytics")
+async def get_analytics(
+    telegram_id: int = Query(alias="telegramId"),
+    user: UserContext = Depends(require_tg_user),
+) -> list[AnalyticsPoint]:
+    if telegram_id != user["id"]:
+        raise HTTPException(status_code=403, detail="telegram id mismatch")
+    return [
+        AnalyticsPoint(date="2024-01-01", sugar=5.5),
+        AnalyticsPoint(date="2024-01-02", sugar=6.1),
+        AnalyticsPoint(date="2024-01-03", sugar=5.8),
+        AnalyticsPoint(date="2024-01-04", sugar=6.0),
+        AnalyticsPoint(date="2024-01-05", sugar=5.4),
+    ]
 
 
 @app.get("/ui/{full_path:path}", include_in_schema=False)
