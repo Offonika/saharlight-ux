@@ -7,15 +7,26 @@ const mockRemindersPatch = vi.hoisted(() => vi.fn());
 const mockRemindersDelete = vi.hoisted(() => vi.fn());
 const mockInstanceOfReminder = vi.hoisted(() => vi.fn());
 
-vi.mock('@sdk', () => ({
-  DefaultApi: vi.fn(() => ({
-    remindersGet: mockRemindersGet,
-    remindersPost: mockRemindersPost,
-    remindersPatch: mockRemindersPatch,
-    remindersDelete: mockRemindersDelete,
-  })),
-  instanceOfReminder: mockInstanceOfReminder,
-}), { virtual: true });
+vi.mock(
+  '@sdk',
+  () => ({
+    DefaultApi: vi.fn(() => ({
+      remindersGet: mockRemindersGet,
+      remindersPost: mockRemindersPost,
+      remindersPatch: mockRemindersPatch,
+      remindersDelete: mockRemindersDelete,
+    })),
+  }),
+  { virtual: true },
+);
+
+vi.mock(
+  '@sdk/models',
+  () => ({
+    instanceOfReminder: mockInstanceOfReminder,
+  }),
+  { virtual: true },
+);
 
 import {
   getReminder,

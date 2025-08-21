@@ -6,6 +6,7 @@ export * from './HTTPValidationError';
 export * from './HistoryRecordSchemaInput';
 export * from './HistoryRecordSchemaOutput';
 export * from './ProfileSchema';
+export * from './Reminder';
 export * from './ReminderSchema';
 export * from './ResponseApiRemindersRemindersGet';
 export * from './Timezone';

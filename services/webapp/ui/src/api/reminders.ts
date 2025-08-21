@@ -1,5 +1,6 @@
-import { DefaultApi, instanceOfReminder, type Reminder } from '@sdk';
+import { DefaultApi } from '@sdk';
 import { Configuration, ResponseError } from '@sdk/runtime';
+import { instanceOfReminder, type Reminder } from '@sdk/models';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 
