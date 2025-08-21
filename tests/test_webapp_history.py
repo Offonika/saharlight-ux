@@ -49,9 +49,9 @@ def test_history_auth_required(monkeypatch: pytest.MonkeyPatch) -> None:
     setup_db(monkeypatch)
     with TestClient(server.app) as client:
         rec = {"id": "1", "date": "2024-01-01", "time": "12:00", "type": "measurement"}
-        assert client.post("/api/history", json=rec).status_code == 401
-        assert client.get("/api/history").status_code == 401
-        assert client.delete("/api/history/1").status_code == 401
+        assert client.post("/history", json=rec).status_code == 401
+        assert client.get("/history").status_code == 401
+        assert client.delete("/history/1").status_code == 401
 
 
 def test_history_invalid_date_time(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -65,7 +65,7 @@ def test_history_invalid_date_time(monkeypatch: pytest.MonkeyPatch) -> None:
             "time": "12:00",
             "type": "measurement",
         }
-        resp = client.post("/api/history", json=bad_date, headers=headers)
+        resp = client.post("/history", json=bad_date, headers=headers)
         assert resp.status_code == 422
         bad_time = {
             "id": "1",
@@ -73,7 +73,7 @@ def test_history_invalid_date_time(monkeypatch: pytest.MonkeyPatch) -> None:
             "time": "24:00",
             "type": "measurement",
         }
-        resp = client.post("/api/history", json=bad_time, headers=headers)
+        resp = client.post("/history", json=bad_time, headers=headers)
         assert resp.status_code == 422
 
 
@@ -89,7 +89,7 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
             "time": "12:00",
             "type": "measurement",
         }
-        resp = client.post("/api/history", json=rec1, headers=headers1)
+        resp = client.post("/history", json=rec1, headers=headers1)
         assert resp.status_code == 200
 
         with Session() as session:
@@ -99,7 +99,7 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
             assert stored.telegram_id == 1
 
         rec1_update = {**rec1, "sugar": 5.5}
-        resp = client.post("/api/history", json=rec1_update, headers=headers1)
+        resp = client.post("/history", json=rec1_update, headers=headers1)
         assert resp.status_code == 200
 
         with Session() as session:
@@ -108,29 +108,29 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
             assert stored.sugar == 5.5
 
         rec2 = {"id": "2", "date": "2024-01-02", "time": "13:00", "type": "meal"}
-        resp = client.post("/api/history", json=rec2, headers=headers1)
+        resp = client.post("/history", json=rec2, headers=headers1)
         assert resp.status_code == 200
 
         rec3 = {"id": "3", "date": "2024-01-03", "time": "14:00", "type": "meal"}
-        resp = client.post("/api/history", json=rec3, headers=headers2)
+        resp = client.post("/history", json=rec3, headers=headers2)
         assert resp.status_code == 200
 
-        resp = client.get("/api/history", headers=headers1)
+        resp = client.get("/history", headers=headers1)
         body = resp.json()
         assert [r["id"] for r in body] == ["1", "2"]
         assert body[0]["time"] == "12:00"
         assert body[1]["time"] == "13:00"
 
-        resp = client.get("/api/history", headers=headers2)
+        resp = client.get("/history", headers=headers2)
         assert [r["id"] for r in resp.json()] == ["3"]
 
-        resp = client.delete("/api/history/1", headers=headers2)
+        resp = client.delete("/history/1", headers=headers2)
         assert resp.status_code == 403
 
-        resp = client.delete("/api/history/1", headers=headers1)
+        resp = client.delete("/history/1", headers=headers1)
         assert resp.status_code == 200
 
-        resp = client.get("/api/history", headers=headers1)
+        resp = client.get("/history", headers=headers1)
         assert [r["id"] for r in resp.json()] == ["2"]
 
 
@@ -160,7 +160,7 @@ def test_history_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
         session.commit()
 
     with TestClient(server.app) as client:
-        resp = client.get("/api/history", headers=headers)
+        resp = client.get("/history", headers=headers)
         assert resp.status_code == 200
         body = resp.json()
         assert [r["id"] for r in body] == ["2"]
@@ -180,7 +180,7 @@ async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> Non
         async with AsyncClient(
             transport=ASGITransport(app=cast(Any, server.app)), base_url="http://test"
         ) as ac:
-            resp = await ac.post("/api/history", json=rec, headers=headers)
+            resp = await ac.post("/history", json=rec, headers=headers)
             assert resp.status_code == 200
 
     await asyncio.gather(*(post_record(r) for r in records))

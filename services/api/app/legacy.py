@@ -42,7 +42,7 @@ async def profiles_get(telegram_id: int) -> ProfileSchema:
     )
 
 
-@router.get("/api/reminders", dependencies=[Depends(require_tg_user)])
+@router.get("/reminders", dependencies=[Depends(require_tg_user)])
 async def api_reminders(
     telegram_id: int,
     request: Request,
@@ -75,7 +75,7 @@ async def api_reminders(
     return {}
 
 
-@router.post("/api/reminders", dependencies=[Depends(require_tg_user)])
+@router.post("/reminders", dependencies=[Depends(require_tg_user)])
 async def api_reminders_post(data: ReminderSchema) -> dict[str, object]:
     rid = await save_reminder(data)
     return {"status": "ok", "id": rid}

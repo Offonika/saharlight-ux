@@ -122,12 +122,12 @@ async def put_timezone(
     return {"status": "ok"}
 
 
-@app.get("/api/profile/self")
+@app.get("/profile/self")
 async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserContext:
     return user
 
 
-@app.get("/api/stats")
+@app.get("/stats")
 async def get_stats(
     telegram_id: int = Query(alias="telegramId"),
     user: UserContext = Depends(require_tg_user),
@@ -137,7 +137,7 @@ async def get_stats(
     return DayStats(sugar=5.7, breadUnits=3, insulin=10)
 
 
-@app.get("/api/analytics")
+@app.get("/analytics")
 async def get_analytics(
     telegram_id: int = Query(alias="telegramId"),
     user: UserContext = Depends(require_tg_user),
@@ -170,7 +170,7 @@ async def catch_root_ui() -> FileResponse:
     return await catch_all_ui("")
 
 
-@app.post("/api/user")
+@app.post("/user")
 async def create_user(
     data: WebUser,
     user: UserContext = Depends(require_tg_user),
@@ -195,7 +195,7 @@ async def create_user(
     return {"status": "ok"}
 
 
-@app.post("/api/history")
+@app.post("/history")
 async def post_history(
     data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)
 ) -> dict[str, str]:
@@ -243,7 +243,7 @@ async def post_history(
     return {"status": "ok"}
 
 
-@app.get("/api/history")
+@app.get("/history")
 async def get_history(
     user: UserContext = Depends(require_tg_user),
 ) -> list[HistoryRecordSchema]:
@@ -281,7 +281,7 @@ async def get_history(
     return result
 
 
-@app.delete("/api/history/{record_id}")
+@app.delete("/history/{record_id}")
 async def delete_history(
     record_id: str, user: UserContext = Depends(require_tg_user)
 ) -> dict[str, str]:
