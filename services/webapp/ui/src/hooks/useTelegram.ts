@@ -77,6 +77,9 @@ export const useTelegram = (
   );
 
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.log(window.Telegram?.WebApp);
+    }
     let cancelled = false;
     if (!tg) {
       console.warn("[TG] not in Telegram, enabling dev fallback");
