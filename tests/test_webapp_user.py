@@ -51,7 +51,7 @@ def test_create_user_authorized(monkeypatch: pytest.MonkeyPatch) -> None:
     init_data = build_init_data(42)
     with TestClient(server.app) as client:
         resp = client.post(
-            "/api/user",
+            "/user",
             json={"telegram_id": 42},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
@@ -69,7 +69,7 @@ def test_create_user_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
     init_data = build_init_data(1)
     with TestClient(server.app) as client:
         resp = client.post(
-            "/api/user",
+            "/user",
             json={"telegram_id": 42},
             headers={TG_INIT_DATA_HEADER: init_data},
         )

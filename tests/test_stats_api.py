@@ -28,7 +28,7 @@ def test_stats_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     init_data = build_init_data(42)
     with TestClient(app) as client:
         resp = client.get(
-            "/api/stats",
+            "/stats",
             params={"telegramId": 42},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
@@ -39,7 +39,7 @@ def test_stats_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_stats_missing_header() -> None:
     with TestClient(app) as client:
-        resp = client.get("/api/stats", params={"telegramId": 1})
+        resp = client.get("/stats", params={"telegramId": 1})
     assert resp.status_code == 401
 
 
@@ -48,7 +48,7 @@ def test_stats_mismatched_id(monkeypatch: pytest.MonkeyPatch) -> None:
     init_data = build_init_data(1)
     with TestClient(app) as client:
         resp = client.get(
-            "/api/stats",
+            "/stats",
             params={"telegramId": 2},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
@@ -60,7 +60,7 @@ def test_analytics_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     init_data = build_init_data(7)
     with TestClient(app) as client:
         resp = client.get(
-            "/api/analytics",
+            "/analytics",
             params={"telegramId": 7},
             headers={TG_INIT_DATA_HEADER: init_data},
         )

@@ -1,3 +1,4 @@
-from .default_api import DefaultApi
+# flake8: noqa
 
-__all__ = ["DefaultApi"]
+# import apis into api package
+from diabetes_sdk.api.default_api import DefaultApi

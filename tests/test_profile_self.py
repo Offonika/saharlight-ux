@@ -27,23 +27,19 @@ def test_profile_self_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data = build_init_data(42)
     with TestClient(app) as client:
-        resp = client.get(
-            "/api/profile/self", headers={TG_INIT_DATA_HEADER: init_data}
-        )
+        resp = client.get("/profile/self", headers={TG_INIT_DATA_HEADER: init_data})
     assert resp.status_code == 200
     assert resp.json()["id"] == 42
 
 
 def test_profile_self_missing_header() -> None:
     with TestClient(app) as client:
-        resp = client.get("/api/profile/self")
+        resp = client.get("/profile/self")
     assert resp.status_code == 401
 
 
 def test_profile_self_invalid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     with TestClient(app) as client:
-        resp = client.get(
-            "/api/profile/self", headers={TG_INIT_DATA_HEADER: "bad"}
-        )
+        resp = client.get("/profile/self", headers={TG_INIT_DATA_HEADER: "bad"})
     assert resp.status_code == 401
