@@ -6,14 +6,13 @@ describe('API_BASE', () => {
     vi.resetModules();
   });
 
-  it('defaults to /api when VITE_API_URL is empty', async () => {
-    vi.stubEnv('VITE_API_URL', '');
-    vi.resetModules();
+  it('defaults to /api when VITE_API_URL is undefined', async () => {
     const { API_BASE } = await import('./base');
     expect(API_BASE).toBe('/api');
   });
 
-  it('defaults to /api when VITE_API_URL is undefined', async () => {
+  it('defaults to /api when VITE_API_URL is empty', async () => {
+    vi.stubEnv('VITE_API_URL', '   ');
     const { API_BASE } = await import('./base');
     expect(API_BASE).toBe('/api');
   });
