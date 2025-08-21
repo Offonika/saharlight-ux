@@ -16,9 +16,11 @@ if (rootElement === null) {
   throw new Error('Root element with id "root" not found')
 }
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
+
 createRoot(rootElement).render(
   <React.StrictMode>
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <BrowserRouter basename={basename}>
       <TelegramProvider>
         <App />
       </TelegramProvider>
