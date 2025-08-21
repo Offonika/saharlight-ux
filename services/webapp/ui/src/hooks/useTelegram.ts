@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { tgFetch } from "../lib/tgFetch";
 import applyTelegramTheme, {
   type Scheme,
@@ -47,6 +48,7 @@ interface TelegramWebApp extends TelegramWebAppBase {
 
 interface TelegramWindow extends Window {
   Telegram?: { WebApp?: TelegramWebApp };
+  tgWebAppStartParam?: string;
 }
 
 interface TelegramError {
@@ -61,6 +63,7 @@ export const useTelegram = (
     () => (window as TelegramWindow)?.Telegram?.WebApp ?? null,
     [],
   );
+  const navigate = useNavigate();
   const [isReady, setReady] = useState<boolean>(false);
   const [user, setUser] = useState<TelegramUser | null>(null);
   const [error, setError] = useState<TelegramError | null>(null);
@@ -81,6 +84,14 @@ export const useTelegram = (
       console.log(window.Telegram?.WebApp);
     }
     let cancelled = false;
+    const params = new URLSearchParams(tg?.initData ?? "");
+    const startParam =
+      tg?.initDataUnsafe?.start_param ??
+      params.get("tgWebAppStartParam") ??
+      (window as TelegramWindow).tgWebAppStartParam;
+    if (startParam === "reminders") {
+      navigate("/reminders");
+    }
     if (!tg) {
       console.warn("[TG] not in Telegram, enabling dev fallback");
       applyTheme(null, forceLight);
@@ -94,7 +105,6 @@ export const useTelegram = (
       tg.expand?.();
       tg.ready?.();
       applyTheme(tg, forceLight);
-      const params = new URLSearchParams(tg.initData ?? "");
       const userRaw = params.get("user");
       let userObj: TelegramUser | null = null;
       try {
@@ -163,7 +173,7 @@ export const useTelegram = (
       });
       setReady(true);
     }
-  }, [tg, applyTheme, forceLight]);
+  }, [tg, navigate, applyTheme, forceLight]);
 
   const sendData = (data: unknown) => tg?.sendData?.(JSON.stringify(data));
 
