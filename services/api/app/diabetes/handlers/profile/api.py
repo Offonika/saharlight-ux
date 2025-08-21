@@ -12,6 +12,10 @@ from services.api.app.diabetes.services.repository import commit
 logger = logging.getLogger(__name__)
 
 
+class ProfileSaveError(Exception):
+    """Raised when persisting profile data fails."""
+
+
 @dataclass
 class LocalProfile:
     """Minimal profile model used when the external SDK is unavailable."""
@@ -55,7 +59,7 @@ class LocalProfileAPI:
                 profile.high or 0.0,
             )
             if not ok:
-                raise Exception("Failed to save profile")
+                raise ProfileSaveError("Failed to save profile")
 
     def profiles_get(self, telegram_id: int) -> LocalProfile | None:
         """Return a profile for ``telegram_id`` from the database."""

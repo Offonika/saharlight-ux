@@ -132,6 +132,16 @@ def test_save_profile_commit_failure(
         assert prof is None
 
 
+def test_local_profiles_post_failure(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
+    api = profile_api.LocalProfileAPI()
+    monkeypatch.setattr(api, "_sessionmaker", lambda: session_factory)
+    monkeypatch.setattr(profile_api, "save_profile", lambda *a, **k: False)
+    with pytest.raises(profile_api.ProfileSaveError):
+        api.profiles_post(profile_api.LocalProfile(telegram_id=1))
+
+
 def test_set_timezone_persists(session_factory: sessionmaker) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
