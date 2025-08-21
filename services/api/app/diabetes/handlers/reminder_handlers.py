@@ -8,6 +8,7 @@ import logging
 import re
 from datetime import time, timedelta, timezone
 from typing import Callable, Literal, cast
+from urllib.parse import urljoin
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -51,6 +52,12 @@ DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 PLAN_LIMITS = {"free": 5, "pro": 10}
 
 from . import UserData
+
+def build_webapp_url(path: str) -> str:
+    base = settings.webapp_url.rstrip("/") + "/"
+    if not path.startswith("/"):
+        path = "/" + path
+    return urljoin(base, path)
 
 # Map reminder type codes to display names
 REMINDER_NAMES = {
@@ -152,7 +159,7 @@ def _render_reminders(
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(f"{settings.webapp_url}/ui/reminders"),
+                web_app=WebAppInfo(build_webapp_url("/ui/reminders")),
             )
         ]
     if not rems:
@@ -180,7 +187,9 @@ def _render_reminders(
             row.append(
                 InlineKeyboardButton(
                     "✏️",
-                    web_app=WebAppInfo(f"{settings.webapp_url}/ui/reminders?id={r.id}"),
+                    web_app=WebAppInfo(
+                        build_webapp_url(f"/ui/reminders?id={r.id}")
+                    ),
                 )
             )
         row.extend(
