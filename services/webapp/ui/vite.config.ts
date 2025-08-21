@@ -1,5 +1,5 @@
 // file: services/webapp/ui/vite.config.ts
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
 import { readFile } from 'node:fs/promises'
@@ -33,17 +33,26 @@ function telegramInitPlugin(): Plugin {
   }
 }
 
-export default defineConfig(async ({ mode }) => {
+export default defineConfig(async ({ mode, command }) => {
+  if (command === 'build' && mode === 'development') {
+    throw new Error('build mode "development" is not allowed')
+  }
+  const env = loadEnv(mode, process.cwd(), '')
   const plugins = [react(), telegramInitPlugin()]
   if (mode === 'development') {
     const { componentTagger } = await import('lovable-tagger')
     plugins.push(componentTagger())
   }
-  const base   = mode === 'development' ? '/' : '/ui/'  // dev → '/', prod → '/ui/'
-  const port   = 5173                                   // или оставьте 8080 и укажите его в .lovable.yml
+  const rawBase = env.VITE_BASE_URL ?? (mode === 'development' ? '/' : '/ui/')
+  const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`
+  const port = 5173 // или оставьте 8080 и укажите его в .lovable.yml
   const rollupOptions = {
     ...(mode === 'development' ? { treeshake: false } : {}),
-    external: ['telegram-init.js', '/telegram-init.js', '/ui/telegram-init.js'],
+    external: [
+      'telegram-init.js',
+      '/telegram-init.js',
+      `${base}telegram-init.js`,
+    ],
     input: {
       main: path.resolve(__dirname, 'index.html'),
       'telegram-theme': path.resolve(
