@@ -11,13 +11,10 @@
     Do not edit the class manually.
 """  # noqa: E501
 
-import warnings
 from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
-from pydantic import StrictInt, StrictStr
-from typing import Any, Dict, List, Optional
 from diabetes_sdk.models.analytics_point import AnalyticsPoint
 from diabetes_sdk.models.day_stats import DayStats
 from diabetes_sdk.models.history_record_schema_input import HistoryRecordSchemaInput

@@ -1,7 +1,6 @@
 .github/workflows/python.yml
 .gitignore
 .gitlab-ci.yml
-.openapi-generator-ignore
 .travis.yml
 README.md
 diabetes_sdk/__init__.py
@@ -48,18 +47,4 @@ setup.cfg
 setup.py
 test-requirements.txt
 test/__init__.py
-test/test_analytics_point.py
-test/test_day_stats.py
-test/test_default_api.py
-test/test_history_record_schema_input.py
-test/test_history_record_schema_output.py
-test/test_http_validation_error.py
-test/test_profile_schema.py
-test/test_reminder_schema.py
-test/test_response_api_reminders_reminders_get.py
-test/test_timezone.py
-test/test_user_context.py
-test/test_validation_error.py
-test/test_validation_error_loc_inner.py
-test/test_web_user.py
 tox.ini
