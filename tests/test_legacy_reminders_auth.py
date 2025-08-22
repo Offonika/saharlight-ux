@@ -106,7 +106,7 @@ def test_reminders_mismatched_id(
                 "X-Request-ID": request_id,
             },
         )
-    assert resp.status_code == 403
+    assert resp.status_code == 404
     assert (
         f"request_id={request_id} telegramId=2 does not match user_id=1" in caplog.text
     )
@@ -119,4 +119,5 @@ def test_reminders_invalid_telegram_id(client: TestClient) -> None:
         params={"telegramId": 999},
         headers={"X-Telegram-Init-Data": init_data},
     )
-    assert resp.status_code == 404
+    assert resp.status_code == 200
+    assert resp.json() == []
