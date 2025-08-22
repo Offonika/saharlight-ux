@@ -147,11 +147,11 @@ API контейнер запускает `uvicorn` напрямую как ко
 
 ## Генерация SDK
 
-Файл `libs/contracts/openapi.yaml` содержит спецификацию API. По нему генерируются SDK:
+Файл `libs/contracts/openapi.yaml` содержит спецификацию API. По нему генерируются SDK. Перед генерацией выполните `pnpm install`, чтобы зависимость workspace была доступна в UI:
 
 ```bash
-npx @openapitools/openapi-generator-cli generate -i libs/contracts/openapi.yaml -g python -o libs/py-sdk
-npx @openapitools/openapi-generator-cli generate -i libs/contracts/openapi.yaml -g typescript-fetch -o libs/ts-sdk
+pnpm install
+pnpm run generate:sdk
 ```
 
 ## Сервисный запуск
