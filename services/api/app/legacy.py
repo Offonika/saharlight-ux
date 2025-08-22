@@ -51,6 +51,11 @@ async def api_reminders(
     user: UserContext = Depends(require_tg_user),
 ) -> list[dict[str, object]] | dict[str, object]:
     if telegram_id != user["id"]:
+        logger.warning(
+            "telegram_id=%s does not match user_id=%s",
+            telegram_id,
+            user["id"],
+        )
         raise HTTPException(status_code=403)
     log_patient_access(getattr(request.state, "user_id", None), telegram_id)
     rems = await list_reminders(telegram_id)
