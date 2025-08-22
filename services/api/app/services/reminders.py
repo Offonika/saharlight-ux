@@ -5,12 +5,14 @@ from typing import List
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from ..diabetes.services.db import Reminder, SessionLocal, run_db
+from ..diabetes.services.db import Reminder, SessionLocal, User, run_db
 from ..schemas.reminders import ReminderSchema
 
 
 async def list_reminders(telegram_id: int) -> List[Reminder]:
     def _list(session: Session) -> List[Reminder]:
+        if session.get(User, telegram_id) is None:
+            raise HTTPException(status_code=404, detail="user not found")
         return session.query(Reminder).filter_by(telegram_id=telegram_id).all()
 
     return await run_db(_list, sessionmaker=SessionLocal)

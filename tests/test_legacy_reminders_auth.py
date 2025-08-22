@@ -95,7 +95,9 @@ def test_reminders_mismatched_id(
 ) -> None:
     init_data = build_init_data()
     request_id = "req-1"
-    with caplog.at_level(logging.WARNING, logger="services.api.app.legacy"):
+    with caplog.at_level(
+        logging.WARNING, logger="services.api.app.routers.reminders"
+    ):
         resp = client.get(
             "/reminders",
             params={"telegramId": 2},
