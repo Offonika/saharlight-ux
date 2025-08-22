@@ -68,3 +68,12 @@ async def test_save_reminder_not_found_or_wrong_user(
     schema = ReminderSchema(id=rem_id, telegramId=telegram_id, type="sugar")
     with pytest.raises(HTTPException):
         await reminders.save_reminder(schema)
+
+
+@pytest.mark.asyncio
+async def test_list_reminders_invalid_user(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    with pytest.raises(HTTPException):
+        await reminders.list_reminders(999)
