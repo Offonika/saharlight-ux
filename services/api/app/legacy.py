@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from .services.audit import log_patient_access
 from .schemas.profile import ProfileSchema
 from .schemas.reminders import ReminderSchema
+from .schemas.user import UserContext
 from .services.profile import get_profile, save_profile
 from .services.reminders import list_reminders, save_reminder
 from .telegram_auth import require_tg_user
@@ -42,12 +43,15 @@ async def profiles_get(telegram_id: int) -> ProfileSchema:
     )
 
 
-@router.get("/reminders", dependencies=[Depends(require_tg_user)])
+@router.get("/reminders")
 async def api_reminders(
     telegram_id: int,
     request: Request,
     id: int | None = None,
+    user: UserContext = Depends(require_tg_user),
 ) -> list[dict[str, object]] | dict[str, object]:
+    if telegram_id != user["id"]:
+        raise HTTPException(status_code=403)
     log_patient_access(getattr(request.state, "user_id", None), telegram_id)
     rems = await list_reminders(telegram_id)
     if id is None:

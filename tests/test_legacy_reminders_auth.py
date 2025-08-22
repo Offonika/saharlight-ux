@@ -76,3 +76,23 @@ def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
 def test_reminders_missing_auth(client: TestClient) -> None:
     resp = client.get("/reminders", params={"telegram_id": 1})
     assert resp.status_code == 401
+
+
+def test_reminders_matching_id(client: TestClient) -> None:
+    init_data = build_init_data()
+    resp = client.get(
+        "/reminders",
+        params={"telegram_id": 1},
+        headers={"X-Telegram-Init-Data": init_data},
+    )
+    assert resp.status_code == 200
+
+
+def test_reminders_mismatched_id(client: TestClient) -> None:
+    init_data = build_init_data()
+    resp = client.get(
+        "/reminders",
+        params={"telegram_id": 2},
+        headers={"X-Telegram-Init-Data": init_data},
+    )
+    assert resp.status_code == 403
