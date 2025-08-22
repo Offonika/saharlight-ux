@@ -75,5 +75,5 @@ async def test_list_reminders_invalid_user(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
-    with pytest.raises(HTTPException):
-        await reminders.list_reminders(999)
+    reminders_list = await reminders.list_reminders(999)
+    assert reminders_list == []

@@ -33,7 +33,7 @@ async def get_reminders(
             tid,
             user["id"],
         )
-        raise HTTPException(status_code=403)
+        raise HTTPException(status_code=404, detail="invalid telegramId")
     log_patient_access(getattr(request.state, "user_id", None), tid)
 
     rems = await list_reminders(tid)

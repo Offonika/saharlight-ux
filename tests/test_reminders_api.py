@@ -81,8 +81,14 @@ def test_nonempty_returns_list(
     ]
 
 
-def test_invalid_telegram_id(client: TestClient) -> None:
+def test_invalid_telegram_id_returns_empty_list(client: TestClient) -> None:
     fastapi_app = cast(FastAPI, client.app)
     fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
+    resp = client.get("/api/reminders", params={"telegramId": 2})
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_mismatched_telegram_id_returns_404(client: TestClient) -> None:
     resp = client.get("/api/reminders", params={"telegramId": 2})
     assert resp.status_code == 404
