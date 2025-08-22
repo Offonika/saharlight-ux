@@ -1,10 +1,17 @@
+import hashlib
+import hmac
+import json
 import logging
+import time
+import urllib.parse
 
+import pytest
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.testclient import TestClient
-import pytest
 
+from services.api.app.config import settings
 from services.api.app.middleware.auth import AuthMiddleware, require_role
+from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 
 def create_app() -> FastAPI:
@@ -12,8 +19,8 @@ def create_app() -> FastAPI:
     app.add_middleware(AuthMiddleware)
 
     @app.get("/whoami")
-    async def whoami(request: Request) -> dict[str, int]:
-        return {"user_id": request.state.user_id}
+    async def whoami(request: Request) -> dict[str, int | str]:
+        return {"user_id": request.state.user_id, "role": request.state.role}
 
     return app
 
@@ -23,7 +30,7 @@ def test_valid_user_id_header() -> None:
     with TestClient(app) as client:
         response = client.get("/whoami", headers={"X-User-Id": "123"})
         assert response.status_code == 200
-        assert response.json() == {"user_id": 123}
+        assert response.json() == {"user_id": 123, "role": "patient"}
 
 
 def test_missing_user_id_header(caplog: pytest.LogCaptureFixture) -> None:
@@ -79,3 +86,25 @@ def test_require_role_logs_attempt(caplog: pytest.LogCaptureFixture) -> None:
         )
         assert response.status_code == 403
     assert "Forbidden access for role 'patient'" in caplog.text
+
+
+TOKEN = "test-token"
+
+
+def build_init_data(user_id: int = 1) -> str:
+    user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
+    params = {"auth_date": str(int(time.time())), "query_id": "abc", "user": user}
+    data_check = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
+    secret = hmac.new(b"WebAppData", TOKEN.encode(), hashlib.sha256).digest()
+    params["hash"] = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
+    return urllib.parse.urlencode(params)
+
+
+def test_telegram_init_data_header(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    app = create_app()
+    init_data = build_init_data(123)
+    with TestClient(app) as client:
+        response = client.get("/whoami", headers={TG_INIT_DATA_HEADER: init_data})
+        assert response.status_code == 200
+        assert response.json() == {"user_id": 123, "role": "patient"}
