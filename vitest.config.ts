@@ -8,7 +8,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './services/webapp/ui/src'),
-      '@sdk': path.resolve(__dirname, './libs/ts-sdk'),
     },
   },
 });
