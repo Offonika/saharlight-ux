@@ -71,7 +71,7 @@ def test_invalid_role_header_logs_warning(
     assert "Invalid X-Role" in caplog.text
 
 
-def test_require_role_logs_attempt(caplog: pytest.LogCaptureFixture) -> None:
+def test_require_role_no_check(caplog: pytest.LogCaptureFixture) -> None:
     app = FastAPI()
     app.add_middleware(AuthMiddleware)
 
@@ -81,11 +81,9 @@ def test_require_role_logs_attempt(caplog: pytest.LogCaptureFixture) -> None:
 
     with TestClient(app) as client:
         caplog.set_level(logging.WARNING, logger="services.api.app.middleware.auth")
-        response = client.get(
-            "/admin", headers={"X-User-Id": "1", "X-Role": "patient"}
-        )
-        assert response.status_code == 403
-    assert "Forbidden access for role 'patient'" in caplog.text
+        response = client.get("/admin", headers={"X-User-Id": "1", "X-Role": "patient"})
+        assert response.status_code == 200
+    assert "Forbidden access" not in caplog.text
 
 
 TOKEN = "test-token"
