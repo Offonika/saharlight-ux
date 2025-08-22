@@ -17,10 +17,12 @@ from __future__ import annotations
 import os
 from typing import Iterable
 
+from services.api.app.config import settings
+
 # Expose commonly used environment variables so importing modules can
 # reference them directly if needed.  Values default to ``None`` when not
 # provided which is convenient for tests where most variables are unset.
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_TOKEN = settings.telegram_token
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
@@ -46,6 +48,12 @@ def validate_tokens(required: Iterable[str] | None = None) -> None:
     """
 
     required_vars = list(required or [])
-    missing = [var for var in required_vars if not os.getenv(var)]
+    missing = []
+    for var in required_vars:
+        if var == "TELEGRAM_TOKEN":
+            if not settings.telegram_token:
+                missing.append(var)
+        elif not os.getenv(var):
+            missing.append(var)
     if missing:
         raise RuntimeError("Missing required environment variables: " + ", ".join(missing))

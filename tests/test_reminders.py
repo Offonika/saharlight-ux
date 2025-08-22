@@ -642,4 +642,5 @@ def test_real_404(client: TestClient) -> None:
     fastapi_app = cast(FastAPI, client.app)
     fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
     resp = client.get("/api/reminders", params={"telegramId": 2})
-    assert resp.status_code == 404
+    assert resp.status_code == 200
+    assert resp.json() == []

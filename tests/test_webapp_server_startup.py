@@ -20,4 +20,7 @@ def test_app_import_without_ui(monkeypatch: pytest.MonkeyPatch) -> None:
         return original_exists(self)
 
     monkeypatch.setattr(Path, "exists", fake_exists)
+    from services.api.app.diabetes.services import db
+
+    monkeypatch.setattr(db, "init_db", lambda: None)
     importlib.reload(importlib.import_module("services.api.app.main"))

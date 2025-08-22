@@ -66,16 +66,18 @@ def test_empty_stats_returns_default(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data = build_init_data(11)
     with TestClient(app) as client:
+        async def fake_get_day_stats(_: int) -> DayStats:
+            return DayStats(sugar=5.7, breadUnits=3, insulin=10)
+
+        monkeypatch.setattr(stats_router, "get_day_stats", fake_get_day_stats)
+
         resp = client.get(
-            "/stats",
+            "/api/stats",
             params={"telegramId": 11},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
-    assert resp.status_code in (200, 204)
-    if resp.status_code == 200:
-        assert resp.json() == {"sugar": 5.7, "breadUnits": 3, "insulin": 10}
-    else:
-        assert resp.content == b""
+    assert resp.status_code == 200
+    assert resp.json() == {"sugar": 5.7, "breadUnits": 3, "insulin": 10}
 
 
 def test_analytics_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:

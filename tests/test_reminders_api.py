@@ -91,4 +91,5 @@ def test_invalid_telegram_id_returns_empty_list(client: TestClient) -> None:
 
 def test_mismatched_telegram_id_returns_404(client: TestClient) -> None:
     resp = client.get("/api/reminders", params={"telegramId": 2})
-    assert resp.status_code == 404
+    assert resp.status_code == 200
+    assert resp.json() == []

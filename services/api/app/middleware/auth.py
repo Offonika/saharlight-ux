@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import Awaitable, Callable
 
 from fastapi import HTTPException, Request
@@ -20,7 +19,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         user_id: int | None = None
         tg_init_data = request.headers.get(TG_INIT_DATA_HEADER)
         if tg_init_data is not None:
-            token: str | None = os.getenv("TELEGRAM_TOKEN") or settings.telegram_token
+            token: str | None = settings.telegram_token
             if not token:
                 logger.error("telegram token not configured")
                 raise HTTPException(status_code=500, detail="server misconfigured")

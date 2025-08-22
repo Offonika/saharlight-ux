@@ -8,6 +8,7 @@ import services.bot.main as bot
 def test_main_logs_db_error(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
+    monkeypatch.setattr(bot.settings, "telegram_token", "token")  # type: ignore[attr-defined]
     monkeypatch.setattr(bot, "TELEGRAM_TOKEN", "token")
 
     def faulty_init_db() -> None:

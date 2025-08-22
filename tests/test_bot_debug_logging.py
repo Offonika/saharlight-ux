@@ -14,13 +14,14 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # Prepare environment for config module
     monkeypatch.setenv("DB_PASSWORD", "pwd")
-    monkeypatch.setenv("TELEGRAM_TOKEN", "token")
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
 
     # Ensure fresh imports so that env vars are read
     for mod in ["services.api.app.config", "services.bot.main"]:
         sys.modules.pop(mod, None)
     bot = importlib.import_module("services.bot.main")
+    monkeypatch.setattr(bot.settings, "telegram_token", "token")
+    monkeypatch.setattr(bot, "TELEGRAM_TOKEN", "token")
 
     # Stub external interactions
     monkeypatch.setattr(bot, "init_db", lambda: None)

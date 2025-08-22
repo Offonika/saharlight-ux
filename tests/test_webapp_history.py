@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
+from services.api.app.config import settings
 from services.api.app.diabetes.services import db
 from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
@@ -56,7 +57,7 @@ def test_history_auth_required(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_history_invalid_date_time(monkeypatch: pytest.MonkeyPatch) -> None:
     setup_db(monkeypatch)
-    monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
     headers = {TG_INIT_DATA_HEADER: build_init_data(1)}
     with TestClient(server.app) as client:
         bad_date = {
@@ -79,7 +80,7 @@ def test_history_invalid_date_time(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
-    monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
     headers1 = {TG_INIT_DATA_HEADER: build_init_data(1)}
     headers2 = {TG_INIT_DATA_HEADER: build_init_data(2)}
     with TestClient(server.app) as client:
@@ -136,7 +137,7 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_history_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
-    monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
     headers = {TG_INIT_DATA_HEADER: build_init_data(1)}
     with Session() as session:
         session.add(
@@ -169,7 +170,7 @@ def test_history_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
-    monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
     headers = {TG_INIT_DATA_HEADER: build_init_data(1)}
     records = [
         {"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"}

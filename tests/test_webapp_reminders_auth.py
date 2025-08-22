@@ -42,7 +42,6 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
     )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     monkeypatch.setattr(reminders, "SessionLocal", TestSession)
     with TestSession() as session:
