@@ -1,14 +1,25 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
 
-const mockTgFetch = vi.hoisted(() => vi.fn());
+const mockHistoryGet = vi.hoisted(() => vi.fn());
+const mockHistoryPost = vi.hoisted(() => vi.fn());
+const mockHistoryIdDelete = vi.hoisted(() => vi.fn());
 
-vi.mock('../lib/tgFetch', () => ({ tgFetch: mockTgFetch }));
+vi.mock('@offonika/diabetes-ts-sdk', () => ({
+  HistoryApi: vi.fn(() => ({
+    historyGet: mockHistoryGet,
+    historyPost: mockHistoryPost,
+    historyIdDelete: mockHistoryIdDelete,
+  })),
+  Configuration,
+}));
 
-import { API_BASE } from './base';
 import { getHistory, updateRecord, deleteRecord } from './history';
 
 afterEach(() => {
-  mockTgFetch.mockReset();
+  mockHistoryGet.mockReset();
+  mockHistoryPost.mockReset();
+  mockHistoryIdDelete.mockReset();
 });
 
 describe('getHistory', () => {
@@ -16,29 +27,25 @@ describe('getHistory', () => {
     const history = [
       { id: '1', date: '2024-01-01', time: '12:00', type: 'meal' },
     ];
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(history)),
-    );
+    mockHistoryGet.mockResolvedValueOnce(history);
     await expect(getHistory()).resolves.toEqual(history);
   });
 
   it('throws on invalid history item', async () => {
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify([{ id: '1', time: '12:00', type: 'meal' }]),
-      ),
-    );
+    mockHistoryGet.mockResolvedValueOnce([
+      { id: '1', time: '12:00', type: 'meal' } as any,
+    ]);
     await expect(getHistory()).rejects.toThrow(
       'Некорректная запись истории',
     );
   });
 
-  it('forwards signal to tgFetch', async () => {
+  it('forwards signal to API', async () => {
     const controller = new AbortController();
-    mockTgFetch.mockResolvedValueOnce(new Response(JSON.stringify([])));
+    mockHistoryGet.mockResolvedValueOnce([]);
     await getHistory(controller.signal);
-    expect(mockTgFetch).toHaveBeenCalledWith(
-      `${API_BASE}/history`,
+    expect(mockHistoryGet).toHaveBeenCalledWith(
+      undefined,
       { signal: controller.signal },
     );
   });
@@ -54,22 +61,13 @@ describe('updateRecord', () => {
 
   it('sends record to API and returns ok status', async () => {
     const ok = { status: 'ok' };
-    mockTgFetch.mockResolvedValueOnce(new Response(JSON.stringify(ok)));
+    mockHistoryPost.mockResolvedValueOnce(ok);
     await expect(updateRecord(record)).resolves.toEqual(ok);
-    expect(mockTgFetch).toHaveBeenCalledWith(
-      `${API_BASE}/history`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(record),
-      },
-    );
+    expect(mockHistoryPost).toHaveBeenCalledWith({ historyRecord: record });
   });
 
   it('throws on error status', async () => {
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ status: 'error' })),
-    );
+    mockHistoryPost.mockResolvedValueOnce({ status: 'error' });
     await expect(updateRecord(record)).rejects.toThrow(
       'Не удалось обновить запись',
     );
@@ -79,18 +77,13 @@ describe('updateRecord', () => {
 describe('deleteRecord', () => {
   it('calls API with DELETE and returns ok status', async () => {
     const ok = { status: 'ok' };
-    mockTgFetch.mockResolvedValueOnce(new Response(JSON.stringify(ok)));
+    mockHistoryIdDelete.mockResolvedValueOnce(ok);
     await expect(deleteRecord('1')).resolves.toEqual(ok);
-    expect(mockTgFetch).toHaveBeenCalledWith(
-      `${API_BASE}/history/1`,
-      { method: 'DELETE' },
-    );
+    expect(mockHistoryIdDelete).toHaveBeenCalledWith({ id: '1' });
   });
 
   it('throws on error status', async () => {
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ status: 'error' })),
-    );
+    mockHistoryIdDelete.mockResolvedValueOnce({ status: 'error' });
     await expect(deleteRecord('1')).rejects.toThrow(
       'Не удалось удалить запись',
     );

@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { HistoryApi } from '@offonika/diabetes-ts-sdk';
+import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 
@@ -26,10 +28,13 @@ const historyRecordSchema = z.object({
   type: z.enum(['measurement', 'meal', 'insulin']),
 });
 
+const api = new HistoryApi(
+  new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
+);
+
 export async function getHistory(signal?: AbortSignal): Promise<HistoryRecord[]> {
   try {
-    const res = await tgFetch(`${API_BASE}/history`, { signal });
-    const data = await res.json();
+    const data = await api.historyGet(undefined, { signal });
     if (!Array.isArray(data)) {
       throw new Error('Некорректный ответ API');
     }
@@ -51,12 +56,7 @@ export async function getHistory(signal?: AbortSignal): Promise<HistoryRecord[]>
 
 export async function updateRecord(record: HistoryRecord) {
   try {
-    const res = await tgFetch(`${API_BASE}/history`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(record),
-    });
-    const data = await res.json().catch(() => ({}));
+    const data = await api.historyPost({ historyRecord: record });
     if (data.status !== 'ok') {
       throw new Error(data.detail || 'Не удалось обновить запись');
     }
@@ -72,8 +72,7 @@ export async function updateRecord(record: HistoryRecord) {
 
 export async function deleteRecord(id: string) {
   try {
-    const res = await tgFetch(`${API_BASE}/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
-    const data = await res.json().catch(() => ({}));
+    const data = await api.historyIdDelete({ id });
     if (data.status !== 'ok') {
       throw new Error(data.detail || 'Не удалось удалить запись');
     }

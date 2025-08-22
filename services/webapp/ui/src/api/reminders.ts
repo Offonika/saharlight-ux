@@ -1,4 +1,4 @@
-import { DefaultApi } from '@offonika/diabetes-ts-sdk';
+import { RemindersApi } from '@offonika/diabetes-ts-sdk';
 import { Configuration, ResponseError } from '@offonika/diabetes-ts-sdk/runtime';
 import {
   instanceOfReminderSchema as instanceOfReminder,
@@ -7,7 +7,7 @@ import {
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 
-const api = new DefaultApi(
+const api = new RemindersApi(
   new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
 );
 
@@ -16,7 +16,7 @@ export async function getReminders(
   signal?: AbortSignal,
 ): Promise<Reminder[]> {
   try {
-    const data = await api.apiRemindersRemindersGet({ telegramId }, { signal });
+    const data = await api.remindersGet({ telegramId }, { signal });
 
     if (!data) {
       return [];
@@ -46,7 +46,7 @@ export async function getReminder(
   signal?: AbortSignal,
 ): Promise<Reminder | null> {
   try {
-    const data = await api.apiRemindersRemindersGet({ telegramId, id }, { signal });
+    const data = await api.remindersGet({ telegramId, id }, { signal });
 
     if (!data || Array.isArray(data) || !instanceOfReminder(data)) {
       console.error('Unexpected reminder API response:', data);
@@ -71,7 +71,7 @@ export async function getReminder(
 
 export async function createReminder(reminder: Reminder) {
   try {
-    return await api.apiRemindersPostRemindersPost({ reminder });
+    return await api.remindersPost({ reminder });
   } catch (error) {
     console.error('Failed to create reminder:', error);
     if (error instanceof Error) {
@@ -83,7 +83,7 @@ export async function createReminder(reminder: Reminder) {
 
 export async function updateReminder(reminder: Reminder) {
   try {
-    return await api.apiRemindersRemindersPatch({ reminder });
+    return await api.remindersPatch({ reminder });
   } catch (error) {
     console.error('Failed to update reminder:', error);
     if (error instanceof Error) {
@@ -95,7 +95,7 @@ export async function updateReminder(reminder: Reminder) {
 
 export async function deleteReminder(telegramId: number, id: number) {
   try {
-    return await api.apiRemindersRemindersDelete({ telegramId, id });
+    return await api.remindersDelete({ telegramId, id });
   } catch (error) {
     console.error('Failed to delete reminder:', error);
     if (error instanceof Error) {
