@@ -152,7 +152,10 @@ API контейнер запускает `uvicorn` напрямую как ко
 ```bash
 pnpm install
 pnpm run generate:sdk
+pnpm --filter vite_react_shadcn_ts run build
 ```
+
+Это пересобирает фронтенд, чтобы изменения SDK попали в бандл UI.
 
 ## Сервисный запуск
 
