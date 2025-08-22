@@ -93,11 +93,18 @@ def test_reminders_mismatched_id(
     client: TestClient, caplog: pytest.LogCaptureFixture
 ) -> None:
     init_data = build_init_data()
+    request_id = "req-1"
     with caplog.at_level(logging.WARNING, logger="services.api.app.legacy"):
         resp = client.get(
             "/reminders",
             params={"telegram_id": 2},
-            headers={"X-Telegram-Init-Data": init_data},
+            headers={
+                "X-Telegram-Init-Data": init_data,
+                "X-Request-ID": request_id,
+            },
         )
-    assert resp.status_code == 200
-    assert "does not match" not in caplog.text
+    assert resp.status_code == 403
+    assert (
+        f"request_id={request_id} telegram_id=2 does not match user_id=1"
+        in caplog.text
+    )

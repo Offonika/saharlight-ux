@@ -47,7 +47,7 @@ async def test_cancel_then_calls_cancel_first(monkeypatch: pytest.MonkeyPatch) -
         update: Update, context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
     ) -> int:
         calls.append("cancel")
-        return ConversationHandler.END
+        return cast(int, ConversationHandler.END)
 
     async def handler(
         update: Update, context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
