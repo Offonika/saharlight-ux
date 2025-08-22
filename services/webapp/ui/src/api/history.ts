@@ -14,7 +14,7 @@ const api = new HistoryApi(
 
 function toInput(record: HistoryRecord): HistoryRecordSchemaInput {
   const { date, ...rest } = record;
-  return { ...rest, date: new Date(date) } as HistoryRecordSchemaInput;
+  return { ...rest, date: new Date(date) };
 }
 
 export async function getHistory(
