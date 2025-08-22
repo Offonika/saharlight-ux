@@ -89,7 +89,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **api_reminders_reminders_get**
-> ResponseApiRemindersRemindersGet api_reminders_reminders_get(telegram_id, id=id, x_telegram_init_data=x_telegram_init_data)
+> List[ReminderSchema] api_reminders_reminders_get(telegram_id, id=id, x_telegram_init_data=x_telegram_init_data)
 
 Api Reminders
 
@@ -98,7 +98,7 @@ Api Reminders
 
 ```python
 import diabetes_sdk
-from diabetes_sdk.models.response_api_reminders_reminders_get import ResponseApiRemindersRemindersGet
+from diabetes_sdk.models.reminder_schema import ReminderSchema
 from diabetes_sdk.rest import ApiException
 from pprint import pprint
 
@@ -139,7 +139,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**ResponseApiRemindersRemindersGet**](ResponseApiRemindersRemindersGet.md)
+[**List[ReminderSchema]**](ReminderSchema.md)
 
 ### Authorization
 
@@ -154,7 +154,8 @@ No authorization required
 
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-**200** | Successful Response. Returns an array of reminders or an empty array if none exist. |  -  |
+**200** | Successful Response. Returns an array of reminders. |  -  |
+**204** | No Content - no reminders found. |  -  |
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

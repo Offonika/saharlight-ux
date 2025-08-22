@@ -8,7 +8,6 @@ models/HistoryRecordSchemaInput.ts
 models/HistoryRecordSchemaOutput.ts
 models/ProfileSchema.ts
 models/ReminderSchema.ts
-models/ResponseApiRemindersRemindersGet.ts
 models/Timezone.ts
 models/UserContext.ts
 models/ValidationError.ts
