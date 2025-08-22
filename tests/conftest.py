@@ -46,9 +46,15 @@ def _build_ui_assets() -> Iterator[None]:
     """Build webapp UI if static assets are missing."""
     from services.api.app.main import BASE_DIR, UI_DIR
 
+    repo_root = BASE_DIR.parent
+
     if not (UI_DIR / "real-file.js").is_file():
-        subprocess.run(["npm", "ci"], cwd=BASE_DIR / "ui", check=True)
-        subprocess.run(["npm", "run", "build"], cwd=BASE_DIR / "ui", check=True)
+        subprocess.run(["npm", "ci"], cwd=repo_root, check=True)
+        subprocess.run(
+            ["npm", "--workspace", "services/webapp/ui", "run", "build"],
+            cwd=repo_root,
+            check=True,
+        )
     yield
 
 
