@@ -2,7 +2,7 @@
 {
   "name": "saharlight-monorepo",
   "private": true,
-  "workspaces": ["services/webapp/ui"],
+  "workspaces": ["services/webapp/ui", "libs/ts-sdk"],
   "scripts": {
     "dev":       "npm --workspace services/webapp/ui run dev",
     "build":     "npm --workspace services/webapp/ui run build",
