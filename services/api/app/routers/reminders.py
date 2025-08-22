@@ -33,7 +33,7 @@ async def get_reminders(
             tid,
             user["id"],
         )
-        raise HTTPException(status_code=404, detail="invalid telegramId")
+        return []  # 200 OK — пустой список
     log_patient_access(getattr(request.state, "user_id", None), tid)
 
     rems = await list_reminders(tid)
@@ -59,7 +59,7 @@ async def get_reminders(
                 "active": r.is_enabled,
                 "interval": r.interval_hours,
             }
-    raise HTTPException(status_code=404, detail="reminder not found")
+    return []  # 200 OK — пустой список
 
 
 @router.post("/reminders", dependencies=[Depends(require_tg_user)])

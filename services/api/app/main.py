@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 import sys
@@ -5,72 +7,89 @@ from pathlib import Path
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup for direct execution
-    # Ensure repository root is the first entry so that the correct `services`
-    # package is imported when running this file directly.  There is another
-    # third-party package named ``services`` installed in the environment which
-    # would otherwise take precedence and cause `ModuleNotFoundError`.
+# ────────── Path-хаки, когда файл запускают напрямую ──────────
+if __name__ == "__main__" and __package__ is None:  # pragma: no cover
     sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
     __package__ = "services.api.app"
 
-
-from fastapi import Depends, FastAPI, HTTPException
-
+# ────────── std / 3-rd party ──────────
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import AliasChoices, BaseModel, Field
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+# ────────── local ──────────
+from .config import settings
 from .diabetes.services.db import (
     HistoryRecord as HistoryRecordDB,
     Timezone as TimezoneDB,
     User as UserDB,
+    init_db,
     run_db,
 )
-from .schemas.role import RoleSchema
-from .services.user_roles import get_user_role, set_user_role
 from .diabetes.services.repository import commit
 from .legacy import router as legacy_router
 from .routers.stats import router as stats_router
 from .schemas.history import ALLOWED_HISTORY_TYPES, HistoryRecordSchema, HistoryType
+from .schemas.role import RoleSchema
 from .schemas.user import UserContext
+from .services.user_roles import get_user_role, set_user_role
 from .telegram_auth import require_tg_user
 
+# ────────── init ──────────
 logger = logging.getLogger(__name__)
+init_db()  # создаёт/инициализирует БД
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0")
-app.include_router(legacy_router, prefix="/api")
-app.include_router(stats_router, prefix="/api")
 
-BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
-UI_DIR = BASE_DIR / "ui" / "dist"
-if not UI_DIR.exists():
-    UI_DIR = BASE_DIR / "ui"
-UI_DIR = UI_DIR.resolve()
+# ────────── profiles (front expects list) ──────────
+@app.get("/api/profiles", operation_id="profilesGet", tags=["profiles"])
+@app.get("/profiles", include_in_schema=False)  # legacy-путь
+async def get_profiles(
+    telegramId: int | None = Query(None),
+    telegram_id: int | None = Query(None, alias="telegram_id"),
+    user: UserContext = Depends(require_tg_user),
+) -> list[UserContext]:
+    """
+    Telegram-Web-App ждёт массив профилей.
+    Бэкенд однопользовательский → возвращаем список из одного текущего пользователя.
+    Если query-параметр указан и не совпадает с auth-пользователем — 403.
+    """
+    tid = telegramId or telegram_id
+    if tid is not None and tid != user["id"]:
+        raise HTTPException(status_code=403, detail="telegram id mismatch")
+    return [user]
+
+# ────────── роуты статистики / legacy ──────────
+app.include_router(stats_router,   prefix="/api")
+app.include_router(legacy_router,  prefix="/api")
+
+# ────────── статические файлы UI ──────────
+BASE_DIR   = Path(__file__).resolve().parents[2] / "webapp"
+UI_DIR     = (BASE_DIR / "ui" / "dist") if (BASE_DIR / "ui" / "dist").exists() else (BASE_DIR / "ui")
+UI_DIR     = UI_DIR.resolve()
 UI_BASE_URL = os.getenv("VITE_BASE_URL", "/ui/").rstrip("/")
 
-
+# ────────── Schemas ──────────
 class Timezone(BaseModel):
     tz: str
-
 
 class WebUser(BaseModel):
     telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
 
-
-
-
+# ────────── helpers ──────────
 def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
     if value not in ALLOWED_HISTORY_TYPES:
         raise HTTPException(status_code=status_code, detail="invalid history type")
     return cast(HistoryType, value)
 
-
+# ────────── health & misc ──────────
 @app.get("/health", include_in_schema=False)
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
-
+# ────────── timezone ──────────
 @app.get("/timezone")
 async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     def _get_timezone(session: Session) -> TimezoneDB | None:
@@ -85,7 +104,6 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
         raise HTTPException(status_code=500, detail="invalid timezone entry") from exc
     return {"tz": tz_row.tz}
 
-
 @app.put("/timezone")
 async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     try:
@@ -93,33 +111,26 @@ async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)
     except ZoneInfoNotFoundError as exc:
         raise HTTPException(status_code=400, detail="invalid timezone") from exc
 
-    tz = data.tz
-
     def _save_timezone(session: Session) -> None:
         obj = session.get(TimezoneDB, 1)
         if obj is None:
-            obj = TimezoneDB(id=1, tz=tz)
+            obj = TimezoneDB(id=1, tz=data.tz)
             session.add(obj)
         else:
-            obj.tz = tz
+            obj.tz = data.tz
         if not commit(session):
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    try:
-        await run_db(_save_timezone)
-    except SQLAlchemyError as exc:  # pragma: no cover - database errors
-        logger.exception("database error while saving timezone")
-        raise HTTPException(status_code=500, detail="database error") from exc
+    await run_db(_save_timezone)
     return {"status": "ok"}
 
-
+# ────────── profile/self ──────────
 @app.get("/profile/self")
+@app.get("/api/profile/self")
 async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserContext:
     return user
 
-
-
-
+# ────────── static UI files ──────────
 @app.get(f"{UI_BASE_URL}/{{full_path:path}}", include_in_schema=False)
 async def catch_all_ui(full_path: str) -> FileResponse:
     requested_file = (UI_DIR / full_path).resolve()
@@ -131,19 +142,13 @@ async def catch_all_ui(full_path: str) -> FileResponse:
         return FileResponse(requested_file)
     return FileResponse(UI_DIR / "index.html")
 
-
 @app.get(UI_BASE_URL or "/", include_in_schema=False)
 async def catch_root_ui() -> FileResponse:
     return await catch_all_ui("")
 
-
+# ────────── user CRUD / roles ──────────
 @app.post("/user")
-async def create_user(
-    data: WebUser,
-    user: UserContext = Depends(require_tg_user),
-) -> dict[str, str]:
-    """Ensure a user exists in the database."""
-
+async def create_user(data: WebUser, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
 
@@ -154,79 +159,50 @@ async def create_user(
         if not commit(session):
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    try:
-        await run_db(_create_user)
-    except SQLAlchemyError as exc:  # pragma: no cover - database errors
-        logger.exception("database error while creating user")
-        raise HTTPException(status_code=500, detail="database error") from exc
+    await run_db(_create_user)
     return {"status": "ok"}
-
 
 @app.get("/user/{user_id}/role")
 async def get_role(user_id: int) -> RoleSchema:
     role = await get_user_role(user_id)
     return RoleSchema(role=role or "patient")
 
-
 @app.put("/user/{user_id}/role")
 async def put_role(user_id: int, data: RoleSchema) -> RoleSchema:
     await set_user_role(user_id, data.role)
     return RoleSchema(role=data.role)
 
-
+# ────────── history (CRUD) ──────────
 @app.post("/history")
+@app.post("/api/history")
 async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
-    """Save or update a history record in the database."""
     validated_type = _validate_history_type(data.type)
 
-    def _save_history(session: Session) -> None:
+    def _save(session: Session) -> None:
         obj = session.get(HistoryRecordDB, data.id)
-        if obj:
-            if obj.telegram_id != user["id"]:
-                raise HTTPException(status_code=403, detail="forbidden")
-            obj.date = data.date.isoformat()
-            obj.time = data.time.strftime("%H:%M")
-            obj.sugar = data.sugar
-            obj.carbs = data.carbs
-            obj.bread_units = data.breadUnits
-            obj.insulin = data.insulin
-            obj.notes = data.notes
-            obj.type = validated_type
-        else:
-            obj = HistoryRecordDB(
-                id=data.id,
-                telegram_id=user["id"],
-                date=data.date.isoformat(),
-                time=data.time.strftime("%H:%M"),
-                sugar=data.sugar,
-                carbs=data.carbs,
-                bread_units=data.breadUnits,
-                insulin=data.insulin,
-                notes=data.notes,
-                type=validated_type,
-            )
+        if obj and obj.telegram_id != user["id"]:
+            raise HTTPException(status_code=403, detail="forbidden")
+        if obj is None:
+            obj = HistoryRecordDB(id=data.id, telegram_id=user["id"])
             session.add(obj)
+        obj.date = data.date.isoformat()
+        obj.time = data.time.strftime("%H:%M")
+        obj.sugar = data.sugar
+        obj.carbs = data.carbs
+        obj.bread_units = data.breadUnits
+        obj.insulin = data.insulin
+        obj.notes = data.notes
+        obj.type = validated_type
         if not commit(session):
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    try:
-        await run_db(_save_history)
-    except SQLAlchemyError as exc:  # pragma: no cover - database errors
-        logger.exception("database error while saving history")
-        raise HTTPException(status_code=500, detail="database error") from exc
-    except RuntimeError as exc:  # pragma: no cover - misconfiguration
-        logger.exception("database not initialized")
-        raise HTTPException(status_code=500, detail="database not initialized") from exc
+    await run_db(_save)
     return {"status": "ok"}
 
-
 @app.get("/history")
-async def get_history(
-    user: UserContext = Depends(require_tg_user),
-) -> list[HistoryRecordSchema]:
-    """Return history records for the authenticated user."""
-
-    def _get_history(session: Session) -> list[HistoryRecordDB]:
+@app.get("/api/history")
+async def get_history(user: UserContext = Depends(require_tg_user)) -> list[HistoryRecordSchema]:
+    def _query(session: Session) -> list[HistoryRecordDB]:
         return (
             session.query(HistoryRecordDB)
             .filter(HistoryRecordDB.telegram_id == user["id"])
@@ -234,57 +210,46 @@ async def get_history(
             .all()
         )
 
-    records = await run_db(_get_history)
+    records = await run_db(_query)
     result: list[HistoryRecordSchema] = []
     for r in records:
-        if r.type not in ALLOWED_HISTORY_TYPES:
-            logger.warning("Skipping history record %s with invalid type %s", r.id, r.type)
-            continue
-        result.append(
-            HistoryRecordSchema(
-                id=r.id,
-                date=r.date,
-                time=r.time,
-                sugar=r.sugar,
-                carbs=r.carbs,
-                breadUnits=r.bread_units,
-                insulin=r.insulin,
-                notes=r.notes,
-                type=cast(HistoryType, r.type),
+        if r.type in ALLOWED_HISTORY_TYPES:
+            result.append(
+                HistoryRecordSchema(
+                    id=r.id,
+                    date=r.date,
+                    time=r.time,
+                    sugar=r.sugar,
+                    carbs=r.carbs,
+                    breadUnits=r.bread_units,
+                    insulin=r.insulin,
+                    notes=r.notes,
+                    type=cast(HistoryType, r.type),
+                )
             )
-        )
     return result
 
-
 @app.delete("/history/{record_id}")
+@app.delete("/api/history/{record_id}")
 async def delete_history(record_id: str, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
-    """Delete a history record after verifying ownership."""
-
-    def _get_record(session: Session) -> HistoryRecordDB | None:
+    def _get(session: Session) -> HistoryRecordDB | None:
         return session.get(HistoryRecordDB, record_id)
 
-    record = await run_db(_get_record)
+    record = await run_db(_get)
     if record is None:
         raise HTTPException(status_code=404, detail="not found")
     if record.telegram_id != user["id"]:
         raise HTTPException(status_code=403, detail="forbidden")
 
-    def _delete_record(session: Session) -> None:
-        obj = session.get(HistoryRecordDB, record_id)
-        if obj:
-            session.delete(obj)
-            if not commit(session):
-                raise HTTPException(status_code=500, detail="db commit failed")
+    def _delete(session: Session) -> None:
+        session.delete(record)
+        if not commit(session):
+            raise HTTPException(status_code=500, detail="db commit failed")
 
-    try:
-        await run_db(_delete_record)
-    except SQLAlchemyError as exc:  # pragma: no cover - database errors
-        logger.exception("database error while deleting record")
-        raise HTTPException(status_code=500, detail="database error") from exc
+    await run_db(_delete)
     return {"status": "ok"}
 
-
-if __name__ == "__main__":  # pragma: no cover - convenience for manual execution
+# ────────── run (for local testing) ──────────
+if __name__ == "__main__":  # pragma: no cover
     import uvicorn
-
     uvicorn.run("services.api.app.main:app", host="0.0.0.0", port=8000)
