@@ -11,17 +11,19 @@
     Do not edit the class manually.
 """  # noqa: E501
 
+import warnings
 from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
+from pydantic import StrictInt, StrictStr
+from typing import Any, Dict, List, Optional
 from diabetes_sdk.models.analytics_point import AnalyticsPoint
 from diabetes_sdk.models.day_stats import DayStats
 from diabetes_sdk.models.history_record_schema_input import HistoryRecordSchemaInput
 from diabetes_sdk.models.history_record_schema_output import HistoryRecordSchemaOutput
 from diabetes_sdk.models.profile_schema import ProfileSchema
 from diabetes_sdk.models.reminder_schema import ReminderSchema
-from diabetes_sdk.models.response_api_reminders_reminders_get import ResponseApiRemindersRemindersGet
 from diabetes_sdk.models.timezone import Timezone
 from diabetes_sdk.models.user_context import UserContext
 from diabetes_sdk.models.web_user import WebUser
@@ -350,7 +352,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ResponseApiRemindersRemindersGet:
+    ) -> List[ReminderSchema]:
         """Api Reminders
 
 
@@ -393,7 +395,8 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "ResponseApiRemindersRemindersGet",
+            '200': "List[ReminderSchema]",
+            '204': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -425,7 +428,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[ResponseApiRemindersRemindersGet]:
+    ) -> ApiResponse[List[ReminderSchema]]:
         """Api Reminders
 
 
@@ -468,7 +471,8 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "ResponseApiRemindersRemindersGet",
+            '200': "List[ReminderSchema]",
+            '204': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -543,7 +547,8 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "ResponseApiRemindersRemindersGet",
+            '200': "List[ReminderSchema]",
+            '204': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(

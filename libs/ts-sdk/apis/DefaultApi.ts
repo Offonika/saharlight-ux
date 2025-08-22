@@ -22,7 +22,6 @@ import type {
   HistoryRecordSchemaOutput,
   ProfileSchema,
   ReminderSchema,
-  ResponseApiRemindersRemindersGet,
   Timezone,
   UserContext,
   WebUser,
@@ -42,8 +41,6 @@ import {
     ProfileSchemaToJSON,
     ReminderSchemaFromJSON,
     ReminderSchemaToJSON,
-    ResponseApiRemindersRemindersGetFromJSON,
-    ResponseApiRemindersRemindersGetToJSON,
     TimezoneFromJSON,
     TimezoneToJSON,
     UserContextFromJSON,
@@ -164,7 +161,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Api Reminders
      */
-    async apiRemindersRemindersGetRaw(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponseApiRemindersRemindersGet>> {
+    async apiRemindersRemindersGetRaw(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReminderSchema>>> {
         if (requestParameters['telegramId'] == null) {
             throw new runtime.RequiredError(
                 'telegramId',
@@ -198,15 +195,22 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ResponseApiRemindersRemindersGetFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ReminderSchemaFromJSON));
     }
 
     /**
      * Api Reminders
      */
-    async apiRemindersRemindersGet(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponseApiRemindersRemindersGet> {
+    async apiRemindersRemindersGet(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReminderSchema> | null | undefined > {
         const response = await this.apiRemindersRemindersGetRaw(requestParameters, initOverrides);
-        return await response.value();
+        switch (response.raw.status) {
+            case 200:
+                return await response.value();
+            case 204:
+                return null;
+            default:
+                return await response.value();
+        }
     }
 
     /**
