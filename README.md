@@ -70,17 +70,22 @@ sudo apt install python3.12 python3.12-venv
    source venv/bin/activate
    ```
    Все последующие команды `python` и `pip` выполняйте внутри этого окружения.
-3. **Установите зависимости и соберите фронтенд (`npm ci && npm run build`):**
-   В проекте используется менеджер пакетов **npm** (Bun не поддерживается).
-   Локальный Python SDK подключается из каталога `libs/py-sdk`, поэтому он будет установлен вместе с зависимостями:
-   ```bash
-   pip install -r requirements.txt
+3. **Установите зависимости и соберите фронтенд:**
+    В проекте используется менеджер пакетов **npm** (Bun не поддерживается).
+    Локальный Python SDK подключается из каталога `libs/py-sdk`, поэтому он будет
+    установлен вместе с зависимостями. При использовании npm workspaces все
+    команды выполняйте из корня репозитория:
+    ```bash
+    pip install -r requirements.txt
 
-   (cd services/webapp/ui && npm ci && npm run build)
+    npm ci
+    npm --workspace services/webapp/ui run build
 
-   ```
-   Используйте только `npm run build` (production) для деплоя — попытка собрать с `--mode development` завершится ошибкой.
-   Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `services/webapp/ui`.
+    ```
+    Используйте только `npm run build` (production) для деплоя — попытка
+    собрать с `--mode development` завершится ошибкой. Команды фронтенда
+    (`npm --workspace services/webapp/ui run dev`, `npm --workspace
+    services/webapp/ui run build` и т.д.) запускайте из корня проекта.
 4. **Скопируйте шаблон .env и заполните своими данными:**
    ```bash
    cp infra/env/.env.example .env
