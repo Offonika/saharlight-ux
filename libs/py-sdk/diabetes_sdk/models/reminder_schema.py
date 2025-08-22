@@ -26,14 +26,14 @@ class ReminderSchema(BaseModel):
     """
     ReminderSchema
     """ # noqa: E501
-    telegramId: StrictInt = Field(alias="telegramId")
+    telegram_id: StrictInt = Field(alias="telegramId")
     id: Optional[StrictInt] = None
     type: StrictStr
     time: Optional[StrictStr] = None
-    intervalHours: Optional[StrictInt] = Field(default=None, alias="intervalHours")
-    minutesAfter: Optional[StrictInt] = Field(default=None, alias="minutesAfter")
-    isEnabled: Optional[StrictBool] = Field(default=True, alias="isEnabled")
-    orgId: Optional[StrictInt] = Field(default=None, alias="orgId")
+    interval_hours: Optional[StrictInt] = Field(default=None, alias="intervalHours")
+    minutes_after: Optional[StrictInt] = Field(default=None, alias="minutesAfter")
+    is_enabled: Optional[StrictBool] = Field(default=True, alias="isEnabled")
+    org_id: Optional[StrictInt] = Field(default=None, alias="orgId")
     __properties: ClassVar[List[str]] = ["telegramId", "id", "type", "time", "intervalHours", "minutesAfter", "isEnabled", "orgId"]
 
     model_config = ConfigDict(
@@ -85,19 +85,19 @@ class ReminderSchema(BaseModel):
         if self.time is None and "time" in self.model_fields_set:
             _dict['time'] = None
 
-        # set to None if intervalHours (nullable) is None
+        # set to None if interval_hours (nullable) is None
         # and model_fields_set contains the field
-        if self.intervalHours is None and "intervalHours" in self.model_fields_set:
+        if self.interval_hours is None and "interval_hours" in self.model_fields_set:
             _dict['intervalHours'] = None
 
-        # set to None if minutesAfter (nullable) is None
+        # set to None if minutes_after (nullable) is None
         # and model_fields_set contains the field
-        if self.minutesAfter is None and "minutesAfter" in self.model_fields_set:
+        if self.minutes_after is None and "minutes_after" in self.model_fields_set:
             _dict['minutesAfter'] = None
 
-        # set to None if orgId (nullable) is None
+        # set to None if org_id (nullable) is None
         # and model_fields_set contains the field
-        if self.orgId is None and "orgId" in self.model_fields_set:
+        if self.org_id is None and "org_id" in self.model_fields_set:
             _dict['orgId'] = None
 
         return _dict

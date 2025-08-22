@@ -26,13 +26,13 @@ class ProfileSchema(BaseModel):
     """
     ProfileSchema
     """ # noqa: E501
-    telegramId: StrictInt = Field(alias="telegramId")
+    telegram_id: StrictInt = Field(alias="telegramId")
     icr: Union[StrictFloat, StrictInt]
     cf: Union[StrictFloat, StrictInt]
     target: Union[StrictFloat, StrictInt]
     low: Union[StrictFloat, StrictInt]
     high: Union[StrictFloat, StrictInt]
-    orgId: Optional[StrictInt] = Field(default=None, alias="orgId")
+    org_id: Optional[StrictInt] = Field(default=None, alias="orgId")
     __properties: ClassVar[List[str]] = ["telegramId", "icr", "cf", "target", "low", "high", "orgId"]
 
     model_config = ConfigDict(
@@ -74,9 +74,9 @@ class ProfileSchema(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # set to None if orgId (nullable) is None
+        # set to None if org_id (nullable) is None
         # and model_fields_set contains the field
-        if self.orgId is None and "orgId" in self.model_fields_set:
+        if self.org_id is None and "org_id" in self.model_fields_set:
             _dict['orgId'] = None
 
         return _dict

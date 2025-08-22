@@ -26,7 +26,7 @@ class WebUser(BaseModel):
     """
     WebUser
     """ # noqa: E501
-    telegramId: StrictInt = Field(alias="telegramId")
+    telegram_id: StrictInt = Field(alias="telegramId")
     __properties: ClassVar[List[str]] = ["telegramId"]
 
     model_config = ConfigDict(

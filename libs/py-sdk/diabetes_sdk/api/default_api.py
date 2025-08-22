@@ -338,7 +338,7 @@ class DefaultApi:
     @validate_call
     def api_reminders_reminders_get(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         id: Optional[StrictInt] = None,
         x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
@@ -357,8 +357,8 @@ class DefaultApi:
         """Api Reminders
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param id:
         :type id: int
         :param x_telegram_init_data:
@@ -386,7 +386,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._api_reminders_reminders_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             id=id,
             x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
@@ -413,7 +413,7 @@ class DefaultApi:
     @validate_call
     def api_reminders_reminders_get_with_http_info(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         id: Optional[StrictInt] = None,
         x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
@@ -432,8 +432,8 @@ class DefaultApi:
         """Api Reminders
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param id:
         :type id: int
         :param x_telegram_init_data:
@@ -461,7 +461,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._api_reminders_reminders_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             id=id,
             x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
@@ -488,7 +488,7 @@ class DefaultApi:
     @validate_call
     def api_reminders_reminders_get_without_preload_content(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         id: Optional[StrictInt] = None,
         x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
@@ -507,8 +507,8 @@ class DefaultApi:
         """Api Reminders
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param id:
         :type id: int
         :param x_telegram_init_data:
@@ -536,7 +536,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._api_reminders_reminders_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             id=id,
             x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
@@ -558,7 +558,7 @@ class DefaultApi:
 
     def _api_reminders_reminders_get_serialize(
         self,
-        telegramId,
+        telegram_id,
         id,
         x_telegram_init_data,
         _request_auth,
@@ -583,9 +583,9 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
-        if telegramId is not None:
+        if telegram_id is not None:
             
-            _query_params.append(('telegramId', telegramId))
+            _query_params.append(('telegramId', telegram_id))
             
         if id is not None:
             
@@ -1201,7 +1201,7 @@ class DefaultApi:
     @validate_call
     def get_analytics_analytics_get(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
@@ -1219,8 +1219,8 @@ class DefaultApi:
         """Get Analytics
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param x_telegram_init_data:
         :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
@@ -1246,7 +1246,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._get_analytics_analytics_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1272,7 +1272,7 @@ class DefaultApi:
     @validate_call
     def get_analytics_analytics_get_with_http_info(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
@@ -1290,8 +1290,8 @@ class DefaultApi:
         """Get Analytics
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param x_telegram_init_data:
         :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
@@ -1317,7 +1317,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._get_analytics_analytics_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1343,7 +1343,7 @@ class DefaultApi:
     @validate_call
     def get_analytics_analytics_get_without_preload_content(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
@@ -1361,8 +1361,8 @@ class DefaultApi:
         """Get Analytics
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param x_telegram_init_data:
         :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
@@ -1388,7 +1388,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._get_analytics_analytics_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1409,7 +1409,7 @@ class DefaultApi:
 
     def _get_analytics_analytics_get_serialize(
         self,
-        telegramId,
+        telegram_id,
         x_telegram_init_data,
         _request_auth,
         _content_type,
@@ -1433,9 +1433,9 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
-        if telegramId is not None:
+        if telegram_id is not None:
             
-            _query_params.append(('telegramId', telegramId))
+            _query_params.append(('telegramId', telegram_id))
             
         # process the header parameters
         if x_telegram_init_data is not None:
@@ -1741,7 +1741,7 @@ class DefaultApi:
     @validate_call
     def get_stats_stats_get(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
@@ -1759,8 +1759,8 @@ class DefaultApi:
         """Get Stats
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param x_telegram_init_data:
         :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
@@ -1786,7 +1786,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._get_stats_stats_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1812,7 +1812,7 @@ class DefaultApi:
     @validate_call
     def get_stats_stats_get_with_http_info(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
@@ -1830,8 +1830,8 @@ class DefaultApi:
         """Get Stats
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param x_telegram_init_data:
         :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
@@ -1857,7 +1857,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._get_stats_stats_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1883,7 +1883,7 @@ class DefaultApi:
     @validate_call
     def get_stats_stats_get_without_preload_content(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
@@ -1901,8 +1901,8 @@ class DefaultApi:
         """Get Stats
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param x_telegram_init_data:
         :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
@@ -1928,7 +1928,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._get_stats_stats_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1949,7 +1949,7 @@ class DefaultApi:
 
     def _get_stats_stats_get_serialize(
         self,
-        telegramId,
+        telegram_id,
         x_telegram_init_data,
         _request_auth,
         _content_type,
@@ -1973,9 +1973,9 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
-        if telegramId is not None:
+        if telegram_id is not None:
             
-            _query_params.append(('telegramId', telegramId))
+            _query_params.append(('telegramId', telegram_id))
             
         # process the header parameters
         if x_telegram_init_data is not None:
@@ -2829,7 +2829,7 @@ class DefaultApi:
     @validate_call
     def profiles_get_profiles_get(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -2846,8 +2846,8 @@ class DefaultApi:
         """Profiles Get
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -2871,7 +2871,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._profiles_get_profiles_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -2896,7 +2896,7 @@ class DefaultApi:
     @validate_call
     def profiles_get_profiles_get_with_http_info(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -2913,8 +2913,8 @@ class DefaultApi:
         """Profiles Get
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -2938,7 +2938,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._profiles_get_profiles_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -2963,7 +2963,7 @@ class DefaultApi:
     @validate_call
     def profiles_get_profiles_get_without_preload_content(
         self,
-        telegramId: StrictInt,
+        telegram_id: StrictInt,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -2980,8 +2980,8 @@ class DefaultApi:
         """Profiles Get
 
 
-        :param telegramId: (required)
-        :type telegramId: int
+        :param telegram_id: (required)
+        :type telegram_id: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -3005,7 +3005,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._profiles_get_profiles_get_serialize(
-            telegramId=telegramId,
+            telegram_id=telegram_id,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -3025,7 +3025,7 @@ class DefaultApi:
 
     def _profiles_get_profiles_get_serialize(
         self,
-        telegramId,
+        telegram_id,
         _request_auth,
         _content_type,
         _headers,
@@ -3048,9 +3048,9 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
-        if telegramId is not None:
+        if telegram_id is not None:
             
-            _query_params.append(('telegramId', telegramId))
+            _query_params.append(('telegramId', telegram_id))
             
         # process the header parameters
         # process the form parameters
