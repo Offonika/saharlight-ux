@@ -26,6 +26,8 @@ jobs:
         run: |
           pip install -r services/api/app/requirements.txt
           pip install -r services/api/app/requirements-dev.txt
+      - name: Generate SDK
+        run: pnpm run generate:sdk
       - name: Build webapp UI
         working-directory: services/webapp/ui
         run: |
