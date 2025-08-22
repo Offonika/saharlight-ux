@@ -1,23 +1,34 @@
 import json
 import logging
-import pytest
-from datetime import datetime, timezone, time, tzinfo
+from collections.abc import Generator
+from datetime import datetime, time, timezone, tzinfo
 from zoneinfo import ZoneInfo
 from unittest.mock import MagicMock
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
 from typing import Any, Callable, cast
 
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from telegram import Message, Update, User
 from telegram.ext import CallbackContext, Job
 
-from services.api.app.diabetes.services.db import Base, User as DbUser, Reminder, ReminderLog
+from services.api.app.config import settings
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 import services.api.app.diabetes.handlers.router as router
+from services.api.app.diabetes.services.db import (
+    Base,
+    Reminder,
+    ReminderLog,
+    User as DbUser,
+)
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.helpers import parse_time_interval
-from services.api.app.config import settings
+from services.api.app.routers.reminders import router as reminders_router
+from services.api.app.services import reminders
+from services.api.app.telegram_auth import require_tg_user
 
 
 class DummyMessage:
@@ -185,24 +196,34 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(handlers, "datetime", DummyDatetime)
     user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
-    rem = Reminder(telegram_id=1, type="sugar", interval_hours=2, is_enabled=True, user=user)
+    rem = Reminder(
+        telegram_id=1, type="sugar", interval_hours=2, is_enabled=True, user=user
+    )
     icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏱"
     assert schedule == "каждые 2 ч (next 12:00)"
 
 
-def test_schedule_with_next_invalid_timezone_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
+def test_schedule_with_next_invalid_timezone_logs_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Invalid/Zone")
-    rem = Reminder(telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user)
+    rem = Reminder(
+        telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user
+    )
     with caplog.at_level(logging.WARNING):
         icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏰"
     assert any("Invalid timezone" in r.message for r in caplog.records)
 
 
-def test_schedule_reminder_invalid_timezone_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
+def test_schedule_reminder_invalid_timezone_logs_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Bad/Zone")
-    rem = Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user)
+    rem = Reminder(
+        id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user
+    )
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with caplog.at_level(logging.WARNING):
         handlers.schedule_reminder(rem, job_queue)
@@ -233,7 +254,9 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add_all(
             [
-                Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True),
+                Reminder(
+                    id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True
+                ),
                 Reminder(
                     id=2,
                     telegram_id=1,
@@ -273,7 +296,9 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "webapp_url", None)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
+        session.add(
+            Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True)
+        )
         session.commit()
     with TestSession() as session:
         text, markup = handlers._render_reminders(session, 1)
@@ -341,7 +366,9 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
+        session.add(
+            Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True)
+        )
         session.commit()
 
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
@@ -448,6 +475,7 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     assert jobs[0].removed is True
     assert jobs[1].removed is False
 
+
 @pytest.mark.asyncio
 async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
@@ -543,3 +571,75 @@ async def test_reminder_callback_foreign_rid(monkeypatch: pytest.MonkeyPatch) ->
     assert query.edited is None
     with TestSession() as session:
         assert session.query(ReminderLog).count() == 0
+
+
+@pytest.fixture()
+def session_factory() -> Generator[sessionmaker, None, None]:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    try:
+        yield TestSession
+    finally:
+        engine.dispose()
+
+
+@pytest.fixture()
+def client(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> Generator[TestClient, None, None]:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    app = FastAPI()
+    app.include_router(reminders_router, prefix="/api")
+    app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    with TestClient(app) as test_client:
+        yield test_client
+
+
+def test_empty_returns_200(client: TestClient, session_factory: sessionmaker) -> None:
+    with session_factory() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+    resp = client.get("/api/reminders", params={"telegramId": 1})
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_nonempty_returns_list(
+    client: TestClient, session_factory: sessionmaker
+) -> None:
+    with session_factory() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time="08:00",
+                interval_hours=3,
+            )
+        )
+        session.commit()
+    resp = client.get("/api/reminders", params={"telegramId": 1})
+    assert resp.status_code == 200
+    assert resp.json() == [
+        {
+            "id": 1,
+            "type": "sugar",
+            "title": "sugar",
+            "time": "08:00",
+            "active": True,
+            "interval": 3,
+        }
+    ]
+
+
+def test_real_404(client: TestClient) -> None:
+    fastapi_app = cast(FastAPI, client.app)
+    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
+    resp = client.get("/api/reminders", params={"telegramId": 2})
+    assert resp.status_code == 404
