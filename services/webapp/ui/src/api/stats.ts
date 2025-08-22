@@ -1,4 +1,4 @@
-import { StatsApi } from '@offonika/diabetes-ts-sdk';
+import { DefaultApi } from '@offonika/diabetes-ts-sdk';
 import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
@@ -28,13 +28,13 @@ export const fallbackDayStats: DayStats = {
   insulin: 12,
 };
 
-const api = new StatsApi(
+const api = new DefaultApi(
   new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
 );
 
 export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint[]> {
   try {
-    const data = await api.analyticsGet({ telegramId });
+    const data = await api.getAnalyticsAnalyticsGet({ telegramId });
     if (!Array.isArray(data)) {
       console.error('Unexpected analytics API response:', data);
       return fallbackAnalytics;
@@ -48,7 +48,7 @@ export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint
 
 export async function fetchDayStats(telegramId: number): Promise<DayStats> {
   try {
-    const data = await api.statsGet({ telegramId });
+    const data = await api.getStatsStatsGet({ telegramId });
 
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
       console.error('Unexpected stats API response:', data);
