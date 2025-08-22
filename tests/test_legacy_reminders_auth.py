@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import logging
 import time
 import urllib.parse
 from collections.abc import Generator
@@ -88,11 +89,16 @@ def test_reminders_matching_id(client: TestClient) -> None:
     assert resp.status_code == 200
 
 
-def test_reminders_mismatched_id(client: TestClient) -> None:
+def test_reminders_mismatched_id(
+    client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
     init_data = build_init_data()
-    resp = client.get(
-        "/reminders",
-        params={"telegram_id": 2},
-        headers={"X-Telegram-Init-Data": init_data},
-    )
+    with caplog.at_level(logging.WARNING, logger="services.api.app.legacy"):
+        resp = client.get(
+            "/reminders",
+            params={"telegram_id": 2},
+            headers={"X-Telegram-Init-Data": init_data},
+        )
     assert resp.status_code == 403
+    assert "telegram_id=2" in caplog.text
+    assert "user_id=1" in caplog.text
