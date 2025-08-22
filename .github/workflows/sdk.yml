@@ -21,27 +21,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-      - name: Install generators
-        run: |
-          npm install -g openapi-typescript
-          pip install openapi-python-client
-      - name: Generate TypeScript SDK
-        run: |
-          rm -rf libs/ts-sdk
-          mkdir -p libs/ts-sdk
-          npx openapi-typescript libs/contracts/openapi.yaml --output libs/ts-sdk/index.ts
-      - name: Generate Python SDK
-        run: |
-          rm -rf libs/py-sdk
-          openapi-python-client generate --path libs/contracts/openapi.yaml --output-path libs/py-sdk --overwrite
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Generate SDKs
+        run: pnpm run generate:sdk
       - name: Commit SDKs
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 'chore: regenerate SDKs'
           file_pattern: |
-            libs/ts-sdk/index.ts
+            libs/ts-sdk/**
             libs/py-sdk/**
