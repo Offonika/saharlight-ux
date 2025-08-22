@@ -1,20 +1,20 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ResponseError } from '@sdk/runtime';
 
-const mockRemindersGet = vi.hoisted(() => vi.fn());
-const mockRemindersPost = vi.hoisted(() => vi.fn());
-const mockRemindersPatch = vi.hoisted(() => vi.fn());
-const mockRemindersDelete = vi.hoisted(() => vi.fn());
+const mockApiRemindersRemindersGet = vi.hoisted(() => vi.fn());
+const mockApiRemindersPostRemindersPost = vi.hoisted(() => vi.fn());
+const mockApiRemindersRemindersPatch = vi.hoisted(() => vi.fn());
+const mockApiRemindersRemindersDelete = vi.hoisted(() => vi.fn());
 const mockInstanceOfReminder = vi.hoisted(() => vi.fn());
 
 vi.mock(
   '@sdk',
   () => ({
     DefaultApi: vi.fn(() => ({
-      remindersGet: mockRemindersGet,
-      remindersPost: mockRemindersPost,
-      remindersPatch: mockRemindersPatch,
-      remindersDelete: mockRemindersDelete,
+      apiRemindersRemindersGet: mockApiRemindersRemindersGet,
+      apiRemindersPostRemindersPost: mockApiRemindersPostRemindersPost,
+      apiRemindersRemindersPatch: mockApiRemindersRemindersPatch,
+      apiRemindersRemindersDelete: mockApiRemindersRemindersDelete,
     })),
   }),
   { virtual: true },
@@ -37,21 +37,21 @@ import {
 } from './reminders';
 
 afterEach(() => {
-  mockRemindersGet.mockReset();
-  mockRemindersPost.mockReset();
-  mockRemindersPatch.mockReset();
-  mockRemindersDelete.mockReset();
+  mockApiRemindersRemindersGet.mockReset();
+  mockApiRemindersPostRemindersPost.mockReset();
+  mockApiRemindersRemindersPatch.mockReset();
+  mockApiRemindersRemindersDelete.mockReset();
   mockInstanceOfReminder.mockReset();
 });
 
 describe('getReminder', () => {
   it('throws on invalid API response', async () => {
-    mockRemindersGet.mockResolvedValueOnce([]);
+    mockApiRemindersRemindersGet.mockResolvedValueOnce([]);
     await expect(getReminder(1, 1)).rejects.toThrow('Некорректный ответ API');
   });
 
   it('returns null on 404 response', async () => {
-    mockRemindersGet.mockRejectedValueOnce(
+    mockApiRemindersRemindersGet.mockRejectedValueOnce(
       new ResponseError(new Response(null, { status: 404 })),
     );
     await expect(getReminder(1, 1)).resolves.toBeNull();
@@ -59,10 +59,10 @@ describe('getReminder', () => {
 
   it('passes signal to API', async () => {
     const controller = new AbortController();
-    mockRemindersGet.mockResolvedValueOnce({} as any);
+    mockApiRemindersRemindersGet.mockResolvedValueOnce({} as any);
     mockInstanceOfReminder.mockReturnValueOnce(true);
     await getReminder(1, 1, controller.signal);
-    expect(mockRemindersGet).toHaveBeenCalledWith(
+    expect(mockApiRemindersRemindersGet).toHaveBeenCalledWith(
       { telegramId: 1, id: 1 },
       { signal: controller.signal },
     );
@@ -71,7 +71,7 @@ describe('getReminder', () => {
   it('rethrows AbortError', async () => {
     const controller = new AbortController();
     const abortErr = new DOMException('Aborted', 'AbortError');
-    mockRemindersGet.mockRejectedValueOnce(abortErr);
+    mockApiRemindersRemindersGet.mockRejectedValueOnce(abortErr);
     await expect(getReminder(1, 1, controller.signal)).rejects.toBe(abortErr);
   });
 });
@@ -79,9 +79,9 @@ describe('getReminder', () => {
 describe('getReminders', () => {
   it('passes signal to API', async () => {
     const controller = new AbortController();
-    mockRemindersGet.mockResolvedValueOnce([]);
+    mockApiRemindersRemindersGet.mockResolvedValueOnce([]);
     await getReminders(1, controller.signal);
-    expect(mockRemindersGet).toHaveBeenCalledWith(
+    expect(mockApiRemindersRemindersGet).toHaveBeenCalledWith(
       { telegramId: 1 },
       { signal: controller.signal },
     );
@@ -90,7 +90,7 @@ describe('getReminders', () => {
   it('rethrows AbortError', async () => {
     const controller = new AbortController();
     const abortErr = new DOMException('Aborted', 'AbortError');
-    mockRemindersGet.mockRejectedValueOnce(abortErr);
+    mockApiRemindersRemindersGet.mockRejectedValueOnce(abortErr);
     await expect(getReminders(1, controller.signal)).rejects.toBe(abortErr);
   });
 });
@@ -99,14 +99,14 @@ describe('createReminder', () => {
   it('returns API response on success', async () => {
     const reminder = { id: 1 } as any;
     const apiResponse = { ok: true } as any;
-    mockRemindersPost.mockResolvedValueOnce(apiResponse);
+    mockApiRemindersPostRemindersPost.mockResolvedValueOnce(apiResponse);
     await expect(createReminder(reminder)).resolves.toBe(apiResponse);
-    expect(mockRemindersPost).toHaveBeenCalledWith({ reminder });
+    expect(mockApiRemindersPostRemindersPost).toHaveBeenCalledWith({ reminder });
   });
 
   it('rethrows API errors', async () => {
     const error = new Error('api error');
-    mockRemindersPost.mockRejectedValueOnce(error);
+    mockApiRemindersPostRemindersPost.mockRejectedValueOnce(error);
     await expect(createReminder({} as any)).rejects.toBe(error);
   });
 });
@@ -115,14 +115,14 @@ describe('updateReminder', () => {
   it('returns API response on success', async () => {
     const reminder = { id: 1 } as any;
     const apiResponse = { ok: true } as any;
-    mockRemindersPatch.mockResolvedValueOnce(apiResponse);
+    mockApiRemindersRemindersPatch.mockResolvedValueOnce(apiResponse);
     await expect(updateReminder(reminder)).resolves.toBe(apiResponse);
-    expect(mockRemindersPatch).toHaveBeenCalledWith({ reminder });
+    expect(mockApiRemindersRemindersPatch).toHaveBeenCalledWith({ reminder });
   });
 
   it('rethrows API errors', async () => {
     const error = new Error('api error');
-    mockRemindersPatch.mockRejectedValueOnce(error);
+    mockApiRemindersRemindersPatch.mockRejectedValueOnce(error);
     await expect(updateReminder({} as any)).rejects.toBe(error);
   });
 });
@@ -130,14 +130,14 @@ describe('updateReminder', () => {
 describe('deleteReminder', () => {
   it('returns API response on success', async () => {
     const apiResponse = { ok: true } as any;
-    mockRemindersDelete.mockResolvedValueOnce(apiResponse);
+    mockApiRemindersRemindersDelete.mockResolvedValueOnce(apiResponse);
     await expect(deleteReminder(1, 2)).resolves.toBe(apiResponse);
-    expect(mockRemindersDelete).toHaveBeenCalledWith({ telegramId: 1, id: 2 });
+    expect(mockApiRemindersRemindersDelete).toHaveBeenCalledWith({ telegramId: 1, id: 2 });
   });
 
   it('rethrows API errors', async () => {
     const error = new Error('api error');
-    mockRemindersDelete.mockRejectedValueOnce(error);
+    mockApiRemindersRemindersDelete.mockRejectedValueOnce(error);
     await expect(deleteReminder(1, 2)).rejects.toBe(error);
   });
 });

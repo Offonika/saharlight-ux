@@ -13,7 +13,7 @@ export async function getReminders(
   signal?: AbortSignal,
 ): Promise<Reminder[]> {
   try {
-    const data = await api.remindersGet({ telegramId }, { signal });
+    const data = await api.apiRemindersRemindersGet({ telegramId }, { signal });
 
     if (!data) {
       return [];
@@ -43,7 +43,7 @@ export async function getReminder(
   signal?: AbortSignal,
 ): Promise<Reminder | null> {
   try {
-    const data = await api.remindersGet({ telegramId, id }, { signal });
+    const data = await api.apiRemindersRemindersGet({ telegramId, id }, { signal });
 
     if (!data || Array.isArray(data) || !instanceOfReminder(data)) {
       console.error('Unexpected reminder API response:', data);
@@ -68,7 +68,7 @@ export async function getReminder(
 
 export async function createReminder(reminder: Reminder) {
   try {
-    return await api.remindersPost({ reminder });
+    return await api.apiRemindersPostRemindersPost({ reminder });
   } catch (error) {
     console.error('Failed to create reminder:', error);
     if (error instanceof Error) {
@@ -80,7 +80,7 @@ export async function createReminder(reminder: Reminder) {
 
 export async function updateReminder(reminder: Reminder) {
   try {
-    return await api.remindersPatch({ reminder });
+    return await api.apiRemindersRemindersPatch({ reminder });
   } catch (error) {
     console.error('Failed to update reminder:', error);
     if (error instanceof Error) {
@@ -92,7 +92,7 @@ export async function updateReminder(reminder: Reminder) {
 
 export async function deleteReminder(telegramId: number, id: number) {
   try {
-    return await api.remindersDelete({ telegramId, id });
+    return await api.apiRemindersRemindersDelete({ telegramId, id });
   } catch (error) {
     console.error('Failed to delete reminder:', error);
     if (error instanceof Error) {
