@@ -1,5 +1,6 @@
 import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy.orm import Session
 
 from .services.audit import log_patient_access
 from .schemas.profile import ProfileSchema
@@ -8,6 +9,7 @@ from .schemas.user import UserContext
 from .services.profile import get_profile, save_profile
 from .services.reminders import list_reminders, save_reminder
 from .telegram_auth import require_tg_user
+from .diabetes.services.db import User as UserDB, run_db
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +63,9 @@ async def api_reminders(
     if tid is None:
         raise HTTPException(status_code=422, detail="telegramId is required")
     if tid != user["id"]:
-        request_id = request.headers.get("X-Request-ID") or request.headers.get("X-Request-Id")
+        request_id = request.headers.get("X-Request-ID") or request.headers.get(
+            "X-Request-Id"
+        )
         logger.warning(
             "request_id=%s telegramId=%s does not match user_id=%s",
             request_id,
@@ -70,6 +74,13 @@ async def api_reminders(
         )
         raise HTTPException(status_code=403)
     log_patient_access(getattr(request.state, "user_id", None), tid)
+
+    def _user_exists(session: Session) -> bool:
+        return session.get(UserDB, tid) is not None
+
+    if not await run_db(_user_exists):
+        raise HTTPException(status_code=404, detail="user not found")
+
     rems = await list_reminders(tid)
     if id is None:
         return [
@@ -93,7 +104,7 @@ async def api_reminders(
                 "active": r.is_enabled,
                 "interval": r.interval_hours,
             }
-    return {}
+    raise HTTPException(status_code=404, detail="reminder not found")
 
 
 @router.post("/reminders", dependencies=[Depends(require_tg_user)])
