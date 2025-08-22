@@ -81,7 +81,9 @@ paths:
           title: X-Telegram-Init-Data
       responses:
         '200':
-          description: Successful Response. Returns an array of reminders.
+          description: >-
+            Successful Response. Returns an array of reminders.
+            An empty array is returned when no reminders exist.
           content:
             application/json:
               schema:
@@ -89,8 +91,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/ReminderSchema'
                 title: Response Api Reminders Reminders Get
-        '204':
-          description: No Content - no reminders found.
+                default: []
         '422':
           description: Validation Error
           content:
@@ -240,11 +241,13 @@ paths:
           title: X-Telegram-Init-Data
       responses:
         '200':
-          description: Successful Response
+          description: Successful Response. Returns statistics for the day.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/DayStats'
+        '204':
+          description: No Content - no statistics available.
         '422':
           description: Validation Error
           content:

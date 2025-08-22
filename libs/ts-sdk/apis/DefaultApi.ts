@@ -201,16 +201,9 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Api Reminders
      */
-    async apiRemindersRemindersGet(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReminderSchema> | null | undefined > {
+    async apiRemindersRemindersGet(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReminderSchema>> {
         const response = await this.apiRemindersRemindersGetRaw(requestParameters, initOverrides);
-        switch (response.raw.status) {
-            case 200:
-                return await response.value();
-            case 204:
-                return null;
-            default:
-                return await response.value();
-        }
+        return await response.value();
     }
 
     /**
@@ -419,9 +412,16 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Get Stats
      */
-    async getStatsStatsGet(requestParameters: GetStatsStatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DayStats> {
+    async getStatsStatsGet(requestParameters: GetStatsStatsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DayStats | null | undefined > {
         const response = await this.getStatsStatsGetRaw(requestParameters, initOverrides);
-        return await response.value();
+        switch (response.raw.status) {
+            case 200:
+                return await response.value();
+            case 204:
+                return null;
+            default:
+                return await response.value();
+        }
     }
 
     /**
