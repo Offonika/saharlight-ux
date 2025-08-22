@@ -157,6 +157,18 @@ pnpm --filter vite_react_shadcn_ts run build
 
 Это пересобирает фронтенд, чтобы изменения SDK попали в бандл UI.
 
+### Использование SDK
+
+Сгенерированный TypeScript SDK доступен как workspace‑пакет
+`@offonika/diabetes-ts-sdk`, поэтому алиас пути не требуется.
+
+```ts
+import { Configuration, ProfilesApi } from '@offonika/diabetes-ts-sdk';
+
+const api = new ProfilesApi(new Configuration({ basePath: '/api' }));
+const profile = await api.profilesGet({ telegramId: 123 });
+```
+
 ## Сервисный запуск
 
 В каталоге `docs/deploy/` лежат примерные конфигурации для запуска приложения как службы.
