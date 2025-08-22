@@ -86,13 +86,13 @@ export function ProfileSchemaFromJSONTyped(json: any, ignoreDiscriminator: boole
     }
     return {
         
-        'telegramId': json['telegram_id'],
+        'telegramId': json['telegramId'],
         'icr': json['icr'],
         'cf': json['cf'],
         'target': json['target'],
         'low': json['low'],
         'high': json['high'],
-        'orgId': json['org_id'] == null ? undefined : json['org_id'],
+        'orgId': json['orgId'] == null ? undefined : json['orgId'],
     };
 }
 
@@ -107,13 +107,13 @@ export function ProfileSchemaToJSONTyped(value?: ProfileSchema | null, ignoreDis
 
     return {
         
-        'telegram_id': value['telegramId'],
+        'telegramId': value['telegramId'],
         'icr': value['icr'],
         'cf': value['cf'],
         'target': value['target'],
         'low': value['low'],
         'high': value['high'],
-        'org_id': value['orgId'],
+        'orgId': value['orgId'],
     };
 }
 

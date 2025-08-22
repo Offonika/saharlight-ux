@@ -5,9 +5,7 @@ from pathlib import Path
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-if (
-    __name__ == "__main__" and __package__ is None
-):  # pragma: no cover - setup for direct execution
+if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup for direct execution
     # Ensure repository root is the first entry so that the correct `services`
     # package is imported when running this file directly.  There is another
     # third-party package named ``services`` installed in the environment which
@@ -19,7 +17,7 @@ if (
 from fastapi import Depends, FastAPI, HTTPException, Query
 
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import AliasChoices, BaseModel, Field
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -55,7 +53,7 @@ class Timezone(BaseModel):
 
 
 class WebUser(BaseModel):
-    telegram_id: int
+    telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
 
 
 class DayStats(BaseModel):
@@ -96,9 +94,7 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
 
 
 @app.put("/timezone")
-async def put_timezone(
-    data: Timezone, _: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     try:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
@@ -179,13 +175,13 @@ async def create_user(
 ) -> dict[str, str]:
     """Ensure a user exists in the database."""
 
-    if data.telegram_id != user["id"]:
+    if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
 
     def _create_user(session: Session) -> None:
-        db_user = session.get(UserDB, data.telegram_id)
+        db_user = session.get(UserDB, data.telegramId)
         if db_user is None:
-            session.add(UserDB(telegram_id=data.telegram_id, thread_id="webapp"))
+            session.add(UserDB(telegram_id=data.telegramId, thread_id="webapp"))
         if not commit(session):
             raise HTTPException(status_code=500, detail="db commit failed")
 
@@ -210,9 +206,7 @@ async def put_role(user_id: int, data: RoleSchema) -> RoleSchema:
 
 
 @app.post("/history")
-async def post_history(
-    data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     """Save or update a history record in the database."""
     validated_type = _validate_history_type(data.type)
 
@@ -275,9 +269,7 @@ async def get_history(
     result: list[HistoryRecordSchema] = []
     for r in records:
         if r.type not in ALLOWED_HISTORY_TYPES:
-            logger.warning(
-                "Skipping history record %s with invalid type %s", r.id, r.type
-            )
+            logger.warning("Skipping history record %s with invalid type %s", r.id, r.type)
             continue
         result.append(
             HistoryRecordSchema(
@@ -296,9 +288,7 @@ async def get_history(
 
 
 @app.delete("/history/{record_id}")
-async def delete_history(
-    record_id: str, user: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def delete_history(record_id: str, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     """Delete a history record after verifying ownership."""
 
     def _get_record(session: Session) -> HistoryRecordDB | None:

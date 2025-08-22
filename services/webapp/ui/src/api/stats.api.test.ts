@@ -25,6 +25,7 @@ describe('fetchAnalytics', () => {
       new Response(JSON.stringify(analytics)),
     );
     await expect(fetchAnalytics(1)).resolves.toEqual(analytics);
+    expect(mockTgFetch).toHaveBeenCalledWith('/api/analytics?telegramId=1');
   });
 
   it('returns fallback on invalid response', async () => {
@@ -45,6 +46,7 @@ describe('fetchDayStats', () => {
     const stats = { sugar: 5.7, breadUnits: 3, insulin: 10 };
     mockTgFetch.mockResolvedValueOnce(new Response(JSON.stringify(stats)));
     await expect(fetchDayStats(1)).resolves.toEqual(stats);
+    expect(mockTgFetch).toHaveBeenCalledWith('/api/stats?telegramId=1');
   });
 
   it('returns fallback on invalid response', async () => {

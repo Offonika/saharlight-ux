@@ -33,7 +33,7 @@ paths:
       summary: Profiles Get
       operationId: profiles_get_profiles_get
       parameters:
-      - name: telegram_id
+      - name: telegramId
         in: query
         required: true
         schema:
@@ -57,7 +57,7 @@ paths:
       summary: Api Reminders
       operationId: api_reminders_reminders_get
       parameters:
-      - name: telegram_id
+      - name: telegramId
         in: query
         required: true
         schema:
@@ -572,7 +572,7 @@ components:
       description: Schema for user history records.
     ProfileSchema:
       properties:
-        telegram_id:
+        telegramId:
           type: integer
           title: Telegram Id
         icr:
@@ -590,14 +590,14 @@ components:
         high:
           type: number
           title: High
-        org_id:
+        orgId:
           anyOf:
           - type: integer
           - type: 'null'
           title: Org Id
       type: object
       required:
-      - telegram_id
+      - telegramId
       - icr
       - cf
       - target
@@ -606,7 +606,7 @@ components:
       title: ProfileSchema
     ReminderSchema:
       properties:
-        telegram_id:
+        telegramId:
           type: integer
           title: Telegram Id
         id:
@@ -622,28 +622,28 @@ components:
           - type: string
           - type: 'null'
           title: Time
-        interval_hours:
+        intervalHours:
           anyOf:
           - type: integer
           - type: 'null'
           title: Interval Hours
-        minutes_after:
+        minutesAfter:
           anyOf:
           - type: integer
           - type: 'null'
           title: Minutes After
-        is_enabled:
+        isEnabled:
           type: boolean
           title: Is Enabled
           default: true
-        org_id:
+        orgId:
           anyOf:
           - type: integer
           - type: 'null'
           title: Org Id
       type: object
       required:
-      - telegram_id
+      - telegramId
       - type
       title: ReminderSchema
     Timezone:
@@ -703,10 +703,10 @@ components:
       title: ValidationError
     WebUser:
       properties:
-        telegram_id:
+        telegramId:
           type: integer
           title: Telegram Id
       type: object
       required:
-      - telegram_id
+      - telegramId
       title: WebUser

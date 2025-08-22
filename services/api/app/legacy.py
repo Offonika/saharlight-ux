@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from .services.audit import log_patient_access
 from .schemas.profile import ProfileSchema
@@ -21,8 +21,14 @@ async def profiles_post(data: ProfileSchema) -> dict[str, str]:
 
 
 @router.get("/profiles")
-async def profiles_get(telegram_id: int) -> ProfileSchema:
-    profile = await get_profile(telegram_id)
+async def profiles_get(
+    telegramId: int | None = Query(None),
+    telegram_id: int | None = Query(None, alias="telegram_id"),
+) -> ProfileSchema:
+    tid = telegramId or telegram_id
+    if tid is None:
+        raise HTTPException(status_code=422, detail="telegramId is required")
+    profile = await get_profile(tid)
     if profile is None:
         raise HTTPException(status_code=404, detail="profile not found")
 
@@ -33,36 +39,38 @@ async def profiles_get(telegram_id: int) -> ProfileSchema:
     high_threshold: float | None = profile.high_threshold
 
     return ProfileSchema(
-        telegram_id=profile.telegram_id,
+        telegramId=profile.telegram_id,
         icr=float(icr) if icr is not None else 0.0,
         cf=float(cf) if cf is not None else 0.0,
         target=float(target_bg) if target_bg is not None else 0.0,
         low=float(low_threshold) if low_threshold is not None else 0.0,
         high=float(high_threshold) if high_threshold is not None else 0.0,
-        org_id=profile.org_id,
+        orgId=profile.org_id,
     )
 
 
 @router.get("/reminders")
 async def api_reminders(
-    telegram_id: int,
     request: Request,
+    telegramId: int | None = Query(None),
+    telegram_id: int | None = Query(None, alias="telegram_id"),
     id: int | None = None,
     user: UserContext = Depends(require_tg_user),
 ) -> list[dict[str, object]] | dict[str, object]:
-    if telegram_id != user["id"]:
-        request_id = request.headers.get("X-Request-ID") or request.headers.get(
-            "X-Request-Id"
-        )
+    tid = telegramId or telegram_id
+    if tid is None:
+        raise HTTPException(status_code=422, detail="telegramId is required")
+    if tid != user["id"]:
+        request_id = request.headers.get("X-Request-ID") or request.headers.get("X-Request-Id")
         logger.warning(
-            "request_id=%s telegram_id=%s does not match user_id=%s",
+            "request_id=%s telegramId=%s does not match user_id=%s",
             request_id,
-            telegram_id,
+            tid,
             user["id"],
         )
         raise HTTPException(status_code=403)
-    log_patient_access(getattr(request.state, "user_id", None), telegram_id)
-    rems = await list_reminders(telegram_id)
+    log_patient_access(getattr(request.state, "user_id", None), tid)
+    rems = await list_reminders(tid)
     if id is None:
         return [
             {
