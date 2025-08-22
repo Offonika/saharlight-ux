@@ -74,8 +74,6 @@ def test_require_role_logs_attempt(caplog: pytest.LogCaptureFixture) -> None:
 
     with TestClient(app) as client:
         caplog.set_level(logging.WARNING, logger="services.api.app.middleware.auth")
-        response = client.get(
-            "/admin", headers={"X-User-Id": "1", "X-Role": "patient"}
-        )
+        response = client.get("/admin", headers={"X-User-Id": "1", "X-Role": "patient"})
         assert response.status_code == 403
-    assert "Forbidden access for role 'patient'" in caplog.text
+    assert "Forbidden access for user 1 with role 'patient'" in caplog.text
