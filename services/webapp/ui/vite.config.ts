@@ -77,7 +77,6 @@ export default defineConfig(async ({ mode, command }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        '@sdk': path.resolve(__dirname, '../../../libs/ts-sdk'),
       },
     },
     server: { host: '::', port },

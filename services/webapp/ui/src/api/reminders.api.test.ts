@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ResponseError } from '@sdk/runtime';
+import { ResponseError } from '@offonika/diabetes-ts-sdk/runtime';
 
 const mockApiRemindersRemindersGet = vi.hoisted(() => vi.fn());
 const mockApiRemindersPostRemindersPost = vi.hoisted(() => vi.fn());
@@ -8,7 +8,7 @@ const mockApiRemindersRemindersDelete = vi.hoisted(() => vi.fn());
 const mockInstanceOfReminder = vi.hoisted(() => vi.fn());
 
 vi.mock(
-  '@sdk',
+  '@offonika/diabetes-ts-sdk',
   () => ({
     DefaultApi: vi.fn(() => ({
       apiRemindersRemindersGet: mockApiRemindersRemindersGet,
@@ -21,7 +21,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@sdk/models',
+  '@offonika/diabetes-ts-sdk/models',
   () => ({
     instanceOfReminder: mockInstanceOfReminder,
   }),

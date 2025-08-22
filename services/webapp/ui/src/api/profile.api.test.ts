@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ResponseError } from '@sdk/runtime';
-import type { Profile } from '@sdk/models';
+import { ResponseError } from '@offonika/diabetes-ts-sdk/runtime';
+import type { Profile } from '@offonika/diabetes-ts-sdk/models';
 
 const mockProfilesGet = vi.hoisted(() => vi.fn());
 const mockProfilesPost = vi.hoisted(() => vi.fn());
 
-vi.mock('@sdk', () => ({
+vi.mock('@offonika/diabetes-ts-sdk', () => ({
   DefaultApi: vi.fn(() => ({
     profilesGet: mockProfilesGet,
     profilesPost: mockProfilesPost,

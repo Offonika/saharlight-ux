@@ -1,9 +1,9 @@
-import { DefaultApi } from '@sdk';
-import { Configuration, ResponseError } from '@sdk/runtime';
+import { DefaultApi } from '@offonika/diabetes-ts-sdk';
+import { Configuration, ResponseError } from '@offonika/diabetes-ts-sdk/runtime';
 import {
   instanceOfReminderSchema as instanceOfReminder,
   type ReminderSchema as Reminder,
-} from '@sdk/models';
+} from '@offonika/diabetes-ts-sdk/models';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 
