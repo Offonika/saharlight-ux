@@ -23,6 +23,12 @@ def create_app() -> FastAPI:
     async def whoami(request: Request) -> dict[str, int | str]:
         return {"user_id": request.state.user_id, "role": request.state.role}
 
+    @app.get("/api/reminders")
+    async def reminders(request: Request) -> dict[str, str]:
+        if request.headers.get(TG_INIT_DATA_HEADER) or request.state.role == "doctor":
+            return {"status": "ok"}
+        raise HTTPException(status_code=403)
+
     return app
 
 
@@ -111,3 +117,45 @@ def test_telegram_init_data_header(monkeypatch: pytest.MonkeyPatch) -> None:
         response = client.get("/whoami", headers={TG_INIT_DATA_HEADER: init_data})
         assert response.status_code == 200
         assert response.json() == {"user_id": 123, "role": "patient"}
+
+
+def test_reminders_with_init_data(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    app = create_app()
+    init_data = build_init_data(1)
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/reminders",
+            headers={TG_INIT_DATA_HEADER: init_data},
+        )
+        assert response.status_code in (200, 204)
+
+
+def test_reminders_with_doctor_role(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        auth_module,
+        "ALLOWED_ROLES",
+        auth_module.ALLOWED_ROLES | {"doctor"},  # type: ignore[attr-defined]
+        raising=False,
+    )
+    app = create_app()
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/reminders",
+            headers={"X-User-Id": "1", "X-Role": "doctor"},
+        )
+        assert response.status_code in (200, 204)
+
+
+def test_reminders_missing_role(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_get_user_role(_user_id: int) -> str | None:
+        return None
+
+    monkeypatch.setattr(auth_module, "get_user_role", fake_get_user_role)
+    app = create_app()
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/reminders",
+            headers={"X-User-Id": "1"},
+        )
+        assert response.status_code == 403

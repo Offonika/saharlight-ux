@@ -16,6 +16,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
+        role: str | None = None
+        user_id: int | None = None
         tg_init_data = request.headers.get(TG_INIT_DATA_HEADER)
         if tg_init_data is not None:
             token: str | None = os.getenv("TELEGRAM_TOKEN") or settings.telegram_token
@@ -53,11 +55,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
             role_header = request.headers.get("X-Role")
             if role_header is None:
-                role_db = await get_user_role(user_id)
-                role = role_db or "patient"
+                role = await get_user_role(user_id)
             else:
                 role = role_header
-            if role not in ALLOWED_ROLES:
+            if (role or "patient") not in ALLOWED_ROLES:
                 logger.warning(
                     "Invalid X-Role %r for request %s %s",
                     role,
@@ -67,7 +68,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 raise HTTPException(status_code=401, detail="invalid role")
 
         request.state.user_id = user_id
-        request.state.role = role
+        request.state.role = role or "patient"
         response = await call_next(request)
         return response
 
