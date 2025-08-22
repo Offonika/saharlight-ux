@@ -88,14 +88,14 @@ export function ReminderSchemaFromJSONTyped(json: any, ignoreDiscriminator: bool
     }
     return {
         
-        'telegramId': json['telegram_id'],
+        'telegramId': json['telegramId'],
         'id': json['id'] == null ? undefined : json['id'],
         'type': json['type'],
         'time': json['time'] == null ? undefined : json['time'],
-        'intervalHours': json['interval_hours'] == null ? undefined : json['interval_hours'],
-        'minutesAfter': json['minutes_after'] == null ? undefined : json['minutes_after'],
-        'isEnabled': json['is_enabled'] == null ? undefined : json['is_enabled'],
-        'orgId': json['org_id'] == null ? undefined : json['org_id'],
+        'intervalHours': json['intervalHours'] == null ? undefined : json['intervalHours'],
+        'minutesAfter': json['minutesAfter'] == null ? undefined : json['minutesAfter'],
+        'isEnabled': json['isEnabled'] == null ? undefined : json['isEnabled'],
+        'orgId': json['orgId'] == null ? undefined : json['orgId'],
     };
 }
 
@@ -110,14 +110,14 @@ export function ReminderSchemaToJSONTyped(value?: ReminderSchema | null, ignoreD
 
     return {
         
-        'telegram_id': value['telegramId'],
+        'telegramId': value['telegramId'],
         'id': value['id'],
         'type': value['type'],
         'time': value['time'],
-        'interval_hours': value['intervalHours'],
-        'minutes_after': value['minutesAfter'],
-        'is_enabled': value['isEnabled'],
-        'org_id': value['orgId'],
+        'intervalHours': value['intervalHours'],
+        'minutesAfter': value['minutesAfter'],
+        'isEnabled': value['isEnabled'],
+        'orgId': value['orgId'],
     };
 }
 

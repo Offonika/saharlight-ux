@@ -21,17 +21,13 @@ def session_factory() -> Generator[sessionmaker, None, None]:
 
 
 @pytest.mark.asyncio
-async def test_save_and_list_reminder(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
-) -> None:
+async def test_save_and_list_reminder(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
 
-    rem_id = await reminders.save_reminder(
-        ReminderSchema(telegram_id=1, type="sugar", time="08:00", org_id=42)
-    )
+    rem_id = await reminders.save_reminder(ReminderSchema(telegramId=1, type="sugar", time="08:00", orgId=42))
     assert rem_id > 0
 
     reminders_list = await reminders.list_reminders(1)
@@ -43,10 +39,10 @@ async def test_save_and_list_reminder(
     await reminders.save_reminder(
         ReminderSchema(
             id=rem_id,
-            telegram_id=1,
+            telegramId=1,
             type="meal",
             time="09:00",
-            is_enabled=False,
+            isEnabled=False,
         )
     )
     updated = await reminders.list_reminders(1)
@@ -69,6 +65,6 @@ async def test_save_reminder_not_found_or_wrong_user(
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
 
-    schema = ReminderSchema(id=rem_id, telegram_id=telegram_id, type="sugar")
+    schema = ReminderSchema(id=rem_id, telegramId=telegram_id, type="sugar")
     with pytest.raises(HTTPException):
         await reminders.save_reminder(schema)

@@ -24,14 +24,7 @@ async def set_timezone(telegram_id: int, tz: str) -> None:
 
 def _validate_profile(data: ProfileSchema) -> None:
     """Validate business rules for a patient profile."""
-    if (
-        data.icr <= 0
-        or data.cf <= 0
-        or data.target <= 0
-        or data.low <= 0
-        or data.high <= 0
-        or data.low >= data.high
-    ):
+    if data.icr <= 0 or data.cf <= 0 or data.target <= 0 or data.low <= 0 or data.high <= 0 or data.low >= data.high:
         raise ValueError("invalid profile values")
 
     if not (data.low < data.target < data.high):
@@ -42,12 +35,12 @@ async def save_profile(data: ProfileSchema) -> None:
     _validate_profile(data)
 
     def _save(session: Session) -> None:
-        profile = session.get(Profile, data.telegram_id)
+        profile = session.get(Profile, data.telegramId)
         if profile is None:
-            profile = Profile(telegram_id=data.telegram_id)
+            profile = Profile(telegram_id=data.telegramId)
             session.add(profile)
-        if data.org_id is not None:
-            profile.org_id = data.org_id
+        if data.orgId is not None:
+            profile.org_id = data.orgId
         profile.icr = data.icr
         profile.cf = data.cf
         profile.target_bg = data.target

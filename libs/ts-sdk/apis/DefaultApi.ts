@@ -175,7 +175,7 @@ export class DefaultApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         if (requestParameters['telegramId'] != null) {
-            queryParameters['telegram_id'] = requestParameters['telegramId'];
+            queryParameters['telegramId'] = requestParameters['telegramId'];
         }
 
         if (requestParameters['id'] != null) {
@@ -545,7 +545,7 @@ export class DefaultApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         if (requestParameters['telegramId'] != null) {
-            queryParameters['telegram_id'] = requestParameters['telegramId'];
+            queryParameters['telegramId'] = requestParameters['telegramId'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

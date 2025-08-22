@@ -45,7 +45,7 @@ export function WebUserFromJSONTyped(json: any, ignoreDiscriminator: boolean): W
     }
     return {
         
-        'telegramId': json['telegram_id'],
+        'telegramId': json['telegramId'],
     };
 }
 
@@ -60,7 +60,7 @@ export function WebUserToJSONTyped(value?: WebUser | null, ignoreDiscriminator: 
 
     return {
         
-        'telegram_id': value['telegramId'],
+        'telegramId': value['telegramId'],
     };
 }
 

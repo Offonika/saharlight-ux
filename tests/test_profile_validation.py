@@ -8,7 +8,7 @@ from services.api.app.services.profile import _validate_profile
 
 def test_validate_profile_allows_target_between_limits() -> None:
     data = ProfileSchema(
-        telegram_id=1,
+        telegramId=1,
         icr=1.0,
         cf=1.0,
         target=5.0,
@@ -21,7 +21,7 @@ def test_validate_profile_allows_target_between_limits() -> None:
 @pytest.mark.parametrize("target", [3.0, 8.0])
 def test_validate_profile_rejects_target_outside_limits(target: Any) -> None:
     data = ProfileSchema(
-        telegram_id=1,
+        telegramId=1,
         icr=1.0,
         cf=1.0,
         target=target,

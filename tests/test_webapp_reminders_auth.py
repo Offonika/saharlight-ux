@@ -59,7 +59,7 @@ def test_reminders_authorized_without_role(client: TestClient) -> None:
     init_data = build_init_data()
     resp = client.get(
         "/reminders",
-        params={"telegram_id": 1},
+        params={"telegramId": 1},
         headers={TG_INIT_DATA_HEADER: init_data},
     )
     assert resp.status_code == 200

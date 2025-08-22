@@ -261,7 +261,7 @@ export interface components {
         /** ProfileSchema */
         ProfileSchema: {
             /** Telegram Id */
-            telegram_id: number;
+            telegramId: number;
             /** Icr */
             icr: number;
             /** Cf */
@@ -273,12 +273,12 @@ export interface components {
             /** High */
             high: number;
             /** Org Id */
-            org_id?: number | null;
+            orgId?: number | null;
         };
         /** ReminderSchema */
         ReminderSchema: {
             /** Telegram Id */
-            telegram_id: number;
+            telegramId: number;
             /** Id */
             id?: number | null;
             /** Type */
@@ -286,16 +286,16 @@ export interface components {
             /** Time */
             time?: string | null;
             /** Interval Hours */
-            interval_hours?: number | null;
+            intervalHours?: number | null;
             /** Minutes After */
-            minutes_after?: number | null;
+            minutesAfter?: number | null;
             /**
              * Is Enabled
              * @default true
              */
-            is_enabled: boolean;
+            isEnabled: boolean;
             /** Org Id */
-            org_id?: number | null;
+            orgId?: number | null;
         };
         /** Timezone */
         Timezone: {
@@ -332,7 +332,7 @@ export interface components {
         /** WebUser */
         WebUser: {
             /** Telegram Id */
-            telegram_id: number;
+            telegramId: number;
         };
     };
     responses: never;
@@ -346,7 +346,7 @@ export interface operations {
     profiles_get_profiles_get: {
         parameters: {
             query: {
-                telegram_id: number;
+                telegramId: number;
             };
             header?: never;
             path?: never;
@@ -412,7 +412,7 @@ export interface operations {
     api_reminders_reminders_get: {
         parameters: {
             query: {
-                telegram_id: number;
+                telegramId: number;
                 id?: number | null;
             };
             header?: {

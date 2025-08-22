@@ -59,7 +59,7 @@ def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
     init_data = build_init_data()
     resp_post = client.post(
         "/reminders",
-        json={"telegram_id": 1, "type": "sugar"},
+        json={"telegramId": 1, "type": "sugar"},
         headers={"X-Telegram-Init-Data": init_data},
     )
     assert resp_post.status_code == 200
@@ -67,7 +67,7 @@ def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
 
     resp_get = client.get(
         "/reminders",
-        params={"telegram_id": 1},
+        params={"telegramId": 1},
         headers={"X-Telegram-Init-Data": init_data},
     )
     assert resp_get.status_code == 200
@@ -75,7 +75,7 @@ def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
 
 
 def test_reminders_missing_auth(client: TestClient) -> None:
-    resp = client.get("/reminders", params={"telegram_id": 1})
+    resp = client.get("/reminders", params={"telegramId": 1})
     assert resp.status_code == 401
 
 
@@ -83,28 +83,23 @@ def test_reminders_matching_id(client: TestClient) -> None:
     init_data = build_init_data()
     resp = client.get(
         "/reminders",
-        params={"telegram_id": 1},
+        params={"telegramId": 1},
         headers={"X-Telegram-Init-Data": init_data},
     )
     assert resp.status_code == 200
 
 
-def test_reminders_mismatched_id(
-    client: TestClient, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_reminders_mismatched_id(client: TestClient, caplog: pytest.LogCaptureFixture) -> None:
     init_data = build_init_data()
     request_id = "req-1"
     with caplog.at_level(logging.WARNING, logger="services.api.app.legacy"):
         resp = client.get(
             "/reminders",
-            params={"telegram_id": 2},
+            params={"telegramId": 2},
             headers={
                 "X-Telegram-Init-Data": init_data,
                 "X-Request-ID": request_id,
             },
         )
     assert resp.status_code == 403
-    assert (
-        f"request_id={request_id} telegram_id=2 does not match user_id=1"
-        in caplog.text
-    )
+    assert f"request_id={request_id} telegramId=2 does not match user_id=1" in caplog.text

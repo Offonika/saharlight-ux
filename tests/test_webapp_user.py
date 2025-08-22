@@ -52,7 +52,7 @@ def test_create_user_authorized(monkeypatch: pytest.MonkeyPatch) -> None:
     with TestClient(server.app) as client:
         resp = client.post(
             "/user",
-            json={"telegram_id": 42},
+            json={"telegramId": 42},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
     assert resp.status_code == 200
@@ -70,7 +70,7 @@ def test_create_user_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
     with TestClient(server.app) as client:
         resp = client.post(
             "/user",
-            json={"telegram_id": 42},
+            json={"telegramId": 42},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
     assert resp.status_code == 403

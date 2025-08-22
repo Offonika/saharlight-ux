@@ -20,18 +20,18 @@ async def save_reminder(data: ReminderSchema) -> int:
     def _save(session: Session) -> int:
         if data.id is not None:
             rem = session.get(Reminder, data.id)
-            if rem is None or rem.telegram_id != data.telegram_id:
+            if rem is None or rem.telegram_id != data.telegramId:
                 raise HTTPException(status_code=404, detail="reminder not found")
         else:
-            rem = Reminder(telegram_id=data.telegram_id)
+            rem = Reminder(telegram_id=data.telegramId)
             session.add(rem)
-        if data.org_id is not None:
-            rem.org_id = data.org_id
+        if data.orgId is not None:
+            rem.org_id = data.orgId
         rem.type = data.type
         rem.time = data.time
-        rem.interval_hours = data.interval_hours
-        rem.minutes_after = data.minutes_after
-        rem.is_enabled = data.is_enabled
+        rem.interval_hours = data.intervalHours
+        rem.minutes_after = data.minutesAfter
+        rem.is_enabled = data.isEnabled
         session.commit()
         session.refresh(rem)
         return rem.id
