@@ -2,6 +2,7 @@ from ..diabetes.services.db import init_db
 
 from .profile import save_profile, set_timezone
 from .reminders import list_reminders, save_reminder
+from .stats import get_day_stats
 
 __all__ = [
     "init_db",
@@ -9,4 +10,5 @@ __all__ = [
     "save_profile",
     "list_reminders",
     "save_reminder",
+    "get_day_stats",
 ]

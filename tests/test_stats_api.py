@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 
 from services.api.app.config import settings
 from services.api.app.main import app
+from services.api.app.schemas.stats import DayStats
+from services.api.app.routers import stats as stats_router
 from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 TOKEN = "test-token"
@@ -27,8 +29,13 @@ def test_stats_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data = build_init_data(42)
     with TestClient(app) as client:
+        async def fake_get_day_stats(_: int) -> DayStats:
+            return DayStats(sugar=5.7, breadUnits=3, insulin=10)
+
+        monkeypatch.setattr(stats_router, "get_day_stats", fake_get_day_stats)
+
         resp = client.get(
-            "/stats",
+            "/api/stats",
             params={"telegramId": 42},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
@@ -39,7 +46,7 @@ def test_stats_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_stats_missing_header() -> None:
     with TestClient(app) as client:
-        resp = client.get("/stats", params={"telegramId": 1})
+        resp = client.get("/api/stats", params={"telegramId": 1})
     assert resp.status_code == 401
 
 
@@ -48,7 +55,7 @@ def test_stats_mismatched_id(monkeypatch: pytest.MonkeyPatch) -> None:
     init_data = build_init_data(1)
     with TestClient(app) as client:
         resp = client.get(
-            "/stats",
+            "/api/stats",
             params={"telegramId": 2},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
@@ -60,7 +67,7 @@ def test_analytics_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     init_data = build_init_data(7)
     with TestClient(app) as client:
         resp = client.get(
-            "/analytics",
+            "/api/analytics",
             params={"telegramId": 7},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
@@ -68,3 +75,21 @@ def test_analytics_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     body = resp.json()
     assert isinstance(body, list)
     assert body and body[0].get("date")
+
+
+def test_stats_no_data(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data = build_init_data(5)
+
+    async def fake_get_day_stats(_: int) -> DayStats | None:
+        return None
+
+    monkeypatch.setattr(stats_router, "get_day_stats", fake_get_day_stats)
+
+    with TestClient(app) as client:
+        resp = client.get(
+            "/api/stats",
+            params={"telegramId": 5},
+            headers={TG_INIT_DATA_HEADER: init_data},
+        )
+    assert resp.status_code == 204

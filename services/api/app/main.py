@@ -14,7 +14,7 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover - setup f
     __package__ = "services.api.app"
 
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException
 
 from fastapi.responses import FileResponse
 from pydantic import AliasChoices, BaseModel, Field
@@ -30,7 +30,8 @@ from .diabetes.services.db import (
 from .schemas.role import RoleSchema
 from .services.user_roles import get_user_role, set_user_role
 from .diabetes.services.repository import commit
-from .legacy import router
+from .legacy import router as legacy_router
+from .routers.stats import router as stats_router
 from .schemas.history import ALLOWED_HISTORY_TYPES, HistoryRecordSchema, HistoryType
 from .schemas.user import UserContext
 from .telegram_auth import require_tg_user
@@ -38,7 +39,8 @@ from .telegram_auth import require_tg_user
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0")
-app.include_router(router)
+app.include_router(legacy_router, prefix="/api")
+app.include_router(stats_router, prefix="/api")
 
 BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
 UI_DIR = BASE_DIR / "ui" / "dist"
@@ -56,15 +58,6 @@ class WebUser(BaseModel):
     telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
 
 
-class DayStats(BaseModel):
-    sugar: float
-    breadUnits: float
-    insulin: float
-
-
-class AnalyticsPoint(BaseModel):
-    date: str
-    sugar: float
 
 
 def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
@@ -125,30 +118,6 @@ async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserCont
     return user
 
 
-@app.get("/stats")
-async def get_stats(
-    telegram_id: int = Query(alias="telegramId"),
-    user: UserContext = Depends(require_tg_user),
-) -> DayStats:
-    if telegram_id != user["id"]:
-        raise HTTPException(status_code=403, detail="telegram id mismatch")
-    return DayStats(sugar=5.7, breadUnits=3, insulin=10)
-
-
-@app.get("/analytics")
-async def get_analytics(
-    telegram_id: int = Query(alias="telegramId"),
-    user: UserContext = Depends(require_tg_user),
-) -> list[AnalyticsPoint]:
-    if telegram_id != user["id"]:
-        raise HTTPException(status_code=403, detail="telegram id mismatch")
-    return [
-        AnalyticsPoint(date="2024-01-01", sugar=5.5),
-        AnalyticsPoint(date="2024-01-02", sugar=6.1),
-        AnalyticsPoint(date="2024-01-03", sugar=5.8),
-        AnalyticsPoint(date="2024-01-04", sugar=6.0),
-        AnalyticsPoint(date="2024-01-05", sugar=5.4),
-    ]
 
 
 @app.get(f"{UI_BASE_URL}/{{full_path:path}}", include_in_schema=False)

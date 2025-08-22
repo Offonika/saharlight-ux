@@ -58,7 +58,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
 def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
     init_data = build_init_data()
     resp_post = client.post(
-        "/reminders",
+        "/api/reminders",
         json={"telegramId": 1, "type": "sugar"},
         headers={"X-Telegram-Init-Data": init_data},
     )
@@ -66,7 +66,7 @@ def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
     reminder_id = resp_post.json()["id"]
 
     resp_get = client.get(
-        "/reminders",
+        "/api/reminders",
         params={"telegramId": 1},
         headers={"X-Telegram-Init-Data": init_data},
     )
@@ -75,14 +75,14 @@ def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
 
 
 def test_reminders_missing_auth(client: TestClient) -> None:
-    resp = client.get("/reminders", params={"telegramId": 1})
+    resp = client.get("/api/reminders", params={"telegramId": 1})
     assert resp.status_code == 401
 
 
 def test_reminders_matching_id(client: TestClient) -> None:
     init_data = build_init_data()
     resp = client.get(
-        "/reminders",
+        "/api/reminders",
         params={"telegramId": 1},
         headers={"X-Telegram-Init-Data": init_data},
     )
@@ -99,7 +99,7 @@ def test_reminders_mismatched_id(
         logging.WARNING, logger="services.api.app.routers.reminders"
     ):
         resp = client.get(
-            "/reminders",
+            "/api/reminders",
             params={"telegramId": 2},
             headers={
                 "X-Telegram-Init-Data": init_data,
@@ -115,7 +115,7 @@ def test_reminders_mismatched_id(
 def test_reminders_invalid_telegram_id(client: TestClient) -> None:
     init_data = build_init_data(user_id=999)
     resp = client.get(
-        "/reminders",
+        "/api/reminders",
         params={"telegramId": 999},
         headers={"X-Telegram-Init-Data": init_data},
     )
