@@ -1,6 +1,9 @@
 {
-  "name": "ts-sdk",
+  "name": "@offonika/diabetes-ts-sdk",
   "version": "0.1.0",
-  "main": "apis/index.ts",
-  "types": "apis/index.ts"
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "generate": "openapi-generator-cli generate -i ../contracts/openapi.yaml -g typescript-fetch -o . -p useSingleRequestParameter=true"
+  }
 }

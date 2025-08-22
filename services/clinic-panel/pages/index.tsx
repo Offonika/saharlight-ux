@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { DefaultApi } from 'ts-sdk';
+import { DefaultApi } from '@offonika/diabetes-ts-sdk';
 
 export default function Home() {
   useEffect(() => {

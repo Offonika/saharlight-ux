@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ['ts-sdk'],
+  transpilePackages: ['@offonika/diabetes-ts-sdk'],
 };
 
 module.exports = nextConfig;
