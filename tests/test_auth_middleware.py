@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from services.api.app.config import settings
 from services.api.app.middleware.auth import AuthMiddleware, require_role
+import services.api.app.middleware.auth as auth_module
 from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 
@@ -25,7 +26,11 @@ def create_app() -> FastAPI:
     return app
 
 
-def test_valid_user_id_header() -> None:
+def test_valid_user_id_header(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_get_user_role(_user_id: int) -> str | None:
+        return None
+
+    monkeypatch.setattr(auth_module, "get_user_role", fake_get_user_role)
     app = create_app()
     with TestClient(app) as client:
         response = client.get("/whoami", headers={"X-User-Id": "123"})
