@@ -29,6 +29,8 @@ from .diabetes.services.db import (
     User as UserDB,
     run_db,
 )
+from .schemas.role import RoleSchema
+from .services.user_roles import get_user_role, set_user_role
 from .diabetes.services.repository import commit
 from .legacy import router
 from .schemas.history import ALLOWED_HISTORY_TYPES, HistoryRecordSchema, HistoryType
@@ -193,6 +195,18 @@ async def create_user(
         logger.exception("database error while creating user")
         raise HTTPException(status_code=500, detail="database error") from exc
     return {"status": "ok"}
+
+
+@app.get("/user/{user_id}/role")
+async def get_role(user_id: int) -> RoleSchema:
+    role = await get_user_role(user_id)
+    return RoleSchema(role=role or "patient")
+
+
+@app.put("/user/{user_id}/role")
+async def put_role(user_id: int, data: RoleSchema) -> RoleSchema:
+    await set_user_role(user_id, data.role)
+    return RoleSchema(role=data.role)
 
 
 @app.post("/history")

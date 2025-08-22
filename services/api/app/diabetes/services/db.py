@@ -140,6 +140,14 @@ class User(Base):
     )
 
 
+class UserRole(Base):
+    __tablename__ = "user_roles"
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id"), primary_key=True
+    )
+    role: Mapped[str] = mapped_column(String, nullable=False, default="patient")
+
+
 class Profile(Base):
     __tablename__ = "profiles"
     telegram_id: Mapped[int] = mapped_column(

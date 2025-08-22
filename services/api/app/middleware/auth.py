@@ -8,11 +8,9 @@ from starlette.responses import Response
 
 from ..config import settings
 from ..telegram_auth import TG_INIT_DATA_HEADER, parse_and_verify_init_data
+from ..services.user_roles import ALLOWED_ROLES, get_user_role
 
 logger = logging.getLogger(__name__)
-
-ALLOWED_ROLES = {"patient", "clinician", "org_admin", "superadmin"}
-
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(
@@ -53,7 +51,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 )
                 raise HTTPException(status_code=401, detail="invalid user id")
 
-            role = request.headers.get("X-Role", "patient")
+            role_header = request.headers.get("X-Role")
+            if role_header is None:
+                role_db = await get_user_role(user_id)
+                role = role_db or "patient"
+            else:
+                role = role_header
             if role not in ALLOWED_ROLES:
                 logger.warning(
                     "Invalid X-Role %r for request %s %s",
