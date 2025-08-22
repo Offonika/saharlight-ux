@@ -18,8 +18,9 @@ import re  # noqa: F401
 import json
 
 from pydantic import BaseModel, ConfigDict
-from typing import Any, ClassVar, Dict, List, Optional, Set
+from typing import Any, ClassVar, Dict, List, Optional
 from diabetes_sdk.models.validation_error import ValidationError
+from typing import Set
 from typing_extensions import Self
 
 class HTTPValidationError(BaseModel):

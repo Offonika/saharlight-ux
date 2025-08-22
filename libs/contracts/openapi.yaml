@@ -81,7 +81,9 @@ paths:
           title: X-Telegram-Init-Data
       responses:
         '200':
-          description: Successful Response
+          description: >-
+            Successful Response. Returns an array of reminders or an empty
+            array if none exist.
           content:
             application/json:
               schema:
