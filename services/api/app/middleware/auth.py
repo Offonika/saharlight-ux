@@ -50,12 +50,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
 def require_role(*roles: str) -> Callable[[Request], Awaitable[None]]:
     async def dependency(request: Request) -> None:
-        if getattr(request.state, "role", None) not in roles:
+        role = getattr(request.state, "role", None)
+        user_id = getattr(request.state, "user_id", None)
+        if role not in roles:
             logger.warning(
-                "Forbidden access for role %r to %s %s",
-                getattr(request.state, "role", None),
+                "Forbidden access for user %r with role %r to %s %s",
+                user_id,
+                role,
                 request.method,
                 request.url.path,
             )
             raise HTTPException(status_code=403, detail="forbidden")
+
     return dependency

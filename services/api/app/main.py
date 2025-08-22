@@ -133,6 +133,11 @@ async def get_stats(
     user: UserContext = Depends(require_tg_user),
 ) -> DayStats:
     if telegram_id != user["id"]:
+        logger.warning(
+            "Telegram id mismatch: user %s requested stats for %s",
+            user["id"],
+            telegram_id,
+        )
         raise HTTPException(status_code=403, detail="telegram id mismatch")
     return DayStats(sugar=5.7, breadUnits=3, insulin=10)
 
@@ -143,6 +148,11 @@ async def get_analytics(
     user: UserContext = Depends(require_tg_user),
 ) -> list[AnalyticsPoint]:
     if telegram_id != user["id"]:
+        logger.warning(
+            "Telegram id mismatch: user %s requested analytics for %s",
+            user["id"],
+            telegram_id,
+        )
         raise HTTPException(status_code=403, detail="telegram id mismatch")
     return [
         AnalyticsPoint(date="2024-01-01", sugar=5.5),
@@ -178,6 +188,11 @@ async def create_user(
     """Ensure a user exists in the database."""
 
     if data.telegram_id != user["id"]:
+        logger.warning(
+            "Telegram id mismatch: user %s attempted to create user %s",
+            user["id"],
+            data.telegram_id,
+        )
         raise HTTPException(status_code=403, detail="telegram id mismatch")
 
     def _create_user(session: Session) -> None:
@@ -206,6 +221,12 @@ async def post_history(
         obj = session.get(HistoryRecordDB, data.id)
         if obj:
             if obj.telegram_id != user["id"]:
+                logger.warning(
+                    "Forbidden history update: user %s attempted to modify record %s owned by %s",
+                    user["id"],
+                    data.id,
+                    obj.telegram_id,
+                )
                 raise HTTPException(status_code=403, detail="forbidden")
             obj.date = data.date.isoformat()
             obj.time = data.time.strftime("%H:%M")
@@ -294,6 +315,12 @@ async def delete_history(
     if record is None:
         raise HTTPException(status_code=404, detail="not found")
     if record.telegram_id != user["id"]:
+        logger.warning(
+            "Forbidden history delete: user %s attempted to delete record %s owned by %s",
+            user["id"],
+            record_id,
+            record.telegram_id,
+        )
         raise HTTPException(status_code=403, detail="forbidden")
 
     def _delete_record(session: Session) -> None:

@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import logging
 import time
 import urllib.parse
 
@@ -43,16 +44,20 @@ def test_stats_missing_header() -> None:
     assert resp.status_code == 401
 
 
-def test_stats_mismatched_id(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_stats_mismatched_id(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data = build_init_data(1)
     with TestClient(app) as client:
+        caplog.set_level(logging.WARNING, logger="services.api.app.main")
         resp = client.get(
             "/stats",
             params={"telegramId": 2},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
     assert resp.status_code == 403
+    assert "Telegram id mismatch: user 1 requested stats for 2" in caplog.text
 
 
 def test_analytics_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
