@@ -396,7 +396,6 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "List[ReminderSchema]",
-            '204': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -472,7 +471,6 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "List[ReminderSchema]",
-            '204': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -548,7 +546,6 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "List[ReminderSchema]",
-            '204': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -1798,6 +1795,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "DayStats",
+            '204': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -1869,6 +1867,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "DayStats",
+            '204': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -1940,6 +1939,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "DayStats",
+            '204': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
