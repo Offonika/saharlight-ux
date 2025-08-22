@@ -10,12 +10,13 @@ const mockInstanceOfReminder = vi.hoisted(() => vi.fn());
 vi.mock(
   '@offonika/diabetes-ts-sdk',
   () => ({
-    DefaultApi: vi.fn(() => ({
+    RemindersApi: vi.fn(() => ({
       apiRemindersRemindersGet: mockApiRemindersRemindersGet,
       apiRemindersPostRemindersPost: mockApiRemindersPostRemindersPost,
       apiRemindersRemindersPatch: mockApiRemindersRemindersPatch,
       apiRemindersRemindersDelete: mockApiRemindersRemindersDelete,
     })),
+    Configuration: class {},
   }),
   { virtual: true },
 );

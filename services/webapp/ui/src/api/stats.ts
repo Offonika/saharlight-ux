@@ -1,16 +1,15 @@
+import { AnalyticsApi, StatsApi, Configuration } from '@offonika/diabetes-ts-sdk';
+import type { AnalyticsPoint, DayStats } from '@offonika/diabetes-ts-sdk/models';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 
-export interface AnalyticsPoint {
-  date: string;
-  sugar: number;
-}
+const analyticsApi = new AnalyticsApi(
+  new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
+);
 
-export interface DayStats {
-  sugar: number;
-  breadUnits: number;
-  insulin: number;
-}
+const statsApi = new StatsApi(
+  new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
+);
 
 export const fallbackAnalytics: AnalyticsPoint[] = [
   { date: '2024-01-01', sugar: 5.5 },
@@ -28,13 +27,12 @@ export const fallbackDayStats: DayStats = {
 
 export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint[]> {
   try {
-    const res = await tgFetch(`${API_BASE}/analytics?telegramId=${telegramId}`);
-    const data = await res.json();
-    if (!Array.isArray(data)) {
+    const data = await analyticsApi.analyticsGet({ telegramId });
+    if (!data || !Array.isArray(data)) {
       console.error('Unexpected analytics API response:', data);
       return fallbackAnalytics;
     }
-    return data as AnalyticsPoint[];
+    return data;
   } catch (error) {
     console.error('Failed to fetch analytics:', error);
     return fallbackAnalytics;
@@ -43,29 +41,17 @@ export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint
 
 export async function fetchDayStats(telegramId: number): Promise<DayStats> {
   try {
-    const res = await tgFetch(`${API_BASE}/stats?telegramId=${telegramId}`);
-    const data = await res.json();
-
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
-      console.error('Unexpected stats API response:', data);
-      return fallbackDayStats;
-    }
-
-    const { sugar, breadUnits, insulin } = data as Record<string, unknown>;
-
+    const data = await statsApi.statsGet({ telegramId });
     if (
-      typeof sugar !== 'number' ||
-      !Number.isFinite(sugar) ||
-      typeof breadUnits !== 'number' ||
-      !Number.isFinite(breadUnits) ||
-      typeof insulin !== 'number' ||
-      !Number.isFinite(insulin)
+      !data ||
+      typeof data.sugar !== 'number' ||
+      typeof data.breadUnits !== 'number' ||
+      typeof data.insulin !== 'number'
     ) {
       console.error('Unexpected stats API response:', data);
       return fallbackDayStats;
     }
-
-    return { sugar, breadUnits, insulin };
+    return data;
   } catch (error) {
     console.error('Failed to fetch day stats:', error);
     return fallbackDayStats;

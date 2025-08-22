@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-const mockTgFetch = vi.hoisted(() => vi.fn());
+const mockAnalyticsGet = vi.hoisted(() => vi.fn());
+const mockStatsGet = vi.hoisted(() => vi.fn());
 
-vi.mock('../lib/tgFetch', () => ({ tgFetch: mockTgFetch }));
+vi.mock('@offonika/diabetes-ts-sdk', () => ({
+  AnalyticsApi: vi.fn(() => ({ analyticsGet: mockAnalyticsGet })),
+  StatsApi: vi.fn(() => ({ statsGet: mockStatsGet })),
+  Configuration: class {},
+}));
 
 import {
   fetchAnalytics,
@@ -12,7 +17,8 @@ import {
 } from './stats';
 
 afterEach(() => {
-  mockTgFetch.mockReset();
+  mockAnalyticsGet.mockReset();
+  mockStatsGet.mockReset();
 });
 
 describe('fetchAnalytics', () => {
@@ -21,43 +27,37 @@ describe('fetchAnalytics', () => {
       { date: '2024-02-01', sugar: 5.5 },
       { date: '2024-02-02', sugar: 6.1 },
     ];
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(analytics)),
-    );
+    mockAnalyticsGet.mockResolvedValueOnce(analytics as any);
     await expect(fetchAnalytics(1)).resolves.toEqual(analytics);
-    expect(mockTgFetch).toHaveBeenCalledWith('/api/analytics?telegramId=1');
+    expect(mockAnalyticsGet).toHaveBeenCalledWith({ telegramId: 1 });
   });
 
   it('returns fallback on invalid response', async () => {
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ foo: 'bar' })),
-    );
+    mockAnalyticsGet.mockResolvedValueOnce({ foo: 'bar' } as any);
     await expect(fetchAnalytics(1)).resolves.toBe(fallbackAnalytics);
   });
 
   it('returns fallback on network error', async () => {
-    mockTgFetch.mockRejectedValueOnce(new Error('network'));
+    mockAnalyticsGet.mockRejectedValueOnce(new Error('network'));
     await expect(fetchAnalytics(1)).resolves.toBe(fallbackAnalytics);
   });
 });
 
 describe('fetchDayStats', () => {
   it('returns stats on valid response', async () => {
-    const stats = { sugar: 5.7, breadUnits: 3, insulin: 10 };
-    mockTgFetch.mockResolvedValueOnce(new Response(JSON.stringify(stats)));
+    const stats = { sugar: 5.7, breadUnits: 3, insulin: 10 } as any;
+    mockStatsGet.mockResolvedValueOnce(stats);
     await expect(fetchDayStats(1)).resolves.toEqual(stats);
-    expect(mockTgFetch).toHaveBeenCalledWith('/api/stats?telegramId=1');
+    expect(mockStatsGet).toHaveBeenCalledWith({ telegramId: 1 });
   });
 
   it('returns fallback on invalid response', async () => {
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ sugar: 'bad' })),
-    );
+    mockStatsGet.mockResolvedValueOnce({ sugar: 'bad' } as any);
     await expect(fetchDayStats(1)).resolves.toBe(fallbackDayStats);
   });
 
   it('returns fallback on network error', async () => {
-    mockTgFetch.mockRejectedValueOnce(new Error('network'));
+    mockStatsGet.mockRejectedValueOnce(new Error('network'));
     await expect(fetchDayStats(1)).resolves.toBe(fallbackDayStats);
   });
 });

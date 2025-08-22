@@ -6,10 +6,11 @@ const mockProfilesGet = vi.hoisted(() => vi.fn());
 const mockProfilesPost = vi.hoisted(() => vi.fn());
 
 vi.mock('@offonika/diabetes-ts-sdk', () => ({
-  DefaultApi: vi.fn(() => ({
+  ProfilesApi: vi.fn(() => ({
     profilesGet: mockProfilesGet,
     profilesPost: mockProfilesPost,
   })),
+  Configuration: class {},
 }));
 
 import { getProfile, saveProfile } from './profile';

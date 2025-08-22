@@ -1,98 +1,87 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-const mockTgFetch = vi.hoisted(() => vi.fn());
+const mockHistoryGet = vi.hoisted(() => vi.fn());
+const mockHistoryPost = vi.hoisted(() => vi.fn());
+const mockHistoryDelete = vi.hoisted(() => vi.fn());
 
-vi.mock('../lib/tgFetch', () => ({ tgFetch: mockTgFetch }));
+vi.mock('@offonika/diabetes-ts-sdk', () => ({
+  HistoryApi: vi.fn(() => ({
+    historyGet: mockHistoryGet,
+    historyPost: mockHistoryPost,
+    historyDelete: mockHistoryDelete,
+  })),
+  Configuration: class {},
+}));
 
-import { API_BASE } from './base';
+import type { HistoryRecord } from './history';
 import { getHistory, updateRecord, deleteRecord } from './history';
 
 afterEach(() => {
-  mockTgFetch.mockReset();
+  mockHistoryGet.mockReset();
+  mockHistoryPost.mockReset();
+  mockHistoryDelete.mockReset();
 });
 
 describe('getHistory', () => {
-  it('returns parsed history on valid response', async () => {
-    const history = [
-      { id: '1', date: '2024-01-01', time: '12:00', type: 'meal' },
-    ];
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify(history)),
-    );
-    await expect(getHistory()).resolves.toEqual(history);
+  it('returns history from API', async () => {
+    const history = [{ id: '1', date: '2024-01-01', time: '12:00', type: 'meal' }];
+    mockHistoryGet.mockResolvedValueOnce(history as any);
+    await expect(getHistory()).resolves.toBe(history);
   });
 
-  it('throws on invalid history item', async () => {
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify([{ id: '1', time: '12:00', type: 'meal' }]),
-      ),
-    );
-    await expect(getHistory()).rejects.toThrow(
-      'Некорректная запись истории',
-    );
-  });
-
-  it('forwards signal to tgFetch', async () => {
+  it('passes signal to API', async () => {
     const controller = new AbortController();
-    mockTgFetch.mockResolvedValueOnce(new Response(JSON.stringify([])));
+    mockHistoryGet.mockResolvedValueOnce([]);
     await getHistory(controller.signal);
-    expect(mockTgFetch).toHaveBeenCalledWith(
-      `${API_BASE}/history`,
-      { signal: controller.signal },
-    );
+    expect(mockHistoryGet).toHaveBeenCalledWith({}, { signal: controller.signal });
+  });
+
+  it('rethrows API errors', async () => {
+    const err = new Error('fail');
+    mockHistoryGet.mockRejectedValueOnce(err);
+    await expect(getHistory()).rejects.toBe(err);
   });
 });
 
 describe('updateRecord', () => {
-  const record = {
+  const record: HistoryRecord = {
     id: '1',
     date: '2024-01-01',
     time: '12:00',
     type: 'meal',
   };
 
-  it('sends record to API and returns ok status', async () => {
-    const ok = { status: 'ok' };
-    mockTgFetch.mockResolvedValueOnce(new Response(JSON.stringify(ok)));
-    await expect(updateRecord(record)).resolves.toEqual(ok);
-    expect(mockTgFetch).toHaveBeenCalledWith(
-      `${API_BASE}/history`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(record),
+  it('sends record to API', async () => {
+    const ok = { status: 'ok' } as any;
+    mockHistoryPost.mockResolvedValueOnce(ok);
+    await expect(updateRecord(record)).resolves.toBe(ok);
+    expect(mockHistoryPost).toHaveBeenCalledWith({
+      historyRecordSchemaInput: {
+        ...record,
+        date: new Date('2024-01-01'),
       },
-    );
+    });
   });
 
-  it('throws on error status', async () => {
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ status: 'error' })),
-    );
-    await expect(updateRecord(record)).rejects.toThrow(
-      'Не удалось обновить запись',
-    );
+  it('rethrows API errors', async () => {
+    const err = new Error('api');
+    mockHistoryPost.mockRejectedValueOnce(err);
+    await expect(updateRecord(record)).rejects.toBe(err);
   });
 });
 
 describe('deleteRecord', () => {
-  it('calls API with DELETE and returns ok status', async () => {
-    const ok = { status: 'ok' };
-    mockTgFetch.mockResolvedValueOnce(new Response(JSON.stringify(ok)));
-    await expect(deleteRecord('1')).resolves.toEqual(ok);
-    expect(mockTgFetch).toHaveBeenCalledWith(
-      `${API_BASE}/history/1`,
-      { method: 'DELETE' },
-    );
+  it('calls API delete', async () => {
+    const ok = { status: 'ok' } as any;
+    mockHistoryDelete.mockResolvedValueOnce(ok);
+    await expect(deleteRecord('1')).resolves.toBe(ok);
+    expect(mockHistoryDelete).toHaveBeenCalledWith({ recordId: '1' });
   });
 
-  it('throws on error status', async () => {
-    mockTgFetch.mockResolvedValueOnce(
-      new Response(JSON.stringify({ status: 'error' })),
-    );
-    await expect(deleteRecord('1')).rejects.toThrow(
-      'Не удалось удалить запись',
-    );
+  it('rethrows API errors', async () => {
+    const err = new Error('api');
+    mockHistoryDelete.mockRejectedValueOnce(err);
+    await expect(deleteRecord('1')).rejects.toBe(err);
   });
 });
+
