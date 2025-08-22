@@ -1,10 +1,10 @@
-import { DefaultApi } from '@offonika/diabetes-ts-sdk';
+import { ProfilesApi } from '@offonika/diabetes-ts-sdk';
 import type { Profile } from '@offonika/diabetes-ts-sdk/models';
 import { Configuration, ResponseError } from '@offonika/diabetes-ts-sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 
-const api = new DefaultApi(
+const api = new ProfilesApi(
   new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
 );
 
