@@ -8,6 +8,7 @@ import warnings
 
 import pytest
 import sqlalchemy
+from services.api.app.diabetes.services import db as db_module
 
 warnings.filterwarnings(
     "ignore", category=ResourceWarning, module=r"anyio\.streams\.memory"
@@ -39,6 +40,9 @@ def _tracking_create_engine(*args: Any, **kwargs: Any) -> sqlalchemy.engine.Engi
 
 
 setattr(sqlalchemy, "create_engine", _tracking_create_engine)
+
+# Avoid real database initialization during tests
+db_module.init_db = lambda: None
 
 
 @pytest.fixture(autouse=True, scope="session")

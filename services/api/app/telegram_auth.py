@@ -2,7 +2,6 @@ import hashlib
 import hmac
 import json
 import logging
-import os
 import time
 from typing import Any, cast
 from urllib.parse import parse_qsl
@@ -71,7 +70,7 @@ def require_tg_user(
     if not init_data:
         raise HTTPException(status_code=401, detail="missing init data")
 
-    token: str | None = os.getenv("TELEGRAM_TOKEN") or settings.telegram_token
+    token: str | None = settings.telegram_token
     if not token:
         logger.error("telegram token not configured")
         raise HTTPException(status_code=500, detail="server misconfigured")

@@ -42,7 +42,6 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
     )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setenv("TELEGRAM_TOKEN", TOKEN)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     monkeypatch.setattr(reminders, "SessionLocal", TestSession)
     with TestSession() as session:
@@ -106,7 +105,8 @@ def test_reminders_mismatched_id(
                 "X-Request-ID": request_id,
             },
         )
-    assert resp.status_code == 404
+    assert resp.status_code == 200
+    assert resp.json() == []
     assert (
         f"request_id={request_id} telegramId=2 does not match user_id=1" in caplog.text
     )

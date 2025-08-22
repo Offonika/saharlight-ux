@@ -16,11 +16,9 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import AliasChoices, BaseModel, Field
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 # ────────── local ──────────
-from .config import settings
 from .diabetes.services.db import (
     HistoryRecord as HistoryRecordDB,
     Timezone as TimezoneDB,
