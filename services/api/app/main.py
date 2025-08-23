@@ -273,9 +273,9 @@ async def delete_history(
     if record.telegram_id != user["id"]:
         raise HTTPException(status_code=403, detail="forbidden")
 
-    def _delete(session: SessionProtocol) -> None:
+    def _delete(session: Session) -> None:
         session.delete(record)
-        if not commit(cast(Session, session)):
+        if not commit(session):
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(cast(Callable[[Session], None], _delete))
