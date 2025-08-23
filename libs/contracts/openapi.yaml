@@ -6,9 +6,12 @@ tags:
   - name: Profiles
   - name: History
   - name: Reminders
+security:
+  - TelegramInitData: []
 paths:
   /health:
     get:
+      security: []
       summary: Health
       operationId: healthGet
       responses:
@@ -27,15 +30,6 @@ paths:
       - Profiles
       summary: Profiles Post
       operationId: profilesPost
-      parameters:
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       requestBody:
         required: true
         content:
@@ -67,14 +61,6 @@ paths:
         schema:
           type: integer
           title: Telegram Id
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       responses:
         '200':
           description: Successful Response. Returns profile.
@@ -109,14 +95,6 @@ paths:
           - type: integer
           - type: 'null'
           title: Id
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       responses:
         '200':
           description: >-
@@ -143,15 +121,6 @@ paths:
       - Reminders
       summary: Reminders Post
       operationId: reminders_post
-      parameters:
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       requestBody:
         required: true
         content:
@@ -179,15 +148,6 @@ paths:
       - Reminders
       summary: Reminders Patch
       operationId: reminders_patch
-      parameters:
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       requestBody:
         required: true
         content:
@@ -228,14 +188,6 @@ paths:
         schema:
           type: integer
           title: Id
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       responses:
         '200':
           description: Successful Response
@@ -257,15 +209,6 @@ paths:
     get:
       summary: Get Timezone
       operationId: get_timezone_timezone_get
-      parameters:
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       responses:
         '200':
           description: Successful Response
@@ -285,15 +228,6 @@ paths:
     put:
       summary: Put Timezone
       operationId: put_timezone_timezone_put
-      parameters:
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       requestBody:
         required: true
         content:
@@ -320,15 +254,6 @@ paths:
     get:
       summary: Profile Self
       operationId: profile_self_profile_self_get
-      parameters:
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       responses:
         '200':
           description: Successful Response
@@ -353,14 +278,6 @@ paths:
         schema:
           type: integer
           title: Telegramid
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       responses:
         '200':
           description: Successful Response. Returns statistics for the day.
@@ -387,14 +304,6 @@ paths:
         schema:
           type: integer
           title: Telegramid
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       responses:
         '200':
           description: Successful Response
@@ -416,15 +325,6 @@ paths:
       summary: Create User
       description: Ensure a user exists in the database.
       operationId: create_user_user_post
-      parameters:
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       requestBody:
         required: true
         content:
@@ -507,15 +407,6 @@ paths:
       summary: Post History
       description: Save or update a history record in the database.
       operationId: historyPost
-      parameters:
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       requestBody:
         required: true
         content:
@@ -544,15 +435,6 @@ paths:
       summary: Get History
       description: Return history records for the authenticated user.
       operationId: historyGet
-      parameters:
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       responses:
         '200':
           description: Successful Response
@@ -583,14 +465,6 @@ paths:
         schema:
           type: string
           title: Id
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
       responses:
         '200':
           description: Successful Response
@@ -608,6 +482,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
 components:
+  securitySchemes:
+    TelegramInitData:
+      type: apiKey
+      in: header
+      name: X-Telegram-Init-Data
   schemas:
     AnalyticsPoint:
       properties:

@@ -27,12 +27,10 @@ import {
 
 export interface ProfilesGetRequest {
     telegramId?: number;
-    xTelegramInitData?: string | null;
 }
 
 export interface ProfilesPostRequest {
     profileSchema: ProfileSchema;
-    xTelegramInitData?: string | null;
 }
 
 /**
@@ -52,8 +50,8 @@ export class ProfilesApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 
@@ -94,8 +92,8 @@ export class ProfilesApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 
