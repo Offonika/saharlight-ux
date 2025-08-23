@@ -6,6 +6,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.handlers import gpt_handlers
+from sqlalchemy.orm import Session
 
 
 class DummyMessage:
@@ -47,10 +48,10 @@ async def test_freeform_handler_db_error_propagates(
         def add(self, obj: Any) -> None:
             pass
 
-    def session_factory() -> DummySession:
-        return DummySession()
+    def session_factory() -> Session:
+        return cast(Session, DummySession())
 
-    def failing_commit(session: DummySession) -> bool:
+    def failing_commit(session: Session) -> bool:
         raise AttributeError("db failure")
 
     monkeypatch.setattr(gpt_handlers, "run_db", None)

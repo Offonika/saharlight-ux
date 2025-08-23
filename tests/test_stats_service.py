@@ -1,4 +1,4 @@
-from typing import Any, Generator
+from typing import Generator
 import datetime
 import pytest
 from sqlalchemy import create_engine
@@ -10,14 +10,14 @@ from services.api.app.services import stats
 
 
 @pytest.fixture()
-def session_factory() -> Generator[sessionmaker[Any], None, None]:
+def session_factory() -> Generator[sessionmaker, None, None]:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
-    TestSession: sessionmaker[Any] = sessionmaker(
+    TestSession: sessionmaker = sessionmaker(
         bind=engine, class_=SASession, autoflush=False, autocommit=False
     )
     try:
@@ -28,7 +28,7 @@ def session_factory() -> Generator[sessionmaker[Any], None, None]:
 
 @pytest.mark.asyncio
 async def test_get_day_stats(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Any]
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
 ) -> None:
     today = datetime.date.today()
     with session_factory() as session:

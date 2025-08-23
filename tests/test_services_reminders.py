@@ -31,7 +31,7 @@ async def test_save_and_list_reminder(monkeypatch: pytest.MonkeyPatch, session_f
         session.commit()
 
     rem_id = await reminders.save_reminder(
-        ReminderSchema(telegramId=1, type="sugar", time="08:00", orgId=42)
+        ReminderSchema(telegramId=1, type="sugar", time=time(8, 0), orgId=42)
     )
     assert rem_id > 0
 
@@ -46,7 +46,7 @@ async def test_save_and_list_reminder(monkeypatch: pytest.MonkeyPatch, session_f
             id=rem_id,
             telegramId=1,
             type="meal",
-            time="09:00",
+            time=time(9, 0),
             isEnabled=False,
         )
     )

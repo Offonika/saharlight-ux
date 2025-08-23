@@ -7,6 +7,7 @@ from telegram import Message, Update
 from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.handlers import UserData, gpt_handlers
+from sqlalchemy.orm import sessionmaker
 
 
 class DummyMessage:
@@ -46,7 +47,7 @@ def session_factory() -> DummySession:
     return DummySession()
 
 
-SESSION_FACTORY = session_factory
+SESSION_FACTORY = cast(sessionmaker, session_factory)
 
 
 @pytest.mark.asyncio
