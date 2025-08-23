@@ -5,7 +5,7 @@ description = "Diabetes Assistant API"
 maintainers = [
   {name = "Offonika", email = "arseniikeshtov@gmail.com"},
 ]
-license = {file = "LICENSE"}
+license = { text = "MIT" }
 readme = "README.md"
 keywords = ["OpenAPI", "OpenAPI-Generator", "Diabetes Assistant API"]
 requires-python = ">=3.9"
