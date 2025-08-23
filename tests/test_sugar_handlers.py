@@ -1,5 +1,7 @@
-from types import SimpleNamespace
-from typing import Any, cast
+import sys
+from pathlib import Path
+from types import ModuleType, SimpleNamespace
+from typing import Any, Callable, cast
 
 import pytest
 from telegram import Update
@@ -8,8 +10,25 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import services.api.app.diabetes.handlers.sugar_handlers as sugar_handlers
-from services.api.app.diabetes.services.db import Base, Entry
+dummy_gpt = ModuleType("gpt_command_parser")
+dummy_gpt.parse_command = lambda *args, **kwargs: None
+
+
+class ParserTimeoutError(Exception):
+    pass
+
+
+dummy_gpt.ParserTimeoutError = ParserTimeoutError
+sys.modules.setdefault("services.api.app.diabetes.gpt_command_parser", dummy_gpt)
+
+dummy_main = ModuleType("main")
+dummy_main.BASE_DIR = Path(".")
+dummy_main.UI_DIR = Path(".")
+sys.modules.setdefault("services.api.app.main", dummy_main)
+
+import services.api.app.diabetes.handlers.sugar_handlers as sugar_handlers  # noqa: E402
+import services.api.app.diabetes.services.db as db  # noqa: E402
+from services.api.app.diabetes.services.db import Base, Entry  # noqa: E402
 
 
 class DummyMessage:
@@ -53,10 +72,10 @@ async def test_sugar_val_non_numeric(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     await sugar_handlers.sugar_start(start_update, context)
 
-    def fail_session() -> Any:
+    async def fail_run_db(*args: Any, **kwargs: Any) -> Any:
         raise AssertionError("DB should not be used")
 
-    monkeypatch.setattr(sugar_handlers, "SessionLocal", fail_session)
+    monkeypatch.setattr(sugar_handlers, "run_db", fail_run_db)
 
     called = False
 
@@ -67,7 +86,9 @@ async def test_sugar_val_non_numeric(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sugar_handlers, "check_alert", fake_check_alert)
 
     message = DummyMessage("abc")
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     result = await sugar_handlers.sugar_val(update, context)
     assert result == sugar_handlers.SUGAR_VAL
     assert message.replies[-1] == "Введите сахар числом в ммоль/л."
@@ -86,10 +107,10 @@ async def test_sugar_val_negative(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     await sugar_handlers.sugar_start(start_update, context)
 
-    def fail_session() -> Any:
+    async def fail_run_db(*args: Any, **kwargs: Any) -> Any:
         raise AssertionError("DB should not be used")
 
-    monkeypatch.setattr(sugar_handlers, "SessionLocal", fail_session)
+    monkeypatch.setattr(sugar_handlers, "run_db", fail_run_db)
 
     called = False
 
@@ -100,7 +121,9 @@ async def test_sugar_val_negative(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sugar_handlers, "check_alert", fake_check_alert)
 
     message = DummyMessage("-1")
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     result = await sugar_handlers.sugar_val(update, context)
     assert result == sugar_handlers.SUGAR_VAL
     assert message.replies[-1] == "Сахар не может быть отрицательным."
@@ -108,7 +131,9 @@ async def test_sugar_val_negative(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_sugar_val_valid_saves_and_alerts(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_sugar_val_valid_saves_and_alerts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     start_msg = DummyMessage()
     start_update = cast(
         Update, SimpleNamespace(message=start_msg, effective_user=SimpleNamespace(id=1))
@@ -126,7 +151,11 @@ async def test_sugar_val_valid_saves_and_alerts(monkeypatch: pytest.MonkeyPatch)
     )
     Base.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(sugar_handlers, "SessionLocal", session_factory)
+
+    async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        return await db.run_db(fn, *args, sessionmaker=session_factory, **kwargs)
+
+    monkeypatch.setattr(sugar_handlers, "run_db", run_db_wrapper)
 
     captured: dict[str, float] = {}
 
@@ -136,7 +165,9 @@ async def test_sugar_val_valid_saves_and_alerts(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(sugar_handlers, "check_alert", fake_check_alert)
 
     message = DummyMessage("5.5")
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     result = await sugar_handlers.sugar_val(update, context)
     assert result == sugar_handlers.END
     assert captured["value"] == 5.5
@@ -153,7 +184,9 @@ async def test_sugar_val_valid_saves_and_alerts(monkeypatch: pytest.MonkeyPatch)
 @pytest.mark.asyncio
 async def test_sugar_val_inactive_chat_returns_end() -> None:
     message = DummyMessage("5")
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, chat_data={}),
