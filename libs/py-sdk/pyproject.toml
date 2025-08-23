@@ -5,6 +5,7 @@ description = "Diabetes Assistant API"
 authors = [
   {name = "OpenAPI Generator Community",email = "team@openapitools.org"},
 ]
+license = "MIT"
 readme = "README.md"
 keywords = ["OpenAPI", "OpenAPI-Generator", "Diabetes Assistant API"]
 requires-python = ">=3.9"
@@ -17,10 +18,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/Offonika/saharlight-ux"
-
-[project.license]
-file = "LICENSE"
+Repository = "https://github.com/GIT_USER_ID/GIT_REPO_ID"
 
 [tool.poetry]
 requires-poetry = ">=2.0"

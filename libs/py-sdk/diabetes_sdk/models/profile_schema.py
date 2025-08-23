@@ -33,7 +33,7 @@ class ProfileSchema(BaseModel):
     low: Union[StrictFloat, StrictInt]
     high: Union[StrictFloat, StrictInt]
     sos_contact: Optional[StrictStr] = Field(default=None, alias="sosContact")
-    sos_alerts_enabled: Optional[StrictBool] = Field(default=None, alias="sosAlertsEnabled")
+    sos_alerts_enabled: Optional[StrictBool] = Field(default=True, alias="sosAlertsEnabled")
     org_id: Optional[StrictInt] = Field(default=None, alias="orgId")
     __properties: ClassVar[List[str]] = ["telegramId", "icr", "cf", "target", "low", "high", "sosContact", "sosAlertsEnabled", "orgId"]
 
@@ -105,7 +105,7 @@ class ProfileSchema(BaseModel):
             "low": obj.get("low"),
             "high": obj.get("high"),
             "sosContact": obj.get("sosContact"),
-            "sosAlertsEnabled": obj.get("sosAlertsEnabled"),
+            "sosAlertsEnabled": obj.get("sosAlertsEnabled") if obj.get("sosAlertsEnabled") is not None else True,
             "orgId": obj.get("orgId")
         })
         return _obj
