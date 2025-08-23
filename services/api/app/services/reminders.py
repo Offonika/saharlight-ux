@@ -39,3 +39,14 @@ async def save_reminder(data: ReminderSchema) -> int:
         return rem.id
 
     return await run_db(_save, sessionmaker=SessionLocal)
+
+
+async def delete_reminder(telegram_id: int, reminder_id: int) -> None:
+    def _delete(session: Session) -> None:
+        rem = session.get(Reminder, reminder_id)
+        if rem is None or rem.telegram_id != telegram_id:
+            raise HTTPException(status_code=404, detail="reminder not found")
+        session.delete(rem)
+        session.commit()
+
+    await run_db(_delete, sessionmaker=SessionLocal)

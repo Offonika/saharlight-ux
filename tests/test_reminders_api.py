@@ -1,8 +1,5 @@
-from __future__ import annotations
-
-from collections.abc import Generator
-
 import pytest
+from collections.abc import Generator
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -93,3 +90,49 @@ def test_mismatched_telegram_id_returns_404(client: TestClient) -> None:
     resp = client.get("/api/reminders", params={"telegramId": 2})
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+def test_patch_updates_reminder(
+    client: TestClient, session_factory: sessionmaker
+) -> None:
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time="08:00",
+                interval_hours=3,
+            )
+        )
+        session.commit()
+    resp = client.patch(
+        "/api/reminders",
+        json={
+            "telegramId": 1,
+            "id": 1,
+            "type": "sugar",
+            "time": "09:00",
+            "intervalHours": 3,
+            "isEnabled": True,
+        },
+    )
+    assert resp.status_code == 200
+    with session_factory() as session:
+        rem = session.get(Reminder, 1)
+        assert rem is not None
+        assert rem.time == "09:00"
+
+
+def test_delete_reminder(client: TestClient, session_factory: sessionmaker) -> None:
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar"))
+        session.commit()
+    resp = client.delete(
+        "/api/reminders", params={"telegramId": 1, "id": 1}
+    )
+    assert resp.status_code == 200
+    with session_factory() as session:
+        assert session.get(Reminder, 1) is None
