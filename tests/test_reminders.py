@@ -10,7 +10,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from telegram import Message, Update, User
 from telegram.ext import CallbackContext, Job
@@ -580,7 +580,7 @@ async def test_reminder_callback_foreign_rid(monkeypatch: pytest.MonkeyPatch) ->
 
 
 @pytest.fixture()
-def session_factory() -> Generator[sessionmaker, None, None]:
+def session_factory() -> Generator[sessionmaker[Session], None, None]:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -596,7 +596,7 @@ def session_factory() -> Generator[sessionmaker, None, None]:
 
 @pytest.fixture()
 def client(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> Generator[TestClient, None, None]:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     app = FastAPI()
@@ -606,7 +606,9 @@ def client(
         yield test_client
 
 
-def test_empty_returns_200(client: TestClient, session_factory: sessionmaker) -> None:
+def test_empty_returns_200(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -616,7 +618,7 @@ def test_empty_returns_200(client: TestClient, session_factory: sessionmaker) ->
 
 
 def test_nonempty_returns_list(
-    client: TestClient, session_factory: sessionmaker
+    client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
@@ -648,7 +650,9 @@ def test_nonempty_returns_list(
     ]
 
 
-def test_get_single_reminder(client: TestClient, session_factory: sessionmaker) -> None:
+def test_get_single_reminder(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -686,7 +690,7 @@ def test_real_404(client: TestClient) -> None:
 
 
 def test_get_single_reminder_not_found(
-    client: TestClient, session_factory: sessionmaker
+    client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
@@ -697,7 +701,7 @@ def test_get_single_reminder_not_found(
 
 
 def test_post_reminder_forbidden(
-    client: TestClient, session_factory: sessionmaker
+    client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
@@ -714,7 +718,7 @@ def test_post_reminder_forbidden(
 
 
 def test_patch_reminder_forbidden(
-    client: TestClient, session_factory: sessionmaker
+    client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))

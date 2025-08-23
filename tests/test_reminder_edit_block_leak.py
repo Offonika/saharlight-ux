@@ -8,7 +8,7 @@ from datetime import time
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 from services.api.app.diabetes.services.repository import commit
@@ -62,7 +62,7 @@ class DummyJobQueue:
         return []
 
 
-def _setup_db() -> tuple[sessionmaker, Any]:
+def _setup_db() -> tuple[sessionmaker[Session], Any]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -110,6 +110,7 @@ async def test_good_input_updates_and_ends() -> None:
         await handlers.reminder_webapp_save(update, context)
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        assert rem is not None
         assert rem.time == time(9, 30)
         assert session.query(Entry).count() == 0
     with no_warnings():

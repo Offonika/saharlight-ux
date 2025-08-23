@@ -4,12 +4,13 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from telegram import Update
-from telegram.ext import CallbackContext
+from telegram import Message, Update
+from telegram.ext import CallbackContext, ContextTypes
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
+from services.api.app.diabetes.handlers import UserData
 
 os.environ.setdefault("DB_PASSWORD", "test")
 from services.api.app.diabetes.services.db import Base, User, Entry
@@ -38,7 +39,9 @@ class DummyQuery:
     async def answer(self, text: str | None = None) -> None:
         self.answer_texts.append(text)
 
-    async def edit_message_reply_markup(self, reply_markup: Any | None = None, **kwargs: Any) -> None:
+    async def edit_message_reply_markup(
+        self, reply_markup: Any | None = None, **kwargs: Any
+    ) -> None:
         self.markups.append(reply_markup)
 
 
@@ -46,7 +49,9 @@ class DummyBot:
     def __init__(self) -> None:
         self.edited: list[tuple[str, int, int, dict[str, Any]]] = []
 
-    async def edit_message_text(self, text: str, chat_id: int, message_id: int, **kwargs: Any) -> None:
+    async def edit_message_text(
+        self, text: str, chat_id: int, message_id: int, **kwargs: Any
+    ) -> None:
         self.edited.append((text, chat_id, message_id, kwargs))
 
 
@@ -93,7 +98,9 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     field_query = DummyQuery(entry_message, f"edit_field:{entry_id}:dose")
     update_cb2 = cast(
         Update,
-        SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1)),
+        SimpleNamespace(
+            callback_query=field_query, effective_user=SimpleNamespace(id=1)
+        ),
     )
     await router.callback_router(update_cb2, context)
     assert context.user_data is not None
@@ -101,7 +108,9 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     assert user_data["edit_field"] == "dose"
 
     reply_msg = DummyMessage(text="5")
-    update_msg = cast(Update, SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1)))
+    update_msg = cast(
+        Update, SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1))
+    )
     await dose_calc.freeform_handler(update_msg, context)
 
     with TestSession() as session:
@@ -139,7 +148,7 @@ async def test_edit_dose_commit_failure() -> None:
     message = DummyMessage(text="5", chat_id=42, message_id=24)
     edit_query = DummyQuery(message, f"edit_field:{entry_id}:dose")
     user_data = cast(
-        gpt_handlers.UserData,
+        UserData,
         {
             "edit_id": entry_id,
             "edit_field": "dose",
@@ -148,7 +157,7 @@ async def test_edit_dose_commit_failure() -> None:
         },
     )
     context = cast(
-        gpt_handlers.ContextTypes.DEFAULT_TYPE,
+        ContextTypes.DEFAULT_TYPE,
         SimpleNamespace(bot=DummyBot()),
     )
 
@@ -158,7 +167,7 @@ async def test_edit_dose_commit_failure() -> None:
     result = await gpt_handlers._handle_edit_entry(
         "5",
         user_data,
-        message,
+        cast(Message, message),
         context,
         SessionLocal=TestSession,
         commit=commit_fail,

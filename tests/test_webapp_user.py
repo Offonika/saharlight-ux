@@ -17,7 +17,7 @@ from services.api.app.diabetes.services import db
 from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 
-def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
