@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import cast
+from typing import Any, cast
 
 from telegram import Update
 from telegram.ext import (
@@ -10,8 +10,9 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from sqlalchemy.orm import Session
 
-from services.api.app.diabetes.services.db import SessionLocal, Entry
+from services.api.app.diabetes.services.db import Entry, run_db
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import _safe_float
 from services.api.app.diabetes.utils.ui import menu_keyboard, sugar_keyboard
@@ -84,12 +85,16 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
     entry_data["sugar_before"] = sugar
-    with SessionLocal() as session:
-        entry = Entry(**entry_data)
+
+    def save_entry(session: Session, data: dict[str, Any]) -> bool:
+        entry = Entry(**data)
         session.add(entry)
-        if not commit(session):
-            await message.reply_text("⚠️ Не удалось сохранить запись.")
-            return END
+        return commit(session)
+
+    success = await run_db(save_entry, entry_data)
+    if not success:
+        await message.reply_text("⚠️ Не удалось сохранить запись.")
+        return END
     await check_alert(update, context, sugar)
     await message.reply_text(
         f"✅ Уровень сахара {sugar} ммоль/л сохранён.",

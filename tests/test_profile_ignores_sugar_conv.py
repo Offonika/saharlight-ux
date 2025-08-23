@@ -1,6 +1,8 @@
 import os
-from types import SimpleNamespace
-from typing import Any, cast
+import sys
+from pathlib import Path
+from types import ModuleType, SimpleNamespace
+from typing import Any, Callable, cast
 
 import pytest
 from telegram import Update
@@ -9,11 +11,29 @@ from telegram.ext import CallbackContext
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-import services.api.app.diabetes.handlers.sugar_handlers as sugar_handlers
 from services.api.app.diabetes.handlers import profile as profile_handlers
+import services.api.app.diabetes.services.db as db
 from services.api.app.diabetes.services.db import Base, Entry, User
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+dummy_gpt = ModuleType("gpt_command_parser")
+dummy_gpt.parse_command = lambda *args, **kwargs: None
+
+
+class ParserTimeoutError(Exception):
+    pass
+
+
+dummy_gpt.ParserTimeoutError = ParserTimeoutError
+sys.modules.setdefault("services.api.app.diabetes.gpt_command_parser", dummy_gpt)
+
+dummy_main = ModuleType("main")
+dummy_main.BASE_DIR = Path(".")
+dummy_main.UI_DIR = Path(".")
+sys.modules.setdefault("services.api.app.main", dummy_main)
+
+import services.api.app.diabetes.handlers.sugar_handlers as sugar_handlers  # noqa: E402
 
 
 class DummyMessage:
@@ -28,13 +48,19 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_profile_input_not_logged_as_sugar(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_profile_input_not_logged_as_sugar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
     monkeypatch.setattr(profile_handlers, "SessionLocal", TestSession)
-    monkeypatch.setattr(sugar_handlers, "SessionLocal", TestSession)
+
+    async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        return await db.run_db(fn, *args, sessionmaker=TestSession, **kwargs)
+
+    monkeypatch.setattr(sugar_handlers, "run_db", run_db_wrapper)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
