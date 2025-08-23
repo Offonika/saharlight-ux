@@ -2,7 +2,7 @@ import threading
 import time
 
 import httpx
-from uvicorn import Config, Server  # type: ignore[import-not-found]
+from uvicorn import Config, Server
 
 import services.api.app.main as server
 
