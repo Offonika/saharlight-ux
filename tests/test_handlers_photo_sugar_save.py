@@ -87,9 +87,7 @@ async def test_photo_flow_saves_entry(
     async def fake_parse_command(text: str) -> dict[str, object]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
-    monkeypatch.setattr(gpt_handlers, "parse_command", fake_parse_command)
     monkeypatch.setattr(gpt_handlers, "confirm_keyboard", lambda: None)
-    monkeypatch.setattr(gpt_handlers, "menu_keyboard", None)
     monkeypatch.setattr(photo_handlers, "menu_keyboard", None)
 
     msg_start = DummyMessage("/dose")
@@ -120,7 +118,12 @@ async def test_photo_flow_saves_entry(
     fake_bot = SimpleNamespace(get_file=fake_get_file)
     setattr(cast(Any, type(context)), "bot", PropertyMock(return_value=fake_bot))
 
-    await gpt_handlers.freeform_handler(update_start, context)
+    await gpt_handlers.freeform_handler(
+        update_start,
+        context,
+        parse_command=fake_parse_command,
+        menu_keyboard=None,
+    )
 
     monkeypatch.chdir(tmp_path)
 
@@ -197,7 +200,12 @@ async def test_photo_flow_saves_entry(
             session.close()
 
     monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
-    await gpt_handlers.freeform_handler(update_sugar, context)
+    await gpt_handlers.freeform_handler(
+        update_sugar,
+        context,
+        parse_command=fake_parse_command,
+        menu_keyboard=None,
+    )
     assert user_data["pending_entry"]["sugar_before"] == 5.5
 
     monkeypatch.setattr(router, "SessionLocal", session_factory)
