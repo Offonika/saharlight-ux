@@ -6,7 +6,8 @@ import asyncio
 import logging
 import threading
 from datetime import date, datetime, time
-from typing import Callable, Concatenate, ParamSpec, Protocol, TypeVar
+from typing import Callable, Protocol, TypeVar
+from typing_extensions import Concatenate, ParamSpec
 
 from sqlalchemy import (
     create_engine,
