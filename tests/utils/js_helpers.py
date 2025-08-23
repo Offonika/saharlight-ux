@@ -8,14 +8,13 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
 def build_vite_project() -> None:
-    """Install dependencies and build the Vite project using pnpm."""
+    """Install dependencies and build the Vite project using npm."""
+    subprocess.run([
+        "npm",
+        "ci",
+    ], cwd=ROOT_DIR, check=True)
     subprocess.run(
-        ["pnpm", "i", "--frozen-lockfile"],
-        cwd=ROOT_DIR,
-        check=True,
-    )
-    subprocess.run(
-        ["pnpm", "--filter", "vite_react_shadcn_ts", "run", "build"],
+        ["npm", "--workspace", "services/webapp/ui", "run", "build"],
         cwd=ROOT_DIR,
         check=True,
     )
