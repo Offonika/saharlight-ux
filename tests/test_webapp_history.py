@@ -79,6 +79,15 @@ def test_history_invalid_date_time(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.post("/history", json=bad_time, headers=headers)
         assert resp.status_code == 422
 
+        bad_time_seconds = {
+            "id": "2",
+            "date": "2024-01-01",
+            "time": "12:00:00",
+            "type": "measurement",
+        }
+        resp = client.post("/history", json=bad_time_seconds, headers=headers)
+        assert resp.status_code == 422
+
 
 def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
@@ -122,8 +131,8 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get("/history", headers=headers1)
         body = resp.json()
         assert [r["id"] for r in body] == ["1", "2"]
-        assert body[0]["time"] == "12:00:00"
-        assert body[1]["time"] == "13:00:00"
+        assert body[0]["time"] == "12:00"
+        assert body[1]["time"] == "13:00"
 
         resp = client.get("/history", headers=headers2)
         assert [r["id"] for r in resp.json()] == ["3"]

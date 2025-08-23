@@ -25,7 +25,7 @@ afterEach(() => {
 describe('getHistory', () => {
   it('returns parsed history on valid response', async () => {
     const apiResponse = [
-      { id: '1', date: '2024-01-01', time: '12:00', type: 'meal' },
+      { id: '1', date: '2024-01-01', time: '12:00:30', type: 'meal' },
     ];
     mockHistoryGet.mockResolvedValueOnce(apiResponse);
     await expect(getHistory()).resolves.toEqual([
@@ -57,7 +57,7 @@ describe('updateRecord', () => {
   const record = {
     id: '1',
     date: new Date('2024-01-01'),
-    time: '12:00',
+    time: '12:00:30',
     type: 'meal',
   };
 
@@ -66,7 +66,12 @@ describe('updateRecord', () => {
     mockHistoryPost.mockResolvedValueOnce(ok);
     await expect(updateRecord(record)).resolves.toEqual(ok);
     expect(mockHistoryPost).toHaveBeenCalledWith({
-      historyRecordSchemaInput: record,
+      historyRecordSchemaInput: {
+        id: '1',
+        date: new Date('2024-01-01'),
+        time: '12:00',
+        type: 'meal',
+      },
     });
   });
 

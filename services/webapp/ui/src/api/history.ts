@@ -4,6 +4,8 @@ import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 
+const formatTime = (t: string) => t.slice(0, 5);
+
 const historyRecordSchema = z.object({
   id: z.string(),
   date: z.string().transform((val, ctx) => {
@@ -13,7 +15,7 @@ const historyRecordSchema = z.object({
     }
     return parsed;
   }),
-  time: z.string(),
+  time: z.string().transform(formatTime),
   sugar: z.number().optional(),
   carbs: z.number().optional(),
   breadUnits: z.number().optional(),
@@ -53,7 +55,11 @@ export async function getHistory(signal?: AbortSignal): Promise<HistoryRecord[]>
 export async function updateRecord(record: HistoryRecord) {
   try {
     const data = await api.historyPost({
-      historyRecordSchemaInput: { ...record, date: new Date(record.date) },
+      historyRecordSchemaInput: {
+        ...record,
+        date: new Date(record.date),
+        time: formatTime(record.time),
+      },
     });
     if (data.status !== 'ok') {
       throw new Error(data.detail || 'Не удалось обновить запись');
