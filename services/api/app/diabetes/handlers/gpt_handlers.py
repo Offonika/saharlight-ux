@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile
 from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.utils.db_import import get_run_db
 from services.api.app.diabetes.utils.functions import (
     PatientProfile,
     calc_bolus,
@@ -46,16 +47,7 @@ class RunDB(Protocol):
 
 
 logger = logging.getLogger(__name__)
-
-try:
-    from services.api.app.diabetes.services.db import run_db as _run_db
-except ImportError:  # pragma: no cover - optional db runner
-    run_db: RunDB | None = None
-except Exception:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db")
-    run_db = None
-else:
-    run_db = cast(RunDB, _run_db)
+run_db: RunDB | None = cast(RunDB | None, get_run_db())
 
 
 class EditMessageMeta(TypedDict):

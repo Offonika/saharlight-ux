@@ -30,18 +30,7 @@ from services.api.app.diabetes.services.db import (
     Reminder,
     User,
 )
-logger = logging.getLogger(__name__)
-
-try:
-    from services.api.app.diabetes.services.db import run_db as _run_db
-except ImportError:  # pragma: no cover - optional db runner
-    run_db: Callable[..., Awaitable[object]] | None = None
-except Exception:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db")
-    run_db = None
-else:
-    run_db = cast(Callable[..., Awaitable[object]], _run_db)
-
+from services.api.app.diabetes.utils.db_import import get_run_db
 from services.api.app.diabetes.handlers.alert_handlers import (
     evaluate_sugar,
     DefaultJobQueue,
@@ -57,13 +46,13 @@ from services.api.app.diabetes.utils.ui import (
 from services.api.app.config import settings
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
-
 from .api import get_api, save_profile, set_timezone, fetch_profile, post_profile
 from .validation import parse_profile_args
-
-back_keyboard: ReplyKeyboardMarkup = _back_keyboard
-
 from .. import UserData
+
+logger = logging.getLogger(__name__)
+back_keyboard: ReplyKeyboardMarkup = _back_keyboard
+run_db: Callable[..., Awaitable[object]] | None = get_run_db()
 
 
 MSG_ICR_GT0 = "ИКХ должен быть больше 0."

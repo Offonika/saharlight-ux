@@ -14,17 +14,8 @@ from telegram.ext import (
 from sqlalchemy.orm import Session
 
 from services.api.app.diabetes.services.db import Entry, SessionLocal
-logger = logging.getLogger(__name__)
 
-try:
-    from services.api.app.diabetes.services.db import run_db as _run_db
-except ImportError:  # pragma: no cover - optional db runner
-    run_db: Callable[..., Awaitable[object]] | None = None
-except Exception:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db")
-    run_db = None
-else:
-    run_db = cast(Callable[..., Awaitable[object]], _run_db)
+from services.api.app.diabetes.utils.db_import import get_run_db
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import _safe_float
 from services.api.app.diabetes.utils.ui import menu_keyboard, sugar_keyboard
@@ -34,6 +25,9 @@ from .common_handlers import menu_command
 from .photo_handlers import photo_prompt
 from .dose_calc import dose_cancel, _cancel_then
 from . import EntryData, UserData
+
+logger = logging.getLogger(__name__)
+run_db: Callable[..., Awaitable[object]] | None = get_run_db()
 
 SUGAR_VAL = 8
 END = ConversationHandler.END
@@ -109,8 +103,10 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if run_db is None:
         with SessionLocal() as session:
             success = save_entry(session, entry_data)
-    else:
+    elif getattr(run_db, "__module__", "") == "services.api.app.diabetes.services.db":
         success = await run_db(save_entry, entry_data, sessionmaker=SessionLocal)
+    else:
+        success = await run_db(save_entry, entry_data)
     if not success:
         await message.reply_text("⚠️ Не удалось сохранить запись.")
         return END

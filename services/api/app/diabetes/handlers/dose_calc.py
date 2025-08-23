@@ -17,16 +17,7 @@ from services.api.app.diabetes.services.db import (
     SessionLocal,
 )
 logger = logging.getLogger(__name__)
-
-try:
-    from services.api.app.diabetes.services.db import run_db as _run_db
-except ImportError:  # pragma: no cover - optional db runner
-    run_db: Callable[..., Awaitable[object]] | None = None
-except Exception:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db")
-    run_db = None
-else:
-    run_db = cast(Callable[..., Awaitable[object]], _run_db)
+from services.api.app.diabetes.utils.db_import import get_run_db
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import (
     PatientProfile,
@@ -47,6 +38,8 @@ from services.api.app.diabetes.gpt_command_parser import parse_command
 from .alert_handlers import check_alert
 from .reporting_handlers import history_view, report_request, send_report
 from . import EntryData, UserData
+
+run_db: Callable[..., Awaitable[object]] | None = get_run_db()
 
 T = TypeVar("T")
 
@@ -285,13 +278,13 @@ def _cancel_then(
 
 
 # Import additional handlers after defining dose_cancel to avoid circular imports
-from .sugar_handlers import (
+from .sugar_handlers import (  # noqa: E402
     SUGAR_VAL,
     sugar_start,
     sugar_val,
     sugar_conv,
     prompt_sugar,
-)  # noqa: E402
+)
 from .photo_handlers import (  # noqa: E402
     PHOTO_SUGAR,
     WAITING_GPT_FLAG,
@@ -304,17 +297,30 @@ from . import gpt_handlers as _gpt_handlers  # noqa: E402
 
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    return await _gpt_handlers.freeform_handler(
-        update,
-        context,
-        SessionLocal=SessionLocal,
-        commit=commit,
-        check_alert=check_alert,
-        menu_keyboard=menu_keyboard,
-        smart_input=smart_input,
-        parse_command=parse_command,
-        send_report=send_report,
-    )
+    _gpt_handlers.SessionLocal = SessionLocal
+    _gpt_handlers.commit = commit
+    _gpt_handlers.check_alert = check_alert
+    _gpt_handlers.menu_keyboard = menu_keyboard
+    _gpt_handlers.smart_input = smart_input
+    _gpt_handlers.parse_command = parse_command
+    _gpt_handlers.send_report = send_report
+    import inspect
+
+    sig = inspect.signature(_gpt_handlers.freeform_handler)
+    kwargs = {
+        name: value
+        for name, value in {
+            "SessionLocal": SessionLocal,
+            "commit": commit,
+            "check_alert": check_alert,
+            "menu_keyboard": menu_keyboard,
+            "smart_input": smart_input,
+            "parse_command": parse_command,
+            "send_report": send_report,
+        }.items()
+        if name in sig.parameters
+    }
+    return await _gpt_handlers.freeform_handler(update, context, **kwargs)
 
 
 chat_with_gpt = _gpt_handlers.chat_with_gpt

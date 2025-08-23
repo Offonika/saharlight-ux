@@ -34,25 +34,16 @@ from services.api.app.diabetes.services.db import (
     SessionLocal as _SessionLocal,
     User,
 )
-
-logger = logging.getLogger(__name__)
-
-try:
-    from services.api.app.diabetes.services.db import run_db as _run_db
-except ImportError:  # pragma: no cover - optional db runner
-    run_db: Callable[..., Awaitable[object]] | None = None
-except Exception:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db")
-    run_db = None
-else:
-    run_db = cast(Callable[..., Awaitable[object]], _run_db)
+from services.api.app.diabetes.utils.db_import import get_run_db
 from services.api.app.diabetes.services.repository import commit as _commit
 from services.api.app.config import settings
 from services.api.app.diabetes.utils.helpers import (
     INVALID_TIME_MSG,
     parse_time_interval,
 )
+from . import UserData
 
+logger = logging.getLogger(__name__)
 SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], bool] = _commit
 
@@ -60,7 +51,7 @@ DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 
 PLAN_LIMITS = {"free": 5, "pro": 10}
 
-from . import UserData
+run_db: Callable[..., Awaitable[object]] | None = get_run_db()
 
 
 def build_webapp_url(path: str) -> str:
