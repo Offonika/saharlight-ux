@@ -108,6 +108,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+        '404':
+          description: Reminder not found or telegramId mismatch
     post:
       tags:
       - Reminders
@@ -221,6 +223,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+        '404':
+          description: Reminder not found
   /timezone:
     get:
       summary: Get Timezone

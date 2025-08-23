@@ -33,6 +33,9 @@ export async function getReminders(
       throw error;
     }
     console.error('Failed to fetch reminders:', error);
+    if (error instanceof ResponseError && error.response.status === 404) {
+      return [];
+    }
     if (error instanceof Error) {
       throw error;
     }
