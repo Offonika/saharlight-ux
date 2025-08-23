@@ -35,6 +35,8 @@ from .dose_validation import _sanitize
 from .reporting_handlers import render_entry, send_report
 from . import UserData
 
+run_db = cast(Callable[..., Awaitable[Any]] | None, run_db)
+
 logger = logging.getLogger(__name__)
 
 
@@ -91,7 +93,7 @@ async def _save_entry(
         session.add(entry)
         return bool(commit(session))
 
-    if not callable(run_db):
+    if run_db is None:
         with SessionLocal() as session:
             return _db_save(session)
     return await run_db(_db_save, sessionmaker=SessionLocal)
@@ -201,7 +203,7 @@ async def _handle_pending_entry(
             if carbs_g is None and xe_val is not None:
                 carbs_g = XE_GRAMS * xe_val
                 pending_entry["carbs_g"] = carbs_g
-            if not callable(run_db):
+            if run_db is None:
                 with SessionLocal() as session:
                     profile = session.get(Profile, user_id)
             else:
@@ -272,7 +274,7 @@ async def _handle_edit_entry(
         session.refresh(entry)
         return entry
 
-    if not callable(run_db):
+    if run_db is None:
         with SessionLocal() as session:
             entry = db_edit(session)
     else:
