@@ -1,22 +1,32 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
+
+class Configuration {}
 
 const mockGetAnalytics = vi.hoisted(() => vi.fn());
 const mockGetStats = vi.hoisted(() => vi.fn());
 
-vi.mock('@offonika/diabetes-ts-sdk', () => ({
-  DefaultApi: vi.fn(() => ({
-    getAnalyticsAnalyticsGet: mockGetAnalytics,
-    getStatsStatsGet: mockGetStats,
-  })),
-  Configuration,
-}));
+vi.mock(
+  '@offonika/diabetes-ts-sdk/runtime',
+  () => ({ Configuration }),
+  { virtual: true },
+);
+
+vi.mock(
+  '@offonika/diabetes-ts-sdk',
+  () => ({
+    DefaultApi: vi.fn(() => ({
+      getAnalyticsAnalyticsGet: mockGetAnalytics,
+      getStatsStatsGet: mockGetStats,
+    })),
+  }),
+  { virtual: true },
+);
 
 import {
   fetchAnalytics,
   fetchDayStats,
-  fallbackAnalytics,
-  fallbackDayStats,
+  getFallbackAnalytics,
+  getFallbackDayStats,
 } from './stats';
 
 afterEach(() => {
@@ -37,12 +47,18 @@ describe('fetchAnalytics', () => {
 
   it('returns fallback on invalid response', async () => {
     mockGetAnalytics.mockResolvedValueOnce({ foo: 'bar' });
-    await expect(fetchAnalytics(1)).resolves.toBe(fallbackAnalytics);
+    await expect(fetchAnalytics(1)).resolves.toEqual(getFallbackAnalytics());
   });
 
-  it('returns fallback on network error', async () => {
+  it('generates recent fallback on network error', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-05-05'));
     mockGetAnalytics.mockRejectedValueOnce(new Error('network'));
-    await expect(fetchAnalytics(1)).resolves.toBe(fallbackAnalytics);
+    await expect(fetchAnalytics(1)).resolves.toEqual(getFallbackAnalytics());
+    const result = getFallbackAnalytics();
+    expect(result[0].date).toBe('2024-05-01');
+    expect(result[4].date).toBe('2024-05-05');
+    vi.useRealTimers();
   });
 });
 
@@ -55,13 +71,13 @@ describe('fetchDayStats', () => {
   });
 
   it('returns fallback on invalid response', async () => {
-    mockGetStats.mockResolvedValueOnce({ sugar: 'bad' } as any);
-    await expect(fetchDayStats(1)).resolves.toBe(fallbackDayStats);
+    mockGetStats.mockResolvedValueOnce({ sugar: 'bad' } as unknown as DayStats);
+    await expect(fetchDayStats(1)).resolves.toEqual(getFallbackDayStats());
   });
 
   it('returns fallback on network error', async () => {
     mockGetStats.mockRejectedValueOnce(new Error('network'));
-    await expect(fetchDayStats(1)).resolves.toBe(fallbackDayStats);
+    await expect(fetchDayStats(1)).resolves.toEqual(getFallbackDayStats());
   });
 });
 
