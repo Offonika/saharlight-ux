@@ -1,6 +1,6 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, cast
 
 
 import pytest
@@ -13,8 +13,6 @@ from sqlalchemy.orm import Session, sessionmaker
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
-
-T = TypeVar("T")
 
 
 class DummyMessage:
@@ -348,16 +346,7 @@ async def test_photo_then_freeform_calculates_dose(
     session_factory = cast(Any, sessionmaker(class_=DummySession))
     photo_handlers.SessionLocal = session_factory  # type: ignore[attr-defined]
 
-    async def fake_run_db(
-        func: Callable[[Session], T],
-        *args: Any,
-        sessionmaker: Callable[[], Session],
-        **kwargs: Any,
-    ) -> T:
-        with cast(Any, sessionmaker()) as s:
-            return func(cast(Session, s), *args, **kwargs)
-
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
 
     sugar_msg = DummyMessage(text="5")
     update_sugar = cast(
@@ -366,7 +355,7 @@ async def test_photo_then_freeform_calculates_dose(
     )
 
     await gpt_handlers.freeform_handler(
-        update_sugar, context, SessionLocal=session_factory
+        update_sugar, context, SessionLocal=session_factory, commit=lambda s: True
     )
 
     reply = sugar_msg.texts[0]

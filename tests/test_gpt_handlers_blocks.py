@@ -216,19 +216,11 @@ async def test_handle_pending_entry_complete(monkeypatch: pytest.MonkeyPatch) ->
         SimpleNamespace(),
     )
 
-    async def fake_run_db(func: Any, sessionmaker: Any) -> bool:
-        class DummySession:
-            def add(self, obj: Any) -> None:
-                pass
-
-        return bool(func(DummySession()))
-
     async def fake_check_alert(
         update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
     ) -> None:
         return None
-
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
 
     handled = await gpt_handlers._handle_pending_entry(
         "5",

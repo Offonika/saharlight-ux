@@ -1,6 +1,6 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, cast
 
 from unittest.mock import Mock, PropertyMock
 
@@ -14,8 +14,6 @@ import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 import services.api.app.diabetes.handlers.router as router
 
-
-T = TypeVar("T")
 
 
 class DummyMessage:
@@ -187,24 +185,14 @@ async def test_photo_flow_saves_entry(
     photo_handlers.SessionLocal = session_factory  # type: ignore[attr-defined]
     gpt_handlers.SessionLocal = session_factory
 
-    async def fake_run_db(
-        func: Callable[..., T],
-        *args: Any,
-        sessionmaker: Callable[[], Session],
-        **kwargs: Any,
-    ) -> T:
-        session = sessionmaker()
-        try:
-            return func(session, *args, **kwargs)
-        finally:
-            session.close()
-
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
     await gpt_handlers.freeform_handler(
         update_sugar,
         context,
         parse_command=fake_parse_command,
         menu_keyboard=None,
+        SessionLocal=session_factory,
+        commit=lambda s: True,
     )
     assert user_data["pending_entry"]["sugar_before"] == 5.5
 

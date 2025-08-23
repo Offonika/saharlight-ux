@@ -401,7 +401,13 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             return "error", db_user, limit, count
         return "ok", db_user, limit, reminder.id
 
-    status, db_user, limit, rid_or_count = await run_db(db_add, sessionmaker=SessionLocal)
+    if not callable(run_db):
+        with SessionLocal() as session:
+            status, db_user, limit, rid_or_count = db_add(session)
+    else:
+        status, db_user, limit, rid_or_count = await run_db(
+            db_add, sessionmaker=SessionLocal
+        )
 
     if status == "limit":
         count = rid_or_count

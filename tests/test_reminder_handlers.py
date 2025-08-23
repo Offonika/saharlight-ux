@@ -1,6 +1,7 @@
 import json
 from typing import Any
 from unittest.mock import MagicMock
+from types import TracebackType
 
 import pytest
 from telegram import Update, User
@@ -114,10 +115,44 @@ async def test_add_reminder_valid_type(monkeypatch: pytest.MonkeyPatch) -> None:
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "2"], job_queue=None)
 
-    async def fake_run_db(*args: Any, **kwargs: Any) -> tuple[str, None, int, int]:
-        return "ok", None, 5, 1
+    class DummyQuery:
+        def filter_by(self, **kwargs: Any) -> "DummyQuery":
+            return self
 
-    monkeypatch.setattr(reminder_handlers, "run_db", fake_run_db)
+        def count(self) -> int:
+            return 0
+
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
+
+        def query(self, model: Any) -> DummyQuery:  # noqa: D401 - no action
+            return DummyQuery()
+
+        def get(self, model: Any, ident: Any) -> Any:
+            return None
+
+        def add(self, obj: Any) -> None:  # noqa: D401 - no action
+            self.obj = obj
+
+        def commit(self) -> None:  # noqa: D401 - no action
+            pass
+
+    def commit_stub(session: DummySession) -> bool:
+        session.obj.id = 1
+        return True
+
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: DummySession())
+    monkeypatch.setattr(reminder_handlers, "commit", commit_stub)
     monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
 
     await reminder_handlers.add_reminder(update, context)

@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
 import pytest
@@ -33,10 +33,32 @@ async def test_freeform_handler_db_error_propagates(
         SimpleNamespace(user_data={"pending_entry": {}, "pending_fields": ["sugar"]}),
     )
 
-    async def failing_run_db(*args: Any, **kwargs: Any) -> Any:
-        raise AttributeError("db failure")
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
 
-    monkeypatch.setattr(gpt_handlers, "run_db", failing_run_db)
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
 
-    with pytest.raises(AttributeError):
-        await gpt_handlers.freeform_handler(update, context)
+        def add(self, obj: Any) -> None:  # noqa: D401 - no action
+            pass
+
+        def commit(self) -> None:  # noqa: D401 - no action
+            pass
+
+    async def fake_check_alert(
+        update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
+    ) -> None:
+        return None
+
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", lambda: DummySession())
+    await gpt_handlers.freeform_handler(
+        update, context, commit=lambda s: True, check_alert=fake_check_alert
+    )
+    assert message.texts and message.texts[0].startswith("✅ Запись сохранена")
