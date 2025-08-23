@@ -15,7 +15,7 @@ from services.api.app.diabetes.services.db import Entry, SessionLocal
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 from services.api.app.diabetes.services.repository import commit
-from . import UserData
+from . import EntryData, UserData
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ async def handle_confirm_entry(
     if user_data_raw is None:
         return
     user_data = cast(UserData, user_data_raw)
-    entry_data = user_data.pop("pending_entry", None)
+    entry_data = cast(EntryData | None, user_data.pop("pending_entry", None))
     if not entry_data:
         await query.edit_message_text("❗ Нет данных для сохранения.")
         return
@@ -67,7 +67,7 @@ async def handle_edit_entry(
     if user_data_raw is None:
         return
     user_data = cast(UserData, user_data_raw)
-    entry_data = user_data.get("pending_entry")
+    entry_data = cast(EntryData | None, user_data.get("pending_entry"))
     if not entry_data:
         await query.edit_message_text("❗ Нет данных для редактирования.")
         return

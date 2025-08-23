@@ -1,8 +1,21 @@
 """Handlers package public exports and shared types."""
 
+import datetime
 from typing import TypedDict
 
 from telegram import CallbackQuery
+
+
+class EntryData(TypedDict, total=False):
+    """Data used to create or update an :class:`Entry`."""
+
+    telegram_id: int
+    event_time: datetime.datetime
+    xe: float | None
+    carbs_g: float | None
+    dose: float | None
+    sugar_before: float | None
+    photo_path: str | None
 
 
 class UserData(TypedDict, total=False):
@@ -10,7 +23,7 @@ class UserData(TypedDict, total=False):
 
     awaiting_report_date: bool
     thread_id: str
-    pending_entry: dict[str, object]
+    pending_entry: EntryData
     pending_fields: list[str]
     dose_method: str
     edit_id: int | None
@@ -28,5 +41,5 @@ class UserData(TypedDict, total=False):
 
 from .dose_calc import _cancel_then  # noqa: E402
 
-__all__ = ["_cancel_then", "UserData"]
+__all__ = ["_cancel_then", "EntryData", "UserData"]
 

@@ -33,7 +33,7 @@ from services.api.app.diabetes.utils.ui import confirm_keyboard, menu_keyboard
 from .alert_handlers import check_alert
 from .dose_validation import _sanitize
 from .reporting_handlers import render_entry, send_report
-from . import UserData
+from . import EntryData, UserData
 
 T = TypeVar("T")
 
@@ -59,18 +59,6 @@ class EditMessageMeta(TypedDict):
 
     chat_id: int
     message_id: int
-
-
-class EntryData(TypedDict, total=False):
-    """Data required to create or update an :class:`Entry`."""
-
-    telegram_id: int
-    event_time: datetime.datetime
-    xe: float | None
-    carbs_g: float | None
-    dose: float | None
-    sugar_before: float | None
-    photo_path: str | None
 
 
 async def _handle_report_request(
