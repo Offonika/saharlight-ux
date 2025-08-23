@@ -39,7 +39,7 @@ async def save_reminder(data: ReminderSchema) -> int:
         rem.is_enabled = data.isEnabled
         commit(cast(Session, session))
         cast(Session, session).refresh(rem)
-        return rem.id
+        return cast(int, rem.id)
 
     return await run_db(_save, sessionmaker=SessionLocal)
 
