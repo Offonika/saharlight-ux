@@ -12,7 +12,11 @@ from telegram.ext import (
     filters,
 )
 
-from services.api.app.diabetes.services.db import SessionLocal, Profile
+from services.api.app.diabetes.services.db import (
+    Profile,
+    SessionLocal,
+    run_db,
+)
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import (
     PatientProfile,
@@ -192,10 +196,17 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         entry["carbs_g"] = carbs_g
 
     user_id = user.id
-    with SessionLocal() as session:
-        profile = session.get(Profile, user_id)
+    profile = await run_db(
+        lambda s: s.get(Profile, user_id),
+        sessionmaker=SessionLocal,
+    )
 
-    if profile is None or profile.icr is None or profile.cf is None or profile.target_bg is None:
+    if (
+        profile is None
+        or profile.icr is None
+        or profile.cf is None
+        or profile.target_bg is None
+    ):
         await message.reply_text(
             "Профиль не настроен. Установите коэффициенты через /profile.",
             reply_markup=menu_keyboard,
@@ -246,7 +257,9 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 
 def _cancel_then(
-    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]],
+    handler: Callable[
+        [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]
+    ],
 ) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
@@ -258,7 +271,13 @@ def _cancel_then(
 
 
 # Import additional handlers after defining dose_cancel to avoid circular imports
-from .sugar_handlers import SUGAR_VAL, sugar_start, sugar_val, sugar_conv, prompt_sugar  # noqa: E402
+from .sugar_handlers import (
+    SUGAR_VAL,
+    sugar_start,
+    sugar_val,
+    sugar_conv,
+    prompt_sugar,
+)  # noqa: E402
 from .photo_handlers import (  # noqa: E402
     PHOTO_SUGAR,
     WAITING_GPT_FLAG,
@@ -290,7 +309,9 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex("^💉 Доза инсулина$"), dose_start),
     ],
     states={
-        DOSE_METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
+        DOSE_METHOD: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)
+        ],
         DOSE_XE: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)],
         DOSE_CARBS: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)],
         DOSE_SUGAR: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)],
@@ -298,11 +319,22 @@ dose_conv = ConversationHandler(
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
-        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))),
-        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), cast(object, _cancel_then(sugar_start))),
-        MessageHandler(filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))),
-        MessageHandler(filters.Regex("^📈 Отчёт$"), cast(object, _cancel_then(report_request))),
-        MessageHandler(filters.Regex("^📄 Мой профиль$"), cast(object, _cancel_then(profile_view))),
+        MessageHandler(
+            filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
+        ),
+        MessageHandler(
+            filters.Regex("^🩸 Уровень сахара$"),
+            cast(object, _cancel_then(sugar_start)),
+        ),
+        MessageHandler(
+            filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))
+        ),
+        MessageHandler(
+            filters.Regex("^📈 Отчёт$"), cast(object, _cancel_then(report_request))
+        ),
+        MessageHandler(
+            filters.Regex("^📄 Мой профиль$"), cast(object, _cancel_then(profile_view))
+        ),
     ],
 )
 
