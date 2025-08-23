@@ -618,6 +618,11 @@ components:
         type:
           type: string
           title: Type
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
         time:
           anyOf:
           - type: string

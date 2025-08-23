@@ -40,24 +40,30 @@ async def get_reminders(
     if id is None:
         return [
             {
+                "telegramId": r.telegram_id,
                 "id": r.id,
                 "type": r.type,
                 "title": r.type,
                 "time": r.time,
-                "active": r.is_enabled,
-                "interval": r.interval_hours,
+                "intervalHours": r.interval_hours,
+                "minutesAfter": r.minutes_after,
+                "isEnabled": r.is_enabled,
+                "orgId": r.org_id,
             }
             for r in rems
         ]
     for r in rems:
         if r.id == id:
             return {
+                "telegramId": r.telegram_id,
                 "id": r.id,
                 "type": r.type,
                 "title": r.type,
                 "time": r.time,
-                "active": r.is_enabled,
-                "interval": r.interval_hours,
+                "intervalHours": r.interval_hours,
+                "minutesAfter": r.minutes_after,
+                "isEnabled": r.is_enabled,
+                "orgId": r.org_id,
             }
     return []  # 200 OK — пустой список
 
