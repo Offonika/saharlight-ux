@@ -46,17 +46,13 @@ venv*/
 .coverage
 services/api/app/*.bak.*
 .env
-cat >> .gitignore <<'IGN'
-# ——— Генерируемые SDK ———
-libs/ts-sdk/
+# Generated SDKs
 libs/py-sdk/
 
-# ——— Сборка фронта ———
+# Webapp build output
 services/webapp/ui/dist/
 
-# ——— Секреты / временные ———
+# Secrets / temporary
 .env
 .coverage
 log/
-IGN
-.env

@@ -16,7 +16,7 @@ importers:
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.62.0(react@18.3.1))
       '@offonika/diabetes-ts-sdk':
-        specifier: workspace:*
+        specifier: file:../../../libs/ts-sdk
         version: link:../../../libs/ts-sdk
       '@radix-ui/react-accordion':
         specifier: ^1.2.11

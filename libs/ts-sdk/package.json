@@ -1,0 +1,10 @@
+{
+  "name": "@saharlight/ts-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.ts",
+  "description": "TypeScript SDK for the Diabetes Assistant API",
+  "license": "MIT"
+}
