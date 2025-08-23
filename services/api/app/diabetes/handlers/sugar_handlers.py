@@ -1,5 +1,6 @@
 import datetime
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 from telegram import Update
@@ -12,7 +13,14 @@ from telegram.ext import (
 )
 from sqlalchemy.orm import Session
 
-from services.api.app.diabetes.services.db import Entry, run_db
+from services.api.app.diabetes.services.db import Entry, SessionLocal
+
+try:
+    from services.api.app.diabetes.services.db import run_db as _run_db
+except Exception:  # pragma: no cover - optional db runner
+    run_db: Callable[..., Awaitable[object]] | None = None
+else:
+    run_db = cast(Callable[..., Awaitable[object]], _run_db)
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import _safe_float
 from services.api.app.diabetes.utils.ui import menu_keyboard, sugar_keyboard
@@ -91,7 +99,11 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         session.add(entry)
         return commit(session)
 
-    success = await run_db(save_entry, entry_data)
+    if run_db is None:
+        with SessionLocal() as session:
+            success = save_entry(session, entry_data)
+    else:
+        success = await run_db(save_entry, entry_data, sessionmaker=SessionLocal)
     if not success:
         await message.reply_text("⚠️ Не удалось сохранить запись.")
         return END

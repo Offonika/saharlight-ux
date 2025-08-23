@@ -16,7 +16,14 @@ from telegram import (
 from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session, sessionmaker
 
-from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile, run_db
+from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile
+
+try:
+    from services.api.app.diabetes.services.db import run_db as _run_db
+except Exception:  # pragma: no cover - fallback for optional db runner
+    run_db: Callable[..., Awaitable[object]] | None = None
+else:
+    run_db = cast(Callable[..., Awaitable[object]], _run_db)
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import (
     PatientProfile,

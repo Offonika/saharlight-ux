@@ -1,6 +1,6 @@
 import datetime
 import logging
-from collections.abc import Callable, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine
 from typing import TypeVar, cast
 
 from telegram import Update
@@ -15,8 +15,14 @@ from telegram.ext import (
 from services.api.app.diabetes.services.db import (
     Profile,
     SessionLocal,
-    run_db,
 )
+
+try:
+    from services.api.app.diabetes.services.db import run_db as _run_db
+except Exception:  # pragma: no cover - optional db runner
+    run_db: Callable[..., Awaitable[object]] | None = None
+else:
+    run_db = cast(Callable[..., Awaitable[object]], _run_db)
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import (
     PatientProfile,
@@ -196,10 +202,14 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         entry["carbs_g"] = carbs_g
 
     user_id = user.id
-    profile = await run_db(
-        lambda s: s.get(Profile, user_id),
-        sessionmaker=SessionLocal,
-    )
+    if run_db is None:
+        with SessionLocal() as session:
+            profile = session.get(Profile, user_id)
+    else:
+        profile = await run_db(
+            lambda s: s.get(Profile, user_id),
+            sessionmaker=SessionLocal,
+        )
 
     if (
         profile is None
