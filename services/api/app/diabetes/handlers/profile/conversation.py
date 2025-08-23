@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from typing import cast
 from telegram import (
     Update,
@@ -28,8 +29,14 @@ from services.api.app.diabetes.services.db import (
     Alert,
     Reminder,
     User,
-    run_db,
 )
+
+try:
+    from services.api.app.diabetes.services.db import run_db as _run_db
+except Exception:  # pragma: no cover - optional db runner
+    run_db: Callable[..., Awaitable[object]] | None = None
+else:
+    run_db = cast(Callable[..., Awaitable[object]], _run_db)
 
 from services.api.app.diabetes.handlers.alert_handlers import (
     evaluate_sugar,
@@ -64,7 +71,9 @@ MSG_LOW_GT0 = "Нижний порог должен быть больше 0."
 MSG_HIGH_GT_LOW = "Верхний порог должен быть больше нижнего и больше 0."
 
 
-PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)
+PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(
+    6
+)
 END: int = ConversationHandler.END
 
 
@@ -86,14 +95,23 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     # Ensure no pending sugar logging conversation captures profile input
     from ..dose_calc import sugar_conv
+
     chat_data = getattr(context, "chat_data", {})
     if chat_data.pop("sugar_active", None):
         end_conv = getattr(sugar_conv, "update_state", None)
         if callable(end_conv):
             end_conv(update, context, END)
         else:
-            chat_id = getattr(update.effective_chat, "id", None) if sugar_conv.per_chat else None
-            user_id = getattr(update.effective_user, "id", None) if sugar_conv.per_user else None
+            chat_id = (
+                getattr(update.effective_chat, "id", None)
+                if sugar_conv.per_chat
+                else None
+            )
+            user_id = (
+                getattr(update.effective_user, "id", None)
+                if sugar_conv.per_user
+                else None
+            )
             msg_id = (
                 getattr(update.effective_message, "message_id", None)
                 if sugar_conv.per_message
@@ -268,7 +286,8 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def profile_webapp_save(
-    update: Update, context: ContextTypes.DEFAULT_TYPE,
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
     """Save profile data sent from the web app."""
     api, ApiException, ProfileModel = get_api()
@@ -353,6 +372,8 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.answer()
     await query.message.delete()
     await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
+
+
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user to enter timezone."""
     query = update.callback_query
@@ -372,7 +393,9 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     return PROFILE_TZ
 
 
-async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def profile_timezone_save(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     """Save user timezone from input."""
     message = update.message
     if message is None:
@@ -409,13 +432,13 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
     def db_set_timezone(session: Session) -> tuple[bool, bool]:
         return set_timezone(session, user_id, raw)
 
-    exists, ok = await run_db(
-        db_set_timezone, sessionmaker=SessionLocal
-    )
+    if run_db is None:
+        with SessionLocal() as session:
+            exists, ok = db_set_timezone(session)
+    else:
+        exists, ok = await run_db(db_set_timezone, sessionmaker=SessionLocal)
     if not exists:
-        await message.reply_text(
-            "Профиль не найден.", reply_markup=menu_keyboard
-        )
+        await message.reply_text("Профиль не найден.", reply_markup=menu_keyboard)
         return END
     if not ok:
         await message.reply_text(
@@ -423,9 +446,7 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
             reply_markup=menu_keyboard,
         )
         return END
-    await message.reply_text(
-        "✅ Часовой пояс обновлён.", reply_markup=menu_keyboard
-    )
+    await message.reply_text("✅ Часовой пояс обновлён.", reply_markup=menu_keyboard)
     return END
 
 
@@ -475,9 +496,7 @@ def _security_db(
 
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
     rem_text = (
-        "\n".join(
-            f"{r.id}. {reminder_handlers._describe(r, user)}" for r in rems
-        )
+        "\n".join(f"{r.id}. {reminder_handlers._describe(r, user)}" for r in rems)
         if rems
         else "нет"
     )
@@ -515,9 +534,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if action == "add" and settings.webapp_url:
         button = InlineKeyboardButton(
             "📝 Новое",
-            web_app=WebAppInfo(
-                reminder_handlers.build_webapp_url("/ui/reminders")
-            ),
+            web_app=WebAppInfo(reminder_handlers.build_webapp_url("/ui/reminders")),
         )
         keyboard = InlineKeyboardMarkup([[button]])
         await q_message.reply_text("Создать напоминание:", reply_markup=keyboard)
@@ -527,9 +544,11 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     def db_security(session: Session) -> dict[str, object]:
         return _security_db(session, user_id, action)
 
-    result = await run_db(
-        db_security, sessionmaker=SessionLocal
-    )
+    if run_db is None:
+        with SessionLocal() as session:
+            result = db_security(session)
+    else:
+        result = await run_db(db_security, sessionmaker=SessionLocal)
     if not result.get("found"):
         await query.edit_message_text("Профиль не найден.")
         return
@@ -588,9 +607,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 InlineKeyboardButton(
                     "➕ Добавить", callback_data="profile_security:add"
                 ),
-                InlineKeyboardButton(
-                    "🗑 Удалить", callback_data="profile_security:del"
-                ),
+                InlineKeyboardButton("🗑 Удалить", callback_data="profile_security:del"),
             ],
             [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
         ]
@@ -708,9 +725,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return PROFILE_TARGET
     if target <= 0:
-        await message.reply_text(
-            MSG_TARGET_GT0, reply_markup=back_keyboard
-        )
+        await message.reply_text(MSG_TARGET_GT0, reply_markup=back_keyboard)
         return PROFILE_TARGET
     user_data["profile_target"] = target
     await message.reply_text(
@@ -748,9 +763,7 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         )
         return PROFILE_LOW
     if low <= 0:
-        await message.reply_text(
-            MSG_LOW_GT0, reply_markup=back_keyboard
-        )
+        await message.reply_text(MSG_LOW_GT0, reply_markup=back_keyboard)
         return PROFILE_LOW
     user_data["profile_low"] = low
     await message.reply_text(
@@ -758,6 +771,8 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         reply_markup=back_keyboard,
     )
     return PROFILE_HIGH
+
+
 async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle high threshold input and save profile."""
     user_data_raw = context.user_data
@@ -820,10 +835,14 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             )
         )
 
-    ok = await run_db(
-        db_save_profile,
-        sessionmaker=SessionLocal,
-    )
+    if run_db is None:
+        with SessionLocal() as session:
+            ok = db_save_profile(session)
+    else:
+        ok = await run_db(
+            db_save_profile,
+            sessionmaker=SessionLocal,
+        )
     if not ok:
         await message.reply_text("⚠️ Не удалось сохранить профиль.")
         return END
@@ -858,11 +877,15 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return END
 
 
-async def _profile_edit_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def _profile_edit_entry(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     return await profile_edit(update, context)
 
 
-async def _profile_timezone_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def _profile_timezone_entry(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     return await profile_timezone(update, context)
 
 
@@ -870,7 +893,9 @@ profile_conv = ConversationHandler(
     entry_points=[
         CommandHandler("profile", profile_command),
         CallbackQueryNoWarnHandler(_profile_edit_entry, pattern="^profile_edit$"),
-        CallbackQueryNoWarnHandler(_profile_timezone_entry, pattern="^profile_timezone$"),
+        CallbackQueryNoWarnHandler(
+            _profile_timezone_entry, pattern="^profile_timezone$"
+        ),
     ],
     states={
         PROFILE_ICR: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],
@@ -878,12 +903,8 @@ profile_conv = ConversationHandler(
         PROFILE_TARGET: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)
         ],
-        PROFILE_LOW: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, profile_low)
-        ],
-        PROFILE_HIGH: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, profile_high)
-        ],
+        PROFILE_LOW: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_low)],
+        PROFILE_HIGH: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_high)],
         PROFILE_TZ: [
             MessageHandler(
                 (filters.TEXT & ~filters.COMMAND) | filters.StatusUpdate.WEB_APP_DATA,

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Callable, TypedDict, cast
+from collections.abc import Awaitable, Callable
+from typing import TypedDict, cast
 
 from sqlalchemy.orm import Session, sessionmaker
 from telegram import Update
@@ -13,8 +14,14 @@ from services.api.app.diabetes.services.db import (
     Alert,
     Profile,
     SessionLocal as _SessionLocal,
-    run_db,
 )
+
+try:
+    from services.api.app.diabetes.services.db import run_db as _run_db
+except Exception:  # pragma: no cover - optional db runner
+    run_db: Callable[..., Awaitable[object]] | None = None
+else:
+    run_db = cast(Callable[..., Awaitable[object]], _run_db)
 from services.api.app.diabetes.services.repository import commit as _commit
 from services.api.app.diabetes.utils.helpers import get_coords_and_link
 
@@ -31,6 +38,7 @@ class AlertJobData(TypedDict, total=False):
     sugar: float
     profile: dict[str, object]
     first_name: str
+
 
 logger = logging.getLogger(__name__)
 
@@ -78,9 +86,7 @@ async def _send_alert_message(
     except TelegramError as exc:
         logger.error("Failed to send alert message to user %s: %s", user_id, exc)
     except OSError as exc:
-        logger.exception(
-            "OS error sending alert message to user %s: %s", user_id, exc
-        )
+        logger.exception("OS error sending alert message to user %s: %s", user_id, exc)
     if profile_info.get("sos_contact") and profile_info.get("sos_alerts_enabled"):
         contact = profile_info["sos_contact"]
         chat_id: int | str | None
@@ -126,11 +132,7 @@ async def evaluate_sugar(
         low = profile.low_threshold
         high = profile.high_threshold
 
-        active = (
-            session.query(Alert)
-            .filter_by(user_id=user_id, resolved=False)
-            .all()
-        )
+        active = session.query(Alert).filter_by(user_id=user_id, resolved=False).all()
 
         if (low is not None and sugar < low) or (high is not None and sugar > high):
             atype = "hypo" if low is not None and sugar < low else "hyper"
@@ -165,7 +167,11 @@ async def evaluate_sugar(
                 return False, None
             return True, {"action": "remove", "notify": False}
 
-    ok, result = await run_db(db_eval, sessionmaker=SessionLocal)
+    if run_db is None:
+        with SessionLocal() as session:
+            ok, result = db_eval(session)
+    else:
+        ok, result = await run_db(db_eval, sessionmaker=SessionLocal)
     if not ok or result is None:
         return
     action = result["action"]
@@ -229,11 +235,7 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     profile: dict[str, object] = data.get("profile", {})
     first_name = data.get("first_name", "")
     with SessionLocal() as session:
-        active = (
-            session.query(Alert)
-            .filter_by(user_id=user_id, resolved=False)
-            .first()
-        )
+        active = session.query(Alert).filter_by(user_id=user_id, resolved=False).first()
         if not active:
             job.schedule_removal()
             return
@@ -241,18 +243,14 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     if count >= MAX_REPEATS:
         with SessionLocal() as session:
             alerts = (
-                session.query(Alert)
-                .filter_by(user_id=user_id, resolved=False)
-                .all()
+                session.query(Alert).filter_by(user_id=user_id, resolved=False).all()
             )
             for a in alerts:
                 a.resolved = True
             commit(session)
         job.schedule_removal()
         return
-    job_queue: DefaultJobQueue | None = cast(
-        DefaultJobQueue | None, context.job_queue
-    )
+    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is None:
         return
     schedule_alert(
@@ -265,9 +263,7 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-async def alert_stats(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def alert_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Отправить статистику предупреждений за последние 7 дней."""
     user = update.effective_user
     message = update.message
@@ -287,7 +283,7 @@ async def alert_stats(
     hypo = sum(1 for a in alerts if a.type == "hypo")
     hyper = sum(1 for a in alerts if a.type == "hyper")
 
-    text = f"За 7\u202Fдн.: гипо\u202F{hypo}, гипер\u202F{hyper}"
+    text = f"За 7\u202fдн.: гипо\u202f{hypo}, гипер\u202f{hyper}"
     await message.reply_text(text)
 
 
@@ -300,5 +296,3 @@ __all__ = [
     "SessionLocal",
     "commit",
 ]
-
-

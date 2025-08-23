@@ -16,7 +16,14 @@ from telegram import (
 from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session, sessionmaker
 
-from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile, run_db
+from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile
+
+try:
+    from services.api.app.diabetes.services.db import run_db as _run_db
+except Exception:  # pragma: no cover - fallback for optional db runner
+    run_db: Callable[..., Awaitable[object]] | None = None
+else:
+    run_db = cast(Callable[..., Awaitable[object]], _run_db)
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import (
     PatientProfile,
@@ -91,7 +98,7 @@ async def _save_entry(
         session.add(entry)
         return bool(commit(session))
 
-    if not callable(run_db):
+    if run_db is None:
         with SessionLocal() as session:
             return _db_save(session)
     return await run_db(_db_save, sessionmaker=SessionLocal)
@@ -201,7 +208,7 @@ async def _handle_pending_entry(
             if carbs_g is None and xe_val is not None:
                 carbs_g = XE_GRAMS * xe_val
                 pending_entry["carbs_g"] = carbs_g
-            if not callable(run_db):
+            if run_db is None:
                 with SessionLocal() as session:
                     profile = session.get(Profile, user_id)
             else:
@@ -272,7 +279,7 @@ async def _handle_edit_entry(
         session.refresh(entry)
         return entry
 
-    if not callable(run_db):
+    if run_db is None:
         with SessionLocal() as session:
             entry = db_edit(session)
     else:
