@@ -153,6 +153,7 @@ def test_build_webapp_url(monkeypatch: pytest.MonkeyPatch, base_url: str) -> Non
 
 
 def test_build_webapp_url_without_base(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "webapp_url", None)
     path = "/ui/reminders"
-    assert reminder_handlers.build_webapp_url(path) == path
+    monkeypatch.setattr(settings, "webapp_url", "")
+    with pytest.raises(RuntimeError, match="WEBAPP_URL not configured"):
+        reminder_handlers.build_webapp_url(path)
