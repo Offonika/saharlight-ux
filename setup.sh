@@ -23,11 +23,11 @@ echo "Установка Python-зависимостей…"
 pip install --upgrade pip || { echo "Pip upgrade failed" >&2; exit 1; }
 pip install -r requirements.txt || { echo "Python dependencies installation failed" >&2; exit 1; }
 
-echo "Сборка фронтенда (npm ci && npm run build)…"
-pushd services/webapp/ui >/dev/null
+echo "Установка JavaScript-зависимостей…"
 npm ci || { echo "npm ci failed" >&2; exit 1; }
-npm run build || { echo "npm build failed" >&2; exit 1; }
-popd >/dev/null
+
+echo "Сборка фронтенда…"
+npm --workspace services/webapp/ui run build || { echo "npm build failed" >&2; exit 1; }
 
 if [ ! -f ".env" ]; then
     echo "Копирование infra/env/.env.example в .env (заполните ключи и пароли)…"
