@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import Reminder, SessionLocal, User, run_db
+from ..diabetes.services.repository import commit
 from ..schemas.reminders import ReminderSchema
 
 
@@ -34,7 +35,7 @@ async def save_reminder(data: ReminderSchema) -> int:
         rem.interval_hours = data.intervalHours
         rem.minutes_after = data.minutesAfter
         rem.is_enabled = data.isEnabled
-        session.commit()
+        commit(session)
         session.refresh(rem)
         return rem.id
 
@@ -47,6 +48,6 @@ async def delete_reminder(telegram_id: int, reminder_id: int) -> None:
         if rem is None or rem.telegram_id != telegram_id:
             raise HTTPException(status_code=404, detail="reminder not found")
         session.delete(rem)
-        session.commit()
+        commit(session)
 
     await run_db(_delete, sessionmaker=SessionLocal)
