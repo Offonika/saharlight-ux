@@ -10,7 +10,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-dummy_gpt = ModuleType("gpt_command_parser")
+dummy_gpt: Any = ModuleType("gpt_command_parser")
 dummy_gpt.parse_command = lambda *args, **kwargs: None
 
 
@@ -21,7 +21,7 @@ class ParserTimeoutError(Exception):
 dummy_gpt.ParserTimeoutError = ParserTimeoutError
 sys.modules.setdefault("services.api.app.diabetes.gpt_command_parser", dummy_gpt)
 
-dummy_main = ModuleType("main")
+dummy_main: Any = ModuleType("main")
 dummy_main.BASE_DIR = Path(".")
 dummy_main.UI_DIR = Path(".")
 sys.modules.setdefault("services.api.app.main", dummy_main)

@@ -6,10 +6,10 @@ import os
 from types import SimpleNamespace
 from typing import Any, BinaryIO
 
-import matplotlib.pyplot as plt
-from matplotlib.dates import date2num as _date2num
 import pytest
-from pypdf import PdfReader as _PdfReader
+import matplotlib.pyplot as plt  # type: ignore[import-not-found]
+from matplotlib.dates import date2num as _date2num
+from pypdf import PdfReader as _PdfReader  # type: ignore[import-not-found]
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker

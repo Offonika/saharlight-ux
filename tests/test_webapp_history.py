@@ -31,13 +31,13 @@ def build_init_data(user_id: int = 1) -> str:
     return urllib.parse.urlencode(params)
 
 
-def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Any]:
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    SessionLocal: sessionmaker[Any] = sessionmaker(bind=engine, class_=SASession)
+    SessionLocal: sessionmaker = sessionmaker(bind=engine, class_=SASession)
     db.Base.metadata.create_all(bind=engine)
 
     async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:

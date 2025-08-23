@@ -33,9 +33,9 @@ async def test_save_and_list_reminder(
         session.commit()
 
     rem_id = await reminders.save_reminder(
-        ReminderSchema(
-            telegramId=1, type="sugar", title="Morning", time="08:00", orgId=42
-        )
+
+        ReminderSchema(telegramId=1, type="sugar", time=time(8, 0), orgId=42)
+
     )
     assert rem_id > 0
 
@@ -51,8 +51,9 @@ async def test_save_and_list_reminder(
             id=rem_id,
             telegramId=1,
             type="meal",
-            title="Lunch",
-            time="09:00",
+
+            time=time(9, 0),
+
             isEnabled=False,
         )
     )
