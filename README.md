@@ -178,18 +178,22 @@ pnpm --filter services/webapp/ui run build
 ### Использование SDK
 
 Сгенерированный TypeScript SDK доступен как workspace‑пакет
+
 `@offonika/diabetes-ts-sdk`, поэтому алиас пути не требуется.
 API требует заголовок `X-Telegram-Init-Data`, содержащий данные
 инициализации Telegram WebApp. Рекомендуем использовать обёртку
 `tgFetch`, которая автоматически прикрепляет этот заголовок.
 
+
 ```ts
 import { Configuration, ProfilesApi } from '@offonika/diabetes-ts-sdk';
 import { tgFetch } from './tgFetch';
 
+
 const api = new ProfilesApi(
   new Configuration({ basePath: '/api', fetchApi: tgFetch })
 );
+
 const profile = await api.profilesGet({ telegramId: 123 });
 ```
 
