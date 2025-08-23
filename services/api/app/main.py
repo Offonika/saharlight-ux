@@ -83,6 +83,7 @@ async def health() -> dict[str, str]:
 
 # ────────── timezone ──────────
 @app.get("/timezone")
+@app.get("/api/timezone", include_in_schema=False)
 async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     def _get_timezone(session: Session) -> TimezoneDB | None:
         return session.get(TimezoneDB, 1)
@@ -98,6 +99,7 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
 
 
 @app.put("/timezone")
+@app.put("/api/timezone", include_in_schema=False)
 async def put_timezone(
     data: Timezone, _: UserContext = Depends(require_tg_user)
 ) -> dict[str, str]:
@@ -149,6 +151,7 @@ async def catch_root_ui() -> FileResponse:
 
 # ────────── user CRUD / roles ──────────
 @app.post("/user")
+@app.post("/api/user", include_in_schema=False)
 async def create_user(
     data: WebUser, user: UserContext = Depends(require_tg_user)
 ) -> dict[str, str]:
@@ -167,12 +170,14 @@ async def create_user(
 
 
 @app.get("/user/{user_id}/role")
+@app.get("/api/user/{user_id}/role", include_in_schema=False)
 async def get_role(user_id: int) -> RoleSchema:
     role = await get_user_role(user_id)
     return RoleSchema(role=role or "patient")
 
 
 @app.put("/user/{user_id}/role")
+@app.put("/api/user/{user_id}/role", include_in_schema=False)
 async def put_role(user_id: int, data: RoleSchema) -> RoleSchema:
     await set_user_role(user_id, data.role)
     return RoleSchema(role=data.role)

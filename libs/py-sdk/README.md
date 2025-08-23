@@ -88,18 +88,21 @@ Class | Method | HTTP request | Description
 *HistoryApi* | [**history_get**](docs/HistoryApi.md#history_get) | **GET** /history | Get History
 *HistoryApi* | [**history_id_delete**](docs/HistoryApi.md#history_id_delete) | **DELETE** /history/{id} | Delete History
 *HistoryApi* | [**history_post**](docs/HistoryApi.md#history_post) | **POST** /history | Post History
-*ProfilesApi* | [**profiles_get**](docs/ProfilesApi.md#profiles_get) | **GET** /profiles | Profiles Get
-*ProfilesApi* | [**profiles_post**](docs/ProfilesApi.md#profiles_post) | **POST** /profiles | Profiles Post
-*RemindersApi* | [**reminders_delete**](docs/RemindersApi.md#reminders_delete) | **DELETE** /reminders | Reminders Delete
-*RemindersApi* | [**reminders_get**](docs/RemindersApi.md#reminders_get) | **GET** /reminders | Reminders Get
-*RemindersApi* | [**reminders_patch**](docs/RemindersApi.md#reminders_patch) | **PATCH** /reminders | Reminders Patch
-*RemindersApi* | [**reminders_post**](docs/RemindersApi.md#reminders_post) | **POST** /reminders | Reminders Post
 *DefaultApi* | [**create_user_user_post**](docs/DefaultApi.md#create_user_user_post) | **POST** /user | Create User
-*DefaultApi* | [**get_analytics_analytics_get**](docs/DefaultApi.md#get_analytics_analytics_get) | **GET** /analytics | Get Analytics
-*DefaultApi* | [**get_stats_stats_get**](docs/DefaultApi.md#get_stats_stats_get) | **GET** /stats | Get Stats
+*DefaultApi* | [**delete_reminder_api_reminders_delete**](docs/DefaultApi.md#delete_reminder_api_reminders_delete) | **DELETE** /api/reminders | Delete Reminder
+*DefaultApi* | [**get_analytics_api_analytics_get**](docs/DefaultApi.md#get_analytics_api_analytics_get) | **GET** /api/analytics | Get Analytics
+*DefaultApi* | [**get_reminders_api_reminders_get**](docs/DefaultApi.md#get_reminders_api_reminders_get) | **GET** /api/reminders | Get Reminders
+*DefaultApi* | [**get_role_user_user_id_role_get**](docs/DefaultApi.md#get_role_user_user_id_role_get) | **GET** /user/{user_id}/role | Get Role
+*DefaultApi* | [**get_stats_api_stats_get**](docs/DefaultApi.md#get_stats_api_stats_get) | **GET** /api/stats | Get Stats
 *DefaultApi* | [**get_timezone_timezone_get**](docs/DefaultApi.md#get_timezone_timezone_get) | **GET** /timezone | Get Timezone
+*DefaultApi* | [**patch_reminder_api_reminders_patch**](docs/DefaultApi.md#patch_reminder_api_reminders_patch) | **PATCH** /api/reminders | Patch Reminder
+*DefaultApi* | [**post_reminder_api_reminders_post**](docs/DefaultApi.md#post_reminder_api_reminders_post) | **POST** /api/reminders | Post Reminder
+*DefaultApi* | [**profile_self_api_profile_self_get**](docs/DefaultApi.md#profile_self_api_profile_self_get) | **GET** /api/profile/self | Profile Self
 *DefaultApi* | [**profile_self_profile_self_get**](docs/DefaultApi.md#profile_self_profile_self_get) | **GET** /profile/self | Profile Self
+*DefaultApi* | [**put_role_user_user_id_role_put**](docs/DefaultApi.md#put_role_user_user_id_role_put) | **PUT** /user/{user_id}/role | Put Role
 *DefaultApi* | [**put_timezone_timezone_put**](docs/DefaultApi.md#put_timezone_timezone_put) | **PUT** /timezone | Put Timezone
+*ProfilesApi* | [**profiles_get**](docs/ProfilesApi.md#profiles_get) | **GET** /api/profiles | Profiles Get
+*ProfilesApi* | [**profiles_post**](docs/ProfilesApi.md#profiles_post) | **POST** /api/profiles | Profiles Post
 
 
 ## Documentation For Models
@@ -111,6 +114,8 @@ Class | Method | HTTP request | Description
  - [HistoryRecordSchemaOutput](docs/HistoryRecordSchemaOutput.md)
  - [ProfileSchema](docs/ProfileSchema.md)
  - [ReminderSchema](docs/ReminderSchema.md)
+ - [ResponseGetRemindersApiRemindersGet](docs/ResponseGetRemindersApiRemindersGet.md)
+ - [RoleSchema](docs/RoleSchema.md)
  - [Timezone](docs/Timezone.md)
  - [UserContext](docs/UserContext.md)
  - [ValidationError](docs/ValidationError.md)

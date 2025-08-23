@@ -26,13 +26,12 @@ import {
 } from '../models/index';
 
 export interface ProfilesGetRequest {
-    telegramId?: number;
-    xTelegramInitData?: string | null;
+    telegramId?: number | null;
+    telegramId2?: number | null;
 }
 
 export interface ProfilesPostRequest {
     profileSchema: ProfileSchema;
-    xTelegramInitData?: string | null;
 }
 
 /**
@@ -50,14 +49,14 @@ export class ProfilesApi extends runtime.BaseAPI {
             queryParameters['telegramId'] = requestParameters['telegramId'];
         }
 
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (requestParameters['telegramId2'] != null) {
+            queryParameters['telegram_id'] = requestParameters['telegramId2'];
         }
 
+        const headerParameters: runtime.HTTPHeaders = {};
 
-        let urlPath = `/profiles`;
+
+        let urlPath = `/api/profiles`;
 
         const response = await this.request({
             path: urlPath,
@@ -94,12 +93,8 @@ export class ProfilesApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
-        }
 
-
-        let urlPath = `/profiles`;
+        let urlPath = `/api/profiles`;
 
         const response = await this.request({
             path: urlPath,

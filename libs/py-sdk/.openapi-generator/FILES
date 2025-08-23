@@ -8,7 +8,6 @@ diabetes_sdk/api/__init__.py
 diabetes_sdk/api/default_api.py
 diabetes_sdk/api/history_api.py
 diabetes_sdk/api/profiles_api.py
-diabetes_sdk/api/reminders_api.py
 diabetes_sdk/api_client.py
 diabetes_sdk/api_response.py
 diabetes_sdk/configuration.py
@@ -21,6 +20,8 @@ diabetes_sdk/models/history_record_schema_output.py
 diabetes_sdk/models/http_validation_error.py
 diabetes_sdk/models/profile_schema.py
 diabetes_sdk/models/reminder_schema.py
+diabetes_sdk/models/response_get_reminders_api_reminders_get.py
+diabetes_sdk/models/role_schema.py
 diabetes_sdk/models/timezone.py
 diabetes_sdk/models/user_context.py
 diabetes_sdk/models/validation_error.py
@@ -38,7 +39,8 @@ docs/HistoryRecordSchemaOutput.md
 docs/ProfileSchema.md
 docs/ProfilesApi.md
 docs/ReminderSchema.md
-docs/RemindersApi.md
+docs/ResponseGetRemindersApiRemindersGet.md
+docs/RoleSchema.md
 docs/Timezone.md
 docs/UserContext.md
 docs/ValidationError.md
@@ -51,4 +53,6 @@ setup.cfg
 setup.py
 test-requirements.txt
 test/__init__.py
+test/test_response_get_reminders_api_reminders_get.py
+test/test_role_schema.py
 tox.ini

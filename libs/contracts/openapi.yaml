@@ -6,53 +6,19 @@ tags:
   - name: Profiles
   - name: History
   - name: Reminders
+  - name: Stats
 paths:
-  /profiles:
-    post:
-      tags:
-      - Profiles
-      summary: Profiles Post
-      operationId: profilesPost
-      parameters:
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProfileSchema'
-      responses:
-        '200':
-          description: Successful Response. Returns profile.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProfileSchema'
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
+  /api/stats:
     get:
-      tags:
-      - Profiles
-      summary: Profiles Get
-      operationId: profilesGet
+      summary: Get Stats
+      operationId: get_stats_api_stats_get
       parameters:
       - name: telegramId
         in: query
-        required: false
+        required: true
         schema:
           type: integer
-          title: Telegram Id
+          title: Telegramid
       - name: X-Telegram-Init-Data
         in: header
         required: false
@@ -63,29 +29,74 @@ paths:
           title: X-Telegram-Init-Data
       responses:
         '200':
-          description: Successful Response. Returns profile.
+          description: Successful Response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProfileSchema'
+                $ref: '#/components/schemas/DayStats'
+        '204':
+          description: No Content
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /reminders:
+  /api/analytics:
     get:
-      tags:
-      - Reminders
-      summary: Reminders Get
-      operationId: reminders_get
+      summary: Get Analytics
+      operationId: get_analytics_api_analytics_get
       parameters:
       - name: telegramId
         in: query
         required: true
         schema:
           type: integer
+          title: Telegramid
+      - name: X-Telegram-Init-Data
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Telegram-Init-Data
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AnalyticsPoint'
+                title: Response Get Analytics Api Analytics Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/reminders:
+    get:
+      summary: Get Reminders
+      operationId: get_reminders_api_reminders_get
+      parameters:
+      - name: telegramId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Telegramid
+      - name: telegram_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Telegram Id
       - name: id
         in: query
@@ -105,30 +116,27 @@ paths:
           title: X-Telegram-Init-Data
       responses:
         '200':
-          description: >-
-            Successful Response. Returns an array of reminders.
-            An empty array is returned when no reminders exist.
+          description: Successful Response
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ReminderSchema'
-                title: Response Reminders Get
-                default: []
+                anyOf:
+                - type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                - type: object
+                  additionalProperties: true
+                title: Response Get Reminders Api Reminders Get
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-        '404':
-          description: Reminder not found or telegramId mismatch
     post:
-      tags:
-      - Reminders
-      summary: Reminders Post
-      operationId: reminders_post
+      summary: Post Reminder
+      operationId: post_reminder_api_reminders_post
       parameters:
       - name: X-Telegram-Init-Data
         in: header
@@ -144,7 +152,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ReminderSchema'
-      x-codegen-request-body-name: reminder
       responses:
         '200':
           description: Successful Response
@@ -153,7 +160,7 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Reminders Post
+                title: Response Post Reminder Api Reminders Post
         '422':
           description: Validation Error
           content:
@@ -161,10 +168,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
     patch:
-      tags:
-      - Reminders
-      summary: Reminders Patch
-      operationId: reminders_patch
+      summary: Patch Reminder
+      operationId: patch_reminder_api_reminders_patch
       parameters:
       - name: X-Telegram-Init-Data
         in: header
@@ -180,7 +185,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ReminderSchema'
-      x-codegen-request-body-name: reminder
       responses:
         '200':
           description: Successful Response
@@ -189,7 +193,7 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Reminders Patch
+                title: Response Patch Reminder Api Reminders Patch
         '422':
           description: Validation Error
           content:
@@ -197,22 +201,32 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
     delete:
-      tags:
-      - Reminders
-      summary: Reminders Delete
-      operationId: reminders_delete
+      summary: Delete Reminder
+      operationId: delete_reminder_api_reminders_delete
       parameters:
       - name: telegramId
         in: query
-        required: true
+        required: false
         schema:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Telegramid
+      - name: telegram_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Telegram Id
       - name: id
         in: query
-        required: true
+        required: false
         schema:
-          type: integer
+          anyOf:
+          - type: integer
+          - type: 'null'
           title: Id
       - name: X-Telegram-Init-Data
         in: header
@@ -229,16 +243,75 @@ paths:
             application/json:
               schema:
                 type: object
-                additionalProperties: true
-                title: Response Reminders Delete
+                additionalProperties:
+                  type: string
+                title: Response Delete Reminder Api Reminders Delete
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-        '404':
-          description: Reminder not found
+  /api/profiles:
+    post:
+      tags:
+      - profiles
+      summary: Profiles Post
+      operationId: profilesPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileSchema'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileSchema'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - profiles
+      summary: Profiles Get
+      operationId: profilesGet
+      parameters:
+      - name: telegramId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Telegramid
+      - name: telegram_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Telegram Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileSchema'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /timezone:
     get:
       summary: Get Timezone
@@ -302,6 +375,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/profile/self:
+    get:
+      summary: Profile Self
+      operationId: profile_self_api_profile_self_get
+      parameters:
+      - name: X-Telegram-Init-Data
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Telegram-Init-Data
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContext'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /profile/self:
     get:
       summary: Profile Self
@@ -328,79 +427,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /stats:
-    get:
-      summary: Get Stats
-      operationId: get_stats_stats_get
-      parameters:
-      - name: telegramId
-        in: query
-        required: true
-        schema:
-          type: integer
-          title: Telegramid
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
-      responses:
-        '200':
-          description: Successful Response. Returns statistics for the day.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DayStats'
-        '204':
-          description: No Content - no statistics available.
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
-  /analytics:
-    get:
-      summary: Get Analytics
-      operationId: get_analytics_analytics_get
-      parameters:
-      - name: telegramId
-        in: query
-        required: true
-        schema:
-          type: integer
-          title: Telegramid
-      - name: X-Telegram-Init-Data
-        in: header
-        required: false
-        schema:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: X-Telegram-Init-Data
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AnalyticsPoint'
-                title: Response Get Analytics Analytics Get
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
   /user:
     post:
       summary: Create User
-      description: Ensure a user exists in the database.
       operationId: create_user_user_post
       parameters:
       - name: X-Telegram-Init-Data
@@ -433,12 +462,64 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /user/{user_id}/role:
+    get:
+      summary: Get Role
+      operationId: get_role_user__user_id__role_get
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleSchema'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      summary: Put Role
+      operationId: put_role_user__user_id__role_put
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: User Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleSchema'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleSchema'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /history:
     post:
       tags:
       - History
       summary: Post History
-      description: Save or update a history record in the database.
       operationId: historyPost
       parameters:
       - name: X-Telegram-Init-Data
@@ -464,7 +545,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-                title: Response Post History History Post
+                title: Response Historypost
         '422':
           description: Validation Error
           content:
@@ -475,7 +556,6 @@ paths:
       tags:
       - History
       summary: Get History
-      description: Return history records for the authenticated user.
       operationId: historyGet
       parameters:
       - name: X-Telegram-Init-Data
@@ -495,7 +575,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/HistoryRecordSchema-Output'
-                title: Response Get History History Get
+                title: Response Historyget
         '422':
           description: Validation Error
           content:
@@ -507,7 +587,6 @@ paths:
       tags:
       - History
       summary: Delete History
-      description: Delete a history record after verifying ownership.
       operationId: historyIdDelete
       parameters:
       - name: id
@@ -533,7 +612,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-                title: Response Delete History History  Record Id  Delete
+                title: Response Historyiddelete
         '422':
           description: Validation Error
           content:
@@ -689,7 +768,7 @@ components:
       properties:
         telegramId:
           type: integer
-          title: Telegram Id
+          title: Telegramid
         icr:
           type: number
           title: Icr
@@ -709,7 +788,7 @@ components:
           anyOf:
           - type: integer
           - type: 'null'
-          title: Org Id
+          title: Orgid
       type: object
       required:
       - telegramId
@@ -723,7 +802,7 @@ components:
       properties:
         telegramId:
           type: integer
-          title: Telegram Id
+          title: Telegramid
         id:
           anyOf:
           - type: integer
@@ -746,26 +825,35 @@ components:
           anyOf:
           - type: integer
           - type: 'null'
-          title: Interval Hours
+          title: Intervalhours
         minutesAfter:
           anyOf:
           - type: integer
           - type: 'null'
-          title: Minutes After
+          title: Minutesafter
         isEnabled:
           type: boolean
-          title: Is Enabled
+          title: Isenabled
           default: true
         orgId:
           anyOf:
           - type: integer
           - type: 'null'
-          title: Org Id
+          title: Orgid
       type: object
       required:
       - telegramId
       - type
       title: ReminderSchema
+    RoleSchema:
+      properties:
+        role:
+          type: string
+          title: Role
+      type: object
+      required:
+      - role
+      title: RoleSchema
     Timezone:
       properties:
         tz:
@@ -825,7 +913,7 @@ components:
       properties:
         telegramId:
           type: integer
-          title: Telegram Id
+          title: Telegramid
       type: object
       required:
       - telegramId

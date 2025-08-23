@@ -14,8 +14,6 @@ Method | HTTP request | Description
 
 Get History
 
-Return history records for the authenticated user.
-
 ### Example
 
 
@@ -82,8 +80,6 @@ No authorization required
 > Dict[str, str] history_id_delete(id, x_telegram_init_data=x_telegram_init_data)
 
 Delete History
-
-Delete a history record after verifying ownership.
 
 ### Example
 
@@ -152,8 +148,6 @@ No authorization required
 > Dict[str, str] history_post(history_record_schema_input, x_telegram_init_data=x_telegram_init_data)
 
 Post History
-
-Save or update a history record in the database.
 
 ### Example
 

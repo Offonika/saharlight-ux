@@ -48,7 +48,6 @@ export interface HistoryPostRequest {
 export class HistoryApi extends runtime.BaseAPI {
 
     /**
-     * Return history records for the authenticated user.
      * Get History
      */
     async historyGetRaw(requestParameters: HistoryGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<HistoryRecordSchemaOutput>>> {
@@ -74,7 +73,6 @@ export class HistoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Return history records for the authenticated user.
      * Get History
      */
     async historyGet(requestParameters: HistoryGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<HistoryRecordSchemaOutput>> {
@@ -83,7 +81,6 @@ export class HistoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Delete a history record after verifying ownership.
      * Delete History
      */
     async historyIdDeleteRaw(requestParameters: HistoryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
@@ -117,7 +114,6 @@ export class HistoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Delete a history record after verifying ownership.
      * Delete History
      */
     async historyIdDelete(requestParameters: HistoryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
@@ -126,7 +122,6 @@ export class HistoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Save or update a history record in the database.
      * Post History
      */
     async historyPostRaw(requestParameters: HistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
@@ -162,7 +157,6 @@ export class HistoryApi extends runtime.BaseAPI {
     }
 
     /**
-     * Save or update a history record in the database.
      * Post History
      */
     async historyPost(requestParameters: HistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {

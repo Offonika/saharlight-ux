@@ -19,9 +19,8 @@ __version__ = "1.0.0"
 # Define package exports
 __all__ = [
     "HistoryApi",
-    "ProfilesApi",
-    "RemindersApi",
     "DefaultApi",
+    "ProfilesApi",
     "ApiResponse",
     "ApiClient",
     "Configuration",
@@ -38,6 +37,8 @@ __all__ = [
     "HistoryRecordSchemaOutput",
     "ProfileSchema",
     "ReminderSchema",
+    "ResponseGetRemindersApiRemindersGet",
+    "RoleSchema",
     "Timezone",
     "UserContext",
     "ValidationError",
@@ -47,9 +48,8 @@ __all__ = [
 
 # import apis into sdk package
 from diabetes_sdk.api.history_api import HistoryApi as HistoryApi
-from diabetes_sdk.api.profiles_api import ProfilesApi as ProfilesApi
-from diabetes_sdk.api.reminders_api import RemindersApi as RemindersApi
 from diabetes_sdk.api.default_api import DefaultApi as DefaultApi
+from diabetes_sdk.api.profiles_api import ProfilesApi as ProfilesApi
 
 # import ApiClient
 from diabetes_sdk.api_response import ApiResponse as ApiResponse
@@ -70,6 +70,8 @@ from diabetes_sdk.models.history_record_schema_input import HistoryRecordSchemaI
 from diabetes_sdk.models.history_record_schema_output import HistoryRecordSchemaOutput as HistoryRecordSchemaOutput
 from diabetes_sdk.models.profile_schema import ProfileSchema as ProfileSchema
 from diabetes_sdk.models.reminder_schema import ReminderSchema as ReminderSchema
+from diabetes_sdk.models.response_get_reminders_api_reminders_get import ResponseGetRemindersApiRemindersGet as ResponseGetRemindersApiRemindersGet
+from diabetes_sdk.models.role_schema import RoleSchema as RoleSchema
 from diabetes_sdk.models.timezone import Timezone as Timezone
 from diabetes_sdk.models.user_context import UserContext as UserContext
 from diabetes_sdk.models.validation_error import ValidationError as ValidationError

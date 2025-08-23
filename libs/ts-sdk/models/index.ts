@@ -7,6 +7,8 @@ export * from './HistoryRecordSchemaInput';
 export * from './HistoryRecordSchemaOutput';
 export * from './ProfileSchema';
 export * from './ReminderSchema';
+export * from './ResponseGetRemindersApiRemindersGet';
+export * from './RoleSchema';
 export * from './Timezone';
 export * from './UserContext';
 export * from './ValidationError';

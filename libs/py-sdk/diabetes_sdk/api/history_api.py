@@ -58,7 +58,6 @@ class HistoryApi:
     ) -> List[HistoryRecordSchemaOutput]:
         """Get History
 
-        Return history records for the authenticated user.
 
         :param x_telegram_init_data:
         :type x_telegram_init_data: str
@@ -126,7 +125,6 @@ class HistoryApi:
     ) -> ApiResponse[List[HistoryRecordSchemaOutput]]:
         """Get History
 
-        Return history records for the authenticated user.
 
         :param x_telegram_init_data:
         :type x_telegram_init_data: str
@@ -194,7 +192,6 @@ class HistoryApi:
     ) -> RESTResponseType:
         """Get History
 
-        Return history records for the authenticated user.
 
         :param x_telegram_init_data:
         :type x_telegram_init_data: str
@@ -322,7 +319,6 @@ class HistoryApi:
     ) -> Dict[str, str]:
         """Delete History
 
-        Delete a history record after verifying ownership.
 
         :param id: (required)
         :type id: str
@@ -394,7 +390,6 @@ class HistoryApi:
     ) -> ApiResponse[Dict[str, str]]:
         """Delete History
 
-        Delete a history record after verifying ownership.
 
         :param id: (required)
         :type id: str
@@ -466,7 +461,6 @@ class HistoryApi:
     ) -> RESTResponseType:
         """Delete History
 
-        Delete a history record after verifying ownership.
 
         :param id: (required)
         :type id: str
@@ -600,7 +594,6 @@ class HistoryApi:
     ) -> Dict[str, str]:
         """Post History
 
-        Save or update a history record in the database.
 
         :param history_record_schema_input: (required)
         :type history_record_schema_input: HistoryRecordSchemaInput
@@ -672,7 +665,6 @@ class HistoryApi:
     ) -> ApiResponse[Dict[str, str]]:
         """Post History
 
-        Save or update a history record in the database.
 
         :param history_record_schema_input: (required)
         :type history_record_schema_input: HistoryRecordSchemaInput
@@ -744,7 +736,6 @@ class HistoryApi:
     ) -> RESTResponseType:
         """Post History
 
-        Save or update a history record in the database.
 
         :param history_record_schema_input: (required)
         :type history_record_schema_input: HistoryRecordSchemaInput
