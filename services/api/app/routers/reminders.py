@@ -59,7 +59,7 @@ async def get_reminders(
                 "active": r.is_enabled,
                 "interval": r.interval_hours,
             }
-    return []  # 200 OK — пустой список
+    raise HTTPException(status_code=404)
 
 
 @router.post("/reminders", dependencies=[Depends(require_tg_user)])

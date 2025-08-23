@@ -644,3 +644,33 @@ def test_real_404(client: TestClient) -> None:
     resp = client.get("/api/reminders", params={"telegramId": 2})
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+def test_get_by_id_returns_item(
+    client: TestClient, session_factory: sessionmaker
+) -> None:
+    with session_factory() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(id=1, telegram_id=1, type="sugar", time="08:00")
+        )
+        session.commit()
+
+    resp = client.get(
+        "/api/reminders", params={"telegramId": 1, "id": 1}
+    )
+    assert resp.status_code == 200
+    assert resp.json()["id"] == 1
+
+
+def test_get_by_id_not_found(
+    client: TestClient, session_factory: sessionmaker
+) -> None:
+    with session_factory() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+
+    resp = client.get(
+        "/api/reminders", params={"telegramId": 1, "id": 42}
+    )
+    assert resp.status_code == 404

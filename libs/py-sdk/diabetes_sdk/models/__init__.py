@@ -21,6 +21,7 @@ from diabetes_sdk.models.history_record_schema_input import HistoryRecordSchemaI
 from diabetes_sdk.models.history_record_schema_output import HistoryRecordSchemaOutput
 from diabetes_sdk.models.profile_schema import ProfileSchema
 from diabetes_sdk.models.reminder_schema import ReminderSchema
+from diabetes_sdk.models.response_api_reminders_reminders_get import ResponseApiRemindersRemindersGet
 from diabetes_sdk.models.timezone import Timezone
 from diabetes_sdk.models.user_context import UserContext
 from diabetes_sdk.models.validation_error import ValidationError

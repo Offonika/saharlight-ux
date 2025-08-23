@@ -12,35 +12,70 @@
  * Do not edit the class manually.
  */
 
-import { mapValues } from '../runtime';
-/**
- * 
- * @export
- * @interface ResponseApiRemindersRemindersGet
- */
-export interface ResponseApiRemindersRemindersGet {
-}
+import type { ReminderSchema } from './ReminderSchema';
+import {
+    instanceOfReminderSchema,
+    ReminderSchemaFromJSON,
+    ReminderSchemaFromJSONTyped,
+    ReminderSchemaToJSON,
+} from './ReminderSchema';
 
 /**
- * Check if a given object implements the ResponseApiRemindersRemindersGet interface.
+ * @type ResponseApiRemindersRemindersGet
+ * 
+ * @export
  */
-export function instanceOfResponseApiRemindersRemindersGet(value: object): value is ResponseApiRemindersRemindersGet {
-    return true;
-}
+export type ResponseApiRemindersRemindersGet = Array<ReminderSchema> | ReminderSchema;
 
 export function ResponseApiRemindersRemindersGetFromJSON(json: any): ResponseApiRemindersRemindersGet {
     return ResponseApiRemindersRemindersGetFromJSONTyped(json, false);
 }
 
 export function ResponseApiRemindersRemindersGetFromJSONTyped(json: any, ignoreDiscriminator: boolean): ResponseApiRemindersRemindersGet {
-    return json;
+    if (json == null) {
+        return json;
+    }
+    if (typeof json !== 'object') {
+        return json;
+    }
+    if (instanceOfReminderSchema(json)) {
+        return ReminderSchemaFromJSONTyped(json, true);
+    }
+    if (Array.isArray(json)) {
+        if (json.every(item => typeof item === 'object')) {
+            if (json.every(item => instanceOfReminderSchema(item))) {
+                return json.map(value => ReminderSchemaFromJSONTyped(value, true));
+            }
+        }
+        return json;
+    }
+
+    return {} as any;
 }
 
-export function ResponseApiRemindersRemindersGetToJSON(json: any): ResponseApiRemindersRemindersGet {
+export function ResponseApiRemindersRemindersGetToJSON(json: any): any {
     return ResponseApiRemindersRemindersGetToJSONTyped(json, false);
 }
 
 export function ResponseApiRemindersRemindersGetToJSONTyped(value?: ResponseApiRemindersRemindersGet | null, ignoreDiscriminator: boolean = false): any {
-    return value;
+    if (value == null) {
+        return value;
+    }
+    if (typeof value !== 'object') {
+        return value;
+    }
+    if (instanceOfReminderSchema(value)) {
+        return ReminderSchemaToJSON(value as ReminderSchema);
+    }
+    if (Array.isArray(value)) {
+        if (value.every(item => typeof item === 'object')) {
+            if (value.every(item => instanceOfReminderSchema(item))) {
+                return value.map(value => ReminderSchemaToJSON(value as ReminderSchema));
+            }
+        }
+        return value;
+    }
+
+    return {};
 }
 

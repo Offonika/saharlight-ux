@@ -83,15 +83,18 @@ paths:
         '200':
           description: >-
             Successful Response. Returns an array of reminders.
-            An empty array is returned when no reminders exist.
+            When `id` is provided, returns a single reminder.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ReminderSchema'
+                oneOf:
+                - type: array
+                  items:
+                    $ref: '#/components/schemas/ReminderSchema'
+                - $ref: '#/components/schemas/ReminderSchema'
                 title: Response Api Reminders Reminders Get
-                default: []
+        '404':
+          description: Reminder not found
         '422':
           description: Validation Error
           content:

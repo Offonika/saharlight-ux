@@ -18,6 +18,7 @@ diabetes_sdk/models/history_record_schema_output.py
 diabetes_sdk/models/http_validation_error.py
 diabetes_sdk/models/profile_schema.py
 diabetes_sdk/models/reminder_schema.py
+diabetes_sdk/models/response_api_reminders_reminders_get.py
 diabetes_sdk/models/timezone.py
 diabetes_sdk/models/user_context.py
 diabetes_sdk/models/validation_error.py
@@ -33,6 +34,7 @@ docs/HistoryRecordSchemaInput.md
 docs/HistoryRecordSchemaOutput.md
 docs/ProfileSchema.md
 docs/ReminderSchema.md
+docs/ResponseApiRemindersRemindersGet.md
 docs/Timezone.md
 docs/UserContext.md
 docs/ValidationError.md

@@ -22,6 +22,7 @@ import type {
   HistoryRecordSchemaOutput,
   ProfileSchema,
   ReminderSchema,
+  ResponseApiRemindersRemindersGet,
   Timezone,
   UserContext,
   WebUser,
@@ -41,6 +42,8 @@ import {
     ProfileSchemaToJSON,
     ReminderSchemaFromJSON,
     ReminderSchemaToJSON,
+    ResponseApiRemindersRemindersGetFromJSON,
+    ResponseApiRemindersRemindersGetToJSON,
     TimezoneFromJSON,
     TimezoneToJSON,
     UserContextFromJSON,
@@ -161,7 +164,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Api Reminders
      */
-    async apiRemindersRemindersGetRaw(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReminderSchema>>> {
+    async apiRemindersRemindersGetRaw(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResponseApiRemindersRemindersGet>> {
         if (requestParameters['telegramId'] == null) {
             throw new runtime.RequiredError(
                 'telegramId',
@@ -195,13 +198,13 @@ export class DefaultApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ReminderSchemaFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => ResponseApiRemindersRemindersGetFromJSON(jsonValue));
     }
 
     /**
      * Api Reminders
      */
-    async apiRemindersRemindersGet(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReminderSchema>> {
+    async apiRemindersRemindersGet(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResponseApiRemindersRemindersGet> {
         const response = await this.apiRemindersRemindersGetRaw(requestParameters, initOverrides);
         return await response.value();
     }

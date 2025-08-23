@@ -15,33 +15,31 @@
 from __future__ import annotations
 import json
 import pprint
-import re  # noqa: F401
-from pydantic import BaseModel, ValidationError, field_validator
-from typing import Any, Dict, List, Optional
-from typing import Union, Set, TYPE_CHECKING
-from typing_extensions import Self
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError, field_validator
+from typing import Any, List, Optional
+from diabetes_sdk.models.reminder_schema import ReminderSchema
+from pydantic import StrictStr, Field
+from typing import Union, List, Set, Optional, Dict
+from typing_extensions import Literal, Self
 
-RESPONSEAPIREMINDERSREMINDERSGET_ANY_OF_SCHEMAS = ["Dict[str, object]", "List[Dict[str, object]]"]
+RESPONSEAPIREMINDERSREMINDERSGET_ONE_OF_SCHEMAS = ["List[ReminderSchema]", "ReminderSchema"]
 
 class ResponseApiRemindersRemindersGet(BaseModel):
     """
     ResponseApiRemindersRemindersGet
     """
+    # data type: List[ReminderSchema]
+    oneof_schema_1_validator: Optional[List[ReminderSchema]] = None
+    # data type: ReminderSchema
+    oneof_schema_2_validator: Optional[ReminderSchema] = None
+    actual_instance: Optional[Union[List[ReminderSchema], ReminderSchema]] = None
+    one_of_schemas: Set[str] = { "List[ReminderSchema]", "ReminderSchema" }
 
-    # data type: List[Dict[str, object]]
-    anyof_schema_1_validator: Optional[List[Dict[str, Any]]] = None
-    # data type: Dict[str, object]
-    anyof_schema_2_validator: Optional[Dict[str, Any]] = None
-    if TYPE_CHECKING:
-        actual_instance: Optional[Union[Dict[str, object], List[Dict[str, object]]]] = None
-    else:
-        actual_instance: Any = None
-    any_of_schemas: Set[str] = { "Dict[str, object]", "List[Dict[str, object]]" }
+    model_config = ConfigDict(
+        validate_assignment=True,
+        protected_namespaces=(),
+    )
 
-    model_config = {
-        "validate_assignment": True,
-        "protected_namespaces": (),
-    }
 
     def __init__(self, *args, **kwargs) -> None:
         if args:
@@ -54,29 +52,32 @@ class ResponseApiRemindersRemindersGet(BaseModel):
             super().__init__(**kwargs)
 
     @field_validator('actual_instance')
-    def actual_instance_must_validate_anyof(cls, v):
+    def actual_instance_must_validate_oneof(cls, v):
         instance = ResponseApiRemindersRemindersGet.model_construct()
         error_messages = []
-        # validate data type: List[Dict[str, object]]
+        match = 0
+        # validate data type: List[ReminderSchema]
         try:
-            instance.anyof_schema_1_validator = v
-            return v
+            instance.oneof_schema_1_validator = v
+            match += 1
         except (ValidationError, ValueError) as e:
             error_messages.append(str(e))
-        # validate data type: Dict[str, object]
-        try:
-            instance.anyof_schema_2_validator = v
-            return v
-        except (ValidationError, ValueError) as e:
-            error_messages.append(str(e))
-        if error_messages:
+        # validate data type: ReminderSchema
+        if not isinstance(v, ReminderSchema):
+            error_messages.append(f"Error! Input type `{type(v)}` is not `ReminderSchema`")
+        else:
+            match += 1
+        if match > 1:
+            # more than 1 match
+            raise ValueError("Multiple matches found when setting `actual_instance` in ResponseApiRemindersRemindersGet with oneOf schemas: List[ReminderSchema], ReminderSchema. Details: " + ", ".join(error_messages))
+        elif match == 0:
             # no match
-            raise ValueError("No match found when setting the actual_instance in ResponseApiRemindersRemindersGet with anyOf schemas: Dict[str, object], List[Dict[str, object]]. Details: " + ", ".join(error_messages))
+            raise ValueError("No match found when setting `actual_instance` in ResponseApiRemindersRemindersGet with oneOf schemas: List[ReminderSchema], ReminderSchema. Details: " + ", ".join(error_messages))
         else:
             return v
 
     @classmethod
-    def from_dict(cls, obj: Dict[str, Any]) -> Self:
+    def from_dict(cls, obj: Union[str, Dict[str, Any]]) -> Self:
         return cls.from_json(json.dumps(obj))
 
     @classmethod
@@ -84,28 +85,30 @@ class ResponseApiRemindersRemindersGet(BaseModel):
         """Returns the object represented by the json string"""
         instance = cls.model_construct()
         error_messages = []
-        # deserialize data into List[Dict[str, object]]
+        match = 0
+
+        # deserialize data into List[ReminderSchema]
         try:
             # validation
-            instance.anyof_schema_1_validator = json.loads(json_str)
+            instance.oneof_schema_1_validator = json.loads(json_str)
             # assign value to actual_instance
-            instance.actual_instance = instance.anyof_schema_1_validator
-            return instance
+            instance.actual_instance = instance.oneof_schema_1_validator
+            match += 1
         except (ValidationError, ValueError) as e:
             error_messages.append(str(e))
-        # deserialize data into Dict[str, object]
+        # deserialize data into ReminderSchema
         try:
-            # validation
-            instance.anyof_schema_2_validator = json.loads(json_str)
-            # assign value to actual_instance
-            instance.actual_instance = instance.anyof_schema_2_validator
-            return instance
+            instance.actual_instance = ReminderSchema.from_json(json_str)
+            match += 1
         except (ValidationError, ValueError) as e:
             error_messages.append(str(e))
 
-        if error_messages:
+        if match > 1:
+            # more than 1 match
+            raise ValueError("Multiple matches found when deserializing the JSON string into ResponseApiRemindersRemindersGet with oneOf schemas: List[ReminderSchema], ReminderSchema. Details: " + ", ".join(error_messages))
+        elif match == 0:
             # no match
-            raise ValueError("No match found when deserializing the JSON string into ResponseApiRemindersRemindersGet with anyOf schemas: Dict[str, object], List[Dict[str, object]]. Details: " + ", ".join(error_messages))
+            raise ValueError("No match found when deserializing the JSON string into ResponseApiRemindersRemindersGet with oneOf schemas: List[ReminderSchema], ReminderSchema. Details: " + ", ".join(error_messages))
         else:
             return instance
 
@@ -119,7 +122,7 @@ class ResponseApiRemindersRemindersGet(BaseModel):
         else:
             return json.dumps(self.actual_instance)
 
-    def to_dict(self) -> Optional[Union[Dict[str, Any], Dict[str, object], List[Dict[str, object]]]]:
+    def to_dict(self) -> Optional[Union[Dict[str, Any], List[ReminderSchema], ReminderSchema]]:
         """Returns the dict representation of the actual instance"""
         if self.actual_instance is None:
             return None
@@ -127,6 +130,7 @@ class ResponseApiRemindersRemindersGet(BaseModel):
         if hasattr(self.actual_instance, "to_dict") and callable(self.actual_instance.to_dict):
             return self.actual_instance.to_dict()
         else:
+            # primitive type
             return self.actual_instance
 
     def to_str(self) -> str:

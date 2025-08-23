@@ -110,6 +110,7 @@ Class | Method | HTTP request | Description
  - [HistoryRecordSchemaOutput](docs/HistoryRecordSchemaOutput.md)
  - [ProfileSchema](docs/ProfileSchema.md)
  - [ReminderSchema](docs/ReminderSchema.md)
+ - [ResponseApiRemindersRemindersGet](docs/ResponseApiRemindersRemindersGet.md)
  - [Timezone](docs/Timezone.md)
  - [UserContext](docs/UserContext.md)
  - [ValidationError](docs/ValidationError.md)

@@ -5,6 +5,14 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**telegram_id** | **int** |  | 
+**id** | **int** |  | [optional] 
+**type** | **str** |  | 
+**time** | **str** |  | [optional] 
+**interval_hours** | **int** |  | [optional] 
+**minutes_after** | **int** |  | [optional] 
+**is_enabled** | **bool** |  | [optional] [default to True]
+**org_id** | **int** |  | [optional] 
 
 ## Example
 
