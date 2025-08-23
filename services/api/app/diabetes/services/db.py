@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from datetime import datetime
+from datetime import date, datetime, time
 from typing import Callable, Concatenate, ParamSpec, Protocol, TypeVar
 
 from sqlalchemy import (
@@ -18,6 +18,8 @@ from sqlalchemy import (
     TIMESTAMP,
     ForeignKey,
     Boolean,
+    Date,
+    Time,
     func,
 )
 from sqlalchemy.engine import URL, Engine
@@ -251,8 +253,8 @@ class HistoryRecord(Base):
     __tablename__ = "history_records"
     id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     telegram_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
-    date: Mapped[str] = mapped_column(String, nullable=False)
-    time: Mapped[str] = mapped_column(String, nullable=False)
+    date: Mapped[date] = mapped_column(Date, nullable=False)
+    time: Mapped[time] = mapped_column(Time, nullable=False)
     sugar: Mapped[float | None] = mapped_column(Float)
     carbs: Mapped[float | None] = mapped_column(Float)
     bread_units: Mapped[float | None] = mapped_column(Float)

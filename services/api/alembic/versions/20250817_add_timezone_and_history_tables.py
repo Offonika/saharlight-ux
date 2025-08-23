@@ -5,6 +5,7 @@ Revises: 20250816a_expand_alembic_version_len
 Create Date: 2025-08-17 00:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -35,8 +36,8 @@ def upgrade() -> None:
             "history_records",
             sa.Column("id", sa.String(), primary_key=True),
             sa.Column("telegram_id", sa.BigInteger(), nullable=False),
-            sa.Column("date", sa.String(), nullable=False),
-            sa.Column("time", sa.String(), nullable=False),
+            sa.Column("date", sa.Date(), nullable=False),
+            sa.Column("time", sa.Time(), nullable=False),
             sa.Column("sugar", sa.Float(), nullable=True),
             sa.Column("carbs", sa.Float(), nullable=True),
             sa.Column("bread_units", sa.Float(), nullable=True),
@@ -56,4 +57,3 @@ def downgrade() -> None:
 
     if "timezones" in tables:
         op.drop_table("timezones")
-

@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import hmac
 import json
+import datetime
 import time
 import urllib.parse
 from typing import Any, Callable, cast
@@ -10,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session as SASession, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
@@ -30,13 +31,13 @@ def build_init_data(user_id: int = 1) -> str:
     return urllib.parse.urlencode(params)
 
 
-def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Any]:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    SessionLocal = sessionmaker(bind=engine, class_=Session)
+    SessionLocal: sessionmaker[Any] = sessionmaker(bind=engine, class_=SASession)
     db.Base.metadata.create_all(bind=engine)
 
     async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
@@ -96,7 +97,8 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
         with Session() as session:
             stored = session.get(db.HistoryRecord, "1")
             assert stored is not None
-            assert stored.date == "2024-01-01"
+            assert stored.date == datetime.date(2024, 1, 1)
+            assert stored.time == datetime.time(12, 0)
             assert stored.telegram_id == 1
 
         rec1_update = {**rec1, "sugar": 5.5}
@@ -119,8 +121,8 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get("/history", headers=headers1)
         body = resp.json()
         assert [r["id"] for r in body] == ["1", "2"]
-        assert body[0]["time"] == "12:00"
-        assert body[1]["time"] == "13:00"
+        assert body[0]["time"] == "12:00:00"
+        assert body[1]["time"] == "13:00:00"
 
         resp = client.get("/history", headers=headers2)
         assert [r["id"] for r in resp.json()] == ["3"]
@@ -144,8 +146,8 @@ def test_history_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
             db.HistoryRecord(
                 id="1",
                 telegram_id=1,
-                date="2024-01-01",
-                time="12:00",
+                date=datetime.date(2024, 1, 1),
+                time=datetime.time(12, 0),
                 type="invalid",
             )
         )
@@ -153,8 +155,8 @@ def test_history_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
             db.HistoryRecord(
                 id="2",
                 telegram_id=1,
-                date="2024-01-02",
-                time="13:00",
+                date=datetime.date(2024, 1, 2),
+                time=datetime.time(13, 0),
                 type="meal",
             )
         )
