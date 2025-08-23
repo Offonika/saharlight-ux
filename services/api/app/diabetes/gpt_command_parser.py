@@ -83,20 +83,28 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
     depth = 0
     in_string = False
     escape = False
+    pre_quote: str | None = None
+    pre_escape = False
 
     for idx, ch in enumerate(text):
         if start is None:
-            if ch == '"' and not escape:
-                in_string = not in_string
-                escape = False
+            if pre_quote is not None:
+                if pre_escape:
+                    pre_escape = False
+                elif ch == "\\":
+                    pre_escape = True
+                elif ch == pre_quote:
+                    pre_quote = None
                 continue
-            if ch == "\\" and in_string:
-                escape = not escape
+
+            if ch in {'"', "'"}:
+                pre_quote = ch
                 continue
-            if ch in "[{" and not in_string:
+            if ch in "[{":
                 start = idx
                 depth = 1
-            escape = False
+                in_string = False
+                escape = False
             continue
 
         # We are inside a potential JSON segment
@@ -123,6 +131,9 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
                     obj = json.loads(candidate)
                 except json.JSONDecodeError:
                     start = None
+                    depth = 0
+                    in_string = False
+                    escape = False
                     continue
 
                 if isinstance(obj, dict):
@@ -131,8 +142,10 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
                     if len(obj) == 1 and isinstance(obj[0], dict):
                         return obj[0]
                     start = None
+                    depth = 0
                     continue
                 start = None
+                depth = 0
                 continue
 
         escape = False

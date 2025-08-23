@@ -114,7 +114,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         with SessionLocal() as session:
             success = save_entry(session, entry_data)
     else:
-        success = await run_db(save_entry, entry_data, sessionmaker=SessionLocal)
+        success = await run_db(save_entry, entry_data)
     if not success:
         await message.reply_text("⚠️ Не удалось сохранить запись.")
         return END

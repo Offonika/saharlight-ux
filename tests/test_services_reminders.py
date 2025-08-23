@@ -27,7 +27,7 @@ def session_factory() -> Generator[SessionMaker[SASession], None, None]:
 
 
 @pytest.mark.asyncio
-async def test_save_and_list_reminder(
+async def test_save_reminder_sets_default_title(
     monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
@@ -36,9 +36,7 @@ async def test_save_and_list_reminder(
         session.commit()
 
     rem_id = await reminders.save_reminder(
-
         ReminderSchema(telegramId=1, type="sugar", time=time(8, 0), orgId=42)
-
     )
     assert rem_id > 0
 
@@ -49,22 +47,54 @@ async def test_save_and_list_reminder(
     assert rem.org_id == 42
     assert rem.title == "Morning"
 
+
+@pytest.mark.asyncio
+async def test_save_reminder_preserves_title_on_update(
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    with cast(ContextManager[SASession], session_factory()) as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+
+    rem_id = await reminders.save_reminder(
+        ReminderSchema(telegramId=1, type="sugar", time=time(8, 0))
+    )
+
     await reminders.save_reminder(
         ReminderSchema(
             id=rem_id,
             telegramId=1,
             type="meal",
-
             time=time(9, 0),
-
             isEnabled=False,
         )
     )
+
     updated = await reminders.list_reminders(1)
-    assert updated[0].type == "meal"
-    assert updated[0].is_enabled is False
-    assert updated[0].time == time(9, 0)
-    assert updated[0].title == "Lunch"
+    rem = updated[0]
+    assert rem.type == "meal"
+    assert rem.is_enabled is False
+    assert rem.time == time(9, 0)
+    assert rem.title == "Morning"
+
+
+@pytest.mark.asyncio
+async def test_save_reminder_sets_default_title_on_update_if_missing(
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    with cast(ContextManager[SASession], session_factory()) as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
+        session.commit()
+
+    await reminders.save_reminder(
+        ReminderSchema(id=1, telegramId=1, type="sugar", time=time(8, 0))
+    )
+
+    reminders_list = await reminders.list_reminders(1)
+    assert reminders_list[0].title == "Morning"
 
 
 @pytest.mark.asyncio

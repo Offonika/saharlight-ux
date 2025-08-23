@@ -38,3 +38,33 @@ async def test_reexported_names_available(monkeypatch: pytest.MonkeyPatch) -> No
         cast(Update, SimpleNamespace()),
         cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace()),
     )
+
+
+@pytest.mark.asyncio
+async def test_commit_monkeypatch_reflected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first_marker = object()
+    second_marker = object()
+    seen: list[object] = []
+
+    async def dummy_freeform_handler(update: Any, context: Any) -> None:
+        handlers = dose_calc._gpt_handlers  # type: ignore[attr-defined]
+        seen.append(handlers.commit)
+
+    gpt_handlers = dose_calc._gpt_handlers  # type: ignore[attr-defined]
+    monkeypatch.setattr(gpt_handlers, "freeform_handler", dummy_freeform_handler)
+
+    monkeypatch.setattr(dose_calc, "commit", first_marker)
+    await dose_calc.freeform_handler(
+        cast(Update, SimpleNamespace()),
+        cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace()),
+    )
+
+    monkeypatch.setattr(dose_calc, "commit", second_marker)
+    await dose_calc.freeform_handler(
+        cast(Update, SimpleNamespace()),
+        cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace()),
+    )
+
+    assert seen == [first_marker, second_marker]

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from datetime import time as dt_time
 import logging
 import os
-import sys
-from datetime import time as dt_time
 from pathlib import Path
+import sys
 from typing import Callable, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
