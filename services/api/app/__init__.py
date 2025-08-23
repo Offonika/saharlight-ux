@@ -9,4 +9,4 @@
 # tests or application code.
 from . import telegram_compat  # noqa: F401
 
-__all__ = []
+__all__: list[str] = []

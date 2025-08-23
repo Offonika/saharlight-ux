@@ -33,10 +33,11 @@ async def handle_confirm_entry(
     if user_data_raw is None:
         return
     user_data = cast(UserData, user_data_raw)
-    entry_data = cast(EntryData | None, user_data.pop("pending_entry", None))
-    if not entry_data:
+    entry_data_raw = user_data.pop("pending_entry", None)
+    if not isinstance(entry_data_raw, dict):
         await query.edit_message_text("❗ Нет данных для сохранения.")
         return
+    entry_data: EntryData = entry_data_raw
     with SessionLocal() as session:
         entry = Entry(**entry_data)
         session.add(entry)
@@ -67,11 +68,12 @@ async def handle_edit_entry(
     if user_data_raw is None:
         return
     user_data = cast(UserData, user_data_raw)
-    entry_data = cast(EntryData | None, user_data.get("pending_entry"))
-    if not entry_data:
+    entry_data_raw = user_data.get("pending_entry")
+    if not isinstance(entry_data_raw, dict):
         await query.edit_message_text("❗ Нет данных для редактирования.")
         return
     user_data["edit_id"] = None
+    entry_data: EntryData = entry_data_raw
     await query.edit_message_text(
         "Отправьте новое сообщение в формате:\n"
         "`сахар=<ммоль/л>  xe=<ХЕ>  carbs=<г>  dose=<ед>`\n"
