@@ -1,7 +1,7 @@
 """Expose profile conversation handlers and helpers."""
 
-from . import conversation as _conversation
-from .api import get_api, save_profile, set_timezone, fetch_profile, post_profile
+from . import conversation as _conversation, api as _api
+from .api import save_profile, set_timezone, fetch_profile, post_profile
 from services.api.app.diabetes.utils.ui import back_keyboard
 from .conversation import (
     profile_command,
@@ -24,6 +24,10 @@ from .conversation import (
     END,
 )
 from .validation import parse_profile_args
+
+
+def get_api() -> tuple[object, type[Exception], type]:
+    return _api.get_api(_conversation.SessionLocal)
 
 __all__ = [
     "profile_command",

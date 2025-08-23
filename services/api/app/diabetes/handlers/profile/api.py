@@ -83,7 +83,9 @@ if TYPE_CHECKING:  # pragma: no cover - used only for type hints
     from diabetes_sdk.api.default_api import DefaultApi
 
 
-def get_api() -> tuple[object, type[Exception], type]:
+def get_api(
+    sessionmaker: Callable[[], Session] = SessionLocal,
+) -> tuple[object, type[Exception], type]:
     """Return API client, its exception type and profile model.
 
     The function attempts to import and configure the external
@@ -101,12 +103,12 @@ def get_api() -> tuple[object, type[Exception], type]:
         logger.warning(
             "diabetes_sdk is not installed. Falling back to local profile API.",
         )
-        return LocalProfileAPI(SessionLocal), Exception, LocalProfile
+        return LocalProfileAPI(sessionmaker), Exception, LocalProfile
     except RuntimeError:  # pragma: no cover - initialization issues
         logger.warning(
             "diabetes_sdk could not be initialized. Falling back to local profile API.",
         )
-        return LocalProfileAPI(SessionLocal), Exception, LocalProfile
+        return LocalProfileAPI(sessionmaker), Exception, LocalProfile
     api = DefaultApi(ApiClient(Configuration(host=settings.api_url)))
     return api, ApiException, ProfileModel
 

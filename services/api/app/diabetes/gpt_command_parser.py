@@ -2,6 +2,8 @@ import asyncio
 import json
 import logging
 import re
+from collections.abc import Awaitable
+from typing import cast
 
 from openai import OpenAIError
 from openai.types.chat import ChatCompletion
@@ -171,19 +173,24 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
     """
 
     try:
-        response: ChatCompletion = await asyncio.wait_for(
-            create_chat_completion(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": text},
-                ],
-                temperature=0,
-                max_tokens=256,
-                timeout=timeout,
-            ),
-            timeout,
+        resp: ChatCompletion | Awaitable[ChatCompletion] = create_chat_completion(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": text},
+            ],
+            temperature=0,
+            max_tokens=256,
+            timeout=timeout,
         )
+        try:
+            response: ChatCompletion = await asyncio.wait_for(
+                cast(Awaitable[ChatCompletion], resp), timeout
+            )
+        except TypeError:
+            if isinstance(resp, Awaitable):
+                raise
+            response = resp  # sync stub
     except asyncio.TimeoutError as exc:
         logger.error("Command parsing timed out")
         raise ParserTimeoutError from exc
