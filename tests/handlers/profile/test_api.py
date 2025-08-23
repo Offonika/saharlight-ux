@@ -73,7 +73,15 @@ def test_post_profile_error() -> None:
             raise ApiExc("boom")
 
     class DummyProfile:
-        def __init__(self, telegram_id: int, icr: float, cf: float, target: float, low: float, high: float) -> None:
+        def __init__(
+            self,
+            telegram_id: int,
+            icr: float,
+            cf: float,
+            target: float,
+            low: float,
+            high: float,
+        ) -> None:
             self.telegram_id = telegram_id
             self.icr = icr
             self.cf = cf
@@ -125,7 +133,9 @@ def test_save_profile_persists(session_factory: sessionmaker) -> None:
         assert prof.sos_alerts_enabled is False
 
 
-def test_save_profile_commit_failure(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
+def test_save_profile_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
     def fail_commit(session: object) -> bool:
         return False
 
@@ -141,17 +151,17 @@ def test_save_profile_commit_failure(monkeypatch: pytest.MonkeyPatch, session_fa
         assert prof is None
 
 
-def test_local_profiles_post_failure(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
-    api = profile_api.LocalProfileAPI()
-    monkeypatch.setattr(api, "_sessionmaker", lambda: session_factory)
+def test_local_profiles_post_failure(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
+    api = profile_api.LocalProfileAPI(session_factory)
     monkeypatch.setattr(profile_api, "save_profile", lambda *a, **k: False)
     with pytest.raises(profile_api.ProfileSaveError):
         api.profiles_post(profile_api.LocalProfile(telegram_id=1))
 
 
-def test_local_profiles_roundtrip(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
-    api = profile_api.LocalProfileAPI()
-    monkeypatch.setattr(api, "_sessionmaker", lambda: session_factory)
+def test_local_profiles_roundtrip(session_factory: sessionmaker) -> None:
+    api = profile_api.LocalProfileAPI(session_factory)
 
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
@@ -187,7 +197,9 @@ def test_set_timezone_persists(session_factory: sessionmaker) -> None:
         assert user.timezone == "Europe/Moscow"
 
 
-def test_set_timezone_commit_failure(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
+def test_set_timezone_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
     def fail_commit(session: object) -> bool:
         return False
 
@@ -204,7 +216,9 @@ def test_set_timezone_commit_failure(monkeypatch: pytest.MonkeyPatch, session_fa
         assert user.timezone == "UTC"
 
 
-def test_set_timezone_user_missing(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
+def test_set_timezone_user_missing(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
     commit_mock = MagicMock(return_value=True)
     monkeypatch.setattr(profile_api, "commit", commit_mock)
     with session_factory() as session:

@@ -1,11 +1,12 @@
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
 from services.api.app.config import settings
-from services.api.app.diabetes.services.db import Profile, User
+from services.api.app.diabetes.services.db import Profile, User, SessionLocal
 from services.api.app.diabetes.services.repository import commit
 
 
@@ -38,19 +39,13 @@ class LocalProfileAPI:
     calls used by the bot are provided.
     """
 
-    @staticmethod
-    def _sessionmaker():
-        # Import here to avoid circular imports and to pick up monkeypatched
-        # session factories from tests.
-        from services.api.app.diabetes.handlers import profile as handlers
-
-        return handlers.SessionLocal
+    def __init__(self, sessionmaker: Callable[[], Session] = SessionLocal) -> None:
+        self._sessionmaker = sessionmaker
 
     def profiles_post(self, profile: LocalProfile) -> None:
         """Persist ``profile`` to the database."""
 
-        SessionLocal = self._sessionmaker()
-        with SessionLocal() as session:
+        with self._sessionmaker() as session:
             ok = save_profile(
                 session,
                 profile.telegram_id,
@@ -68,8 +63,7 @@ class LocalProfileAPI:
     def profiles_get(self, telegram_id: int) -> LocalProfile | None:
         """Return a profile for ``telegram_id`` from the database."""
 
-        SessionLocal = self._sessionmaker()
-        with SessionLocal() as session:
+        with self._sessionmaker() as session:
             prof = session.get(Profile, telegram_id)
             if prof is None:
                 return None
@@ -107,12 +101,12 @@ def get_api() -> tuple[object, type[Exception], type]:
         logger.warning(
             "diabetes_sdk is not installed. Falling back to local profile API.",
         )
-        return LocalProfileAPI(), Exception, LocalProfile
+        return LocalProfileAPI(SessionLocal), Exception, LocalProfile
     except RuntimeError:  # pragma: no cover - initialization issues
         logger.warning(
             "diabetes_sdk could not be initialized. Falling back to local profile API.",
         )
-        return LocalProfileAPI(), Exception, LocalProfile
+        return LocalProfileAPI(SessionLocal), Exception, LocalProfile
     api = DefaultApi(ApiClient(Configuration(host=settings.api_url)))
     return api, ApiException, ProfileModel
 
