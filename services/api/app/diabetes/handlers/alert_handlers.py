@@ -152,7 +152,11 @@ async def evaluate_sugar(
             if notify:
                 for a in alerts:
                     a.resolved = True
-                commit(session)
+                if not commit(session):
+                    logger.error(
+                        "Failed to commit resolved alerts for user %s", user_id
+                    )
+                    return False, None
             return True, {
                 "action": "schedule",
                 "notify": notify,
