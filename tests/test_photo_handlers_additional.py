@@ -191,12 +191,16 @@ async def test_photo_handler_unparsed_response(
 
     class DummyClient:
         beta = SimpleNamespace(
-            threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages()))
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(list=lambda thread_id: Messages())
+            )
         )
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda t: (None, None))
+    monkeypatch.setattr(
+        photo_handlers, "extract_nutrition_info", lambda t: (None, None)
+    )
 
     message = DummyMessage()
     update = cast(

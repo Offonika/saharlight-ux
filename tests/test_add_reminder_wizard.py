@@ -90,7 +90,9 @@ async def test_webapp_save_creates_reminder(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "08:00"}))
-    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
+    update = cast(
+        Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
+    )
     context = cast(
         ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
     )
@@ -116,7 +118,9 @@ async def test_webapp_save_creates_interval(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "2h"}))
-    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
+    update = cast(
+        Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
+    )
     context = cast(
         ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
     )

@@ -41,7 +41,9 @@ def test_get_client_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_message_openaierror(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_send_message_openaierror(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     def raise_error(**kwargs: Any) -> None:
         raise OpenAIError("boom")
 
@@ -108,7 +110,9 @@ async def test_send_message_upload_error_removes_file(
 
 
 @pytest.mark.asyncio
-async def test_send_message_empty_string_preserved(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_send_message_empty_string_preserved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 

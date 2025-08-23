@@ -148,7 +148,10 @@ async def test_parse_command_with_nested_json(
                         (),
                         {
                             "content": (
-                                'prefix {"action":"add_entry","fields":{"nested":{"a":1},"note":"смесь {сахара}"}} suffix'
+                                "prefix "
+                                '{"action":"add_entry","fields":{"nested":{"a":1},'
+                                '"note":"смесь {сахара}"}} '
+                                "suffix"
                             )
                         },
                     )()

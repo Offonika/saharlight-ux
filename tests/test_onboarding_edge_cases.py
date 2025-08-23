@@ -170,7 +170,9 @@ async def test_onboarding_reminders_repeated(monkeypatch: pytest.MonkeyPatch) ->
     query_yes2 = DummyQuery(message, "onb_rem_yes")
     update_yes2 = cast(
         Update,
-        SimpleNamespace(callback_query=query_yes2, effective_user=SimpleNamespace(id=1)),
+        SimpleNamespace(
+            callback_query=query_yes2, effective_user=SimpleNamespace(id=1)
+        ),
     )
     state = await onboarding.onboarding_reminders(update_yes2, context)
     assert state == ConversationHandler.END
@@ -271,4 +273,3 @@ async def test_onboarding_poll_answer_logging(caplog: pytest.LogCaptureFixture) 
         await onboarding.onboarding_poll_answer(update, context)
     assert "Onboarding poll result from 42: 👎" in caplog.text
     assert "p1" not in context.bot_data.get("onboarding_polls", {})
-

@@ -53,7 +53,8 @@ def _patch_import(
 def test_get_api_falls_back_to_local_client(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """``get_api`` should provide a local client and log a warning on ``ImportError``."""
+    """``get_api`` should provide a local client
+    and log a warning on ``ImportError``."""
 
     _patch_import(monkeypatch)
 

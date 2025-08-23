@@ -17,7 +17,9 @@ async def test_run_db_sqlite_in_memory(monkeypatch: pytest.MonkeyPatch) -> None:
 
         called = False
 
-        async def fake_to_thread(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        async def fake_to_thread(
+            fn: Callable[..., Any], *args: Any, **kwargs: Any
+        ) -> Any:
             nonlocal called
             called = True
             return fn(*args, **kwargs)
@@ -36,7 +38,9 @@ async def test_run_db_sqlite_in_memory(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_run_db_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
-    dummy_engine = SimpleNamespace(url=SimpleNamespace(drivername="postgresql", database="db"))
+    dummy_engine = SimpleNamespace(
+        url=SimpleNamespace(drivername="postgresql", database="db")
+    )
 
     class DummySession(SASession):
         def get_bind(self, *args: Any, **kwargs: Any) -> Any:

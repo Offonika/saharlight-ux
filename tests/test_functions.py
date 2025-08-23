@@ -179,7 +179,11 @@ def test_smart_input_units_without_labels() -> None:
 
 def test_smart_input_localized_terms() -> None:
     msg = "сахар:5,5 доза=2,5"
-    assert smart_input(msg) == {"sugar": pytest.approx(5.5), "xe": None, "dose": pytest.approx(2.5)}
+    assert smart_input(msg) == {
+        "sugar": pytest.approx(5.5),
+        "xe": None,
+        "dose": pytest.approx(2.5),
+    }
 
 
 def test_smart_input_unit_mixup() -> None:

@@ -9,7 +9,9 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler,
 )
-from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
+from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
+    CallbackQueryNoWarnHandler,
+)
 
 from services.api.app.diabetes.handlers.registration import register_handlers
 from services.api.app.diabetes.handlers.router import callback_router
@@ -17,7 +19,9 @@ from services.api.app.diabetes.handlers.onboarding_handlers import start_command
 from services.api.app.diabetes.handlers import security_handlers, reminder_handlers
 
 
-def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_register_handlers_attaches_expected_handlers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -62,8 +66,7 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
         for h in handlers
     )
     assert any(
-        isinstance(h, CommandHandler)
-        and h.callback is reminder_handlers.add_reminder
+        isinstance(h, CommandHandler) and h.callback is reminder_handlers.add_reminder
         for h in handlers
     )
 
@@ -80,16 +83,13 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
     ]
     assert onb_conv
 
-
     conv_handlers = [h for h in handlers if isinstance(h, ConversationHandler)]
     assert dose_calc.dose_conv in conv_handlers
     assert sugar_handlers.sugar_conv in conv_handlers
     assert profile_handlers.profile_conv in conv_handlers
     assert onb_conv[0] in conv_handlers
     conv_cmds = [
-        ep
-        for ep in dose_calc.dose_conv.entry_points
-        if isinstance(ep, CommandHandler)
+        ep for ep in dose_calc.dose_conv.entry_points if isinstance(ep, CommandHandler)
     ]
     assert conv_cmds and "dose" in conv_cmds[0].commands
     sugar_conv_cmds = [
@@ -135,7 +135,6 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
     ]
     assert doc_handlers
 
-
     photo_prompt_handlers = [
         h
         for h in handlers
@@ -167,14 +166,16 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
     report_handlers = [
         h
         for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is reporting_handlers.report_request
+        if isinstance(h, MessageHandler)
+        and h.callback is reporting_handlers.report_request
     ]
     assert report_handlers
 
     report_cmd = [
         h
         for h in handlers
-        if isinstance(h, CommandHandler) and h.callback is reporting_handlers.report_request
+        if isinstance(h, CommandHandler)
+        and h.callback is reporting_handlers.report_request
     ]
     assert report_cmd and "report" in report_cmd[0].commands
 
@@ -188,7 +189,8 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: pytest.Monkey
     history_handlers = [
         h
         for h in handlers
-        if isinstance(h, MessageHandler) and h.callback is reporting_handlers.history_view
+        if isinstance(h, MessageHandler)
+        and h.callback is reporting_handlers.history_view
     ]
     assert history_handlers
 

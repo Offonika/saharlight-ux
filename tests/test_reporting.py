@@ -16,7 +16,10 @@ from sqlalchemy.orm import sessionmaker
 
 os.environ.setdefault("DB_PASSWORD", "test")
 
-from services.api.app.diabetes.services.reporting import make_sugar_plot, generate_pdf_report
+from services.api.app.diabetes.services.reporting import (
+    make_sugar_plot,
+    generate_pdf_report,
+)
 
 
 def date2num(date: datetime.datetime) -> float:
@@ -63,7 +66,7 @@ def test_make_sugar_plot() -> None:
         ),
     ]
     buf = make_sugar_plot(entries, "тестовый период")
-    assert hasattr(buf, 'read')
+    assert hasattr(buf, "read")
     buf.seek(0)
     assert len(buf.read()) > 1000  # есть содержимое
 
@@ -137,9 +140,9 @@ def test_generate_pdf_report() -> None:
         errors=["01.07: высокий сахар 15.0"],
         day_lines=["01.07: сахар 15.0, доза 6, углеводы 40"],
         gpt_text="Всё хорошо.",
-        plot_buf=plot_buf
+        plot_buf=plot_buf,
     )
-    assert hasattr(pdf_buf, 'read')
+    assert hasattr(pdf_buf, "read")
     pdf_buf.seek(0)
     reader = read_pdf(pdf_buf)
     text = "".join(page.extract_text() for page in reader.pages)
@@ -204,9 +207,7 @@ async def test_send_report_uses_gpt(monkeypatch: pytest.MonkeyPatch) -> None:
             self.kwargs.append(kwargs)
 
     message = DummyMessage()
-    update: Any = SimpleNamespace(
-        message=message, effective_user=SimpleNamespace(id=1)
-    )
+    update: Any = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     context: Any = SimpleNamespace(user_data={"thread_id": "tid"})
 
     class Run:
@@ -247,7 +248,10 @@ async def test_send_report_uses_gpt(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     await handlers.send_report(
-        update, context, datetime.datetime(2025, 6, 1, tzinfo=datetime.timezone.utc), "период"
+        update,
+        context,
+        datetime.datetime(2025, 6, 1, tzinfo=datetime.timezone.utc),
+        "период",
     )
 
     assert message.docs

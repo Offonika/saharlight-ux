@@ -2,7 +2,10 @@ import datetime
 from types import SimpleNamespace
 from typing import Any, cast
 
-from services.api.app.diabetes.handlers.reporting_handlers import EntryLike, render_entry
+from services.api.app.diabetes.handlers.reporting_handlers import (
+    EntryLike,
+    render_entry,
+)
 
 
 def make_entry(**kwargs: Any) -> EntryLike:
@@ -40,4 +43,3 @@ def test_render_entry_escapes_html() -> None:
     entry: EntryLike = make_entry(dose="<script>")
     text = render_entry(entry)
     assert "&lt;script&gt;" in text
-

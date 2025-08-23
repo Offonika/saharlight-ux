@@ -5,7 +5,7 @@ description = "Diabetes Assistant API"
 authors = [
   {name = "OpenAPI Generator Community",email = "team@openapitools.org"},
 ]
-license = { file = "LICENSE" }
+license = "NoLicense"
 readme = "README.md"
 keywords = ["OpenAPI", "OpenAPI-Generator", "Diabetes Assistant API"]
 requires-python = ">=3.9"

@@ -1,11 +1,13 @@
 from fastapi.testclient import TestClient
+import pytest
 
 import services.api.app.main as server
 
 
-def test_health() -> None:
+@pytest.mark.parametrize("prefix", ("", "/api"))
+def test_health(prefix: str) -> None:
     with TestClient(server.app) as client:
-        resp = client.get("/health")
+        resp = client.get(f"{prefix}/health")
         assert resp.status_code == 200
         assert resp.json() == {"status": "ok"}
 
