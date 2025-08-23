@@ -24,14 +24,18 @@ def session_factory() -> Generator[sessionmaker, None, None]:
 
 
 @pytest.mark.asyncio
-async def test_save_and_list_reminder(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
+async def test_save_and_list_reminder(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
 
     rem_id = await reminders.save_reminder(
-        ReminderSchema(telegramId=1, type="sugar", time="08:00", orgId=42)
+        ReminderSchema(
+            telegramId=1, type="sugar", title="Morning", time="08:00", orgId=42
+        )
     )
     assert rem_id > 0
 
@@ -40,12 +44,14 @@ async def test_save_and_list_reminder(monkeypatch: pytest.MonkeyPatch, session_f
     rem = reminders_list[0]
     assert rem.time == time(8, 0)
     assert rem.org_id == 42
+    assert rem.title == "Morning"
 
     await reminders.save_reminder(
         ReminderSchema(
             id=rem_id,
             telegramId=1,
             type="meal",
+            title="Lunch",
             time="09:00",
             isEnabled=False,
         )
@@ -54,6 +60,7 @@ async def test_save_and_list_reminder(monkeypatch: pytest.MonkeyPatch, session_f
     assert updated[0].type == "meal"
     assert updated[0].is_enabled is False
     assert updated[0].time == time(9, 0)
+    assert updated[0].title == "Lunch"
 
 
 @pytest.mark.asyncio

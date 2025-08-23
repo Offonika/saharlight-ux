@@ -31,6 +31,7 @@ async def save_reminder(data: ReminderSchema) -> int:
         if data.orgId is not None:
             rem.org_id = data.orgId
         rem.type = data.type
+        rem.title = data.title
         rem.time = data.time
         rem.interval_hours = data.intervalHours
         rem.minutes_after = data.minutesAfter

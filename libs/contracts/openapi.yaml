@@ -719,6 +719,7 @@ components:
           - type: string
           - type: 'null'
           title: Title
+          description: Reminder title
         time:
           anyOf:
           - type: string

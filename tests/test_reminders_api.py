@@ -61,6 +61,7 @@ def test_nonempty_returns_list(
                 id=1,
                 telegram_id=1,
                 type="sugar",
+                title="Sugar check",
                 time=time(8, 0),
                 interval_hours=3,
             )
@@ -73,7 +74,7 @@ def test_nonempty_returns_list(
             "telegramId": 1,
             "id": 1,
             "type": "sugar",
-            "title": "sugar",
+            "title": "Sugar check",
             "time": "08:00",
             "intervalHours": 3,
             "minutesAfter": None,
@@ -91,6 +92,7 @@ def test_get_single_reminder(client: TestClient, session_factory: sessionmaker) 
                 id=1,
                 telegram_id=1,
                 type="sugar",
+                title="Sugar check",
                 time=time(8, 0),
                 interval_hours=3,
             )
@@ -102,7 +104,7 @@ def test_get_single_reminder(client: TestClient, session_factory: sessionmaker) 
         "telegramId": 1,
         "id": 1,
         "type": "sugar",
-        "title": "sugar",
+        "title": "Sugar check",
         "time": "08:00",
         "intervalHours": 3,
         "minutesAfter": None,
@@ -146,6 +148,7 @@ def test_patch_updates_reminder(
                 id=1,
                 telegram_id=1,
                 type="sugar",
+                title="Old",
                 time=time(8, 0),
                 interval_hours=3,
             )
@@ -160,6 +163,7 @@ def test_patch_updates_reminder(
             "time": "09:00",
             "intervalHours": 3,
             "isEnabled": True,
+            "title": "New",
         },
     )
     assert resp.status_code == 200
@@ -167,6 +171,7 @@ def test_patch_updates_reminder(
         rem = session.get(Reminder, 1)
         assert rem is not None
         assert rem.time == time(9, 0)
+        assert rem.title == "New"
 
 
 def test_delete_reminder(client: TestClient, session_factory: sessionmaker) -> None:
