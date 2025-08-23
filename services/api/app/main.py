@@ -16,6 +16,7 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import AliasChoices, BaseModel, Field
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 # ────────── local ──────────
@@ -38,7 +39,13 @@ from services.api.app.diabetes.utils.openai_utils import dispose_http_client
 
 # ────────── init ──────────
 logger = logging.getLogger(__name__)
-init_db()  # создаёт/инициализирует БД
+try:
+    init_db()  # создаёт/инициализирует БД
+except (ValueError, SQLAlchemyError) as exc:
+    logger.error("Failed to initialize the database: %s", exc)
+    raise RuntimeError(
+        "Database initialization failed. Please check your configuration and try again."
+    ) from exc
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0")
 
