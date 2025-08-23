@@ -8,9 +8,7 @@ import importlib
 
 from services.api.app.diabetes.services.db import Base, User, Profile
 
-profile_api = importlib.import_module(
-    "services.api.app.diabetes.handlers.profile.api"
-)
+profile_api = importlib.import_module("services.api.app.diabetes.handlers.profile.api")
 
 
 @pytest.fixture()
@@ -102,7 +100,17 @@ def test_save_profile_persists(session_factory: sessionmaker) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
-        ok = profile_api.save_profile(session, 1, 10.0, 2.0, 5.0, 3.0, 8.0)
+        ok = profile_api.save_profile(
+            session,
+            1,
+            10.0,
+            2.0,
+            5.0,
+            3.0,
+            8.0,
+            sos_contact="911",
+            sos_alerts_enabled=False,
+        )
         assert ok is True
 
     with session_factory() as session:
@@ -113,13 +121,14 @@ def test_save_profile_persists(session_factory: sessionmaker) -> None:
         assert prof.target_bg == 5.0
         assert prof.low_threshold == 3.0
         assert prof.high_threshold == 8.0
+        assert prof.sos_contact == "911"
+        assert prof.sos_alerts_enabled is False
 
 
-def test_save_profile_commit_failure(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
-) -> None:
+def test_save_profile_commit_failure(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
     def fail_commit(session: object) -> bool:
         return False
+
     monkeypatch.setattr(profile_api, "commit", fail_commit)
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
@@ -132,14 +141,37 @@ def test_save_profile_commit_failure(
         assert prof is None
 
 
-def test_local_profiles_post_failure(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
-) -> None:
+def test_local_profiles_post_failure(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
     api = profile_api.LocalProfileAPI()
     monkeypatch.setattr(api, "_sessionmaker", lambda: session_factory)
     monkeypatch.setattr(profile_api, "save_profile", lambda *a, **k: False)
     with pytest.raises(profile_api.ProfileSaveError):
         api.profiles_post(profile_api.LocalProfile(telegram_id=1))
+
+
+def test_local_profiles_roundtrip(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
+    api = profile_api.LocalProfileAPI()
+    monkeypatch.setattr(api, "_sessionmaker", lambda: session_factory)
+
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+
+    profile = profile_api.LocalProfile(
+        telegram_id=1,
+        icr=1.0,
+        cf=2.0,
+        target=3.0,
+        low=4.0,
+        high=5.0,
+        sos_contact="112",
+        sos_alerts_enabled=False,
+    )
+    api.profiles_post(profile)
+    fetched = api.profiles_get(1)
+    assert fetched is not None
+    assert fetched.sos_contact == "112"
+    assert fetched.sos_alerts_enabled is False
 
 
 def test_set_timezone_persists(session_factory: sessionmaker) -> None:
@@ -155,11 +187,10 @@ def test_set_timezone_persists(session_factory: sessionmaker) -> None:
         assert user.timezone == "Europe/Moscow"
 
 
-def test_set_timezone_commit_failure(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
-) -> None:
+def test_set_timezone_commit_failure(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
     def fail_commit(session: object) -> bool:
         return False
+
     monkeypatch.setattr(profile_api, "commit", fail_commit)
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
@@ -173,9 +204,7 @@ def test_set_timezone_commit_failure(
         assert user.timezone == "UTC"
 
 
-def test_set_timezone_user_missing(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
-) -> None:
+def test_set_timezone_user_missing(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
     commit_mock = MagicMock(return_value=True)
     monkeypatch.setattr(profile_api, "commit", commit_mock)
     with session_factory() as session:

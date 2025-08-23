@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from services.api.app.diabetes.services.db import Base, User
+from services.api.app.diabetes.services.db import Base, User, Profile
 
 
 class DummyMessage:
@@ -18,9 +18,7 @@ class DummyMessage:
         self.markups: list[Any] = []
         self.kwargs: list[dict[str, Any]] = []
 
-    async def reply_text(
-        self, text: str, **kwargs: Any
-    ) -> None:  # pragma: no cover - simple helper
+    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - simple helper
         self.texts.append(text)
         self.markups.append(kwargs.get("reply_markup"))
         self.kwargs.append(kwargs)
@@ -29,9 +27,7 @@ class DummyMessage:
         pass
 
 
-def _patch_import(
-    monkeypatch: pytest.MonkeyPatch, *, exc: type[Exception] = ImportError
-) -> None:
+def _patch_import(monkeypatch: pytest.MonkeyPatch, *, exc: type[Exception] = ImportError) -> None:
     """Force ``exc`` for any ``diabetes_sdk`` imports."""
 
     real_import = builtins.__import__
@@ -50,9 +46,7 @@ def _patch_import(
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
 
-def test_get_api_falls_back_to_local_client(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_get_api_falls_back_to_local_client(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     """``get_api`` should provide a local client and log a warning on ``ImportError``."""
 
     _patch_import(monkeypatch)
@@ -72,9 +66,7 @@ def test_get_api_falls_back_to_local_client(
     assert "diabetes_sdk is not installed" in caplog.text
 
 
-def test_get_api_handles_runtime_error(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_get_api_handles_runtime_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     """``get_api`` should fall back when ``RuntimeError`` occurs during import."""
 
     _patch_import(monkeypatch, exc=RuntimeError)
@@ -117,9 +109,7 @@ async def test_profile_command_and_view_without_sdk(
         session.commit()
 
     msg = DummyMessage()
-    update = cast(
-        Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=123))
-    )
+    update = cast(Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=123)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=["8", "3", "6", "4", "9"], user_data={}),
@@ -131,10 +121,14 @@ async def test_profile_command_and_view_without_sdk(
     assert msg.texts and "ИКХ: 8.0 г/ед." in msg.texts[0]
     assert all("Функции профиля недоступны" not in t for t in msg.texts)
 
+    with TestSession() as session:
+        prof = session.get(Profile, 123)
+        assert prof is not None
+        assert prof.sos_contact is None
+        assert prof.sos_alerts_enabled is True
+
     msg2 = DummyMessage()
-    update2 = cast(
-        Update, SimpleNamespace(message=msg2, effective_user=SimpleNamespace(id=123))
-    )
+    update2 = cast(Update, SimpleNamespace(message=msg2, effective_user=SimpleNamespace(id=123)))
     context2 = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
