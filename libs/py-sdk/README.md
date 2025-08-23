@@ -88,8 +88,8 @@ Class | Method | HTTP request | Description
 *HistoryApi* | [**history_get**](docs/HistoryApi.md#history_get) | **GET** /history | Get History
 *HistoryApi* | [**history_id_delete**](docs/HistoryApi.md#history_id_delete) | **DELETE** /history/{id} | Delete History
 *HistoryApi* | [**history_post**](docs/HistoryApi.md#history_post) | **POST** /history | Post History
-*ProfilesApi* | [**profiles_get_profiles_get**](docs/ProfilesApi.md#profiles_get_profiles_get) | **GET** /profiles | Profiles Get
-*ProfilesApi* | [**profiles_post_profiles_post**](docs/ProfilesApi.md#profiles_post_profiles_post) | **POST** /profiles | Profiles Post
+*ProfilesApi* | [**profiles_get**](docs/ProfilesApi.md#profiles_get) | **GET** /profiles | Profiles Get
+*ProfilesApi* | [**profiles_post**](docs/ProfilesApi.md#profiles_post) | **POST** /profiles | Profiles Post
 *RemindersApi* | [**reminders_delete**](docs/RemindersApi.md#reminders_delete) | **DELETE** /reminders | Reminders Delete
 *RemindersApi* | [**reminders_get**](docs/RemindersApi.md#reminders_get) | **GET** /reminders | Reminders Get
 *RemindersApi* | [**reminders_patch**](docs/RemindersApi.md#reminders_patch) | **PATCH** /reminders | Reminders Patch

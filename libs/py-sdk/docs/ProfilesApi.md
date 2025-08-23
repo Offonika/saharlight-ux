@@ -4,12 +4,12 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**profiles_get_profiles_get**](ProfilesApi.md#profiles_get_profiles_get) | **GET** /profiles | Profiles Get
-[**profiles_post_profiles_post**](ProfilesApi.md#profiles_post_profiles_post) | **POST** /profiles | Profiles Post
+[**profiles_get**](ProfilesApi.md#profiles_get) | **GET** /profiles | Profiles Get
+[**profiles_post**](ProfilesApi.md#profiles_post) | **POST** /profiles | Profiles Post
 
 
-# **profiles_get_profiles_get**
-> ProfileSchema profiles_get_profiles_get(telegram_id)
+# **profiles_get**
+> ProfileSchema profiles_get(telegram_id=telegram_id, x_telegram_init_data=x_telegram_init_data)
 
 Profiles Get
 
@@ -33,15 +33,16 @@ configuration = diabetes_sdk.Configuration(
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.ProfilesApi(api_client)
-    telegram_id = 56 # int | 
+    telegram_id = 56 # int |  (optional)
+    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Profiles Get
-        api_response = api_instance.profiles_get_profiles_get(telegram_id)
-        print("The response of ProfilesApi->profiles_get_profiles_get:\n")
+        api_response = api_instance.profiles_get(telegram_id=telegram_id, x_telegram_init_data=x_telegram_init_data)
+        print("The response of ProfilesApi->profiles_get:\n")
         pprint(api_response)
     except Exception as e:
-        print("Exception when calling ProfilesApi->profiles_get_profiles_get: %s\n" % e)
+        print("Exception when calling ProfilesApi->profiles_get: %s\n" % e)
 ```
 
 
@@ -51,7 +52,8 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **telegram_id** | **int**|  | 
+ **telegram_id** | **int**|  | [optional] 
+ **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -70,13 +72,13 @@ No authorization required
 
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-**200** | Successful Response |  -  |
+**200** | Successful Response. Returns profile. |  -  |
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **profiles_post_profiles_post**
-> Dict[str, Optional[str]] profiles_post_profiles_post(profile_schema)
+# **profiles_post**
+> ProfileSchema profiles_post(profile_schema, x_telegram_init_data=x_telegram_init_data)
 
 Profiles Post
 
@@ -101,14 +103,15 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.ProfilesApi(api_client)
     profile_schema = diabetes_sdk.ProfileSchema() # ProfileSchema | 
+    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Profiles Post
-        api_response = api_instance.profiles_post_profiles_post(profile_schema)
-        print("The response of ProfilesApi->profiles_post_profiles_post:\n")
+        api_response = api_instance.profiles_post(profile_schema, x_telegram_init_data=x_telegram_init_data)
+        print("The response of ProfilesApi->profiles_post:\n")
         pprint(api_response)
     except Exception as e:
-        print("Exception when calling ProfilesApi->profiles_post_profiles_post: %s\n" % e)
+        print("Exception when calling ProfilesApi->profiles_post: %s\n" % e)
 ```
 
 
@@ -119,10 +122,11 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **profile_schema** | [**ProfileSchema**](ProfileSchema.md)|  | 
+ **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
-**Dict[str, Optional[str]]**
+[**ProfileSchema**](ProfileSchema.md)
 
 ### Authorization
 
@@ -137,7 +141,7 @@ No authorization required
 
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-**200** | Successful Response |  -  |
+**200** | Successful Response. Returns profile. |  -  |
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

@@ -30,14 +30,11 @@ paths:
               $ref: '#/components/schemas/ProfileSchema'
       responses:
         '200':
-          description: Successful Response
+          description: Successful Response. Returns profile.
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties:
-                  type: string
-                title: Response Profiles Post
+                $ref: '#/components/schemas/ProfileSchema'
         '422':
           description: Validation Error
           content:
@@ -66,14 +63,11 @@ paths:
           title: X-Telegram-Init-Data
       responses:
         '200':
-          description: Successful Response. Returns an array of profiles.
+          description: Successful Response. Returns profile.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserContext'
-                title: Response Profiles Get
+                $ref: '#/components/schemas/ProfileSchema'
         '422':
           description: Validation Error
           content:

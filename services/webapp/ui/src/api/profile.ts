@@ -13,7 +13,7 @@ const api = new ProfilesApi(
 
 export async function getProfile(telegramId: number): Promise<Profile | null> {
   try {
-    const data = await api.profilesGetProfilesGet({ telegramId });
+    const data = await api.profilesGet({ telegramId });
 
     if (!instanceOfProfile(data)) {
       console.error('Unexpected profile API response:', data);
@@ -33,11 +33,12 @@ export async function getProfile(telegramId: number): Promise<Profile | null> {
   }
 }
 
-export async function saveProfile(profile: Profile) {
+export async function saveProfile(profile: Profile): Promise<Profile> {
   try {
-    const data = await api.profilesPostProfilesPost({ profileSchema: profile });
-    if (data.status !== 'ok') {
-      throw new Error(data.detail || 'Не удалось сохранить профиль');
+    const data = await api.profilesPost({ profileSchema: profile });
+    if (!instanceOfProfile(data)) {
+      console.error('Unexpected profile API response:', data);
+      throw new Error('Некорректный ответ API');
     }
     return data;
   } catch (error) {

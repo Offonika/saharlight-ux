@@ -51,7 +51,4 @@ setup.cfg
 setup.py
 test-requirements.txt
 test/__init__.py
-test/test_history_api.py
-test/test_profiles_api.py
-test/test_reminders_api.py
 tox.ini
