@@ -576,7 +576,7 @@ async def freeform_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     *,
-    SessionLocal: sessionmaker = SessionLocal,
+    SessionLocal: sessionmaker | None = None,
     commit: Callable[[Session], bool] = commit,
     check_alert: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
@@ -590,6 +590,8 @@ async def freeform_handler(
     ] = send_report,
 ) -> None:
     """Handle freeform text commands for adding diary entries."""
+    SessionLocal = SessionLocal or globals()["SessionLocal"]
+    assert SessionLocal is not None
     user_data_raw = context.user_data
     if user_data_raw is None:
         return
