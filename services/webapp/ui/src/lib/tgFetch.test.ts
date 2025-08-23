@@ -1,4 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  vi,
+  type Mock,
+} from 'vitest';
+import { ProfilesApi } from '@offonika/diabetes-ts-sdk';
+import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
 import { tgFetch, REQUEST_TIMEOUT_MESSAGE, TG_INIT_DATA_HEADER } from './tgFetch';
 
 interface TelegramWebApp {
@@ -13,7 +23,7 @@ const originalFetch = global.fetch;
 
 describe('tgFetch', () => {
   beforeEach(() => {
-    global.fetch = vi.fn().mockResolvedValue(new Response());
+    global.fetch = vi.fn().mockResolvedValue(new Response('{}'));
     vi.stubGlobal('window', {} as TelegramWindow);
   });
 
@@ -31,6 +41,17 @@ describe('tgFetch', () => {
     const headers = options.headers as Headers;
     expect(headers.get(TG_INIT_DATA_HEADER)).toBe('test-data');
     expect(options.credentials).toBe('include');
+  });
+
+  it('attaches header when used via generated SDK', async () => {
+    (window as TelegramWindow).Telegram = { WebApp: { initData: 'test-data' } };
+    const api = new ProfilesApi(
+      new Configuration({ basePath: '', fetchApi: tgFetch }),
+    );
+    await api.profilesGet({ telegramId: 1 });
+    const [, options] = (global.fetch as Mock).mock.calls[0] as [unknown, RequestInit];
+    const headers = options.headers as Headers;
+    expect(headers.get(TG_INIT_DATA_HEADER)).toBe('test-data');
   });
 
   it('does not set header when init data is absent', async () => {

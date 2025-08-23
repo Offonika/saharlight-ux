@@ -16,7 +16,7 @@ Method | HTTP request | Description
 
 
 # **create_user_user_post**
-> Dict[str, str] create_user_user_post(web_user, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, str] create_user_user_post(web_user)
 
 Create User
 
@@ -24,6 +24,7 @@ Ensure a user exists in the database.
 
 ### Example
 
+* Api Key Authentication (telegramInitData):
 
 ```python
 import diabetes_sdk
@@ -37,17 +38,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: telegramInitData
+configuration.api_key['telegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['telegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.DefaultApi(api_client)
     web_user = diabetes_sdk.WebUser() # WebUser | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Create User
-        api_response = api_instance.create_user_user_post(web_user, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.create_user_user_post(web_user)
         print("The response of DefaultApi->create_user_user_post:\n")
         pprint(api_response)
     except Exception as e:
@@ -62,7 +72,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **web_user** | [**WebUser**](WebUser.md)|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -70,7 +79,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[telegramInitData](../README.md#telegramInitData)
 
 ### HTTP request headers
 
@@ -87,12 +96,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_analytics_analytics_get**
-> List[AnalyticsPoint] get_analytics_analytics_get(telegram_id, x_telegram_init_data=x_telegram_init_data)
+> List[AnalyticsPoint] get_analytics_analytics_get(telegram_id)
 
 Get Analytics
 
 ### Example
 
+* Api Key Authentication (telegramInitData):
 
 ```python
 import diabetes_sdk
@@ -106,17 +116,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: telegramInitData
+configuration.api_key['telegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['telegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.DefaultApi(api_client)
     telegram_id = 56 # int | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Get Analytics
-        api_response = api_instance.get_analytics_analytics_get(telegram_id, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.get_analytics_analytics_get(telegram_id)
         print("The response of DefaultApi->get_analytics_analytics_get:\n")
         pprint(api_response)
     except Exception as e:
@@ -131,7 +150,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **telegram_id** | **int**|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -139,7 +157,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[telegramInitData](../README.md#telegramInitData)
 
 ### HTTP request headers
 
@@ -151,6 +169,7 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | Successful Response |  -  |
+**403** | Forbidden |  -  |
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -162,6 +181,7 @@ Get Role
 
 ### Example
 
+* Api Key Authentication (telegramInitData):
 
 ```python
 import diabetes_sdk
@@ -175,6 +195,16 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: telegramInitData
+configuration.api_key['telegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['telegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
@@ -206,7 +236,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[telegramInitData](../README.md#telegramInitData)
 
 ### HTTP request headers
 
@@ -223,12 +253,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_stats_stats_get**
-> DayStats get_stats_stats_get(telegram_id, x_telegram_init_data=x_telegram_init_data)
+> DayStats get_stats_stats_get(telegram_id)
 
 Get Stats
 
 ### Example
 
+* Api Key Authentication (telegramInitData):
 
 ```python
 import diabetes_sdk
@@ -242,17 +273,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: telegramInitData
+configuration.api_key['telegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['telegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.DefaultApi(api_client)
     telegram_id = 56 # int | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Get Stats
-        api_response = api_instance.get_stats_stats_get(telegram_id, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.get_stats_stats_get(telegram_id)
         print("The response of DefaultApi->get_stats_stats_get:\n")
         pprint(api_response)
     except Exception as e:
@@ -267,7 +307,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **telegram_id** | **int**|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -275,7 +314,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[telegramInitData](../README.md#telegramInitData)
 
 ### HTTP request headers
 
@@ -288,17 +327,19 @@ No authorization required
 |-------------|-------------|------------------|
 **200** | Successful Response. Returns statistics for the day. |  -  |
 **204** | No Content - no statistics available. |  -  |
+**403** | Forbidden |  -  |
 **422** | Validation Error |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_timezone_timezone_get**
-> Dict[str, str] get_timezone_timezone_get(x_telegram_init_data=x_telegram_init_data)
+> Dict[str, str] get_timezone_timezone_get()
 
 Get Timezone
 
 ### Example
 
+* Api Key Authentication (telegramInitData):
 
 ```python
 import diabetes_sdk
@@ -311,16 +352,25 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: telegramInitData
+configuration.api_key['telegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['telegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.DefaultApi(api_client)
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Get Timezone
-        api_response = api_instance.get_timezone_timezone_get(x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.get_timezone_timezone_get()
         print("The response of DefaultApi->get_timezone_timezone_get:\n")
         pprint(api_response)
     except Exception as e:
@@ -331,10 +381,7 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **x_telegram_init_data** | **str**|  | [optional] 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -342,7 +389,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[telegramInitData](../README.md#telegramInitData)
 
 ### HTTP request headers
 
@@ -420,12 +467,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **profile_self_profile_self_get**
-> UserContext profile_self_profile_self_get(x_telegram_init_data=x_telegram_init_data)
+> UserContext profile_self_profile_self_get()
 
 Profile Self
 
 ### Example
 
+* Api Key Authentication (telegramInitData):
 
 ```python
 import diabetes_sdk
@@ -439,16 +487,25 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: telegramInitData
+configuration.api_key['telegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['telegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.DefaultApi(api_client)
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Profile Self
-        api_response = api_instance.profile_self_profile_self_get(x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.profile_self_profile_self_get()
         print("The response of DefaultApi->profile_self_profile_self_get:\n")
         pprint(api_response)
     except Exception as e:
@@ -459,10 +516,7 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **x_telegram_init_data** | **str**|  | [optional] 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -470,7 +524,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[telegramInitData](../README.md#telegramInitData)
 
 ### HTTP request headers
 
@@ -493,6 +547,7 @@ Put Role
 
 ### Example
 
+* Api Key Authentication (telegramInitData):
 
 ```python
 import diabetes_sdk
@@ -506,6 +561,16 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: telegramInitData
+configuration.api_key['telegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['telegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
@@ -539,7 +604,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[telegramInitData](../README.md#telegramInitData)
 
 ### HTTP request headers
 
@@ -556,12 +621,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **put_timezone_timezone_put**
-> Dict[str, str] put_timezone_timezone_put(timezone, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, str] put_timezone_timezone_put(timezone)
 
 Put Timezone
 
 ### Example
 
+* Api Key Authentication (telegramInitData):
 
 ```python
 import diabetes_sdk
@@ -575,17 +641,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: telegramInitData
+configuration.api_key['telegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['telegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.DefaultApi(api_client)
     timezone = diabetes_sdk.Timezone() # Timezone | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Put Timezone
-        api_response = api_instance.put_timezone_timezone_put(timezone, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.put_timezone_timezone_put(timezone)
         print("The response of DefaultApi->put_timezone_timezone_put:\n")
         pprint(api_response)
     except Exception as e:
@@ -600,7 +675,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **timezone** | [**Timezone**](Timezone.md)|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -608,7 +682,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[telegramInitData](../README.md#telegramInitData)
 
 ### HTTP request headers
 
