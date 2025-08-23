@@ -24,6 +24,16 @@ pip install --upgrade pip || { echo "Pip upgrade failed" >&2; exit 1; }
 pip install -r requirements.txt || { echo "Python dependencies installation failed" >&2; exit 1; }
 
 echo "Установка JavaScript-зависимостей…"
+if ! command -v pnpm >/dev/null 2>&1; then
+    echo "pnpm не найден, пытаюсь установить…"
+    if command -v node >/dev/null 2>&1 && command -v corepack >/dev/null 2>&1 && [ "$(printf '%s\n' '16.13.0' "$(node -v | sed 's/^v//')" | sort -V | head -n1)" = '16.13.0' ]; then
+        corepack enable pnpm || { echo "corepack enable pnpm failed" >&2; exit 1; }
+    else
+        npm install -g pnpm || { echo "npm install -g pnpm failed" >&2; exit 1; }
+    fi
+    command -v pnpm >/dev/null 2>&1 || { echo "pnpm installation failed" >&2; exit 1; }
+fi
+
 pnpm install || { echo "pnpm install failed" >&2; exit 1; }
 
 echo "Сборка фронтенда…"
