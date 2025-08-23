@@ -58,6 +58,7 @@ async def test_profile_input_not_logged_as_sugar(
     monkeypatch.setattr(profile_handlers, "SessionLocal", TestSession)
 
     async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        assert "sessionmaker" not in kwargs
         return await db.run_db(fn, *args, sessionmaker=TestSession, **kwargs)
 
     monkeypatch.setattr(sugar_handlers, "run_db", run_db_wrapper)
