@@ -718,6 +718,15 @@ components:
           - type: integer
           - type: 'null'
           title: Org Id
+        sosContact:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sos Contact
+        sosAlertsEnabled:
+          type: boolean
+          title: Sos Alerts Enabled
+          default: true
       type: object
       required:
       - telegramId
