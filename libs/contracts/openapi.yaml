@@ -12,7 +12,16 @@ paths:
       tags:
       - Profiles
       summary: Profiles Post
-      operationId: profiles_post_profiles_post
+      operationId: profilesPost
+      parameters:
+      - name: X-Telegram-Init-Data
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Telegram-Init-Data
       requestBody:
         required: true
         content:
@@ -28,7 +37,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-                title: Response Profiles Post Profiles Post
+                title: Response Profiles Post
         '422':
           description: Validation Error
           content:
@@ -39,21 +48,32 @@ paths:
       tags:
       - Profiles
       summary: Profiles Get
-      operationId: profiles_get_profiles_get
+      operationId: profilesGet
       parameters:
       - name: telegramId
         in: query
-        required: true
+        required: false
         schema:
           type: integer
           title: Telegram Id
+      - name: X-Telegram-Init-Data
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Telegram-Init-Data
       responses:
         '200':
-          description: Successful Response
+          description: Successful Response. Returns an array of profiles.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProfileSchema'
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserContext'
+                title: Response Profiles Get
         '422':
           description: Validation Error
           content:

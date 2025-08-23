@@ -74,7 +74,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Ensure a user exists in the database.
      * Create User
      */
-    async createUserUserPostRaw(requestParameters: CreateUserUserPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async createUserUserPostRaw(requestParameters: CreateUserUserPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
         if (requestParameters['webUser'] == null) {
             throw new runtime.RequiredError(
                 'webUser',
@@ -110,7 +110,7 @@ export class DefaultApi extends runtime.BaseAPI {
      * Ensure a user exists in the database.
      * Create User
      */
-    async createUserUserPost(requestParameters: CreateUserUserPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+    async createUserUserPost(requestParameters: CreateUserUserPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
         const response = await this.createUserUserPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -213,7 +213,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Get Timezone
      */
-    async getTimezoneTimezoneGetRaw(requestParameters: GetTimezoneTimezoneGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async getTimezoneTimezoneGetRaw(requestParameters: GetTimezoneTimezoneGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -238,7 +238,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Get Timezone
      */
-    async getTimezoneTimezoneGet(requestParameters: GetTimezoneTimezoneGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+    async getTimezoneTimezoneGet(requestParameters: GetTimezoneTimezoneGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
         const response = await this.getTimezoneTimezoneGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -279,7 +279,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Put Timezone
      */
-    async putTimezoneTimezonePutRaw(requestParameters: PutTimezoneTimezonePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async putTimezoneTimezonePutRaw(requestParameters: PutTimezoneTimezonePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
         if (requestParameters['timezone'] == null) {
             throw new runtime.RequiredError(
                 'timezone',
@@ -314,7 +314,7 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Put Timezone
      */
-    async putTimezoneTimezonePut(requestParameters: PutTimezoneTimezonePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+    async putTimezoneTimezonePut(requestParameters: PutTimezoneTimezonePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
         const response = await this.putTimezoneTimezonePutRaw(requestParameters, initOverrides);
         return await response.value();
     }

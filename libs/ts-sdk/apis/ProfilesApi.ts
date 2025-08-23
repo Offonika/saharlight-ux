@@ -17,20 +17,25 @@ import * as runtime from '../runtime';
 import type {
   HTTPValidationError,
   ProfileSchema,
+  UserContext,
 } from '../models/index';
 import {
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
     ProfileSchemaFromJSON,
     ProfileSchemaToJSON,
+    UserContextFromJSON,
+    UserContextToJSON,
 } from '../models/index';
 
-export interface ProfilesGetProfilesGetRequest {
-    telegramId: number;
+export interface ProfilesGetRequest {
+    telegramId?: number;
+    xTelegramInitData?: string | null;
 }
 
-export interface ProfilesPostProfilesPostRequest {
+export interface ProfilesPostRequest {
     profileSchema: ProfileSchema;
+    xTelegramInitData?: string | null;
 }
 
 /**
@@ -41,14 +46,7 @@ export class ProfilesApi extends runtime.BaseAPI {
     /**
      * Profiles Get
      */
-    async profilesGetProfilesGetRaw(requestParameters: ProfilesGetProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileSchema>> {
-        if (requestParameters['telegramId'] == null) {
-            throw new runtime.RequiredError(
-                'telegramId',
-                'Required parameter "telegramId" was null or undefined when calling profilesGetProfilesGet().'
-            );
-        }
-
+    async profilesGetRaw(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<UserContext>>> {
         const queryParameters: any = {};
 
         if (requestParameters['telegramId'] != null) {
@@ -56,6 +54,10 @@ export class ProfilesApi extends runtime.BaseAPI {
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
 
 
         let urlPath = `/profiles`;
@@ -67,25 +69,25 @@ export class ProfilesApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileSchemaFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(UserContextFromJSON));
     }
 
     /**
      * Profiles Get
      */
-    async profilesGetProfilesGet(requestParameters: ProfilesGetProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSchema> {
-        const response = await this.profilesGetProfilesGetRaw(requestParameters, initOverrides);
+    async profilesGet(requestParameters: ProfilesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<UserContext>> {
+        const response = await this.profilesGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Profiles Post
      */
-    async profilesPostProfilesPostRaw(requestParameters: ProfilesPostProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async profilesPostRaw(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
         if (requestParameters['profileSchema'] == null) {
             throw new runtime.RequiredError(
                 'profileSchema',
-                'Required parameter "profileSchema" was null or undefined when calling profilesPostProfilesPost().'
+                'Required parameter "profileSchema" was null or undefined when calling profilesPost().'
             );
         }
 
@@ -94,6 +96,10 @@ export class ProfilesApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
         headerParameters['Content-Type'] = 'application/json';
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
 
 
         let urlPath = `/profiles`;
@@ -112,8 +118,8 @@ export class ProfilesApi extends runtime.BaseAPI {
     /**
      * Profiles Post
      */
-    async profilesPostProfilesPost(requestParameters: ProfilesPostProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
-        const response = await this.profilesPostProfilesPostRaw(requestParameters, initOverrides);
+    async profilesPost(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+        const response = await this.profilesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
