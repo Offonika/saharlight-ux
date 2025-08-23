@@ -34,6 +34,7 @@ from services.api.app.diabetes.services.db import (
     SessionLocal as _SessionLocal,
     User,
 )
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -183,7 +184,10 @@ def _render_reminders(
     if not rems:
         text = header
         if settings.webapp_url and add_button_row is not None:
-            text += "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
+            text += (
+                "\nУ вас нет напоминаний. "
+                "Нажмите кнопку ниже или отправьте /addreminder."
+            )
             return text, InlineKeyboardMarkup([add_button_row])
         text += "\nУ вас нет напоминаний. Отправьте /addreminder."
         return text, None
@@ -253,7 +257,8 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
         job.schedule_removal()
     if not rem.is_enabled:
         logger.debug(
-            "Reminder %s disabled, skipping (type=%s, time=%s, interval=%s, minutes_after=%s)",
+            "Reminder %s disabled, skipping "
+            "(type=%s, time=%s, interval=%s, minutes_after=%s)",
             rem.id,
             rem.type,
             rem.time,
@@ -283,7 +288,8 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
     if rem.type in {"sugar", "long_insulin", "medicine"}:
         if rem.time:
             logger.debug(
-                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+                "Adding job for reminder %s "
+                "(type=%s, time=%s, interval=%s, minutes_after=%s)",
                 rem.id,
                 rem.type,
                 rem.time,
@@ -298,7 +304,8 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
             )
         elif rem.interval_hours:
             logger.debug(
-                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+                "Adding job for reminder %s "
+                "(type=%s, time=%s, interval=%s, minutes_after=%s)",
                 rem.id,
                 rem.type,
                 rem.time,
@@ -313,7 +320,8 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
             )
     # xe_after reminders are scheduled when entry is logged
     logger.debug(
-        "Finished scheduling reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+        "Finished scheduling reminder %s "
+        "(type=%s, time=%s, interval=%s, minutes_after=%s)",
         rem.id,
         rem.type,
         rem.time,
@@ -433,7 +441,10 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if status == "limit":
         count = rid_or_count
         await message.reply_text(
-            f"У вас уже {count} активных из {limit}. Отключите одно или Апгрейд до Pro, чтобы поднять лимит до 10",
+            (
+                f"У вас уже {count} активных из {limit}. "
+                "Отключите одно или Апгрейд до Pro, чтобы поднять лимит до 10"
+            ),
         )
         return
     if status == "error":
@@ -559,7 +570,10 @@ async def reminder_webapp_save(
         if plan is None:
             return
         await msg.reply_text(
-            f"У вас уже {limit} активных (лимит {plan.upper()}). Отключите одно или откройте PRO.",
+            (
+                f"У вас уже {limit} активных (лимит {plan.upper()}). "
+                "Отключите одно или откройте PRO."
+            ),
         )
         return
     if status == "error":
