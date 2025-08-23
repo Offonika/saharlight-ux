@@ -7,9 +7,9 @@ from types import SimpleNamespace
 from typing import Any, BinaryIO
 
 import pytest
-import matplotlib.pyplot as plt  # type: ignore[import-not-found]
+import matplotlib.pyplot as plt
 from matplotlib.dates import date2num as _date2num
-from pypdf import PdfReader as _PdfReader  # type: ignore[import-not-found]
+from pypdf import PdfReader as _PdfReader
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
