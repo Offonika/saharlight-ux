@@ -5,7 +5,7 @@ import json
 import datetime
 import time
 import urllib.parse
-from typing import Any, Callable, cast
+from typing import Any, Callable, ContextManager, cast
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,6 +17,7 @@ from sqlalchemy.pool import StaticPool
 import services.api.app.main as server
 from services.api.app.config import settings
 from services.api.app.diabetes.services import db
+from services.api.app.diabetes.services.db import SessionMaker
 from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 TOKEN = "test-token"
@@ -31,13 +32,13 @@ def build_init_data(user_id: int = 1) -> str:
     return urllib.parse.urlencode(params)
 
 
-def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> SessionMaker[SASession]:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    SessionLocal: sessionmaker = sessionmaker(bind=engine, class_=SASession)
+    SessionLocal: SessionMaker[SASession] = sessionmaker(bind=engine, class_=SASession)
     db.Base.metadata.create_all(bind=engine)
 
     async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
@@ -94,8 +95,8 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.post("/history", json=rec1, headers=headers1)
         assert resp.status_code == 200
 
-        with Session() as session:
-            stored = session.get(db.HistoryRecord, "1")
+        with cast(ContextManager[SASession], Session()) as session:
+            stored = cast(Any, session).get(db.HistoryRecord, "1")
             assert stored is not None
             assert stored.date == datetime.date(2024, 1, 1)
             assert stored.time == datetime.time(12, 0)
@@ -105,8 +106,8 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.post("/history", json=rec1_update, headers=headers1)
         assert resp.status_code == 200
 
-        with Session() as session:
-            stored = session.get(db.HistoryRecord, "1")
+        with cast(ContextManager[SASession], Session()) as session:
+            stored = cast(Any, session).get(db.HistoryRecord, "1")
             assert stored is not None
             assert stored.sugar == 5.5
 
@@ -141,7 +142,7 @@ def test_history_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
     Session = setup_db(monkeypatch)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     headers = {TG_INIT_DATA_HEADER: build_init_data(1)}
-    with Session() as session:
+    with cast(ContextManager[SASession], Session()) as session:
         session.add(
             db.HistoryRecord(
                 id="1",
@@ -188,6 +189,6 @@ async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> Non
 
     await asyncio.gather(*(post_record(r) for r in records))
 
-    with Session() as session:
+    with cast(ContextManager[SASession], Session()) as session:
         stored = session.query(db.HistoryRecord).filter_by(telegram_id=1).all()
         assert sorted([r.id for r in stored]) == [r["id"] for r in records]

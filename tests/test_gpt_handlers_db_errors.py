@@ -1,5 +1,5 @@
 from types import SimpleNamespace, TracebackType
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 import pytest
 from telegram import Update
@@ -59,5 +59,5 @@ async def test_freeform_handler_db_error_propagates(
 
     with pytest.raises(AttributeError):
         await gpt_handlers.freeform_handler(
-            update, context, commit=failing_commit
+            update, context, commit=cast(Callable[[Session], bool], failing_commit)
         )
