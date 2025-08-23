@@ -12,15 +12,10 @@ from ..types import SessionProtocol
 
 
 async def list_reminders(telegram_id: int) -> list[Reminder]:
-    def _list(session: SessionProtocol) -> list[Reminder]:
-        if cast(User | None, session.get(User, telegram_id)) is None:
+    def _list(session: Session) -> list[Reminder]:
+        if cast(User | None, session.get(User, telegram_id)) is None:  # type: ignore[attr-defined]
             return []
-        return (
-            cast(Session, session)
-            .query(Reminder)
-            .filter_by(telegram_id=telegram_id)
-            .all()
-        )
+        return session.query(Reminder).filter_by(telegram_id=telegram_id).all()
 
     return await run_db(_list, sessionmaker=SessionLocal)
 
@@ -44,7 +39,7 @@ async def save_reminder(data: ReminderSchema) -> int:
         rem.is_enabled = data.isEnabled
         commit(cast(Session, session))
         cast(Session, session).refresh(rem)
-        return cast(int, rem.id)
+        return rem.id
 
     return await run_db(_save, sessionmaker=SessionLocal)
 
