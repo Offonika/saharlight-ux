@@ -24,11 +24,13 @@ afterEach(() => {
 
 describe('getHistory', () => {
   it('returns parsed history on valid response', async () => {
-    const history = [
+    const apiResponse = [
       { id: '1', date: '2024-01-01', time: '12:00', type: 'meal' },
     ];
-    mockHistoryGet.mockResolvedValueOnce(history);
-    await expect(getHistory()).resolves.toEqual(history);
+    mockHistoryGet.mockResolvedValueOnce(apiResponse);
+    await expect(getHistory()).resolves.toEqual([
+      { id: '1', date: new Date('2024-01-01'), time: '12:00', type: 'meal' },
+    ]);
   });
 
   it('throws on invalid history item', async () => {
@@ -54,7 +56,7 @@ describe('getHistory', () => {
 describe('updateRecord', () => {
   const record = {
     id: '1',
-    date: '2024-01-01',
+    date: new Date('2024-01-01'),
     time: '12:00',
     type: 'meal',
   };
@@ -63,7 +65,9 @@ describe('updateRecord', () => {
     const ok = { status: 'ok' };
     mockHistoryPost.mockResolvedValueOnce(ok);
     await expect(updateRecord(record)).resolves.toEqual(ok);
-    expect(mockHistoryPost).toHaveBeenCalledWith({ historyRecordSchemaInput: record });
+    expect(mockHistoryPost).toHaveBeenCalledWith({
+      historyRecordSchemaInput: record,
+    });
   });
 
   it('throws on error status', async () => {
@@ -87,5 +91,30 @@ describe('deleteRecord', () => {
     await expect(deleteRecord('1')).rejects.toThrow(
       'Не удалось удалить запись',
     );
+  });
+});
+
+describe('HistoryApi serialization', () => {
+  it('sends ISO date strings', async () => {
+    const fetchMock = vi.fn(async () => new Response('{}'));
+    const { HistoryApi, Configuration } = await vi.importActual<
+      typeof import('@offonika/diabetes-ts-sdk')
+    >('@offonika/diabetes-ts-sdk');
+
+    const api = new HistoryApi(
+      new Configuration({ basePath: '', fetchApi: fetchMock }),
+    );
+
+    await api.historyPost({
+      historyRecordSchemaInput: {
+        id: '1',
+        date: new Date('2024-01-01'),
+        time: '12:00',
+        type: 'meal',
+      },
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1]!.body as string);
+    expect(body.date).toBe('2024-01-01');
   });
 });

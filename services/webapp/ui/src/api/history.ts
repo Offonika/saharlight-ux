@@ -4,21 +4,15 @@ import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 
-export interface HistoryRecord {
-  id: string;
-  date: string;
-  time: string;
-  sugar?: number;
-  carbs?: number;
-  breadUnits?: number;
-  insulin?: number;
-  notes?: string;
-  type: 'measurement' | 'meal' | 'insulin';
-}
-
 const historyRecordSchema = z.object({
   id: z.string(),
-  date: z.string(),
+  date: z.string().transform((val, ctx) => {
+    const parsed = new Date(val);
+    if (isNaN(parsed.getTime())) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid date' });
+    }
+    return parsed;
+  }),
   time: z.string(),
   sugar: z.number().optional(),
   carbs: z.number().optional(),
@@ -27,6 +21,8 @@ const historyRecordSchema = z.object({
   notes: z.string().optional(),
   type: z.enum(['measurement', 'meal', 'insulin']),
 });
+
+export type HistoryRecord = z.infer<typeof historyRecordSchema>;
 
 const api = new HistoryApi(
   new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
@@ -44,7 +40,7 @@ export async function getHistory(signal?: AbortSignal): Promise<HistoryRecord[]>
       const path = issue.path.join('.') || 'элемент';
       throw new Error(`Некорректная запись истории: ${path} ${issue.message}`);
     }
-    return parsed.data as HistoryRecord[];
+    return parsed.data;
   } catch (error) {
     console.error('Failed to fetch history:', error);
     if (error instanceof Error) {
@@ -56,7 +52,9 @@ export async function getHistory(signal?: AbortSignal): Promise<HistoryRecord[]>
 
 export async function updateRecord(record: HistoryRecord) {
   try {
-    const data = await api.historyPost({ historyRecordSchemaInput: record });
+    const data = await api.historyPost({
+      historyRecordSchemaInput: { ...record, date: new Date(record.date) },
+    });
     if (data.status !== 'ok') {
       throw new Error(data.detail || 'Не удалось обновить запись');
     }
