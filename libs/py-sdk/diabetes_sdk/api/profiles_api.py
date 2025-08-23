@@ -16,7 +16,7 @@ from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
-from pydantic import StrictInt, StrictStr
+from pydantic import StrictInt
 from typing import Optional
 from diabetes_sdk.models.profile_schema import ProfileSchema
 
@@ -42,7 +42,6 @@ class ProfilesApi:
     def profiles_get(
         self,
         telegram_id: Optional[StrictInt] = None,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -61,8 +60,6 @@ class ProfilesApi:
 
         :param telegram_id:
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -87,7 +84,6 @@ class ProfilesApi:
 
         _param = self._profiles_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -97,6 +93,7 @@ class ProfilesApi:
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "ProfileSchema",
             '422': "HTTPValidationError",
+            '404': None,
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -113,7 +110,6 @@ class ProfilesApi:
     def profiles_get_with_http_info(
         self,
         telegram_id: Optional[StrictInt] = None,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -132,8 +128,6 @@ class ProfilesApi:
 
         :param telegram_id:
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -158,7 +152,6 @@ class ProfilesApi:
 
         _param = self._profiles_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -168,6 +161,7 @@ class ProfilesApi:
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "ProfileSchema",
             '422': "HTTPValidationError",
+            '404': None,
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -184,7 +178,6 @@ class ProfilesApi:
     def profiles_get_without_preload_content(
         self,
         telegram_id: Optional[StrictInt] = None,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -203,8 +196,6 @@ class ProfilesApi:
 
         :param telegram_id:
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -229,7 +220,6 @@ class ProfilesApi:
 
         _param = self._profiles_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -239,6 +229,7 @@ class ProfilesApi:
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "ProfileSchema",
             '422': "HTTPValidationError",
+            '404': None,
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -250,7 +241,6 @@ class ProfilesApi:
     def _profiles_get_serialize(
         self,
         telegram_id,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -278,8 +268,6 @@ class ProfilesApi:
             _query_params.append(('telegramId', telegram_id))
             
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
 
@@ -295,6 +283,7 @@ class ProfilesApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'TelegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -319,7 +308,6 @@ class ProfilesApi:
     def profiles_post(
         self,
         profile_schema: ProfileSchema,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -338,8 +326,6 @@ class ProfilesApi:
 
         :param profile_schema: (required)
         :type profile_schema: ProfileSchema
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -364,7 +350,6 @@ class ProfilesApi:
 
         _param = self._profiles_post_serialize(
             profile_schema=profile_schema,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -374,6 +359,7 @@ class ProfilesApi:
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "ProfileSchema",
             '422': "HTTPValidationError",
+            '404': None,
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -390,7 +376,6 @@ class ProfilesApi:
     def profiles_post_with_http_info(
         self,
         profile_schema: ProfileSchema,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -409,8 +394,6 @@ class ProfilesApi:
 
         :param profile_schema: (required)
         :type profile_schema: ProfileSchema
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -435,7 +418,6 @@ class ProfilesApi:
 
         _param = self._profiles_post_serialize(
             profile_schema=profile_schema,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -445,6 +427,7 @@ class ProfilesApi:
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "ProfileSchema",
             '422': "HTTPValidationError",
+            '404': None,
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -461,7 +444,6 @@ class ProfilesApi:
     def profiles_post_without_preload_content(
         self,
         profile_schema: ProfileSchema,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -480,8 +462,6 @@ class ProfilesApi:
 
         :param profile_schema: (required)
         :type profile_schema: ProfileSchema
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -506,7 +486,6 @@ class ProfilesApi:
 
         _param = self._profiles_post_serialize(
             profile_schema=profile_schema,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -516,6 +495,7 @@ class ProfilesApi:
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "ProfileSchema",
             '422': "HTTPValidationError",
+            '404': None,
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -527,7 +507,6 @@ class ProfilesApi:
     def _profiles_post_serialize(
         self,
         profile_schema,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -551,8 +530,6 @@ class ProfilesApi:
         # process the path parameters
         # process the query parameters
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
         if profile_schema is not None:
@@ -583,6 +560,7 @@ class ProfilesApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'TelegramInitData'
         ]
 
         return self.api_client.param_serialize(

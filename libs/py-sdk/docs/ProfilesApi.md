@@ -9,12 +9,13 @@ Method | HTTP request | Description
 
 
 # **profiles_get**
-> ProfileSchema profiles_get(telegram_id=telegram_id, x_telegram_init_data=x_telegram_init_data)
+> ProfileSchema profiles_get(telegram_id=telegram_id)
 
 Profiles Get
 
 ### Example
 
+* Api Key Authentication (TelegramInitData):
 
 ```python
 import diabetes_sdk
@@ -28,17 +29,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: TelegramInitData
+configuration.api_key['TelegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['TelegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.ProfilesApi(api_client)
     telegram_id = 56 # int |  (optional)
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Profiles Get
-        api_response = api_instance.profiles_get(telegram_id=telegram_id, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.profiles_get(telegram_id=telegram_id)
         print("The response of ProfilesApi->profiles_get:\n")
         pprint(api_response)
     except Exception as e:
@@ -53,7 +63,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **telegram_id** | **int**|  | [optional] 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -61,7 +70,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[TelegramInitData](../README.md#TelegramInitData)
 
 ### HTTP request headers
 
@@ -74,16 +83,18 @@ No authorization required
 |-------------|-------------|------------------|
 **200** | Successful Response. Returns profile. |  -  |
 **422** | Validation Error |  -  |
+**404** | profile not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **profiles_post**
-> ProfileSchema profiles_post(profile_schema, x_telegram_init_data=x_telegram_init_data)
+> ProfileSchema profiles_post(profile_schema)
 
 Profiles Post
 
 ### Example
 
+* Api Key Authentication (TelegramInitData):
 
 ```python
 import diabetes_sdk
@@ -97,17 +108,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: TelegramInitData
+configuration.api_key['TelegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['TelegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.ProfilesApi(api_client)
     profile_schema = diabetes_sdk.ProfileSchema() # ProfileSchema | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Profiles Post
-        api_response = api_instance.profiles_post(profile_schema, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.profiles_post(profile_schema)
         print("The response of ProfilesApi->profiles_post:\n")
         pprint(api_response)
     except Exception as e:
@@ -122,7 +142,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **profile_schema** | [**ProfileSchema**](ProfileSchema.md)|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -130,7 +149,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[TelegramInitData](../README.md#TelegramInitData)
 
 ### HTTP request headers
 
@@ -143,6 +162,7 @@ No authorization required
 |-------------|-------------|------------------|
 **200** | Successful Response. Returns profile. |  -  |
 **422** | Validation Error |  -  |
+**404** | profile not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

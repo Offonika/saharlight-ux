@@ -12,12 +12,13 @@ Method | HTTP request | Description
 
 
 # **reminders_delete**
-> Dict[str, object] reminders_delete(telegram_id, id, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, object] reminders_delete(telegram_id, id)
 
 Reminders Delete
 
 ### Example
 
+* Api Key Authentication (TelegramInitData):
 
 ```python
 import diabetes_sdk
@@ -30,6 +31,16 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: TelegramInitData
+configuration.api_key['TelegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['TelegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
@@ -37,11 +48,10 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
     api_instance = diabetes_sdk.RemindersApi(api_client)
     telegram_id = 56 # int | 
     id = 56 # int | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Reminders Delete
-        api_response = api_instance.reminders_delete(telegram_id, id, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.reminders_delete(telegram_id, id)
         print("The response of RemindersApi->reminders_delete:\n")
         pprint(api_response)
     except Exception as e:
@@ -57,7 +67,6 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **telegram_id** | **int**|  | 
  **id** | **int**|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -65,7 +74,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[TelegramInitData](../README.md#TelegramInitData)
 
 ### HTTP request headers
 
@@ -83,12 +92,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **reminders_get**
-> List[ReminderSchema] reminders_get(telegram_id, x_telegram_init_data=x_telegram_init_data)
+> List[ReminderSchema] reminders_get(telegram_id)
 
 Reminders Get
 
 ### Example
 
+* Api Key Authentication (TelegramInitData):
 
 ```python
 import diabetes_sdk
@@ -102,17 +112,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: TelegramInitData
+configuration.api_key['TelegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['TelegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.RemindersApi(api_client)
     telegram_id = 56 # int | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Reminders Get
-        api_response = api_instance.reminders_get(telegram_id, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.reminders_get(telegram_id)
         print("The response of RemindersApi->reminders_get:\n")
         pprint(api_response)
     except Exception as e:
@@ -127,7 +146,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **telegram_id** | **int**|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -135,7 +153,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[TelegramInitData](../README.md#TelegramInitData)
 
 ### HTTP request headers
 
@@ -153,12 +171,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **reminders_id_get**
-> ReminderSchema reminders_id_get(id, telegram_id, x_telegram_init_data=x_telegram_init_data)
+> ReminderSchema reminders_id_get(id, telegram_id)
 
 Reminders Id Get
 
 ### Example
 
+* Api Key Authentication (TelegramInitData):
 
 ```python
 import diabetes_sdk
@@ -172,6 +191,16 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: TelegramInitData
+configuration.api_key['TelegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['TelegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
@@ -179,11 +208,10 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
     api_instance = diabetes_sdk.RemindersApi(api_client)
     id = 56 # int | 
     telegram_id = 56 # int | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Reminders Id Get
-        api_response = api_instance.reminders_id_get(id, telegram_id, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.reminders_id_get(id, telegram_id)
         print("The response of RemindersApi->reminders_id_get:\n")
         pprint(api_response)
     except Exception as e:
@@ -199,7 +227,6 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **int**|  | 
  **telegram_id** | **int**|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -207,7 +234,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[TelegramInitData](../README.md#TelegramInitData)
 
 ### HTTP request headers
 
@@ -225,12 +252,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **reminders_patch**
-> Dict[str, object] reminders_patch(reminder, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, object] reminders_patch(reminder)
 
 Reminders Patch
 
 ### Example
 
+* Api Key Authentication (TelegramInitData):
 
 ```python
 import diabetes_sdk
@@ -244,17 +272,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: TelegramInitData
+configuration.api_key['TelegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['TelegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.RemindersApi(api_client)
     reminder = diabetes_sdk.ReminderSchema() # ReminderSchema | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Reminders Patch
-        api_response = api_instance.reminders_patch(reminder, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.reminders_patch(reminder)
         print("The response of RemindersApi->reminders_patch:\n")
         pprint(api_response)
     except Exception as e:
@@ -269,7 +306,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **reminder** | [**ReminderSchema**](ReminderSchema.md)|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -277,7 +313,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[TelegramInitData](../README.md#TelegramInitData)
 
 ### HTTP request headers
 
@@ -294,12 +330,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **reminders_post**
-> Dict[str, object] reminders_post(reminder, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, object] reminders_post(reminder)
 
 Reminders Post
 
 ### Example
 
+* Api Key Authentication (TelegramInitData):
 
 ```python
 import diabetes_sdk
@@ -313,17 +350,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: TelegramInitData
+configuration.api_key['TelegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['TelegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.RemindersApi(api_client)
     reminder = diabetes_sdk.ReminderSchema() # ReminderSchema | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Reminders Post
-        api_response = api_instance.reminders_post(reminder, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.reminders_post(reminder)
         print("The response of RemindersApi->reminders_post:\n")
         pprint(api_response)
     except Exception as e:
@@ -338,7 +384,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **reminder** | [**ReminderSchema**](ReminderSchema.md)|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -346,7 +391,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[TelegramInitData](../README.md#TelegramInitData)
 
 ### HTTP request headers
 
