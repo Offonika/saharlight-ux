@@ -53,9 +53,9 @@ def _build_ui_assets() -> Iterator[None]:
     repo_root = BASE_DIR.parent
 
     if not (UI_DIR / "real-file.js").is_file():
-        subprocess.run(["npm", "ci"], cwd=repo_root, check=True)
+        subprocess.run(["pnpm", "install"], cwd=repo_root, check=True)
         subprocess.run(
-            ["npm", "--workspace", "services/webapp/ui", "run", "build"],
+            ["pnpm", "--filter", "services/webapp/ui", "run", "build"],
             cwd=repo_root,
             check=True,
         )

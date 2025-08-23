@@ -1,5 +1,6 @@
 packages:
   - 'services/webapp/ui'
   - 'libs/ts-sdk'
+  - 'services/clinic-panel'
   # если есть python-sdk на Node — можно добавить
   # - 'libs/py-sdk'

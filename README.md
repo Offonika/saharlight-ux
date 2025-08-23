@@ -74,20 +74,20 @@ sudo apt install python3.12 python3.12-venv
    ```
    Все последующие команды `python` и `pip` выполняйте внутри этого окружения.
 3. **Установите зависимости и соберите фронтенд:**
-    В проекте используется менеджер пакетов **npm** (Bun не поддерживается).
+    В проекте используется менеджер пакетов **pnpm**.
     Локальный Python SDK подключается из каталога `libs/py-sdk`, поэтому он будет
-    установлен вместе с зависимостями. Проект использует npm workspaces: команды
-    каждого пакета запускайте из корня репозитория через `npm --workspace <путь>`:
+    установлен вместе с зависимостями. Проект использует pnpm workspaces: команды
+    каждого пакета запускайте из корня репозитория через `pnpm --filter <путь>`:
     ```bash
     pip install -r requirements.txt
 
-    npm ci
-    npm --workspace services/webapp/ui run build
+    pnpm install
+    pnpm --filter services/webapp/ui run build
 
     ```
-    Используйте только `npm run build` (production) для деплоя — попытка
+    Используйте только `pnpm run build` (production) для деплоя — попытка
     собрать с `--mode development` завершится ошибкой. Команды фронтенда
-    (`npm --workspace services/webapp/ui run dev`, `npm --workspace
+    (`pnpm --filter services/webapp/ui run dev`, `pnpm --filter
     services/webapp/ui run build` и т.д.) запускайте из корня проекта.
 4. **Скопируйте шаблон .env и заполните своими данными:**
    ```bash
@@ -139,7 +139,7 @@ python services/api/app/main.py
 
 1. Сборка
    ```bash
-   npm --workspace services/webapp/ui run build
+   pnpm --filter services/webapp/ui run build
    ```
 2. Запуск FastAPI
    ```bash
@@ -161,9 +161,9 @@ API контейнер запускает `uvicorn` напрямую как ко
 Файл `libs/contracts/openapi.yaml` содержит спецификацию API. По нему генерируются SDK. Перед генерацией установите зависимости, чтобы workspace был доступен в UI:
 
 ```bash
-npm ci
-npm run generate:sdk
-npm --workspace services/webapp/ui run build
+pnpm install
+pnpm run generate:sdk
+pnpm --filter services/webapp/ui run build
 ```
 
 Это пересобирает фронтенд, чтобы изменения SDK попали в бандл UI.

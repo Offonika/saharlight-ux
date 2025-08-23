@@ -8,13 +8,13 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
 def build_vite_project() -> None:
-    """Install dependencies and build the Vite project using npm."""
+    """Install dependencies and build the Vite project using pnpm."""
     subprocess.run([
-        "npm",
-        "ci",
+        "pnpm",
+        "install",
     ], cwd=ROOT_DIR, check=True)
     subprocess.run(
-        ["npm", "--workspace", "services/webapp/ui", "run", "build"],
+        ["pnpm", "--filter", "services/webapp/ui", "run", "build"],
         cwd=ROOT_DIR,
         check=True,
     )
