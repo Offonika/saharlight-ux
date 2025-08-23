@@ -46,17 +46,9 @@ class RunDB(Protocol):
 
 
 logger = logging.getLogger(__name__)
+from services.api.app.diabetes.utils.db_import import get_run_db
 
-run_db: RunDB | None
-try:
-    from services.api.app.diabetes.services.db import run_db as _run_db
-except ImportError:  # pragma: no cover - optional db runner
-    run_db = None
-except Exception as exc:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db", exc_info=exc)
-    raise
-else:
-    run_db = cast(RunDB, _run_db)
+run_db: RunDB | None = cast(RunDB | None, get_run_db())
 
 
 class EditMessageMeta(TypedDict):
