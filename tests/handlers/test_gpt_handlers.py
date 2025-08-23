@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from types import SimpleNamespace
+from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
 from telegram import Update
@@ -123,19 +123,28 @@ async def test_pending_entry_commit(monkeypatch: pytest.MonkeyPatch) -> None:
     update = make_update(message)
     entry = {"telegram_id": 1, "event_time": dt.datetime.now(dt.timezone.utc)}
     user_data = {"pending_entry": entry, "pending_fields": ["sugar"]}
-
-    async def fake_run_db(func: Any, sessionmaker: Any = None) -> bool:
-        class DummySession:
-            def add(self, obj: Any) -> None:  # noqa: D401 - no action
-                pass
-
-        result = func(DummySession())
-        return bool(result)
-
     async def fake_check_alert(update: Any, context: Any, sugar: float) -> None:
         pass
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
 
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
+
+        def add(self, obj: Any) -> None:
+            pass
+
+    def session_factory() -> DummySession:
+        return DummySession()
+
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
     context = make_context(user_data)
     await gpt_handlers.freeform_handler(
         update,
@@ -192,19 +201,28 @@ async def test_smart_input_missing_fields(monkeypatch: pytest.MonkeyPatch) -> No
 async def test_smart_input_complete(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
-
-    async def fake_run_db(func: Any, sessionmaker: Any = None) -> bool:
-        class DummySession:
-            def add(self, obj: Any) -> None:
-                pass
-
-        result = func(DummySession())
-        return bool(result)
-
     async def fake_check_alert(update: Any, context: Any, sugar: float) -> None:
         pass
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
 
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
+
+        def add(self, obj: Any) -> None:
+            pass
+
+    def session_factory() -> DummySession:
+        return DummySession()
+
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
     message = DummyMessage("all")
     update = make_update(message)
     context = make_context({})

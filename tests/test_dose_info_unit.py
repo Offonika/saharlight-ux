@@ -94,11 +94,7 @@ async def test_entry_without_dose_has_no_unit(
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
-    async def fake_run_db(fn: Any, *args: Any, **kwargs: Any) -> Any:
-        with session_factory() as session:
-            return fn(session)
-
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
 
     await dose_calc.freeform_handler(update, context)
 
@@ -155,11 +151,7 @@ async def test_entry_without_sugar_has_placeholder(
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
-    async def fake_run_db(fn: Any, *args: Any, **kwargs: Any) -> Any:
-        with session_factory() as session:
-            return fn(session)
-
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
 
     await dose_calc.freeform_handler(update, context)
 

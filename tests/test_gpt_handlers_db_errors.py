@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
 import pytest
@@ -32,11 +32,31 @@ async def test_freeform_handler_db_error_propagates(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {}, "pending_fields": ["sugar"]}),
     )
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
 
-    async def failing_run_db(*args: Any, **kwargs: Any) -> Any:
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
+
+        def add(self, obj: Any) -> None:
+            pass
+
+    def session_factory() -> DummySession:
+        return DummySession()
+
+    def failing_commit(session: DummySession) -> bool:
         raise AttributeError("db failure")
 
-    monkeypatch.setattr(gpt_handlers, "run_db", failing_run_db)
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
 
     with pytest.raises(AttributeError):
-        await gpt_handlers.freeform_handler(update, context)
+        await gpt_handlers.freeform_handler(
+            update, context, commit=failing_commit
+        )

@@ -43,20 +43,31 @@ async def test_freeform_handler_edits_pending_entry_keeps_state(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
-
-    async def fake_run_db(func: Any, sessionmaker: Any = None) -> bool:
-        class DummySession:
-            def add(self, obj: Any) -> None:  # noqa: D401 - no action
-                pass
-
-        return bool(func(DummySession()))
-
     async def fake_check_alert(
         update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
     ) -> None:
         pass
 
-    monkeypatch.setattr(handlers, "run_db", fake_run_db)
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
+
+        def add(self, obj: Any) -> None:
+            pass
+
+    def session_factory() -> DummySession:
+        return DummySession()
+
+    monkeypatch.setattr(handlers, "run_db", None)
+    monkeypatch.setattr(handlers, "SessionLocal", session_factory)
     monkeypatch.setattr(handlers, "commit", lambda session: True)
     monkeypatch.setattr(handlers, "check_alert", fake_check_alert)
 
@@ -101,11 +112,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry(
     session_factory = cast(Any, sessionmaker(class_=DummySession))
     handlers.SessionLocal = session_factory
 
-    async def fake_run_db(fn: Any, *args: Any, **kwargs: Any) -> Any:
-        with session_factory() as session:
-            return fn(session)
-
-    monkeypatch.setattr(handlers, "run_db", fake_run_db)
+    monkeypatch.setattr(handlers, "run_db", None)
     message = DummyMessage("5,6")
     update = cast(
         Update,
