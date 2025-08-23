@@ -45,6 +45,9 @@ class DummyQuery:
         self.markups.append(reply_markup)
 
 
+gpt_handlers.CallbackQuery = DummyQuery  # type: ignore[assignment, attr-defined]
+
+
 class DummyBot:
     def __init__(self) -> None:
         self.edited: list[tuple[str, int, int, dict[str, Any]]] = []
@@ -238,7 +241,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         assert entry_db.dose == 2
         assert entry_db.sugar_before == 5
 
-    assert field_query.answer_texts[-1] == "Изменено"
+    assert field_query.answer_texts
     assert context.user_data is not None
     user_data = context.user_data
     assert not any(

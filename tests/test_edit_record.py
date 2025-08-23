@@ -9,6 +9,8 @@ from telegram.ext import CallbackContext
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
+
 os.environ.setdefault("DB_PASSWORD", "test")
 from services.api.app.diabetes.services.db import Base, User, Entry
 
@@ -40,6 +42,9 @@ class DummyQuery:
         self, reply_markup: Any | None = None, **kwargs: Any
     ) -> None:
         self.markups.append(reply_markup)
+
+
+gpt_handlers.CallbackQuery = DummyQuery  # type: ignore[assignment, attr-defined]
 
 
 class DummyBot:
