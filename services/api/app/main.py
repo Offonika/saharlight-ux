@@ -193,8 +193,8 @@ async def post_history(
         if obj is None:
             obj = HistoryRecordDB(id=data.id, telegram_id=user["id"])
             session.add(obj)
-        obj.date = data.date.isoformat()
-        obj.time = data.time.strftime("%H:%M")
+        obj.date = data.date
+        obj.time = data.time
         obj.sugar = data.sugar
         obj.carbs = data.carbs
         obj.bread_units = data.breadUnits

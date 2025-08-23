@@ -1,9 +1,8 @@
+from typing import Any, Generator
 import datetime
-from typing import Generator
-
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session as SASession, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.diabetes.services.db import Base, HistoryRecord
@@ -11,14 +10,16 @@ from services.api.app.services import stats
 
 
 @pytest.fixture()
-def session_factory() -> Generator[sessionmaker, None, None]:
+def session_factory() -> Generator[sessionmaker[Any], None, None]:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    TestSession: sessionmaker[Any] = sessionmaker(
+        bind=engine, class_=SASession, autoflush=False, autocommit=False
+    )
     try:
         yield TestSession
     finally:
@@ -26,15 +27,17 @@ def session_factory() -> Generator[sessionmaker, None, None]:
 
 
 @pytest.mark.asyncio
-async def test_get_day_stats(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
-    today = datetime.date.today().isoformat()
+async def test_get_day_stats(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Any]
+) -> None:
+    today = datetime.date.today()
     with session_factory() as session:
         session.add(
             HistoryRecord(
                 id="1",
                 telegram_id=1,
                 date=today,
-                time="08:00",
+                time=datetime.time(8, 0),
                 sugar=5.0,
                 bread_units=1.0,
                 insulin=2.0,
@@ -46,7 +49,7 @@ async def test_get_day_stats(monkeypatch: pytest.MonkeyPatch, session_factory: s
                 id="2",
                 telegram_id=1,
                 date=today,
-                time="12:00",
+                time=datetime.time(12, 0),
                 sugar=7.0,
                 bread_units=2.0,
                 insulin=3.0,

@@ -4,11 +4,17 @@ import datetime
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..diabetes.services.db import HistoryRecord as HistoryRecordDB, SessionLocal, run_db
+from ..diabetes.services.db import (
+    HistoryRecord as HistoryRecordDB,
+    SessionLocal,
+    run_db,
+)
 from ..schemas.stats import DayStats
 
 
-async def get_day_stats(telegram_id: int, date: datetime.date | None = None) -> DayStats | None:
+async def get_day_stats(
+    telegram_id: int, date: datetime.date | None = None
+) -> DayStats | None:
     """Return aggregated stats for a given user's day."""
     day = date or datetime.date.today()
 
@@ -21,7 +27,7 @@ async def get_day_stats(telegram_id: int, date: datetime.date | None = None) -> 
             )
             .filter(
                 HistoryRecordDB.telegram_id == telegram_id,
-                HistoryRecordDB.date == day.isoformat(),
+                HistoryRecordDB.date == day,
             )
             .one()
         )
