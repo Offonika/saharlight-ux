@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from datetime import time as dt_time
 from pathlib import Path
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -213,7 +214,7 @@ async def post_history(
             obj = HistoryRecordDB(id=data.id, telegram_id=user["id"])
             session.add(obj)
         obj.date = data.date
-        obj.time = data.time
+        obj.time = dt_time.fromisoformat(data.time)
         obj.sugar = data.sugar
         obj.carbs = data.carbs
         obj.bread_units = data.breadUnits
@@ -240,15 +241,19 @@ async def get_history(
             .all()
         )
 
-    records = await run_db(_query)
+
+    records = await run_db(cast(Callable[[Session], list[HistoryRecordDB]], _query))
+
     result: list[HistoryRecordSchema] = []
     for r in records:
         if r.type in ALLOWED_HISTORY_TYPES:
             result.append(
                 HistoryRecordSchema(
-                    id=r.id,
+
+                    id=cast(str, r.id),
                     date=r.date,
-                    time=r.time,
+                    time=r.time.strftime("%H:%M"),
+
                     sugar=r.sugar,
                     carbs=r.carbs,
                     breadUnits=r.bread_units,

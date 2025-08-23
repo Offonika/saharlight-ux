@@ -567,7 +567,7 @@ components:
           title: Date
         time:
           type: string
-          format: time
+          pattern: '^\d{2}:\d{2}$'
           title: Time
         sugar:
           anyOf:
@@ -619,6 +619,7 @@ components:
           title: Date
         time:
           type: string
+          pattern: '^\d{2}:\d{2}$'
           title: Time
         sugar:
           anyOf:
