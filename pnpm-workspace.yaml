@@ -1,0 +1,5 @@
+packages:
+  - 'services/webapp/ui'
+  - 'libs/ts-sdk'
+  # если есть python-sdk на Node — можно добавить
+  # - 'libs/py-sdk'
