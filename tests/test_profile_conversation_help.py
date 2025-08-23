@@ -27,8 +27,7 @@ async def test_profile_command_help(monkeypatch: pytest.MonkeyPatch) -> None:
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=["help"], chat_data={}),
     )
-    monkeypatch.setattr(conv, "get_api", lambda: (None, Exception, object))
+    monkeypatch.setattr(conv, "get_api", lambda *args: (None, Exception, object))
     result = await conv.profile_command(update, context)
     assert result == conv.END
     assert message.texts and "Формат команды" in message.texts[0]
-

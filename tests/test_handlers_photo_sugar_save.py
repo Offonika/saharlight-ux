@@ -8,7 +8,10 @@ import pytest
 from openai import OpenAIError
 from telegram import PhotoSize, Update
 from telegram.ext import CallbackContext
+from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import Session, sessionmaker
+from services.api.app.diabetes.services.db import Base, Entry
 
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
@@ -19,9 +22,7 @@ T = TypeVar("T")
 
 
 class DummyMessage:
-    def __init__(
-        self, text: str | None = None, photo: tuple[PhotoSize, ...] | None = None
-    ) -> None:
+    def __init__(self, text: str | None = None, photo: tuple[PhotoSize, ...] | None = None) -> None:
         self.text: str | None = text
         self.photo: tuple[PhotoSize, ...] = () if photo is None else photo
         self.replies: list[str] = []
@@ -81,9 +82,7 @@ class DummySession(Session):
 
 
 @pytest.mark.asyncio
-async def test_photo_flow_saves_entry(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     async def fake_parse_command(text: str) -> dict[str, object]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
@@ -100,9 +99,7 @@ async def test_photo_flow_saves_entry(
         Mock(spec=CallbackContext),
     )
     user_data_ref: dict[str, Any] = {}
-    setattr(
-        cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref)
-    )
+    setattr(cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref))
     setattr(cast(Any, type(context)), "job_queue", PropertyMock(return_value=None))
 
     assert context.user_data is not None
@@ -144,11 +141,7 @@ async def test_photo_flow_saves_entry(
                         data=[
                             SimpleNamespace(
                                 role="assistant",
-                                content=[
-                                    SimpleNamespace(
-                                        text=SimpleNamespace(value="carbs 30g xe 2")
-                                    )
-                                ],
+                                content=[SimpleNamespace(text=SimpleNamespace(value="carbs 30g xe 2"))],
                             )
                         ]
                     )
@@ -158,9 +151,7 @@ async def test_photo_flow_saves_entry(
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0)
-    )
+    monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0))
     user_data["thread_id"] = "tid"
 
     msg_photo = DummyMessage(photo=cast(tuple[PhotoSize, ...], (DummyPhoto(),)))
@@ -183,7 +174,14 @@ async def test_photo_flow_saves_entry(
         Update,
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
-    session_factory = cast(Any, sessionmaker(class_=DummySession))
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
     photo_handlers.SessionLocal = session_factory  # type: ignore[attr-defined]
     gpt_handlers.SessionLocal = session_factory
 
@@ -193,11 +191,8 @@ async def test_photo_flow_saves_entry(
         sessionmaker: Callable[[], Session],
         **kwargs: Any,
     ) -> T:
-        session = sessionmaker()
-        try:
+        with sessionmaker() as session:
             return func(session, *args, **kwargs)
-        finally:
-            session.close()
 
     monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
     await gpt_handlers.freeform_handler(
@@ -205,10 +200,12 @@ async def test_photo_flow_saves_entry(
         context,
         parse_command=fake_parse_command,
         menu_keyboard=None,
+        check_alert=lambda *a, **kw: None,
     )
     assert user_data["pending_entry"]["sugar_before"] == 5.5
 
     monkeypatch.setattr(router, "SessionLocal", session_factory)
+    monkeypatch.setattr(router, "commit", lambda session: True)
     import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 
     async def noop(*args: Any, **kwargs: Any) -> None:
@@ -220,18 +217,17 @@ async def test_photo_flow_saves_entry(
     update_confirm = cast(Update, SimpleNamespace(callback_query=query))
     await router.callback_router(update_confirm, context)
 
-    assert len(DummySession.added_entries) == 1
-    saved = DummySession.added_entries[0]
-    assert saved.carbs_g == 30.0
-    assert saved.sugar_before == 5.5
+    with session_factory() as session:
+        saved = session.query(Entry).first()
+        assert saved is not None
+        assert saved.carbs_g == 30.0
+        assert saved.sugar_before == 5.5
     assert "pending_entry" not in user_data
     assert query.edited == ["✅ Запись сохранена в дневник!"]
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_removes_file_on_failure(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_photo_handler_removes_file_on_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(photo_handlers, "menu_keyboard", None)
 
     async def fake_get_file(file_id: str) -> Any:
@@ -248,9 +244,7 @@ async def test_photo_handler_removes_file_on_failure(
         Mock(spec=CallbackContext),
     )
     user_data_ref: dict[str, Any] = {"thread_id": "tid"}
-    setattr(
-        cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref)
-    )
+    setattr(cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref))
     fake_bot = SimpleNamespace(get_file=fake_get_file)
     setattr(cast(Any, type(context)), "bot", PropertyMock(return_value=fake_bot))
 

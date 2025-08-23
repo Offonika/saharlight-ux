@@ -49,18 +49,21 @@ async def test_freeform_handler_edits_pending_entry_keeps_state(
             def add(self, obj: Any) -> None:  # noqa: D401 - no action
                 pass
 
+            def commit(self) -> None:  # noqa: D401 - no action
+                pass
+
+            def rollback(self) -> None:  # noqa: D401 - no action
+                pass
+
         return bool(func(DummySession()))
 
-    async def fake_check_alert(
-        update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
-    ) -> None:
+    async def fake_check_alert(update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float) -> None:
         pass
 
     monkeypatch.setattr(handlers, "run_db", fake_run_db)
     monkeypatch.setattr(handlers, "commit", lambda session: True)
-    monkeypatch.setattr(handlers, "check_alert", fake_check_alert)
 
-    await handlers.freeform_handler(update, context)
+    await handlers.freeform_handler(update, context, check_alert=fake_check_alert)
 
     user_data = cast(dict[str, Any], context.user_data)
     assert "pending_entry" not in user_data
@@ -80,6 +83,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry(
         "sugar_before": None,
         "photo_path": "photos/img.jpg",
     }
+
     class DummySession(Session):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass

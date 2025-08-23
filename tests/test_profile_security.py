@@ -43,14 +43,10 @@ class DummyQuery:
 async def test_profile_view_has_security_button(monkeypatch: pytest.MonkeyPatch) -> None:
     dummy_profile = SimpleNamespace(icr=10, cf=2, target=6, low=4, high=9)
     dummy_api = SimpleNamespace(profiles_get=lambda telegram_id: dummy_profile)
-    monkeypatch.setattr(
-        handlers, "get_api", lambda: (dummy_api, Exception, MagicMock)
-    )
+    monkeypatch.setattr(handlers, "get_api", lambda *args: (dummy_api, Exception, MagicMock))
 
     msg = DummyMessage()
-    update = cast(
-        Any, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Any, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)))
     context = cast(Any, SimpleNamespace())
 
     await handlers.profile_view(update, context)
@@ -71,7 +67,9 @@ async def test_profile_view_has_security_button(monkeypatch: pytest.MonkeyPatch)
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_security_threshold_changes(monkeypatch: pytest.MonkeyPatch, action: Any, expected_low: Any, expected_high: Any) -> None:
+async def test_profile_security_threshold_changes(
+    monkeypatch: pytest.MonkeyPatch, action: Any, expected_low: Any, expected_high: Any
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -102,12 +100,8 @@ async def test_profile_security_threshold_changes(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
 
     query = DummyQuery(DummyMessage(), f"profile_security:{action}")
-    update = cast(
-        Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    )
-    context = cast(
-        Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
-    )
+    update = cast(Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)))
+    context = cast(Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq")))
 
     await handlers.profile_security(update, context)
 
@@ -152,12 +146,8 @@ async def test_profile_security_toggle_sos_alerts(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
 
     query = DummyQuery(DummyMessage(), "profile_security:toggle_sos")
-    update = cast(
-        Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    )
-    context = cast(
-        Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
-    )
+    update = cast(Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)))
+    context = cast(Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq")))
 
     await handlers.profile_security(update, context)
 
@@ -194,12 +184,8 @@ async def test_profile_security_shows_reminders(monkeypatch: pytest.MonkeyPatch)
         session.commit()
 
     query = DummyQuery(DummyMessage(), "profile_security")
-    update = cast(
-        Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    )
-    context = cast(
-        Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
-    )
+    update = cast(Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)))
+    context = cast(Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq")))
 
     await handlers.profile_security(update, context)
 
@@ -229,18 +215,14 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch: pytest.Mo
 
     monkeypatch.setattr(settings, "webapp_url", "http://example")
     query_add = DummyQuery(DummyMessage(), "profile_security:add")
-    update_add = cast(
-        Any, SimpleNamespace(callback_query=query_add, effective_user=SimpleNamespace(id=1))
-    )
+    update_add = cast(Any, SimpleNamespace(callback_query=query_add, effective_user=SimpleNamespace(id=1)))
     context = cast(Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq")))
 
     await handlers.profile_security(update_add, context)
     assert query_add.message.texts[-1] == "Создать напоминание:"
 
     query_del = DummyQuery(DummyMessage(), "profile_security:del")
-    update_del = cast(
-        Any, SimpleNamespace(callback_query=query_del, effective_user=SimpleNamespace(id=1))
-    )
+    update_del = cast(Any, SimpleNamespace(callback_query=query_del, effective_user=SimpleNamespace(id=1)))
 
     await handlers.profile_security(update_del, context)
     assert called["del"] is True
@@ -268,12 +250,8 @@ async def test_profile_security_sos_contact_calls_handler(monkeypatch: pytest.Mo
     monkeypatch.setattr(sos_handlers, "sos_contact_start", fake_sos)
 
     query = DummyQuery(DummyMessage(), "profile_security:sos_contact")
-    update = cast(
-        Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    )
-    context = cast(
-        Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
-    )
+    update = cast(Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)))
+    context = cast(Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq")))
 
     await handlers.profile_security(update, context)
     assert called is True

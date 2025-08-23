@@ -71,9 +71,7 @@ MSG_LOW_GT0 = "Нижний порог должен быть больше 0."
 MSG_HIGH_GT_LOW = "Верхний порог должен быть больше нижнего и больше 0."
 
 
-PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(
-    6
-)
+PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)
 END: int = ConversationHandler.END
 
 
@@ -91,7 +89,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return END
 
     args = context.args or []
-    api, ApiException, ProfileModel = get_api()
+    api, ApiException, ProfileModel = get_api(SessionLocal)
 
     # Ensure no pending sugar logging conversation captures profile input
     from ..dose_calc import sugar_conv
@@ -102,21 +100,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if callable(end_conv):
             end_conv(update, context, END)
         else:
-            chat_id = (
-                getattr(update.effective_chat, "id", None)
-                if sugar_conv.per_chat
-                else None
-            )
-            user_id = (
-                getattr(update.effective_user, "id", None)
-                if sugar_conv.per_user
-                else None
-            )
-            msg_id = (
-                getattr(update.effective_message, "message_id", None)
-                if sugar_conv.per_message
-                else None
-            )
+            chat_id = getattr(update.effective_chat, "id", None) if sugar_conv.per_chat else None
+            user_id = getattr(update.effective_user, "id", None) if sugar_conv.per_user else None
+            msg_id = getattr(update.effective_message, "message_id", None) if sugar_conv.per_message else None
             key = cast(
                 tuple[int | str, ...],
                 tuple(i for i in (chat_id, user_id, msg_id) if i is not None),
@@ -156,9 +142,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         low = float(values["low"].replace(",", "."))
         high = float(values["high"].replace(",", "."))
     except ValueError:
-        await message.reply_text(
-            "❗ Пожалуйста, введите корректные числа. Справка: /profile help"
-        )
+        await message.reply_text("❗ Пожалуйста, введите корректные числа. Справка: /profile help")
         return END
 
     if icr <= 0:
@@ -223,7 +207,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     if message is None or user is None:
         return
-    api, ApiException, _ = get_api()
+    api, ApiException, _ = get_api(SessionLocal)
     user_id = user.id
     profile = fetch_profile(api, ApiException, user_id)
 
@@ -234,16 +218,12 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                     [
                         InlineKeyboardButton(
                             "📝 Заполнить форму",
-                            web_app=WebAppInfo(
-                                reminder_handlers.build_webapp_url("/ui/profile")
-                            ),
+                            web_app=WebAppInfo(reminder_handlers.build_webapp_url("/ui/profile")),
                         )
                     ]
                 ]
             )
-            await message.reply_text(
-                "Ваш профиль пока не настроен.", reply_markup=keyboard
-            )
+            await message.reply_text("Ваш профиль пока не настроен.", reply_markup=keyboard)
         else:
             await message.reply_text(
                 "Ваш профиль пока не настроен.\n\n"
@@ -275,9 +255,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             [
                 InlineKeyboardButton(
                     "📝 Заполнить форму",
-                    web_app=WebAppInfo(
-                        reminder_handlers.build_webapp_url("/ui/profile")
-                    ),
+                    web_app=WebAppInfo(reminder_handlers.build_webapp_url("/ui/profile")),
                 )
             ],
         )
@@ -290,7 +268,7 @@ async def profile_webapp_save(
     context: ContextTypes.DEFAULT_TYPE,
 ) -> None:
     """Save profile data sent from the web app."""
-    api, ApiException, ProfileModel = get_api()
+    api, ApiException, ProfileModel = get_api(SessionLocal)
     eff_msg = update.effective_message
     if eff_msg is None:
         return
@@ -387,15 +365,11 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     button = build_timezone_webapp_button()
     if button:
         keyboard = InlineKeyboardMarkup([[button]])
-        await query.message.reply_text(
-            "Можно определить автоматически:", reply_markup=keyboard
-        )
+        await query.message.reply_text("Можно определить автоматически:", reply_markup=keyboard)
     return PROFILE_TZ
 
 
-async def profile_timezone_save(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Save user timezone from input."""
     message = update.message
     if message is None:
@@ -420,9 +394,7 @@ async def profile_timezone_save(
         button = build_timezone_webapp_button()
         if button:
             keyboard = InlineKeyboardMarkup([[button]])
-            await message.reply_text(
-                "Можно определить автоматически:", reply_markup=keyboard
-            )
+            await message.reply_text("Можно определить автоматически:", reply_markup=keyboard)
         return PROFILE_TZ
     user = update.effective_user
     if user is None:
@@ -450,9 +422,7 @@ async def profile_timezone_save(
     return END
 
 
-def _security_db(
-    session: Session, user_id: int, action: str | None
-) -> dict[str, object]:
+def _security_db(session: Session, user_id: int, action: str | None) -> dict[str, object]:
     profile = session.get(Profile, user_id)
     user = session.get(User, user_id)
     if not profile:
@@ -486,20 +456,11 @@ def _security_db(
     if changed:
         commit_ok = commit(session)
         if commit_ok:
-            alert = (
-                session.query(Alert)
-                .filter_by(user_id=user_id)
-                .order_by(Alert.ts.desc())
-                .first()
-            )
+            alert = session.query(Alert).filter_by(user_id=user_id).order_by(Alert.ts.desc()).first()
             alert_sugar = alert.sugar if alert else None
 
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
-    rem_text = (
-        "\n".join(f"{r.id}. {reminder_handlers._describe(r, user)}" for r in rems)
-        if rems
-        else "нет"
-    )
+    rem_text = "\n".join(f"{r.id}. {reminder_handlers._describe(r, user)}" for r in rems) if rems else "нет"
     return {
         "found": True,
         "commit_ok": commit_ok,
@@ -577,20 +538,12 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton(
-                    "Низкий -0.5", callback_data="profile_security:low_dec"
-                ),
-                InlineKeyboardButton(
-                    "Низкий +0.5", callback_data="profile_security:low_inc"
-                ),
+                InlineKeyboardButton("Низкий -0.5", callback_data="profile_security:low_dec"),
+                InlineKeyboardButton("Низкий +0.5", callback_data="profile_security:low_inc"),
             ],
             [
-                InlineKeyboardButton(
-                    "Высокий -0.5", callback_data="profile_security:high_dec"
-                ),
-                InlineKeyboardButton(
-                    "Высокий +0.5", callback_data="profile_security:high_inc"
-                ),
+                InlineKeyboardButton("Высокий -0.5", callback_data="profile_security:high_dec"),
+                InlineKeyboardButton("Высокий +0.5", callback_data="profile_security:high_inc"),
             ],
             [
                 InlineKeyboardButton(
@@ -598,15 +551,9 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     callback_data="profile_security:toggle_sos",
                 )
             ],
+            [InlineKeyboardButton("SOS контакт", callback_data="profile_security:sos_contact")],
             [
-                InlineKeyboardButton(
-                    "SOS контакт", callback_data="profile_security:sos_contact"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "➕ Добавить", callback_data="profile_security:add"
-                ),
+                InlineKeyboardButton("➕ Добавить", callback_data="profile_security:add"),
                 InlineKeyboardButton("🗑 Удалить", callback_data="profile_security:del"),
             ],
             [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
@@ -720,9 +667,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     try:
         target = float(text)
     except ValueError:
-        await message.reply_text(
-            "Введите целевой сахар числом.", reply_markup=back_keyboard
-        )
+        await message.reply_text("Введите целевой сахар числом.", reply_markup=back_keyboard)
         return PROFILE_TARGET
     if target <= 0:
         await message.reply_text(MSG_TARGET_GT0, reply_markup=back_keyboard)
@@ -758,9 +703,7 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     try:
         low = float(text)
     except ValueError:
-        await message.reply_text(
-            "Введите нижний порог числом.", reply_markup=back_keyboard
-        )
+        await message.reply_text("Введите нижний порог числом.", reply_markup=back_keyboard)
         return PROFILE_LOW
     if low <= 0:
         await message.reply_text(MSG_LOW_GT0, reply_markup=back_keyboard)
@@ -796,9 +739,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     try:
         high = float(text)
     except ValueError:
-        await message.reply_text(
-            "Введите верхний порог числом.", reply_markup=back_keyboard
-        )
+        await message.reply_text("Введите верхний порог числом.", reply_markup=back_keyboard)
         return PROFILE_HIGH
     low = user_data.get("profile_low")
     if high <= 0 or low is None or high <= low:
@@ -812,9 +753,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     target = user_data.pop("profile_target", None)
     user_data.pop("profile_low", None)
     if icr is None or cf is None or target is None:
-        await message.reply_text(
-            "⚠️ Не хватает данных для сохранения профиля. Пожалуйста, начните заново."
-        )
+        await message.reply_text("⚠️ Не хватает данных для сохранения профиля. Пожалуйста, начните заново.")
         return END
     user = update.effective_user
     if user is None:
@@ -877,15 +816,11 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return END
 
 
-async def _profile_edit_entry(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def _profile_edit_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return await profile_edit(update, context)
 
 
-async def _profile_timezone_entry(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def _profile_timezone_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return await profile_timezone(update, context)
 
 
@@ -893,16 +828,12 @@ profile_conv = ConversationHandler(
     entry_points=[
         CommandHandler("profile", profile_command),
         CallbackQueryNoWarnHandler(_profile_edit_entry, pattern="^profile_edit$"),
-        CallbackQueryNoWarnHandler(
-            _profile_timezone_entry, pattern="^profile_timezone$"
-        ),
+        CallbackQueryNoWarnHandler(_profile_timezone_entry, pattern="^profile_timezone$"),
     ],
     states={
         PROFILE_ICR: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],
         PROFILE_CF: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_cf)],
-        PROFILE_TARGET: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)
-        ],
+        PROFILE_TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)],
         PROFILE_LOW: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_low)],
         PROFILE_HIGH: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_high)],
         PROFILE_TZ: [
@@ -924,9 +855,7 @@ profile_conv = ConversationHandler(
 )
 
 
-profile_webapp_handler = MessageHandler(
-    filters.StatusUpdate.WEB_APP_DATA, profile_webapp_save
-)
+profile_webapp_handler = MessageHandler(filters.StatusUpdate.WEB_APP_DATA, profile_webapp_save)
 
 
 __all__ = [

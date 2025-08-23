@@ -15,12 +15,11 @@ async def test_reexported_names_available(monkeypatch: pytest.MonkeyPatch) -> No
     smart_marker = object()
     send_report_marker = object()
 
-    async def dummy_freeform_handler(update: Any, context: Any) -> None:
-        handlers = dose_calc._gpt_handlers  # type: ignore[attr-defined]
-        assert handlers.commit is commit_marker
-        assert handlers.parse_command is parse_marker
-        assert handlers.smart_input is smart_marker
-        assert handlers.send_report is send_report_marker
+    async def dummy_freeform_handler(update: Any, context: Any, **kwargs: Any) -> None:
+        assert kwargs["commit"] is commit_marker
+        assert kwargs["parse_command"] is parse_marker
+        assert kwargs["smart_input"] is smart_marker
+        assert kwargs["send_report"] is send_report_marker
 
     monkeypatch.setattr(dose_calc, "commit", commit_marker)
     monkeypatch.setattr(dose_calc, "parse_command", parse_marker)
