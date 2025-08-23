@@ -11,6 +11,7 @@ models/HistoryRecordSchemaInput.ts
 models/HistoryRecordSchemaOutput.ts
 models/ProfileSchema.ts
 models/ReminderSchema.ts
+models/RoleSchema.ts
 models/Timezone.ts
 models/UserContext.ts
 models/ValidationError.ts
