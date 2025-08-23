@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-# Re-export for tests and type checkers
-import datetime
-import os
-
+import datetime  # Re-export for tests and type checkers
 import html
 import logging
+import os  # Re-export for tests and type checkers
 
 from typing import Protocol, cast
 
@@ -31,7 +29,10 @@ from services.api.app.diabetes.services.gpt_client import (
     create_thread,
 )
 from services.api.app.diabetes.services.repository import commit
-from services.api.app.diabetes.services.reporting import make_sugar_plot, generate_pdf_report
+from services.api.app.diabetes.services.reporting import (
+    make_sugar_plot,
+    generate_pdf_report,
+)
 from services.api.app.diabetes.utils.ui import menu_keyboard
 from . import UserData
 
@@ -55,13 +56,9 @@ def render_entry(entry: EntryLike) -> str:
     """Render a single diary entry as HTML-formatted text."""
     day_str = html.escape(entry.event_time.strftime("%d.%m %H:%M"))
     sugar = (
-        html.escape(str(entry.sugar_before))
-        if entry.sugar_before is not None
-        else "—"
+        html.escape(str(entry.sugar_before)) if entry.sugar_before is not None else "—"
     )
-    dose = (
-        html.escape(str(entry.dose)) if entry.dose is not None else "—"
-    )
+    dose = html.escape(str(entry.dose)) if entry.dose is not None else "—"
 
     if entry.carbs_g is not None:
         carbs_text = f"{html.escape(str(entry.carbs_g))} г"
@@ -84,20 +81,12 @@ def report_keyboard() -> InlineKeyboardMarkup:
     """Keyboard for selecting report period."""
     rows = [
         [
-            InlineKeyboardButton(
-                "Сегодня", callback_data="report_period:today"
-            ),
-            InlineKeyboardButton(
-                "Неделя", callback_data="report_period:week"
-            ),
+            InlineKeyboardButton("Сегодня", callback_data="report_period:today"),
+            InlineKeyboardButton("Неделя", callback_data="report_period:week"),
         ],
         [
-            InlineKeyboardButton(
-                "Месяц", callback_data="report_period:month"
-            ),
-            InlineKeyboardButton(
-                "Произвольно", callback_data="report_period:custom"
-            ),
+            InlineKeyboardButton("Месяц", callback_data="report_period:month"),
+            InlineKeyboardButton("Произвольно", callback_data="report_period:custom"),
         ],
         [InlineKeyboardButton("↩️ Назад", callback_data="report_back")],
     ]
@@ -145,9 +134,7 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                     InlineKeyboardButton(
                         "✏️ Изменить", callback_data=f"edit:{entry.id}"
                     ),
-                    InlineKeyboardButton(
-                        "🗑 Удалить", callback_data=f"del:{entry.id}"
-                    ),
+                    InlineKeyboardButton("🗑 Удалить", callback_data=f"del:{entry.id}"),
                 ]
             ]
         )
@@ -334,8 +321,7 @@ async def send_report(
                             for m in messages.data
                             if m.role == "assistant"
                             for block in m.content
-                            if hasattr(block, "text")
-                            and hasattr(block.text, "value")
+                            if hasattr(block, "text") and hasattr(block.text, "value")
                         ),
                         default_gpt_text,
                     )
@@ -344,9 +330,7 @@ async def send_report(
         except OpenAIError:
             logger.exception("[GPT] Failed to get recommendations")
         except OSError as exc:
-            logger.exception(
-                "[GPT] OS error while getting recommendations: %s", exc
-            )
+            logger.exception("[GPT] OS error while getting recommendations: %s", exc)
     else:
         logger.warning("[GPT] thread_id missing for user %s", user_id)
     report_msg = "<b>Отчёт сформирован</b>\n\n" + "\n".join(summary_lines + day_lines)
