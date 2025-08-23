@@ -14,19 +14,67 @@ export interface DayStats {
   insulin: number;
 }
 
-export const fallbackAnalytics: AnalyticsPoint[] = [
-  { date: '2024-01-01', sugar: 5.5 },
-  { date: '2024-01-02', sugar: 6.1 },
-  { date: '2024-01-03', sugar: 5.8 },
-  { date: '2024-01-04', sugar: 6.0 },
-  { date: '2024-01-05', sugar: 5.4 },
-];
+interface FallbackConfig {
+  analytics?: AnalyticsPoint[];
+  dayStats?: DayStats;
+}
 
-export const fallbackDayStats: DayStats = {
-  sugar: 6.2,
-  breadUnits: 4,
-  insulin: 12,
+const parseEnvJSON = <T>(raw: string | undefined): T | undefined => {
+  if (!raw) return undefined;
+  try {
+    return JSON.parse(raw) as T;
+  } catch (error) {
+    console.error('Invalid JSON in env fallback:', error);
+    return undefined;
+  }
 };
+
+const envConfig: FallbackConfig = {
+  analytics: parseEnvJSON<AnalyticsPoint[]>(
+    import.meta.env.VITE_FALLBACK_ANALYTICS,
+  ),
+  dayStats: parseEnvJSON<DayStats>(import.meta.env.VITE_FALLBACK_DAY_STATS),
+};
+
+const localConfigModules = import.meta.glob(
+  '../config/stats.local.{ts,js,json}',
+  { eager: true },
+) as Record<string, { default: FallbackConfig }>;
+
+const localOverrides =
+  Object.values(localConfigModules)[0]?.default ?? ({} as FallbackConfig);
+
+const overrides: FallbackConfig = {
+  ...envConfig,
+  ...localOverrides,
+};
+
+function generateRecentAnalytics(days = 5): AnalyticsPoint[] {
+  const today = new Date();
+  return Array.from({ length: days }, (_, idx) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (days - idx - 1));
+    return { date: date.toISOString().split('T')[0], sugar: 5.5 };
+  });
+}
+
+export function getFallbackAnalytics(): AnalyticsPoint[] {
+  return overrides.analytics ?? generateRecentAnalytics();
+}
+
+export function getFallbackDayStats(): DayStats {
+  return (
+    overrides.dayStats ?? {
+      sugar: 6.2,
+      breadUnits: 4,
+      insulin: 12,
+    }
+  );
+}
+
+export const fallbackAnalytics = getFallbackAnalytics();
+
+export const fallbackDayStats = getFallbackDayStats();
 
 const api = new DefaultApi(
   new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
@@ -37,12 +85,12 @@ export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint
     const data = await api.getAnalyticsAnalyticsGet({ telegramId });
     if (!Array.isArray(data)) {
       console.error('Unexpected analytics API response:', data);
-      return fallbackAnalytics;
+      return getFallbackAnalytics();
     }
     return data as AnalyticsPoint[];
   } catch (error) {
     console.error('Failed to fetch analytics:', error);
-    return fallbackAnalytics;
+    return getFallbackAnalytics();
   }
 }
 
@@ -52,7 +100,7 @@ export async function fetchDayStats(telegramId: number): Promise<DayStats> {
 
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
       console.error('Unexpected stats API response:', data);
-      return fallbackDayStats;
+      return getFallbackDayStats();
     }
 
     const { sugar, breadUnits, insulin } = data as Record<string, unknown>;
@@ -66,12 +114,12 @@ export async function fetchDayStats(telegramId: number): Promise<DayStats> {
       !Number.isFinite(insulin)
     ) {
       console.error('Unexpected stats API response:', data);
-      return fallbackDayStats;
+      return getFallbackDayStats();
     }
 
     return { sugar, breadUnits, insulin };
   } catch (error) {
     console.error('Failed to fetch day stats:', error);
-    return fallbackDayStats;
+    return getFallbackDayStats();
   }
 }
