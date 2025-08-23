@@ -11,6 +11,10 @@ const api = new ProfilesApi(
   new Configuration({ basePath: API_BASE, fetchApi: tgFetch }),
 );
 
+/**
+ * Fetch profile by telegramId.
+ * Returns null if profile is not found (404).
+ */
 export async function getProfile(telegramId: number): Promise<Profile | null> {
   try {
     const data = await api.profilesGet({ telegramId });
