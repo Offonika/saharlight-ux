@@ -7,6 +7,7 @@ from telegram.ext import CallbackContext, Job, JobQueue
 
 from .context_stub import AlertContext, ContextStub
 
+import logging
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -150,7 +151,9 @@ async def test_repeat_logic(monkeypatch: pytest.MonkeyPatch) -> None:
             )
             await handlers.alert_job(
                 cast(
-                    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                    CallbackContext[
+                        Any, dict[str, Any], dict[str, Any], dict[str, Any]
+                    ],
                     context,
                 )
             )
@@ -243,7 +246,9 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
             await handlers.check_alert(
                 update,
                 cast(
-                    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                    CallbackContext[
+                        Any, dict[str, Any], dict[str, Any], dict[str, Any]
+                    ],
                     context,
                 ),
                 3,
@@ -313,7 +318,9 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
             await handlers.check_alert(
                 update,
                 cast(
-                    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+                    CallbackContext[
+                        Any, dict[str, Any], dict[str, Any], dict[str, Any]
+                    ],
                     context,
                 ),
                 3,
@@ -321,5 +328,44 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
 
         msg = "⚠️ У Ivan критический сахар 3 ммоль/л."
         assert bot.sent == [(1, msg), ("@alice", msg)]
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_commit_failure_logs_error(caplog: pytest.LogCaptureFixture) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    try:
+        Base.metadata.create_all(engine)
+        TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+        handlers.SessionLocal = TestSession
+
+        call_count = {"n": 0}
+
+        def fake_commit(session: Any) -> bool:
+            call_count["n"] += 1
+            return call_count["n"] != 4
+
+        handlers.commit = fake_commit
+
+        with TestSession() as session:
+            session.add(User(telegram_id=1, thread_id="t1"))
+            session.add(
+                Profile(
+                    telegram_id=1,
+                    low_threshold=4,
+                    high_threshold=8,
+                    sos_alerts_enabled=True,
+                )
+            )
+            session.commit()
+
+        job_queue = DummyJobQueue()
+        caplog.set_level(logging.ERROR)
+        for _ in range(3):
+            await handlers.evaluate_sugar(1, 3, cast(JobQueue[Any], job_queue))
+        assert any(
+            "Failed to commit resolved alerts" in rec.message for rec in caplog.records
+        )
     finally:
         engine.dispose()
