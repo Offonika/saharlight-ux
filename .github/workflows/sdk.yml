@@ -21,11 +21,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-      - run: npm install -g npm@latest
-      - run: npm ci
+          cache: pnpm
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - run: pnpm install
       - name: Generate SDKs
-        run: npm run generate:sdk
+        run: pnpm run generate:sdk
       - name: Commit SDKs
         uses: stefanzweifel/git-auto-commit-action@v5
         with:

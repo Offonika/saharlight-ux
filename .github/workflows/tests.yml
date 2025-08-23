@@ -22,9 +22,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-      - run: npm install -g npm@latest
-      - run: npm ci
+          cache: pnpm
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - run: pnpm install
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -33,12 +35,12 @@ jobs:
           pip install -r requirements.txt
           pip install -r services/api/app/requirements-dev.txt
       - name: Generate SDK
-        run: npm run generate:sdk
+        run: pnpm run generate:sdk
       - name: Build webapp UI
-        run: npm --workspace services/webapp/ui run build
+        run: pnpm --filter services/webapp/ui run build
       - name: Type-check webapp UI
         working-directory: services/webapp/ui
-        run: npm run typecheck
+        run: pnpm run typecheck
       - name: Install Playwright browsers
         run: playwright install --with-deps
       - name: Run lint
