@@ -12,7 +12,7 @@ paths:
       tags:
       - Profiles
       summary: Profiles Post
-      operationId: profiles_post_profiles_post
+      operationId: profiles_post
       requestBody:
         required: true
         content:
@@ -39,7 +39,7 @@ paths:
       tags:
       - Profiles
       summary: Profiles Get
-      operationId: profiles_get_profiles_get
+      operationId: profiles_get
       parameters:
       - name: telegramId
         in: query
