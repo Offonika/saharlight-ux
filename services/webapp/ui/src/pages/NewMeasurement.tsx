@@ -24,7 +24,7 @@ const NewMeasurement = () => {
     const now = new Date();
     const record: HistoryRecord = {
       id: Date.now().toString(),
-      date: now.toISOString().split('T')[0],
+      date: new Date(now.toISOString().split('T')[0]),
       time: now.toTimeString().slice(0, 5),
       sugar: sugarValue,
       type: 'measurement',

@@ -40,7 +40,8 @@ const History = () => {
   }, [toast]);
 
   const filteredRecords = records.filter(record => {
-    const dateMatch = !selectedDate || record.date === selectedDate;
+    const recordDate = record.date.toISOString().slice(0, 10);
+    const dateMatch = !selectedDate || recordDate === selectedDate;
     const typeMatch = selectedType === 'all' || record.type === selectedType;
     return dateMatch && typeMatch;
   });
@@ -213,7 +214,7 @@ const History = () => {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
-                        {new Date(record.date).toLocaleDateString('ru-RU')}
+                        {record.date.toLocaleDateString('ru-RU')}
                       </span>
                       <span className="text-sm font-medium">{record.time}</span>
                     </div>
@@ -294,10 +295,10 @@ const History = () => {
                 </label>
                 <input
                   type="date"
-                  value={editingRecord.date}
+                  value={editingRecord.date.toISOString().slice(0, 10)}
                   onChange={e =>
                     setEditingRecord(prev =>
-                      prev ? { ...prev, date: e.target.value } : prev
+                      prev ? { ...prev, date: new Date(e.target.value) } : prev
                     )
                   }
                   className="medical-input"
