@@ -7,7 +7,7 @@ import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
@@ -38,27 +38,21 @@ class DummyQuery:
     async def answer(self, text: str | None = None) -> None:
         self.answer_texts.append(text)
 
-    async def edit_message_reply_markup(
-        self, reply_markup: Any | None = None, **kwargs: Any
-    ) -> None:
+    async def edit_message_reply_markup(self, reply_markup: Any | None = None, **kwargs: Any) -> None:
         self.markups.append(reply_markup)
-
-
-gpt_handlers.CallbackQuery = DummyQuery  # type: ignore[assignment, attr-defined]
 
 
 class DummyBot:
     def __init__(self) -> None:
         self.edited: list[tuple[str, int, int, dict[str, Any]]] = []
 
-    async def edit_message_text(
-        self, text: str, chat_id: int, message_id: int, **kwargs: Any
-    ) -> None:
+    async def edit_message_text(self, text: str, chat_id: int, message_id: int, **kwargs: Any) -> None:
         self.edited.append((text, chat_id, message_id, kwargs))
 
 
 @pytest.mark.asyncio
 async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
+    gpt_handlers.CallbackQuery = DummyQuery  # type: ignore[assignment, attr-defined]
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -99,9 +93,7 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     field_query = DummyQuery(entry_message, f"edit_field:{entry_id}:dose")
     update_cb2 = cast(
         Update,
-        SimpleNamespace(
-            callback_query=field_query, effective_user=SimpleNamespace(id=1)
-        ),
+        SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1)),
     )
     await router.callback_router(update_cb2, context)
     assert context.user_data is not None
@@ -109,9 +101,7 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     assert user_data["edit_field"] == "dose"
 
     reply_msg = DummyMessage(text="5")
-    update_msg = cast(
-        Update, SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1))
-    )
+    update_msg = cast(Update, SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1)))
     await dose_calc.freeform_handler(update_msg, context)
 
     with TestSession() as session:
@@ -126,3 +116,56 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     assert chat_id == 42 and message_id == 24
     assert f"<b>{day_str}</b>" in edited_text
     assert f"💉 Доза: <b>{entry_db.dose}</b>" in edited_text
+
+
+@pytest.mark.asyncio
+async def test_edit_dose_commit_failure() -> None:
+    gpt_handlers.CallbackQuery = DummyQuery  # type: ignore[assignment, attr-defined]
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        entry = Entry(
+            telegram_id=1,
+            event_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
+            dose=2.0,
+        )
+        session.add(entry)
+        session.commit()
+        entry_id = entry.id
+
+    message = DummyMessage(text="5", chat_id=42, message_id=24)
+    edit_query = DummyQuery(message, f"edit_field:{entry_id}:dose")
+    user_data = cast(
+        gpt_handlers.UserData,
+        {
+            "edit_id": entry_id,
+            "edit_field": "dose",
+            "edit_entry": {"chat_id": 42, "message_id": 24},
+            "edit_query": edit_query,
+        },
+    )
+    context = cast(
+        gpt_handlers.ContextTypes.DEFAULT_TYPE,
+        SimpleNamespace(bot=DummyBot()),
+    )
+
+    def commit_fail(session: Session) -> bool:
+        return False
+
+    result = await gpt_handlers._handle_edit_entry(
+        "5",
+        user_data,
+        message,
+        context,
+        SessionLocal=TestSession,
+        commit=commit_fail,
+    )
+    assert result is True
+    assert edit_query.answer_texts[-1] == "Не удалось"
+    assert message.replies[-1] == "⚠️ Не удалось сохранить запись."
+    with TestSession() as session:
+        entry_obj = session.get(Entry, entry_id)
+        assert entry_obj is not None and entry_obj.dose == 2.0
