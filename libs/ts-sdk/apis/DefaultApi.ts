@@ -18,9 +18,6 @@ import type {
   AnalyticsPoint,
   DayStats,
   HTTPValidationError,
-  HistoryRecordSchemaInput,
-  HistoryRecordSchemaOutput,
-  ProfileSchema,
   Timezone,
   UserContext,
   WebUser,
@@ -32,12 +29,6 @@ import {
     DayStatsToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
-    HistoryRecordSchemaInputFromJSON,
-    HistoryRecordSchemaInputToJSON,
-    HistoryRecordSchemaOutputFromJSON,
-    HistoryRecordSchemaOutputToJSON,
-    ProfileSchemaFromJSON,
-    ProfileSchemaToJSON,
     TimezoneFromJSON,
     TimezoneToJSON,
     UserContextFromJSON,
@@ -51,17 +42,8 @@ export interface CreateUserUserPostRequest {
     xTelegramInitData?: string | null;
 }
 
-export interface DeleteHistoryHistoryRecordIdDeleteRequest {
-    recordId: string;
-    xTelegramInitData?: string | null;
-}
-
 export interface GetAnalyticsAnalyticsGetRequest {
     telegramId: number;
-    xTelegramInitData?: string | null;
-}
-
-export interface GetHistoryHistoryGetRequest {
     xTelegramInitData?: string | null;
 }
 
@@ -74,21 +56,8 @@ export interface GetTimezoneTimezoneGetRequest {
     xTelegramInitData?: string | null;
 }
 
-export interface PostHistoryHistoryPostRequest {
-    historyRecordSchemaInput: HistoryRecordSchemaInput;
-    xTelegramInitData?: string | null;
-}
-
 export interface ProfileSelfProfileSelfGetRequest {
     xTelegramInitData?: string | null;
-}
-
-export interface ProfilesGetProfilesGetRequest {
-    telegramId: number;
-}
-
-export interface ProfilesPostProfilesPostRequest {
-    profileSchema: ProfileSchema;
 }
 
 export interface PutTimezoneTimezonePutRequest {
@@ -147,49 +116,6 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Delete a history record after verifying ownership.
-     * Delete History
-     */
-    async deleteHistoryHistoryRecordIdDeleteRaw(requestParameters: DeleteHistoryHistoryRecordIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
-        if (requestParameters['recordId'] == null) {
-            throw new runtime.RequiredError(
-                'recordId',
-                'Required parameter "recordId" was null or undefined when calling deleteHistoryHistoryRecordIdDelete().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
-        }
-
-
-        let urlPath = `/history/{record_id}`;
-        urlPath = urlPath.replace(`{${"record_id"}}`, encodeURIComponent(String(requestParameters['recordId'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'DELETE',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse<any>(response);
-    }
-
-    /**
-     * Delete a history record after verifying ownership.
-     * Delete History
-     */
-    async deleteHistoryHistoryRecordIdDelete(requestParameters: DeleteHistoryHistoryRecordIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
-        const response = await this.deleteHistoryHistoryRecordIdDeleteRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
      * Get Analytics
      */
     async getAnalyticsAnalyticsGetRaw(requestParameters: GetAnalyticsAnalyticsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<AnalyticsPoint>>> {
@@ -230,41 +156,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getAnalyticsAnalyticsGet(requestParameters: GetAnalyticsAnalyticsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AnalyticsPoint>> {
         const response = await this.getAnalyticsAnalyticsGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Return history records for the authenticated user.
-     * Get History
-     */
-    async getHistoryHistoryGetRaw(requestParameters: GetHistoryHistoryGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<HistoryRecordSchemaOutput>>> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
-        }
-
-
-        let urlPath = `/history`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(HistoryRecordSchemaOutputFromJSON));
-    }
-
-    /**
-     * Return history records for the authenticated user.
-     * Get History
-     */
-    async getHistoryHistoryGet(requestParameters: GetHistoryHistoryGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<HistoryRecordSchemaOutput>> {
-        const response = await this.getHistoryHistoryGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -353,51 +244,6 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
-     * Save or update a history record in the database.
-     * Post History
-     */
-    async postHistoryHistoryPostRaw(requestParameters: PostHistoryHistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
-        if (requestParameters['historyRecordSchemaInput'] == null) {
-            throw new runtime.RequiredError(
-                'historyRecordSchemaInput',
-                'Required parameter "historyRecordSchemaInput" was null or undefined when calling postHistoryHistoryPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
-        }
-
-
-        let urlPath = `/history`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: HistoryRecordSchemaInputToJSON(requestParameters['historyRecordSchemaInput']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse<any>(response);
-    }
-
-    /**
-     * Save or update a history record in the database.
-     * Post History
-     */
-    async postHistoryHistoryPost(requestParameters: PostHistoryHistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
-        const response = await this.postHistoryHistoryPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
      * Profile Self
      */
     async profileSelfProfileSelfGetRaw(requestParameters: ProfileSelfProfileSelfGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserContext>> {
@@ -427,85 +273,6 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async profileSelfProfileSelfGet(requestParameters: ProfileSelfProfileSelfGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserContext> {
         const response = await this.profileSelfProfileSelfGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Profiles Get
-     */
-    async profilesGetProfilesGetRaw(requestParameters: ProfilesGetProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileSchema>> {
-        if (requestParameters['telegramId'] == null) {
-            throw new runtime.RequiredError(
-                'telegramId',
-                'Required parameter "telegramId" was null or undefined when calling profilesGetProfilesGet().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        if (requestParameters['telegramId'] != null) {
-            queryParameters['telegramId'] = requestParameters['telegramId'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/profiles`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileSchemaFromJSON(jsonValue));
-    }
-
-    /**
-     * Profiles Get
-     */
-    async profilesGetProfilesGet(requestParameters: ProfilesGetProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSchema> {
-        const response = await this.profilesGetProfilesGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Profiles Post
-     */
-    async profilesPostProfilesPostRaw(requestParameters: ProfilesPostProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
-        if (requestParameters['profileSchema'] == null) {
-            throw new runtime.RequiredError(
-                'profileSchema',
-                'Required parameter "profileSchema" was null or undefined when calling profilesPostProfilesPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-
-        let urlPath = `/profiles`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: ProfileSchemaToJSON(requestParameters['profileSchema']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse<any>(response);
-    }
-
-    /**
-     * Profiles Post
-     */
-    async profilesPostProfilesPost(requestParameters: ProfilesPostProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
-        const response = await this.profilesPostProfilesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
