@@ -73,12 +73,11 @@ async def test_report_date_valid(monkeypatch: pytest.MonkeyPatch) -> None:
         called["date_from"] = date_from
         called["period"] = period
 
-    monkeypatch.setattr(gpt_handlers, "send_report", fake_send_report)
     message = DummyMessage("2024-02-01")
     update = make_update(message)
     user_data: dict[str, Any] = {"awaiting_report_date": True}
     context = make_context(user_data)
-    await gpt_handlers.freeform_handler(update, context)
+    await gpt_handlers.freeform_handler(update, context, send_report=fake_send_report)
     assert "awaiting_report_date" not in user_data
     assert called["date_from"].date() == dt.date(2024, 2, 1)
     assert called["period"] == "указанный период"
@@ -137,10 +136,13 @@ async def test_pending_entry_commit(monkeypatch: pytest.MonkeyPatch) -> None:
         pass
 
     monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
-    monkeypatch.setattr(gpt_handlers, "commit", lambda session: True)
-    monkeypatch.setattr(gpt_handlers, "check_alert", fake_check_alert)
     context = make_context(user_data)
-    await gpt_handlers.freeform_handler(update, context)
+    await gpt_handlers.freeform_handler(
+        update,
+        context,
+        commit=lambda session: True,
+        check_alert=fake_check_alert,
+    )
     assert "pending_entry" not in user_data
     assert message.replies[0][0].startswith("✅ Запись сохранена")
 
@@ -150,11 +152,10 @@ async def test_smart_input_error(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_smart_input(text: str) -> Any:
         raise ValueError("mismatched unit for sugar")
 
-    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
     message = DummyMessage("bogus")
     update = make_update(message)
     context = make_context({})
-    await gpt_handlers.freeform_handler(update, context)
+    await gpt_handlers.freeform_handler(update, context, smart_input=fake_smart_input)
     assert "Сахар указывается" in message.replies[0][0]
 
 
@@ -163,11 +164,10 @@ async def test_smart_input_negative(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": -1.0, "xe": None, "dose": None}
 
-    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
     message = DummyMessage("sugar=-1")
     update = make_update(message)
     context = make_context({})
-    await gpt_handlers.freeform_handler(update, context)
+    await gpt_handlers.freeform_handler(update, context, smart_input=fake_smart_input)
     assert "не могут быть отрицательными" in message.replies[0][0]
 
 
@@ -176,12 +176,13 @@ async def test_smart_input_missing_fields(monkeypatch: pytest.MonkeyPatch) -> No
     def fake_smart_input_first(text: str) -> dict[str, float | None]:
         return {"sugar": 5.0, "xe": None, "dose": None}
 
-    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input_first)
     message = DummyMessage("sugar=5")
     update = make_update(message)
     user_data: dict[str, Any] = {"state": 0}
     context = make_context(user_data)
-    await gpt_handlers.freeform_handler(update, context)
+    await gpt_handlers.freeform_handler(
+        update, context, smart_input=fake_smart_input_first
+    )
     assert user_data["pending_entry"]["sugar_before"] == 5.0
     assert user_data["pending_fields"] == ["xe", "dose"]
     assert "количество ХЕ" in message.replies[0][0]
@@ -203,14 +204,17 @@ async def test_smart_input_complete(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_check_alert(update: Any, context: Any, sugar: float) -> None:
         pass
 
-    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
     monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
-    monkeypatch.setattr(gpt_handlers, "commit", lambda session: True)
-    monkeypatch.setattr(gpt_handlers, "check_alert", fake_check_alert)
     message = DummyMessage("all")
     update = make_update(message)
     context = make_context({})
-    await gpt_handlers.freeform_handler(update, context)
+    await gpt_handlers.freeform_handler(
+        update,
+        context,
+        smart_input=fake_smart_input,
+        commit=lambda session: True,
+        check_alert=fake_check_alert,
+    )
     assert message.replies[0][0].startswith("✅ Запись сохранена")
 
 
@@ -222,12 +226,15 @@ async def test_parse_command_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_parse(text: str) -> dict[str, object] | None:
         return None
 
-    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
-    monkeypatch.setattr(gpt_handlers, "parse_command", fake_parse)
     message = DummyMessage("unknown")
     update = make_update(message)
     context = make_context({})
-    await gpt_handlers.freeform_handler(update, context)
+    await gpt_handlers.freeform_handler(
+        update,
+        context,
+        smart_input=fake_smart_input,
+        parse_command=fake_parse,
+    )
     assert message.replies[0][0].startswith("Не понял")
 
 
@@ -239,12 +246,15 @@ async def test_parse_command_negative(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_parse(text: str) -> dict[str, object]:
         return {"action": "add_entry", "fields": {"sugar_before": -1}}
 
-    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
-    monkeypatch.setattr(gpt_handlers, "parse_command", fake_parse)
     message = DummyMessage("bad")
     update = make_update(message)
     context = make_context({})
-    await gpt_handlers.freeform_handler(update, context)
+    await gpt_handlers.freeform_handler(
+        update,
+        context,
+        smart_input=fake_smart_input,
+        parse_command=fake_parse,
+    )
     assert "не могут быть отрицательными" in message.replies[0][0]
 
 
@@ -260,13 +270,16 @@ async def test_parse_command_valid_time(monkeypatch: pytest.MonkeyPatch) -> None
             "time": "12:34",
         }
 
-    monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
-    monkeypatch.setattr(gpt_handlers, "parse_command", fake_parse)
     message = DummyMessage("entry")
     update = make_update(message)
     user_data: dict[str, Any] = {"state": 0}
     context = make_context(user_data)
-    await gpt_handlers.freeform_handler(update, context)
+    await gpt_handlers.freeform_handler(
+        update,
+        context,
+        smart_input=fake_smart_input,
+        parse_command=fake_parse,
+    )
     entry = user_data["pending_entry"]
     assert entry["telegram_id"] == 1
     assert entry["sugar_before"] == 5

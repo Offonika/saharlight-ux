@@ -8,7 +8,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import CallbackContext, ContextTypes
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
 os.environ.setdefault("DB_PASSWORD", "test")
 from services.api.app.diabetes.services.db import Base, User, Entry
@@ -82,11 +82,15 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
             [
                 Entry(
                     telegram_id=1,
-                    event_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
+                    event_time=datetime.datetime(
+                        2024, 1, 1, tzinfo=datetime.timezone.utc
+                    ),
                 ),
                 Entry(
                     telegram_id=1,
-                    event_time=datetime.datetime(2024, 1, 2, tzinfo=datetime.timezone.utc),
+                    event_time=datetime.datetime(
+                        2024, 1, 2, tzinfo=datetime.timezone.utc
+                    ),
                 ),
             ]
         )
@@ -206,7 +210,9 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     field_query = DummyQuery(entry_message, f"edit_field:{entry_id}:xe")
     update_cb2 = cast(
         Update,
-        SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1)),
+        SimpleNamespace(
+            callback_query=field_query, effective_user=SimpleNamespace(id=1)
+        ),
     )
     await router.callback_router(update_cb2, context)
     assert context.user_data is not None
@@ -261,7 +267,6 @@ async def test_handle_edit_entry_missing_metadata(
     )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(gpt_handlers, "SessionLocal", TestSession)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -278,7 +283,18 @@ async def test_handle_edit_entry_missing_metadata(
     message = cast(Message, DummyMessage(text="2"))
     context = cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace(bot=DummyBot()))
 
-    result = await gpt_handlers._handle_edit_entry("2", user_data, message, context)
+    def commit_fn(session: Session) -> bool:
+        session.commit()
+        return True
+
+    result = await gpt_handlers._handle_edit_entry(
+        "2",
+        user_data,
+        message,
+        context,
+        SessionLocal=TestSession,
+        commit=commit_fn,
+    )
 
     assert result is False
     assert not any(

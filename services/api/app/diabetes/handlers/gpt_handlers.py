@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 import re
+from collections.abc import Awaitable, Callable
 from typing import Any, TypedDict, cast
 
 from telegram import (
@@ -13,7 +14,7 @@ from telegram import (
     Update,
 )
 from telegram.ext import ContextTypes
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile, run_db
 from services.api.app.diabetes.services.repository import commit
@@ -50,6 +51,12 @@ async def _handle_report_request(
     message: Message,
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
+    *,
+    menu_keyboard: InlineKeyboardMarkup | None,
+    send_report: Callable[
+        [Update, ContextTypes.DEFAULT_TYPE, datetime.datetime, str],
+        Awaitable[object],
+    ],
 ) -> bool:
     """Handle the awaiting report date flow."""
     if not user_data.get("awaiting_report_date"):
@@ -60,7 +67,9 @@ async def _handle_report_request(
         await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
         return True
     try:
-        date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
+        date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(
+            tzinfo=datetime.timezone.utc
+        )
     except ValueError:
         await message.reply_text("❗ Некорректная дата. Используйте формат YYYY-MM-DD.")
         return True
@@ -69,7 +78,12 @@ async def _handle_report_request(
     return True
 
 
-async def _save_entry(entry_data: dict[str, Any]) -> bool:
+async def _save_entry(
+    entry_data: dict[str, Any],
+    *,
+    SessionLocal: sessionmaker,
+    commit: Callable[[Session], bool],
+) -> bool:
     """Persist an entry in the database."""
 
     def _db_save(session: Session) -> bool:
@@ -90,6 +104,13 @@ async def _handle_pending_entry(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     user_id: int,
+    *,
+    SessionLocal: sessionmaker,
+    commit: Callable[[Session], bool],
+    check_alert: Callable[
+        [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
+    ],
+    menu_keyboard: InlineKeyboardMarkup | None,
 ) -> bool:
     """Process numeric input for a pending entry."""
     pending_entry = user_data.get("pending_entry")
@@ -137,7 +158,7 @@ async def _handle_pending_entry(
                 await message.reply_text("Введите дозу инсулина (ед.).")
             return True
 
-        ok = await _save_entry(pending_entry)
+        ok = await _save_entry(pending_entry, SessionLocal=SessionLocal, commit=commit)
         if not ok:
             await message.reply_text("⚠️ Не удалось сохранить запись.")
             return True
@@ -158,7 +179,10 @@ async def _handle_pending_entry(
         return True
 
     text = raw_text.lower()
-    if re.fullmatch(r"-?\d+(?:[.,]\d+)?", text) and pending_entry.get("sugar_before") is None:
+    if (
+        re.fullmatch(r"-?\d+(?:[.,]\d+)?", text)
+        and pending_entry.get("sugar_before") is None
+    ):
         try:
             sugar = float(text.replace(",", "."))
         except ValueError:
@@ -168,7 +192,10 @@ async def _handle_pending_entry(
             await message.reply_text("Сахар не может быть отрицательным.")
             return True
         pending_entry["sugar_before"] = sugar
-        if pending_entry.get("carbs_g") is not None or pending_entry.get("xe") is not None:
+        if (
+            pending_entry.get("carbs_g") is not None
+            or pending_entry.get("xe") is not None
+        ):
             xe_val = pending_entry.get("xe")
             carbs_g = pending_entry.get("carbs_g")
             if carbs_g is None and xe_val is not None:
@@ -178,14 +205,18 @@ async def _handle_pending_entry(
                 with SessionLocal() as session:
                     profile = session.get(Profile, user_id)
             else:
-                profile = await run_db(lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal)
+                profile = await run_db(
+                    lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
+                )
             if (
                 profile is not None
                 and profile.icr is not None
                 and profile.cf is not None
                 and profile.target_bg is not None
             ):
-                patient = PatientProfile(icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg)
+                patient = PatientProfile(
+                    icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg
+                )
                 dose = calc_bolus(carbs_g, sugar, patient)
                 pending_entry["dose"] = dose
                 await message.reply_text(
@@ -193,7 +224,9 @@ async def _handle_pending_entry(
                     reply_markup=confirm_keyboard(),
                 )
                 return True
-        await message.reply_text("Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard)
+        await message.reply_text(
+            "Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard
+        )
         return True
 
     # not handled here
@@ -205,6 +238,9 @@ async def _handle_edit_entry(
     user_data: UserData,
     message: Message,
     context: ContextTypes.DEFAULT_TYPE,
+    *,
+    SessionLocal: sessionmaker,
+    commit: Callable[[Session], bool],
 ) -> bool:
     """Apply edits to an existing entry."""
     edit_id = user_data.get("edit_id")
@@ -283,6 +319,15 @@ async def _handle_smart_input(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     user_id: int,
+    *,
+    SessionLocal: sessionmaker,
+    commit: Callable[[Session], bool],
+    check_alert: Callable[
+        [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
+    ],
+    menu_keyboard: InlineKeyboardMarkup | None,
+    smart_input: Callable[[str], dict[str, float | None]],
+    parse_command: Callable[[str], Awaitable[dict[str, Any] | None]],
 ) -> None:
     """Process smart input or GPT command."""
     try:
@@ -301,10 +346,16 @@ async def _handle_smart_input(
             )
         return
 
-    carbs_match = re.search(r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I)
+    carbs_match = re.search(
+        r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I
+    )
     pending_entry = user_data.get("pending_entry")
     edit_id = user_data.get("edit_id")
-    if pending_entry is not None and edit_id is None and (any(v is not None for v in quick.values()) or carbs_match):
+    if (
+        pending_entry is not None
+        and edit_id is None
+        and (any(v is not None for v in quick.values()) or carbs_match)
+    ):
         if quick["sugar"] is not None:
             pending_entry["sugar_before"] = quick["sugar"]
         if quick["xe"] is not None:
@@ -335,7 +386,7 @@ async def _handle_smart_input(
                 await message.reply_text("Введите дозу инсулина (ед.).")
             return
 
-        ok = await _save_entry(pending_entry)
+        ok = await _save_entry(pending_entry, SessionLocal=SessionLocal, commit=commit)
         if not ok:
             await message.reply_text("⚠️ Не удалось сохранить запись.")
             return
@@ -374,7 +425,7 @@ async def _handle_smart_input(
         user_data["pending_entry"] = entry_data
         user_data["pending_fields"] = missing
         if not missing:
-            ok = await _save_entry(entry_data)
+            ok = await _save_entry(entry_data, SessionLocal=SessionLocal, commit=commit)
             if not ok:
                 await message.reply_text("⚠️ Не удалось сохранить запись.")
                 return
@@ -438,9 +489,13 @@ async def _handle_smart_input(
         try:
             hh, mm = map(int, time_obj.split(":"))
             today = datetime.datetime.now(datetime.timezone.utc).date()
-            event_dt = datetime.datetime.combine(today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc)
+            event_dt = datetime.datetime.combine(
+                today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc
+            )
         except (ValueError, TypeError):
-            await message.reply_text("⏰ Неверный формат времени. Использую текущее время.")
+            await message.reply_text(
+                "⏰ Неверный формат времени. Использую текущее время."
+            )
             event_dt = datetime.datetime.now(datetime.timezone.utc)
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
@@ -467,11 +522,29 @@ async def _handle_smart_input(
     sugar_part = f"Сахар: {sugar_val}\u202fммоль/л" if sugar_val is not None else ""
     lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
 
-    reply = f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
+    reply = (
+        f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
+    )
     await message.reply_text(text=reply, reply_markup=confirm_keyboard())
 
 
-async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def freeform_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    *,
+    SessionLocal: sessionmaker = SessionLocal,
+    commit: Callable[[Session], bool] = commit,
+    check_alert: Callable[
+        [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
+    ] = check_alert,
+    menu_keyboard: InlineKeyboardMarkup | None = menu_keyboard,
+    smart_input: Callable[[str], dict[str, float | None]] = smart_input,
+    parse_command: Callable[[str], Awaitable[dict[str, Any] | None]] = parse_command,
+    send_report: Callable[
+        [Update, ContextTypes.DEFAULT_TYPE, datetime.datetime, str],
+        Awaitable[object],
+    ] = send_report,
+) -> None:
     """Handle freeform text commands for adding diary entries."""
     user_data_raw = context.user_data
     if user_data_raw is None:
@@ -490,13 +563,52 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     user_id = user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
 
-    if await _handle_report_request(raw_text, user_data, message, update, context):
+    if await _handle_report_request(
+        raw_text,
+        user_data,
+        message,
+        update,
+        context,
+        menu_keyboard=menu_keyboard,
+        send_report=send_report,
+    ):
         return
-    if await _handle_pending_entry(raw_text, user_data, message, update, context, user_id):
+    if await _handle_pending_entry(
+        raw_text,
+        user_data,
+        message,
+        update,
+        context,
+        user_id,
+        SessionLocal=SessionLocal,
+        commit=commit,
+        check_alert=check_alert,
+        menu_keyboard=menu_keyboard,
+    ):
         return
-    if await _handle_edit_entry(raw_text, user_data, message, context):
+    if await _handle_edit_entry(
+        raw_text,
+        user_data,
+        message,
+        context,
+        SessionLocal=SessionLocal,
+        commit=commit,
+    ):
         return
-    await _handle_smart_input(raw_text, user_data, message, update, context, user_id)
+    await _handle_smart_input(
+        raw_text,
+        user_data,
+        message,
+        update,
+        context,
+        user_id,
+        SessionLocal=SessionLocal,
+        commit=commit,
+        check_alert=check_alert,
+        menu_keyboard=menu_keyboard,
+        smart_input=smart_input,
+        parse_command=parse_command,
+    )
 
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
