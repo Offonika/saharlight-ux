@@ -694,3 +694,46 @@ def test_get_single_reminder_not_found(
     resp = client.get("/api/reminders/1", params={"telegramId": 1})
     assert resp.status_code == 404
     assert resp.json() == {"detail": "reminder not found"}
+
+
+def test_post_reminder_forbidden(
+    client: TestClient, session_factory: sessionmaker
+) -> None:
+    with session_factory() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+    fastapi_app = cast(FastAPI, client.app)
+    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
+    resp = client.post(
+        "/api/reminders",
+        json={"telegramId": 1, "type": "sugar"},
+    )
+    assert resp.status_code == 403
+    assert resp.json() == {"detail": "forbidden"}
+    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+
+
+def test_patch_reminder_forbidden(
+    client: TestClient, session_factory: sessionmaker
+) -> None:
+    with session_factory() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                is_enabled=True,
+            )
+        )
+        session.commit()
+    fastapi_app = cast(FastAPI, client.app)
+    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
+    resp = client.patch(
+        "/api/reminders",
+        json={"telegramId": 1, "id": 1, "type": "sugar"},
+    )
+    assert resp.status_code == 403
+    assert resp.json() == {"detail": "forbidden"}
+    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
