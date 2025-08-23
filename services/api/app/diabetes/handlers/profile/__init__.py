@@ -93,7 +93,7 @@ _conversation.__all__ = [
 ]
 
 # Re-export the conversation module as the package itself for backward compatibility.
-import sys as _sys
+import sys as _sys  # noqa: E402
 
 _sys.modules[__name__] = _conversation
 

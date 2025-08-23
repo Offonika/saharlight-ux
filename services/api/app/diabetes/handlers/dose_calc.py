@@ -12,12 +12,30 @@ from telegram.ext import (
     filters,
 )
 
+from services.api.app.diabetes.gpt_command_parser import parse_command
 from services.api.app.diabetes.services.db import (
     Profile,
     SessionLocal,
 )
+from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.utils.constants import XE_GRAMS
+from services.api.app.diabetes.utils.functions import (
+    PatientProfile,
+    _safe_float,
+    calc_bolus,
+    smart_input,
+)
+from services.api.app.diabetes.utils.ui import (
+    confirm_keyboard,
+    dose_keyboard,
+    menu_keyboard,
+)
 
-logger = logging.getLogger(__name__)
+from . import EntryData, UserData
+from .alert_handlers import check_alert
+from .common_handlers import menu_command
+from .profile import profile_view
+from .reporting_handlers import history_view, report_request, send_report
 
 run_db: Callable[..., Awaitable[object]] | None
 try:
@@ -25,30 +43,14 @@ try:
 except ImportError:  # pragma: no cover - optional db runner
     run_db = None
 except Exception as exc:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db", exc_info=exc)
+    logging.getLogger(__name__).exception(
+        "Unexpected error importing run_db", exc_info=exc
+    )
     raise
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
-from services.api.app.diabetes.services.repository import commit
-from services.api.app.diabetes.utils.functions import (
-    PatientProfile,
-    _safe_float,
-    calc_bolus,
-    smart_input,
-)
-from services.api.app.diabetes.utils.constants import XE_GRAMS
-from services.api.app.diabetes.utils.ui import (
-    confirm_keyboard,
-    dose_keyboard,
-    menu_keyboard,
-)
 
-from .common_handlers import menu_command
-from .profile import profile_view
-from services.api.app.diabetes.gpt_command_parser import parse_command
-from .alert_handlers import check_alert
-from .reporting_handlers import history_view, report_request, send_report
-from . import EntryData, UserData
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -287,13 +289,13 @@ def _cancel_then(
 
 
 # Import additional handlers after defining dose_cancel to avoid circular imports
-from .sugar_handlers import (
+from .sugar_handlers import (  # noqa: E402
     SUGAR_VAL,
     sugar_start,
     sugar_val,
     sugar_conv,
     prompt_sugar,
-)  # noqa: E402
+)
 from .photo_handlers import (  # noqa: E402
     PHOTO_SUGAR,
     WAITING_GPT_FLAG,

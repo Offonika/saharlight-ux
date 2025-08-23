@@ -14,8 +14,15 @@ from telegram.ext import (
 from sqlalchemy.orm import Session
 
 from services.api.app.diabetes.services.db import Entry, SessionLocal
+from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.utils.functions import _safe_float
+from services.api.app.diabetes.utils.ui import menu_keyboard, sugar_keyboard
 
-logger = logging.getLogger(__name__)
+from . import EntryData, UserData
+from .alert_handlers import check_alert
+from .common_handlers import menu_command
+from .dose_calc import _cancel_then, dose_cancel
+from .photo_handlers import photo_prompt
 
 run_db: Callable[..., Awaitable[object]] | None
 try:
@@ -23,19 +30,14 @@ try:
 except ImportError:  # pragma: no cover - optional db runner
     run_db = None
 except Exception as exc:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db", exc_info=exc)
+    logging.getLogger(__name__).exception(
+        "Unexpected error importing run_db", exc_info=exc
+    )
     raise
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
-from services.api.app.diabetes.services.repository import commit
-from services.api.app.diabetes.utils.functions import _safe_float
-from services.api.app.diabetes.utils.ui import menu_keyboard, sugar_keyboard
 
-from .alert_handlers import check_alert
-from .common_handlers import menu_command
-from .photo_handlers import photo_prompt
-from .dose_calc import dose_cancel, _cancel_then
-from . import EntryData, UserData
+logger = logging.getLogger(__name__)
 
 SUGAR_VAL = 8
 END = ConversationHandler.END
