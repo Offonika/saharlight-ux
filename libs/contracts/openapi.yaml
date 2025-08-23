@@ -3,13 +3,13 @@ info:
   title: Diabetes Assistant API
   version: 1.0.0
 servers:
-  - url: /api
+  - url: /
 tags:
 - name: Profiles
 - name: History
 - name: Reminders
 paths:
-  /health:
+  /api/health:
     get:
       summary: Health
       operationId: healthGet
@@ -24,7 +24,7 @@ paths:
                   type: string
                 title: Response Health Get
       security: []
-  /profiles:
+  /api/profiles:
     post:
       tags:
       - Profiles
@@ -78,7 +78,7 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '404':
           description: profile not found
-  /reminders:
+  /api/reminders:
     get:
       tags:
       - Reminders
@@ -201,7 +201,7 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '404':
           description: Reminder not found
-  /reminders/{id}:
+  /api/reminders/{id}:
     get:
       tags:
       - Reminders
@@ -235,7 +235,7 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '404':
           description: Reminder not found or telegramId mismatch
-  /timezone:
+  /api/timezone:
     get:
       summary: Get Timezone
       operationId: get_timezone_timezone_get
@@ -280,7 +280,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /profile/self:
+  /api/profile/self:
     get:
       summary: Profile Self
       operationId: profile_self_profile_self_get
@@ -297,7 +297,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /stats:
+  /api/stats:
     get:
       summary: Get Stats
       operationId: get_stats_stats_get
@@ -325,7 +325,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /analytics:
+  /api/analytics:
     get:
       summary: Get Analytics
       operationId: get_analytics_analytics_get
@@ -354,7 +354,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /user:
+  /api/user:
     post:
       summary: Create User
       description: Ensure a user exists in the database.
@@ -381,7 +381,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /user/{user_id}/role:
+  /api/user/{user_id}/role:
     get:
       summary: Get Role
       operationId: get_role_user_user_id_role_get
@@ -434,7 +434,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /history:
+  /api/history:
     post:
       tags:
       - History
@@ -485,7 +485,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /history/{id}:
+  /api/history/{id}:
     delete:
       tags:
       - History
