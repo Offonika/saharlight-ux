@@ -121,8 +121,10 @@ def split_text_by_width(
 
     def _width(chunk: str) -> float:
         try:
+
             raw: float = float(stringWidth(chunk, font_name, font_size))
             return raw / cast(float, mm)
+
         except KeyError as exc:
             raise ValueError(f"Unknown font '{font_name}'") from exc
 

@@ -15,7 +15,7 @@ profile_api = importlib.import_module("services.api.app.diabetes.handlers.profil
 def session_factory() -> Generator[sessionmaker[Session], None, None]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    TestSession: sessionmaker[Session] = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     try:
         yield TestSession
     finally:

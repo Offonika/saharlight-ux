@@ -152,6 +152,9 @@ class DummySession:
     def get_bind(self, **_: Any) -> Any:
         return self._engine
 
+    def commit(self) -> None:
+        return None
+
 
 @pytest.mark.asyncio
 async def test_dose_sugar_profile_required(monkeypatch: pytest.MonkeyPatch) -> None:
