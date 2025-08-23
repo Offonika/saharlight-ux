@@ -272,6 +272,9 @@ async def test_profile_view_missing_profile_shows_webapp_button(
 
     monkeypatch.setattr(config_settings, "webapp_url", "https://example.com")
     monkeypatch.setattr(handlers, "settings", config_settings, raising=False)
+    monkeypatch.setattr(
+        handlers.reminder_handlers, "settings", config_settings, raising=False
+    )
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 
