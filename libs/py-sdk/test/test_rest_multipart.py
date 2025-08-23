@@ -1,0 +1,51 @@
+import json
+from unittest.mock import MagicMock
+
+import urllib3
+
+from diabetes_sdk.configuration import Configuration
+from diabetes_sdk.rest import RESTClientObject
+
+
+def _client() -> RESTClientObject:
+    return RESTClientObject(Configuration())
+
+
+def _mock_response() -> urllib3.HTTPResponse:
+    return urllib3.HTTPResponse(body=b"", status=200, headers={})
+
+
+def test_multipart_dict() -> None:
+    client = _client()
+    mock = MagicMock(return_value=_mock_response())
+    client.pool_manager.request = mock  # type: ignore[method-assign]
+    client.request(  # type: ignore[no-untyped-call]
+        "POST",
+        "http://example.com",
+        headers={"Content-Type": "multipart/form-data"},
+        post_params={"foo": "bar", "baz": {"a": 1}},
+    )
+    kwargs = mock.call_args.kwargs
+    assert kwargs["encode_multipart"] is True
+    assert kwargs["fields"] == [
+        ("foo", "bar"),
+        ("baz", json.dumps({"a": 1})),
+    ]
+
+
+def test_multipart_list() -> None:
+    client = _client()
+    mock = MagicMock(return_value=_mock_response())
+    client.pool_manager.request = mock  # type: ignore[method-assign]
+    client.request(  # type: ignore[no-untyped-call]
+        "POST",
+        "http://example.com",
+        headers={"Content-Type": "multipart/form-data"},
+        post_params=[("foo", "bar"), ("baz", {"a": 1})],
+    )
+    kwargs = mock.call_args.kwargs
+    assert kwargs["encode_multipart"] is True
+    assert kwargs["fields"] == [
+        ("foo", "bar"),
+        ("baz", json.dumps({"a": 1})),
+    ]
