@@ -1,3 +1,5 @@
+from datetime import time
+
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
@@ -6,7 +8,7 @@ class ReminderSchema(BaseModel):
     id: int | None = None
     type: str
     title: str | None = None
-    time: str | None = None
+    time: time | None = None
     intervalHours: int | None = None
     minutesAfter: int | None = None
     isEnabled: bool = True

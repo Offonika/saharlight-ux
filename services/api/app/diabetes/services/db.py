@@ -216,7 +216,7 @@ class Reminder(Base):
     )
     org_id: Mapped[int | None] = mapped_column(Integer)
     type: Mapped[str] = mapped_column(String, nullable=False)
-    time: Mapped[str | None] = mapped_column(String)
+    time: Mapped[time | None] = mapped_column(Time)
     interval_hours: Mapped[int | None] = mapped_column(Integer)
     minutes_after: Mapped[int | None] = mapped_column(Integer)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)

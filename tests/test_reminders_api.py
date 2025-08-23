@@ -1,5 +1,7 @@
 import pytest
 from collections.abc import Generator
+from datetime import time
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -59,7 +61,7 @@ def test_nonempty_returns_list(
                 id=1,
                 telegram_id=1,
                 type="sugar",
-                time="08:00",
+                time=time(8, 0),
                 interval_hours=3,
             )
         )
@@ -105,7 +107,7 @@ def test_patch_updates_reminder(
                 id=1,
                 telegram_id=1,
                 type="sugar",
-                time="08:00",
+                time=time(8, 0),
                 interval_hours=3,
             )
         )
@@ -125,7 +127,7 @@ def test_patch_updates_reminder(
     with session_factory() as session:
         rem = session.get(Reminder, 1)
         assert rem is not None
-        assert rem.time == "09:00"
+        assert rem.time == time(9, 0)
 
 
 def test_delete_reminder(client: TestClient, session_factory: sessionmaker) -> None:

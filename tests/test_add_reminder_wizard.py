@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import Any, Callable, cast
 
 import pytest
+from datetime import time
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from telegram import Update
@@ -96,7 +98,7 @@ async def test_webapp_save_creates_reminder(
 
     with TestSession() as session:
         rem = session.query(Reminder).first()
-        assert rem and rem.time == "08:00"
+        assert rem and rem.time == time(8, 0)
 
 
 @pytest.mark.asyncio

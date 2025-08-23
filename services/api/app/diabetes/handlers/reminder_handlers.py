@@ -113,11 +113,12 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
     next_dt: datetime.datetime | None
     if rem.time:
         type_icon = "⏰"
-        hh, mm = map(int, rem.time.split(":"))
-        next_dt = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+        next_dt = now.replace(
+            hour=rem.time.hour, minute=rem.time.minute, second=0, microsecond=0
+        )
         if next_dt <= now:
             next_dt += timedelta(days=1)
-        base = rem.time
+        base = rem.time.strftime("%H:%M")
     elif rem.interval_hours:
         type_icon = "⏱"
         next_dt = now + timedelta(hours=rem.interval_hours)
@@ -268,7 +269,6 @@ def schedule_reminder(
 
     if rem.type in {"sugar", "long_insulin", "medicine"}:
         if rem.time:
-            hh, mm = map(int, rem.time.split(":"))
             logger.debug(
                 "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
                 rem.id,
@@ -279,7 +279,7 @@ def schedule_reminder(
             )
             job_queue.run_daily(
                 reminder_job,
-                time=time(hour=hh, minute=mm, tzinfo=tz),
+                time=rem.time.replace(tzinfo=tz),
                 data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
                 name=name,
             )
@@ -518,7 +518,7 @@ async def reminder_webapp_save(
         else:
             rem.minutes_after = None
             if isinstance(parsed, time):
-                rem.time = parsed.strftime("%H:%M")
+                rem.time = parsed
                 rem.interval_hours = None
             else:
                 rem.time = None
