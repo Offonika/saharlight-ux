@@ -3,7 +3,11 @@ import os
 import re
 from datetime import datetime, time, timedelta
 from json import JSONDecodeError
-from typing import cast
+
+from urllib.error import URLError
+from urllib.request import urlopen
+
+
 
 import httpx
 
@@ -121,8 +125,8 @@ def split_text_by_width(
 
     def _width(chunk: str) -> float:
         try:
-            raw = cast(float, stringWidth(chunk, font_name, font_size))
-            return raw / cast(float, mm)
+            raw = float(stringWidth(chunk, font_name, font_size))
+            return raw / float(mm)
         except KeyError as exc:
             raise ValueError(f"Unknown font '{font_name}'") from exc
 

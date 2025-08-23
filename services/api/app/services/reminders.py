@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, cast
+from typing import cast
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -11,16 +11,15 @@ from ..schemas.reminders import ReminderSchema
 from ..types import SessionProtocol
 
 
-async def list_reminders(telegram_id: int) -> List[Reminder]:
-    def _list(session: SessionProtocol) -> List[Reminder]:
+async def list_reminders(telegram_id: int) -> list[Reminder]:
+    def _list(session: SessionProtocol) -> list[Reminder]:
         if cast(User | None, session.get(User, telegram_id)) is None:
             return []
-        return cast(
-            List[Reminder],
+        return (
             cast(Session, session)
             .query(Reminder)
             .filter_by(telegram_id=telegram_id)
-            .all(),
+            .all()
         )
 
     return await run_db(_list, sessionmaker=SessionLocal)
