@@ -16,8 +16,8 @@ from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
-from pydantic import StrictInt, StrictStr
-from typing import Any, Dict, List, Optional
+from pydantic import StrictInt
+from typing import Any, Dict, List
 from diabetes_sdk.models.reminder_schema import ReminderSchema
 
 from diabetes_sdk.api_client import ApiClient, RequestSerialized
@@ -43,7 +43,6 @@ class RemindersApi:
         self,
         telegram_id: StrictInt,
         id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -64,8 +63,6 @@ class RemindersApi:
         :type telegram_id: int
         :param id: (required)
         :type id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -91,7 +88,6 @@ class RemindersApi:
         _param = self._reminders_delete_serialize(
             telegram_id=telegram_id,
             id=id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -119,7 +115,6 @@ class RemindersApi:
         self,
         telegram_id: StrictInt,
         id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -140,8 +135,6 @@ class RemindersApi:
         :type telegram_id: int
         :param id: (required)
         :type id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -167,7 +160,6 @@ class RemindersApi:
         _param = self._reminders_delete_serialize(
             telegram_id=telegram_id,
             id=id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -195,7 +187,6 @@ class RemindersApi:
         self,
         telegram_id: StrictInt,
         id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -216,8 +207,6 @@ class RemindersApi:
         :type telegram_id: int
         :param id: (required)
         :type id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -243,7 +232,6 @@ class RemindersApi:
         _param = self._reminders_delete_serialize(
             telegram_id=telegram_id,
             id=id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -266,7 +254,6 @@ class RemindersApi:
         self,
         telegram_id,
         id,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -298,8 +285,6 @@ class RemindersApi:
             _query_params.append(('id', id))
             
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
 
@@ -315,6 +300,7 @@ class RemindersApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -339,7 +325,6 @@ class RemindersApi:
     def reminders_get(
         self,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -358,8 +343,6 @@ class RemindersApi:
 
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -384,7 +367,6 @@ class RemindersApi:
 
         _param = self._reminders_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -411,7 +393,6 @@ class RemindersApi:
     def reminders_get_with_http_info(
         self,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -430,8 +411,6 @@ class RemindersApi:
 
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -456,7 +435,6 @@ class RemindersApi:
 
         _param = self._reminders_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -483,7 +461,6 @@ class RemindersApi:
     def reminders_get_without_preload_content(
         self,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -502,8 +479,6 @@ class RemindersApi:
 
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -528,7 +503,6 @@ class RemindersApi:
 
         _param = self._reminders_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -550,7 +524,6 @@ class RemindersApi:
     def _reminders_get_serialize(
         self,
         telegram_id,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -578,8 +551,6 @@ class RemindersApi:
             _query_params.append(('telegramId', telegram_id))
             
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
 
@@ -595,6 +566,7 @@ class RemindersApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -620,7 +592,6 @@ class RemindersApi:
         self,
         id: StrictInt,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -641,8 +612,6 @@ class RemindersApi:
         :type id: int
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -668,7 +637,6 @@ class RemindersApi:
         _param = self._reminders_id_get_serialize(
             id=id,
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -696,7 +664,6 @@ class RemindersApi:
         self,
         id: StrictInt,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -717,8 +684,6 @@ class RemindersApi:
         :type id: int
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -744,7 +709,6 @@ class RemindersApi:
         _param = self._reminders_id_get_serialize(
             id=id,
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -772,7 +736,6 @@ class RemindersApi:
         self,
         id: StrictInt,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -793,8 +756,6 @@ class RemindersApi:
         :type id: int
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -820,7 +781,6 @@ class RemindersApi:
         _param = self._reminders_id_get_serialize(
             id=id,
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -843,7 +803,6 @@ class RemindersApi:
         self,
         id,
         telegram_id,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -873,8 +832,6 @@ class RemindersApi:
             _query_params.append(('telegramId', telegram_id))
             
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
 
@@ -890,6 +847,7 @@ class RemindersApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -914,7 +872,6 @@ class RemindersApi:
     def reminders_patch(
         self,
         reminder: ReminderSchema,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -933,8 +890,6 @@ class RemindersApi:
 
         :param reminder: (required)
         :type reminder: ReminderSchema
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -959,7 +914,6 @@ class RemindersApi:
 
         _param = self._reminders_patch_serialize(
             reminder=reminder,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -985,7 +939,6 @@ class RemindersApi:
     def reminders_patch_with_http_info(
         self,
         reminder: ReminderSchema,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1004,8 +957,6 @@ class RemindersApi:
 
         :param reminder: (required)
         :type reminder: ReminderSchema
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1030,7 +981,6 @@ class RemindersApi:
 
         _param = self._reminders_patch_serialize(
             reminder=reminder,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1056,7 +1006,6 @@ class RemindersApi:
     def reminders_patch_without_preload_content(
         self,
         reminder: ReminderSchema,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1075,8 +1024,6 @@ class RemindersApi:
 
         :param reminder: (required)
         :type reminder: ReminderSchema
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1101,7 +1048,6 @@ class RemindersApi:
 
         _param = self._reminders_patch_serialize(
             reminder=reminder,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1122,7 +1068,6 @@ class RemindersApi:
     def _reminders_patch_serialize(
         self,
         reminder,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -1146,8 +1091,6 @@ class RemindersApi:
         # process the path parameters
         # process the query parameters
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
         if reminder is not None:
@@ -1178,6 +1121,7 @@ class RemindersApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -1202,7 +1146,6 @@ class RemindersApi:
     def reminders_post(
         self,
         reminder: ReminderSchema,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1221,8 +1164,6 @@ class RemindersApi:
 
         :param reminder: (required)
         :type reminder: ReminderSchema
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1247,7 +1188,6 @@ class RemindersApi:
 
         _param = self._reminders_post_serialize(
             reminder=reminder,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1273,7 +1213,6 @@ class RemindersApi:
     def reminders_post_with_http_info(
         self,
         reminder: ReminderSchema,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1292,8 +1231,6 @@ class RemindersApi:
 
         :param reminder: (required)
         :type reminder: ReminderSchema
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1318,7 +1255,6 @@ class RemindersApi:
 
         _param = self._reminders_post_serialize(
             reminder=reminder,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1344,7 +1280,6 @@ class RemindersApi:
     def reminders_post_without_preload_content(
         self,
         reminder: ReminderSchema,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1363,8 +1298,6 @@ class RemindersApi:
 
         :param reminder: (required)
         :type reminder: ReminderSchema
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1389,7 +1322,6 @@ class RemindersApi:
 
         _param = self._reminders_post_serialize(
             reminder=reminder,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1410,7 +1342,6 @@ class RemindersApi:
     def _reminders_post_serialize(
         self,
         reminder,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -1434,8 +1365,6 @@ class RemindersApi:
         # process the path parameters
         # process the query parameters
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
         if reminder is not None:
@@ -1466,6 +1395,7 @@ class RemindersApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(

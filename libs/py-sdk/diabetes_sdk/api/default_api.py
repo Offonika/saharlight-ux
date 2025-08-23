@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
 from pydantic import StrictInt, StrictStr
-from typing import Dict, List, Optional
+from typing import Dict, List
 from diabetes_sdk.models.analytics_point import AnalyticsPoint
 from diabetes_sdk.models.day_stats import DayStats
 from diabetes_sdk.models.role_schema import RoleSchema
@@ -47,7 +47,6 @@ class DefaultApi:
     def create_user_user_post(
         self,
         web_user: WebUser,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -67,8 +66,6 @@ class DefaultApi:
 
         :param web_user: (required)
         :type web_user: WebUser
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -93,7 +90,6 @@ class DefaultApi:
 
         _param = self._create_user_user_post_serialize(
             web_user=web_user,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -119,7 +115,6 @@ class DefaultApi:
     def create_user_user_post_with_http_info(
         self,
         web_user: WebUser,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -139,8 +134,6 @@ class DefaultApi:
 
         :param web_user: (required)
         :type web_user: WebUser
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -165,7 +158,6 @@ class DefaultApi:
 
         _param = self._create_user_user_post_serialize(
             web_user=web_user,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -191,7 +183,6 @@ class DefaultApi:
     def create_user_user_post_without_preload_content(
         self,
         web_user: WebUser,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -211,8 +202,6 @@ class DefaultApi:
 
         :param web_user: (required)
         :type web_user: WebUser
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -237,7 +226,6 @@ class DefaultApi:
 
         _param = self._create_user_user_post_serialize(
             web_user=web_user,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -258,7 +246,6 @@ class DefaultApi:
     def _create_user_user_post_serialize(
         self,
         web_user,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -282,8 +269,6 @@ class DefaultApi:
         # process the path parameters
         # process the query parameters
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
         if web_user is not None:
@@ -314,6 +299,7 @@ class DefaultApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -338,7 +324,6 @@ class DefaultApi:
     def get_analytics_analytics_get(
         self,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -357,8 +342,6 @@ class DefaultApi:
 
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -383,7 +366,6 @@ class DefaultApi:
 
         _param = self._get_analytics_analytics_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -392,6 +374,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "List[AnalyticsPoint]",
+            '403': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -409,7 +392,6 @@ class DefaultApi:
     def get_analytics_analytics_get_with_http_info(
         self,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -428,8 +410,6 @@ class DefaultApi:
 
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -454,7 +434,6 @@ class DefaultApi:
 
         _param = self._get_analytics_analytics_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -463,6 +442,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "List[AnalyticsPoint]",
+            '403': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -480,7 +460,6 @@ class DefaultApi:
     def get_analytics_analytics_get_without_preload_content(
         self,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -499,8 +478,6 @@ class DefaultApi:
 
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -525,7 +502,6 @@ class DefaultApi:
 
         _param = self._get_analytics_analytics_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -534,6 +510,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "List[AnalyticsPoint]",
+            '403': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -546,7 +523,6 @@ class DefaultApi:
     def _get_analytics_analytics_get_serialize(
         self,
         telegram_id,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -574,8 +550,6 @@ class DefaultApi:
             _query_params.append(('telegramId', telegram_id))
             
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
 
@@ -591,6 +565,7 @@ class DefaultApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -851,6 +826,7 @@ class DefaultApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -875,7 +851,6 @@ class DefaultApi:
     def get_stats_stats_get(
         self,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -894,8 +869,6 @@ class DefaultApi:
 
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -920,7 +893,6 @@ class DefaultApi:
 
         _param = self._get_stats_stats_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -930,6 +902,7 @@ class DefaultApi:
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "DayStats",
             '204': None,
+            '403': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -947,7 +920,6 @@ class DefaultApi:
     def get_stats_stats_get_with_http_info(
         self,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -966,8 +938,6 @@ class DefaultApi:
 
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -992,7 +962,6 @@ class DefaultApi:
 
         _param = self._get_stats_stats_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1002,6 +971,7 @@ class DefaultApi:
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "DayStats",
             '204': None,
+            '403': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -1019,7 +989,6 @@ class DefaultApi:
     def get_stats_stats_get_without_preload_content(
         self,
         telegram_id: StrictInt,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1038,8 +1007,6 @@ class DefaultApi:
 
         :param telegram_id: (required)
         :type telegram_id: int
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1064,7 +1031,6 @@ class DefaultApi:
 
         _param = self._get_stats_stats_get_serialize(
             telegram_id=telegram_id,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1074,6 +1040,7 @@ class DefaultApi:
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "DayStats",
             '204': None,
+            '403': None,
             '422': "HTTPValidationError",
         }
         response_data = self.api_client.call_api(
@@ -1086,7 +1053,6 @@ class DefaultApi:
     def _get_stats_stats_get_serialize(
         self,
         telegram_id,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -1114,8 +1080,6 @@ class DefaultApi:
             _query_params.append(('telegramId', telegram_id))
             
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
 
@@ -1131,6 +1095,7 @@ class DefaultApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -1154,7 +1119,6 @@ class DefaultApi:
     @validate_call
     def get_timezone_timezone_get(
         self,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1171,8 +1135,6 @@ class DefaultApi:
         """Get Timezone
 
 
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1196,7 +1158,6 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._get_timezone_timezone_get_serialize(
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1221,7 +1182,6 @@ class DefaultApi:
     @validate_call
     def get_timezone_timezone_get_with_http_info(
         self,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1238,8 +1198,6 @@ class DefaultApi:
         """Get Timezone
 
 
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1263,7 +1221,6 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._get_timezone_timezone_get_serialize(
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1288,7 +1245,6 @@ class DefaultApi:
     @validate_call
     def get_timezone_timezone_get_without_preload_content(
         self,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1305,8 +1261,6 @@ class DefaultApi:
         """Get Timezone
 
 
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1330,7 +1284,6 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._get_timezone_timezone_get_serialize(
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1350,7 +1303,6 @@ class DefaultApi:
 
     def _get_timezone_timezone_get_serialize(
         self,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -1374,8 +1326,6 @@ class DefaultApi:
         # process the path parameters
         # process the query parameters
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
 
@@ -1391,6 +1341,7 @@ class DefaultApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -1656,7 +1607,6 @@ class DefaultApi:
     @validate_call
     def profile_self_profile_self_get(
         self,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1673,8 +1623,6 @@ class DefaultApi:
         """Profile Self
 
 
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1698,7 +1646,6 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._profile_self_profile_self_get_serialize(
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1723,7 +1670,6 @@ class DefaultApi:
     @validate_call
     def profile_self_profile_self_get_with_http_info(
         self,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1740,8 +1686,6 @@ class DefaultApi:
         """Profile Self
 
 
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1765,7 +1709,6 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._profile_self_profile_self_get_serialize(
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1790,7 +1733,6 @@ class DefaultApi:
     @validate_call
     def profile_self_profile_self_get_without_preload_content(
         self,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1807,8 +1749,6 @@ class DefaultApi:
         """Profile Self
 
 
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1832,7 +1772,6 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._profile_self_profile_self_get_serialize(
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1852,7 +1791,6 @@ class DefaultApi:
 
     def _profile_self_profile_self_get_serialize(
         self,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -1876,8 +1814,6 @@ class DefaultApi:
         # process the path parameters
         # process the query parameters
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
 
@@ -1893,6 +1829,7 @@ class DefaultApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -2181,6 +2118,7 @@ class DefaultApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
@@ -2205,7 +2143,6 @@ class DefaultApi:
     def put_timezone_timezone_put(
         self,
         timezone: Timezone,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -2224,8 +2161,6 @@ class DefaultApi:
 
         :param timezone: (required)
         :type timezone: Timezone
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -2250,7 +2185,6 @@ class DefaultApi:
 
         _param = self._put_timezone_timezone_put_serialize(
             timezone=timezone,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -2276,7 +2210,6 @@ class DefaultApi:
     def put_timezone_timezone_put_with_http_info(
         self,
         timezone: Timezone,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -2295,8 +2228,6 @@ class DefaultApi:
 
         :param timezone: (required)
         :type timezone: Timezone
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -2321,7 +2252,6 @@ class DefaultApi:
 
         _param = self._put_timezone_timezone_put_serialize(
             timezone=timezone,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -2347,7 +2277,6 @@ class DefaultApi:
     def put_timezone_timezone_put_without_preload_content(
         self,
         timezone: Timezone,
-        x_telegram_init_data: Optional[StrictStr] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -2366,8 +2295,6 @@ class DefaultApi:
 
         :param timezone: (required)
         :type timezone: Timezone
-        :param x_telegram_init_data:
-        :type x_telegram_init_data: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -2392,7 +2319,6 @@ class DefaultApi:
 
         _param = self._put_timezone_timezone_put_serialize(
             timezone=timezone,
-            x_telegram_init_data=x_telegram_init_data,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -2413,7 +2339,6 @@ class DefaultApi:
     def _put_timezone_timezone_put_serialize(
         self,
         timezone,
-        x_telegram_init_data,
         _request_auth,
         _content_type,
         _headers,
@@ -2437,8 +2362,6 @@ class DefaultApi:
         # process the path parameters
         # process the query parameters
         # process the header parameters
-        if x_telegram_init_data is not None:
-            _header_params['X-Telegram-Init-Data'] = x_telegram_init_data
         # process the form parameters
         # process the body parameter
         if timezone is not None:
@@ -2469,6 +2392,7 @@ class DefaultApi:
 
         # authentication setting
         _auth_settings: List[str] = [
+            'telegramInitData'
         ]
 
         return self.api_client.param_serialize(
