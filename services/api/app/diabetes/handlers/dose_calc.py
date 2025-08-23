@@ -42,7 +42,7 @@ from .profile import profile_view
 from services.api.app.diabetes.gpt_command_parser import parse_command
 from .alert_handlers import check_alert
 from .reporting_handlers import history_view, report_request, send_report
-from . import UserData
+from . import EntryData, UserData
 
 logger = logging.getLogger(__name__)
 
@@ -123,11 +123,12 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if xe < 0:
         await message.reply_text("Количество ХЕ не может быть отрицательным.")
         return DOSE_XE
-    user_data["pending_entry"] = {
+    entry: EntryData = {
         "telegram_id": user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
         "xe": xe,
     }
+    user_data["pending_entry"] = entry
     await message.reply_text("Введите текущий сахар (ммоль/л).")
     return DOSE_SUGAR
 
@@ -154,11 +155,12 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if carbs < 0:
         await message.reply_text("Количество углеводов не может быть отрицательным.")
         return DOSE_CARBS
-    user_data["pending_entry"] = {
+    entry: EntryData = {
         "telegram_id": user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
         "carbs_g": carbs,
     }
+    user_data["pending_entry"] = entry
     await message.reply_text("Введите текущий сахар (ммоль/л).")
     return DOSE_SUGAR
 
@@ -186,7 +188,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await message.reply_text("Сахар не может быть отрицательным.")
         return DOSE_SUGAR
 
-    entry = user_data.get("pending_entry", {})
+    entry = cast(EntryData, user_data.get("pending_entry", {}))
     entry["sugar_before"] = sugar
     xe = entry.get("xe")
     carbs_g = entry.get("carbs_g")
