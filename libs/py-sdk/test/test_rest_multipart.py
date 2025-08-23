@@ -27,6 +27,7 @@ def test_multipart_dict() -> None:
     )
     kwargs = mock.call_args.kwargs
     assert kwargs["encode_multipart"] is True
+    assert all(len(item) == 2 for item in kwargs["fields"])
     assert kwargs["fields"] == [
         ("foo", "bar"),
         ("baz", json.dumps({"a": 1})),
@@ -45,6 +46,7 @@ def test_multipart_list() -> None:
     )
     kwargs = mock.call_args.kwargs
     assert kwargs["encode_multipart"] is True
+    assert all(len(item) == 2 for item in kwargs["fields"])
     assert kwargs["fields"] == [
         ("foo", "bar"),
         ("baz", json.dumps({"a": 1})),
@@ -64,4 +66,5 @@ def test_multipart_nested_dict() -> None:
     )
     kwargs = mock.call_args.kwargs
     assert kwargs["encode_multipart"] is True
+    assert all(len(item) == 2 for item in kwargs["fields"])
     assert kwargs["fields"] == [("nested", json.dumps(nested))]
