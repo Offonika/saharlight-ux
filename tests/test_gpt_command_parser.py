@@ -224,6 +224,41 @@ async def test_parse_command_with_nested_json(
 
 
 @pytest.mark.asyncio
+async def test_parse_command_with_braces_in_explanatory_text(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {
+                    "message": type(
+                        "Msg",
+                        (),
+                        {
+                            "content": (
+                                '"пример {текста}" '
+                                '{"action":"add_entry","fields":{}}'
+                                " trailing"
+                            )
+                        },
+                    )()
+                },
+            )
+        ]
+
+    def create(*args: Any, **kwargs: Any) -> Any:
+        return FakeResponse()
+
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
+
+    result = await gpt_command_parser.parse_command("test")
+
+    assert result == {"action": "add_entry", "fields": {}}
+
+
+@pytest.mark.asyncio
 async def test_parse_command_with_scalar_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -381,6 +416,22 @@ def test_extract_first_json_array_multiple_objects() -> None:
 
 def test_extract_first_json_multiple_objects() -> None:
     text = '{"action":"add_entry","fields":{}} ' '{"action":"delete_entry","fields":{}}'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
+def test_extract_first_json_braces_in_string_before_object() -> None:
+    text = 'prefix "not json { }" {"action":"add_entry","fields":{}}'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
+def test_extract_first_json_multiple_objects_no_space() -> None:
+    text = '{"action":"add_entry","fields":{}}' '{"action":"delete_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},

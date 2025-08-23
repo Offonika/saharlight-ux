@@ -65,45 +65,77 @@ def _sanitize_sensitive_data(text: str) -> str:
 
 
 def _extract_first_json(text: str) -> dict[str, object] | None:
-    """Return the first standalone JSON object in *text* or ``None``.
+    """Return the first complete JSON object found in *text*.
 
-    The GPT model sometimes wraps a single dictionary in an array, e.g.
-    ``[{"action": "add_entry"}]``.  In that case the first (and only)
-    dictionary should be extracted.  Arrays with multiple elements are
-    ignored to avoid ambiguity.
+    The previous implementation delegated to :class:`json.JSONDecoder` with a
+    moving ``raw_decode`` window.  That approach is brittle when the GPT reply
+    contains stray ``{`` or ``[`` characters inside quoted strings or when
+    several JSON objects are concatenated together.  Here we perform a small
+    character-by-character scan tracking string literals and bracket depth to
+    reliably locate the first standalone JSON payload.
+
+    If the top-level structure is an array, a single dictionary element is
+    extracted (``[{"action": "add_entry"}]``).  Arrays with multiple elements
+    are ignored to avoid ambiguity.
     """
 
-    decoder = json.JSONDecoder()
-    search_start = 0
-    while True:
-        # Look for either an object or an array to handle ``[{...}]`` replies.
-        obj_start = text.find("{", search_start)
-        arr_start = text.find("[", search_start)
-        if obj_start == -1 and arr_start == -1:
-            break
+    start: int | None = None
+    depth = 0
+    in_string = False
+    escape = False
 
-        if arr_start != -1 and (obj_start == -1 or arr_start < obj_start):
-            start = arr_start
-        else:
-            start = obj_start
-
-        try:
-            obj, end = decoder.raw_decode(text, start)
-        except json.JSONDecodeError as exc:  # pragma: no cover - simple fallback
-            search_start = exc.pos + 1
+    for idx, ch in enumerate(text):
+        if start is None:
+            if ch == '"' and not escape:
+                in_string = not in_string
+                escape = False
+                continue
+            if ch == "\\" and in_string:
+                escape = not escape
+                continue
+            if ch in "[{" and not in_string:
+                start = idx
+                depth = 1
+            escape = False
             continue
 
-        if isinstance(obj, dict):
-            return obj
-
-        if isinstance(obj, list):
-            if len(obj) == 1 and isinstance(obj[0], dict):
-                return obj[0]
-            # Skip the whole array before continuing the search.
-            search_start = end
+        # We are inside a potential JSON segment
+        if in_string:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_string = False
             continue
 
-        search_start = start + 1
+        if ch == '"':
+            in_string = True
+            continue
+
+        if ch in "[{":
+            depth += 1
+        elif ch in "}]":
+            depth -= 1
+            if depth == 0 and start is not None:
+                candidate = text[start : idx + 1]
+                try:
+                    obj = json.loads(candidate)
+                except json.JSONDecodeError:
+                    start = None
+                    continue
+
+                if isinstance(obj, dict):
+                    return obj
+                if isinstance(obj, list):
+                    if len(obj) == 1 and isinstance(obj[0], dict):
+                        return obj[0]
+                    start = None
+                    continue
+                start = None
+                continue
+
+        escape = False
 
     return None
 
