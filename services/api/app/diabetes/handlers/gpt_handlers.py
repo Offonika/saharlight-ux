@@ -47,13 +47,14 @@ class RunDB(Protocol):
 
 logger = logging.getLogger(__name__)
 
+run_db: RunDB | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
-    run_db: RunDB | None = None
-except Exception:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db")
     run_db = None
+except Exception as exc:  # pragma: no cover - log unexpected errors
+    logger.exception("Unexpected error importing run_db", exc_info=exc)
+    raise
 else:
     run_db = cast(RunDB, _run_db)
 

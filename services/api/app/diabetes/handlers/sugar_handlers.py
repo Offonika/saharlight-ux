@@ -14,15 +14,17 @@ from telegram.ext import (
 from sqlalchemy.orm import Session
 
 from services.api.app.diabetes.services.db import Entry, SessionLocal
+
 logger = logging.getLogger(__name__)
 
+run_db: Callable[..., Awaitable[object]] | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
-    run_db: Callable[..., Awaitable[object]] | None = None
-except Exception:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db")
     run_db = None
+except Exception as exc:  # pragma: no cover - log unexpected errors
+    logger.exception("Unexpected error importing run_db", exc_info=exc)
+    raise
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
 from services.api.app.diabetes.services.repository import commit
