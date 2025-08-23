@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, cast
 
+from sqlalchemy import create_engine
+
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
@@ -34,7 +36,9 @@ class DummyContext:
 
 
 def make_update_context(text: str) -> tuple[DummyUpdate, DummyContext]:
-    update = DummyUpdate(message=DummyMessage(text), effective_user=SimpleNamespace(id=1))
+    update = DummyUpdate(
+        message=DummyMessage(text), effective_user=SimpleNamespace(id=1)
+    )
     context = DummyContext(user_data={}, chat_data={})
     return update, context
 
@@ -44,13 +48,15 @@ async def test_cancel_then_calls_cancel_first(monkeypatch: pytest.MonkeyPatch) -
     calls: list[str] = []
 
     async def dummy_cancel(
-        update: Update, context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
+        update: Update,
+        context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
     ) -> int:
         calls.append("cancel")
         return ConversationHandler.END
 
     async def handler(
-        update: Update, context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
+        update: Update,
+        context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
     ) -> int:
         calls.append("handler")
         return 42
@@ -60,7 +66,10 @@ async def test_cancel_then_calls_cancel_first(monkeypatch: pytest.MonkeyPatch) -
     wrapped = dose_calc._cancel_then(handler)
     result = await wrapped(
         cast(Update, DummyUpdate(DummyMessage(), SimpleNamespace())),
-        cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], DummyContext({}, {})),
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            DummyContext({}, {}),
+        ),
     )
 
     assert result == 42
@@ -72,7 +81,11 @@ async def test_dose_xe_valid_input() -> None:
     update, context = make_update_context("1.5")
 
     result = await dose_calc.dose_xe(
-        cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context)
+        cast(Update, update),
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            context,
+        ),
     )
 
     assert result == dose_calc.DOSE_SUGAR
@@ -86,7 +99,11 @@ async def test_dose_xe_rejects_non_numeric() -> None:
     update, context = make_update_context("abc")
 
     result = await dose_calc.dose_xe(
-        cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context)
+        cast(Update, update),
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            context,
+        ),
     )
 
     assert result == dose_calc.DOSE_XE
@@ -98,11 +115,17 @@ async def test_dose_carbs_negative() -> None:
     update, context = make_update_context("-1")
 
     result = await dose_calc.dose_carbs(
-        cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context)
+        cast(Update, update),
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            context,
+        ),
     )
 
     assert result == dose_calc.DOSE_CARBS
-    assert any("не может быть отриц" in reply.lower() for reply in update.message.replies)
+    assert any(
+        "не может быть отриц" in reply.lower() for reply in update.message.replies
+    )
 
 
 @dataclass
@@ -115,6 +138,7 @@ class DummyProfile:
 class DummySession:
     def __init__(self, profile: DummyProfile | None) -> None:
         self._profile = profile
+        self._engine = create_engine("sqlite://")
 
     def __enter__(self) -> DummySession:
         return self
@@ -124,6 +148,9 @@ class DummySession:
 
     def get(self, model: object, user_id: int) -> DummyProfile | None:
         return self._profile
+
+    def get_bind(self, **_: Any) -> Any:
+        return self._engine
 
 
 @pytest.mark.asyncio
@@ -135,7 +162,11 @@ async def test_dose_sugar_profile_required(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(dose_calc, "menu_keyboard", "menu")
 
     result = await dose_calc.dose_sugar(
-        cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context)
+        cast(Update, update),
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            context,
+        ),
     )
 
     assert result == dose_calc.END
@@ -155,7 +186,11 @@ async def test_dose_sugar_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(dose_calc, "confirm_keyboard", lambda: "confirm")
 
     result = await dose_calc.dose_sugar(
-        cast(Update, update), cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context)
+        cast(Update, update),
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            context,
+        ),
     )
 
     assert result == dose_calc.END
@@ -177,7 +212,10 @@ async def test_dose_sugar_converts_xe(monkeypatch: pytest.MonkeyPatch) -> None:
 
     result = await dose_calc.dose_sugar(
         cast(Update, update),
-        cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], context),
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            context,
+        ),
     )
 
     assert result == dose_calc.END
