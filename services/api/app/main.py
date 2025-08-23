@@ -137,6 +137,8 @@ async def catch_all_ui(full_path: str) -> FileResponse:
     except ValueError as exc:
         raise HTTPException(status_code=404) from exc
     if requested_file.is_file():
+        if requested_file.suffix == ".js":
+            return FileResponse(requested_file, media_type="text/javascript")
         return FileResponse(requested_file)
     return FileResponse(UI_DIR / "index.html")
 
