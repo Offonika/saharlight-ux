@@ -1,5 +1,5 @@
 import { DefaultApi } from '@offonika/diabetes-ts-sdk';
-import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
+import { Configuration, ResponseError } from '@offonika/diabetes-ts-sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 
@@ -89,6 +89,9 @@ export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint
     }
     return data as AnalyticsPoint[];
   } catch (error) {
+    if (error instanceof ResponseError && error.response.status === 403) {
+      return getFallbackAnalytics();
+    }
     console.error('Failed to fetch analytics:', error);
     return getFallbackAnalytics();
   }
@@ -119,6 +122,9 @@ export async function fetchDayStats(telegramId: number): Promise<DayStats> {
 
     return { sugar, breadUnits, insulin };
   } catch (error) {
+    if (error instanceof ResponseError && error.response.status === 403) {
+      return getFallbackDayStats();
+    }
     console.error('Failed to fetch day stats:', error);
     return getFallbackDayStats();
   }

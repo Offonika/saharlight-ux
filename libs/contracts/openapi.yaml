@@ -370,6 +370,8 @@ paths:
                 $ref: '#/components/schemas/DayStats'
         '204':
           description: No Content - no statistics available.
+        '403':
+          description: Forbidden
         '422':
           description: Validation Error
           content:
@@ -405,6 +407,8 @@ paths:
                 items:
                   $ref: '#/components/schemas/AnalyticsPoint'
                 title: Response Get Analytics Analytics Get
+        '403':
+          description: Forbidden
         '422':
           description: Validation Error
           content:

@@ -1,13 +1,19 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-
-class Configuration {}
+import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
 
 const mockGetAnalytics = vi.hoisted(() => vi.fn());
 const mockGetStats = vi.hoisted(() => vi.fn());
 
 vi.mock(
   '@offonika/diabetes-ts-sdk/runtime',
-  () => ({ Configuration }),
+  () => {
+    class Configuration {}
+    class ResponseError extends Error {
+      constructor(public response: { status: number }) {
+        super('Response error');
+      }
+    }
+    return { Configuration, ResponseError };
+  },
   { virtual: true },
 );
 
@@ -28,6 +34,12 @@ import {
   getFallbackAnalytics,
   getFallbackDayStats,
 } from './stats';
+
+let ResponseError: new (arg: { status: number }) => Error;
+
+beforeAll(async () => {
+  ({ ResponseError } = await import('@offonika/diabetes-ts-sdk/runtime'));
+});
 
 afterEach(() => {
   mockGetAnalytics.mockReset();
@@ -60,6 +72,13 @@ describe('fetchAnalytics', () => {
     expect(result[4].date).toBe('2024-05-05');
     vi.useRealTimers();
   });
+
+  it('returns fallback on 403 response', async () => {
+    mockGetAnalytics.mockRejectedValueOnce(
+      new ResponseError({ status: 403 }),
+    );
+    await expect(fetchAnalytics(1)).resolves.toEqual(getFallbackAnalytics());
+  });
 });
 
 describe('fetchDayStats', () => {
@@ -77,6 +96,11 @@ describe('fetchDayStats', () => {
 
   it('returns fallback on network error', async () => {
     mockGetStats.mockRejectedValueOnce(new Error('network'));
+    await expect(fetchDayStats(1)).resolves.toEqual(getFallbackDayStats());
+  });
+
+  it('returns fallback on 403 response', async () => {
+    mockGetStats.mockRejectedValueOnce(new ResponseError({ status: 403 }));
     await expect(fetchDayStats(1)).resolves.toEqual(getFallbackDayStats());
   });
 });

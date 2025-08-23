@@ -95,6 +95,18 @@ def test_analytics_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     assert body and body[0].get("date")
 
 
+def test_analytics_mismatched_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data = build_init_data(1)
+    with TestClient(app) as client:
+        resp = client.get(
+            "/api/analytics",
+            params={"telegramId": 2},
+            headers={TG_INIT_DATA_HEADER: init_data},
+        )
+    assert resp.status_code == 403
+
+
 def test_stats_no_data(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data = build_init_data(5)
