@@ -7,6 +7,7 @@ from datetime import datetime, time, timedelta
 from json import JSONDecodeError
 from urllib.error import URLError
 from urllib.request import urlopen
+from typing import cast
 
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib.units import mm
@@ -119,10 +120,20 @@ def split_text_by_width(
 ) -> list[str]:
     """
     Разбивает строку так, чтобы она не выходила за max_width_mm по ширине в PDF (мм).
+
+    Raises:
+        ValueError: если ``font_name`` не зарегистрирован в ReportLab.
     """
     words = text.split()
     lines: list[str] = []
     current_line = ""
+
+    def _width(chunk: str) -> float:
+        try:
+            raw = cast(float, stringWidth(chunk, font_name, font_size))
+            return raw / cast(float, mm)
+        except KeyError as exc:
+            raise ValueError(f"Unknown font '{font_name}'") from exc
 
     def _split_word(word: str) -> list[str]:
         """Split a single word into chunks that fit within ``max_width_mm``."""
@@ -131,10 +142,7 @@ def split_text_by_width(
         part = ""
         for ch in word:
             test_part = part + ch
-            if (
-                stringWidth(test_part, font_name, font_size) / mm > max_width_mm
-                and part
-            ):
+            if _width(test_part) > max_width_mm and part:
                 parts.append(part)
                 part = ch
             else:
@@ -145,7 +153,7 @@ def split_text_by_width(
 
     for word in words:
         test_line = (current_line + " " + word).strip()
-        width = stringWidth(test_line, font_name, font_size) / mm
+        width = _width(test_line)
         if width <= max_width_mm:
             current_line = test_line
             continue
@@ -154,7 +162,7 @@ def split_text_by_width(
             lines.append(current_line)
             current_line = ""
 
-        if stringWidth(word, font_name, font_size) / mm <= max_width_mm:
+        if _width(word) <= max_width_mm:
             current_line = word
         else:
             parts = _split_word(word)

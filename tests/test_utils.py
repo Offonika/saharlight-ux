@@ -55,6 +55,11 @@ def test_split_text_by_width_simple() -> None:
     assert all(isinstance(line, str) for line in lines)
 
 
+def test_split_text_by_width_unknown_font() -> None:
+    with pytest.raises(ValueError, match="Unknown font"):
+        split_text_by_width("text", "NoSuchFont", 12, 50)
+
+
 @pytest.mark.parametrize(
     "text",
     [
