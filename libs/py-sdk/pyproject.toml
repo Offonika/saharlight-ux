@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/GIT_USER_ID/GIT_REPO_ID"
+Repository = "https://github.com/Offonika/saharlight-ux"
 
 [project.license]
 file = "LICENSE"
