@@ -26,9 +26,7 @@ class DummyMessage:
 def _get_menu_handler(
     fallbacks: Sequence[CommandHandler[Any]],
 ) -> CommandHandler[Any]:
-    return next(
-        h for h in fallbacks if "menu" in getattr(h, "commands", [])
-    )
+    return next(h for h in fallbacks if "menu" in getattr(h, "commands", []))
 
 
 @pytest.mark.asyncio
@@ -60,21 +58,19 @@ async def test_sugar_conv_menu_then_photo() -> None:
 
     next_message = DummyMessage("📷 Фото еды")
     next_update = cast(
-        Update, SimpleNamespace(message=next_message, effective_user=SimpleNamespace(id=1))
+        Update,
+        SimpleNamespace(message=next_message, effective_user=SimpleNamespace(id=1)),
     )
     await dose_calc.photo_prompt(next_update, context)
     assert any("фото" in r.lower() for r in next_message.replies)
+
 
 @pytest.mark.asyncio
 async def test_dose_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(
         cast(
             Sequence[CommandHandler[Any]],
-            [
-                h
-                for h in dose_calc.dose_conv.fallbacks
-                if isinstance(h, CommandHandler)
-            ],
+            [h for h in dose_calc.dose_conv.fallbacks if isinstance(h, CommandHandler)],
         )
     )
     message = DummyMessage("/menu")
@@ -94,7 +90,8 @@ async def test_dose_conv_menu_then_photo() -> None:
 
     next_message = DummyMessage("📷 Фото еды")
     next_update = cast(
-        Update, SimpleNamespace(message=next_message, effective_user=SimpleNamespace(id=1))
+        Update,
+        SimpleNamespace(message=next_message, effective_user=SimpleNamespace(id=1)),
     )
     await dose_calc.photo_prompt(next_update, context)
     assert any("фото" in r.lower() for r in next_message.replies)

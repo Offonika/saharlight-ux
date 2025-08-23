@@ -42,14 +42,37 @@ class DummyMessage:
     [
         (["8", "3", "6", "4", "9"], "8.0", "3.0", "6.0", "4.0", "9.0"),
         (["8,5", "3,1", "6,7", "3,2", "8,2"], "8.5", "3.1", "6.7", "3.2", "8.2"),
-        (["icr=8", "cf=3", "target=6", "low=4", "high=9"], "8.0", "3.0", "6.0", "4.0", "9.0"),
-        (["target=6", "icr=8", "cf=3", "low=4", "high=9"], "8.0", "3.0", "6.0", "4.0", "9.0"),
+        (
+            ["icr=8", "cf=3", "target=6", "low=4", "high=9"],
+            "8.0",
+            "3.0",
+            "6.0",
+            "4.0",
+            "9.0",
+        ),
+        (
+            ["target=6", "icr=8", "cf=3", "low=4", "high=9"],
+            "8.0",
+            "3.0",
+            "6.0",
+            "4.0",
+            "9.0",
+        ),
         (["i=8", "c=3", "t=6", "l=4", "h=9"], "8.0", "3.0", "6.0", "4.0", "9.0"),
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_and_view(monkeypatch: pytest.MonkeyPatch, args: Any, expected_icr: Any, expected_cf: Any, expected_target: Any, expected_low: Any, expected_high: Any) -> None:
+async def test_profile_command_and_view(
+    monkeypatch: pytest.MonkeyPatch,
+    args: Any,
+    expected_icr: Any,
+    expected_cf: Any,
+    expected_target: Any,
+    expected_low: Any,
+    expected_high: Any,
+) -> None:
     import os
+
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -76,7 +99,8 @@ async def test_profile_command_and_view(monkeypatch: pytest.MonkeyPatch, args: A
 
     message2 = DummyMessage()
     update2 = cast(
-        Update, SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=123))
+        Update,
+        SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=123)),
     )
     context2 = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -184,7 +208,8 @@ async def test_profile_command_help_and_dialog(monkeypatch: pytest.MonkeyPatch) 
     # Test starting dialog with empty args
     dialog_msg = DummyMessage()
     update2 = cast(
-        Update, SimpleNamespace(message=dialog_msg, effective_user=SimpleNamespace(id=1))
+        Update,
+        SimpleNamespace(message=dialog_msg, effective_user=SimpleNamespace(id=1)),
     )
     context2 = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -197,7 +222,9 @@ async def test_profile_command_help_and_dialog(monkeypatch: pytest.MonkeyPatch) 
 
 
 @pytest.mark.asyncio
-async def test_profile_view_preserves_user_data(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_profile_view_preserves_user_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -235,9 +262,10 @@ async def test_profile_view_preserves_user_data(monkeypatch: pytest.MonkeyPatch)
     assert user_data["foo"] == "bar"
 
 
-
 @pytest.mark.asyncio
-async def test_profile_view_missing_profile_shows_webapp_button(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_profile_view_missing_profile_shows_webapp_button(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from urllib.parse import urlparse
     from services.api.app.config import settings as config_settings
     from services.api.app.diabetes.handlers import profile as handlers
@@ -264,4 +292,3 @@ async def test_profile_view_missing_profile_shows_webapp_button(monkeypatch: pyt
     assert button.text == "📝 Заполнить форму"
     assert button.web_app is not None
     assert urlparse(button.web_app.url).path == "/ui/profile"
-

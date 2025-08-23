@@ -17,14 +17,18 @@ class DummyMessage:
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 
-    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - kwargs unused
+    async def reply_text(
+        self, text: str, **kwargs: Any
+    ) -> None:  # pragma: no cover - kwargs unused
         self.replies.append(text)
         self.kwargs.append(kwargs)
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("plan, limit", [("free", 5), ("pro", 10)])
-async def test_reminder_limit_free_vs_pro(plan: Any, limit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_reminder_limit_free_vs_pro(
+    plan: Any, limit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -45,7 +49,9 @@ async def test_reminder_limit_free_vs_pro(plan: Any, limit: Any, monkeypatch: py
 
     msg = DummyMessage()
     msg.web_app_data.data = json.dumps({"type": "sugar", "value": "09:00"})
-    update: Any = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    update: Any = SimpleNamespace(
+        effective_message=msg, effective_user=SimpleNamespace(id=1)
+    )
     context: Any = SimpleNamespace(
         job_queue=SimpleNamespace(
             run_daily=lambda *a, **k: None,
@@ -57,5 +63,6 @@ async def test_reminder_limit_free_vs_pro(plan: Any, limit: Any, monkeypatch: py
     await handlers.reminder_webapp_save(update, context)
 
     assert msg.replies[-1] == (
-        f"У вас уже {limit} активных (лимит {plan.upper()}). Отключите одно или откройте PRO."
+        f"У вас уже {limit} активных (лимит {plan.upper()}). "
+        "Отключите одно или откройте PRO."
     )

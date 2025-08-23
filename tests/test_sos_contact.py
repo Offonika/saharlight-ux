@@ -46,7 +46,9 @@ def test_session(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("contact", ["@alice", "123456"])
-async def test_soscontact_stores_contact(test_session: sessionmaker, contact: Any) -> None:
+async def test_soscontact_stores_contact(
+    test_session: sessionmaker, contact: Any
+) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1))
@@ -71,7 +73,9 @@ async def test_soscontact_stores_contact(test_session: sessionmaker, contact: An
 
 
 @pytest.mark.asyncio
-async def test_alert_notifies_user_and_contact(test_session: sessionmaker, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_alert_notifies_user_and_contact(
+    test_session: sessionmaker, monkeypatch: pytest.MonkeyPatch
+) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8))
@@ -94,6 +98,7 @@ async def test_alert_notifies_user_and_contact(test_session: sessionmaker, monke
     context: AlertContext = ContextStub(bot=cast(Bot, SimpleNamespace()))
     send_mock = AsyncMock()
     monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
+
     async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
         return ("0,0", "link")
 
@@ -112,7 +117,9 @@ async def test_alert_notifies_user_and_contact(test_session: sessionmaker, monke
 
 
 @pytest.mark.asyncio
-async def test_alert_skips_phone_contact(test_session: sessionmaker, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_alert_skips_phone_contact(
+    test_session: sessionmaker, monkeypatch: pytest.MonkeyPatch
+) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(
@@ -149,7 +156,9 @@ async def test_alert_skips_phone_contact(test_session: sessionmaker, monkeypatch
 
 
 @pytest.mark.asyncio
-async def test_sos_contact_menu_button_starts_conv(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_sos_contact_menu_button_starts_conv(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -162,7 +171,8 @@ async def test_sos_contact_menu_button_starts_conv(monkeypatch: pytest.MonkeyPat
     sos_handler = next(
         h
         for h in app.handlers[0]
-        if isinstance(h, MessageHandler) and h.callback is sos_handlers.sos_contact_start
+        if isinstance(h, MessageHandler)
+        and h.callback is sos_handlers.sos_contact_start
     )
     pattern = cast(filters.Regex, sos_handler.filters).pattern.pattern
     assert re.fullmatch(pattern, "🆘 SOS контакт")

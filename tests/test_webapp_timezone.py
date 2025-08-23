@@ -39,7 +39,9 @@ def auth_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
 
 def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
     engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)

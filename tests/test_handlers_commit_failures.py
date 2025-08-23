@@ -32,7 +32,6 @@ class DummyQuery:
         self.message = message
         self.edited: list[str] = []
 
-
     async def answer(self, text: str | None = None, **kwargs: Any) -> None:
 
         pass
@@ -84,7 +83,9 @@ def make_context(**kwargs: Any) -> MagicMock:
 
 
 @pytest.mark.asyncio
-async def test_profile_command_no_local_session(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_profile_command_no_local_session(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Profile command should not touch the local DB session."""
     import os
 
@@ -113,7 +114,9 @@ async def test_profile_command_no_local_session(monkeypatch: pytest.MonkeyPatch)
 
 
 @pytest.mark.asyncio
-async def test_callback_router_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_callback_router_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -148,7 +151,9 @@ async def test_callback_router_commit_failure(monkeypatch: pytest.MonkeyPatch, c
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_add_reminder_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -182,7 +187,9 @@ async def test_add_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, capl
 
 
 @pytest.mark.asyncio
-async def test_reminder_webapp_save_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_reminder_webapp_save_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -223,7 +230,9 @@ async def test_reminder_webapp_save_commit_failure(monkeypatch: pytest.MonkeyPat
 
 
 @pytest.mark.asyncio
-async def test_delete_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_delete_reminder_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -250,7 +259,9 @@ async def test_delete_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, c
 
 
 @pytest.mark.asyncio
-async def test_reminder_job_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_reminder_job_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -281,7 +292,9 @@ async def test_reminder_job_commit_failure(monkeypatch: pytest.MonkeyPatch, capl
 
 
 @pytest.mark.asyncio
-async def test_reminder_callback_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_reminder_callback_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None

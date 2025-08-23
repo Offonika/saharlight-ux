@@ -92,21 +92,25 @@ async def test_alert_stats_counts(monkeypatch: pytest.MonkeyPatch) -> None:
 
         msg = DummyMessage()
 
-        update = cast("Update", DummyUpdate(message=msg, effective_user=DummyUser(id=1)))
+        update = cast(
+            "Update", DummyUpdate(message=msg, effective_user=DummyUser(id=1))
+        )
         context = cast(
             CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
             DummyContext(),
         )
 
         await alert_handlers.alert_stats(update, context)
-        assert msg.texts == ["За 7\u202Fдн.: гипо\u202F1, гипер\u202F1"]
+        assert msg.texts == ["За 7\u202fдн.: гипо\u202f1, гипер\u202f1"]
     finally:
         engine.dispose()
 
 
 @pytest.mark.asyncio
 async def test_alert_stats_returns_early(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fail_session_local(*args: Any, **kwargs: Any) -> None:  # pragma: no cover - used to ensure early return
+    def fail_session_local(
+        *args: Any, **kwargs: Any
+    ) -> None:  # pragma: no cover - used to ensure early return
         raise AssertionError("SessionLocal should not be called")
 
     monkeypatch.setattr(alert_handlers, "SessionLocal", fail_session_local)

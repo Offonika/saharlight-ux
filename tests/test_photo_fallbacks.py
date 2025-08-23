@@ -55,7 +55,7 @@ class DummyMessage:
 async def _exercise(
     handler: MessageHandler[
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
-    ]
+    ],
 ) -> None:
     message = DummyMessage("📷 Фото еды")
     update = cast(
@@ -63,7 +63,9 @@ async def _exercise(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"}),
+        SimpleNamespace(
+            user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"}
+        ),
     )
     await handler.callback(update, context)
     assert message.replies[0] == "Отменено."
@@ -85,7 +87,9 @@ async def test_sugar_conv_photo_fallback() -> None:
 
 @pytest.mark.asyncio
 async def test_onboarding_conv_photo_fallback() -> None:
-    handler = _find_handler(onboarding_handlers.onboarding_conv.fallbacks, "^📷 Фото еды$")
+    handler = _find_handler(
+        onboarding_handlers.onboarding_conv.fallbacks, "^📷 Фото еды$"
+    )
     await _exercise(handler)
 
 

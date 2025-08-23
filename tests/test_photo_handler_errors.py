@@ -19,7 +19,9 @@ class DummyMessage:
 @pytest.mark.asyncio
 async def test_photo_handler_no_user_data() -> None:
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=None),
@@ -30,7 +32,12 @@ async def test_photo_handler_no_user_data() -> None:
 
 @pytest.mark.asyncio
 async def test_photo_handler_no_message_no_query() -> None:
-    update = cast(Update, SimpleNamespace(message=None, callback_query=None, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update,
+        SimpleNamespace(
+            message=None, callback_query=None, effective_user=SimpleNamespace(id=1)
+        ),
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
@@ -42,7 +49,9 @@ async def test_photo_handler_no_message_no_query() -> None:
 @pytest.mark.asyncio
 async def test_photo_handler_waiting_flag() -> None:
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={photo_handlers.WAITING_GPT_FLAG: True}),
@@ -61,7 +70,9 @@ class NoPhotoMessage(DummyMessage):
 @pytest.mark.asyncio
 async def test_photo_handler_not_image() -> None:
     message = NoPhotoMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
@@ -69,4 +80,3 @@ async def test_photo_handler_not_image() -> None:
     result = await photo_handlers.photo_handler(update, context)
     assert result == photo_handlers.END
     assert message.texts == ["❗ Файл не распознан как изображение."]
-

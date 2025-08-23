@@ -21,7 +21,8 @@ def test_reminders_button_matches_regex() -> None:
     reminder_handler = next(
         h
         for h in app.handlers[0]
-        if isinstance(h, MessageHandler) and h.callback is reminder_handlers.reminders_list
+        if isinstance(h, MessageHandler)
+        and h.callback is reminder_handlers.reminders_list
     )
     pattern = cast(filters.Regex, reminder_handler.filters).pattern.pattern
     assert pattern == "^⏰ Напоминания$"
