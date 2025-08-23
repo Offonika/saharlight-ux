@@ -43,4 +43,10 @@ async def profiles_get(
         low=float(low_threshold) if low_threshold is not None else 0.0,
         high=float(high_threshold) if high_threshold is not None else 0.0,
         orgId=profile.org_id,
+        sosContact=profile.sos_contact or "",
+        sosAlertsEnabled=(
+            profile.sos_alerts_enabled
+            if profile.sos_alerts_enabled is not None
+            else True
+        ),
     )
