@@ -10,7 +10,7 @@ Method | HTTP request | Description
 
 
 # **history_get**
-> List[HistoryRecordSchemaOutput] history_get(x_telegram_init_data=x_telegram_init_data)
+> List[HistoryRecordSchemaOutput] history_get()
 
 Get History
 
@@ -18,6 +18,7 @@ Return history records for the authenticated user.
 
 ### Example
 
+* Api Key Authentication (TelegramInitData):
 
 ```python
 import diabetes_sdk
@@ -31,16 +32,25 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: TelegramInitData
+configuration.api_key['TelegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['TelegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.HistoryApi(api_client)
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Get History
-        api_response = api_instance.history_get(x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.history_get()
         print("The response of HistoryApi->history_get:\n")
         pprint(api_response)
     except Exception as e:
@@ -51,10 +61,7 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **x_telegram_init_data** | **str**|  | [optional] 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -62,7 +69,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[TelegramInitData](../README.md#TelegramInitData)
 
 ### HTTP request headers
 
@@ -79,7 +86,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **history_id_delete**
-> Dict[str, str] history_id_delete(id, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, str] history_id_delete(id)
 
 Delete History
 
@@ -87,6 +94,7 @@ Delete a history record after verifying ownership.
 
 ### Example
 
+* Api Key Authentication (TelegramInitData):
 
 ```python
 import diabetes_sdk
@@ -99,17 +107,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: TelegramInitData
+configuration.api_key['TelegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['TelegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.HistoryApi(api_client)
     id = 'id_example' # str | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Delete History
-        api_response = api_instance.history_id_delete(id, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.history_id_delete(id)
         print("The response of HistoryApi->history_id_delete:\n")
         pprint(api_response)
     except Exception as e:
@@ -124,7 +141,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **id** | **str**|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -132,7 +148,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[TelegramInitData](../README.md#TelegramInitData)
 
 ### HTTP request headers
 
@@ -149,7 +165,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **history_post**
-> Dict[str, str] history_post(history_record_schema_input, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, str] history_post(history_record_schema_input)
 
 Post History
 
@@ -157,6 +173,7 @@ Save or update a history record in the database.
 
 ### Example
 
+* Api Key Authentication (TelegramInitData):
 
 ```python
 import diabetes_sdk
@@ -170,17 +187,26 @@ configuration = diabetes_sdk.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: TelegramInitData
+configuration.api_key['TelegramInitData'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['TelegramInitData'] = 'Bearer'
 
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.HistoryApi(api_client)
     history_record_schema_input = diabetes_sdk.HistoryRecordSchemaInput() # HistoryRecordSchemaInput | 
-    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
         # Post History
-        api_response = api_instance.history_post(history_record_schema_input, x_telegram_init_data=x_telegram_init_data)
+        api_response = api_instance.history_post(history_record_schema_input)
         print("The response of HistoryApi->history_post:\n")
         pprint(api_response)
     except Exception as e:
@@ -195,7 +221,6 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **history_record_schema_input** | [**HistoryRecordSchemaInput**](HistoryRecordSchemaInput.md)|  | 
- **x_telegram_init_data** | **str**|  | [optional] 
 
 ### Return type
 
@@ -203,7 +228,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[TelegramInitData](../README.md#TelegramInitData)
 
 ### HTTP request headers
 

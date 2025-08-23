@@ -28,18 +28,12 @@ import {
     HistoryRecordSchemaOutputToJSON,
 } from '../models/index';
 
-export interface HistoryGetRequest {
-    xTelegramInitData?: string | null;
-}
-
 export interface HistoryIdDeleteRequest {
     id: string;
-    xTelegramInitData?: string | null;
 }
 
 export interface HistoryPostRequest {
     historyRecordSchemaInput: HistoryRecordSchemaInput;
-    xTelegramInitData?: string | null;
 }
 
 /**
@@ -51,13 +45,13 @@ export class HistoryApi extends runtime.BaseAPI {
      * Return history records for the authenticated user.
      * Get History
      */
-    async historyGetRaw(requestParameters: HistoryGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<HistoryRecordSchemaOutput>>> {
+    async historyGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<HistoryRecordSchemaOutput>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 
@@ -77,8 +71,8 @@ export class HistoryApi extends runtime.BaseAPI {
      * Return history records for the authenticated user.
      * Get History
      */
-    async historyGet(requestParameters: HistoryGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<HistoryRecordSchemaOutput>> {
-        const response = await this.historyGetRaw(requestParameters, initOverrides);
+    async historyGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<HistoryRecordSchemaOutput>> {
+        const response = await this.historyGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -98,8 +92,8 @@ export class HistoryApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 
@@ -143,8 +137,8 @@ export class HistoryApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 

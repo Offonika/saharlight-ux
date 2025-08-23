@@ -42,12 +42,10 @@ import {
 
 export interface CreateUserUserPostRequest {
     webUser: WebUser;
-    xTelegramInitData?: string | null;
 }
 
 export interface GetAnalyticsAnalyticsGetRequest {
     telegramId: number;
-    xTelegramInitData?: string | null;
 }
 
 export interface GetRoleUserUserIdRoleGetRequest {
@@ -56,15 +54,6 @@ export interface GetRoleUserUserIdRoleGetRequest {
 
 export interface GetStatsStatsGetRequest {
     telegramId: number;
-    xTelegramInitData?: string | null;
-}
-
-export interface GetTimezoneTimezoneGetRequest {
-    xTelegramInitData?: string | null;
-}
-
-export interface ProfileSelfProfileSelfGetRequest {
-    xTelegramInitData?: string | null;
 }
 
 export interface PutRoleUserUserIdRolePutRequest {
@@ -74,7 +63,6 @@ export interface PutRoleUserUserIdRolePutRequest {
 
 export interface PutTimezoneTimezonePutRequest {
     timezone: Timezone;
-    xTelegramInitData?: string | null;
 }
 
 /**
@@ -100,8 +88,8 @@ export class DefaultApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 
@@ -146,8 +134,8 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 
@@ -227,8 +215,8 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 
@@ -262,13 +250,13 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Get Timezone
      */
-    async getTimezoneTimezoneGetRaw(requestParameters: GetTimezoneTimezoneGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+    async getTimezoneTimezoneGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 
@@ -287,8 +275,8 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Get Timezone
      */
-    async getTimezoneTimezoneGet(requestParameters: GetTimezoneTimezoneGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
-        const response = await this.getTimezoneTimezoneGetRaw(requestParameters, initOverrides);
+    async getTimezoneTimezoneGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+        const response = await this.getTimezoneTimezoneGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -324,13 +312,13 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Profile Self
      */
-    async profileSelfProfileSelfGetRaw(requestParameters: ProfileSelfProfileSelfGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserContext>> {
+    async profileSelfProfileSelfGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserContext>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 
@@ -349,8 +337,8 @@ export class DefaultApi extends runtime.BaseAPI {
     /**
      * Profile Self
      */
-    async profileSelfProfileSelfGet(requestParameters: ProfileSelfProfileSelfGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserContext> {
-        const response = await this.profileSelfProfileSelfGetRaw(requestParameters, initOverrides);
+    async profileSelfProfileSelfGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserContext> {
+        const response = await this.profileSelfProfileSelfGetRaw(initOverrides);
         return await response.value();
     }
 
@@ -418,8 +406,8 @@ export class DefaultApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // TelegramInitData authentication
         }
 
 
