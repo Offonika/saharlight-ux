@@ -54,8 +54,10 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
   /reminders:
     get:
-      summary: Api Reminders
-      operationId: api_reminders_reminders_get
+      tags:
+      - Reminders
+      summary: Reminders Get
+      operationId: reminders_get
       parameters:
       - name: telegramId
         in: query
@@ -90,7 +92,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ReminderSchema'
-                title: Response Api Reminders Reminders Get
+                title: Response Reminders Get
                 default: []
         '422':
           description: Validation Error
@@ -99,8 +101,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
     post:
-      summary: Api Reminders Post
-      operationId: api_reminders_post_reminders_post
+      tags:
+      - Reminders
+      summary: Reminders Post
+      operationId: reminders_post
       parameters:
       - name: X-Telegram-Init-Data
         in: header
@@ -116,6 +120,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ReminderSchema'
+      x-codegen-request-body-name: reminder
       responses:
         '200':
           description: Successful Response
@@ -124,7 +129,84 @@ paths:
               schema:
                 type: object
                 additionalProperties: true
-                title: Response Api Reminders Post Reminders Post
+                title: Response Reminders Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - Reminders
+      summary: Reminders Patch
+      operationId: reminders_patch
+      parameters:
+      - name: X-Telegram-Init-Data
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Telegram-Init-Data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReminderSchema'
+      x-codegen-request-body-name: reminder
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Reminders Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Reminders
+      summary: Reminders Delete
+      operationId: reminders_delete
+      parameters:
+      - name: telegramId
+        in: query
+        required: true
+        schema:
+          type: integer
+          title: Telegram Id
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: integer
+          title: Id
+      - name: X-Telegram-Init-Data
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Telegram-Init-Data
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Reminders Delete
         '422':
           description: Validation Error
           content:

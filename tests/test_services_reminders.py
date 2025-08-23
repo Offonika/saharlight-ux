@@ -1,10 +1,11 @@
-import pytest
 from collections.abc import Generator
+
+import pytest
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from fastapi import HTTPException
 
-from services.api.app.diabetes.services.db import Base, User, Reminder
+from services.api.app.diabetes.services.db import Base, Reminder, User
 from services.api.app.schemas.reminders import ReminderSchema
 from services.api.app.services import reminders
 
@@ -77,3 +78,35 @@ async def test_list_reminders_invalid_user(
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     reminders_list = await reminders.list_reminders(999)
     assert reminders_list == []
+
+
+@pytest.mark.asyncio
+async def test_delete_reminder(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar"))
+        session.commit()
+
+    await reminders.delete_reminder(1, 1)
+    with session_factory() as session:
+        assert session.get(Reminder, 1) is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("rid, tid", [(999, 1), (1, 2)])
+async def test_delete_reminder_not_found_or_wrong_user(
+    monkeypatch: pytest.MonkeyPatch,
+    session_factory: sessionmaker,
+    rid: int,
+    tid: int,
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar"))
+        session.commit()
+    with pytest.raises(HTTPException):
+        await reminders.delete_reminder(tid, rid)

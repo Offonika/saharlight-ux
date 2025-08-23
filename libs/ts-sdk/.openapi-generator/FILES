@@ -1,4 +1,5 @@
 apis/DefaultApi.ts
+apis/RemindersApi.ts
 apis/index.ts
 index.ts
 models/AnalyticsPoint.ts

@@ -21,7 +21,6 @@ import type {
   HistoryRecordSchemaInput,
   HistoryRecordSchemaOutput,
   ProfileSchema,
-  ReminderSchema,
   Timezone,
   UserContext,
   WebUser,
@@ -39,8 +38,6 @@ import {
     HistoryRecordSchemaOutputToJSON,
     ProfileSchemaFromJSON,
     ProfileSchemaToJSON,
-    ReminderSchemaFromJSON,
-    ReminderSchemaToJSON,
     TimezoneFromJSON,
     TimezoneToJSON,
     UserContextFromJSON,
@@ -48,17 +45,6 @@ import {
     WebUserFromJSON,
     WebUserToJSON,
 } from '../models/index';
-
-export interface ApiRemindersPostRemindersPostRequest {
-    reminderSchema: ReminderSchema;
-    xTelegramInitData?: string | null;
-}
-
-export interface ApiRemindersRemindersGetRequest {
-    telegramId: number;
-    id?: number | null;
-    xTelegramInitData?: string | null;
-}
 
 export interface CreateUserUserPostRequest {
     webUser: WebUser;
@@ -114,97 +100,6 @@ export interface PutTimezoneTimezonePutRequest {
  * 
  */
 export class DefaultApi extends runtime.BaseAPI {
-
-    /**
-     * Api Reminders Post
-     */
-    async apiRemindersPostRemindersPostRaw(requestParameters: ApiRemindersPostRemindersPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any; }>> {
-        if (requestParameters['reminderSchema'] == null) {
-            throw new runtime.RequiredError(
-                'reminderSchema',
-                'Required parameter "reminderSchema" was null or undefined when calling apiRemindersPostRemindersPost().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
-        }
-
-
-        let urlPath = `/reminders`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: ReminderSchemaToJSON(requestParameters['reminderSchema']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse<any>(response);
-    }
-
-    /**
-     * Api Reminders Post
-     */
-    async apiRemindersPostRemindersPost(requestParameters: ApiRemindersPostRemindersPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any; }> {
-        const response = await this.apiRemindersPostRemindersPostRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Api Reminders
-     */
-    async apiRemindersRemindersGetRaw(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ReminderSchema>>> {
-        if (requestParameters['telegramId'] == null) {
-            throw new runtime.RequiredError(
-                'telegramId',
-                'Required parameter "telegramId" was null or undefined when calling apiRemindersRemindersGet().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        if (requestParameters['telegramId'] != null) {
-            queryParameters['telegramId'] = requestParameters['telegramId'];
-        }
-
-        if (requestParameters['id'] != null) {
-            queryParameters['id'] = requestParameters['id'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
-        }
-
-
-        let urlPath = `/reminders`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ReminderSchemaFromJSON));
-    }
-
-    /**
-     * Api Reminders
-     */
-    async apiRemindersRemindersGet(requestParameters: ApiRemindersRemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReminderSchema>> {
-        const response = await this.apiRemindersRemindersGetRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
 
     /**
      * Ensure a user exists in the database.
