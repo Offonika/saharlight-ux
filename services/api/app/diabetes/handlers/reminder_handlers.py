@@ -28,14 +28,19 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest, TelegramError
 
+from services.api.app.config import settings
 from services.api.app.diabetes.services.db import (
     Reminder,
     ReminderLog,
     SessionLocal as _SessionLocal,
     User,
 )
-
-logger = logging.getLogger(__name__)
+from services.api.app.diabetes.services.repository import commit as _commit
+from services.api.app.diabetes.utils.helpers import (
+    INVALID_TIME_MSG,
+    parse_time_interval,
+)
+from . import UserData
 
 run_db: Callable[..., Awaitable[object]] | None
 try:
@@ -43,16 +48,14 @@ try:
 except ImportError:  # pragma: no cover - optional db runner
     run_db = None
 except Exception as exc:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db", exc_info=exc)
+    logging.getLogger(__name__).exception(
+        "Unexpected error importing run_db", exc_info=exc
+    )
     raise
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
-from services.api.app.diabetes.services.repository import commit as _commit
-from services.api.app.config import settings
-from services.api.app.diabetes.utils.helpers import (
-    INVALID_TIME_MSG,
-    parse_time_interval,
-)
+
+logger = logging.getLogger(__name__)
 
 SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], bool] = _commit
@@ -60,8 +63,6 @@ commit: Callable[[Session], bool] = _commit
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 
 PLAN_LIMITS = {"free": 5, "pro": 10}
-
-from . import UserData
 
 
 def build_webapp_url(path: str) -> str:

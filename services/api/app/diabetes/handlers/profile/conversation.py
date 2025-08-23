@@ -44,28 +44,34 @@ except Exception as exc:  # pragma: no cover - log unexpected errors
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
 
-from services.api.app.diabetes.handlers.alert_handlers import (
+from services.api.app.diabetes.handlers.alert_handlers import (  # noqa: E402
     evaluate_sugar,
     DefaultJobQueue,
 )
-from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
+from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (  # noqa: E402
     CallbackQueryNoWarnHandler,
 )
-from services.api.app.diabetes.utils.ui import (
+from services.api.app.diabetes.utils.ui import (  # noqa: E402
     build_timezone_webapp_button,
     back_keyboard as _back_keyboard,
     menu_keyboard,
 )
-from services.api.app.config import settings
-from services.api.app.diabetes.services.repository import commit
-import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
+from services.api.app.config import settings  # noqa: E402
+from services.api.app.diabetes.services.repository import commit  # noqa: E402
+import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers  # noqa: E402
 
-from .api import get_api, save_profile, set_timezone, fetch_profile, post_profile
-from .validation import parse_profile_args
+from .api import (  # noqa: E402
+    get_api,
+    save_profile,
+    set_timezone,
+    fetch_profile,
+    post_profile,
+)
+from .validation import parse_profile_args  # noqa: E402
 
 back_keyboard: ReplyKeyboardMarkup = _back_keyboard
 
-from .. import UserData
+from .. import UserData  # noqa: E402
 
 
 MSG_ICR_GT0 = "ИКХ должен быть больше 0."
