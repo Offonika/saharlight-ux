@@ -1,4 +1,5 @@
 import logging
+import threading
 
 import httpx
 from openai import OpenAI
@@ -8,6 +9,7 @@ from services.api.app.config import settings
 logger = logging.getLogger(__name__)
 
 _http_client: httpx.Client | None = None
+_http_client_lock = threading.Lock()
 
 
 def get_openai_client() -> OpenAI:
@@ -26,9 +28,12 @@ def get_openai_client() -> OpenAI:
     client: OpenAI
     if settings.openai_proxy:
         global _http_client
-        if _http_client is None:
-            _http_client = httpx.Client(proxies=settings.openai_proxy)
-        client = OpenAI(api_key=settings.openai_api_key, http_client=_http_client)
+        with _http_client_lock:
+            if _http_client is None:
+                _http_client = httpx.Client(proxies=settings.openai_proxy)
+            client = OpenAI(
+                api_key=settings.openai_api_key, http_client=_http_client
+            )
     else:
         client = OpenAI(api_key=settings.openai_api_key, http_client=None)
 
@@ -40,6 +45,7 @@ def get_openai_client() -> OpenAI:
 def dispose_http_client() -> None:
     """Close and reset the HTTP client used by OpenAI."""
     global _http_client
-    if _http_client is not None:
-        _http_client.close()
-        _http_client = None
+    with _http_client_lock:
+        if _http_client is not None:
+            _http_client.close()
+            _http_client = None

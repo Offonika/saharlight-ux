@@ -68,3 +68,35 @@ def test_get_openai_client_without_proxy(monkeypatch: pytest.MonkeyPatch) -> Non
     http_client_mock.assert_not_called()
     openai_mock.assert_called_once_with(api_key="key", http_client=None)
     assert client is openai_mock.return_value
+
+
+def test_http_client_lock_used(monkeypatch: pytest.MonkeyPatch) -> None:
+    class DummyLock:
+        def __init__(self) -> None:
+            self.entered = False
+            self.exited = False
+
+        def __enter__(self) -> None:
+            self.entered = True
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            self.exited = True
+
+    dummy_lock = DummyLock()
+    fake_http_client = Mock()
+
+    monkeypatch.setattr(openai_utils, "_http_client_lock", dummy_lock)
+    monkeypatch.setattr(openai_utils, "_http_client", None)
+    monkeypatch.setattr(settings, "openai_api_key", "key")
+    monkeypatch.setattr(settings, "openai_proxy", "http://proxy")
+    monkeypatch.setattr(httpx, "Client", Mock(return_value=fake_http_client))
+    monkeypatch.setattr(openai_utils, "OpenAI", Mock())
+
+    openai_utils.get_openai_client()
+    assert dummy_lock.entered and dummy_lock.exited
+
+    dummy_lock.entered = False
+    dummy_lock.exited = False
+
+    openai_utils.dispose_http_client()
+    assert dummy_lock.entered and dummy_lock.exited
