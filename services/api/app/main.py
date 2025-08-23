@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import cast
+from typing import Callable, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 # ────────── Path-хаки, когда файл запускают напрямую ──────────
@@ -103,7 +103,7 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
     def _get_timezone(session: SessionProtocol) -> TimezoneDB | None:
         return cast(TimezoneDB | None, session.get(TimezoneDB, 1))
 
-    tz_row = await run_db(_get_timezone)
+    tz_row = await run_db(cast(Callable[[Session], TimezoneDB | None], _get_timezone))
     if not tz_row:
         raise HTTPException(status_code=404, detail="timezone not set")
     try:
@@ -133,7 +133,7 @@ async def put_timezone(
         if not commit(cast(Session, session)):
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await run_db(_save_timezone)
+    await run_db(cast(Callable[[Session], None], _save_timezone))
     return {"status": "ok"}
 
 
@@ -182,7 +182,7 @@ async def create_user(
         if not commit(cast(Session, session)):
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await run_db(_create_user)
+    await run_db(cast(Callable[[Session], None], _create_user))
     return {"status": "ok"}
 
 
@@ -226,7 +226,7 @@ async def post_history(
         if not commit(cast(Session, session)):
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await run_db(_save)
+    await run_db(cast(Callable[[Session], None], _save))
     return {"status": "ok"}
 
 
@@ -236,16 +236,17 @@ async def get_history(
     user: UserContext = Depends(require_tg_user),
 ) -> list[HistoryRecordSchema]:
     def _query(session: SessionProtocol) -> list[HistoryRecordDB]:
-        return cast(
-            list[HistoryRecordDB],
+        return (
             cast(Session, session)
             .query(HistoryRecordDB)
             .filter(HistoryRecordDB.telegram_id == user["id"])
             .order_by(HistoryRecordDB.date, HistoryRecordDB.time)
-            .all(),
+            .all()
         )
 
-    records = await run_db(_query)
+    records = await run_db(
+        cast(Callable[[Session], list[HistoryRecordDB]], _query)
+    )
     result: list[HistoryRecordSchema] = []
     for r in records:
         if r.type in ALLOWED_HISTORY_TYPES:
@@ -273,7 +274,7 @@ async def delete_history(
     def _get(session: SessionProtocol) -> HistoryRecordDB | None:
         return cast(HistoryRecordDB | None, session.get(HistoryRecordDB, id))
 
-    record = await run_db(_get)
+    record = await run_db(cast(Callable[[Session], HistoryRecordDB | None], _get))
     if record is None:
         raise HTTPException(status_code=404, detail="not found")
     if record.telegram_id != user["id"]:
@@ -284,7 +285,7 @@ async def delete_history(
         if not commit(cast(Session, session)):
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await run_db(_delete)
+    await run_db(cast(Callable[[Session], None], _delete))
     return {"status": "ok"}
 
 
