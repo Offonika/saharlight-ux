@@ -20,7 +20,11 @@ export async function getProfile(telegramId: number): Promise<Profile | null> {
       throw new Error('Некорректный ответ API');
     }
 
-    return data;
+    return {
+      ...data,
+      sosContact: data.sosContact,
+      sosAlertsEnabled: data.sosAlertsEnabled,
+    };
   } catch (error) {
     console.error('Failed to fetch profile:', error);
     if (error instanceof ResponseError && error.response.status === 404) {
@@ -35,7 +39,13 @@ export async function getProfile(telegramId: number): Promise<Profile | null> {
 
 export async function saveProfile(profile: Profile): Promise<Profile> {
   try {
-    const data = await api.profilesPost({ profileSchema: profile });
+    const data = await api.profilesPost({
+      profileSchema: {
+        ...profile,
+        sosContact: profile.sosContact,
+        sosAlertsEnabled: profile.sosAlertsEnabled,
+      },
+    });
     if (!instanceOfProfile(data)) {
       console.error('Unexpected profile API response:', data);
       throw new Error('Некорректный ответ API');

@@ -32,6 +32,21 @@ describe('getProfile', () => {
     mockProfilesGet.mockRejectedValueOnce(err);
     await expect(getProfile(1)).rejects.toBe(err);
   });
+
+  it('returns profile with sos fields', async () => {
+    const profile = {
+      telegramId: 1,
+      icr: 0,
+      cf: 0,
+      target: 0,
+      low: 0,
+      high: 0,
+      sosContact: '+79998887766',
+      sosAlertsEnabled: true,
+    } as Profile;
+    mockProfilesGet.mockResolvedValueOnce(profile);
+    await expect(getProfile(1)).resolves.toEqual(profile);
+  });
 });
 
 describe('saveProfile', () => {
@@ -43,6 +58,8 @@ describe('saveProfile', () => {
       target: 0,
       low: 0,
       high: 0,
+      sosContact: '+79998887766',
+      sosAlertsEnabled: true,
     } as Profile;
     mockProfilesPost.mockResolvedValueOnce(profile);
     await expect(saveProfile(profile)).resolves.toBe(profile);

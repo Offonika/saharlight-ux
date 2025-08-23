@@ -57,6 +57,18 @@ export interface ProfileSchema {
     high: number;
     /**
      * 
+     * @type {string}
+     * @memberof ProfileSchema
+     */
+    sosContact?: string | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ProfileSchema
+     */
+    sosAlertsEnabled?: boolean;
+    /**
+     * 
      * @type {number}
      * @memberof ProfileSchema
      */
@@ -92,6 +104,8 @@ export function ProfileSchemaFromJSONTyped(json: any, ignoreDiscriminator: boole
         'target': json['target'],
         'low': json['low'],
         'high': json['high'],
+        'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
+        'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
         'orgId': json['orgId'] == null ? undefined : json['orgId'],
     };
 }
@@ -113,6 +127,8 @@ export function ProfileSchemaToJSONTyped(value?: ProfileSchema | null, ignoreDis
         'target': value['target'],
         'low': value['low'],
         'high': value['high'],
+        'sosContact': value['sosContact'],
+        'sosAlertsEnabled': value['sosAlertsEnabled'],
         'orgId': value['orgId'],
     };
 }
