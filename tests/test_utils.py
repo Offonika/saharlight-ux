@@ -1,9 +1,8 @@
 # test_utils.py
-from typing import Any, ContextManager, Literal
+from typing import Any
 
 
 import asyncio
-import io
 import time
 import logging
 from datetime import timedelta
@@ -13,6 +12,8 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib.units import mm
 
 import pytest
+
+import httpx
 
 import services.api.app.diabetes.utils.helpers as utils
 from services.api.app.diabetes.utils.helpers import (
@@ -81,19 +82,22 @@ def test_split_text_by_width_respects_limit(text: Any) -> None:
 async def test_get_coords_and_link_non_blocking(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def slow_urlopen(*args: object, **kwargs: object) -> ContextManager[io.StringIO]:
-        time.sleep(0.2)
+    async def slow_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
+        await asyncio.sleep(0.2)
 
         class Resp:
-            def __enter__(self) -> io.StringIO:
-                return io.StringIO('{"loc": "1,2"}')
+            status_code = 200
+            headers = {"Content-Type": "application/json"}
 
-            def __exit__(self, exc_type: object, exc: object, tb: object) -> Literal[False]:
-                return False
+            def raise_for_status(self) -> None:  # pragma: no cover - dummy
+                pass
+
+            def json(self) -> dict[str, str]:
+                return {"loc": "1,2"}
 
         return Resp()
 
-    monkeypatch.setattr(utils, "urlopen", slow_urlopen)
+    monkeypatch.setattr(httpx.AsyncClient, "get", slow_get)
 
     start = time.perf_counter()
     task = asyncio.create_task(utils.get_coords_and_link())
@@ -107,10 +111,10 @@ async def test_get_coords_and_link_non_blocking(
 async def test_get_coords_and_link_logs_warning(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    def failing_urlopen(*args: object, **kwargs: object) -> None:
-        raise OSError("network down")
+    async def failing_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
+        raise httpx.HTTPError("network down")
 
-    monkeypatch.setattr(utils, "urlopen", failing_urlopen)
+    monkeypatch.setattr(httpx.AsyncClient, "get", failing_get)
 
     with caplog.at_level(logging.WARNING):
         coords, link = await utils.get_coords_and_link()
@@ -123,17 +127,20 @@ async def test_get_coords_and_link_logs_warning(
 async def test_get_coords_and_link_invalid_loc(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    def bad_urlopen(*args: object, **kwargs: object) -> ContextManager[io.StringIO]:
+    async def bad_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
         class Resp:
-            def __enter__(self) -> io.StringIO:
-                return io.StringIO('{"loc": "invalid"}')
+            status_code = 200
+            headers = {"Content-Type": "application/json"}
 
-            def __exit__(self, exc_type: object, exc: object, tb: object) -> Literal[False]:
-                return False
+            def raise_for_status(self) -> None:  # pragma: no cover - dummy
+                pass
+
+            def json(self) -> dict[str, str]:
+                return {"loc": "invalid"}
 
         return Resp()
 
-    monkeypatch.setattr(utils, "urlopen", bad_urlopen)
+    monkeypatch.setattr(httpx.AsyncClient, "get", bad_get)
 
     with caplog.at_level(logging.WARNING):
         coords, link = await utils.get_coords_and_link()
@@ -146,19 +153,22 @@ async def test_get_coords_and_link_invalid_loc(
 async def test_get_coords_and_link_custom_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def fake_urlopen(url: str, timeout: int = 5) -> ContextManager[io.StringIO]:
+    async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
         assert url == "http://custom"
 
         class Resp:
-            def __enter__(self) -> io.StringIO:
-                return io.StringIO('{"loc": "1,2"}')
+            status_code = 200
+            headers = {"Content-Type": "application/json"}
 
-            def __exit__(self, exc_type: object, exc: object, tb: object) -> Literal[False]:
-                return False
+            def raise_for_status(self) -> None:  # pragma: no cover - dummy
+                pass
+
+            def json(self) -> dict[str, str]:
+                return {"loc": "1,2"}
 
         return Resp()
 
-    monkeypatch.setattr(utils, "urlopen", fake_urlopen)
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
 
     coords, link = await utils.get_coords_and_link("http://custom")
     assert coords == "1,2"
