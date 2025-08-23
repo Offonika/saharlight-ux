@@ -18,7 +18,9 @@ class DummyMessage:
         self.markups: list[Any] = []
         self.kwargs: list[dict[str, Any]] = []
 
-    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - simple helper
+    async def reply_text(
+        self, text: str, **kwargs: Any
+    ) -> None:  # pragma: no cover - simple helper
         self.texts.append(text)
         self.markups.append(kwargs.get("reply_markup"))
         self.kwargs.append(kwargs)
@@ -27,7 +29,9 @@ class DummyMessage:
         pass
 
 
-def _patch_import(monkeypatch: pytest.MonkeyPatch, *, exc: type[Exception] = ImportError) -> None:
+def _patch_import(
+    monkeypatch: pytest.MonkeyPatch, *, exc: type[Exception] = ImportError
+) -> None:
     """Force ``exc`` for any ``diabetes_sdk`` imports."""
 
     real_import = builtins.__import__
@@ -46,7 +50,9 @@ def _patch_import(monkeypatch: pytest.MonkeyPatch, *, exc: type[Exception] = Imp
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
 
-def test_get_api_falls_back_to_local_client(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_get_api_falls_back_to_local_client(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     """``get_api`` should provide a local client and log a warning on ``ImportError``."""
 
     _patch_import(monkeypatch)
@@ -66,7 +72,9 @@ def test_get_api_falls_back_to_local_client(monkeypatch: pytest.MonkeyPatch, cap
     assert "diabetes_sdk is not installed" in caplog.text
 
 
-def test_get_api_handles_runtime_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_get_api_handles_runtime_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     """``get_api`` should fall back when ``RuntimeError`` occurs during import."""
 
     _patch_import(monkeypatch, exc=RuntimeError)
@@ -97,19 +105,27 @@ async def test_profile_command_and_view_without_sdk(
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
+    import importlib
+
+    profile_api = importlib.import_module(
+        "services.api.app.diabetes.handlers.profile.api"
+    )
     from services.api.app.diabetes.handlers import profile as handlers
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(profile_api, "SessionLocal", TestSession)
 
     with TestSession() as session:
         session.add(User(telegram_id=123, thread_id="t"))
         session.commit()
 
     msg = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=123)))
+    update = cast(
+        Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=123))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=["8", "3", "6", "4", "9"], user_data={}),
@@ -128,7 +144,9 @@ async def test_profile_command_and_view_without_sdk(
         assert prof.sos_alerts_enabled is True
 
     msg2 = DummyMessage()
-    update2 = cast(Update, SimpleNamespace(message=msg2, effective_user=SimpleNamespace(id=123)))
+    update2 = cast(
+        Update, SimpleNamespace(message=msg2, effective_user=SimpleNamespace(id=123))
+    )
     context2 = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
