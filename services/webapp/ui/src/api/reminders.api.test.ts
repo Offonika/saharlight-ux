@@ -106,6 +106,12 @@ describe('getReminders', () => {
     );
   });
 
+  it('throws on invalid API response', async () => {
+    mockRemindersGet.mockResolvedValueOnce([{} as any]);
+    mockInstanceOfReminder.mockReturnValueOnce(false);
+    await expect(getReminders(1)).rejects.toThrow('Некорректный ответ API');
+  });
+
   it('returns empty array on 404 response', async () => {
     mockRemindersGet.mockRejectedValueOnce(
       new ResponseError(new Response(null, { status: 404 })),
