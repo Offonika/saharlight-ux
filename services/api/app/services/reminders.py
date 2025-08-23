@@ -12,15 +12,10 @@ from ..types import SessionProtocol
 
 
 async def list_reminders(telegram_id: int) -> list[Reminder]:
-    def _list(session: SessionProtocol) -> list[Reminder]:
-        if cast(User | None, session.get(User, telegram_id)) is None:
+    def _list(session: Session) -> list[Reminder]:
+        if cast(User | None, session.get(User, telegram_id)) is None:  # type: ignore[attr-defined]
             return []
-        return (
-            cast(Session, session)
-            .query(Reminder)
-            .filter_by(telegram_id=telegram_id)
-            .all()
-        )
+        return session.query(Reminder).filter_by(telegram_id=telegram_id).all()
 
     return await run_db(_list, sessionmaker=SessionLocal)
 
