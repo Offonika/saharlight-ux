@@ -98,6 +98,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_analytics_analytics_get**](docs/DefaultApi.md#get_analytics_analytics_get) | **GET** /analytics | Get Analytics
 *DefaultApi* | [**get_stats_stats_get**](docs/DefaultApi.md#get_stats_stats_get) | **GET** /stats | Get Stats
 *DefaultApi* | [**get_timezone_timezone_get**](docs/DefaultApi.md#get_timezone_timezone_get) | **GET** /timezone | Get Timezone
+*DefaultApi* | [**health_get**](docs/DefaultApi.md#health_get) | **GET** /health | Health
 *DefaultApi* | [**profile_self_profile_self_get**](docs/DefaultApi.md#profile_self_profile_self_get) | **GET** /profile/self | Profile Self
 *DefaultApi* | [**put_timezone_timezone_put**](docs/DefaultApi.md#put_timezone_timezone_put) | **PUT** /timezone | Put Timezone
 

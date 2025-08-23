@@ -8,6 +8,7 @@ Method | HTTP request | Description
 [**get_analytics_analytics_get**](DefaultApi.md#get_analytics_analytics_get) | **GET** /analytics | Get Analytics
 [**get_stats_stats_get**](DefaultApi.md#get_stats_stats_get) | **GET** /stats | Get Stats
 [**get_timezone_timezone_get**](DefaultApi.md#get_timezone_timezone_get) | **GET** /timezone | Get Timezone
+[**health_get**](DefaultApi.md#health_get) | **GET** /health | Health
 [**profile_self_profile_self_get**](DefaultApi.md#profile_self_profile_self_get) | **GET** /profile/self | Profile Self
 [**put_timezone_timezone_put**](DefaultApi.md#put_timezone_timezone_put) | **PUT** /timezone | Put Timezone
 
@@ -285,6 +286,67 @@ No authorization required
 |-------------|-------------|------------------|
 **200** | Successful Response |  -  |
 **422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **health_get**
+> Dict[str, str] health_get()
+
+Health
+
+### Example
+
+
+```python
+import diabetes_sdk
+from diabetes_sdk.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = diabetes_sdk.Configuration(
+    host = "http://localhost"
+)
+
+
+# Enter a context with an instance of the API client
+with diabetes_sdk.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = diabetes_sdk.DefaultApi(api_client)
+
+    try:
+        # Health
+        api_response = api_instance.health_get()
+        print("The response of DefaultApi->health_get:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling DefaultApi->health_get: %s\n" % e)
+```
+
+
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**Dict[str, str]**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | Successful Response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
