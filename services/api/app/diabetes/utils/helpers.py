@@ -1,13 +1,11 @@
-import asyncio
-import json
 import logging
 import os
 import re
 from datetime import datetime, time, timedelta
 from json import JSONDecodeError
-from urllib.error import URLError
-from urllib.request import urlopen
 from typing import cast
+
+import httpx
 
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.lib.units import mm
@@ -72,44 +70,37 @@ async def get_coords_and_link(
 
     url = source_url or GEO_DATA_URL
 
-    def _fetch() -> tuple[str | None, str | None]:
-        with urlopen(url, timeout=5) as resp:
-            status = getattr(resp, "getcode", lambda: 200)()
-            if status != 200:
-                logger.warning("Unexpected response code: %s", status)
-                return None, None
-            content_type = ""
-            if hasattr(resp, "headers"):
-                content_type = resp.headers.get("Content-Type", "")
-            elif hasattr(resp, "info"):
-                # ``info()`` returns mapping-like headers for ``urllib`` responses.
-                content_type = resp.info().get("Content-Type", "")
-            if content_type and "application/json" not in content_type:
-                logger.warning("Unexpected content type: %s", content_type)
-                return None, None
-            data = json.load(resp)
-            loc = data.get("loc")
-            if loc:
-                try:
-                    lat, lon = loc.split(",")
-                except ValueError:
-                    logger.warning("Invalid location format: %s", loc)
-                    return None, None
-                coords = f"{lat},{lon}"
-                link = f"https://maps.google.com/?q={lat},{lon}"
-                return coords, link
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, timeout=5.0)
+            resp.raise_for_status()
+    except httpx.HTTPError as exc:  # pragma: no cover - network failures
+        logger.warning("Failed to fetch coordinates from %s: %s", url, exc)
+        return None, None
+
+    content_type = resp.headers.get("Content-Type", "")
+    if content_type and "application/json" not in content_type:
+        logger.warning("Unexpected content type: %s", content_type)
         return None, None
 
     try:
-        return await asyncio.to_thread(_fetch)
-    except (
-        URLError,
-        JSONDecodeError,
-        TimeoutError,
-        OSError,
-    ) as exc:  # pragma: no cover - network failures
-        logger.warning("Failed to fetch coordinates from %s: %s", url, exc)
+        data = resp.json()
+    except JSONDecodeError as exc:
+        logger.warning("Failed to parse JSON from %s: %s", url, exc)
         return None, None
+
+    loc = data.get("loc")
+    if loc:
+        try:
+            lat, lon = loc.split(",")
+        except ValueError:
+            logger.warning("Invalid location format: %s", loc)
+            return None, None
+        coords = f"{lat},{lon}"
+        link = f"https://maps.google.com/?q={lat},{lon}"
+        return coords, link
+
+    return None, None
 
 
 def split_text_by_width(
