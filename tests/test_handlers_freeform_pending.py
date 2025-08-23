@@ -165,3 +165,106 @@ async def test_freeform_handler_sugar_only_flow() -> None:
     assert pending is not None
     assert pending["sugar_before"] == 4.2
     assert "pending_entry" in user_data
+
+
+@pytest.mark.asyncio
+async def test_freeform_handler_prefilled_entry_cleans_pending(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    entry: handlers.EntryData = {
+        "telegram_id": 1,
+        "event_time": datetime.datetime.now(datetime.timezone.utc),
+        "carbs_g": 20.0,
+        "xe": 2.0,
+        "dose": 5.0,
+        "sugar_before": 4.5,
+        "photo_path": "photos/img.jpg",
+    }
+    message = DummyMessage("dose=3 carbs=30")
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    user_data: dict[str, Any] = {"pending_entry": entry}
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data=user_data),
+    )
+
+    async def fake_save_entry(
+        entry_data: handlers.EntryData,
+        *,
+        SessionLocal: Any,
+        commit: Any,
+    ) -> bool:
+        return True
+
+    async def fake_check_alert(
+        update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
+    ) -> None:
+        pass
+
+    monkeypatch.setattr(handlers, "_save_entry", fake_save_entry)
+
+    await handlers.freeform_handler(update, context, check_alert=fake_check_alert)
+
+    assert "pending_entry" not in user_data
+    assert "pending_fields" not in user_data
+    assert message.replies and message.replies[0].startswith("✅ Запись сохранена")
+
+
+@pytest.mark.asyncio
+async def test_freeform_handler_quick_updates_cleans_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user_data: dict[str, Any] = {}
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data=user_data),
+    )
+
+    calls: list[handlers.EntryData] = []
+
+    async def fake_save_entry(
+        entry_data: handlers.EntryData,
+        *,
+        SessionLocal: Any,
+        commit: Any,
+    ) -> bool:
+        calls.append(entry_data)
+        return True
+
+    async def fake_check_alert(
+        update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
+    ) -> None:
+        pass
+
+    monkeypatch.setattr(handlers, "_save_entry", fake_save_entry)
+
+    msg1 = DummyMessage("dose=3 carbs=30")
+    update1 = cast(
+        Update,
+        SimpleNamespace(message=msg1, effective_user=SimpleNamespace(id=1)),
+    )
+    await handlers.freeform_handler(update1, context, check_alert=fake_check_alert)
+    assert user_data.get("pending_fields") == ["sugar", "xe"]
+
+    msg2 = DummyMessage("5")
+    update2 = cast(
+        Update,
+        SimpleNamespace(message=msg2, effective_user=SimpleNamespace(id=1)),
+    )
+    await handlers.freeform_handler(update2, context, check_alert=fake_check_alert)
+    assert user_data.get("pending_fields") == ["xe"]
+
+    msg3 = DummyMessage("2")
+    update3 = cast(
+        Update,
+        SimpleNamespace(message=msg3, effective_user=SimpleNamespace(id=1)),
+    )
+    await handlers.freeform_handler(update3, context, check_alert=fake_check_alert)
+
+    assert calls
+    assert "pending_entry" not in user_data
+    assert "pending_fields" not in user_data
+    assert msg3.replies and msg3.replies[0].startswith("✅ Запись сохранена")
