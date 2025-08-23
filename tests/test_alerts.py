@@ -333,7 +333,46 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 @pytest.mark.asyncio
-async def test_commit_failure_logs_error(caplog: pytest.LogCaptureFixture) -> None:
+async def test_commit_failure_logs_error_on_schedule(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    try:
+        Base.metadata.create_all(engine)
+        TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+        handlers.SessionLocal = TestSession
+
+        def fake_commit(session: Any) -> bool:
+            return False
+
+        monkeypatch.setattr(handlers, "commit", fake_commit)
+
+        with TestSession() as session:
+            session.add(User(telegram_id=1, thread_id="t1"))
+            session.add(
+                Profile(
+                    telegram_id=1,
+                    low_threshold=4,
+                    high_threshold=8,
+                    sos_alerts_enabled=True,
+                )
+            )
+            session.commit()
+
+        job_queue = DummyJobQueue()
+        caplog.set_level(logging.ERROR)
+        await handlers.evaluate_sugar(1, 3, cast(JobQueue[Any], job_queue))
+        assert any(
+            "Failed to commit new alert" in rec.message for rec in caplog.records
+        )
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_commit_failure_logs_error(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     try:
         Base.metadata.create_all(engine)
@@ -341,12 +380,15 @@ async def test_commit_failure_logs_error(caplog: pytest.LogCaptureFixture) -> No
         handlers.SessionLocal = TestSession
 
         call_count = {"n": 0}
+        real_commit = commit
 
         def fake_commit(session: Any) -> bool:
             call_count["n"] += 1
-            return call_count["n"] != 4
+            if call_count["n"] == 4:
+                return False
+            return real_commit(session)
 
-        handlers.commit = fake_commit
+        monkeypatch.setattr(handlers, "commit", fake_commit)
 
         with TestSession() as session:
             session.add(User(telegram_id=1, thread_id="t1"))
