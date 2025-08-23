@@ -380,7 +380,13 @@ async def _handle_smart_input(
             pending_entry["xe"] = quick["xe"]
             pending_entry["carbs_g"] = XE_GRAMS * quick["xe"]
         elif carbs_match:
-            pending_entry["carbs_g"] = float(carbs_match.group(1).replace(",", "."))
+            carbs_val = float(carbs_match.group(1).replace(",", "."))
+            if carbs_val < 0:
+                await message.reply_text(
+                    "Количество углеводов не может быть отрицательным."
+                )
+                return
+            pending_entry["carbs_g"] = carbs_val
         if quick["dose"] is not None:
             pending_entry["dose"] = quick["dose"]
         missing = [
