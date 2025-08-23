@@ -86,7 +86,7 @@ export class HistoryApi extends runtime.BaseAPI {
      * Delete a history record after verifying ownership.
      * Delete History
      */
-    async historyIdDeleteRaw(requestParameters: HistoryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async historyIdDeleteRaw(requestParameters: HistoryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
         if (requestParameters['id'] == null) {
             throw new runtime.RequiredError(
                 'id',
@@ -120,7 +120,7 @@ export class HistoryApi extends runtime.BaseAPI {
      * Delete a history record after verifying ownership.
      * Delete History
      */
-    async historyIdDelete(requestParameters: HistoryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+    async historyIdDelete(requestParameters: HistoryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
         const response = await this.historyIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -129,7 +129,7 @@ export class HistoryApi extends runtime.BaseAPI {
      * Save or update a history record in the database.
      * Post History
      */
-    async historyPostRaw(requestParameters: HistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async historyPostRaw(requestParameters: HistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
         if (requestParameters['historyRecordSchemaInput'] == null) {
             throw new runtime.RequiredError(
                 'historyRecordSchemaInput',
@@ -165,7 +165,7 @@ export class HistoryApi extends runtime.BaseAPI {
      * Save or update a history record in the database.
      * Post History
      */
-    async historyPost(requestParameters: HistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+    async historyPost(requestParameters: HistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
         const response = await this.historyPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
