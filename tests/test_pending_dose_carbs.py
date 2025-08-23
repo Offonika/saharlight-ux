@@ -8,6 +8,7 @@ from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
+
 class DummyMessage:
     def __init__(self, text: str) -> None:
         self.text = text
@@ -31,7 +32,9 @@ async def test_freeform_pending_updates_dose_and_carbs() -> None:
         "photo_path": None,
     }
     message = DummyMessage("dose=3.5 carbs=30")
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": entry}),
@@ -44,3 +47,33 @@ async def test_freeform_pending_updates_dose_and_carbs() -> None:
     user_data = cast(dict[str, Any], context.user_data)
     assert user_data.get("pending_fields") == ["sugar", "xe"]
     assert message.replies == ["Введите уровень сахара (ммоль/л)."]
+
+
+@pytest.mark.asyncio
+async def test_freeform_pending_rejects_negative_carbs() -> None:
+    entry = {
+        "telegram_id": 1,
+        "event_time": datetime.datetime.now(datetime.timezone.utc),
+        "carbs_g": None,
+        "xe": None,
+        "dose": None,
+        "sugar_before": None,
+        "photo_path": None,
+    }
+    message = DummyMessage("dose=3 carbs=-10")
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={"pending_entry": entry}),
+    )
+
+    await gpt_handlers.freeform_handler(update, context)
+
+    assert entry["dose"] is None
+    assert entry["carbs_g"] is None
+    user_data = cast(dict[str, Any], context.user_data)
+    assert "pending_fields" not in user_data
+    assert message.replies == ["Количество углеводов не может быть отрицательным."]
