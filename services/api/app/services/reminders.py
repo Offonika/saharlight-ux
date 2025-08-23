@@ -4,6 +4,8 @@ from __future__ import annotations
 from typing import Callable, cast
 
 
+from datetime import time as time_
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -65,9 +67,7 @@ async def save_reminder(data: ReminderSchema) -> int:
 
     return cast(
         int,
-        await run_db(
-            cast(Callable[[Session], int], _save), sessionmaker=SessionLocal
-        ),
+        await run_db(cast(Callable[[Session], int], _save), sessionmaker=SessionLocal),
     )
 
 
@@ -79,6 +79,4 @@ async def delete_reminder(telegram_id: int, reminder_id: int) -> None:
         session.delete(rem)
         commit(cast(Session, session))
 
-    await run_db(
-        cast(Callable[[Session], None], _delete), sessionmaker=SessionLocal
-    )
+    await run_db(cast(Callable[[Session], None], _delete), sessionmaker=SessionLocal)
