@@ -241,7 +241,7 @@ async def get_history(
         if r.type in ALLOWED_HISTORY_TYPES:
             result.append(
                 HistoryRecordSchema(
-                    id=cast(str, r.id),
+                    id=r.id,
                     date=r.date,
                     time=r.time.strftime("%H:%M"),
                     sugar=r.sugar,

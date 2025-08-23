@@ -33,7 +33,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
-SessionLocal: sessionmaker = _SessionLocal
+SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], bool] = _commit
 
 CustomContext = ContextTypes.DEFAULT_TYPE
@@ -136,7 +136,7 @@ async def evaluate_sugar(
     first_name: str = "",
 ) -> None:
     def db_eval(session: Session) -> tuple[bool, dict[str, object] | None]:
-        profile = session.get(Profile, user_id)  # type: ignore[attr-defined]
+        profile = session.get(Profile, user_id)
         if not profile:
             return False, None
         low = profile.low_threshold

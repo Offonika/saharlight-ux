@@ -11,7 +11,7 @@ from services.api.app.middleware.auth import AuthMiddleware
 from services.api.app.services import user_roles
 
 
-def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},

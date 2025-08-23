@@ -5,7 +5,7 @@ from datetime import time
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from typing import cast
 
@@ -16,7 +16,7 @@ from services.api.app.telegram_auth import require_tg_user
 
 
 @pytest.fixture()
-def session_factory() -> Generator[sessionmaker, None, None]:
+def session_factory() -> Generator[sessionmaker[Session], None, None]:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -32,7 +32,7 @@ def session_factory() -> Generator[sessionmaker, None, None]:
 
 @pytest.fixture()
 def client(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> Generator[TestClient, None, None]:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     app = FastAPI()
@@ -42,7 +42,9 @@ def client(
         yield test_client
 
 
-def test_empty_returns_200(client: TestClient, session_factory: sessionmaker) -> None:
+def test_empty_returns_200(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -52,7 +54,7 @@ def test_empty_returns_200(client: TestClient, session_factory: sessionmaker) ->
 
 
 def test_nonempty_returns_list(
-    client: TestClient, session_factory: sessionmaker
+    client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
@@ -84,7 +86,9 @@ def test_nonempty_returns_list(
     ]
 
 
-def test_get_single_reminder(client: TestClient, session_factory: sessionmaker) -> None:
+def test_get_single_reminder(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -128,7 +132,7 @@ def test_mismatched_telegram_id_returns_404(client: TestClient) -> None:
 
 
 def test_get_single_reminder_not_found(
-    client: TestClient, session_factory: sessionmaker
+    client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
@@ -139,7 +143,7 @@ def test_get_single_reminder_not_found(
 
 
 def test_patch_updates_reminder(
-    client: TestClient, session_factory: sessionmaker
+    client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
@@ -174,7 +178,9 @@ def test_patch_updates_reminder(
         assert rem.title == "New"
 
 
-def test_delete_reminder(client: TestClient, session_factory: sessionmaker) -> None:
+def test_delete_reminder(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))

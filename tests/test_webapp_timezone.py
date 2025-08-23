@@ -37,7 +37,7 @@ def auth_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     return {TG_INIT_DATA_HEADER: build_init_data()}
 
 
-def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},

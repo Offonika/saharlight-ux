@@ -8,6 +8,7 @@ from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.gpt_handlers as handlers
 from sqlalchemy.orm import Session, sessionmaker
+from services.api.app.diabetes.handlers import EntryData
 
 
 class DummyMessage:
@@ -43,6 +44,7 @@ async def test_freeform_handler_edits_pending_entry_keeps_state(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
+
     async def fake_check_alert(
         update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
     ) -> None:
@@ -91,6 +93,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry(
         "sugar_before": None,
         "photo_path": "photos/img.jpg",
     }
+
     class DummySession(Session):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
@@ -171,7 +174,7 @@ async def test_freeform_handler_sugar_only_flow() -> None:
 async def test_freeform_handler_prefilled_entry_cleans_pending(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    entry: handlers.EntryData = {
+    entry: EntryData = {
         "telegram_id": 1,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
         "carbs_g": 20.0,
@@ -192,7 +195,7 @@ async def test_freeform_handler_prefilled_entry_cleans_pending(
     )
 
     async def fake_save_entry(
-        entry_data: handlers.EntryData,
+        entry_data: EntryData,
         *,
         SessionLocal: Any,
         commit: Any,
@@ -223,10 +226,10 @@ async def test_freeform_handler_quick_updates_cleans_state(
         SimpleNamespace(user_data=user_data),
     )
 
-    calls: list[handlers.EntryData] = []
+    calls: list[EntryData] = []
 
     async def fake_save_entry(
-        entry_data: handlers.EntryData,
+        entry_data: EntryData,
         *,
         SessionLocal: Any,
         commit: Any,

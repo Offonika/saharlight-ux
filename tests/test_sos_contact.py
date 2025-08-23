@@ -9,7 +9,7 @@ import pytest
 from .context_stub import AlertContext, ContextStub
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from telegram import Bot, Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 
@@ -33,7 +33,7 @@ class DummyMessage:
 
 
 @pytest.fixture
-def test_session(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
+def test_session(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -47,7 +47,7 @@ def test_session(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("contact", ["@alice", "123456"])
 async def test_soscontact_stores_contact(
-    test_session: sessionmaker, contact: Any
+    test_session: sessionmaker[Session], contact: Any
 ) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -74,7 +74,7 @@ async def test_soscontact_stores_contact(
 
 @pytest.mark.asyncio
 async def test_alert_notifies_user_and_contact(
-    test_session: sessionmaker, monkeypatch: pytest.MonkeyPatch
+    test_session: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -118,7 +118,7 @@ async def test_alert_notifies_user_and_contact(
 
 @pytest.mark.asyncio
 async def test_alert_skips_phone_contact(
-    test_session: sessionmaker, monkeypatch: pytest.MonkeyPatch
+    test_session: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))

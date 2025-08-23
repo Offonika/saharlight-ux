@@ -47,7 +47,7 @@ def session_factory() -> Session:
     return cast(Session, DummySession())
 
 
-SESSION_FACTORY = cast(sessionmaker, session_factory)
+SESSION_FACTORY = cast(sessionmaker[Session], session_factory)
 
 
 @pytest.mark.asyncio

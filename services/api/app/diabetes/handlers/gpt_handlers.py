@@ -36,7 +36,7 @@ from services.api.app.diabetes.utils.ui import (
 
 from .alert_handlers import check_alert as _check_alert
 from .dose_validation import _sanitize
-from .reporting_handlers import render_entry, send_report
+from .reporting_handlers import EntryLike, render_entry, send_report
 from . import EntryData, UserData
 
 commit = _commit
@@ -109,7 +109,7 @@ async def _handle_report_request(
 async def _save_entry(
     entry_data: EntryData,
     *,
-    SessionLocal: sessionmaker,
+    SessionLocal: sessionmaker[Session],
     commit: Callable[[Session], bool],
 ) -> bool:
     """Persist an entry in the database."""
@@ -133,7 +133,7 @@ async def _handle_pending_entry(
     context: ContextTypes.DEFAULT_TYPE,
     user_id: int,
     *,
-    SessionLocal: sessionmaker,
+    SessionLocal: sessionmaker[Session],
     commit: Callable[[Session], bool],
     check_alert: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
@@ -240,7 +240,7 @@ async def _handle_pending_entry(
             def _get_profile(session: Session) -> Profile | None:
                 return cast(
                     Profile | None,
-                    session.get(Profile, user_id),  # type: ignore[attr-defined]
+                    session.get(Profile, user_id),
                 )
 
             if run_db is None:
@@ -279,7 +279,7 @@ async def _handle_edit_entry(
     message: Message,
     context: ContextTypes.DEFAULT_TYPE,
     *,
-    SessionLocal: sessionmaker,
+    SessionLocal: sessionmaker[Session],
     commit: Callable[[Session], bool],
 ) -> bool:
     """Apply edits to an existing entry."""
@@ -303,7 +303,7 @@ async def _handle_edit_entry(
     field: str | None = field_obj if isinstance(field_obj, str) else None
 
     def db_edit(session: Session) -> Entry | None:
-        entry = cast(Entry | None, session.get(Entry, edit_id))  # type: ignore[attr-defined]
+        entry = cast(Entry | None, session.get(Entry, edit_id))
         if entry is None:
             return None
         if field == "sugar":
@@ -343,7 +343,7 @@ async def _handle_edit_entry(
             ]
         ]
     )
-    render_text = render_entry(entry)
+    render_text = render_entry(cast(EntryLike, entry))
     await context.bot.edit_message_text(
         render_text,
         chat_id=chat_id,
@@ -366,7 +366,7 @@ async def _handle_smart_input(
     context: ContextTypes.DEFAULT_TYPE,
     user_id: int,
     *,
-    SessionLocal: sessionmaker,
+    SessionLocal: sessionmaker[Session],
     commit: Callable[[Session], bool],
     check_alert: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
@@ -585,7 +585,7 @@ async def freeform_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     *,
-    SessionLocal: sessionmaker | None = None,
+    SessionLocal: sessionmaker[Session] | None = None,
     commit: Callable[[Session], bool] | None = None,
     check_alert: (
         Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]] | None

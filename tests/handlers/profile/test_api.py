@@ -1,7 +1,7 @@
 import pytest
 from collections.abc import Generator
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from unittest.mock import MagicMock
 
 import importlib
@@ -12,7 +12,7 @@ profile_api = importlib.import_module("services.api.app.diabetes.handlers.profil
 
 
 @pytest.fixture()
-def session_factory() -> Generator[sessionmaker, None, None]:
+def session_factory() -> Generator[sessionmaker[Session], None, None]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -104,7 +104,7 @@ def test_post_profile_error() -> None:
     assert err == "boom"
 
 
-def test_save_profile_persists(session_factory: sessionmaker) -> None:
+def test_save_profile_persists(session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -134,7 +134,7 @@ def test_save_profile_persists(session_factory: sessionmaker) -> None:
 
 
 def test_save_profile_commit_failure(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
     def fail_commit(session: object) -> bool:
         return False
@@ -152,7 +152,7 @@ def test_save_profile_commit_failure(
 
 
 def test_local_profiles_post_failure(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
     api = profile_api.LocalProfileAPI(session_factory)
     monkeypatch.setattr(profile_api, "save_profile", lambda *a, **k: False)
@@ -160,7 +160,7 @@ def test_local_profiles_post_failure(
         api.profiles_post(profile_api.LocalProfile(telegram_id=1))
 
 
-def test_local_profiles_roundtrip(session_factory: sessionmaker) -> None:
+def test_local_profiles_roundtrip(session_factory: sessionmaker[Session]) -> None:
     api = profile_api.LocalProfileAPI(session_factory)
 
     with session_factory() as session:
@@ -184,7 +184,7 @@ def test_local_profiles_roundtrip(session_factory: sessionmaker) -> None:
     assert fetched.sos_alerts_enabled is False
 
 
-def test_set_timezone_persists(session_factory: sessionmaker) -> None:
+def test_set_timezone_persists(session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -198,7 +198,7 @@ def test_set_timezone_persists(session_factory: sessionmaker) -> None:
 
 
 def test_set_timezone_commit_failure(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
     def fail_commit(session: object) -> bool:
         return False
@@ -217,7 +217,7 @@ def test_set_timezone_commit_failure(
 
 
 def test_set_timezone_user_missing(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
     commit_mock = MagicMock(return_value=True)
     monkeypatch.setattr(profile_api, "commit", commit_mock)
