@@ -31,6 +31,7 @@ class DummyWebAppMessage(DummyMessage):
         super().__init__()
         self.web_app_data = DummyWebAppData(data)
 
+
 def make_user(user_id: int) -> MagicMock:
     user = MagicMock(spec=User)
     user.id = user_id
@@ -149,3 +150,9 @@ def test_build_webapp_url(monkeypatch: pytest.MonkeyPatch, base_url: str) -> Non
     url = reminder_handlers.build_webapp_url("/ui/reminders")
     assert url == "https://example.com/ui/reminders"
     assert "//" not in url.split("://", 1)[1]
+
+
+def test_build_webapp_url_without_base(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "webapp_url", None)
+    path = "/ui/reminders"
+    assert reminder_handlers.build_webapp_url(path) == path

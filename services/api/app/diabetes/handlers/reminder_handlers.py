@@ -53,11 +53,21 @@ PLAN_LIMITS = {"free": 5, "pro": 10}
 
 from . import UserData
 
+
 def build_webapp_url(path: str) -> str:
-    base = settings.webapp_url.rstrip("/") + "/"
+    """Build an absolute webapp URL from ``path``.
+
+    If ``settings.webapp_url`` is not configured, the original ``path`` is
+    returned unchanged.
+    """
+    base_url = settings.webapp_url
+    if base_url is None:
+        return path
+    base = base_url.rstrip("/") + "/"
     if not path.startswith("/"):
         path = "/" + path
     return urljoin(base, path)
+
 
 # Map reminder type codes to display names
 REMINDER_NAMES = {
@@ -74,9 +84,11 @@ REMINDER_ACTIONS = {
     "xe_after": "Проверить ХЕ",  # noqa: RUF001
 }
 
+
 def _limit_for(user: User | None) -> int:
     plan = getattr(user, "plan", "free")
     return PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
+
 
 def _describe(rem: Reminder, user: User | None = None) -> str:
     """Return human readable reminder description with status and schedule."""
@@ -143,8 +155,6 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
     return type_icon, schedule
 
 
-
-
 def _render_reminders(
     session: Session, user_id: int
 ) -> tuple[str, InlineKeyboardMarkup | None]:
@@ -166,9 +176,7 @@ def _render_reminders(
     if not rems:
         text = header
         if settings.webapp_url and add_button_row is not None:
-            text += (
-                "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
-            )
+            text += "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
             return text, InlineKeyboardMarkup([add_button_row])
         text += "\nУ вас нет напоминаний. Отправьте /addreminder."
         return text, None
@@ -188,9 +196,7 @@ def _render_reminders(
             row.append(
                 InlineKeyboardButton(
                     "✏️",
-                    web_app=WebAppInfo(
-                        build_webapp_url(f"/ui/reminders?id={r.id}")
-                    ),
+                    web_app=WebAppInfo(build_webapp_url(f"/ui/reminders?id={r.id}")),
                 )
             )
         row.extend(
@@ -209,7 +215,9 @@ def _render_reminders(
     lines: list[str] = []
     buttons: list[list[InlineKeyboardButton]] = []
 
-    def extend(section: str, items: list[tuple[str, list[InlineKeyboardButton]]]) -> None:
+    def extend(
+        section: str, items: list[tuple[str, list[InlineKeyboardButton]]]
+    ) -> None:
         if not items:
             return
         if lines:
@@ -229,9 +237,7 @@ def _render_reminders(
     return text, InlineKeyboardMarkup(buttons)
 
 
-def schedule_reminder(
-    rem: Reminder, job_queue: DefaultJobQueue | None
-) -> None:
+def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
     if job_queue is None:
         logger.warning("schedule_reminder called without job_queue")
         return
@@ -331,9 +337,7 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     render_fn = cast(
         Callable[[object], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
     )
-    text, keyboard = await run_db(
-        render_fn, user_id, sessionmaker=SessionLocal
-    )
+    text, keyboard = await run_db(render_fn, user_id, sessionmaker=SessionLocal)
     if keyboard is not None:
         await message.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
     else:
@@ -418,15 +422,11 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         return
     if status == "error":
-        await message.reply_text(
-            "⚠️ Не удалось сохранить напоминание."
-        )
+        await message.reply_text("⚠️ Не удалось сохранить напоминание.")
         return
 
     rid = rid_or_count
-    job_queue: DefaultJobQueue | None = cast(
-        DefaultJobQueue | None, context.job_queue
-    )
+    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None:
         for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
             job.schedule_removal()
@@ -486,6 +486,7 @@ async def reminder_webapp_save(
             )
             return
         minutes = None
+
     def db_save(
         session: Session,
     ) -> (
@@ -526,9 +527,7 @@ async def reminder_webapp_save(
                     return "error", None, None, None
                 rem.interval_hours = int(parsed.total_seconds() // 3600)
         if not commit(session):
-            logger.error(
-                "Failed to commit reminder via webapp for user %s", user_id
-            )
+            logger.error("Failed to commit reminder via webapp for user %s", user_id)
             return "error", None, None, None
         session.refresh(rem)
         return "ok", rem, None, None
@@ -546,32 +545,25 @@ async def reminder_webapp_save(
         )
         return
     if status == "error":
-        await msg.reply_text(
-            "⚠️ Не удалось сохранить напоминание."
-        )
+        await msg.reply_text("⚠️ Не удалось сохранить напоминание.")
         return
 
-    job_queue: DefaultJobQueue | None = cast(
-        DefaultJobQueue | None, context.job_queue
-    )
+    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None and rem is not None:
         schedule_reminder(rem, job_queue)
     render_fn = cast(
         Callable[[object], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
     )
-    text, keyboard = await run_db(
-        render_fn, user_id, sessionmaker=SessionLocal
-    )
+    text, keyboard = await run_db(render_fn, user_id, sessionmaker=SessionLocal)
     if keyboard is not None:
         await msg.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
     else:
         await msg.reply_text(text, parse_mode="HTML")
 
 
-
 async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message: Message | None = (
-        update.message or (update.callback_query.message if update.callback_query else None)
+    message: Message | None = update.message or (
+        update.callback_query.message if update.callback_query else None
     )
     args = getattr(context, "args", [])
     if not args:
@@ -596,9 +588,7 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if message:
                 await message.reply_text("⚠️ Не удалось удалить напоминание.")
             return
-    job_queue: DefaultJobQueue | None = cast(
-        DefaultJobQueue | None, context.job_queue
-    )
+    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None:
         for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
             job.schedule_removal()
@@ -619,13 +609,9 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         rem = session.get(Reminder, rid)
         if not rem:
             return
-        session.add(
-            ReminderLog(reminder_id=rid, telegram_id=chat_id, action="trigger")
-        )
+        session.add(ReminderLog(reminder_id=rid, telegram_id=chat_id, action="trigger"))
         if not commit(session):
-            logger.error(
-                "Failed to log reminder trigger for reminder %s", rid
-            )
+            logger.error("Failed to log reminder trigger for reminder %s", rid)
             return
         user = session.get(User, chat_id)
         text = _describe(rem, user)
@@ -644,9 +630,7 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             chat_id=chat_id, text=text, reply_markup=keyboard
         )
     except TelegramError:
-        logger.exception(
-            "Failed to send reminder %s to chat %s", rid, chat_id
-        )
+        logger.exception("Failed to send reminder %s to chat %s", rid, chat_id)
 
 
 async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -663,9 +647,7 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             await query.answer("Не найдено", show_alert=True)
             return
         await query.answer()
-        session.add(
-            ReminderLog(reminder_id=rid, telegram_id=chat_id, action=action)
-        )
+        session.add(ReminderLog(reminder_id=rid, telegram_id=chat_id, action=action))
         if not commit(session):
             logger.error(
                 "Failed to log reminder action %s for reminder %s", action, rid
@@ -699,7 +681,9 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 raise
 
 
-async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def reminder_action_cb(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     query = update.callback_query
     user = update.effective_user
     if query is None or query.data is None or user is None:
@@ -754,9 +738,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if status == "error":
         return
 
-    job_queue: DefaultJobQueue | None = cast(
-        DefaultJobQueue | None, context.job_queue
-    )
+    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if status == "toggle":
         if rem and rem.is_enabled:
             schedule_reminder(rem, job_queue)
@@ -771,9 +753,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
     render_fn = cast(
         Callable[[object], tuple[str, InlineKeyboardMarkup | None]], _render_reminders
     )
-    text, keyboard = await run_db(
-        render_fn, user_id, sessionmaker=SessionLocal
-    )
+    text, keyboard = await run_db(render_fn, user_id, sessionmaker=SessionLocal)
     try:
         if keyboard is not None:
             await query.edit_message_text(
@@ -790,10 +770,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.answer("Готово ✅")
 
 
-
-def schedule_after_meal(
-    user_id: int, job_queue: DefaultJobQueue | None
-) -> None:
+def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None:
     if job_queue is None:
         logger.warning("schedule_after_meal called without job_queue")
         return
