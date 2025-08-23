@@ -51,7 +51,7 @@
 
 ## Установка
 
-Перед началом убедитесь, что установлен **Python 3.12**. В Ubuntu его можно поставить через PPA Deadsnakes:
+Перед началом убедитесь, что установлен **Python 3.10+** (рекомендуется 3.12). В Ubuntu его можно поставить через PPA Deadsnakes:
 
 ```bash
 sudo add-apt-repository ppa:deadsnakes/ppa
@@ -67,7 +67,7 @@ sudo apt install python3.12 python3.12-venv
    git clone https://github.com/Offonika/saharlight-ux.git
    cd saharlight-ux
    ```
-2. **Создайте виртуальное окружение Python 3.12 и активируйте его:**
+2. **Создайте виртуальное окружение Python 3.12 и активируйте его** (или другую доступную версию Python 3.10+):
    ```bash
    python3.12 -m venv venv
    source venv/bin/activate
