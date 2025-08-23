@@ -46,6 +46,8 @@ async def save_profile(data: ProfileSchema) -> None:
         profile.target_bg = data.target
         profile.low_threshold = data.low
         profile.high_threshold = data.high
+        profile.sos_contact = data.sosContact if data.sosContact is not None else None
+        profile.sos_alerts_enabled = data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
         if not commit(session):
             raise HTTPException(status_code=500, detail="db commit failed")
 
