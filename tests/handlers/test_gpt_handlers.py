@@ -67,7 +67,9 @@ async def test_report_date_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_report_date_valid(monkeypatch: pytest.MonkeyPatch) -> None:
     called: dict[str, Any] = {}
 
-    async def fake_send_report(update: Any, context: Any, date_from: dt.datetime, period: str) -> None:
+    async def fake_send_report(
+        update: Any, context: Any, date_from: dt.datetime, period: str
+    ) -> None:
         called["date_from"] = date_from
         called["period"] = period
 
@@ -217,7 +219,7 @@ async def test_parse_command_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": None, "xe": None, "dose": None}
 
-    async def fake_parse(text: str) -> dict[str, Any] | None:
+    async def fake_parse(text: str) -> dict[str, object] | None:
         return None
 
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
@@ -234,7 +236,7 @@ async def test_parse_command_negative(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": None, "xe": None, "dose": None}
 
-    async def fake_parse(text: str) -> dict[str, Any]:
+    async def fake_parse(text: str) -> dict[str, object]:
         return {"action": "add_entry", "fields": {"sugar_before": -1}}
 
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
@@ -251,7 +253,7 @@ async def test_parse_command_valid_time(monkeypatch: pytest.MonkeyPatch) -> None
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": None, "xe": None, "dose": None}
 
-    async def fake_parse(text: str) -> dict[str, Any]:
+    async def fake_parse(text: str) -> dict[str, object]:
         return {
             "action": "add_entry",
             "fields": {"sugar_before": 5, "xe": 1, "dose": 2},
