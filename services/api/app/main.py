@@ -5,7 +5,7 @@ import os
 import sys
 from datetime import time as dt_time
 from pathlib import Path
-from typing import cast
+from typing import Callable, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 # ────────── Path-хаки, когда файл запускают напрямую ──────────
@@ -241,7 +241,6 @@ async def get_history(
             .all()
         )
 
-
     records = await run_db(cast(Callable[[Session], list[HistoryRecordDB]], _query))
 
     result: list[HistoryRecordSchema] = []
@@ -249,11 +248,9 @@ async def get_history(
         if r.type in ALLOWED_HISTORY_TYPES:
             result.append(
                 HistoryRecordSchema(
-
                     id=cast(str, r.id),
                     date=r.date,
                     time=r.time.strftime("%H:%M"),
-
                     sugar=r.sugar,
                     carbs=r.carbs,
                     breadUnits=r.bread_units,
