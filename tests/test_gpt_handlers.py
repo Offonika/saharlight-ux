@@ -425,7 +425,7 @@ async def test_freeform_handler_parse_command_unknown(
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": None, "xe": None, "dose": None}
 
-    async def fake_parse_command(text: str) -> dict[str, Any] | None:
+    async def fake_parse_command(text: str) -> dict[str, object] | None:
         return None
 
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
@@ -472,7 +472,7 @@ async def test_freeform_handler_parser_timeout(monkeypatch: pytest.MonkeyPatch) 
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": None, "xe": None, "dose": None}
 
-    async def fake_parse_command(text: str) -> dict[str, Any] | None:
+    async def fake_parse_command(text: str) -> dict[str, object] | None:
         raise gpt_handlers.ParserTimeoutError
 
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
@@ -626,7 +626,7 @@ async def test_freeform_handler_parse_command_negative(
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": None, "xe": None, "dose": None}
 
-    async def fake_parse(text: str) -> dict[str, Any]:
+    async def fake_parse(text: str) -> dict[str, object]:
         return {"action": "add_entry", "fields": {"sugar_before": -1}}
 
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
@@ -652,7 +652,7 @@ async def test_freeform_handler_parse_command_bad_fields(
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": None, "xe": None, "dose": None}
 
-    async def fake_parse(text: str) -> dict[str, Any]:
+    async def fake_parse(text: str) -> dict[str, object]:
         return {"action": "add_entry", "fields": None}
 
     monkeypatch.setattr(gpt_handlers, "smart_input", fake_smart_input)
@@ -679,7 +679,7 @@ async def test_freeform_handler_parse_command_valid_time(
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": None, "xe": None, "dose": None}
 
-    async def fake_parse(text: str) -> dict[str, Any]:
+    async def fake_parse(text: str) -> dict[str, object]:
         return {
             "action": "add_entry",
             "fields": {"sugar_before": 5, "xe": 1, "dose": 2},
@@ -711,7 +711,7 @@ async def test_freeform_handler_parse_command_bad_time(
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": None, "xe": None, "dose": None}
 
-    async def fake_parse(text: str) -> dict[str, Any]:
+    async def fake_parse(text: str) -> dict[str, object]:
         return {
             "action": "add_entry",
             "fields": {"sugar_before": 5},

@@ -19,7 +19,9 @@ T = TypeVar("T")
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None, photo: tuple[PhotoSize, ...] | None = None) -> None:
+    def __init__(
+        self, text: str | None = None, photo: tuple[PhotoSize, ...] | None = None
+    ) -> None:
         self.text: str | None = text
         self.photo: tuple[PhotoSize, ...] = () if photo is None else photo
         self.replies: list[str] = []
@@ -79,8 +81,10 @@ class DummySession(Session):
 
 
 @pytest.mark.asyncio
-async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    async def fake_parse_command(text: str) -> dict[str, Any]:
+async def test_photo_flow_saves_entry(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    async def fake_parse_command(text: str) -> dict[str, object]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
     monkeypatch.setattr(gpt_handlers, "parse_command", fake_parse_command)
@@ -98,7 +102,9 @@ async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path:
         Mock(spec=CallbackContext),
     )
     user_data_ref: dict[str, Any] = {}
-    setattr(cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref))
+    setattr(
+        cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref)
+    )
     setattr(cast(Any, type(context)), "job_queue", PropertyMock(return_value=None))
 
     assert context.user_data is not None
@@ -135,7 +141,11 @@ async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path:
                         data=[
                             SimpleNamespace(
                                 role="assistant",
-                                content=[SimpleNamespace(text=SimpleNamespace(value="carbs 30g xe 2"))],
+                                content=[
+                                    SimpleNamespace(
+                                        text=SimpleNamespace(value="carbs 30g xe 2")
+                                    )
+                                ],
                             )
                         ]
                     )
@@ -145,7 +155,9 @@ async def test_photo_flow_saves_entry(monkeypatch: pytest.MonkeyPatch, tmp_path:
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0))
+    monkeypatch.setattr(
+        photo_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0)
+    )
     user_data["thread_id"] = "tid"
 
     msg_photo = DummyMessage(photo=cast(tuple[PhotoSize, ...], (DummyPhoto(),)))
@@ -228,7 +240,9 @@ async def test_photo_handler_removes_file_on_failure(
         Mock(spec=CallbackContext),
     )
     user_data_ref: dict[str, Any] = {"thread_id": "tid"}
-    setattr(cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref))
+    setattr(
+        cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref)
+    )
     fake_bot = SimpleNamespace(get_file=fake_get_file)
     setattr(cast(Any, type(context)), "bot", PropertyMock(return_value=fake_bot))
 
