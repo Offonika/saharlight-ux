@@ -34,12 +34,18 @@ from .schemas.role import RoleSchema
 from .schemas.user import UserContext
 from .services.user_roles import get_user_role, set_user_role
 from .telegram_auth import require_tg_user
+from services.api.app.diabetes.utils.openai_utils import dispose_http_client
 
 # ────────── init ──────────
 logger = logging.getLogger(__name__)
 init_db()  # создаёт/инициализирует БД
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0")
+
+
+@app.on_event("shutdown")
+async def shutdown_openai_client() -> None:
+    dispose_http_client()
 
 
 # ────────── роуты статистики / legacy ──────────
