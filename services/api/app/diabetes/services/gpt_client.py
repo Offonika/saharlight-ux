@@ -7,7 +7,7 @@ import threading
 from typing import Iterable
 
 import httpx
-from openai import NOT_GIVEN, NotGiven, OpenAI, OpenAIError
+from openai import AsyncOpenAI, NOT_GIVEN, NotGiven, OpenAI, OpenAIError
 from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
 from openai.types.file_object import FileObject
 from openai.types.beta import Thread
@@ -19,12 +19,18 @@ from openai.types.beta.threads import (
 )
 
 from services.api.app.config import settings
-from services.api.app.diabetes.utils.openai_utils import get_openai_client
+from services.api.app.diabetes.utils.openai_utils import (
+    get_async_openai_client,
+    get_openai_client,
+)
 
 logger = logging.getLogger(__name__)
 
 _client: OpenAI | None = None
 _client_lock = threading.Lock()
+
+_async_client: AsyncOpenAI | None = None
+_async_client_lock = threading.Lock()
 
 
 def _get_client() -> OpenAI:
@@ -36,7 +42,16 @@ def _get_client() -> OpenAI:
     return _client
 
 
-def create_chat_completion(
+def _get_async_client() -> AsyncOpenAI:
+    global _async_client
+    if _async_client is None:
+        with _async_client_lock:
+            if _async_client is None:
+                _async_client = get_async_openai_client()
+    return _async_client
+
+
+async def create_chat_completion(
     *,
     model: str,
     messages: Iterable[ChatCompletionMessageParam],
@@ -45,7 +60,8 @@ def create_chat_completion(
     timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
 ) -> ChatCompletion:
     """Create a chat completion with typed return value."""
-    return _get_client().chat.completions.create(
+    client: AsyncOpenAI = _get_async_client()
+    return await client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=temperature,
@@ -119,6 +135,7 @@ async def send_message(
     ]
     if image_path:
         try:
+
             def _upload() -> FileObject:
                 with open(image_path, "rb") as f:
                     return client.files.create(file=f, purpose="vision")
