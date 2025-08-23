@@ -2,8 +2,8 @@
 name = "diabetes_sdk"
 version = "1.0.0"
 description = "Diabetes Assistant API"
-authors = [
-  {name = "OpenAPI Generator Community",email = "team@openapitools.org"},
+maintainers = [
+  {name = "Offonika", email = "arseniikeshtov@gmail.com"},
 ]
 license = {file = "LICENSE"}
 readme = "README.md"
@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/GIT_USER_ID/GIT_REPO_ID"
+Repository = "https://github.com/Offonika/saharlight-ux"
 
 [tool.poetry]
 requires-poetry = ">=2.0"
