@@ -57,7 +57,7 @@ paths:
       parameters:
       - name: telegramId
         in: query
-        required: false
+        required: true
         schema:
           type: integer
           title: Telegram Id

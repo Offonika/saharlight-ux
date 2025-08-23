@@ -26,7 +26,7 @@ import {
 } from '../models/index';
 
 export interface ProfilesGetRequest {
-    telegramId?: number;
+    telegramId: number;
 }
 
 export interface ProfilesPostRequest {
@@ -42,6 +42,13 @@ export class ProfilesApi extends runtime.BaseAPI {
      * Profiles Get
      */
     async profilesGetRaw(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileSchema>> {
+        if (requestParameters['telegramId'] == null) {
+            throw new runtime.RequiredError(
+                'telegramId',
+                'Required parameter "telegramId" was null or undefined when calling profilesGet().'
+            );
+        }
+
         const queryParameters: any = {};
 
         if (requestParameters['telegramId'] != null) {
@@ -70,7 +77,7 @@ export class ProfilesApi extends runtime.BaseAPI {
     /**
      * Profiles Get
      */
-    async profilesGet(requestParameters: ProfilesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSchema> {
+    async profilesGet(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSchema> {
         const response = await this.profilesGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
