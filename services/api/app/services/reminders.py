@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
+from typing import Callable, cast
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -22,10 +22,12 @@ async def list_reminders(telegram_id: int) -> list[Reminder]:
 
 async def save_reminder(data: ReminderSchema) -> int:
     def _save(session: SessionProtocol) -> int:
+        rem: Reminder
         if data.id is not None:
-            rem = cast(Reminder | None, session.get(Reminder, data.id))
-            if rem is None or rem.telegram_id != data.telegramId:
+            existing = cast(Reminder | None, session.get(Reminder, data.id))
+            if existing is None or existing.telegram_id != data.telegramId:
                 raise HTTPException(status_code=404, detail="reminder not found")
+            rem = existing
         else:
             rem = Reminder(telegram_id=data.telegramId)
             cast(Session, session).add(rem)
@@ -39,9 +41,14 @@ async def save_reminder(data: ReminderSchema) -> int:
         rem.is_enabled = data.isEnabled
         commit(cast(Session, session))
         cast(Session, session).refresh(rem)
-        return rem.id
+        return cast(int, rem.id)
 
-    return await run_db(_save, sessionmaker=SessionLocal)
+    return cast(
+        int,
+        await run_db(
+            cast(Callable[[Session], int], _save), sessionmaker=SessionLocal
+        ),
+    )
 
 
 async def delete_reminder(telegram_id: int, reminder_id: int) -> None:
@@ -52,4 +59,6 @@ async def delete_reminder(telegram_id: int, reminder_id: int) -> None:
         session.delete(rem)
         commit(cast(Session, session))
 
-    await run_db(_delete, sessionmaker=SessionLocal)
+    await run_db(
+        cast(Callable[[Session], None], _delete), sessionmaker=SessionLocal
+    )
