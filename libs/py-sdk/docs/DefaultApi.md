@@ -13,7 +13,7 @@ Method | HTTP request | Description
 
 
 # **create_user_user_post**
-> Dict[str, Optional[str]] create_user_user_post(web_user, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, str] create_user_user_post(web_user, x_telegram_init_data=x_telegram_init_data)
 
 Create User
 
@@ -63,7 +63,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-**Dict[str, Optional[str]]**
+**Dict[str, str]**
 
 ### Authorization
 
@@ -223,7 +223,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_timezone_timezone_get**
-> Dict[str, Optional[str]] get_timezone_timezone_get(x_telegram_init_data=x_telegram_init_data)
+> Dict[str, str] get_timezone_timezone_get(x_telegram_init_data=x_telegram_init_data)
 
 Get Timezone
 
@@ -268,7 +268,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-**Dict[str, Optional[str]]**
+**Dict[str, str]**
 
 ### Authorization
 
@@ -356,7 +356,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **put_timezone_timezone_put**
-> Dict[str, Optional[str]] put_timezone_timezone_put(timezone, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, str] put_timezone_timezone_put(timezone, x_telegram_init_data=x_telegram_init_data)
 
 Put Timezone
 
@@ -404,7 +404,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-**Dict[str, Optional[str]]**
+**Dict[str, str]**
 
 ### Authorization
 

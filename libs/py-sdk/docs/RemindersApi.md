@@ -77,6 +77,7 @@ No authorization required
 |-------------|-------------|------------------|
 **200** | Successful Response |  -  |
 **422** | Validation Error |  -  |
+**404** | Reminder not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -148,6 +149,7 @@ No authorization required
 |-------------|-------------|------------------|
 **200** | Successful Response. Returns an array of reminders. An empty array is returned when no reminders exist. |  -  |
 **422** | Validation Error |  -  |
+**404** | Reminder not found or telegramId mismatch |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

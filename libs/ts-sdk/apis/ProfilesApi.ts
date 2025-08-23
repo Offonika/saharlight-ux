@@ -17,15 +17,12 @@ import * as runtime from '../runtime';
 import type {
   HTTPValidationError,
   ProfileSchema,
-  UserContext,
 } from '../models/index';
 import {
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
     ProfileSchemaFromJSON,
     ProfileSchemaToJSON,
-    UserContextFromJSON,
-    UserContextToJSON,
 } from '../models/index';
 
 export interface ProfilesGetRequest {
@@ -46,7 +43,7 @@ export class ProfilesApi extends runtime.BaseAPI {
     /**
      * Profiles Get
      */
-    async profilesGetRaw(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<UserContext>>> {
+    async profilesGetRaw(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileSchema>> {
         const queryParameters: any = {};
 
         if (requestParameters['telegramId'] != null) {
@@ -69,13 +66,13 @@ export class ProfilesApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(UserContextFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileSchemaFromJSON(jsonValue));
     }
 
     /**
      * Profiles Get
      */
-    async profilesGet(requestParameters: ProfilesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<UserContext>> {
+    async profilesGet(requestParameters: ProfilesGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSchema> {
         const response = await this.profilesGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -83,7 +80,7 @@ export class ProfilesApi extends runtime.BaseAPI {
     /**
      * Profiles Post
      */
-    async profilesPostRaw(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+    async profilesPostRaw(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileSchema>> {
         if (requestParameters['profileSchema'] == null) {
             throw new runtime.RequiredError(
                 'profileSchema',
@@ -112,13 +109,13 @@ export class ProfilesApi extends runtime.BaseAPI {
             body: ProfileSchemaToJSON(requestParameters['profileSchema']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileSchemaFromJSON(jsonValue));
     }
 
     /**
      * Profiles Post
      */
-    async profilesPost(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+    async profilesPost(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSchema> {
         const response = await this.profilesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
