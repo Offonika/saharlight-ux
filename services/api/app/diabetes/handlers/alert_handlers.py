@@ -149,6 +149,7 @@ async def evaluate_sugar(
             alert = Alert(user_id=user_id, sugar=sugar, type=atype)
             session.add(alert)
             if not commit(session):
+                logger.error("Failed to commit new alert for user %s", user_id)
                 return False, None
             alerts = (
                 session.query(Alert)
@@ -178,6 +179,7 @@ async def evaluate_sugar(
             for a in active:
                 a.resolved = True
             if not commit(session):
+                logger.error("Failed to commit resolved alerts for user %s", user_id)
                 return False, None
             return True, {"action": "remove", "notify": False}
 
@@ -268,7 +270,8 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             )
             for a in alerts:
                 a.resolved = True
-            commit(session)
+            if not commit(session):
+                logger.error("Failed to commit resolved alerts for user %s", user_id)
         job.schedule_removal()
         return
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
