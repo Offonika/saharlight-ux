@@ -17,7 +17,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
 from pydantic import StrictInt
-from typing import Optional
 from diabetes_sdk.models.profile_schema import ProfileSchema
 
 from diabetes_sdk.api_client import ApiClient, RequestSerialized
@@ -41,7 +40,7 @@ class ProfilesApi:
     @validate_call
     def profiles_get(
         self,
-        telegram_id: Optional[StrictInt] = None,
+        telegram_id: StrictInt,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -58,7 +57,7 @@ class ProfilesApi:
         """Profiles Get
 
 
-        :param telegram_id:
+        :param telegram_id: (required)
         :type telegram_id: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -109,7 +108,7 @@ class ProfilesApi:
     @validate_call
     def profiles_get_with_http_info(
         self,
-        telegram_id: Optional[StrictInt] = None,
+        telegram_id: StrictInt,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -126,7 +125,7 @@ class ProfilesApi:
         """Profiles Get
 
 
-        :param telegram_id:
+        :param telegram_id: (required)
         :type telegram_id: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
@@ -177,7 +176,7 @@ class ProfilesApi:
     @validate_call
     def profiles_get_without_preload_content(
         self,
-        telegram_id: Optional[StrictInt] = None,
+        telegram_id: StrictInt,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -194,7 +193,7 @@ class ProfilesApi:
         """Profiles Get
 
 
-        :param telegram_id:
+        :param telegram_id: (required)
         :type telegram_id: int
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request

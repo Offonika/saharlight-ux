@@ -9,7 +9,7 @@ Method | HTTP request | Description
 
 
 # **profiles_get**
-> ProfileSchema profiles_get(telegram_id=telegram_id)
+> ProfileSchema profiles_get(telegram_id)
 
 Profiles Get
 
@@ -44,11 +44,11 @@ configuration.api_key['telegramInitData'] = os.environ["API_KEY"]
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = diabetes_sdk.ProfilesApi(api_client)
-    telegram_id = 56 # int |  (optional)
+    telegram_id = 56 # int | 
 
     try:
         # Profiles Get
-        api_response = api_instance.profiles_get(telegram_id=telegram_id)
+        api_response = api_instance.profiles_get(telegram_id)
         print("The response of ProfilesApi->profiles_get:\n")
         pprint(api_response)
     except Exception as e:
@@ -62,7 +62,7 @@ with diabetes_sdk.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **telegram_id** | **int**|  | [optional] 
+ **telegram_id** | **int**|  | 
 
 ### Return type
 

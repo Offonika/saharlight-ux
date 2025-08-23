@@ -57,7 +57,7 @@ paths:
       parameters:
       - name: telegramId
         in: query
-        required: false
+        required: true
         schema:
           type: integer
           title: Telegram Id
@@ -719,6 +719,7 @@ components:
           - type: string
           - type: 'null'
           title: Title
+          description: Reminder title
         time:
           anyOf:
           - type: string
