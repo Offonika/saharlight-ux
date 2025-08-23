@@ -1,22 +1,25 @@
 from __future__ import annotations
 
 from fastapi import HTTPException
+from typing import cast
+
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import Profile, SessionLocal, User, run_db
 from ..diabetes.services.repository import commit
 from ..schemas.profile import ProfileSchema
+from ..types import SessionProtocol
 
 
 async def set_timezone(telegram_id: int, tz: str) -> None:
-    def _save(session: Session) -> None:
-        user = session.get(User, telegram_id)
+    def _save(session: SessionProtocol) -> None:
+        user = cast(User | None, session.get(User, telegram_id))
         if user is None:
             user = User(telegram_id=telegram_id, thread_id="api", timezone=tz)
-            session.add(user)
+            cast(Session, session).add(user)
         else:
             user.timezone = tz
-        if not commit(session):
+        if not commit(cast(Session, session)):
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_save, sessionmaker=SessionLocal)
@@ -41,11 +44,11 @@ def _validate_profile(data: ProfileSchema) -> None:
 async def save_profile(data: ProfileSchema) -> None:
     _validate_profile(data)
 
-    def _save(session: Session) -> None:
-        profile = session.get(Profile, data.telegramId)
+    def _save(session: SessionProtocol) -> None:
+        profile = cast(Profile | None, session.get(Profile, data.telegramId))
         if profile is None:
             profile = Profile(telegram_id=data.telegramId)
-            session.add(profile)
+            cast(Session, session).add(profile)
         if data.orgId is not None:
             profile.org_id = data.orgId
         profile.icr = data.icr
@@ -57,14 +60,14 @@ async def save_profile(data: ProfileSchema) -> None:
         profile.sos_alerts_enabled = (
             data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
         )
-        if not commit(session):
+        if not commit(cast(Session, session)):
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_save, sessionmaker=SessionLocal)
 
 
 async def get_profile(telegram_id: int) -> Profile | None:
-    def _get(session: Session) -> Profile | None:
-        return session.get(Profile, telegram_id)
+    def _get(session: SessionProtocol) -> Profile | None:
+        return cast(Profile | None, session.get(Profile, telegram_id))
 
     return await run_db(_get, sessionmaker=SessionLocal)
