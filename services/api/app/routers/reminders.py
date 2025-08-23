@@ -97,16 +97,26 @@ async def get_reminder(
     raise HTTPException(status_code=404, detail="reminder not found")
 
 
-@router.post("/reminders", dependencies=[Depends(require_tg_user)])
-async def post_reminder(data: ReminderSchema) -> dict[str, object]:
+@router.post("/reminders")
+async def post_reminder(
+    data: ReminderSchema,
+    user: UserContext = Depends(require_tg_user),
+) -> dict[str, object]:
+    if data.telegramId != user["id"]:
+        raise HTTPException(status_code=403, detail="forbidden")
     rid = await save_reminder(data)
     return {"status": "ok", "id": rid}
 
 
-@router.patch("/reminders", dependencies=[Depends(require_tg_user)])
-async def patch_reminder(data: ReminderSchema) -> dict[str, object]:
+@router.patch("/reminders")
+async def patch_reminder(
+    data: ReminderSchema,
+    user: UserContext = Depends(require_tg_user),
+) -> dict[str, object]:
     if data.id is None:
         raise HTTPException(status_code=422, detail="id is required")
+    if data.telegramId != user["id"]:
+        raise HTTPException(status_code=403, detail="forbidden")
     rid = await save_reminder(data)
     return {"status": "ok", "id": rid}
 
