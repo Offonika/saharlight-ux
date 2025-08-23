@@ -1,0 +1,221 @@
+# diabetes_sdk.HistoryApi
+
+All URIs are relative to *http://localhost*
+
+Method | HTTP request | Description
+------------- | ------------- | -------------
+[**history_get**](HistoryApi.md#history_get) | **GET** /history | Get History
+[**history_id_delete**](HistoryApi.md#history_id_delete) | **DELETE** /history/{id} | Delete History
+[**history_post**](HistoryApi.md#history_post) | **POST** /history | Post History
+
+
+# **history_get**
+> List[HistoryRecordSchemaOutput] history_get(x_telegram_init_data=x_telegram_init_data)
+
+Get History
+
+Return history records for the authenticated user.
+
+### Example
+
+
+```python
+import diabetes_sdk
+from diabetes_sdk.models.history_record_schema_output import HistoryRecordSchemaOutput
+from diabetes_sdk.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = diabetes_sdk.Configuration(
+    host = "http://localhost"
+)
+
+
+# Enter a context with an instance of the API client
+with diabetes_sdk.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = diabetes_sdk.HistoryApi(api_client)
+    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
+
+    try:
+        # Get History
+        api_response = api_instance.history_get(x_telegram_init_data=x_telegram_init_data)
+        print("The response of HistoryApi->history_get:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling HistoryApi->history_get: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **x_telegram_init_data** | **str**|  | [optional] 
+
+### Return type
+
+[**List[HistoryRecordSchemaOutput]**](HistoryRecordSchemaOutput.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | Successful Response |  -  |
+**422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **history_id_delete**
+> Dict[str, Optional[str]] history_id_delete(id, x_telegram_init_data=x_telegram_init_data)
+
+Delete History
+
+Delete a history record after verifying ownership.
+
+### Example
+
+
+```python
+import diabetes_sdk
+from diabetes_sdk.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = diabetes_sdk.Configuration(
+    host = "http://localhost"
+)
+
+
+# Enter a context with an instance of the API client
+with diabetes_sdk.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = diabetes_sdk.HistoryApi(api_client)
+    id = 'id_example' # str | 
+    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
+
+    try:
+        # Delete History
+        api_response = api_instance.history_id_delete(id, x_telegram_init_data=x_telegram_init_data)
+        print("The response of HistoryApi->history_id_delete:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling HistoryApi->history_id_delete: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **id** | **str**|  | 
+ **x_telegram_init_data** | **str**|  | [optional] 
+
+### Return type
+
+**Dict[str, Optional[str]]**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | Successful Response |  -  |
+**422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **history_post**
+> Dict[str, Optional[str]] history_post(history_record_schema_input, x_telegram_init_data=x_telegram_init_data)
+
+Post History
+
+Save or update a history record in the database.
+
+### Example
+
+
+```python
+import diabetes_sdk
+from diabetes_sdk.models.history_record_schema_input import HistoryRecordSchemaInput
+from diabetes_sdk.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = diabetes_sdk.Configuration(
+    host = "http://localhost"
+)
+
+
+# Enter a context with an instance of the API client
+with diabetes_sdk.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = diabetes_sdk.HistoryApi(api_client)
+    history_record_schema_input = diabetes_sdk.HistoryRecordSchemaInput() # HistoryRecordSchemaInput | 
+    x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
+
+    try:
+        # Post History
+        api_response = api_instance.history_post(history_record_schema_input, x_telegram_init_data=x_telegram_init_data)
+        print("The response of HistoryApi->history_post:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling HistoryApi->history_post: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **history_record_schema_input** | [**HistoryRecordSchemaInput**](HistoryRecordSchemaInput.md)|  | 
+ **x_telegram_init_data** | **str**|  | [optional] 
+
+### Return type
+
+**Dict[str, Optional[str]]**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | Successful Response |  -  |
+**422** | Validation Error |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+

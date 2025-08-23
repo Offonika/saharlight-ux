@@ -34,7 +34,7 @@ const api = new HistoryApi(
 
 export async function getHistory(signal?: AbortSignal): Promise<HistoryRecord[]> {
   try {
-    const data = await api.historyGet(undefined, { signal });
+    const data = await api.historyGet({}, { signal });
     if (!Array.isArray(data)) {
       throw new Error('Некорректный ответ API');
     }
@@ -56,7 +56,7 @@ export async function getHistory(signal?: AbortSignal): Promise<HistoryRecord[]>
 
 export async function updateRecord(record: HistoryRecord) {
   try {
-    const data = await api.historyPost({ historyRecord: record });
+    const data = await api.historyPost({ historyRecordSchemaInput: record });
     if (data.status !== 'ok') {
       throw new Error(data.detail || 'Не удалось обновить запись');
     }

@@ -425,7 +425,7 @@ paths:
       - History
       summary: Post History
       description: Save or update a history record in the database.
-      operationId: post_history_history_post
+      operationId: historyPost
       parameters:
       - name: X-Telegram-Init-Data
         in: header
@@ -462,7 +462,7 @@ paths:
       - History
       summary: Get History
       description: Return history records for the authenticated user.
-      operationId: get_history_history_get
+      operationId: historyGet
       parameters:
       - name: X-Telegram-Init-Data
         in: header
@@ -488,20 +488,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
-  /history/{record_id}:
+  /history/{id}:
     delete:
       tags:
       - History
       summary: Delete History
       description: Delete a history record after verifying ownership.
-      operationId: delete_history_history__record_id__delete
+      operationId: historyIdDelete
       parameters:
-      - name: record_id
+      - name: id
         in: path
         required: true
         schema:
           type: string
-          title: Record Id
+          title: Id
       - name: X-Telegram-Init-Data
         in: header
         required: false
