@@ -217,6 +217,7 @@ class Reminder(Base):
     )
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     type: Mapped[str] = mapped_column(String, nullable=False)
+    title: Mapped[Optional[str]] = mapped_column(String)
     time: Mapped[Optional[time]] = mapped_column(Time)
     interval_hours: Mapped[Optional[int]] = mapped_column(Integer)
     minutes_after: Mapped[Optional[int]] = mapped_column(Integer)
@@ -230,7 +231,9 @@ class Reminder(Base):
 class ReminderLog(Base):
     __tablename__ = "reminder_logs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    reminder_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("reminders.id"))
+    reminder_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("reminders.id")
+    )
     telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger)
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     action: Mapped[Optional[str]] = mapped_column(String)
