@@ -11,6 +11,8 @@ Name | Type | Description | Notes
 **target** | **float** |  | 
 **low** | **float** |  | 
 **high** | **float** |  | 
+**sos_contact** | **str** |  | [optional] 
+**sos_alerts_enabled** | **bool** |  | [optional] 
 **org_id** | **int** |  | [optional] 
 
 ## Example

@@ -6,25 +6,40 @@ import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
 import { getProfile, saveProfile } from '@/api/profile';
 import { useTelegramContext } from '@/contexts/telegram-context';
+import { Switch } from '@/components/ui/switch';
 
 type ProfileField =
   | 'icr'
   | 'correctionFactor'
   | 'targetSugar'
   | 'lowThreshold'
-  | 'highThreshold';
+  | 'highThreshold'
+  | 'sosContact'
+  | 'sosAlertsEnabled';
+
+interface ProfileState {
+  icr: string;
+  correctionFactor: string;
+  targetSugar: string;
+  lowThreshold: string;
+  highThreshold: string;
+  sosContact: string;
+  sosAlertsEnabled: boolean;
+}
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useTelegramContext();
 
-  const [profile, setProfile] = useState<Record<ProfileField, string>>({
+  const [profile, setProfile] = useState<ProfileState>({
     icr: '',
     correctionFactor: '',
     targetSugar: '',
     lowThreshold: '',
     highThreshold: '',
+    sosContact: '',
+    sosAlertsEnabled: false,
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -44,6 +59,8 @@ const Profile = () => {
             targetSugar: String(data.target ?? ''),
             lowThreshold: String(data.low ?? ''),
             highThreshold: String(data.high ?? ''),
+            sosContact: String(data.sosContact ?? ''),
+            sosAlertsEnabled: Boolean(data.sosAlertsEnabled ?? false),
           });
         }
       } catch (error) {
@@ -65,8 +82,11 @@ const Profile = () => {
     };
   }, [user?.id, toast]);
 
-  const handleInputChange = (field: ProfileField, value: string) => {
-    setProfile(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (
+    field: ProfileField,
+    value: string | boolean,
+  ) => {
+    setProfile(prev => ({ ...prev, [field]: value } as ProfileState));
   };
 
   const handleSave = async () => {
@@ -101,6 +121,8 @@ const Profile = () => {
         target,
         low,
         high,
+        sosContact: profile.sosContact || undefined,
+        sosAlertsEnabled: profile.sosAlertsEnabled,
       });
       toast({
         title: 'Профиль сохранен',
@@ -236,6 +258,37 @@ const Profile = () => {
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* SOS Contact */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    SOS контакт
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.sosContact}
+                    onChange={(e) => handleInputChange('sosContact', e.target.value)}
+                    className="medical-input"
+                    placeholder="+79998887766"
+                  />
+                </div>
+
+                {/* SOS Alerts Toggle */}
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="sos-alerts"
+                    className="block text-sm font-medium text-foreground"
+                  >
+                    Включить SOS-уведомления
+                  </label>
+                  <Switch
+                    id="sos-alerts"
+                    checked={profile.sosAlertsEnabled}
+                    onCheckedChange={(checked) =>
+                      handleInputChange('sosAlertsEnabled', checked)
+                    }
+                  />
                 </div>
 
                 {/* Кнопка сохранения */}

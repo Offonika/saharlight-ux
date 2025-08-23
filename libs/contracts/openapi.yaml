@@ -705,6 +705,14 @@ components:
         high:
           type: number
           title: High
+        sosContact:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sos Contact
+        sosAlertsEnabled:
+          type: boolean
+          title: Sos Alerts Enabled
         orgId:
           anyOf:
           - type: integer

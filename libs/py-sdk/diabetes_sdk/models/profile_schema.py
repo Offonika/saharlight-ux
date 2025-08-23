@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing import Optional, Set
 from typing_extensions import Self
@@ -32,8 +32,10 @@ class ProfileSchema(BaseModel):
     target: Union[StrictFloat, StrictInt]
     low: Union[StrictFloat, StrictInt]
     high: Union[StrictFloat, StrictInt]
+    sos_contact: Optional[StrictStr] = Field(default=None, alias="sosContact")
+    sos_alerts_enabled: Optional[StrictBool] = Field(default=None, alias="sosAlertsEnabled")
     org_id: Optional[StrictInt] = Field(default=None, alias="orgId")
-    __properties: ClassVar[List[str]] = ["telegramId", "icr", "cf", "target", "low", "high", "orgId"]
+    __properties: ClassVar[List[str]] = ["telegramId", "icr", "cf", "target", "low", "high", "sosContact", "sosAlertsEnabled", "orgId"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -74,6 +76,11 @@ class ProfileSchema(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if sos_contact (nullable) is None
+        # and model_fields_set contains the field
+        if self.sos_contact is None and "sos_contact" in self.model_fields_set:
+            _dict['sosContact'] = None
+
         # set to None if org_id (nullable) is None
         # and model_fields_set contains the field
         if self.org_id is None and "org_id" in self.model_fields_set:
@@ -97,6 +104,8 @@ class ProfileSchema(BaseModel):
             "target": obj.get("target"),
             "low": obj.get("low"),
             "high": obj.get("high"),
+            "sosContact": obj.get("sosContact"),
+            "sosAlertsEnabled": obj.get("sosAlertsEnabled"),
             "orgId": obj.get("orgId")
         })
         return _obj
