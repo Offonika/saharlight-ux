@@ -79,7 +79,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **history_id_delete**
-> Dict[str, Optional[str]] history_id_delete(id, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, str] history_id_delete(id, x_telegram_init_data=x_telegram_init_data)
 
 Delete History
 
@@ -128,7 +128,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-**Dict[str, Optional[str]]**
+**Dict[str, str]**
 
 ### Authorization
 
@@ -149,7 +149,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **history_post**
-> Dict[str, Optional[str]] history_post(history_record_schema_input, x_telegram_init_data=x_telegram_init_data)
+> Dict[str, str] history_post(history_record_schema_input, x_telegram_init_data=x_telegram_init_data)
 
 Post History
 
@@ -199,7 +199,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-**Dict[str, Optional[str]]**
+**Dict[str, str]**
 
 ### Authorization
 

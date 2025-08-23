@@ -6,13 +6,15 @@ import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
 import { getProfile, saveProfile } from '@/api/profile';
 import { useTelegramContext } from '@/contexts/telegram-context';
+import { Switch } from '@/components/ui/switch';
 
 type ProfileField =
   | 'icr'
   | 'correctionFactor'
   | 'targetSugar'
   | 'lowThreshold'
-  | 'highThreshold';
+  | 'highThreshold'
+  | 'sosContact';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -25,8 +27,10 @@ const Profile = () => {
     targetSugar: '',
     lowThreshold: '',
     highThreshold: '',
+    sosContact: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [sosAlertsEnabled, setSosAlertsEnabled] = useState(true);
 
   useEffect(() => {
     if (!user?.id) {
@@ -44,7 +48,9 @@ const Profile = () => {
             targetSugar: String(data.target ?? ''),
             lowThreshold: String(data.low ?? ''),
             highThreshold: String(data.high ?? ''),
+            sosContact: String(data.sosContact ?? ''),
           });
+          setSosAlertsEnabled(data.sosAlertsEnabled ?? true);
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -101,6 +107,8 @@ const Profile = () => {
         target,
         low,
         high,
+        sosContact: profile.sosContact || undefined,
+        sosAlertsEnabled,
       });
       toast({
         title: 'Профиль сохранен',
@@ -236,6 +244,34 @@ const Profile = () => {
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* SOS contact */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    SOS контакт
+                  </label>
+                  <input
+                    type="text"
+                    value={profile.sosContact}
+                    onChange={(e) => handleInputChange('sosContact', e.target.value)}
+                    className="medical-input"
+                    placeholder="@username или номер"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Кому отправлять SOS-уведомления
+                  </p>
+                </div>
+
+                {/* SOS alerts toggle */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">
+                    SOS-уведомления
+                  </span>
+                  <Switch
+                    checked={sosAlertsEnabled}
+                    onCheckedChange={setSosAlertsEnabled}
+                  />
                 </div>
 
                 {/* Кнопка сохранения */}

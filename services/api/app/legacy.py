@@ -34,6 +34,8 @@ async def profiles_get(
     target_bg: float | None = profile.target_bg
     low_threshold: float | None = profile.low_threshold
     high_threshold: float | None = profile.high_threshold
+    sos_contact: str | None = profile.sos_contact
+    sos_alerts_enabled: bool = profile.sos_alerts_enabled
 
     return ProfileSchema(
         telegramId=profile.telegram_id,
@@ -43,4 +45,6 @@ async def profiles_get(
         low=float(low_threshold) if low_threshold is not None else 0.0,
         high=float(high_threshold) if high_threshold is not None else 0.0,
         orgId=profile.org_id,
+        sosContact=sos_contact,
+        sosAlertsEnabled=sos_alerts_enabled,
     )
