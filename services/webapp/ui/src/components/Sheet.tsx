@@ -19,7 +19,7 @@ const Sheet = ({ open, onClose, side = 'bottom', children }: SheetProps) => {
       'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
     const focusable = panelRef.current?.querySelectorAll<HTMLElement>(selector);
     const first = focusable?.[0];
-    const last = focusable?.[focusable.length - 1];
+    const last = focusable ? focusable[focusable.length - 1] : undefined;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
