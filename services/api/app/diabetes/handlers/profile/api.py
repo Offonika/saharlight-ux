@@ -26,6 +26,8 @@ class LocalProfile:
     target: float | None = None
     low: float | None = None
     high: float | None = None
+    sos_contact: str | None = None
+    sos_alerts_enabled: bool = True
 
 
 class LocalProfileAPI:
@@ -57,6 +59,8 @@ class LocalProfileAPI:
                 profile.target or 0.0,
                 profile.low or 0.0,
                 profile.high or 0.0,
+                profile.sos_contact,
+                profile.sos_alerts_enabled,
             )
             if not ok:
                 raise ProfileSaveError("Failed to save profile")
@@ -76,6 +80,8 @@ class LocalProfileAPI:
                 target=prof.target_bg,
                 low=prof.low_threshold,
                 high=prof.high_threshold,
+                sos_contact=prof.sos_contact,
+                sos_alerts_enabled=prof.sos_alerts_enabled,
             )
 
 
@@ -119,6 +125,8 @@ def save_profile(
     target: float,
     low: float,
     high: float,
+    sos_contact: str | None = None,
+    sos_alerts_enabled: bool = True,
 ) -> bool:
     """Persist profile values into the local database."""
     prof = session.get(Profile, user_id)
@@ -130,6 +138,8 @@ def save_profile(
     prof.target_bg = target
     prof.low_threshold = low
     prof.high_threshold = high
+    prof.sos_contact = sos_contact
+    prof.sos_alerts_enabled = sos_alerts_enabled
     return bool(commit(session))
 
 
