@@ -433,6 +433,59 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /user/{user_id}/role:
+    get:
+      summary: Get Role
+      operationId: get_role_user_user_id_role_get
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleSchema'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    put:
+      summary: Put Role
+      operationId: put_role_user_user_id_role_put
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: User Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleSchema'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleSchema'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /history:
     post:
       tags:
@@ -766,6 +819,15 @@ components:
       - telegramId
       - type
       title: ReminderSchema
+    RoleSchema:
+      properties:
+        role:
+          type: string
+          title: Role
+      type: object
+      required:
+      - role
+      title: RoleSchema
     Timezone:
       properties:
         tz:

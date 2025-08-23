@@ -18,6 +18,7 @@ import type {
   AnalyticsPoint,
   DayStats,
   HTTPValidationError,
+  RoleSchema,
   Timezone,
   UserContext,
   WebUser,
@@ -29,6 +30,8 @@ import {
     DayStatsToJSON,
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
+    RoleSchemaFromJSON,
+    RoleSchemaToJSON,
     TimezoneFromJSON,
     TimezoneToJSON,
     UserContextFromJSON,
@@ -47,6 +50,10 @@ export interface GetAnalyticsAnalyticsGetRequest {
     xTelegramInitData?: string | null;
 }
 
+export interface GetRoleUserUserIdRoleGetRequest {
+    userId: number;
+}
+
 export interface GetStatsStatsGetRequest {
     telegramId: number;
     xTelegramInitData?: string | null;
@@ -58,6 +65,11 @@ export interface GetTimezoneTimezoneGetRequest {
 
 export interface ProfileSelfProfileSelfGetRequest {
     xTelegramInitData?: string | null;
+}
+
+export interface PutRoleUserUserIdRolePutRequest {
+    userId: number;
+    roleSchema: RoleSchema;
 }
 
 export interface PutTimezoneTimezonePutRequest {
@@ -156,6 +168,43 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async getAnalyticsAnalyticsGet(requestParameters: GetAnalyticsAnalyticsGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AnalyticsPoint>> {
         const response = await this.getAnalyticsAnalyticsGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get Role
+     */
+    async getRoleUserUserIdRoleGetRaw(requestParameters: GetRoleUserUserIdRoleGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RoleSchema>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling getRoleUserUserIdRoleGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/user/{user_id}/role`;
+        urlPath = urlPath.replace(`{${"user_id"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RoleSchemaFromJSON(jsonValue));
+    }
+
+    /**
+     * Get Role
+     */
+    async getRoleUserUserIdRoleGet(requestParameters: GetRoleUserUserIdRoleGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RoleSchema> {
+        const response = await this.getRoleUserUserIdRoleGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -273,6 +322,53 @@ export class DefaultApi extends runtime.BaseAPI {
      */
     async profileSelfProfileSelfGet(requestParameters: ProfileSelfProfileSelfGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserContext> {
         const response = await this.profileSelfProfileSelfGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Put Role
+     */
+    async putRoleUserUserIdRolePutRaw(requestParameters: PutRoleUserUserIdRolePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RoleSchema>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling putRoleUserUserIdRolePut().'
+            );
+        }
+
+        if (requestParameters['roleSchema'] == null) {
+            throw new runtime.RequiredError(
+                'roleSchema',
+                'Required parameter "roleSchema" was null or undefined when calling putRoleUserUserIdRolePut().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/user/{user_id}/role`;
+        urlPath = urlPath.replace(`{${"user_id"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RoleSchemaToJSON(requestParameters['roleSchema']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => RoleSchemaFromJSON(jsonValue));
+    }
+
+    /**
+     * Put Role
+     */
+    async putRoleUserUserIdRolePut(requestParameters: PutRoleUserUserIdRolePutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RoleSchema> {
+        const response = await this.putRoleUserUserIdRolePutRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
