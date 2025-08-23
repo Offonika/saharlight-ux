@@ -6,7 +6,7 @@ import asyncio
 import logging
 import threading
 from datetime import date, datetime, time
-from typing import Callable, Protocol, TypeVar
+from typing import Callable, Optional, Protocol, TypeVar
 from typing_extensions import Concatenate, ParamSpec
 
 from sqlalchemy import (
@@ -131,13 +131,13 @@ class User(Base):
     __tablename__ = "users"
     telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
     thread_id: Mapped[str] = mapped_column(String, nullable=False)
-    first_name: Mapped[str | None] = mapped_column(String)
-    last_name: Mapped[str | None] = mapped_column(String)
-    username: Mapped[str | None] = mapped_column(String)
+    first_name: Mapped[Optional[str]] = mapped_column(String)
+    last_name: Mapped[Optional[str]] = mapped_column(String)
+    username: Mapped[Optional[str]] = mapped_column(String)
     onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
     plan: Mapped[str] = mapped_column(String, default="free")
     timezone: Mapped[str] = mapped_column(String, default="UTC")
-    org_id: Mapped[int | None] = mapped_column(Integer)
+    org_id: Mapped[Optional[int]] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
     )
@@ -156,24 +156,24 @@ class Profile(Base):
     telegram_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.telegram_id"), primary_key=True
     )
-    icr: Mapped[float | None] = mapped_column(Float)
-    cf: Mapped[float | None] = mapped_column(Float)
-    target_bg: Mapped[float | None] = mapped_column(Float)
-    low_threshold: Mapped[float | None] = mapped_column(Float)
-    high_threshold: Mapped[float | None] = mapped_column(Float)
-    sos_contact: Mapped[str | None] = mapped_column(String)
+    icr: Mapped[Optional[float]] = mapped_column(Float)
+    cf: Mapped[Optional[float]] = mapped_column(Float)
+    target_bg: Mapped[Optional[float]] = mapped_column(Float)
+    low_threshold: Mapped[Optional[float]] = mapped_column(Float)
+    high_threshold: Mapped[Optional[float]] = mapped_column(Float)
+    sos_contact: Mapped[Optional[str]] = mapped_column(String)
     sos_alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    org_id: Mapped[int | None] = mapped_column(Integer)
+    org_id: Mapped[Optional[int]] = mapped_column(Integer)
     user: Mapped[User] = relationship("User")
 
 
 class Entry(Base):
     __tablename__ = "entries"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    telegram_id: Mapped[int | None] = mapped_column(
+    telegram_id: Mapped[Optional[int]] = mapped_column(
         BigInteger, ForeignKey("users.telegram_id")
     )
-    org_id: Mapped[int | None] = mapped_column(Integer)
+    org_id: Mapped[Optional[int]] = mapped_column(Integer)
 
     event_time: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False
@@ -181,27 +181,27 @@ class Entry(Base):
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
     )
-    updated_at: Mapped[datetime | None] = mapped_column(
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
         TIMESTAMP(timezone=True), onupdate=func.now()
     )
 
-    photo_path: Mapped[str | None] = mapped_column(String)
-    carbs_g: Mapped[float | None] = mapped_column(Float)
-    xe: Mapped[float | None] = mapped_column(Float)
-    sugar_before: Mapped[float | None] = mapped_column(Float)
-    dose: Mapped[float | None] = mapped_column(Float)
-    gpt_summary: Mapped[str | None] = mapped_column(Text)
+    photo_path: Mapped[Optional[str]] = mapped_column(String)
+    carbs_g: Mapped[Optional[float]] = mapped_column(Float)
+    xe: Mapped[Optional[float]] = mapped_column(Float)
+    sugar_before: Mapped[Optional[float]] = mapped_column(Float)
+    dose: Mapped[Optional[float]] = mapped_column(Float)
+    gpt_summary: Mapped[Optional[str]] = mapped_column(Text)
 
 
 class Alert(Base):
     __tablename__ = "alerts"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int | None] = mapped_column(
+    user_id: Mapped[Optional[int]] = mapped_column(
         BigInteger, ForeignKey("users.telegram_id")
     )
-    org_id: Mapped[int | None] = mapped_column(Integer)
-    sugar: Mapped[float | None] = mapped_column(Float)
-    type: Mapped[str | None] = mapped_column(String)
+    org_id: Mapped[Optional[int]] = mapped_column(Integer)
+    sugar: Mapped[Optional[float]] = mapped_column(Float)
+    type: Mapped[Optional[str]] = mapped_column(String)
     ts: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
     )
@@ -212,14 +212,14 @@ class Alert(Base):
 class Reminder(Base):
     __tablename__ = "reminders"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    telegram_id: Mapped[int | None] = mapped_column(
+    telegram_id: Mapped[Optional[int]] = mapped_column(
         BigInteger, ForeignKey("users.telegram_id")
     )
-    org_id: Mapped[int | None] = mapped_column(Integer)
+    org_id: Mapped[Optional[int]] = mapped_column(Integer)
     type: Mapped[str] = mapped_column(String, nullable=False)
-    time: Mapped[time | None] = mapped_column(Time)
-    interval_hours: Mapped[int | None] = mapped_column(Integer)
-    minutes_after: Mapped[int | None] = mapped_column(Integer)
+    time: Mapped[Optional[time]] = mapped_column(Time)
+    interval_hours: Mapped[Optional[int]] = mapped_column(Integer)
+    minutes_after: Mapped[Optional[int]] = mapped_column(Integer)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
@@ -230,10 +230,10 @@ class Reminder(Base):
 class ReminderLog(Base):
     __tablename__ = "reminder_logs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    reminder_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("reminders.id"))
-    telegram_id: Mapped[int | None] = mapped_column(BigInteger)
-    org_id: Mapped[int | None] = mapped_column(Integer)
-    action: Mapped[str | None] = mapped_column(String)
+    reminder_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("reminders.id"))
+    telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger)
+    org_id: Mapped[Optional[int]] = mapped_column(Integer)
+    action: Mapped[Optional[str]] = mapped_column(String)
     event_time: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
     )
@@ -256,11 +256,11 @@ class HistoryRecord(Base):
     telegram_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
     date: Mapped[date] = mapped_column(Date, nullable=False)
     time: Mapped[time] = mapped_column(Time, nullable=False)
-    sugar: Mapped[float | None] = mapped_column(Float)
-    carbs: Mapped[float | None] = mapped_column(Float)
-    bread_units: Mapped[float | None] = mapped_column(Float)
-    insulin: Mapped[float | None] = mapped_column(Float)
-    notes: Mapped[str | None] = mapped_column(Text)
+    sugar: Mapped[Optional[float]] = mapped_column(Float)
+    carbs: Mapped[Optional[float]] = mapped_column(Float)
+    bread_units: Mapped[Optional[float]] = mapped_column(Float)
+    insulin: Mapped[Optional[float]] = mapped_column(Float)
+    notes: Mapped[Optional[str]] = mapped_column(Text)
     type: Mapped[str] = mapped_column(String, nullable=False)
 
 

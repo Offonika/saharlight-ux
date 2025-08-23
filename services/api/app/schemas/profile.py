@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from typing import Optional
 
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 class ProfileSchema(BaseModel):
     telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
@@ -10,8 +11,8 @@ class ProfileSchema(BaseModel):
     target: float
     low: float
     high: float
-    orgId: int | None = None
-    sosContact: str | None = Field(
+    orgId: Optional[int] = None
+    sosContact: Optional[str] = Field(
         default=None,
         alias="sosContact",
         validation_alias=AliasChoices("sosContact", "sos_contact"),
