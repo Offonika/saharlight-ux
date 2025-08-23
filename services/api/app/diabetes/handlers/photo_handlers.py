@@ -264,6 +264,7 @@ async def photo_handler(
         return END
     except TelegramError as exc:
         logger.exception("[PHOTO] Telegram error: %s", exc)
+        await message.reply_text("⚠️ Произошла ошибка Telegram. Попробуйте ещё раз.")
         return END
     finally:
         user_data.pop(WAITING_GPT_FLAG, None)
