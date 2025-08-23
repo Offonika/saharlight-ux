@@ -8,6 +8,7 @@ Name | Type | Description | Notes
 **telegram_id** | **int** |  | 
 **id** | **int** |  | [optional] 
 **type** | **str** |  | 
+**title** | **str** |  | [optional] 
 **time** | **str** |  | [optional] 
 **interval_hours** | **int** |  | [optional] 
 **minutes_after** | **int** |  | [optional] 

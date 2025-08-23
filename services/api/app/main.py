@@ -41,6 +41,7 @@ init_db()  # создаёт/инициализирует БД
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0")
 
+
 # ────────── profiles (front expects list) ──────────
 @app.get("/api/profiles", operation_id="profilesGet", tags=["profiles"])
 @app.get("/profiles", include_in_schema=False)  # legacy-путь
@@ -59,22 +60,32 @@ async def get_profiles(
         raise HTTPException(status_code=403, detail="telegram id mismatch")
     return [user]
 
+
 # ────────── роуты статистики / legacy ──────────
-app.include_router(stats_router,   prefix="/api")
-app.include_router(legacy_router,  prefix="/api")
+app.include_router(stats_router, prefix="/api")
+app.include_router(legacy_router, prefix="/api")
 
 # ────────── статические файлы UI ──────────
-BASE_DIR   = Path(__file__).resolve().parents[2] / "webapp"
-UI_DIR     = (BASE_DIR / "ui" / "dist") if (BASE_DIR / "ui" / "dist").exists() else (BASE_DIR / "ui")
-UI_DIR     = UI_DIR.resolve()
+BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
+UI_DIR = (
+    (BASE_DIR / "ui" / "dist")
+    if (BASE_DIR / "ui" / "dist").exists()
+    else (BASE_DIR / "ui")
+)
+UI_DIR = UI_DIR.resolve()
 UI_BASE_URL = os.getenv("VITE_BASE_URL", "/ui/").rstrip("/")
+
 
 # ────────── Schemas ──────────
 class Timezone(BaseModel):
     tz: str
 
+
 class WebUser(BaseModel):
-    telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
+    telegramId: int = Field(
+        alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id")
+    )
+
 
 # ────────── helpers ──────────
 def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
@@ -82,10 +93,12 @@ def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
         raise HTTPException(status_code=status_code, detail="invalid history type")
     return cast(HistoryType, value)
 
+
 # ────────── health & misc ──────────
 @app.get("/health", include_in_schema=False)
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
 
 # ────────── timezone ──────────
 @app.get("/timezone")
@@ -102,8 +115,11 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
         raise HTTPException(status_code=500, detail="invalid timezone entry") from exc
     return {"tz": tz_row.tz}
 
+
 @app.put("/timezone")
-async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+async def put_timezone(
+    data: Timezone, _: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     try:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
@@ -122,11 +138,13 @@ async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)
     await run_db(_save_timezone)
     return {"status": "ok"}
 
+
 # ────────── profile/self ──────────
 @app.get("/profile/self")
 @app.get("/api/profile/self")
 async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserContext:
     return user
+
 
 # ────────── static UI files ──────────
 @app.get(f"{UI_BASE_URL}/{{full_path:path}}", include_in_schema=False)
@@ -142,13 +160,17 @@ async def catch_all_ui(full_path: str) -> FileResponse:
         return FileResponse(requested_file)
     return FileResponse(UI_DIR / "index.html")
 
+
 @app.get(UI_BASE_URL or "/", include_in_schema=False)
 async def catch_root_ui() -> FileResponse:
     return await catch_all_ui("")
 
+
 # ────────── user CRUD / roles ──────────
 @app.post("/user")
-async def create_user(data: WebUser, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+async def create_user(
+    data: WebUser, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
 
@@ -162,20 +184,25 @@ async def create_user(data: WebUser, user: UserContext = Depends(require_tg_user
     await run_db(_create_user)
     return {"status": "ok"}
 
+
 @app.get("/user/{user_id}/role")
 async def get_role(user_id: int) -> RoleSchema:
     role = await get_user_role(user_id)
     return RoleSchema(role=role or "patient")
+
 
 @app.put("/user/{user_id}/role")
 async def put_role(user_id: int, data: RoleSchema) -> RoleSchema:
     await set_user_role(user_id, data.role)
     return RoleSchema(role=data.role)
 
+
 # ────────── history (CRUD) ──────────
-@app.post("/history")
-@app.post("/api/history")
-async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+@app.post("/history", operation_id="historyPost", tags=["History"])
+@app.post("/api/history", include_in_schema=False)
+async def post_history(
+    data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     validated_type = _validate_history_type(data.type)
 
     def _save(session: Session) -> None:
@@ -199,9 +226,12 @@ async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(re
     await run_db(_save)
     return {"status": "ok"}
 
-@app.get("/history")
-@app.get("/api/history")
-async def get_history(user: UserContext = Depends(require_tg_user)) -> list[HistoryRecordSchema]:
+
+@app.get("/history", operation_id="historyGet", tags=["History"])
+@app.get("/api/history", include_in_schema=False)
+async def get_history(
+    user: UserContext = Depends(require_tg_user),
+) -> list[HistoryRecordSchema]:
     def _query(session: Session) -> list[HistoryRecordDB]:
         return (
             session.query(HistoryRecordDB)
@@ -229,11 +259,14 @@ async def get_history(user: UserContext = Depends(require_tg_user)) -> list[Hist
             )
     return result
 
-@app.delete("/history/{record_id}")
-@app.delete("/api/history/{record_id}")
-async def delete_history(record_id: str, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+
+@app.delete("/history/{id}", operation_id="historyIdDelete", tags=["History"])
+@app.delete("/api/history/{id}", include_in_schema=False)
+async def delete_history(
+    id: str, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     def _get(session: Session) -> HistoryRecordDB | None:
-        return session.get(HistoryRecordDB, record_id)
+        return session.get(HistoryRecordDB, id)
 
     record = await run_db(_get)
     if record is None:
@@ -249,7 +282,9 @@ async def delete_history(record_id: str, user: UserContext = Depends(require_tg_
     await run_db(_delete)
     return {"status": "ok"}
 
+
 # ────────── run (for local testing) ──────────
 if __name__ == "__main__":  # pragma: no cover
     import uvicorn
+
     uvicorn.run("services.api.app.main:app", host="0.0.0.0", port=8000)

@@ -45,7 +45,7 @@ describe('getHistory', () => {
     mockHistoryGet.mockResolvedValueOnce([]);
     await getHistory(controller.signal);
     expect(mockHistoryGet).toHaveBeenCalledWith(
-      undefined,
+      {},
       { signal: controller.signal },
     );
   });
@@ -63,7 +63,7 @@ describe('updateRecord', () => {
     const ok = { status: 'ok' };
     mockHistoryPost.mockResolvedValueOnce(ok);
     await expect(updateRecord(record)).resolves.toEqual(ok);
-    expect(mockHistoryPost).toHaveBeenCalledWith({ historyRecord: record });
+    expect(mockHistoryPost).toHaveBeenCalledWith({ historyRecordSchemaInput: record });
   });
 
   it('throws on error status', async () => {

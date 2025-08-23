@@ -66,17 +66,16 @@ configuration = diabetes_sdk.Configuration(
 # Enter a context with an instance of the API client
 with diabetes_sdk.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = diabetes_sdk.DefaultApi(api_client)
-    reminder_schema = diabetes_sdk.ReminderSchema() # ReminderSchema | 
+    api_instance = diabetes_sdk.HistoryApi(api_client)
     x_telegram_init_data = 'x_telegram_init_data_example' # str |  (optional)
 
     try:
-        # Api Reminders Post
-        api_response = api_instance.api_reminders_post_reminders_post(reminder_schema, x_telegram_init_data=x_telegram_init_data)
-        print("The response of DefaultApi->api_reminders_post_reminders_post:\n")
+        # Get History
+        api_response = api_instance.history_get(x_telegram_init_data=x_telegram_init_data)
+        print("The response of HistoryApi->history_get:\n")
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling DefaultApi->api_reminders_post_reminders_post: %s\n" % e)
+        print("Exception when calling HistoryApi->history_get: %s\n" % e)
 
 ```
 
@@ -86,18 +85,20 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*DefaultApi* | [**api_reminders_post_reminders_post**](docs/DefaultApi.md#api_reminders_post_reminders_post) | **POST** /reminders | Api Reminders Post
-*DefaultApi* | [**api_reminders_reminders_get**](docs/DefaultApi.md#api_reminders_reminders_get) | **GET** /reminders | Api Reminders
+*HistoryApi* | [**history_get**](docs/HistoryApi.md#history_get) | **GET** /history | Get History
+*HistoryApi* | [**history_id_delete**](docs/HistoryApi.md#history_id_delete) | **DELETE** /history/{id} | Delete History
+*HistoryApi* | [**history_post**](docs/HistoryApi.md#history_post) | **POST** /history | Post History
+*ProfilesApi* | [**profiles_get_profiles_get**](docs/ProfilesApi.md#profiles_get_profiles_get) | **GET** /profiles | Profiles Get
+*ProfilesApi* | [**profiles_post_profiles_post**](docs/ProfilesApi.md#profiles_post_profiles_post) | **POST** /profiles | Profiles Post
+*RemindersApi* | [**reminders_delete**](docs/RemindersApi.md#reminders_delete) | **DELETE** /reminders | Reminders Delete
+*RemindersApi* | [**reminders_get**](docs/RemindersApi.md#reminders_get) | **GET** /reminders | Reminders Get
+*RemindersApi* | [**reminders_patch**](docs/RemindersApi.md#reminders_patch) | **PATCH** /reminders | Reminders Patch
+*RemindersApi* | [**reminders_post**](docs/RemindersApi.md#reminders_post) | **POST** /reminders | Reminders Post
 *DefaultApi* | [**create_user_user_post**](docs/DefaultApi.md#create_user_user_post) | **POST** /user | Create User
-*DefaultApi* | [**delete_history_history_record_id_delete**](docs/DefaultApi.md#delete_history_history_record_id_delete) | **DELETE** /history/{record_id} | Delete History
 *DefaultApi* | [**get_analytics_analytics_get**](docs/DefaultApi.md#get_analytics_analytics_get) | **GET** /analytics | Get Analytics
-*DefaultApi* | [**get_history_history_get**](docs/DefaultApi.md#get_history_history_get) | **GET** /history | Get History
 *DefaultApi* | [**get_stats_stats_get**](docs/DefaultApi.md#get_stats_stats_get) | **GET** /stats | Get Stats
 *DefaultApi* | [**get_timezone_timezone_get**](docs/DefaultApi.md#get_timezone_timezone_get) | **GET** /timezone | Get Timezone
-*DefaultApi* | [**post_history_history_post**](docs/DefaultApi.md#post_history_history_post) | **POST** /history | Post History
 *DefaultApi* | [**profile_self_profile_self_get**](docs/DefaultApi.md#profile_self_profile_self_get) | **GET** /profile/self | Profile Self
-*DefaultApi* | [**profiles_get_profiles_get**](docs/DefaultApi.md#profiles_get_profiles_get) | **GET** /profiles | Profiles Get
-*DefaultApi* | [**profiles_post_profiles_post**](docs/DefaultApi.md#profiles_post_profiles_post) | **POST** /profiles | Profiles Post
 *DefaultApi* | [**put_timezone_timezone_put**](docs/DefaultApi.md#put_timezone_timezone_put) | **PUT** /timezone | Put Timezone
 
 

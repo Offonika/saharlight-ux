@@ -28,16 +28,16 @@ import {
     HistoryRecordSchemaOutputToJSON,
 } from '../models/index';
 
-export interface DeleteHistoryHistoryRecordIdDeleteRequest {
-    recordId: string;
+export interface HistoryGetRequest {
     xTelegramInitData?: string | null;
 }
 
-export interface GetHistoryHistoryGetRequest {
+export interface HistoryIdDeleteRequest {
+    id: string;
     xTelegramInitData?: string | null;
 }
 
-export interface PostHistoryHistoryPostRequest {
+export interface HistoryPostRequest {
     historyRecordSchemaInput: HistoryRecordSchemaInput;
     xTelegramInitData?: string | null;
 }
@@ -48,53 +48,10 @@ export interface PostHistoryHistoryPostRequest {
 export class HistoryApi extends runtime.BaseAPI {
 
     /**
-     * Delete a history record after verifying ownership.
-     * Delete History
-     */
-    async deleteHistoryHistoryRecordIdDeleteRaw(requestParameters: DeleteHistoryHistoryRecordIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
-        if (requestParameters['recordId'] == null) {
-            throw new runtime.RequiredError(
-                'recordId',
-                'Required parameter "recordId" was null or undefined when calling deleteHistoryHistoryRecordIdDelete().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (requestParameters['xTelegramInitData'] != null) {
-            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
-        }
-
-
-        let urlPath = `/history/{record_id}`;
-        urlPath = urlPath.replace(`{${"record_id"}}`, encodeURIComponent(String(requestParameters['recordId'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'DELETE',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse<any>(response);
-    }
-
-    /**
-     * Delete a history record after verifying ownership.
-     * Delete History
-     */
-    async deleteHistoryHistoryRecordIdDelete(requestParameters: DeleteHistoryHistoryRecordIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
-        const response = await this.deleteHistoryHistoryRecordIdDeleteRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
      * Return history records for the authenticated user.
      * Get History
      */
-    async getHistoryHistoryGetRaw(requestParameters: GetHistoryHistoryGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<HistoryRecordSchemaOutput>>> {
+    async historyGetRaw(requestParameters: HistoryGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<HistoryRecordSchemaOutput>>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -120,8 +77,51 @@ export class HistoryApi extends runtime.BaseAPI {
      * Return history records for the authenticated user.
      * Get History
      */
-    async getHistoryHistoryGet(requestParameters: GetHistoryHistoryGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<HistoryRecordSchemaOutput>> {
-        const response = await this.getHistoryHistoryGetRaw(requestParameters, initOverrides);
+    async historyGet(requestParameters: HistoryGetRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<HistoryRecordSchemaOutput>> {
+        const response = await this.historyGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Delete a history record after verifying ownership.
+     * Delete History
+     */
+    async historyIdDeleteRaw(requestParameters: HistoryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling historyIdDelete().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
+
+
+        let urlPath = `/history/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Delete a history record after verifying ownership.
+     * Delete History
+     */
+    async historyIdDelete(requestParameters: HistoryIdDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.historyIdDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -129,11 +129,11 @@ export class HistoryApi extends runtime.BaseAPI {
      * Save or update a history record in the database.
      * Post History
      */
-    async postHistoryHistoryPostRaw(requestParameters: PostHistoryHistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+    async historyPostRaw(requestParameters: HistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
         if (requestParameters['historyRecordSchemaInput'] == null) {
             throw new runtime.RequiredError(
                 'historyRecordSchemaInput',
-                'Required parameter "historyRecordSchemaInput" was null or undefined when calling postHistoryHistoryPost().'
+                'Required parameter "historyRecordSchemaInput" was null or undefined when calling historyPost().'
             );
         }
 
@@ -165,8 +165,8 @@ export class HistoryApi extends runtime.BaseAPI {
      * Save or update a history record in the database.
      * Post History
      */
-    async postHistoryHistoryPost(requestParameters: PostHistoryHistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
-        const response = await this.postHistoryHistoryPostRaw(requestParameters, initOverrides);
+    async historyPost(requestParameters: HistoryPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.historyPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
