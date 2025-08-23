@@ -22,9 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-      - run: corepack enable pnpm
-      - run: pnpm install
+          cache: npm
+      - run: npm ci
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -33,9 +32,9 @@ jobs:
           pip install -r services/api/app/requirements.txt
           pip install -r services/api/app/requirements-dev.txt
       - name: Generate SDK
-        run: pnpm run generate:sdk
+        run: npm run generate:sdk
       - name: Build webapp UI
-        run: pnpm --filter vite_react_shadcn_ts run build
+        run: npm --workspace services/webapp/ui run build
       - name: Type-check webapp UI
         working-directory: services/webapp/ui
         run: npm run typecheck

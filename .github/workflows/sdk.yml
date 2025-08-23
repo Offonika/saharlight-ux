@@ -21,11 +21,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-      - run: corepack enable pnpm
-      - run: pnpm install
+          cache: npm
+      - run: npm ci
       - name: Generate SDKs
-        run: pnpm run generate:sdk
+        run: npm run generate:sdk
       - name: Commit SDKs
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
