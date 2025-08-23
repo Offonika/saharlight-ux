@@ -12,7 +12,7 @@ def test_main_logs_db_error(
         bot.settings,
         "telegram_token",
         "token",
-    )  # type: ignore[attr-defined]
+    )
     monkeypatch.setattr(bot, "TELEGRAM_TOKEN", "token")
 
     def faulty_init_db() -> None:

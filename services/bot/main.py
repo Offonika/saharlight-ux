@@ -28,6 +28,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         "Exception while handling update %s", update, exc_info=context.error
     )
 
+
 def main() -> None:
     """Configure and run the bot."""
     logging.basicConfig(
@@ -75,7 +76,7 @@ def main() -> None:
             dict[str, Any],
             dict[str, Any],
             DefaultJobQueue,
-        ]
+        ],
     ) -> None:
         await app.bot.set_my_commands(commands)
 
@@ -98,6 +99,10 @@ def main() -> None:
 
     register_handlers(application)
     application.run_polling()
+
+
+__all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN"]
+
 
 if __name__ == "__main__":
     main()
