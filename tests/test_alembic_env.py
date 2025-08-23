@@ -9,7 +9,7 @@ import types
 from types import ModuleType
 from typing import Any, Iterator
 
-import alembic.context  # type: ignore[import-not-found]
+import alembic.context
 import pytest
 
 

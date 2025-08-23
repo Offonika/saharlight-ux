@@ -26,7 +26,7 @@ def test_clean_markdown() -> None:
     text = (
         "**Жирный** __подчёркнутый__ _курсив_ *italic* "
         "[ссылка](http://example.com) ![alt](img.png) `код` ~~зачёркнуто~~\n"
-        "# Заголовок\n* элемент\n1. Первый"
+        "# Заголовок\n* элемент\n- минус\n+ плюс\n1. Первый"
     )
     cleaned = clean_markdown(text)
     assert "Жирный" in cleaned
@@ -37,8 +37,12 @@ def test_clean_markdown() -> None:
     assert "alt" in cleaned
     assert "код" in cleaned
     assert "зачёркнуто" in cleaned
+    assert "минус" in cleaned
+    assert "плюс" in cleaned
     assert "#" not in cleaned
     assert "*" not in cleaned
+    assert "-" not in cleaned
+    assert "+" not in cleaned
     assert "1." not in cleaned
     assert "__" not in cleaned
     assert "_" not in cleaned
@@ -47,9 +51,7 @@ def test_clean_markdown() -> None:
 
 def test_split_text_by_width_simple() -> None:
     text = "Это короткая строка"
-    pdfmetrics.registerFont(
-        TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-    )
+    pdfmetrics.registerFont(TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
     lines = split_text_by_width(text, "DejaVuSans", 12, 50)
     assert isinstance(lines, list)
     assert all(isinstance(line, str) for line in lines)
@@ -68,9 +70,7 @@ def test_split_text_by_width_unknown_font() -> None:
     ],
 )
 def test_split_text_by_width_respects_limit(text: Any) -> None:
-    pdfmetrics.registerFont(
-        TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-    )
+    pdfmetrics.registerFont(TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
     max_width = 20
     lines = split_text_by_width(text, "DejaVuSans", 12, max_width)
     for line in lines:
@@ -88,9 +88,7 @@ async def test_get_coords_and_link_non_blocking(
             def __enter__(self) -> io.StringIO:
                 return io.StringIO('{"loc": "1,2"}')
 
-            def __exit__(
-                self, exc_type: object, exc: object, tb: object
-            ) -> Literal[False]:
+            def __exit__(self, exc_type: object, exc: object, tb: object) -> Literal[False]:
                 return False
 
         return Resp()
@@ -130,9 +128,7 @@ async def test_get_coords_and_link_invalid_loc(
             def __enter__(self) -> io.StringIO:
                 return io.StringIO('{"loc": "invalid"}')
 
-            def __exit__(
-                self, exc_type: object, exc: object, tb: object
-            ) -> Literal[False]:
+            def __exit__(self, exc_type: object, exc: object, tb: object) -> Literal[False]:
                 return False
 
         return Resp()
@@ -157,9 +153,7 @@ async def test_get_coords_and_link_custom_source(
             def __enter__(self) -> io.StringIO:
                 return io.StringIO('{"loc": "1,2"}')
 
-            def __exit__(
-                self, exc_type: object, exc: object, tb: object
-            ) -> Literal[False]:
+            def __exit__(self, exc_type: object, exc: object, tb: object) -> Literal[False]:
                 return False
 
         return Resp()

@@ -3,13 +3,15 @@
 import datetime
 import io
 import os
+import threading
+import time
 from types import SimpleNamespace
 from typing import Any, BinaryIO
 
 import pytest
-import matplotlib.pyplot as plt  # type: ignore[import-not-found]
+import matplotlib.pyplot as plt
 from matplotlib.dates import date2num as _date2num
-from pypdf import PdfReader as _PdfReader  # type: ignore[import-not-found]
+from pypdf import PdfReader as _PdfReader
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
@@ -19,7 +21,9 @@ os.environ.setdefault("DB_PASSWORD", "test")
 from services.api.app.diabetes.services.reporting import (
     make_sugar_plot,
     generate_pdf_report,
+    register_fonts,
 )
+import services.api.app.diabetes.services.reporting as reporting
 
 
 def date2num(date: datetime.datetime) -> float:
@@ -46,6 +50,35 @@ class DummyEntry:
         self.carbs_g = carbs_g
         self.xe = xe
         self.dose = dose
+
+
+def test_register_fonts_threadsafe(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(reporting, "_fonts_registered", False)
+
+    counter = {"n": 0}
+    lock = threading.Lock()
+
+    def fake_register_font(name: str, filename: str) -> str | None:
+        time.sleep(0.05)
+        with lock:
+            counter["n"] += 1
+        return None
+
+    monkeypatch.setattr(reporting, "_register_font", fake_register_font)
+
+    results: list[list[str]] = []
+
+    def worker() -> None:
+        results.append(register_fonts())
+
+    threads = [threading.Thread(target=worker) for _ in range(5)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert counter["n"] == 2
+    assert results and all(r == [] for r in results)
 
 
 def test_make_sugar_plot() -> None:

@@ -118,7 +118,7 @@ async def test_photo_flow_saves_entry(
         update_start,
         context,
         parse_command=fake_parse_command,
-        menu_keyboard=None,
+        menu_keyboard_markup=None,
     )
 
     monkeypatch.chdir(tmp_path)
@@ -187,7 +187,7 @@ async def test_photo_flow_saves_entry(
         update_sugar,
         context,
         parse_command=fake_parse_command,
-        menu_keyboard=None,
+        menu_keyboard_markup=None,
     )
     assert user_data["pending_entry"]["sugar_before"] == 5.5
 

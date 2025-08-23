@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def clean_markdown(text: str) -> str:
     """
     Удаляет простую Markdown-разметку: **жирный**, _курсив_, # заголовки,
-    * списки, 1. списки и т.д.
+    списки (*, -, +, 1. и т.д.).
     """
     replacements = [
         (r"\*\*([^*]+)\*\*", r"\1"),  # **жирный**
@@ -36,7 +36,7 @@ def clean_markdown(text: str) -> str:
         text = re.sub(pattern, repl, text)
     text = re.sub(r"^#+\s*", "", text, flags=re.MULTILINE)  # ### Заголовки
     text = re.sub(r"^\s*\d+\.\s*", "", text, flags=re.MULTILINE)  # 1. списки
-    text = re.sub(r"^\s*\*\s*", "", text, flags=re.MULTILINE)  # * списки
+    text = re.sub(r"^\s*[*+-]\s*", "", text, flags=re.MULTILINE)  # bullet lists
     return text
 
 
@@ -142,7 +142,9 @@ def split_text_by_width(
         part = ""
         for ch in word:
             test_part = part + ch
+
             if _width(test_part) > max_width_mm and part:
+
                 parts.append(part)
                 part = ch
             else:

@@ -65,28 +65,44 @@ def _sanitize_sensitive_data(text: str) -> str:
 
 
 def _extract_first_json(text: str) -> dict[str, object] | None:
-    """Return the first standalone JSON object in *text* or ``None``."""
+    """Return the first standalone JSON object in *text* or ``None``.
+
+    The GPT model sometimes wraps a single dictionary in an array, e.g.
+    ``[{"action": "add_entry"}]``.  In that case the first (and only)
+    dictionary should be extracted.  Arrays with multiple elements are
+    ignored to avoid ambiguity.
+    """
 
     decoder = json.JSONDecoder()
     search_start = 0
     while True:
-        start = text.find("{", search_start)
-        if start == -1:
+        # Look for either an object or an array to handle ``[{...}]`` replies.
+        obj_start = text.find("{", search_start)
+        arr_start = text.find("[", search_start)
+        if obj_start == -1 and arr_start == -1:
             break
 
-        # If the object is preceded by ``[``, treat it as part of an array and
-        # skip it so that we don't parse array responses like ``[{...}]``.
-        if text[:start].rstrip().endswith("["):
-            search_start = start + 1
-            continue
+        if arr_start != -1 and (obj_start == -1 or arr_start < obj_start):
+            start = arr_start
+        else:
+            start = obj_start
 
         try:
-            obj, _ = decoder.raw_decode(text, start)
+            obj, end = decoder.raw_decode(text, start)
         except json.JSONDecodeError as exc:  # pragma: no cover - simple fallback
             search_start = exc.pos + 1
             continue
+
         if isinstance(obj, dict):
             return obj
+
+        if isinstance(obj, list):
+            if len(obj) == 1 and isinstance(obj[0], dict):
+                return obj[0]
+            # Skip the whole array before continuing the search.
+            search_start = end
+            continue
+
         search_start = start + 1
 
     return None

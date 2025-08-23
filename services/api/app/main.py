@@ -36,6 +36,7 @@ from .schemas.user import UserContext
 from .services.user_roles import get_user_role, set_user_role
 from .telegram_auth import require_tg_user
 from services.api.app.diabetes.utils.openai_utils import dispose_http_client
+from .types import SessionProtocol
 
 # ────────── init ──────────
 logger = logging.getLogger(__name__)
@@ -99,8 +100,8 @@ async def health() -> dict[str, str]:
 @app.get("/timezone")
 @app.get("/api/timezone", include_in_schema=False)
 async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, str]:
-    def _get_timezone(session: Session) -> TimezoneDB | None:
-        return session.get(TimezoneDB, 1)
+    def _get_timezone(session: SessionProtocol) -> TimezoneDB | None:
+        return cast(TimezoneDB | None, session.get(TimezoneDB, 1))
 
     tz_row = await run_db(_get_timezone)
     if not tz_row:
@@ -122,14 +123,14 @@ async def put_timezone(
     except ZoneInfoNotFoundError as exc:
         raise HTTPException(status_code=400, detail="invalid timezone") from exc
 
-    def _save_timezone(session: Session) -> None:
-        obj = session.get(TimezoneDB, 1)
+    def _save_timezone(session: SessionProtocol) -> None:
+        obj = cast(TimezoneDB | None, session.get(TimezoneDB, 1))
         if obj is None:
             obj = TimezoneDB(id=1, tz=data.tz)
-            session.add(obj)
+            cast(Session, session).add(obj)
         else:
             obj.tz = data.tz
-        if not commit(session):
+        if not commit(cast(Session, session)):
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_save_timezone)
@@ -172,11 +173,13 @@ async def create_user(
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
 
-    def _create_user(session: Session) -> None:
-        db_user = session.get(UserDB, data.telegramId)
+    def _create_user(session: SessionProtocol) -> None:
+        db_user = cast(UserDB | None, session.get(UserDB, data.telegramId))
         if db_user is None:
-            session.add(UserDB(telegram_id=data.telegramId, thread_id="webapp"))
-        if not commit(session):
+            cast(Session, session).add(
+                UserDB(telegram_id=data.telegramId, thread_id="webapp")
+            )
+        if not commit(cast(Session, session)):
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_create_user)
@@ -205,13 +208,13 @@ async def post_history(
 ) -> dict[str, str]:
     validated_type = _validate_history_type(data.type)
 
-    def _save(session: Session) -> None:
-        obj = session.get(HistoryRecordDB, data.id)
+    def _save(session: SessionProtocol) -> None:
+        obj = cast(HistoryRecordDB | None, session.get(HistoryRecordDB, data.id))
         if obj and obj.telegram_id != user["id"]:
             raise HTTPException(status_code=403, detail="forbidden")
         if obj is None:
             obj = HistoryRecordDB(id=data.id, telegram_id=user["id"])
-            session.add(obj)
+            cast(Session, session).add(obj)
         obj.date = data.date
         obj.time = data.time
         obj.sugar = data.sugar
@@ -220,7 +223,7 @@ async def post_history(
         obj.insulin = data.insulin
         obj.notes = data.notes
         obj.type = validated_type
-        if not commit(session):
+        if not commit(cast(Session, session)):
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_save)
@@ -232,12 +235,14 @@ async def post_history(
 async def get_history(
     user: UserContext = Depends(require_tg_user),
 ) -> list[HistoryRecordSchema]:
-    def _query(session: Session) -> list[HistoryRecordDB]:
-        return (
-            session.query(HistoryRecordDB)
+    def _query(session: SessionProtocol) -> list[HistoryRecordDB]:
+        return cast(
+            list[HistoryRecordDB],
+            cast(Session, session)
+            .query(HistoryRecordDB)
             .filter(HistoryRecordDB.telegram_id == user["id"])
             .order_by(HistoryRecordDB.date, HistoryRecordDB.time)
-            .all()
+            .all(),
         )
 
     records = await run_db(_query)
@@ -245,17 +250,17 @@ async def get_history(
     for r in records:
         if r.type in ALLOWED_HISTORY_TYPES:
             result.append(
-                HistoryRecordSchema(
-                    id=r.id,
-                    date=r.date,
-                    time=r.time,
-                    sugar=r.sugar,
-                    carbs=r.carbs,
-                    breadUnits=r.bread_units,
-                    insulin=r.insulin,
-                    notes=r.notes,
-                    type=cast(HistoryType, r.type),
-                )
+                    HistoryRecordSchema(
+                        id=cast(str, r.id),
+                        date=r.date,
+                        time=r.time,
+                        sugar=r.sugar,
+                        carbs=r.carbs,
+                        breadUnits=r.bread_units,
+                        insulin=r.insulin,
+                        notes=r.notes,
+                        type=cast(HistoryType, r.type),
+                    )
             )
     return result
 
@@ -265,8 +270,8 @@ async def get_history(
 async def delete_history(
     id: str, user: UserContext = Depends(require_tg_user)
 ) -> dict[str, str]:
-    def _get(session: Session) -> HistoryRecordDB | None:
-        return session.get(HistoryRecordDB, id)
+    def _get(session: SessionProtocol) -> HistoryRecordDB | None:
+        return cast(HistoryRecordDB | None, session.get(HistoryRecordDB, id))
 
     record = await run_db(_get)
     if record is None:
@@ -274,9 +279,9 @@ async def delete_history(
     if record.telegram_id != user["id"]:
         raise HTTPException(status_code=403, detail="forbidden")
 
-    def _delete(session: Session) -> None:
+    def _delete(session: SessionProtocol) -> None:
         session.delete(record)
-        if not commit(session):
+        if not commit(cast(Session, session)):
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_delete)
