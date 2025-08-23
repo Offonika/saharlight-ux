@@ -83,3 +83,50 @@ async def test_photo_handler_get_file_telegram_error(
     user_data = context.user_data
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
     assert "[PHOTO] Failed to save photo" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_telegram_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    class DummyPhoto:
+        file_id = "fid"
+        file_unique_id = "uid"
+
+    class DummyMessage:
+        def __init__(self) -> None:
+            self.photo = (DummyPhoto(),)
+            self.texts: list[str] = []
+
+        async def reply_text(self, text: str, **kwargs: Any) -> None:
+            self.texts.append(text)
+
+    async def fake_get_file(file_id: str) -> Any:
+        class File:
+            async def download_to_drive(self, path: str) -> None:
+                Path(path).write_bytes(b"img")
+
+        return File()
+
+    async def fake_send_message(**kwargs: Any) -> Any:
+        raise TelegramError("boom")
+
+    message = DummyMessage()
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    dummy_bot = SimpleNamespace(get_file=fake_get_file)
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(bot=dummy_bot, user_data={"thread_id": "tid"}),
+    )
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
+
+    result = await photo_handlers.photo_handler(update, context)
+
+    assert result == photo_handlers.END
+    assert message.texts == ["⚠️ Произошла ошибка Telegram. Попробуйте ещё раз."]
+    assert context.user_data is not None
+    assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
