@@ -22,7 +22,7 @@ const Modal = ({ open, onClose, title, footer, children }: ModalProps) => {
       'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
     const focusable = modalRef.current?.querySelectorAll<HTMLElement>(focusableSelectors);
     const first = focusable?.[0];
-    const last = focusable?.[focusable.length - 1];
+    const last = focusable ? focusable[focusable.length - 1] : undefined;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
