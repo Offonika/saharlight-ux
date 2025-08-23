@@ -12,7 +12,7 @@ Name | Type | Description | Notes
 **low** | **float** |  | 
 **high** | **float** |  | 
 **sos_contact** | **str** |  | [optional] 
-**sos_alerts_enabled** | **bool** |  | [optional] 
+**sos_alerts_enabled** | **bool** |  | [optional] [default to True]
 **org_id** | **int** |  | [optional] 
 
 ## Example

@@ -21,17 +21,24 @@ import mimetypes
 import os
 import re
 import tempfile
-from types import TracebackType
-from urllib.parse import quote
-from typing import Dict, List, Optional, Tuple, Type, Union
 
+from urllib.parse import quote
+from typing import Tuple, Optional, List, Dict, Union
 from pydantic import SecretStr
 
 from diabetes_sdk.configuration import Configuration
 from diabetes_sdk.api_response import ApiResponse, T as ApiResponseT
 import diabetes_sdk.models
 from diabetes_sdk import rest
-from diabetes_sdk.exceptions import ApiException, ApiValueError
+from diabetes_sdk.exceptions import (
+    ApiValueError,
+    ApiException,
+    BadRequestException,
+    UnauthorizedException,
+    ForbiddenException,
+    NotFoundException,
+    ServiceException
+)
 
 RequestSerialized = Tuple[str, str, Dict[str, str], Optional[str], List[str]]
 
@@ -86,27 +93,22 @@ class ApiClient:
         self.user_agent = 'OpenAPI-Generator/1.0.0/python'
         self.client_side_validation = configuration.client_side_validation
 
-    def __enter__(self) -> "ApiClient":
+    def __enter__(self):
         return self
 
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
-    ) -> None:
+    def __exit__(self, exc_type, exc_value, traceback):
         pass
 
     @property
-    def user_agent(self) -> str:
+    def user_agent(self):
         """User agent for this API client"""
         return self.default_headers['User-Agent']
 
     @user_agent.setter
-    def user_agent(self, value: str) -> None:
+    def user_agent(self, value):
         self.default_headers['User-Agent'] = value
 
-    def set_default_header(self, header_name: str, header_value: str) -> None:
+    def set_default_header(self, header_name, header_value):
         self.default_headers[header_name] = header_value
 
 
@@ -455,7 +457,7 @@ class ApiClient:
 
         if klass in self.PRIMITIVE_TYPES:
             return self.__deserialize_primitive(data, klass)
-        elif klass is object:
+        elif klass == object:
             return self.__deserialize_object(data)
         elif klass == datetime.date:
             return self.__deserialize_date(data)
