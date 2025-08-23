@@ -76,7 +76,7 @@ def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
 
 
 # ────────── health & misc ──────────
-@app.get("/health", include_in_schema=False)
+@app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 

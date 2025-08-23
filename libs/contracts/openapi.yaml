@@ -7,6 +7,20 @@ tags:
   - name: History
   - name: Reminders
 paths:
+  /health:
+    get:
+      summary: Health
+      operationId: healthGet
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Health Get
   /profiles:
     post:
       tags:

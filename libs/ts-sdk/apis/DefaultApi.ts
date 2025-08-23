@@ -244,6 +244,35 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Health
+     */
+    async healthGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/health`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Health
+     */
+    async healthGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string; }> {
+        const response = await this.healthGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Profile Self
      */
     async profileSelfProfileSelfGetRaw(requestParameters: ProfileSelfProfileSelfGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserContext>> {
