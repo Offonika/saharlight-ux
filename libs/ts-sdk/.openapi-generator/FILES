@@ -1,4 +1,6 @@
 apis/DefaultApi.ts
+apis/HistoryApi.ts
+apis/ProfilesApi.ts
 apis/RemindersApi.ts
 apis/index.ts
 index.ts

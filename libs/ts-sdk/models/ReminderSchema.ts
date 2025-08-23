@@ -32,19 +32,19 @@ export interface ReminderSchema {
      */
     id?: number | null;
     /**
-     *
+     * 
      * @type {string}
      * @memberof ReminderSchema
      */
     type: string;
     /**
-     *
+     * 
      * @type {string}
      * @memberof ReminderSchema
      */
     title?: string | null;
     /**
-     *
+     * 
      * @type {string}
      * @memberof ReminderSchema
      */
