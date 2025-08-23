@@ -1,22 +1,25 @@
 from collections.abc import Generator
+from typing import Any, ContextManager, cast
 
 import pytest
 from fastapi import HTTPException
 from datetime import time
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session as SASession, sessionmaker
 
-from services.api.app.diabetes.services.db import Base, Reminder, User
+from services.api.app.diabetes.services.db import Base, Reminder, SessionMaker, User
 from services.api.app.schemas.reminders import ReminderSchema
 from services.api.app.services import reminders
 
 
 @pytest.fixture()
-def session_factory() -> Generator[sessionmaker, None, None]:
+def session_factory() -> Generator[SessionMaker[SASession], None, None]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    TestSession: SessionMaker[SASession] = sessionmaker(
+        bind=engine, class_=SASession, autoflush=False, autocommit=False
+    )
     try:
         yield TestSession
     finally:
@@ -25,10 +28,10 @@ def session_factory() -> Generator[sessionmaker, None, None]:
 
 @pytest.mark.asyncio
 async def test_save_and_list_reminder(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
-    with session_factory() as session:
+    with cast(ContextManager[SASession], session_factory()) as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
 
@@ -68,12 +71,12 @@ async def test_save_and_list_reminder(
 @pytest.mark.parametrize("rem_id, telegram_id", [(999, 1), (1, 2)])
 async def test_save_reminder_not_found_or_wrong_user(
     monkeypatch: pytest.MonkeyPatch,
-    session_factory: sessionmaker,
+    session_factory: SessionMaker[SASession],
     rem_id: int,
     telegram_id: int,
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
-    with session_factory() as session:
+    with cast(ContextManager[SASession], session_factory()) as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
@@ -85,7 +88,7 @@ async def test_save_reminder_not_found_or_wrong_user(
 
 @pytest.mark.asyncio
 async def test_list_reminders_invalid_user(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     reminders_list = await reminders.list_reminders(999)
@@ -94,29 +97,29 @@ async def test_list_reminders_invalid_user(
 
 @pytest.mark.asyncio
 async def test_delete_reminder(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
-    with session_factory() as session:
+    with cast(ContextManager[SASession], session_factory()) as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
 
     await reminders.delete_reminder(1, 1)
-    with session_factory() as session:
-        assert session.get(Reminder, 1) is None
+    with cast(ContextManager[SASession], session_factory()) as session:
+        assert cast(Any, session).get(Reminder, 1) is None
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("rid, tid", [(999, 1), (1, 2)])
 async def test_delete_reminder_not_found_or_wrong_user(
     monkeypatch: pytest.MonkeyPatch,
-    session_factory: sessionmaker,
+    session_factory: SessionMaker[SASession],
     rid: int,
     tid: int,
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
-    with session_factory() as session:
+    with cast(ContextManager[SASession], session_factory()) as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()

@@ -45,13 +45,14 @@ def build_init_data(user_id: int = 1) -> str:
     return urllib.parse.urlencode(params)
 
 
-def test_create_user_authorized(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("prefix", ("", "/api"))
+def test_create_user_authorized(monkeypatch: pytest.MonkeyPatch, prefix: str) -> None:
     Session = setup_db(monkeypatch)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data = build_init_data(42)
     with TestClient(server.app) as client:
         resp = client.post(
-            "/user",
+            f"{prefix}/user",
             json={"telegramId": 42},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
@@ -63,13 +64,14 @@ def test_create_user_authorized(monkeypatch: pytest.MonkeyPatch) -> None:
         assert user.thread_id == "webapp"
 
 
-def test_create_user_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("prefix", ("", "/api"))
+def test_create_user_unauthorized(monkeypatch: pytest.MonkeyPatch, prefix: str) -> None:
     setup_db(monkeypatch)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data = build_init_data(1)
     with TestClient(server.app) as client:
         resp = client.post(
-            "/user",
+            f"{prefix}/user",
             json={"telegramId": 42},
             headers={TG_INIT_DATA_HEADER: init_data},
         )

@@ -1,6 +1,6 @@
 # diabetes_sdk.DefaultApi
 
-All URIs are relative to *http://localhost*
+All URIs are relative to */api*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
@@ -32,10 +32,10 @@ from diabetes_sdk.models.web_user import WebUser
 from diabetes_sdk.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to /api
 # See configuration.py for a list of all supported configuration parameters.
 configuration = diabetes_sdk.Configuration(
-    host = "http://localhost"
+    host = "/api"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -110,10 +110,10 @@ from diabetes_sdk.models.analytics_point import AnalyticsPoint
 from diabetes_sdk.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to /api
 # See configuration.py for a list of all supported configuration parameters.
 configuration = diabetes_sdk.Configuration(
-    host = "http://localhost"
+    host = "/api"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -189,10 +189,10 @@ from diabetes_sdk.models.role_schema import RoleSchema
 from diabetes_sdk.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to /api
 # See configuration.py for a list of all supported configuration parameters.
 configuration = diabetes_sdk.Configuration(
-    host = "http://localhost"
+    host = "/api"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -267,10 +267,10 @@ from diabetes_sdk.models.day_stats import DayStats
 from diabetes_sdk.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to /api
 # See configuration.py for a list of all supported configuration parameters.
 configuration = diabetes_sdk.Configuration(
-    host = "http://localhost"
+    host = "/api"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -346,10 +346,10 @@ import diabetes_sdk
 from diabetes_sdk.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to /api
 # See configuration.py for a list of all supported configuration parameters.
 configuration = diabetes_sdk.Configuration(
-    host = "http://localhost"
+    host = "/api"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -418,10 +418,10 @@ import diabetes_sdk
 from diabetes_sdk.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to /api
 # See configuration.py for a list of all supported configuration parameters.
 configuration = diabetes_sdk.Configuration(
-    host = "http://localhost"
+    host = "/api"
 )
 
 
@@ -481,10 +481,10 @@ from diabetes_sdk.models.user_context import UserContext
 from diabetes_sdk.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to /api
 # See configuration.py for a list of all supported configuration parameters.
 configuration = diabetes_sdk.Configuration(
-    host = "http://localhost"
+    host = "/api"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -555,10 +555,10 @@ from diabetes_sdk.models.role_schema import RoleSchema
 from diabetes_sdk.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to /api
 # See configuration.py for a list of all supported configuration parameters.
 configuration = diabetes_sdk.Configuration(
-    host = "http://localhost"
+    host = "/api"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -635,10 +635,10 @@ from diabetes_sdk.models.timezone import Timezone
 from diabetes_sdk.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to /api
 # See configuration.py for a list of all supported configuration parameters.
 configuration = diabetes_sdk.Configuration(
-    host = "http://localhost"
+    host = "/api"
 )
 
 # The client must configure the authentication and authorization parameters

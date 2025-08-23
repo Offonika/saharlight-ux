@@ -1,23 +1,23 @@
-from typing import Generator
+from typing import ContextManager, Generator, cast
 import datetime
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session as SASession, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from services.api.app.diabetes.services.db import Base, HistoryRecord
+from services.api.app.diabetes.services.db import Base, HistoryRecord, SessionMaker
 from services.api.app.services import stats
 
 
 @pytest.fixture()
-def session_factory() -> Generator[sessionmaker, None, None]:
+def session_factory() -> Generator[SessionMaker[SASession], None, None]:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
-    TestSession: sessionmaker = sessionmaker(
+    TestSession: SessionMaker[SASession] = sessionmaker(
         bind=engine, class_=SASession, autoflush=False, autocommit=False
     )
     try:
@@ -28,10 +28,10 @@ def session_factory() -> Generator[sessionmaker, None, None]:
 
 @pytest.mark.asyncio
 async def test_get_day_stats(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
 ) -> None:
     today = datetime.date.today()
-    with session_factory() as session:
+    with cast(ContextManager[SASession], session_factory()) as session:
         session.add(
             HistoryRecord(
                 id="1",
