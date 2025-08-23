@@ -153,6 +153,7 @@ async def test_sugar_val_valid_saves_and_alerts(
     session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
     async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        assert "sessionmaker" not in kwargs
         return await db.run_db(fn, *args, sessionmaker=session_factory, **kwargs)
 
     monkeypatch.setattr(sugar_handlers, "run_db", run_db_wrapper)
