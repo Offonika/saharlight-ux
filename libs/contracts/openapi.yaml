@@ -101,14 +101,6 @@ paths:
         schema:
           type: integer
           title: Telegram Id
-      - name: id
-        in: query
-        required: false
-        schema:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          title: Id
       - name: X-Telegram-Init-Data
         in: header
         required: false
@@ -253,6 +245,48 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '404':
           description: Reminder not found
+  /reminders/{id}:
+    get:
+      tags:
+      - Reminders
+      summary: Reminders Id Get
+      operationId: reminders_id_get
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Id
+      - name: telegramId
+        in: query
+        required: true
+        schema:
+          type: integer
+          title: Telegram Id
+      - name: X-Telegram-Init-Data
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: X-Telegram-Init-Data
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderSchema'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '404':
+          description: Reminder not found or telegramId mismatch
   /timezone:
     get:
       summary: Get Timezone

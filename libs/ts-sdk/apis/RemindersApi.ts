@@ -33,7 +33,12 @@ export interface RemindersDeleteRequest {
 
 export interface RemindersGetRequest {
     telegramId: number;
-    id?: number | null;
+    xTelegramInitData?: string | null;
+}
+
+export interface RemindersIdGetRequest {
+    id: number;
+    telegramId: number;
     xTelegramInitData?: string | null;
 }
 
@@ -124,10 +129,6 @@ export class RemindersApi extends runtime.BaseAPI {
             queryParameters['telegramId'] = requestParameters['telegramId'];
         }
 
-        if (requestParameters['id'] != null) {
-            queryParameters['id'] = requestParameters['id'];
-        }
-
         const headerParameters: runtime.HTTPHeaders = {};
 
         if (requestParameters['xTelegramInitData'] != null) {
@@ -152,6 +153,58 @@ export class RemindersApi extends runtime.BaseAPI {
      */
     async remindersGet(requestParameters: RemindersGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ReminderSchema>> {
         const response = await this.remindersGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Reminders Id Get
+     */
+    async remindersIdGetRaw(requestParameters: RemindersIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ReminderSchema>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling remindersIdGet().'
+            );
+        }
+
+        if (requestParameters['telegramId'] == null) {
+            throw new runtime.RequiredError(
+                'telegramId',
+                'Required parameter "telegramId" was null or undefined when calling remindersIdGet().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['telegramId'] != null) {
+            queryParameters['telegramId'] = requestParameters['telegramId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xTelegramInitData'] != null) {
+            headerParameters['X-Telegram-Init-Data'] = String(requestParameters['xTelegramInitData']);
+        }
+
+
+        let urlPath = `/reminders/{id}`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ReminderSchemaFromJSON(jsonValue));
+    }
+
+    /**
+     * Reminders Id Get
+     */
+    async remindersIdGet(requestParameters: RemindersIdGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ReminderSchema> {
+        const response = await this.remindersIdGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

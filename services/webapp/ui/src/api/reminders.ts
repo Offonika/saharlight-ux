@@ -17,17 +17,7 @@ export async function getReminders(
 ): Promise<Reminder[]> {
   try {
     const data = await api.remindersGet({ telegramId }, { signal });
-
-    if (!data) {
-      return [];
-    }
-
-    if (!Array.isArray(data)) {
-      console.error('Unexpected reminders API response:', data);
-      return [];
-    }
-
-    return data;
+    return data ?? [];
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error;
@@ -49,9 +39,9 @@ export async function getReminder(
   signal?: AbortSignal,
 ): Promise<Reminder | null> {
   try {
-    const data = await api.remindersGet({ telegramId, id }, { signal });
+    const data = await api.remindersIdGet({ telegramId, id }, { signal });
 
-    if (!data || Array.isArray(data) || !instanceOfReminder(data)) {
+    if (!data || !instanceOfReminder(data)) {
       console.error('Unexpected reminder API response:', data);
       throw new Error('Некорректный ответ API');
     }

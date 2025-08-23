@@ -22,9 +22,10 @@ from typing import Any, ClassVar, Dict, List
 from typing import Optional, Set
 from typing_extensions import Self
 
-
 class RoleSchema(BaseModel):
-    """RoleSchema"""  # noqa: E501
+    """
+    RoleSchema
+    """ # noqa: E501
     role: StrictStr
     __properties: ClassVar[List[str]] = ["role"]
 
@@ -33,6 +34,7 @@ class RoleSchema(BaseModel):
         validate_assignment=True,
         protected_namespaces=(),
     )
+
 
     def to_str(self) -> str:
         """Returns the string representation of the model using alias"""
@@ -49,9 +51,18 @@ class RoleSchema(BaseModel):
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
-        """Return the dictionary representation of the model using alias."""
+        """Return the dictionary representation of the model using alias.
+
+        This has the following differences from calling pydantic's
+        `self.model_dump(by_alias=True)`:
+
+        * `None` is only added to the output dict for nullable fields that
+          were set at model initialization. Other fields with value `None`
+          are ignored.
+        """
         excluded_fields: Set[str] = set([
         ])
+
         _dict = self.model_dump(
             by_alias=True,
             exclude=excluded_fields,
@@ -72,3 +83,5 @@ class RoleSchema(BaseModel):
             "role": obj.get("role")
         })
         return _obj
+
+
