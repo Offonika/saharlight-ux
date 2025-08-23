@@ -15,14 +15,12 @@ from services.api.app.diabetes.services.db import Entry, SessionLocal
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 from services.api.app.diabetes.services.repository import commit
-from . import UserData
+from . import EntryData, UserData
 
 logger = logging.getLogger(__name__)
 
 
-Handler = Callable[
-    [Update, ContextTypes.DEFAULT_TYPE, CallbackQuery, str], Awaitable[None]
-]
+Handler = Callable[[Update, ContextTypes.DEFAULT_TYPE, CallbackQuery, str], Awaitable[None]]
 
 
 async def handle_confirm_entry(
@@ -33,8 +31,8 @@ async def handle_confirm_entry(
     if user_data_raw is None:
         return
     user_data = cast(UserData, user_data_raw)
-    entry_data = user_data.pop("pending_entry", None)
-    if not entry_data:
+    entry_data = cast(EntryData | None, user_data.pop("pending_entry", None))
+    if entry_data is None:
         await query.edit_message_text("❗ Нет данных для сохранения.")
         return
     with SessionLocal() as session:
@@ -59,16 +57,14 @@ async def handle_confirm_entry(
         reminder_handlers.schedule_after_meal(user.id, job_queue)
 
 
-async def handle_edit_entry(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str
-) -> None:
+async def handle_edit_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str) -> None:
     """Prompt user to resend data to update the pending entry."""
     user_data_raw = context.user_data
     if user_data_raw is None:
         return
     user_data = cast(UserData, user_data_raw)
-    entry_data = user_data.get("pending_entry")
-    if not entry_data:
+    entry_data = cast(EntryData | None, user_data.get("pending_entry"))
+    if entry_data is None:
         await query.edit_message_text("❗ Нет данных для редактирования.")
         return
     user_data["edit_id"] = None
@@ -80,9 +76,7 @@ async def handle_edit_entry(
     )
 
 
-async def handle_cancel_entry(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str
-) -> None:
+async def handle_cancel_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str) -> None:
     """Discard pending entry and show main menu keyboard."""
     user_data_raw = context.user_data
     if user_data_raw is None:
@@ -116,9 +110,7 @@ async def handle_edit_or_delete(
         if user is None:
             return
         if existing_entry.telegram_id != user.id:
-            await query.edit_message_text(
-                "⚠️ Эта запись принадлежит другому пользователю."
-            )
+            await query.edit_message_text("⚠️ Эта запись принадлежит другому пользователю.")
             return
         if action == "del":
             session.delete(existing_entry)
@@ -143,11 +135,7 @@ async def handle_edit_or_delete(
     }
     keyboard = InlineKeyboardMarkup(
         [
-            [
-                InlineKeyboardButton(
-                    "сахар", callback_data=f"edit_field:{entry_id}:sugar"
-                )
-            ],
+            [InlineKeyboardButton("сахар", callback_data=f"edit_field:{entry_id}:sugar")],
             [InlineKeyboardButton("xe", callback_data=f"edit_field:{entry_id}:xe")],
             [InlineKeyboardButton("dose", callback_data=f"edit_field:{entry_id}:dose")],
         ]

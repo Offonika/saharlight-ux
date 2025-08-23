@@ -1,7 +1,7 @@
 import datetime
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import cast
 
 from telegram import Update
 from telegram.ext import (
@@ -29,7 +29,7 @@ from .alert_handlers import check_alert
 from .common_handlers import menu_command
 from .photo_handlers import photo_prompt
 from .dose_calc import dose_cancel, _cancel_then
-from . import UserData
+from . import EntryData, UserData
 
 logger = logging.getLogger(__name__)
 
@@ -50,16 +50,17 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     if user is None:
         return END
     user_data.pop("pending_entry", None)
-    user_data["pending_entry"] = {
-        "telegram_id": user.id,
-        "event_time": datetime.datetime.now(datetime.timezone.utc),
-    }
+    user_data["pending_entry"] = cast(
+        EntryData,
+        {
+            "telegram_id": user.id,
+            "event_time": datetime.datetime.now(datetime.timezone.utc),
+        },
+    )
     chat_data = getattr(context, "chat_data", None)
     if chat_data is not None:
         chat_data["sugar_active"] = True
-    await message.reply_text(
-        "Введите текущий уровень сахара (ммоль/л).", reply_markup=sugar_keyboard
-    )
+    await message.reply_text("Введите текущий уровень сахара (ммоль/л).", reply_markup=sugar_keyboard)
     return SUGAR_VAL
 
 
@@ -88,13 +89,17 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if sugar < 0:
         await message.reply_text("Сахар не может быть отрицательным.")
         return SUGAR_VAL
-    entry_data = user_data.pop("pending_entry", None) or {
-        "telegram_id": user.id,
-        "event_time": datetime.datetime.now(datetime.timezone.utc),
-    }
+    entry_data = cast(
+        EntryData,
+        user_data.pop("pending_entry", None)
+        or {
+            "telegram_id": user.id,
+            "event_time": datetime.datetime.now(datetime.timezone.utc),
+        },
+    )
     entry_data["sugar_before"] = sugar
 
-    def save_entry(session: Session, data: dict[str, Any]) -> bool:
+    def save_entry(session: Session, data: EntryData) -> bool:
         entry = Entry(**data)
         session.add(entry)
         return commit(session)
@@ -130,9 +135,7 @@ sugar_conv = ConversationHandler(
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
-        MessageHandler(
-            filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
-        ),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))),
     ],
 )
 

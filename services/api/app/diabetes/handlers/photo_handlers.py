@@ -23,7 +23,7 @@ from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import extract_nutrition_info
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
-from . import UserData
+from . import EntryData, UserData
 
 logger = logging.getLogger(__name__)
 
@@ -224,10 +224,14 @@ async def photo_handler(
             )
             return END
 
-        pending_entry = user_data.get("pending_entry") or {
-            "telegram_id": user_id,
-            "event_time": datetime.datetime.now(datetime.timezone.utc),
-        }
+        pending_entry = cast(
+            EntryData,
+            user_data.get("pending_entry")
+            or {
+                "telegram_id": user_id,
+                "event_time": datetime.datetime.now(datetime.timezone.utc),
+            },
+        )
         pending_entry.update({"carbs_g": carbs_g, "xe": xe, "photo_path": file_path})
         user_data["pending_entry"] = pending_entry
         if status_message and hasattr(status_message, "delete"):

@@ -42,7 +42,7 @@ from .profile import profile_view
 from services.api.app.diabetes.gpt_command_parser import parse_command
 from .alert_handlers import check_alert
 from .reporting_handlers import history_view, report_request, send_report
-from . import UserData
+from . import EntryData, UserData
 
 logger = logging.getLogger(__name__)
 
@@ -123,11 +123,14 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if xe < 0:
         await message.reply_text("Количество ХЕ не может быть отрицательным.")
         return DOSE_XE
-    user_data["pending_entry"] = {
-        "telegram_id": user.id,
-        "event_time": datetime.datetime.now(datetime.timezone.utc),
-        "xe": xe,
-    }
+    user_data["pending_entry"] = cast(
+        EntryData,
+        {
+            "telegram_id": user.id,
+            "event_time": datetime.datetime.now(datetime.timezone.utc),
+            "xe": xe,
+        },
+    )
     await message.reply_text("Введите текущий сахар (ммоль/л).")
     return DOSE_SUGAR
 
@@ -154,11 +157,14 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if carbs < 0:
         await message.reply_text("Количество углеводов не может быть отрицательным.")
         return DOSE_CARBS
-    user_data["pending_entry"] = {
-        "telegram_id": user.id,
-        "event_time": datetime.datetime.now(datetime.timezone.utc),
-        "carbs_g": carbs,
-    }
+    user_data["pending_entry"] = cast(
+        EntryData,
+        {
+            "telegram_id": user.id,
+            "event_time": datetime.datetime.now(datetime.timezone.utc),
+            "carbs_g": carbs,
+        },
+    )
     await message.reply_text("Введите текущий сахар (ммоль/л).")
     return DOSE_SUGAR
 
@@ -186,7 +192,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await message.reply_text("Сахар не может быть отрицательным.")
         return DOSE_SUGAR
 
-    entry = user_data.get("pending_entry", {})
+    entry = cast(EntryData, user_data.get("pending_entry", {}))
     entry["sugar_before"] = sugar
     xe = entry.get("xe")
     carbs_g = entry.get("carbs_g")
@@ -211,12 +217,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             sessionmaker=SessionLocal,
         )
 
-    if (
-        profile is None
-        or profile.icr is None
-        or profile.cf is None
-        or profile.target_bg is None
-    ):
+    if profile is None or profile.icr is None or profile.cf is None or profile.target_bg is None:
         await message.reply_text(
             "Профиль не настроен. Установите коэффициенты через /profile.",
             reply_markup=menu_keyboard,
@@ -267,9 +268,7 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 
 def _cancel_then(
-    handler: Callable[
-        [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]
-    ],
+    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]],
 ) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
@@ -322,9 +321,7 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex("^💉 Доза инсулина$"), dose_start),
     ],
     states={
-        DOSE_METHOD: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)
-        ],
+        DOSE_METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
         DOSE_XE: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)],
         DOSE_CARBS: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)],
         DOSE_SUGAR: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)],
@@ -332,22 +329,14 @@ dose_conv = ConversationHandler(
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
-        MessageHandler(
-            filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
-        ),
+        MessageHandler(filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))),
         MessageHandler(
             filters.Regex("^🩸 Уровень сахара$"),
             cast(object, _cancel_then(sugar_start)),
         ),
-        MessageHandler(
-            filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))
-        ),
-        MessageHandler(
-            filters.Regex("^📈 Отчёт$"), cast(object, _cancel_then(report_request))
-        ),
-        MessageHandler(
-            filters.Regex("^📄 Мой профиль$"), cast(object, _cancel_then(profile_view))
-        ),
+        MessageHandler(filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))),
+        MessageHandler(filters.Regex("^📈 Отчёт$"), cast(object, _cancel_then(report_request))),
+        MessageHandler(filters.Regex("^📄 Мой профиль$"), cast(object, _cancel_then(profile_view))),
     ],
 )
 
