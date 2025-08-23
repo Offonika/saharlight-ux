@@ -284,3 +284,30 @@ async def test_parse_command_valid_time(monkeypatch: pytest.MonkeyPatch) -> None
     assert "Инсулин: 2 ед" in reply_text
     assert "Сахар: 5 ммоль/л" in reply_text
     assert kwargs["reply_markup"].to_dict() == confirm_keyboard().to_dict()
+
+
+@pytest.mark.asyncio
+async def test_save_entry_without_run_db(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure _save_entry works synchronously when run_db is ``None``."""
+
+    class DummySession:
+        def add(self, obj: Any) -> None:
+            self.obj = obj
+
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+            pass
+
+    def session_factory() -> DummySession:
+        return DummySession()
+
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
+    monkeypatch.setattr(gpt_handlers, "commit", lambda session: True)
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
+
+    ok = await gpt_handlers._save_entry(
+        {"telegram_id": 1, "event_time": dt.datetime.now(dt.timezone.utc)}
+    )
+    assert ok is True
