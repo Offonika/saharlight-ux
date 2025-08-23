@@ -34,11 +34,15 @@ from services.api.app.diabetes.services.db import (
     SessionLocal as _SessionLocal,
     User,
 )
+logger = logging.getLogger(__name__)
 
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
-except Exception:  # pragma: no cover - optional db runner
+except ImportError:  # pragma: no cover - optional db runner
     run_db: Callable[..., Awaitable[object]] | None = None
+except Exception:  # pragma: no cover - log unexpected errors
+    logger.exception("Unexpected error importing run_db")
+    run_db = None
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
 from services.api.app.diabetes.services.repository import commit as _commit
@@ -50,8 +54,6 @@ from services.api.app.diabetes.utils.helpers import (
 
 SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], bool] = _commit
-
-logger = logging.getLogger(__name__)
 
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 
