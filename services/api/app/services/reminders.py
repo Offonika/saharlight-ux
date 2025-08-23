@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import time as time_
 from typing import cast
 
 from fastapi import HTTPException
@@ -9,6 +10,21 @@ from ..diabetes.services.db import Reminder, SessionLocal, User, run_db
 from ..diabetes.services.repository import commit
 from ..schemas.reminders import ReminderSchema
 from ..types import SessionProtocol
+
+
+def _default_title(rem_type: str, rem_time: time_ | None) -> str | None:
+    if rem_time is not None and rem_type in {"sugar", "meal"}:
+        hour = rem_time.hour
+        if 5 <= hour < 12:
+            return "Morning"
+        if 12 <= hour < 17:
+            return "Lunch"
+        if 17 <= hour < 22:
+            return "Evening"
+        return "Night"
+    if rem_time is not None:
+        return rem_time.strftime("%H:%M")
+    return None
 
 
 async def list_reminders(telegram_id: int) -> list[Reminder]:
@@ -32,14 +48,17 @@ async def save_reminder(data: ReminderSchema) -> int:
         if data.orgId is not None:
             rem.org_id = data.orgId
         rem.type = data.type
-        rem.title = data.title
+        if data.title is not None:
+            rem.title = data.title
+        elif rem.title is None:
+            rem.title = _default_title(data.type, data.time or rem.time)
         rem.time = data.time
         rem.interval_hours = data.intervalHours
         rem.minutes_after = data.minutesAfter
         rem.is_enabled = data.isEnabled
         commit(cast(Session, session))
         cast(Session, session).refresh(rem)
-        return rem.id
+        return cast(int, rem.id)
 
     return await run_db(_save, sessionmaker=SessionLocal)
 
