@@ -628,12 +628,15 @@ def test_nonempty_returns_list(
     assert resp.status_code == 200
     assert resp.json() == [
         {
+            "telegramId": 1,
             "id": 1,
             "type": "sugar",
             "title": "sugar",
             "time": "08:00",
-            "active": True,
-            "interval": 3,
+            "intervalHours": 3,
+            "minutesAfter": None,
+            "isEnabled": True,
+            "orgId": None,
         }
     ]
 

@@ -32,13 +32,19 @@ export interface ReminderSchema {
      */
     id?: number | null;
     /**
-     * 
+     *
      * @type {string}
      * @memberof ReminderSchema
      */
     type: string;
     /**
-     * 
+     *
+     * @type {string}
+     * @memberof ReminderSchema
+     */
+    title?: string | null;
+    /**
+     *
      * @type {string}
      * @memberof ReminderSchema
      */
@@ -91,6 +97,7 @@ export function ReminderSchemaFromJSONTyped(json: any, ignoreDiscriminator: bool
         'telegramId': json['telegramId'],
         'id': json['id'] == null ? undefined : json['id'],
         'type': json['type'],
+        'title': json['title'] == null ? undefined : json['title'],
         'time': json['time'] == null ? undefined : json['time'],
         'intervalHours': json['intervalHours'] == null ? undefined : json['intervalHours'],
         'minutesAfter': json['minutesAfter'] == null ? undefined : json['minutesAfter'],
@@ -113,6 +120,7 @@ export function ReminderSchemaToJSONTyped(value?: ReminderSchema | null, ignoreD
         'telegramId': value['telegramId'],
         'id': value['id'],
         'type': value['type'],
+        'title': value['title'],
         'time': value['time'],
         'intervalHours': value['intervalHours'],
         'minutesAfter': value['minutesAfter'],

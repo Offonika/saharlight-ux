@@ -29,12 +29,13 @@ class ReminderSchema(BaseModel):
     telegram_id: StrictInt = Field(alias="telegramId")
     id: Optional[StrictInt] = None
     type: StrictStr
+    title: Optional[StrictStr] = None
     time: Optional[StrictStr] = None
     interval_hours: Optional[StrictInt] = Field(default=None, alias="intervalHours")
     minutes_after: Optional[StrictInt] = Field(default=None, alias="minutesAfter")
     is_enabled: Optional[StrictBool] = Field(default=True, alias="isEnabled")
     org_id: Optional[StrictInt] = Field(default=None, alias="orgId")
-    __properties: ClassVar[List[str]] = ["telegramId", "id", "type", "time", "intervalHours", "minutesAfter", "isEnabled", "orgId"]
+    __properties: ClassVar[List[str]] = ["telegramId", "id", "type", "title", "time", "intervalHours", "minutesAfter", "isEnabled", "orgId"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -80,6 +81,11 @@ class ReminderSchema(BaseModel):
         if self.id is None and "id" in self.model_fields_set:
             _dict['id'] = None
 
+        # set to None if title (nullable) is None
+        # and model_fields_set contains the field
+        if self.title is None and "title" in self.model_fields_set:
+            _dict['title'] = None
+
         # set to None if time (nullable) is None
         # and model_fields_set contains the field
         if self.time is None and "time" in self.model_fields_set:
@@ -115,6 +121,7 @@ class ReminderSchema(BaseModel):
             "telegramId": obj.get("telegramId"),
             "id": obj.get("id"),
             "type": obj.get("type"),
+            "title": obj.get("title"),
             "time": obj.get("time"),
             "intervalHours": obj.get("intervalHours"),
             "minutesAfter": obj.get("minutesAfter"),
