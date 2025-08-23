@@ -1,4 +1,4 @@
-from types import SimpleNamespace
+from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
 import datetime
@@ -334,20 +334,31 @@ async def test_freeform_handler_quick_entry_complete(
 
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
-
-    async def fake_run_db(func: Any, sessionmaker: Any) -> bool:
-        class DummySession:
-            def add(self, obj: Any) -> None:  # noqa: D401 - no action
-                pass
-
-        return bool(func(DummySession()))
-
     async def fake_check_alert(
         update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
     ) -> None:
         return None
 
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
+
+        def add(self, obj: Any) -> None:
+            pass
+
+    def session_factory() -> DummySession:
+        return DummySession()
+
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
 
     await gpt_handlers.freeform_handler(
         update,
@@ -523,20 +534,30 @@ async def test_freeform_handler_pending_entry_commit(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),
     )
-
-    async def fake_run_db(func: Any, sessionmaker: Any) -> bool:
-        class DummySession:
-            def add(self, obj: Any) -> None:  # noqa: D401 - no action
-                pass
-
-        return bool(func(DummySession()))
-
     async def fake_check_alert(
         update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
     ) -> None:
         return None
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
 
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
+
+        def add(self, obj: Any) -> None:
+            pass
+
+    def session_factory() -> DummySession:
+        return DummySession()
+
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
     await gpt_handlers.freeform_handler(
         update,
         context,
@@ -561,12 +582,29 @@ async def test_freeform_handler_pending_entry_commit_fail(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),
     )
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
 
-    async def fake_run_db(func: Any, sessionmaker: Any) -> bool:
-        return False
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
 
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
-    await gpt_handlers.freeform_handler(update, context)
+        def add(self, obj: Any) -> None:
+            pass
+
+    def session_factory() -> DummySession:
+        return DummySession()
+
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
+    await gpt_handlers.freeform_handler(
+        update, context, commit=lambda s: False
+    )
     assert message.texts == ["⚠️ Не удалось сохранить запись."]
 
 
@@ -601,12 +639,27 @@ async def test_freeform_handler_pending_entry_numeric_add_carbs(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),
     )
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
 
-    async def fake_run_db(func: Any, sessionmaker: Any = None) -> Any:
-        return None
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
 
-    monkeypatch.setattr(gpt_handlers, "run_db", fake_run_db)
-    await gpt_handlers.freeform_handler(update, context)
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return None
+
+    def session_factory() -> DummySession:
+        return DummySession()
+
+    monkeypatch.setattr(gpt_handlers, "run_db", None)
+    monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
+    await gpt_handlers.freeform_handler(update, context, commit=lambda s: True)
     assert entry["carbs_g"] == 12
     assert "Введите количество углеводов" in message.texts[0]
 
