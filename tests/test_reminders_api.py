@@ -1,11 +1,14 @@
-import pytest
 from collections.abc import Generator
+from datetime import time
+from typing import cast
+
+import pytest
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from typing import cast
 
 from services.api.app.diabetes.services.db import Base, Reminder, User
 from services.api.app.routers.reminders import router
@@ -59,7 +62,7 @@ def test_nonempty_returns_list(
                 id=1,
                 telegram_id=1,
                 type="sugar",
-                time="08:00",
+                time=time(8, 0),
                 interval_hours=3,
             )
         )
@@ -105,7 +108,7 @@ def test_patch_updates_reminder(
                 id=1,
                 telegram_id=1,
                 type="sugar",
-                time="08:00",
+                time=time(8, 0),
                 interval_hours=3,
             )
         )
@@ -125,7 +128,7 @@ def test_patch_updates_reminder(
     with session_factory() as session:
         rem = session.get(Reminder, 1)
         assert rem is not None
-        assert rem.time == "09:00"
+        assert rem.time == time(9, 0)
 
 
 def test_delete_reminder(client: TestClient, session_factory: sessionmaker) -> None:
@@ -133,9 +136,7 @@ def test_delete_reminder(client: TestClient, session_factory: sessionmaker) -> N
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
-    resp = client.delete(
-        "/api/reminders", params={"telegramId": 1, "id": 1}
-    )
+    resp = client.delete("/api/reminders", params={"telegramId": 1, "id": 1})
     assert resp.status_code == 200
     with session_factory() as session:
         assert session.get(Reminder, 1) is None

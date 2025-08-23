@@ -1,5 +1,7 @@
 from collections.abc import Generator
 
+from datetime import time
+
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import create_engine
@@ -22,19 +24,23 @@ def session_factory() -> Generator[sessionmaker, None, None]:
 
 
 @pytest.mark.asyncio
-async def test_save_and_list_reminder(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker) -> None:
+async def test_save_and_list_reminder(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker
+) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
 
-    rem_id = await reminders.save_reminder(ReminderSchema(telegramId=1, type="sugar", time="08:00", orgId=42))
+    rem_id = await reminders.save_reminder(
+        ReminderSchema(telegramId=1, type="sugar", time="08:00", orgId=42)
+    )
     assert rem_id > 0
 
     reminders_list = await reminders.list_reminders(1)
     assert len(reminders_list) == 1
     rem = reminders_list[0]
-    assert rem.time == "08:00"
+    assert rem.time == time(8, 0)
     assert rem.org_id == 42
 
     await reminders.save_reminder(
@@ -49,7 +55,7 @@ async def test_save_and_list_reminder(monkeypatch: pytest.MonkeyPatch, session_f
     updated = await reminders.list_reminders(1)
     assert updated[0].type == "meal"
     assert updated[0].is_enabled is False
-    assert updated[0].time == "09:00"
+    assert updated[0].time == time(9, 0)
 
 
 @pytest.mark.asyncio

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import time
 from typing import Any, Callable, cast
 
 import pytest
@@ -88,7 +89,9 @@ async def test_webapp_save_creates_reminder(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "08:00"}))
-    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
+    update = cast(
+        Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
+    )
     context = cast(
         ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
     )
@@ -96,7 +99,7 @@ async def test_webapp_save_creates_reminder(
 
     with TestSession() as session:
         rem = session.query(Reminder).first()
-        assert rem and rem.time == "08:00"
+        assert rem and rem.time == time(8, 0)
 
 
 @pytest.mark.asyncio
@@ -114,7 +117,9 @@ async def test_webapp_save_creates_interval(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "2h"}))
-    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
+    update = cast(
+        Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
+    )
     context = cast(
         ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
     )

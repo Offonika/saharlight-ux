@@ -1,7 +1,7 @@
+from datetime import time
 import json
 from types import SimpleNamespace
 from typing import Any, Callable, Iterator, cast
-
 import warnings
 from contextlib import contextmanager
 
@@ -11,7 +11,13 @@ from sqlalchemy.orm import sessionmaker
 
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 from services.api.app.diabetes.services.repository import commit
-from services.api.app.diabetes.services.db import Base, User, Reminder, Entry, dispose_engine
+from services.api.app.diabetes.services.db import (
+    Base,
+    User,
+    Reminder,
+    Entry,
+    dispose_engine,
+)
 
 
 @contextmanager
@@ -63,7 +69,11 @@ def _setup_db() -> tuple[sessionmaker, Any]:
     handlers.commit = commit
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
+        session.add(
+            Reminder(
+                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
+            )
+        )
         session.commit()
     return TestSession, engine
 
@@ -73,7 +83,8 @@ async def test_bad_input_does_not_create_entry() -> None:
     TestSession, engine = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "bad"}))
     update = cast(
-        Any, SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+        Any,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(Any, SimpleNamespace(job_queue=DummyJobQueue()))
     with no_warnings():
@@ -90,15 +101,15 @@ async def test_good_input_updates_and_ends() -> None:
     TestSession, engine = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "09:30"}))
     update = cast(
-        Any, SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+        Any,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(Any, SimpleNamespace(job_queue=DummyJobQueue()))
     with no_warnings():
         await handlers.reminder_webapp_save(update, context)
     with TestSession() as session:
         rem = session.get(Reminder, 1)
-        assert rem.time == "09:30"
+        assert rem.time == time(9, 30)
         assert session.query(Entry).count() == 0
     with no_warnings():
         dispose_engine(engine)
-

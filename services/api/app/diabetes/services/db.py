@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from datetime import datetime
+from datetime import datetime, time
 from typing import Callable, Concatenate, ParamSpec, Protocol, TypeVar
 
 from sqlalchemy import (
@@ -15,6 +15,7 @@ from sqlalchemy import (
     String,
     Float,
     Text,
+    TIME,
     TIMESTAMP,
     ForeignKey,
     Boolean,
@@ -214,7 +215,7 @@ class Reminder(Base):
     )
     org_id: Mapped[int | None] = mapped_column(Integer)
     type: Mapped[str] = mapped_column(String, nullable=False)
-    time: Mapped[str | None] = mapped_column(String)
+    time: Mapped[time | None] = mapped_column(TIME)
     interval_hours: Mapped[int | None] = mapped_column(Integer)
     minutes_after: Mapped[int | None] = mapped_column(Integer)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)

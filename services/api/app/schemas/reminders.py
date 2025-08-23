@@ -1,12 +1,19 @@
+from __future__ import annotations
+
+from datetime import time
+from typing import Optional
+
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class ReminderSchema(BaseModel):
-    telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
+    telegramId: int = Field(
+        alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id")
+    )
     id: int | None = None
     type: str
     title: str | None = None
-    time: str | None = None
+    time: Optional[time] = None
     intervalHours: int | None = None
     minutesAfter: int | None = None
     isEnabled: bool = True
