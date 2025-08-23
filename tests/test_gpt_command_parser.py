@@ -17,8 +17,16 @@ from services.api.app.diabetes import gpt_command_parser  # noqa: E402
 async def test_parse_command_timeout_non_blocking(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def slow_create(*args: Any, **kwargs: Any) -> Any:
-        time.sleep(1)
+    started = asyncio.Event()
+    cancelled = asyncio.Event()
+
+    async def slow_create(*args: Any, **kwargs: Any) -> Any:
+        started.set()
+        try:
+            await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
 
         class FakeResponse:
             choices = [
@@ -39,6 +47,9 @@ async def test_parse_command_timeout_non_blocking(
 
     assert isinstance(results[0], gpt_command_parser.ParserTimeoutError)
     assert elapsed < 0.5
+    assert started.is_set()
+    await asyncio.sleep(0.2)
+    assert cancelled.is_set()
 
 
 @pytest.mark.asyncio
@@ -66,7 +77,7 @@ async def test_parse_command_with_explanatory_text(
             )
         ]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -95,7 +106,7 @@ async def test_parse_command_with_array_response(
             )
         ]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -129,7 +140,7 @@ async def test_parse_command_with_array_multiple_objects(
             )
         ]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -163,7 +174,7 @@ async def test_parse_command_with_multiple_json_objects(
             )
         ]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -199,7 +210,7 @@ async def test_parse_command_with_nested_json(
             )
         ]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -225,7 +236,7 @@ async def test_parse_command_with_scalar_response(
             )
         ]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -254,7 +265,7 @@ async def test_parse_command_with_invalid_schema(
             )
         ]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -273,7 +284,7 @@ async def test_parse_command_with_missing_content(
     class FakeResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {})()})]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -298,7 +309,7 @@ async def test_parse_command_with_non_string_content(
             )
         ]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -314,7 +325,7 @@ async def test_parse_command_with_non_string_content(
 async def test_parse_command_propagates_unexpected_exception(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def bad_create(*args: Any, **kwargs: Any) -> None:
+    async def bad_create(*args: Any, **kwargs: Any) -> None:
         raise RuntimeError("boom")
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", bad_create)
@@ -363,8 +374,7 @@ def test_extract_first_json_array_single_object() -> None:
 
 def test_extract_first_json_array_multiple_objects() -> None:
     text = (
-        '[{"action":"add_entry","fields":{}},'
-        '{"action":"delete_entry","fields":{}}]'
+        '[{"action":"add_entry","fields":{}},' '{"action":"delete_entry","fields":{}}]'
     )
     assert gpt_command_parser._extract_first_json(text) is None
 
@@ -418,7 +428,7 @@ async def test_parse_command_with_multiple_jsons(
             )
         ]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -447,7 +457,7 @@ async def test_parse_command_with_malformed_json(
             )
         ]
 
-    def create(*args: Any, **kwargs: Any) -> Any:
+    async def create(*args: Any, **kwargs: Any) -> Any:
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)

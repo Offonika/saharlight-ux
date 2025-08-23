@@ -126,12 +126,8 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
     """
 
     try:
-        # ``asyncio.to_thread`` runs the blocking OpenAI client in the event
-        # loop's shared thread pool, so we reuse threads instead of spawning a
-        # fresh ``ThreadPoolExecutor`` for every invocation.
         response: ChatCompletion = await asyncio.wait_for(
-            asyncio.to_thread(
-                create_chat_completion,
+            create_chat_completion(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},

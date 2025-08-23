@@ -11,7 +11,7 @@ from services.api.app.diabetes import gpt_command_parser
 async def test_parse_command_handles_asyncio_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def raise_timeout(*args: object, **kwargs: object) -> None:
+    async def raise_timeout(*args: object, **kwargs: object) -> None:
         raise asyncio.TimeoutError
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_timeout)
@@ -24,7 +24,7 @@ async def test_parse_command_handles_asyncio_timeout(
 async def test_parse_command_handles_openai_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def raise_openai(*args: object, **kwargs: object) -> None:
+    async def raise_openai(*args: object, **kwargs: object) -> None:
         raise OpenAIError("boom")
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_openai)
@@ -38,7 +38,7 @@ async def test_parse_command_handles_openai_error(
 async def test_parse_command_handles_value_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def raise_value(*args: object, **kwargs: object) -> None:
+    async def raise_value(*args: object, **kwargs: object) -> None:
         raise ValueError
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_value)
@@ -52,7 +52,7 @@ async def test_parse_command_handles_value_error(
 async def test_parse_command_handles_type_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def raise_type(*args: object, **kwargs: object) -> None:
+    async def raise_type(*args: object, **kwargs: object) -> None:
         raise TypeError
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_type)
@@ -69,7 +69,7 @@ async def test_parse_command_returns_none_without_choices(
     class NoChoices:
         pass
 
-    def create(*args: object, **kwargs: object) -> NoChoices:
+    async def create(*args: object, **kwargs: object) -> NoChoices:
         return NoChoices()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -86,7 +86,7 @@ async def test_parse_command_returns_none_without_message(
     class NoMessageResponse:
         choices = [type("Choice", (), {})()]
 
-    def create(*args: object, **kwargs: object) -> NoMessageResponse:
+    async def create(*args: object, **kwargs: object) -> NoMessageResponse:
         return NoMessageResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -103,7 +103,7 @@ async def test_parse_command_returns_none_without_content(
     class NoContentResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {})()})]
 
-    def create(*args: object, **kwargs: object) -> NoContentResponse:
+    async def create(*args: object, **kwargs: object) -> NoContentResponse:
         return NoContentResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -120,7 +120,7 @@ async def test_parse_command_empty_content(
     class EmptyContentResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {"content": ""})()})]
 
-    def create(*args: object, **kwargs: object) -> EmptyContentResponse:
+    async def create(*args: object, **kwargs: object) -> EmptyContentResponse:
         return EmptyContentResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -139,7 +139,7 @@ async def test_parse_command_non_string_content(
     class NonStringContentResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {"content": 123})()})]
 
-    def create(*args: object, **kwargs: object) -> NonStringContentResponse:
+    async def create(*args: object, **kwargs: object) -> NonStringContentResponse:
         return NonStringContentResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -164,7 +164,7 @@ async def test_parse_command_string_without_json(
             )
         ]
 
-    def create(*args: object, **kwargs: object) -> NoJsonResponse:
+    async def create(*args: object, **kwargs: object) -> NoJsonResponse:
         return NoJsonResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -189,7 +189,7 @@ async def test_parse_command_json_invalid_structure(
             )
         ]
 
-    def create(*args: object, **kwargs: object) -> BadStructureResponse:
+    async def create(*args: object, **kwargs: object) -> BadStructureResponse:
         return BadStructureResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
