@@ -29,7 +29,7 @@ else:
 from services.api.app.diabetes.services.repository import commit as _commit
 from services.api.app.diabetes.utils.helpers import get_coords_and_link
 
-SessionLocal: sessionmaker[Session] = _SessionLocal
+SessionLocal: sessionmaker = _SessionLocal
 commit: Callable[[Session], bool] = _commit
 
 CustomContext = ContextTypes.DEFAULT_TYPE
@@ -89,17 +89,21 @@ async def _send_alert_message(
     except OSError as exc:
         logger.exception("OS error sending alert message to user %s: %s", user_id, exc)
     if profile_info.get("sos_contact") and profile_info.get("sos_alerts_enabled"):
-        contact = profile_info["sos_contact"]
+        contact_raw = profile_info["sos_contact"]
         chat_id: int | str | None
-        if contact.startswith("@"):
-            chat_id = contact
-        elif contact.isdigit():
-            chat_id = int(contact)
+        if isinstance(contact_raw, str):
+            contact = contact_raw
+            if contact.startswith("@"):
+                chat_id = contact
+            elif contact.isdigit():
+                chat_id = int(contact)
+            else:
+                logger.info(
+                    "SOS contact '%s' is not a Telegram username or chat id; skipping",
+                    contact,
+                )
+                chat_id = None
         else:
-            logger.info(
-                "SOS contact '%s' is not a Telegram username or chat id; skipping",
-                contact,
-            )
             chat_id = None
         if chat_id is not None:
             try:
@@ -107,13 +111,13 @@ async def _send_alert_message(
             except TelegramError as exc:
                 logger.error(
                     "Failed to send alert message to SOS contact '%s': %s",
-                    contact,
+                    contact_raw,
                     exc,
                 )
             except OSError as exc:
                 logger.exception(
                     "OS error sending alert message to SOS contact '%s': %s",
-                    contact,
+                    contact_raw,
                     exc,
                 )
 
@@ -127,7 +131,7 @@ async def evaluate_sugar(
     first_name: str = "",
 ) -> None:
     def db_eval(session: Session) -> tuple[bool, dict[str, object] | None]:
-        profile = session.get(Profile, user_id)
+        profile = session.get(Profile, user_id)  # type: ignore[attr-defined]
         if not profile:
             return False, None
         low = profile.low_threshold
@@ -176,7 +180,10 @@ async def evaluate_sugar(
         with SessionLocal() as session:
             ok, result = db_eval(session)
     else:
-        ok, result = await run_db(db_eval, sessionmaker=SessionLocal)
+        ok, result = cast(
+            tuple[bool, dict[str, object] | None],
+            await run_db(db_eval, sessionmaker=SessionLocal),
+        )
     if not ok or result is None:
         return
     action = result["action"]
@@ -185,7 +192,7 @@ async def evaluate_sugar(
             user_id,
             job_queue,
             sugar=sugar,
-            profile=result.get("profile", {}),
+            profile=cast(dict[str, object], result.get("profile", {})),
             first_name=first_name,
         )
     elif action == "remove" and job_queue is not None:
@@ -195,7 +202,11 @@ async def evaluate_sugar(
 
     if result.get("notify") and context is not None:
         await _send_alert_message(
-            user_id, sugar, result.get("profile", {}), context, first_name
+            user_id,
+            sugar,
+            cast(dict[str, object], result.get("profile", {})),
+            context,
+            first_name,
         )
 
 

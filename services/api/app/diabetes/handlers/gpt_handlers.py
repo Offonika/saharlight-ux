@@ -11,6 +11,7 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
+    ReplyKeyboardMarkup,
     Update,
 )
 from telegram.ext import ContextTypes
@@ -71,7 +72,7 @@ async def _handle_report_request(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     *,
-    menu_keyboard: InlineKeyboardMarkup | None,
+    menu_keyboard: ReplyKeyboardMarkup | None,
     send_report: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, datetime.datetime, str],
         Awaitable[object],
@@ -129,14 +130,14 @@ async def _handle_pending_entry(
     check_alert: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
     ],
-    menu_keyboard: InlineKeyboardMarkup | None,
+    menu_keyboard: ReplyKeyboardMarkup | None,
 ) -> bool:
     """Process numeric input for a pending entry."""
     pending_raw = user_data.get("pending_entry")
     edit_id = user_data.get("edit_id")
     if not isinstance(pending_raw, dict) or edit_id is not None:
         return False
-    pending_entry = cast(EntryData, pending_raw)
+    pending_entry: EntryData = pending_raw
 
     pending_fields = user_data.get("pending_fields")
     if pending_fields:
@@ -221,13 +222,24 @@ async def _handle_pending_entry(
             if carbs_g is None and xe_val is not None:
                 carbs_g = XE_GRAMS * xe_val
                 pending_entry["carbs_g"] = carbs_g
+            if carbs_g is None:
+                await message.reply_text(
+                    "Введите количество углеводов или ХЕ.",
+                    reply_markup=menu_keyboard,
+                )
+                return True
+
+            def _get_profile(session: Session) -> Profile | None:
+                return cast(
+                    Profile | None,
+                    session.get(Profile, user_id),  # type: ignore[attr-defined]
+                )
+
             if run_db is None:
                 with SessionLocal() as session:
-                    profile = session.get(Profile, user_id)
+                    profile = _get_profile(session)
             else:
-                profile = await run_db(
-                    lambda s: s.get(Profile, user_id), sessionmaker=SessionLocal
-                )
+                profile = await run_db(_get_profile, sessionmaker=SessionLocal)
             if (
                 profile is not None
                 and profile.icr is not None
@@ -275,10 +287,11 @@ async def _handle_edit_entry(
     if value < 0:
         await message.reply_text("Значение не может быть отрицательным.")
         return True
-    field = cast(str | None, user_data.get("edit_field"))
+    field_obj = user_data.get("edit_field")
+    field: str | None = field_obj if isinstance(field_obj, str) else None
 
     def db_edit(session: Session) -> Entry | None:
-        entry = session.get(Entry, edit_id)
+        entry = cast(Entry | None, session.get(Entry, edit_id))  # type: ignore[attr-defined]
         if entry is None:
             return None
         if field == "sugar":
@@ -303,7 +316,7 @@ async def _handle_edit_entry(
     edit_info_raw = user_data.get("edit_entry")
     if not isinstance(edit_info_raw, dict):
         for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
-            user_data.pop(key, None)
+            user_data.pop(key, None)  # type: ignore[misc]
         return False
     edit_info = cast(EditMessageMeta, edit_info_raw)
     chat_id = edit_info["chat_id"]
@@ -324,11 +337,14 @@ async def _handle_edit_entry(
         reply_markup=markup,
         parse_mode="HTML",
     )
-    edit_query = cast(CallbackQuery | None, user_data.get("edit_query"))
+    edit_query_obj = user_data.get("edit_query")
+    edit_query: CallbackQuery | None = (
+        edit_query_obj if isinstance(edit_query_obj, CallbackQuery) else None
+    )
     if edit_query is not None:
         await edit_query.answer("Изменено")
     for key in ("edit_id", "edit_field", "edit_entry", "edit_query"):
-        user_data.pop(key, None)
+        user_data.pop(key, None)  # type: ignore[misc]
     return True
 
 
@@ -345,7 +361,7 @@ async def _handle_smart_input(
     check_alert: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
     ],
-    menu_keyboard: InlineKeyboardMarkup | None,
+    menu_keyboard: ReplyKeyboardMarkup | None,
     smart_input: Callable[[str], dict[str, float | None]],
     parse_command: Callable[[str], Awaitable[dict[str, object] | None]],
 ) -> None:
@@ -376,20 +392,20 @@ async def _handle_smart_input(
         and edit_id is None
         and (any(v is not None for v in quick.values()) or carbs_match)
     ):
-        pending_entry = cast(EntryData, pending_raw)
+        pending_entry: EntryData = pending_raw
         if quick["sugar"] is not None:
             pending_entry["sugar_before"] = quick["sugar"]
         if quick["xe"] is not None:
             pending_entry["xe"] = quick["xe"]
             pending_entry["carbs_g"] = XE_GRAMS * quick["xe"]
         elif carbs_match:
-            carbs_val = float(carbs_match.group(1).replace(",", "."))
-            if carbs_val < 0:
+            carbs_match_val = float(carbs_match.group(1).replace(",", "."))
+            if carbs_match_val < 0:
                 await message.reply_text(
                     "Количество углеводов не может быть отрицательным."
                 )
                 return
-            pending_entry["carbs_g"] = carbs_val
+            pending_entry["carbs_g"] = carbs_match_val
         if quick["dose"] is not None:
             pending_entry["dose"] = quick["dose"]
         missing = [
@@ -536,7 +552,7 @@ async def _handle_smart_input(
         "sugar_before": fields.get("sugar_before"),
         "photo_path": None,
     }
-    pending_entry = cast(EntryData, user_data["pending_entry"])
+    pending_entry = user_data["pending_entry"]
 
     xe_val: float | None = pending_entry.get("xe")
     carbs_val: float | None = pending_entry.get("carbs_g")
@@ -564,7 +580,7 @@ async def freeform_handler(
     check_alert: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
     ] = check_alert,
-    menu_keyboard: InlineKeyboardMarkup | None = menu_keyboard,
+    menu_keyboard_markup: ReplyKeyboardMarkup | None = menu_keyboard,
     smart_input: Callable[[str], dict[str, float | None]] = smart_input,
     parse_command: Callable[[str], Awaitable[dict[str, object] | None]] = parse_command,
     send_report: Callable[
@@ -596,7 +612,7 @@ async def freeform_handler(
         message,
         update,
         context,
-        menu_keyboard=menu_keyboard,
+        menu_keyboard=menu_keyboard_markup,
         send_report=send_report,
     ):
         return
@@ -610,7 +626,7 @@ async def freeform_handler(
         SessionLocal=SessionLocal,
         commit=commit,
         check_alert=check_alert,
-        menu_keyboard=menu_keyboard,
+        menu_keyboard=menu_keyboard_markup,
     ):
         return
     if await _handle_edit_entry(
@@ -632,7 +648,7 @@ async def freeform_handler(
         SessionLocal=SessionLocal,
         commit=commit,
         check_alert=check_alert,
-        menu_keyboard=menu_keyboard,
+        menu_keyboard=menu_keyboard_markup,
         smart_input=smart_input,
         parse_command=parse_command,
     )

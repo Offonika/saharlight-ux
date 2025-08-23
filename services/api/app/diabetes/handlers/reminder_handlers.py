@@ -750,7 +750,7 @@ async def reminder_action_cb(
         if not rem or rem.telegram_id != user_id:
             return "not_found", None
         if action == "del":
-            session.delete(rem)
+            session.delete(rem)  # type: ignore[no-untyped-call]
         elif action == "toggle":
             rem.is_enabled = not rem.is_enabled
         else:
@@ -769,7 +769,10 @@ async def reminder_action_cb(
         with SessionLocal() as session:
             status, rem = db_action(session)
     else:
-        status, rem = await run_db(db_action, sessionmaker=SessionLocal)
+        status, rem = cast(
+            tuple[str, Reminder | None],
+            await run_db(db_action, sessionmaker=SessionLocal),
+        )
     if status == "not_found":
         await query.answer("Не найдено", show_alert=True)
         return
@@ -792,14 +795,17 @@ async def reminder_action_cb(
                 job.schedule_removal()
 
     render_fn = cast(
-        Callable[[object], tuple[str, InlineKeyboardMarkup | None]],
+        Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
     )
     if run_db is None:
         with SessionLocal() as session:
             text, keyboard = render_fn(session, user_id)
     else:
-        text, keyboard = await run_db(render_fn, user_id, sessionmaker=SessionLocal)
+        text, keyboard = cast(
+            tuple[str, InlineKeyboardMarkup | None],
+            await run_db(render_fn, user_id, sessionmaker=SessionLocal),
+        )
     try:
         if keyboard is not None:
             await query.edit_message_text(
