@@ -24,9 +24,7 @@ TELEGRAM_TOKEN = settings.telegram_token
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log errors that occur while processing updates."""
-    logger.exception(
-        "Exception while handling update %s", update, exc_info=context.error
-    )
+    logger.error("Exception while handling update %s: %s", update, context.error)
 
 
 def main() -> None:
@@ -40,10 +38,10 @@ def main() -> None:
     try:
         init_db()
     except ValueError as exc:
-        logger.error("Invalid database configuration", exc_info=exc)
+        logger.error("Invalid database configuration: %s", exc)
         sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
-        logger.error("Failed to initialize the database", exc_info=exc)
+        logger.error("Failed to initialize the database: %s", exc)
         sys.exit(
             "Database initialization failed. Please check your configuration and try again."
         )

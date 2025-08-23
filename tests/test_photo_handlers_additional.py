@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -8,6 +9,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from telegram import Update
+from telegram.error import TelegramError
 from telegram.ext import CallbackContext
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
@@ -252,3 +254,36 @@ async def test_doc_handler_rejects_non_image(
     assert result == photo_handlers.END
     assert not photo_mock.called
     assert not bot.get_file.called
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_logs_save_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    class DummyMessage:
+        def __init__(self) -> None:
+            self.photo = (DummyPhoto(),)
+            self.texts: list[str] = []
+
+        async def reply_text(self, text: str, **kwargs: Any) -> None:
+            self.texts.append(text)
+
+    async def fake_get_file(file_id: str) -> Any:
+        raise TelegramError("boom")
+
+    message = DummyMessage()
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(bot=SimpleNamespace(get_file=fake_get_file), user_data={}),
+    )
+
+    with caplog.at_level(logging.ERROR):
+        result = await photo_handlers.photo_handler(update, context)
+
+    assert result == photo_handlers.END
+    assert "Failed to save photo" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
+    assert photo_handlers.WAITING_GPT_FLAG not in context.user_data

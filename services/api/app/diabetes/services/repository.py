@@ -27,9 +27,9 @@ def commit(session: Session) -> bool:
     try:
         session.commit()
         return True
-    except SQLAlchemyError:  # pragma: no cover - logging only
+    except SQLAlchemyError as exc:  # pragma: no cover - logging only
         session.rollback()
-        logger.exception("DB commit failed")
+        logger.error("DB commit failed: %s", exc)
         return False
 
 
@@ -39,7 +39,7 @@ def transactional(session: Session) -> Iterator[Session]:
     try:
         yield session
         session.commit()
-    except SQLAlchemyError:  # pragma: no cover - logging only
+    except SQLAlchemyError as exc:  # pragma: no cover - logging only
         session.rollback()
-        logger.exception("DB commit failed")
+        logger.error("DB commit failed: %s", exc)
         raise
