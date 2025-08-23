@@ -1,5 +1,7 @@
 ruff
 pre-commit
+pytest
+pytest-asyncio
 pytest-cov
 mypy
 playwright

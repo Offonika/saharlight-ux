@@ -80,6 +80,8 @@ sudo apt install python3.12 python3.12-venv
     каждого пакета запускайте из корня репозитория через `pnpm --filter <путь>`:
     ```bash
     pip install -r requirements.txt
+    # зависимости для тестов и линтеров
+    pip install -r services/api/app/requirements-dev.txt
 
     pnpm install
     pnpm --filter services/webapp/ui run build
@@ -198,6 +200,7 @@ const profile = await api.profilesGet({ telegramId: 123 });
 
 ```bash
 pip install -r services/api/app/requirements.txt
+pip install -r services/api/app/requirements-dev.txt
 ```
 
 Тесты используют переменные `OPENAI_API_KEY`, `DB_PASSWORD` и другие из `.env`.
