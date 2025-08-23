@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from collections.abc import Awaitable, Callable
 from typing import cast
 
 from telegram import (
@@ -475,12 +474,8 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     from .dose_calc import photo_prompt
 
     message = update.message
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    if context.user_data is None:
         context.user_data = {}
-        user_data_raw = context.user_data
-    assert user_data_raw is not None
-    user_data = cast(UserData, user_data_raw)
     if message is None:
         return ConversationHandler.END
 
