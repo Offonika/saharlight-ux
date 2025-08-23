@@ -5,7 +5,7 @@ import os
 import sys
 from datetime import time as dt_time
 from pathlib import Path
-from typing import cast
+from typing import Callable, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 # ────────── Path-хаки, когда файл запускают напрямую ──────────
@@ -14,7 +14,7 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover
     __package__ = "services.api.app"
 
 # ────────── std / 3-rd party ──────────
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import AliasChoices, BaseModel, Field
 from sqlalchemy.exc import SQLAlchemyError
@@ -57,8 +57,10 @@ async def shutdown_openai_client() -> None:
 
 
 # ────────── роуты статистики / legacy ──────────
-app.include_router(stats_router, prefix="/api")
-app.include_router(legacy_router, prefix="/api")
+# ────────── роутер с префиксом /api ──────────
+api_router = APIRouter()
+api_router.include_router(stats_router)
+api_router.include_router(legacy_router)
 
 # ────────── статические файлы UI ──────────
 BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
@@ -90,15 +92,13 @@ def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
 
 
 # ────────── health & misc ──────────
-@app.get("/health")
-@app.get("/api/health", include_in_schema=False)
+@api_router.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 # ────────── timezone ──────────
-@app.get("/timezone")
-@app.get("/api/timezone", include_in_schema=False)
+@api_router.get("/timezone")
 async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     def _get_timezone(session: Session) -> TimezoneDB | None:
         return cast(TimezoneDB | None, session.get(TimezoneDB, 1))
@@ -113,8 +113,7 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
     return {"tz": tz_row.tz}
 
 
-@app.put("/timezone")
-@app.put("/api/timezone", include_in_schema=False)
+@api_router.put("/timezone")
 async def put_timezone(
     data: Timezone, _: UserContext = Depends(require_tg_user)
 ) -> dict[str, str]:
@@ -138,8 +137,7 @@ async def put_timezone(
 
 
 # ────────── profile/self ──────────
-@app.get("/profile/self")
-@app.get("/api/profile/self")
+@api_router.get("/profile/self")
 async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserContext:
     return user
 
@@ -165,8 +163,7 @@ async def catch_root_ui() -> FileResponse:
 
 
 # ────────── user CRUD / roles ──────────
-@app.post("/user")
-@app.post("/api/user", include_in_schema=False)
+@api_router.post("/user")
 async def create_user(
     data: WebUser, user: UserContext = Depends(require_tg_user)
 ) -> dict[str, str]:
@@ -184,23 +181,20 @@ async def create_user(
     return {"status": "ok"}
 
 
-@app.get("/user/{user_id}/role")
-@app.get("/api/user/{user_id}/role", include_in_schema=False)
+@api_router.get("/user/{user_id}/role")
 async def get_role(user_id: int) -> RoleSchema:
     role = await get_user_role(user_id)
     return RoleSchema(role=role or "patient")
 
 
-@app.put("/user/{user_id}/role")
-@app.put("/api/user/{user_id}/role", include_in_schema=False)
+@api_router.put("/user/{user_id}/role")
 async def put_role(user_id: int, data: RoleSchema) -> RoleSchema:
     await set_user_role(user_id, data.role)
     return RoleSchema(role=data.role)
 
 
 # ────────── history (CRUD) ──────────
-@app.post("/history", operation_id="historyPost", tags=["History"])
-@app.post("/api/history", include_in_schema=False)
+@api_router.post("/history", operation_id="historyPost", tags=["History"])
 async def post_history(
     data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)
 ) -> dict[str, str]:
@@ -228,8 +222,7 @@ async def post_history(
     return {"status": "ok"}
 
 
-@app.get("/history", operation_id="historyGet", tags=["History"])
-@app.get("/api/history", include_in_schema=False)
+@api_router.get("/history", operation_id="historyGet", tags=["History"])
 async def get_history(
     user: UserContext = Depends(require_tg_user),
 ) -> list[HistoryRecordSchema]:
@@ -241,7 +234,6 @@ async def get_history(
             .all()
         )
 
-
     records = await run_db(cast(Callable[[Session], list[HistoryRecordDB]], _query))
 
     result: list[HistoryRecordSchema] = []
@@ -249,11 +241,9 @@ async def get_history(
         if r.type in ALLOWED_HISTORY_TYPES:
             result.append(
                 HistoryRecordSchema(
-
                     id=cast(str, r.id),
                     date=r.date,
                     time=r.time.strftime("%H:%M"),
-
                     sugar=r.sugar,
                     carbs=r.carbs,
                     breadUnits=r.bread_units,
@@ -265,8 +255,7 @@ async def get_history(
     return result
 
 
-@app.delete("/history/{id}", operation_id="historyIdDelete", tags=["History"])
-@app.delete("/api/history/{id}", include_in_schema=False)
+@api_router.delete("/history/{id}", operation_id="historyIdDelete", tags=["History"])
 async def delete_history(
     id: str, user: UserContext = Depends(require_tg_user)
 ) -> dict[str, str]:
@@ -287,6 +276,9 @@ async def delete_history(
     await run_db(_delete)
     return {"status": "ok"}
 
+
+# ────────── include router ──────────
+app.include_router(api_router, prefix="/api")
 
 # ────────── run (for local testing) ──────────
 if __name__ == "__main__":  # pragma: no cover

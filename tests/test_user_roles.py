@@ -23,17 +23,16 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker:
     return SessionLocal
 
 
-@pytest.mark.parametrize("prefix", ("", "/api"))
-def test_role_endpoints(monkeypatch: pytest.MonkeyPatch, prefix: str) -> None:
+def test_role_endpoints(monkeypatch: pytest.MonkeyPatch) -> None:
     SessionLocal = setup_db(monkeypatch)
     with TestClient(server.app) as client:
-        resp = client.get(f"{prefix}/user/1/role")
+        resp = client.get("/api/user/1/role")
         assert resp.status_code == 200
         assert resp.json() == {"role": "patient"}
-        resp = client.put(f"{prefix}/user/1/role", json={"role": "clinician"})
+        resp = client.put("/api/user/1/role", json={"role": "clinician"})
         assert resp.status_code == 200
         assert resp.json() == {"role": "clinician"}
-        resp = client.get(f"{prefix}/user/1/role")
+        resp = client.get("/api/user/1/role")
         assert resp.status_code == 200
         assert resp.json() == {"role": "clinician"}
 
