@@ -18,7 +18,7 @@ from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session, sessionmaker
 
 from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import commit as _commit
 from services.api.app.diabetes.utils.functions import (
     PatientProfile,
     calc_bolus,
@@ -29,18 +29,27 @@ from services.api.app.diabetes.gpt_command_parser import (
     parse_command,
 )
 from services.api.app.diabetes.utils.constants import XE_GRAMS
-from services.api.app.diabetes.utils.ui import confirm_keyboard, menu_keyboard
+from services.api.app.diabetes.utils.ui import (
+    confirm_keyboard,
+    menu_keyboard as _menu_keyboard,
+)
 
-from .alert_handlers import check_alert
+from .alert_handlers import check_alert as _check_alert
 from .dose_validation import _sanitize
 from .reporting_handlers import render_entry, send_report
 from . import EntryData, UserData
+
+commit = _commit
+check_alert = _check_alert
+menu_keyboard = _menu_keyboard
 
 T = TypeVar("T")
 
 
 class RunDB(Protocol):
-    def __call__(self, fn: Callable[[Session], T], *args: object, **kwargs: object) -> Awaitable[T]: ...
+    def __call__(
+        self, fn: Callable[[Session], T], *args: object, **kwargs: object
+    ) -> Awaitable[T]: ...
 
 
 logger = logging.getLogger(__name__)
@@ -86,7 +95,9 @@ async def _handle_report_request(
         await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
         return True
     try:
-        date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
+        date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(
+            tzinfo=datetime.timezone.utc
+        )
     except ValueError:
         await message.reply_text("❗ Некорректная дата. Используйте формат YYYY-MM-DD.")
         return True
@@ -124,7 +135,9 @@ async def _handle_pending_entry(
     *,
     SessionLocal: sessionmaker,
     commit: Callable[[Session], bool],
-    check_alert: Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]],
+    check_alert: Callable[
+        [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
+    ],
     menu_keyboard: ReplyKeyboardMarkup | None,
 ) -> bool:
     """Process numeric input for a pending entry."""
@@ -195,7 +208,10 @@ async def _handle_pending_entry(
         return True
 
     text = raw_text.lower()
-    if re.fullmatch(r"-?\d+(?:[.,]\d+)?", text) and pending_entry.get("sugar_before") is None:
+    if (
+        re.fullmatch(r"-?\d+(?:[.,]\d+)?", text)
+        and pending_entry.get("sugar_before") is None
+    ):
         try:
             sugar = float(text.replace(",", "."))
         except ValueError:
@@ -205,7 +221,10 @@ async def _handle_pending_entry(
             await message.reply_text("Сахар не может быть отрицательным.")
             return True
         pending_entry["sugar_before"] = sugar
-        if pending_entry.get("carbs_g") is not None or pending_entry.get("xe") is not None:
+        if (
+            pending_entry.get("carbs_g") is not None
+            or pending_entry.get("xe") is not None
+        ):
             xe_val = pending_entry.get("xe")
             carbs_g = pending_entry.get("carbs_g")
             if carbs_g is None and xe_val is not None:
@@ -235,7 +254,9 @@ async def _handle_pending_entry(
                 and profile.cf is not None
                 and profile.target_bg is not None
             ):
-                patient = PatientProfile(icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg)
+                patient = PatientProfile(
+                    icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg
+                )
                 dose = calc_bolus(carbs_g, sugar, patient)
                 pending_entry["dose"] = dose
                 await message.reply_text(
@@ -243,7 +264,9 @@ async def _handle_pending_entry(
                     reply_markup=confirm_keyboard(),
                 )
                 return True
-        await message.reply_text("Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard)
+        await message.reply_text(
+            "Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard
+        )
         return True
 
     # not handled here
@@ -264,7 +287,9 @@ async def _handle_edit_entry(
     if edit_id is None:
         return False
     edit_query_obj = user_data.get("edit_query")
-    edit_query: CallbackQuery | None = edit_query_obj if isinstance(edit_query_obj, CallbackQuery) else None
+    edit_query: CallbackQuery | None = (
+        edit_query_obj if isinstance(edit_query_obj, CallbackQuery) else None
+    )
     text = raw_text.replace(",", ".")
     try:
         value = float(text)
@@ -343,7 +368,9 @@ async def _handle_smart_input(
     *,
     SessionLocal: sessionmaker,
     commit: Callable[[Session], bool],
-    check_alert: Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]],
+    check_alert: Callable[
+        [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
+    ],
     menu_keyboard: ReplyKeyboardMarkup | None,
     smart_input: Callable[[str], dict[str, float | None]],
     parse_command: Callable[[str], Awaitable[dict[str, object] | None]],
@@ -365,7 +392,9 @@ async def _handle_smart_input(
             )
         return
 
-    carbs_match = re.search(r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I)
+    carbs_match = re.search(
+        r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I
+    )
     pending_raw = user_data.get("pending_entry")
     edit_id = user_data.get("edit_id")
     if (
@@ -382,7 +411,9 @@ async def _handle_smart_input(
         elif carbs_match:
             carbs_match_val = float(carbs_match.group(1).replace(",", "."))
             if carbs_match_val < 0:
-                await message.reply_text("Количество углеводов не может быть отрицательным.")
+                await message.reply_text(
+                    "Количество углеводов не может быть отрицательным."
+                )
                 return
             pending_entry["carbs_g"] = carbs_match_val
         if quick["dose"] is not None:
@@ -511,9 +542,13 @@ async def _handle_smart_input(
         try:
             hh, mm = map(int, time_obj.split(":"))
             today = datetime.datetime.now(datetime.timezone.utc).date()
-            event_dt = datetime.datetime.combine(today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc)
+            event_dt = datetime.datetime.combine(
+                today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc
+            )
         except (ValueError, TypeError):
-            await message.reply_text("⏰ Неверный формат времени. Использую текущее время.")
+            await message.reply_text(
+                "⏰ Неверный формат времени. Использую текущее время."
+            )
             event_dt = datetime.datetime.now(datetime.timezone.utc)
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
@@ -540,7 +575,9 @@ async def _handle_smart_input(
     sugar_part = f"Сахар: {sugar_val}\u202fммоль/л" if sugar_val is not None else ""
     lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
 
-    reply = f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
+    reply = (
+        f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
+    )
     await message.reply_text(text=reply, reply_markup=confirm_keyboard())
 
 
@@ -549,9 +586,11 @@ async def freeform_handler(
     context: ContextTypes.DEFAULT_TYPE,
     *,
     SessionLocal: sessionmaker | None = None,
-    commit: Callable[[Session], bool] = commit,
-    check_alert: Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]] = check_alert,
-    menu_keyboard_markup: ReplyKeyboardMarkup | None = menu_keyboard,
+    commit: Callable[[Session], bool] | None = None,
+    check_alert: (
+        Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]] | None
+    ) = None,
+    menu_keyboard_markup: ReplyKeyboardMarkup | None = None,
     smart_input: Callable[[str], dict[str, float | None]] = smart_input,
     parse_command: Callable[[str], Awaitable[dict[str, object] | None]] = parse_command,
     send_report: Callable[
@@ -561,7 +600,12 @@ async def freeform_handler(
 ) -> None:
     """Handle freeform text commands for adding diary entries."""
     SessionLocal = SessionLocal or globals()["SessionLocal"]
+    commit = commit or globals()["commit"]
+    check_alert = check_alert or globals()["check_alert"]
+    menu_keyboard_markup = menu_keyboard_markup or globals()["menu_keyboard"]
     assert SessionLocal is not None
+    assert commit is not None
+    assert check_alert is not None
     user_data_raw = context.user_data
     if user_data_raw is None:
         return
