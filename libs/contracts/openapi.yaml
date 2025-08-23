@@ -12,13 +12,13 @@ paths:
       tags:
       - Profiles
       summary: Profiles Post
-      operationId: profiles_post_profiles_post
+      operationId: profilesPost
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProfileSchema'
+              $ref: '#/components/schemas/Profile'
       responses:
         '200':
           description: Successful Response
@@ -28,7 +28,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-                title: Response Profiles Post Profiles Post
+                title: Response Profiles Post
         '422':
           description: Validation Error
           content:
@@ -39,7 +39,7 @@ paths:
       tags:
       - Profiles
       summary: Profiles Get
-      operationId: profiles_get_profiles_get
+      operationId: profilesGet
       parameters:
       - name: telegramId
         in: query
@@ -53,7 +53,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProfileSchema'
+                $ref: '#/components/schemas/Profile'
         '422':
           description: Validation Error
           content:
@@ -667,7 +667,7 @@ components:
       - type
       title: HistoryRecordSchema
       description: Schema for user history records.
-    ProfileSchema:
+    Profile:
       properties:
         telegramId:
           type: integer
@@ -700,7 +700,7 @@ components:
       - target
       - low
       - high
-      title: ProfileSchema
+      title: Profile
     ReminderSchema:
       properties:
         telegramId:

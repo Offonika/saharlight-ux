@@ -9,7 +9,7 @@ models/DayStats.ts
 models/HTTPValidationError.ts
 models/HistoryRecordSchemaInput.ts
 models/HistoryRecordSchemaOutput.ts
-models/ProfileSchema.ts
+models/Profile.ts
 models/ReminderSchema.ts
 models/Timezone.ts
 models/UserContext.ts

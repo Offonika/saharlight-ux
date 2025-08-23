@@ -13,7 +13,7 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover
     __package__ = "services.api.app"
 
 # ────────── std / 3-rd party ──────────
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import AliasChoices, BaseModel, Field
 from sqlalchemy.orm import Session
@@ -40,24 +40,6 @@ logger = logging.getLogger(__name__)
 init_db()  # создаёт/инициализирует БД
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0")
-
-# ────────── profiles (front expects list) ──────────
-@app.get("/api/profiles", operation_id="profilesGet", tags=["profiles"])
-@app.get("/profiles", include_in_schema=False)  # legacy-путь
-async def get_profiles(
-    telegramId: int | None = Query(None),
-    telegram_id: int | None = Query(None, alias="telegram_id"),
-    user: UserContext = Depends(require_tg_user),
-) -> list[UserContext]:
-    """
-    Telegram-Web-App ждёт массив профилей.
-    Бэкенд однопользовательский → возвращаем список из одного текущего пользователя.
-    Если query-параметр указан и не совпадает с auth-пользователем — 403.
-    """
-    tid = telegramId or telegram_id
-    if tid is not None and tid != user["id"]:
-        raise HTTPException(status_code=403, detail="telegram id mismatch")
-    return [user]
 
 # ────────── роуты статистики / legacy ──────────
 app.include_router(stats_router,   prefix="/api")

@@ -16,57 +16,57 @@ import { mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface ProfileSchema
+ * @interface Profile
  */
-export interface ProfileSchema {
+export interface Profile {
     /**
      * 
      * @type {number}
-     * @memberof ProfileSchema
+     * @memberof Profile
      */
     telegramId: number;
     /**
      * 
      * @type {number}
-     * @memberof ProfileSchema
+     * @memberof Profile
      */
     icr: number;
     /**
      * 
      * @type {number}
-     * @memberof ProfileSchema
+     * @memberof Profile
      */
     cf: number;
     /**
      * 
      * @type {number}
-     * @memberof ProfileSchema
+     * @memberof Profile
      */
     target: number;
     /**
      * 
      * @type {number}
-     * @memberof ProfileSchema
+     * @memberof Profile
      */
     low: number;
     /**
      * 
      * @type {number}
-     * @memberof ProfileSchema
+     * @memberof Profile
      */
     high: number;
     /**
      * 
      * @type {number}
-     * @memberof ProfileSchema
+     * @memberof Profile
      */
     orgId?: number | null;
 }
 
 /**
- * Check if a given object implements the ProfileSchema interface.
+ * Check if a given object implements the Profile interface.
  */
-export function instanceOfProfileSchema(value: object): value is ProfileSchema {
+export function instanceOfProfile(value: object): value is Profile {
     if (!('telegramId' in value) || value['telegramId'] === undefined) return false;
     if (!('icr' in value) || value['icr'] === undefined) return false;
     if (!('cf' in value) || value['cf'] === undefined) return false;
@@ -76,11 +76,11 @@ export function instanceOfProfileSchema(value: object): value is ProfileSchema {
     return true;
 }
 
-export function ProfileSchemaFromJSON(json: any): ProfileSchema {
-    return ProfileSchemaFromJSONTyped(json, false);
+export function ProfileFromJSON(json: any): Profile {
+    return ProfileFromJSONTyped(json, false);
 }
 
-export function ProfileSchemaFromJSONTyped(json: any, ignoreDiscriminator: boolean): ProfileSchema {
+export function ProfileFromJSONTyped(json: any, ignoreDiscriminator: boolean): Profile {
     if (json == null) {
         return json;
     }
@@ -96,11 +96,11 @@ export function ProfileSchemaFromJSONTyped(json: any, ignoreDiscriminator: boole
     };
 }
 
-export function ProfileSchemaToJSON(json: any): ProfileSchema {
-    return ProfileSchemaToJSONTyped(json, false);
+export function ProfileToJSON(json: any): Profile {
+    return ProfileToJSONTyped(json, false);
 }
 
-export function ProfileSchemaToJSONTyped(value?: ProfileSchema | null, ignoreDiscriminator: boolean = false): any {
+export function ProfileToJSONTyped(value?: Profile | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

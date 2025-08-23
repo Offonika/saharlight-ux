@@ -11,13 +11,13 @@ router = APIRouter()
 router.include_router(reminders_router)
 
 
-@router.post("/profiles")
+@router.post("/profiles", operation_id="profilesPost", tags=["Profiles"])
 async def profiles_post(data: ProfileSchema) -> dict[str, str]:
     await save_profile(data)
     return {"status": "ok"}
 
 
-@router.get("/profiles")
+@router.get("/profiles", operation_id="profilesGet", tags=["Profiles"])
 async def profiles_get(
     telegramId: int | None = Query(None),
     telegram_id: int | None = Query(None, alias="telegram_id"),

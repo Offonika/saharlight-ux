@@ -1,6 +1,9 @@
-import { ProfilesApi } from '@offonika/diabetes-ts-sdk';
-import type { Profile } from '@offonika/diabetes-ts-sdk/models';
-import { Configuration, ResponseError } from '@offonika/diabetes-ts-sdk/runtime';
+import {
+  ProfilesApi,
+  Configuration,
+  ResponseError,
+  type Profile,
+} from '@offonika/diabetes-ts-sdk';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 

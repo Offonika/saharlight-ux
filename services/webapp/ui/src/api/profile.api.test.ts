@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ResponseError, Configuration } from '@offonika/diabetes-ts-sdk/runtime';
-import type { Profile } from '@offonika/diabetes-ts-sdk/models';
+import {
+  ResponseError,
+  Configuration,
+  type Profile,
+} from '@offonika/diabetes-ts-sdk';
 
 const mockProfilesGet = vi.hoisted(() => vi.fn());
 const mockProfilesPost = vi.hoisted(() => vi.fn());

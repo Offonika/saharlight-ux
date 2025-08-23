@@ -16,21 +16,21 @@
 import * as runtime from '../runtime';
 import type {
   HTTPValidationError,
-  ProfileSchema,
+  Profile,
 } from '../models/index';
 import {
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
-    ProfileSchemaFromJSON,
-    ProfileSchemaToJSON,
+    ProfileFromJSON,
+    ProfileToJSON,
 } from '../models/index';
 
-export interface ProfilesGetProfilesGetRequest {
+export interface ProfilesGetRequest {
     telegramId: number;
 }
 
-export interface ProfilesPostProfilesPostRequest {
-    profileSchema: ProfileSchema;
+export interface ProfilesPostRequest {
+    profile: Profile;
 }
 
 /**
@@ -41,11 +41,11 @@ export class ProfilesApi extends runtime.BaseAPI {
     /**
      * Profiles Get
      */
-    async profilesGetProfilesGetRaw(requestParameters: ProfilesGetProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileSchema>> {
+    async profilesGetRaw(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Profile>> {
         if (requestParameters['telegramId'] == null) {
             throw new runtime.RequiredError(
                 'telegramId',
-                'Required parameter "telegramId" was null or undefined when calling profilesGetProfilesGet().'
+                'Required parameter "telegramId" was null or undefined when calling profilesGet().'
             );
         }
 
@@ -67,25 +67,25 @@ export class ProfilesApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileSchemaFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileFromJSON(jsonValue));
     }
 
     /**
      * Profiles Get
      */
-    async profilesGetProfilesGet(requestParameters: ProfilesGetProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSchema> {
-        const response = await this.profilesGetProfilesGetRaw(requestParameters, initOverrides);
+    async profilesGet(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Profile> {
+        const response = await this.profilesGetRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
      * Profiles Post
      */
-    async profilesPostProfilesPostRaw(requestParameters: ProfilesPostProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
-        if (requestParameters['profileSchema'] == null) {
+    async profilesPostRaw(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string | null; }>> {
+        if (requestParameters['profile'] == null) {
             throw new runtime.RequiredError(
-                'profileSchema',
-                'Required parameter "profileSchema" was null or undefined when calling profilesPostProfilesPost().'
+                'profile',
+                'Required parameter "profile" was null or undefined when calling profilesPost().'
             );
         }
 
@@ -103,7 +103,7 @@ export class ProfilesApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: ProfileSchemaToJSON(requestParameters['profileSchema']),
+            body: ProfileToJSON(requestParameters['profile']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse<any>(response);
@@ -112,8 +112,8 @@ export class ProfilesApi extends runtime.BaseAPI {
     /**
      * Profiles Post
      */
-    async profilesPostProfilesPost(requestParameters: ProfilesPostProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
-        const response = await this.profilesPostProfilesPostRaw(requestParameters, initOverrides);
+    async profilesPost(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: string | null; }> {
+        const response = await this.profilesPostRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
