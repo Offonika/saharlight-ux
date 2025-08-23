@@ -331,4 +331,5 @@ __all__ = [
     "photo_handler",
     "doc_handler",
     "prompt_photo",
+    "os",
 ]

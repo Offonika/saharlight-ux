@@ -15,9 +15,7 @@ import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
 
 class DummyMessage:
-    def __init__(
-        self, text: str | None = None, photo: tuple[Any, ...] | None = None
-    ) -> None:
+    def __init__(self, text: str | None = None, photo: tuple[Any, ...] | None = None) -> None:
         self.text: str | None = text
         self.photo: tuple[Any, ...] = () if photo is None else photo
         self.texts: list[str] = []
@@ -57,9 +55,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
         mime_type="image/png",
     )
     message = SimpleNamespace(document=document, photo=None)
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=dummy_bot, user_data={}),
@@ -70,7 +66,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
         photo_handlers.os,
         "makedirs",
         lambda *args, **kwargs: None,
-    )  # type: ignore[attr-defined]
+    )
 
     result = await photo_handlers.doc_handler(update, context)
 
@@ -101,9 +97,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
         mime_type=None,
     )
     message = SimpleNamespace(document=document, photo=None)
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
@@ -128,9 +122,7 @@ async def test_doc_handler_get_file_error(monkeypatch: pytest.MonkeyPatch) -> No
         mime_type="image/png",
     )
     message = SimpleNamespace(document=document, reply_text=AsyncMock())
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     bot = SimpleNamespace(get_file=AsyncMock(side_effect=TelegramError("boom")))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -140,7 +132,7 @@ async def test_doc_handler_get_file_error(monkeypatch: pytest.MonkeyPatch) -> No
         photo_handlers.os,
         "makedirs",
         lambda *args, **kwargs: None,
-    )  # type: ignore[attr-defined]
+    )
 
     result = await photo_handlers.doc_handler(update, context)
 
@@ -162,9 +154,7 @@ async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> No
         mime_type="image/png",
     )
     message = SimpleNamespace(document=document, reply_text=AsyncMock())
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     bot = SimpleNamespace(get_file=AsyncMock(return_value=DummyFile()))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -174,7 +164,7 @@ async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> No
         photo_handlers.os,
         "makedirs",
         lambda *args, **kwargs: None,
-    )  # type: ignore[attr-defined]
+    )
 
     result = await photo_handlers.doc_handler(update, context)
 
@@ -186,9 +176,7 @@ async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> No
 @pytest.mark.asyncio
 async def test_photo_handler_handles_typeerror() -> None:
     message = DummyMessage(photo=None)
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
@@ -203,9 +191,7 @@ async def test_photo_handler_handles_typeerror() -> None:
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_removes_file(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_photo_handler_removes_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.chdir(tmp_path)
 
     class DummyPhoto:
@@ -216,9 +202,7 @@ async def test_photo_handler_removes_file(
         pass
 
     message = SimpleNamespace(photo=(DummyPhoto(),), reply_text=reply_text)
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
 
     class DummyFile:
         async def download_to_drive(self, path: str) -> None:
@@ -253,20 +237,16 @@ async def test_photo_handler_removes_file(
                         status="completed", thread_id=thread_id, id=run_id
                     )
                 ),
-                messages=SimpleNamespace(
-                    list=lambda thread_id: SimpleNamespace(data=[])
-                ),
+                messages=SimpleNamespace(list=lambda thread_id: SimpleNamespace(data=[])),
             )
         )
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0)
-    )
+    monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
     monkeypatch.setattr(photo_handlers, "menu_keyboard", None)
     monkeypatch.setattr(
-        photo_handlers.os,  # type: ignore[attr-defined]
+        photo_handlers.os,
         "makedirs",
         lambda path, **kwargs: Path(path).mkdir(parents=True, exist_ok=True),
     )
@@ -279,9 +259,7 @@ async def test_photo_handler_removes_file(
 
 
 @pytest.mark.asyncio
-async def test_photo_then_freeform_calculates_dose(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_photo_then_freeform_calculates_dose(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """photo_handler + freeform_handler produce dose in reply and context."""
 
     class DummyPhoto:
@@ -310,17 +288,13 @@ async def test_photo_then_freeform_calculates_dose(
         beta = SimpleNamespace(
             threads=SimpleNamespace(
                 runs=SimpleNamespace(retrieve=lambda thread_id, run_id: Run()),
-                messages=SimpleNamespace(
-                    list=lambda thread_id: SimpleNamespace(data=[])
-                ),
+                messages=SimpleNamespace(list=lambda thread_id: SimpleNamespace(data=[])),
             )
         )
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0)
-    )
+    monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
     monkeypatch.setattr(photo_handlers, "menu_keyboard", None)
     monkeypatch.setattr(gpt_handlers, "confirm_keyboard", lambda: None)
 
@@ -365,9 +339,7 @@ async def test_photo_then_freeform_calculates_dose(
         SimpleNamespace(message=sugar_msg, effective_user=SimpleNamespace(id=1)),
     )
 
-    await gpt_handlers.freeform_handler(
-        update_sugar, context, SessionLocal=session_factory
-    )
+    await gpt_handlers.freeform_handler(update_sugar, context, SessionLocal=session_factory)
 
     reply = sugar_msg.texts[0]
     assert reply == "💉\u202fРасчёт дозы: 1.0\u202fЕд.\nСахар: 5.0\u202fммоль/л"
