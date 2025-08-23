@@ -83,6 +83,34 @@ def test_nonempty_returns_list(
     ]
 
 
+def test_get_single_reminder(client: TestClient, session_factory: sessionmaker) -> None:
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                interval_hours=3,
+            )
+        )
+        session.commit()
+    resp = client.get("/api/reminders/1", params={"telegramId": 1})
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "telegramId": 1,
+        "id": 1,
+        "type": "sugar",
+        "title": "sugar",
+        "time": "08:00",
+        "intervalHours": 3,
+        "minutesAfter": None,
+        "isEnabled": True,
+        "orgId": None,
+    }
+
+
 def test_invalid_telegram_id_returns_empty_list(client: TestClient) -> None:
     fastapi_app = cast(FastAPI, client.app)
     fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
@@ -93,6 +121,17 @@ def test_invalid_telegram_id_returns_empty_list(client: TestClient) -> None:
 
 def test_mismatched_telegram_id_returns_404(client: TestClient) -> None:
     resp = client.get("/api/reminders", params={"telegramId": 2})
+    assert resp.status_code == 404
+    assert resp.json() == {"detail": "reminder not found"}
+
+
+def test_get_single_reminder_not_found(
+    client: TestClient, session_factory: sessionmaker
+) -> None:
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+    resp = client.get("/api/reminders/1", params={"telegramId": 1})
     assert resp.status_code == 404
     assert resp.json() == {"detail": "reminder not found"}
 
@@ -135,9 +174,7 @@ def test_delete_reminder(client: TestClient, session_factory: sessionmaker) -> N
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
-    resp = client.delete(
-        "/api/reminders", params={"telegramId": 1, "id": 1}
-    )
+    resp = client.delete("/api/reminders", params={"telegramId": 1, "id": 1})
     assert resp.status_code == 200
     with session_factory() as session:
         assert session.get(Reminder, 1) is None

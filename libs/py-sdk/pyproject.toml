@@ -2,10 +2,10 @@
 name = "diabetes_sdk"
 version = "1.0.0"
 description = "Diabetes Assistant API"
-maintainers = [
-  {name = "Offonika", email = "arseniikeshtov@gmail.com"},
+authors = [
+  {name = "OpenAPI Generator Community",email = "team@openapitools.org"},
 ]
-license = { text = "MIT" }
+license = "NoLicense"
 readme = "README.md"
 keywords = ["OpenAPI", "OpenAPI-Generator", "Diabetes Assistant API"]
 requires-python = ">=3.9"
@@ -18,18 +18,18 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/Offonika/saharlight-ux"
+Repository = "https://github.com/GIT_USER_ID/GIT_REPO_ID"
 
+[tool.poetry]
+requires-poetry = ">=2.0"
 
-[project.optional-dependencies]
-dev = [
-  "pytest >=7.2.1",
-  "pytest-cov >=2.8.1",
-  "tox >=3.9.0",
-  "flake8 >=4.0.0",
-  "types-python-dateutil >=2.8.19.14",
-  "mypy >=1.5",
-]
+[tool.poetry.group.dev.dependencies]
+pytest = ">= 7.2.1"
+pytest-cov = ">= 2.8.1"
+tox = ">= 3.9.0"
+flake8 = ">= 4.0.0"
+types-python-dateutil = ">= 2.8.19.14"
+mypy = ">= 1.5"
 
 
 [build-system]

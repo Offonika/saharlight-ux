@@ -27,4 +27,3 @@ from diabetes_sdk.models.user_context import UserContext
 from diabetes_sdk.models.validation_error import ValidationError
 from diabetes_sdk.models.validation_error_loc_inner import ValidationErrorLocInner
 from diabetes_sdk.models.web_user import WebUser
-

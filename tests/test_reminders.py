@@ -163,7 +163,9 @@ def test_schedule_reminder_replaces_existing_job() -> None:
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow"))
         session.add(
-            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
+            Reminder(
+                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
+            )
         )
         session.commit()
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
@@ -297,7 +299,9 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
-            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
+            Reminder(
+                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
+            )
         )
         session.commit()
     with TestSession() as session:
@@ -367,7 +371,9 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
-            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
+            Reminder(
+                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
+            )
         )
         session.commit()
 
@@ -641,9 +647,48 @@ def test_nonempty_returns_list(
     ]
 
 
+def test_get_single_reminder(client: TestClient, session_factory: sessionmaker) -> None:
+    with session_factory() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                interval_hours=3,
+            )
+        )
+        session.commit()
+    resp = client.get("/api/reminders/1", params={"telegramId": 1})
+    assert resp.status_code == 200
+    assert resp.json() == {
+        "telegramId": 1,
+        "id": 1,
+        "type": "sugar",
+        "title": "sugar",
+        "time": "08:00",
+        "intervalHours": 3,
+        "minutesAfter": None,
+        "isEnabled": True,
+        "orgId": None,
+    }
+
+
 def test_real_404(client: TestClient) -> None:
     fastapi_app = cast(FastAPI, client.app)
     fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
     resp = client.get("/api/reminders", params={"telegramId": 2})
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+def test_get_single_reminder_not_found(
+    client: TestClient, session_factory: sessionmaker
+) -> None:
+    with session_factory() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+    resp = client.get("/api/reminders/1", params={"telegramId": 1})
+    assert resp.status_code == 404
+    assert resp.json() == {"detail": "reminder not found"}

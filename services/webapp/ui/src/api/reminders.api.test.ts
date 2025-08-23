@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ResponseError, Configuration } from '@offonika/diabetes-ts-sdk/runtime';
 
 const mockRemindersGet = vi.hoisted(() => vi.fn());
+const mockRemindersIdGet = vi.hoisted(() => vi.fn());
 const mockRemindersPost = vi.hoisted(() => vi.fn());
 const mockRemindersPatch = vi.hoisted(() => vi.fn());
 const mockRemindersDelete = vi.hoisted(() => vi.fn());
@@ -27,6 +28,7 @@ vi.mock(
   () => ({
     RemindersApi: vi.fn(() => ({
       remindersGet: mockRemindersGet,
+      remindersIdGet: mockRemindersIdGet,
       remindersPost: mockRemindersPost,
       remindersPatch: mockRemindersPatch,
       remindersDelete: mockRemindersDelete,
@@ -39,7 +41,7 @@ vi.mock(
 vi.mock(
   '@offonika/diabetes-ts-sdk/models',
   () => ({
-    instanceOfReminder: mockInstanceOfReminder,
+    instanceOfReminderSchema: mockInstanceOfReminder,
   }),
   { virtual: true },
 );
@@ -54,6 +56,7 @@ import {
 
 afterEach(() => {
   mockRemindersGet.mockReset();
+  mockRemindersIdGet.mockReset();
   mockRemindersPost.mockReset();
   mockRemindersPatch.mockReset();
   mockRemindersDelete.mockReset();
@@ -62,12 +65,12 @@ afterEach(() => {
 
 describe('getReminder', () => {
   it('throws on invalid API response', async () => {
-    mockRemindersGet.mockResolvedValueOnce([]);
+    mockRemindersIdGet.mockResolvedValueOnce({});
     await expect(getReminder(1, 1)).rejects.toThrow('Некорректный ответ API');
   });
 
   it('returns null on 404 response', async () => {
-    mockRemindersGet.mockRejectedValueOnce(
+    mockRemindersIdGet.mockRejectedValueOnce(
       new ResponseError(new Response(null, { status: 404 })),
     );
     await expect(getReminder(1, 1)).resolves.toBeNull();
@@ -75,10 +78,10 @@ describe('getReminder', () => {
 
   it('passes signal to API', async () => {
     const controller = new AbortController();
-    mockRemindersGet.mockResolvedValueOnce({} as any);
+    mockRemindersIdGet.mockResolvedValueOnce({} as any);
     mockInstanceOfReminder.mockReturnValueOnce(true);
     await getReminder(1, 1, controller.signal);
-    expect(mockRemindersGet).toHaveBeenCalledWith(
+    expect(mockRemindersIdGet).toHaveBeenCalledWith(
       { telegramId: 1, id: 1 },
       { signal: controller.signal },
     );
@@ -87,7 +90,7 @@ describe('getReminder', () => {
   it('rethrows AbortError', async () => {
     const controller = new AbortController();
     const abortErr = new DOMException('Aborted', 'AbortError');
-    mockRemindersGet.mockRejectedValueOnce(abortErr);
+    mockRemindersIdGet.mockRejectedValueOnce(abortErr);
     await expect(getReminder(1, 1, controller.signal)).rejects.toBe(abortErr);
   });
 });
