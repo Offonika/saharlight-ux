@@ -37,7 +37,7 @@ async def get_reminders(
             tid,
             user["id"],
         )
-        return []  # 200 OK — пустой список
+        raise HTTPException(status_code=404, detail="reminder not found")
     log_patient_access(getattr(request.state, "user_id", None), tid)
 
     rems = await list_reminders(tid)
@@ -69,7 +69,7 @@ async def get_reminders(
                 "isEnabled": r.is_enabled,
                 "orgId": r.org_id,
             }
-    return []  # 200 OK — пустой список
+    raise HTTPException(status_code=404, detail="reminder not found")
 
 
 @router.post("/reminders", dependencies=[Depends(require_tg_user)])

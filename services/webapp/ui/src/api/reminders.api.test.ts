@@ -8,6 +8,21 @@ const mockRemindersDelete = vi.hoisted(() => vi.fn());
 const mockInstanceOfReminder = vi.hoisted(() => vi.fn());
 
 vi.mock(
+  '@offonika/diabetes-ts-sdk/runtime',
+  () => ({
+    ResponseError: class extends Error {
+      response: Response;
+      constructor(response: Response) {
+        super('ResponseError');
+        this.response = response;
+      }
+    },
+    Configuration: class {},
+  }),
+  { virtual: true },
+);
+
+vi.mock(
   '@offonika/diabetes-ts-sdk',
   () => ({
     RemindersApi: vi.fn(() => ({
@@ -86,6 +101,13 @@ describe('getReminders', () => {
       { telegramId: 1 },
       { signal: controller.signal },
     );
+  });
+
+  it('returns empty array on 404 response', async () => {
+    mockRemindersGet.mockRejectedValueOnce(
+      new ResponseError(new Response(null, { status: 404 })),
+    );
+    await expect(getReminders(1)).resolves.toEqual([]);
   });
 
   it('rethrows AbortError', async () => {

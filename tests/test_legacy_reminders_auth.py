@@ -105,8 +105,8 @@ def test_reminders_mismatched_id(
                 "X-Request-ID": request_id,
             },
         )
-    assert resp.status_code == 200
-    assert resp.json() == []
+    assert resp.status_code == 404
+    assert resp.json() == {"detail": "reminder not found"}
     assert (
         f"request_id={request_id} telegramId=2 does not match user_id=1" in caplog.text
     )
