@@ -26,7 +26,9 @@ def upgrade() -> None:
         'timezone',
         existing_type=sa.VARCHAR(),
         nullable=True,
-        existing_server_default=cast(Any, sa.text("'UTC'::character varying")),
+
+        existing_server_default=sa.text("'UTC'::character varying"),  # type: ignore[arg-type]
+
     )
     # ### end Alembic commands ###
 
@@ -38,6 +40,8 @@ def downgrade() -> None:
         'timezone',
         existing_type=sa.VARCHAR(),
         nullable=False,
-        existing_server_default=cast(Any, sa.text("'UTC'::character varying")),
+
+        existing_server_default=sa.text("'UTC'::character varying"),  # type: ignore[arg-type]
+
     )
     # ### end Alembic commands ###

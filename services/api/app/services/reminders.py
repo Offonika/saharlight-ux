@@ -32,7 +32,7 @@ def _default_title(rem_type: str, rem_time: time_ | None) -> str | None:
 
 async def list_reminders(telegram_id: int) -> list[Reminder]:
     def _list(session: Session) -> list[Reminder]:
-        if cast(User | None, session.get(User, telegram_id)) is None:  # type: ignore[attr-defined]
+        if cast(User | None, session.get(User, telegram_id)) is None:
             return []
         return session.query(Reminder).filter_by(telegram_id=telegram_id).all()
 
@@ -63,7 +63,8 @@ async def save_reminder(data: ReminderSchema) -> int:
         rem.is_enabled = data.isEnabled
         commit(cast(Session, session))
         cast(Session, session).refresh(rem)
-        return cast(int, rem.id)
+        assert rem.id is not None
+        return rem.id
 
     return cast(
         int,
