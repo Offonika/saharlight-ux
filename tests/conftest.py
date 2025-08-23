@@ -64,7 +64,8 @@ def _build_ui_assets() -> Iterator[None]:
 
 @pytest.fixture(autouse=True, scope="session")
 def _close_sqlite_connections() -> Iterator[None]:
-    """Ensure that all sqlite3 connections and engines are closed after the test session."""
+    """Ensure that all sqlite3 connections and engines
+    are closed after the test session."""
 
     try:
         yield

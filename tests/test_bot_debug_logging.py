@@ -58,7 +58,9 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
         def builder() -> DummyBuilder:
             return DummyBuilder()
 
-        def __class_getitem__(cls, _: object) -> type[DummyApplication]:  # Support subscripting in type hints
+        def __class_getitem__(
+            cls, _: object
+        ) -> type[DummyApplication]:  # Support subscripting in type hints
             return cls
 
     monkeypatch.setattr(bot, "Application", DummyApplication)

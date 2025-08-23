@@ -10,7 +10,9 @@ from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
 
 @pytest.fixture()
 def handler() -> CallbackQueryNoWarnHandler:
-    async def callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int | None:
+    async def callback(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> int | None:
         return None
 
     return CallbackQueryNoWarnHandler(callback, pattern="^match$")

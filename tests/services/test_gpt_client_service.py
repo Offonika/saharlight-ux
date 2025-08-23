@@ -21,7 +21,9 @@ async def test_send_message_missing_assistant_id(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     fake_client = SimpleNamespace(
-        beta=SimpleNamespace(threads=SimpleNamespace(messages=SimpleNamespace(create=lambda **_: None)))
+        beta=SimpleNamespace(
+            threads=SimpleNamespace(messages=SimpleNamespace(create=lambda **_: None))
+        )
     )
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(settings, "openai_assistant_id", "")
@@ -124,7 +126,9 @@ async def test_create_thread_retry(
             raise OpenAIError("boom")
         return SimpleNamespace(id="t1")
 
-    fake_client = SimpleNamespace(beta=SimpleNamespace(threads=SimpleNamespace(create=fake_threads_create)))
+    fake_client = SimpleNamespace(
+        beta=SimpleNamespace(threads=SimpleNamespace(create=fake_threads_create))
+    )
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
 
     with caplog.at_level(logging.ERROR):

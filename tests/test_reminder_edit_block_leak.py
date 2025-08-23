@@ -12,7 +12,13 @@ from sqlalchemy.orm import sessionmaker
 
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 from services.api.app.diabetes.services.repository import commit
-from services.api.app.diabetes.services.db import Base, User, Reminder, Entry, dispose_engine
+from services.api.app.diabetes.services.db import (
+    Base,
+    User,
+    Reminder,
+    Entry,
+    dispose_engine,
+)
 
 
 @contextmanager
@@ -65,7 +71,9 @@ def _setup_db() -> tuple[sessionmaker, Any]:
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(
-            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
+            Reminder(
+                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
+            )
         )
         session.commit()
     return TestSession, engine
@@ -76,7 +84,8 @@ async def test_bad_input_does_not_create_entry() -> None:
     TestSession, engine = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "bad"}))
     update = cast(
-        Any, SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+        Any,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(Any, SimpleNamespace(job_queue=DummyJobQueue()))
     with no_warnings():
@@ -93,7 +102,8 @@ async def test_good_input_updates_and_ends() -> None:
     TestSession, engine = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "09:30"}))
     update = cast(
-        Any, SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
+        Any,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(Any, SimpleNamespace(job_queue=DummyJobQueue()))
     with no_warnings():
@@ -104,4 +114,3 @@ async def test_good_input_updates_and_ends() -> None:
         assert session.query(Entry).count() == 0
     with no_warnings():
         dispose_engine(engine)
-

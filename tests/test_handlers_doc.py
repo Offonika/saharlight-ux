@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
+
 class DummyMessage:
     def __init__(
         self, text: str | None = None, photo: tuple[Any, ...] | None = None
@@ -65,7 +66,11 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
     )
 
     monkeypatch.setattr(photo_handlers, "photo_handler", fake_photo_handler)
-    monkeypatch.setattr(photo_handlers.os, "makedirs", lambda *args, **kwargs: None)  # type: ignore[attr-defined]
+    monkeypatch.setattr(
+        photo_handlers.os,
+        "makedirs",
+        lambda *args, **kwargs: None,
+    )  # type: ignore[attr-defined]
 
     result = await photo_handlers.doc_handler(update, context)
 
@@ -131,7 +136,11 @@ async def test_doc_handler_get_file_error(monkeypatch: pytest.MonkeyPatch) -> No
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data={}),
     )
-    monkeypatch.setattr(photo_handlers.os, "makedirs", lambda *args, **kwargs: None)  # type: ignore[attr-defined]
+    monkeypatch.setattr(
+        photo_handlers.os,
+        "makedirs",
+        lambda *args, **kwargs: None,
+    )  # type: ignore[attr-defined]
 
     result = await photo_handlers.doc_handler(update, context)
 
@@ -161,7 +170,11 @@ async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> No
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data={}),
     )
-    monkeypatch.setattr(photo_handlers.os, "makedirs", lambda *args, **kwargs: None)  # type: ignore[attr-defined]
+    monkeypatch.setattr(
+        photo_handlers.os,
+        "makedirs",
+        lambda *args, **kwargs: None,
+    )  # type: ignore[attr-defined]
 
     result = await photo_handlers.doc_handler(update, context)
 

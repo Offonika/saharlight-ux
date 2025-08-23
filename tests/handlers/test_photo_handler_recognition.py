@@ -103,7 +103,9 @@ async def test_photo_handler_recognition_success_db_save(
 
     class DummyClient:
         beta = SimpleNamespace(
-            threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages()))
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(list=lambda thread_id: Messages())
+            )
         )
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: session)
@@ -210,7 +212,9 @@ async def test_photo_handler_fallback_parse_fail(
 
     class DummyClient:
         beta = SimpleNamespace(
-            threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages()))
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(list=lambda thread_id: Messages())
+            )
         )
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
@@ -223,13 +227,17 @@ async def test_photo_handler_fallback_parse_fail(
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
+
     class File:
         async def download_to_drive(self, path: str) -> None:
             Path(path).write_bytes(b"x")
 
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(bot=SimpleNamespace(get_file=AsyncMock(return_value=File())), user_data={"thread_id": "tid"}),
+        SimpleNamespace(
+            bot=SimpleNamespace(get_file=AsyncMock(return_value=File())),
+            user_data={"thread_id": "tid"},
+        ),
     )
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
@@ -436,16 +444,16 @@ async def test_photo_handler_typing_action_error(
 
     class DummyClient:
         beta = SimpleNamespace(
-            threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages()))
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(list=lambda thread_id: Messages())
+            )
         )
 
     bot = SimpleNamespace(send_chat_action=AsyncMock(side_effect=TelegramError("boom")))
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda t: (10, 0.5)
-    )
+    monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda t: (10, 0.5))
 
     message = DummyMessage()
     update = cast(
@@ -453,7 +461,9 @@ async def test_photo_handler_typing_action_error(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(bot=bot, user_data={"thread_id": "tid", "__file_path": str(path)}),
+        SimpleNamespace(
+            bot=bot, user_data={"thread_id": "tid", "__file_path": str(path)}
+        ),
     )
     result = await photo_handlers.photo_handler(update, context)
 
@@ -492,7 +502,9 @@ async def test_photo_handler_value_error(monkeypatch: pytest.MonkeyPatch) -> Non
 
     class DummyClient:
         beta = SimpleNamespace(
-            threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages()))
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(list=lambda thread_id: Messages())
+            )
         )
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
@@ -528,9 +540,34 @@ async def test_photo_handler_value_error(monkeypatch: pytest.MonkeyPatch) -> Non
 @pytest.mark.parametrize(
     "update_kwargs, context_kwargs",
     [
-        (dict(message=SimpleNamespace(document=SimpleNamespace(mime_type="image/png", file_name="f", file_unique_id="u", file_id="f"))), dict(user_data=None)),
+        (
+            dict(
+                message=SimpleNamespace(
+                    document=SimpleNamespace(
+                        mime_type="image/png",
+                        file_name="f",
+                        file_unique_id="u",
+                        file_id="f",
+                    )
+                )
+            ),
+            dict(user_data=None),
+        ),
         (dict(message=None), dict(user_data={})),
-        (dict(message=SimpleNamespace(document=SimpleNamespace(mime_type="image/png", file_name="f", file_unique_id="u", file_id="f")), effective_user=None), dict(user_data={})),
+        (
+            dict(
+                message=SimpleNamespace(
+                    document=SimpleNamespace(
+                        mime_type="image/png",
+                        file_name="f",
+                        file_unique_id="u",
+                        file_id="f",
+                    )
+                ),
+                effective_user=None,
+            ),
+            dict(user_data={}),
+        ),
         (dict(message=SimpleNamespace(document=None)), dict(user_data={})),
     ],
 )

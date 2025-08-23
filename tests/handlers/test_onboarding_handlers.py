@@ -34,7 +34,9 @@ class DummyQuery:
 
 
 @pytest.mark.asyncio
-async def test_start_command_launches_onboarding(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_start_command_launches_onboarding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "x")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "y")
     import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
@@ -52,7 +54,12 @@ async def test_start_command_launches_onboarding(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(onboarding, "commit", lambda s: True)
 
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1, first_name="Ann")))
+    update = cast(
+        Update,
+        SimpleNamespace(
+            message=message, effective_user=SimpleNamespace(id=1, first_name="Ann")
+        ),
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot_data={}),
@@ -81,7 +88,10 @@ async def test_onboarding_skip_cancels(monkeypatch: pytest.MonkeyPatch) -> None:
 
     message = DummyMessage()
     query = DummyQuery(message, "onb_skip")
-    update = cast(Update, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=2)))
+    update = cast(
+        Update,
+        SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=2)),
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, bot_data={}),
@@ -130,7 +140,9 @@ async def test_onboarding_target_commit_fail(monkeypatch: pytest.MonkeyPatch) ->
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"profile_icr": 10.0, "profile_cf": 3.0}, bot_data={}),
+        SimpleNamespace(
+            user_data={"profile_icr": 10.0, "profile_cf": 3.0}, bot_data={}
+        ),
     )
 
     state = await onboarding.onboarding_target(update, context)
