@@ -430,6 +430,28 @@ def test_extract_first_json_braces_in_string_before_object() -> None:
     }
 
 
+def test_extract_first_json_braces_in_single_quotes_before_object() -> None:
+    text = (
+        "prefix 'not json { [ ] }' "
+        '{"action":"add_entry","fields":{}}'
+    )
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
+def test_extract_first_json_explanatory_braces_before_object() -> None:
+    text = (
+        "text with {not valid json} "
+        '{"action":"add_entry","fields":{}}'
+    )
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
 def test_extract_first_json_multiple_objects_no_space() -> None:
     text = '{"action":"add_entry","fields":{}}' '{"action":"delete_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
