@@ -87,6 +87,8 @@ async def send_message(
         Target thread identifier.
     content: str | None
         Text message to send.  Must be provided if ``image_path`` is ``None``.
+        When ``image_path`` is provided and ``content`` is ``None``, the
+        message defaults to ``"Что изображено на фото?"``.
     image_path: str | None
         Path to an image to upload alongside the text.
     keep_image: bool, default ``False``
@@ -96,6 +98,12 @@ async def send_message(
     -------
     run
         The created run object.
+
+    Examples
+    --------
+    Send only an image and let the default prompt be used:
+
+    >>> await send_message(thread_id="abc", image_path="/tmp/photo.jpg")
     """
     if content is None and image_path is None:
         raise ValueError("Either 'content' or 'image_path' must be provided")
