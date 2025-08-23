@@ -2,6 +2,9 @@
 {
   "name": "saharlight-monorepo",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "workspaces": ["services/webapp/ui", "libs/ts-sdk"],
   "scripts": {
     "dev":       "npm --workspace services/webapp/ui run dev",
