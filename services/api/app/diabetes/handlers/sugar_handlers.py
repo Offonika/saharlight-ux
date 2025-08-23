@@ -14,11 +14,15 @@ from telegram.ext import (
 from sqlalchemy.orm import Session
 
 from services.api.app.diabetes.services.db import Entry, SessionLocal
+logger = logging.getLogger(__name__)
 
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
-except Exception:  # pragma: no cover - optional db runner
+except ImportError:  # pragma: no cover - optional db runner
     run_db: Callable[..., Awaitable[object]] | None = None
+except Exception:  # pragma: no cover - log unexpected errors
+    logger.exception("Unexpected error importing run_db")
+    run_db = None
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
 from services.api.app.diabetes.services.repository import commit
@@ -30,8 +34,6 @@ from .common_handlers import menu_command
 from .photo_handlers import photo_prompt
 from .dose_calc import dose_cancel, _cancel_then
 from . import EntryData, UserData
-
-logger = logging.getLogger(__name__)
 
 SUGAR_VAL = 8
 END = ConversationHandler.END

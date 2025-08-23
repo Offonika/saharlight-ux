@@ -44,14 +44,17 @@ class RunDB(Protocol):
     ) -> Awaitable[T]: ...
 
 
+logger = logging.getLogger(__name__)
+
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
-except Exception:  # pragma: no cover - fallback for optional db runner
+except ImportError:  # pragma: no cover - optional db runner
     run_db: RunDB | None = None
+except Exception:  # pragma: no cover - log unexpected errors
+    logger.exception("Unexpected error importing run_db")
+    run_db = None
 else:
     run_db = cast(RunDB, _run_db)
-
-logger = logging.getLogger(__name__)
 
 
 class EditMessageMeta(TypedDict):

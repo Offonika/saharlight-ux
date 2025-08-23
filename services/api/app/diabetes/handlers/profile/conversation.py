@@ -30,11 +30,15 @@ from services.api.app.diabetes.services.db import (
     Reminder,
     User,
 )
+logger = logging.getLogger(__name__)
 
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
-except Exception:  # pragma: no cover - optional db runner
+except ImportError:  # pragma: no cover - optional db runner
     run_db: Callable[..., Awaitable[object]] | None = None
+except Exception:  # pragma: no cover - log unexpected errors
+    logger.exception("Unexpected error importing run_db")
+    run_db = None
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
 
@@ -58,8 +62,6 @@ from .api import get_api, save_profile, set_timezone, fetch_profile, post_profil
 from .validation import parse_profile_args
 
 back_keyboard: ReplyKeyboardMarkup = _back_keyboard
-
-logger = logging.getLogger(__name__)
 
 from .. import UserData
 

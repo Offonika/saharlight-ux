@@ -16,11 +16,15 @@ from services.api.app.diabetes.services.db import (
     Profile,
     SessionLocal,
 )
+logger = logging.getLogger(__name__)
 
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
-except Exception:  # pragma: no cover - optional db runner
+except ImportError:  # pragma: no cover - optional db runner
     run_db: Callable[..., Awaitable[object]] | None = None
+except Exception:  # pragma: no cover - log unexpected errors
+    logger.exception("Unexpected error importing run_db")
+    run_db = None
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
 from services.api.app.diabetes.services.repository import commit
@@ -43,8 +47,6 @@ from services.api.app.diabetes.gpt_command_parser import parse_command
 from .alert_handlers import check_alert
 from .reporting_handlers import history_view, report_request, send_report
 from . import EntryData, UserData
-
-logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
