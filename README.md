@@ -136,8 +136,7 @@ python services/api/app/main.py
 
 1. Сборка
    ```bash
-   cd services/webapp/ui
-   npm run build
+   npm --workspace services/webapp/ui run build
    ```
 2. Запуск FastAPI
    ```bash
@@ -156,12 +155,12 @@ API контейнер запускает `uvicorn` напрямую как ко
 
 ## Генерация SDK
 
-Файл `libs/contracts/openapi.yaml` содержит спецификацию API. По нему генерируются SDK. Перед генерацией выполните `pnpm install`, чтобы зависимость workspace была доступна в UI:
+Файл `libs/contracts/openapi.yaml` содержит спецификацию API. По нему генерируются SDK. Перед генерацией установите зависимости, чтобы workspace был доступен в UI:
 
 ```bash
-pnpm install
-pnpm run generate:sdk
-pnpm --filter vite_react_shadcn_ts run build
+npm ci
+npm run generate:sdk
+npm --workspace services/webapp/ui run build
 ```
 
 Это пересобирает фронтенд, чтобы изменения SDK попали в бандл UI.
