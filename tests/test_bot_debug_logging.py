@@ -5,8 +5,10 @@ from __future__ import annotations
 import importlib
 import logging
 import sys
+from typing import Awaitable, Callable
 
 import pytest
+from telegram.ext import ContextTypes
 
 
 def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -34,7 +36,12 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
         bot = DummyBot()
         job_queue = None
 
-        def add_error_handler(self, _: object) -> None:
+        def add_error_handler(
+            self,
+            handler: Callable[
+                [object, ContextTypes.DEFAULT_TYPE], Awaitable[None]
+            ],
+        ) -> None:
             return None
 
         def add_handler(self, _: object) -> None:
