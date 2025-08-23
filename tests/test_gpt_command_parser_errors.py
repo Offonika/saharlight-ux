@@ -207,9 +207,12 @@ def test_sanitize_sensitive_data_masks_token() -> None:
     assert gpt_command_parser._sanitize_sensitive_data(text) == "key [REDACTED] end"
 
 
-def test_extract_first_json_ignores_array() -> None:
-    text = '[{"action":"add_entry"}]'
-    assert gpt_command_parser._extract_first_json(text) is None
+def test_extract_first_json_array_single_dict() -> None:
+    text = '[{"action":"add_entry","fields":{}}]'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
 
 
 def test_extract_first_json_malformed_json() -> None:
