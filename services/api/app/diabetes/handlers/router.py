@@ -73,7 +73,6 @@ async def handle_edit_entry(
         await query.edit_message_text("❗ Нет данных для редактирования.")
         return
     user_data["edit_id"] = None
-    entry_data: EntryData = entry_data_raw
     await query.edit_message_text(
         "Отправьте новое сообщение в формате:\n"
         "`сахар=<ммоль/л>  xe=<ХЕ>  carbs=<г>  dose=<ед>`\n"
