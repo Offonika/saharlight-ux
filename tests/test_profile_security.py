@@ -1,4 +1,5 @@
 import pytest
+from datetime import time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from types import SimpleNamespace
@@ -189,7 +190,7 @@ async def test_profile_security_shows_reminders(monkeypatch: pytest.MonkeyPatch)
                 sos_alerts_enabled=True,
             )
         )
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
         session.commit()
 
     query = DummyQuery(DummyMessage(), "profile_security")

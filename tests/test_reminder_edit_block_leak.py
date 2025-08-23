@@ -4,6 +4,7 @@ from typing import Any, Callable, Iterator, cast
 
 import warnings
 from contextlib import contextmanager
+from datetime import time
 
 import pytest
 from sqlalchemy import create_engine
@@ -63,7 +64,9 @@ def _setup_db() -> tuple[sessionmaker, Any]:
     handlers.commit = commit
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True))
+        session.add(
+            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
+        )
         session.commit()
     return TestSession, engine
 
@@ -97,7 +100,7 @@ async def test_good_input_updates_and_ends() -> None:
         await handlers.reminder_webapp_save(update, context)
     with TestSession() as session:
         rem = session.get(Reminder, 1)
-        assert rem.time == "09:30"
+        assert rem.time == time(9, 30)
         assert session.query(Entry).count() == 0
     with no_warnings():
         dispose_engine(engine)

@@ -58,7 +58,7 @@ class ReminderStub:
     telegram_id: int = 1
     is_enabled: bool | None = None
     type: str | None = None
-    time: str | None = None
+    time: datetime.time | None = None
     interval_hours: int | None = None
     minutes_after: int | None = None
 

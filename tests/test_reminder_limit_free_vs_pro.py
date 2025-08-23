@@ -1,4 +1,5 @@
 import json
+from datetime import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -36,7 +37,7 @@ async def test_reminder_limit_free_vs_pro(plan: Any, limit: Any, monkeypatch: py
                 Reminder(
                     telegram_id=1,
                     type="sugar",
-                    time="10:00",
+                    time=time(10, 0),
                     is_enabled=True,
                 )
             )
