@@ -84,7 +84,7 @@ async def photo_handler(
             file = await context.bot.get_file(photo.file_id)
             await file.download_to_drive(file_path)
         except (TelegramError, OSError) as exc:
-            logger.exception("[PHOTO] Failed to save photo: %s", exc)
+            logger.error("[PHOTO] Failed to save photo: %s", exc)
             await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
             user_data.pop(WAITING_GPT_FLAG, None)
             return END
@@ -131,7 +131,7 @@ async def photo_handler(
                     exc,
                 )
             except OSError as exc:
-                logger.exception(
+                logger.error(
                     "[PHOTO][TYPING_ACTION] OS error: %s",
                     exc,
                 )
@@ -162,7 +162,7 @@ async def photo_handler(
                         exc,
                     )
                 except OSError as exc:
-                    logger.exception(
+                    logger.error(
                         "[PHOTO][TIMEOUT_DELETE] OS error: %s",
                         exc,
                     )
@@ -181,7 +181,7 @@ async def photo_handler(
                         exc,
                     )
                 except OSError as exc:
-                    logger.exception(
+                    logger.error(
                         "[PHOTO][RUN_FAILED_EDIT] OS error: %s",
                         exc,
                     )
@@ -243,7 +243,7 @@ async def photo_handler(
                     exc,
                 )
             except OSError as exc:
-                logger.exception(
+                logger.error(
                     "[PHOTO][DELETE_STATUS] OS error: %s",
                     exc,
                 )
@@ -255,19 +255,19 @@ async def photo_handler(
         return PHOTO_SUGAR
 
     except OSError as exc:
-        logger.exception("[PHOTO] File processing error: %s", exc)
+        logger.error("[PHOTO] File processing error: %s", exc)
         await message.reply_text("⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз.")
         return END
     except OpenAIError as exc:
-        logger.exception("[PHOTO] Vision API error: %s", exc)
+        logger.error("[PHOTO] Vision API error: %s", exc)
         await message.reply_text("⚠️ Vision не смог обработать фото. Попробуйте ещё раз.")
         return END
     except ValueError as exc:
-        logger.exception("[PHOTO] Parsing error: %s", exc)
+        logger.error("[PHOTO] Parsing error: %s", exc)
         await message.reply_text("⚠️ Не удалось распознать фото. Попробуйте ещё раз.")
         return END
     except TelegramError as exc:
-        logger.exception("[PHOTO] Telegram error: %s", exc)
+        logger.error("[PHOTO] Telegram error: %s", exc)
         await message.reply_text("⚠️ Произошла ошибка Telegram. Попробуйте ещё раз.")
         return END
     finally:
@@ -314,7 +314,7 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         file = await context.bot.get_file(document.file_id)
         await file.download_to_drive(path)
     except (TelegramError, OSError) as exc:
-        logger.exception("[DOC] Failed to save document: %s", exc)
+        logger.error("[DOC] Failed to save document: %s", exc)
         await message.reply_text("⚠️ Не удалось сохранить документ. Попробуйте ещё раз.")
         return END
 

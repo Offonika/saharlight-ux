@@ -67,7 +67,7 @@ async def create_thread() -> str:
     try:
         thread: Thread = await asyncio.to_thread(client.beta.threads.create)
     except OpenAIError as exc:
-        logger.exception("[OpenAI] Failed to create thread: %s", exc)
+        logger.error("[OpenAI] Failed to create thread: %s", exc)
         raise
     return thread.id
 
@@ -125,10 +125,10 @@ async def send_message(
 
             file = await asyncio.to_thread(_upload)
         except OSError as exc:
-            logger.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
+            logger.error("[OpenAI] Failed to read %s: %s", image_path, exc)
             raise
         except OpenAIError as exc:
-            logger.exception("[OpenAI] Failed to upload %s: %s", image_path, exc)
+            logger.error("[OpenAI] Failed to upload %s: %s", image_path, exc)
             raise
         else:
             logger.info("[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id)
@@ -155,7 +155,7 @@ async def send_message(
             content=message_content,
         )
     except OpenAIError as exc:
-        logger.exception("[OpenAI] Failed to create message: %s", exc)
+        logger.error("[OpenAI] Failed to create message: %s", exc)
         raise
 
     if not settings.openai_assistant_id:
@@ -171,7 +171,7 @@ async def send_message(
             assistant_id=settings.openai_assistant_id,
         )
     except OpenAIError as exc:
-        logger.exception("[OpenAI] Failed to create run: %s", exc)
+        logger.error("[OpenAI] Failed to create run: %s", exc)
         raise
     logger.debug("[OpenAI] Run %s started (thread %s)", run.id, thread_id)
     return run

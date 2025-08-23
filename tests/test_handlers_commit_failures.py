@@ -145,6 +145,7 @@ async def test_callback_router_commit_failure(monkeypatch: pytest.MonkeyPatch, c
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
     assert query.edited == ["⚠️ Не удалось сохранить запись."]
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -179,6 +180,7 @@ async def test_add_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, capl
     assert "DB commit failed" in caplog.text
     assert message.texts == ["⚠️ Не удалось сохранить напоминание."]
     assert not schedule_mock.called
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -220,6 +222,7 @@ async def test_reminder_webapp_save_commit_failure(monkeypatch: pytest.MonkeyPat
     assert not render_mock.called
     assert message.texts == ["⚠️ Не удалось сохранить напоминание."]
     assert "Failed to commit reminder via webapp" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -247,6 +250,7 @@ async def test_delete_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, c
     assert message.texts == ["⚠️ Не удалось удалить напоминание."]
     assert not job_queue.get_jobs_by_name.called
     assert "Failed to commit reminder deletion" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -278,6 +282,7 @@ async def test_reminder_job_commit_failure(monkeypatch: pytest.MonkeyPatch, capl
     assert not describe_mock.called
     assert not context.bot.send_message.called
     assert "Failed to log reminder trigger for reminder 1" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -313,6 +318,7 @@ async def test_reminder_callback_commit_failure(monkeypatch: pytest.MonkeyPatch,
     assert query.edited == []
     assert not context.job_queue.run_once.called
     assert "Failed to log reminder action remind_snooze for reminder 1" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -346,3 +352,4 @@ async def test_reminder_action_cb_commit_failure(
     assert not job_queue.get_jobs_by_name.called
     assert query.edited == []
     assert "Failed to commit reminder action toggle for reminder 1" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)

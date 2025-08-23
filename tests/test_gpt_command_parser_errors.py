@@ -22,44 +22,53 @@ async def test_parse_command_handles_asyncio_timeout(
 
 @pytest.mark.anyio
 async def test_parse_command_handles_openai_error(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     def raise_openai(*args: object, **kwargs: object) -> None:
         raise OpenAIError("boom")
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_openai)
 
-    result = await gpt_command_parser.parse_command("test")
+    with caplog.at_level(logging.ERROR):
+        result = await gpt_command_parser.parse_command("test")
 
     assert result is None
+    assert "Command parsing failed" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 @pytest.mark.anyio
 async def test_parse_command_handles_value_error(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     def raise_value(*args: object, **kwargs: object) -> None:
-        raise ValueError
+        raise ValueError("boom")
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_value)
 
-    result = await gpt_command_parser.parse_command("test")
+    with caplog.at_level(logging.ERROR):
+        result = await gpt_command_parser.parse_command("test")
 
     assert result is None
+    assert "Invalid value during command parsing" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 @pytest.mark.anyio
 async def test_parse_command_handles_type_error(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     def raise_type(*args: object, **kwargs: object) -> None:
-        raise TypeError
+        raise TypeError("boom")
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", raise_type)
 
-    result = await gpt_command_parser.parse_command("test")
+    with caplog.at_level(logging.ERROR):
+        result = await gpt_command_parser.parse_command("test")
 
     assert result is None
+    assert "Invalid type during command parsing" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 @pytest.mark.anyio
@@ -199,6 +208,7 @@ async def test_parse_command_json_invalid_structure(
 
     assert result is None
     assert "Invalid command structure" in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
 
 
 def test_sanitize_sensitive_data_masks_token() -> None:

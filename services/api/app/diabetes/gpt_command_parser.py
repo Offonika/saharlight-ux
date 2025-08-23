@@ -127,14 +127,14 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
     except asyncio.TimeoutError as exc:
         logger.error("Command parsing timed out")
         raise ParserTimeoutError from exc
-    except OpenAIError:
-        logger.exception("Command parsing failed")
+    except OpenAIError as exc:
+        logger.error("Command parsing failed: %s", exc)
         return None
-    except ValueError:
-        logger.exception("Invalid value during command parsing")
+    except ValueError as exc:
+        logger.error("Invalid value during command parsing: %s", exc)
         return None
-    except TypeError:
-        logger.exception("Invalid type during command parsing")
+    except TypeError as exc:
+        logger.error("Invalid type during command parsing: %s", exc)
         return None
 
     choices = getattr(response, "choices", None)
@@ -168,6 +168,6 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
         return None
     try:
         return CommandSchema.model_validate(parsed).model_dump(exclude_none=True)
-    except ValidationError:
-        logger.exception("Invalid command structure")
+    except ValidationError as exc:
+        logger.error("Invalid command structure: %s", exc)
         return None

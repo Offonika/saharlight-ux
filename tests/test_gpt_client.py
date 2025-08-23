@@ -61,6 +61,7 @@ async def test_send_message_openaierror(monkeypatch: pytest.MonkeyPatch, caplog:
             await gpt_client.send_message(thread_id="t", content="hi")
 
     assert any("Failed to create message" in r.message for r in caplog.records)
+    assert all(r.exc_info is None for r in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -81,11 +82,12 @@ async def test_create_thread_openaierror(
             await gpt_client.create_thread()
 
     assert any("Failed to create thread" in r.message for r in caplog.records)
+    assert all(r.exc_info is None for r in caplog.records)
 
 
 @pytest.mark.asyncio
 async def test_send_message_upload_error_removes_file(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
@@ -96,10 +98,13 @@ async def test_send_message_upload_error_removes_file(
     fake_client = SimpleNamespace(files=SimpleNamespace(create=raise_upload))
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
 
-    with pytest.raises(OpenAIError):
-        await gpt_client.send_message(thread_id="t", image_path=str(img))
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(OpenAIError):
+            await gpt_client.send_message(thread_id="t", image_path=str(img))
 
     assert not img.exists()
+    assert any("Failed to upload" in r.message for r in caplog.records)
+    assert all(r.exc_info is None for r in caplog.records)
 
 
 @pytest.mark.asyncio
