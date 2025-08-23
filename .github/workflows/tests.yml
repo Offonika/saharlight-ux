@@ -23,8 +23,9 @@ jobs:
         with:
           node-version: "20"
           cache: pnpm
-      - name: Enable pnpm
-        run: corepack enable pnpm
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8
       - run: pnpm install
       - uses: actions/setup-python@v5
         with:
