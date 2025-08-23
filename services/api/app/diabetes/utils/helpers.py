@@ -4,11 +4,6 @@ import re
 from datetime import datetime, time, timedelta
 from json import JSONDecodeError
 
-from urllib.error import URLError
-from urllib.request import urlopen
-
-
-
 import httpx
 
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -125,8 +120,8 @@ def split_text_by_width(
 
     def _width(chunk: str) -> float:
         try:
-            raw = float(stringWidth(chunk, font_name, font_size))
-            return raw / float(mm)
+            raw = stringWidth(chunk, font_name, font_size)
+            return raw / mm
         except KeyError as exc:
             raise ValueError(f"Unknown font '{font_name}'") from exc
 
