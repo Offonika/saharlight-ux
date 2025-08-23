@@ -24,7 +24,14 @@ async def set_timezone(telegram_id: int, tz: str) -> None:
 
 def _validate_profile(data: ProfileSchema) -> None:
     """Validate business rules for a patient profile."""
-    if data.icr <= 0 or data.cf <= 0 or data.target <= 0 or data.low <= 0 or data.high <= 0 or data.low >= data.high:
+    if (
+        data.icr <= 0
+        or data.cf <= 0
+        or data.target <= 0
+        or data.low <= 0
+        or data.high <= 0
+        or data.low >= data.high
+    ):
         raise ValueError("invalid profile values")
 
     if not (data.low < data.target < data.high):
@@ -46,6 +53,10 @@ async def save_profile(data: ProfileSchema) -> None:
         profile.target_bg = data.target
         profile.low_threshold = data.low
         profile.high_threshold = data.high
+        profile.sos_contact = data.sosContact or ""
+        profile.sos_alerts_enabled = (
+            data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
+        )
         if not commit(session):
             raise HTTPException(status_code=500, detail="db commit failed")
 
