@@ -4,6 +4,7 @@ import os
 import io
 import logging
 import textwrap
+import threading
 from datetime import datetime
 from typing import Callable, Iterable, Protocol, Sequence, cast
 
@@ -26,6 +27,7 @@ date2num_typed: Callable[[datetime], float] = date2num
 DEFAULT_FONT_DIR = '/usr/share/fonts/truetype/dejavu'
 _font_dir = settings.font_dir or DEFAULT_FONT_DIR
 _fonts_registered = False
+_font_lock = threading.Lock()
 
 
 class SugarEntry(Protocol):
@@ -75,20 +77,21 @@ def register_fonts() -> list[str]:
     """
 
     global _fonts_registered
-    if _fonts_registered:
-        return []
+    with _font_lock:
+        if _fonts_registered:
+            return []
 
-    messages: list[str] = []
-    for name, filename in (
-        ("DejaVuSans", "DejaVuSans.ttf"),
-        ("DejaVuSans-Bold", "DejaVuSans-Bold.ttf"),
-    ):
-        msg = _register_font(name, filename)
-        if msg:
-            messages.append(msg)
+        messages: list[str] = []
+        for name, filename in (
+            ("DejaVuSans", "DejaVuSans.ttf"),
+            ("DejaVuSans-Bold", "DejaVuSans-Bold.ttf"),
+        ):
+            msg = _register_font(name, filename)
+            if msg:
+                messages.append(msg)
 
-    _fonts_registered = True
-    return messages
+        _fonts_registered = True
+        return messages
 
 
 def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.BytesIO:
