@@ -45,3 +45,4 @@ venv*/
 
 .coverage
 services/api/app/*.bak.*
+.env
