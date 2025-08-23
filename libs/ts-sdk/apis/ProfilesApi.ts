@@ -62,7 +62,7 @@ export class ProfilesApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/profiles`;
+        let urlPath = `/api/profiles`;
 
         const response = await this.request({
             path: urlPath,
@@ -104,7 +104,7 @@ export class ProfilesApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/profiles`;
+        let urlPath = `/api/profiles`;
 
         const response = await this.request({
             path: urlPath,

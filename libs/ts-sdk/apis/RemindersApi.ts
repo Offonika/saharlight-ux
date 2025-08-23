@@ -87,7 +87,7 @@ export class RemindersApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/reminders`;
+        let urlPath = `/api/reminders`;
 
         const response = await this.request({
             path: urlPath,
@@ -131,7 +131,7 @@ export class RemindersApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/reminders`;
+        let urlPath = `/api/reminders`;
 
         const response = await this.request({
             path: urlPath,
@@ -182,7 +182,7 @@ export class RemindersApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/reminders/{id}`;
+        let urlPath = `/api/reminders/{id}`;
         urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
 
         const response = await this.request({
@@ -225,7 +225,7 @@ export class RemindersApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/reminders`;
+        let urlPath = `/api/reminders`;
 
         const response = await this.request({
             path: urlPath,
@@ -268,7 +268,7 @@ export class RemindersApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/reminders`;
+        let urlPath = `/api/reminders`;
 
         const response = await this.request({
             path: urlPath,

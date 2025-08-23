@@ -55,7 +55,7 @@ export class HistoryApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/history`;
+        let urlPath = `/api/history`;
 
         const response = await this.request({
             path: urlPath,
@@ -97,7 +97,7 @@ export class HistoryApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/history/{id}`;
+        let urlPath = `/api/history/{id}`;
         urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
 
         const response = await this.request({
@@ -142,7 +142,7 @@ export class HistoryApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/history`;
+        let urlPath = `/api/history`;
 
         const response = await this.request({
             path: urlPath,
