@@ -1,19 +1,20 @@
 // file: services/webapp/ui/vite.config.ts
-import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin, type ViteDevServer } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
 import { readFile } from 'node:fs/promises'
+import { ServerResponse } from 'node:http'
 
 function telegramInitPlugin(): Plugin {
   const shared = path.resolve(__dirname, '../public')
   const files = ['telegram-init.js']
-  const serve = async (res: any, file: string) => {
+  const serve = async (res: ServerResponse, file: string) => {
     res.setHeader('Content-Type', 'application/javascript')
     res.end(await readFile(path.join(shared, file), 'utf8'))
   }
   return {
     name: 'telegram-init',
-    async configureServer(server) {
+    async configureServer(server: ViteDevServer) {
       server.middlewares.use((req, res, next) => {
         for (const file of files) {
           if (req.url === `/${file}`) return serve(res, file)
