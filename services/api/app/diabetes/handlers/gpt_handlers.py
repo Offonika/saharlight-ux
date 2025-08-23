@@ -4,7 +4,7 @@ import datetime
 import logging
 import re
 from collections.abc import Awaitable, Callable
-from typing import Any, TypedDict, cast
+from typing import Protocol, TypedDict, TypeVar, cast
 
 from telegram import (
     CallbackQuery,
@@ -17,13 +17,6 @@ from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session, sessionmaker
 
 from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile
-
-try:
-    from services.api.app.diabetes.services.db import run_db as _run_db
-except Exception:  # pragma: no cover - fallback for optional db runner
-    run_db: Callable[..., Awaitable[object]] | None = None
-else:
-    run_db = cast(Callable[..., Awaitable[object]], _run_db)
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import (
     PatientProfile,
@@ -42,7 +35,21 @@ from .dose_validation import _sanitize
 from .reporting_handlers import render_entry, send_report
 from . import UserData
 
-run_db = cast(Callable[..., Awaitable[Any]] | None, run_db)
+T = TypeVar("T")
+
+
+class RunDB(Protocol):
+    def __call__(
+        self, fn: Callable[[Session], T], *args: object, **kwargs: object
+    ) -> Awaitable[T]: ...
+
+
+try:
+    from services.api.app.diabetes.services.db import run_db as _run_db
+except Exception:  # pragma: no cover - fallback for optional db runner
+    run_db: RunDB | None = None
+else:
+    run_db = cast(RunDB, _run_db)
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +59,18 @@ class EditMessageMeta(TypedDict):
 
     chat_id: int
     message_id: int
+
+
+class EntryData(TypedDict, total=False):
+    """Data required to create or update an :class:`Entry`."""
+
+    telegram_id: int
+    event_time: datetime.datetime
+    xe: float | None
+    carbs_g: float | None
+    dose: float | None
+    sugar_before: float | None
+    photo_path: str | None
 
 
 async def _handle_report_request(
@@ -88,7 +107,7 @@ async def _handle_report_request(
 
 
 async def _save_entry(
-    entry_data: dict[str, Any],
+    entry_data: EntryData,
     *,
     SessionLocal: sessionmaker,
     commit: Callable[[Session], bool],
@@ -122,10 +141,11 @@ async def _handle_pending_entry(
     menu_keyboard: InlineKeyboardMarkup | None,
 ) -> bool:
     """Process numeric input for a pending entry."""
-    pending_entry = user_data.get("pending_entry")
+    pending_raw = user_data.get("pending_entry")
     edit_id = user_data.get("edit_id")
-    if pending_entry is None or edit_id is not None:
+    if not isinstance(pending_raw, dict) or edit_id is not None:
         return False
+    pending_entry = cast(EntryData, pending_raw)
 
     pending_fields = user_data.get("pending_fields")
     if pending_fields:
@@ -336,7 +356,7 @@ async def _handle_smart_input(
     ],
     menu_keyboard: InlineKeyboardMarkup | None,
     smart_input: Callable[[str], dict[str, float | None]],
-    parse_command: Callable[[str], Awaitable[dict[str, Any] | None]],
+    parse_command: Callable[[str], Awaitable[dict[str, object] | None]],
 ) -> None:
     """Process smart input or GPT command."""
     try:
@@ -358,13 +378,14 @@ async def _handle_smart_input(
     carbs_match = re.search(
         r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I
     )
-    pending_entry = user_data.get("pending_entry")
+    pending_raw = user_data.get("pending_entry")
     edit_id = user_data.get("edit_id")
     if (
-        pending_entry is not None
+        isinstance(pending_raw, dict)
         and edit_id is None
         and (any(v is not None for v in quick.values()) or carbs_match)
     ):
+        pending_entry = cast(EntryData, pending_raw)
         if quick["sugar"] is not None:
             pending_entry["sugar_before"] = quick["sugar"]
         if quick["xe"] is not None:
@@ -422,7 +443,7 @@ async def _handle_smart_input(
         if any(v is not None and v < 0 for v in (sugar, xe, dose)):
             await message.reply_text("Значения не могут быть отрицательными.")
             return
-        entry_data = {
+        entry_data: EntryData = {
             "telegram_id": user_id,
             "event_time": datetime.datetime.now(datetime.timezone.utc),
             "sugar_before": sugar,
@@ -518,7 +539,7 @@ async def _handle_smart_input(
         "sugar_before": fields.get("sugar_before"),
         "photo_path": None,
     }
-    pending_entry = user_data["pending_entry"]
+    pending_entry = cast(EntryData, user_data["pending_entry"])
 
     xe_val: float | None = pending_entry.get("xe")
     carbs_val: float | None = pending_entry.get("carbs_g")
@@ -548,7 +569,7 @@ async def freeform_handler(
     ] = check_alert,
     menu_keyboard: InlineKeyboardMarkup | None = menu_keyboard,
     smart_input: Callable[[str], dict[str, float | None]] = smart_input,
-    parse_command: Callable[[str], Awaitable[dict[str, Any] | None]] = parse_command,
+    parse_command: Callable[[str], Awaitable[dict[str, object] | None]] = parse_command,
     send_report: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, datetime.datetime, str],
         Awaitable[object],
