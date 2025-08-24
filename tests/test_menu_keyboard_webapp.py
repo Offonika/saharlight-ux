@@ -25,7 +25,7 @@ def test_menu_keyboard_webapp_urls(monkeypatch: pytest.MonkeyPatch, base_url: st
     assert profile_btn.web_app is not None
     assert urlparse(profile_btn.web_app.url).path == "/profile"
     assert reminders_btn.web_app is not None
-    assert urlparse(reminders_btn.web_app.url).path == "/reminders"
+    assert urlparse(reminders_btn.web_app.url).path == "/api/reminders"
 
     monkeypatch.delenv("WEBAPP_URL", raising=False)
     importlib.reload(config)

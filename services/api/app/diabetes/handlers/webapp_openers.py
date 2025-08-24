@@ -51,4 +51,4 @@ async def open_reminders_webapp(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Open the reminders WebApp page."""
-    await _open(update, "/reminders", "⏰ Напоминания")
+    await _open(update, "/api/reminders", "⏰ Напоминания")

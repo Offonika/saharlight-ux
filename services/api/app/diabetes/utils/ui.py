@@ -35,7 +35,7 @@ profile_button = (
     else KeyboardButton("📄 Мой профиль")
 )
 reminders_button = (
-    KeyboardButton("⏰ Напоминания", web_app=WebAppInfo(f"{_WEBAPP_URL}/reminders"))
+    KeyboardButton("⏰ Напоминания", web_app=WebAppInfo(f"{_WEBAPP_URL}/api/reminders"))
     if _WEBAPP_URL
     else KeyboardButton("⏰ Напоминания")
 )
