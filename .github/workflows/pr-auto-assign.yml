@@ -1,0 +1,21 @@
+# file: .github/workflows/pr-auto-assign.yml
+name: PR Auto-Assign
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add reviewers and labels
+        uses: wow-actions/auto-assign@v2
+        with:
+          reviewers: |
+            offonar
+          labels: |
+            webapp-sync
