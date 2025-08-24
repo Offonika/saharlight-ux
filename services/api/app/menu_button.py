@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 
 from telegram import (
-    MenuButton,
     MenuButtonDefault,
     MenuButtonWebApp,
     WebAppInfo,
@@ -29,7 +28,6 @@ async def post_init(
         DefaultJobQueue,
     ],
 ) -> None:
-
     """Set chat menu buttons to open WebApp sections if configured.
 
 
@@ -41,14 +39,8 @@ async def post_init(
         await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
         return
 
-    buttons: list[MenuButtonWebApp] = [
-        MenuButtonWebApp("Reminders", WebAppInfo(f"{base_url}/reminders")),
-        MenuButtonWebApp("Stats", WebAppInfo(f"{base_url}/history")),
-        MenuButtonWebApp("Profile", WebAppInfo(f"{base_url}/profile")),
-        MenuButtonWebApp("Billing", WebAppInfo(f"{base_url}/subscription")),
-    ]
-    await app.bot.set_chat_menu_button(menu_button=cast(MenuButton, buttons))
-
+    button = MenuButtonWebApp("Menu", WebAppInfo(f"{base_url}"))
+    await app.bot.set_chat_menu_button(menu_button=button)
 
 
 __all__ = ["post_init"]
