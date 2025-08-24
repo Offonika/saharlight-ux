@@ -126,9 +126,16 @@ class RESTClientObject:
         :param url: http request url
         :param headers: http request headers
         :param body: request json body, for `application/json`
-        :param post_params: request post parameters,
-                            `application/x-www-form-urlencoded`
-                            and `multipart/form-data`
+        :param post_params: request post parameters for
+                            `application/x-www-form-urlencoded` or
+                            `multipart/form-data`. Accepts either a
+                            ``dict`` or any iterable of ``(key, value)``
+                            pairs. Values that are ``dict``, ``list`` or
+                            ``tuple`` are JSON serialized.
+
+                            Examples:
+                                post_params = {"a": 1, "meta": {"b": 2}}
+                                post_params = [("a", 1), ("meta", {"b": 2})]
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
