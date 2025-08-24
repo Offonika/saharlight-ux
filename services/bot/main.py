@@ -53,25 +53,20 @@ async def post_init(
         return
 
 
-    menu = [
-        MenuButtonWebApp("⏰", WebAppInfo(url=f"{webapp_url}/reminders")),
-        MenuButtonWebApp("📊", WebAppInfo(url=f"{webapp_url}/history")),
-        MenuButtonWebApp("📄", WebAppInfo(url=f"{webapp_url}/profile")),
-        MenuButtonWebApp("💳", WebAppInfo(url=f"{webapp_url}/subscription")),
-    ]
-    await app.bot.set_chat_menu_button(menu_button=cast(Any, menu))
+    menu = MenuButtonWebApp("🍽", WebAppInfo(url=webapp_url))
+    await app.bot.set_chat_menu_button(menu_button=menu)
 
 
 
 
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:  # pragma: no cover
     """Log errors that occur while processing updates."""
     logger.exception(
         "Exception while handling update %s", update, exc_info=context.error
     )
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Configure and run the bot."""
     logging.basicConfig(
         level=settings.log_level,
@@ -121,5 +116,5 @@ def main() -> None:
 __all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN"]
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
