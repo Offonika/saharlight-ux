@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 """Helper handlers that open various WebApp sections.
@@ -7,8 +8,10 @@ section when pressed. They rely on :func:`build_webapp_url` to construct
 absolute URLs based on the ``WEBAPP_URL`` setting.
 """
 
+
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import ContextTypes
+
 
 from .reminder_handlers import build_webapp_url
 
