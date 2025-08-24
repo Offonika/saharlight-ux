@@ -1,5 +1,7 @@
-import { render, waitFor, screen, fireEvent, cleanup } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+import { render, waitFor, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
 
 const mockNavigate = vi.fn();
 const mockUseParams = vi.fn();
@@ -26,7 +28,13 @@ vi.mock("../api/reminders", () => ({
 }));
 
 import CreateReminder from "./CreateReminder";
-import { getReminder, createReminder } from "../api/reminders";
+
+import { getReminder, updateReminder } from "../api/reminders";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
 
 describe("CreateReminder", () => {
   beforeEach(() => {
@@ -44,25 +52,17 @@ describe("CreateReminder", () => {
     expect(signal).toBeInstanceOf(AbortSignal);
   });
 
-  it("sends title when saving", async () => {
-    mockUseParams.mockReturnValue({});
-    vi.mocked(createReminder).mockResolvedValue({ id: 1 });
+
+  it("submits custom title", async () => {
     render(<CreateReminder />);
+    await waitFor(() => expect(getReminder).toHaveBeenCalled());
+    const input = screen.getByLabelText("Название");
+    fireEvent.change(input, { target: { value: "Custom" } });
+    fireEvent.click(screen.getAllByText("Сохранить")[0]);
+    await waitFor(() => expect(updateReminder).toHaveBeenCalled());
+    expect(updateReminder).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Custom" }),
+    );
 
-    fireEvent.change(screen.getByLabelText("Название"), {
-      target: { value: "My title" },
-    });
-    fireEvent.change(screen.getByLabelText("Время"), {
-      target: { value: "08:00" },
-    });
-    fireEvent.change(screen.getByLabelText("Интервал (мин)"), {
-      target: { value: "60" },
-    });
-    fireEvent.click(screen.getByText("Сохранить"));
-
-    await waitFor(() => expect(createReminder).toHaveBeenCalled());
-    expect(vi.mocked(createReminder).mock.calls[0][0]).toMatchObject({
-      title: "My title",
-    });
   });
 });
