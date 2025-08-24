@@ -37,6 +37,7 @@ from services.api.app.diabetes.services.db import SessionLocal, User, Profile, R
 from services.api.app.diabetes.utils.ui import (
     menu_keyboard,
     build_timezone_webapp_button,
+    PHOTO_BUTTON_TEXT,
 )
 from services.api.app.diabetes.services.repository import CommitError, commit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -529,7 +530,7 @@ onboarding_conv = ConversationHandler(
     },
     fallbacks=[
         CommandHandler("cancel", onboarding_skip),
-        MessageHandler(filters.Regex("^📷 Фото еды$"), _photo_fallback),
+        MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback),
     ],
     per_message=False,
 )

@@ -6,6 +6,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.common_handlers as handlers
+from services.api.app.diabetes.utils.ui import REMINDERS_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -81,7 +82,7 @@ async def test_help_lists_reminder_commands_and_menu_button() -> None:
     assert "/reminders - список напоминаний\n" in text
     assert "/addreminder - добавить напоминание\n" in text
     assert "/delreminder - удалить напоминание\n" in text
-    assert "⏰ Напоминания\n" in text
+    assert f"{REMINDERS_BUTTON_TEXT}\n" in text
 
 
 @pytest.mark.asyncio

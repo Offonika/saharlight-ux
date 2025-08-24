@@ -18,7 +18,7 @@ import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
 import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 import services.api.app.diabetes.handlers.registration as handlers
 from services.api.app.diabetes.services.repository import commit
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import menu_keyboard, SOS_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -164,7 +164,7 @@ async def test_sos_contact_menu_button_starts_conv(
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
     button_texts = [btn.text for row in menu_keyboard().keyboard for btn in row]
-    assert "🆘 SOS контакт" in button_texts
+    assert SOS_BUTTON_TEXT in button_texts
 
     app = ApplicationBuilder().token("TESTTOKEN").build()
     handlers.register_handlers(app)
@@ -175,9 +175,9 @@ async def test_sos_contact_menu_button_starts_conv(
         and h.callback is sos_handlers.sos_contact_start
     )
     pattern = cast(filters.Regex, sos_handler.filters).pattern.pattern
-    assert re.fullmatch(pattern, "🆘 SOS контакт")
+    assert re.fullmatch(pattern, SOS_BUTTON_TEXT)
 
-    message = DummyMessage("🆘 SOS контакт")
+    message = DummyMessage(SOS_BUTTON_TEXT)
     update = cast(Update, SimpleNamespace(message=message))
     context = cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace())
     state = await sos_handler.callback(update, context)

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import services.api.app.diabetes.handlers.common_handlers as handlers
+from services.api.app.diabetes.utils.ui import QUICK_INPUT_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -20,7 +21,7 @@ class DummyMessage:
 async def test_quick_input_help_button() -> None:
     """Simulate the "🕹 Быстрый ввод" menu button and verify the hint."""
 
-    message = DummyMessage("🕹 Быстрый ввод")
+    message = DummyMessage(QUICK_INPUT_BUTTON_TEXT)
     update: Any = SimpleNamespace(message=message)
     context: Any = SimpleNamespace()
 

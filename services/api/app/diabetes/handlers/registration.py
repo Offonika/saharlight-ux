@@ -18,6 +18,16 @@ from sqlalchemy.exc import SQLAlchemyError
 from .onboarding_handlers import onboarding_conv, onboarding_poll_answer
 from .common_handlers import menu_command, help_command, smart_input_help
 from .router import callback_router
+from ..utils.ui import (
+    PROFILE_BUTTON_TEXT,
+    REMINDERS_BUTTON_TEXT,
+    REPORT_BUTTON_TEXT,
+    HISTORY_BUTTON_TEXT,
+    PHOTO_BUTTON_TEXT,
+    QUICK_INPUT_BUTTON_TEXT,
+    HELP_BUTTON_TEXT,
+    SOS_BUTTON_TEXT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +50,7 @@ def register_profile_handlers(
     app.add_handler(profile.profile_webapp_handler)
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^📄 Мой профиль$"), profile.profile_view
+            filters.Regex(f"^{PROFILE_BUTTON_TEXT}$"), profile.profile_view
         )
     )
     app.add_handler(
@@ -88,7 +98,7 @@ def register_reminder_handlers(
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^⏰ Напоминания$"), reminder_handlers.reminders_list
+            filters.Regex(f"^{REMINDERS_BUTTON_TEXT}$"), reminder_handlers.reminders_list
         )
     )
     app.add_handler(
@@ -166,32 +176,32 @@ def register_handlers(
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^📈 Отчёт$"), reporting_handlers.report_request
+            filters.Regex(f"^{REPORT_BUTTON_TEXT}$"), reporting_handlers.report_request
         )
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^📊 История$"), reporting_handlers.history_view
+            filters.Regex(f"^{HISTORY_BUTTON_TEXT}$"), reporting_handlers.history_view
         )
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^📷 Фото еды$"), photo_handlers.photo_prompt
+            filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), photo_handlers.photo_prompt
         )
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^🕹 Быстрый ввод$"), smart_input_help
+            filters.Regex(f"^{QUICK_INPUT_BUTTON_TEXT}$"), smart_input_help
         )
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^ℹ️ Помощь$"), help_command
+            filters.Regex(f"^{HELP_BUTTON_TEXT}$"), help_command
         )
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^🆘 SOS контакт$"), sos_handlers.sos_contact_start
+            filters.Regex(f"^{SOS_BUTTON_TEXT}$"), sos_handlers.sos_contact_start
         )
     )
     app.add_handler(

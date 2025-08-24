@@ -30,6 +30,7 @@ from services.api.app.diabetes.services.db import (
     Reminder,
     User,
 )
+from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT, PHOTO_BUTTON_TEXT
 
 logger = logging.getLogger(__name__)
 
@@ -861,9 +862,9 @@ profile_conv = ConversationHandler(
         ],
     },
     fallbacks=[
-        MessageHandler(filters.Regex("^↩️ Назад$"), profile_cancel),
+        MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), profile_cancel),
         CommandHandler("cancel", profile_cancel),
-        MessageHandler(filters.Regex("^📷 Фото еды$"), _photo_fallback),
+        MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback),
     ],
     # Subsequent steps depend on ``MessageHandler`` for text inputs. Enabling
     # ``per_message=True`` would store state per message and reset the
