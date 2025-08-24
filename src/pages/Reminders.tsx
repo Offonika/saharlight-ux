@@ -142,8 +142,11 @@ export default function Reminders() {
     
     if (!user?.id) {
       console.log('[Reminders] No user ID, stopping loading')
-      setLoading(false)
-      setError('Пользователь не авторизован в Telegram')
+      setLoading(false) 
+      setError(import.meta.env.MODE !== 'production' 
+        ? 'Режим разработки: пользователь не загружен'
+        : 'Пользователь не авторизован в Telegram'
+      )
       return
     }
     
@@ -251,7 +254,28 @@ export default function Reminders() {
       </div>
     )
   } else if (error) {
-    content = <div className="text-center py-12 text-destructive">{error}</div>
+    content = (
+      <div className="text-center py-12">
+        <div className="text-destructive mb-4">{error}</div>
+        {import.meta.env.MODE !== 'production' && (
+          <div className="text-sm text-muted-foreground">
+            <p>Для тестирования добавьте в localStorage:</p>
+            <p className="font-mono text-xs mt-1">tg_init_data=user=%7B%22id%22%3A12345%2C%22first_name%22%3A%22Test%22%7D</p>
+            <MedicalButton 
+              variant="outline" 
+              size="sm" 
+              className="mt-4"
+              onClick={() => {
+                localStorage.setItem('tg_init_data', 'user=%7B%22id%22%3A12345%2C%22first_name%22%3A%22Test%22%7D');
+                window.location.reload();
+              }}
+            >
+              Включить тестовый режим
+            </MedicalButton>
+          </div>
+        )}
+      </div>
+    )
   } else if (reminders.length === 0) {
     content = (
       <div className="text-center py-12">
