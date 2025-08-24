@@ -13,6 +13,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 from services.api.app.diabetes.handlers import dose_calc
+from services.api.app.diabetes.utils.ui import PHOTO_BUTTON_TEXT
 
 
 def _find_handler(
@@ -48,8 +49,8 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 async def test_photo_button_cancels_and_prompts_photo() -> None:
-    handler = _find_handler(dose_calc.dose_conv.fallbacks, "^📷 Фото еды$")
-    message = DummyMessage("📷 Фото еды")
+    handler = _find_handler(dose_calc.dose_conv.fallbacks, f"^{PHOTO_BUTTON_TEXT}$")
+    message = DummyMessage(PHOTO_BUTTON_TEXT)
     update = cast(
         Update,
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),

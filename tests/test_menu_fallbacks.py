@@ -5,6 +5,7 @@ from typing import Any, Sequence, cast
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler
+from services.api.app.diabetes.utils.ui import PHOTO_BUTTON_TEXT
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -56,7 +57,7 @@ async def test_sugar_conv_menu_then_photo() -> None:
     assert any("выберите" in r.lower() for r in message.replies[1:])
     assert context.user_data == {}
 
-    next_message = DummyMessage("📷 Фото еды")
+    next_message = DummyMessage(PHOTO_BUTTON_TEXT)
     next_update = cast(
         Update,
         SimpleNamespace(message=next_message, effective_user=SimpleNamespace(id=1)),
@@ -88,7 +89,7 @@ async def test_dose_conv_menu_then_photo() -> None:
     assert any("выберите" in r.lower() for r in message.replies[1:])
     assert context.user_data == {}
 
-    next_message = DummyMessage("📷 Фото еды")
+    next_message = DummyMessage(PHOTO_BUTTON_TEXT)
     next_update = cast(
         Update,
         SimpleNamespace(message=next_message, effective_user=SimpleNamespace(id=1)),

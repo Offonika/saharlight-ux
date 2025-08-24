@@ -19,8 +19,8 @@ def test_menu_keyboard_webapp_urls(monkeypatch: pytest.MonkeyPatch, base_url: st
     importlib.reload(ui)
 
     buttons = [btn for row in ui.menu_keyboard.keyboard for btn in row]
-    profile_btn = next(b for b in buttons if b.text == "📄 Мой профиль")
-    reminders_btn = next(b for b in buttons if b.text == "⏰ Напоминания")
+    profile_btn = next(b for b in buttons if b.text == ui.PROFILE_BUTTON_TEXT)
+    reminders_btn = next(b for b in buttons if b.text == ui.REMINDERS_BUTTON_TEXT)
 
     assert profile_btn.web_app is not None
     assert urlparse(profile_btn.web_app.url).path == "/profile"

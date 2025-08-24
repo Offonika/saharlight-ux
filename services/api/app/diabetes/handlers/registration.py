@@ -15,6 +15,16 @@ from telegram.ext import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 
+from ..utils.ui import (
+    HELP_BUTTON_TEXT,
+    HISTORY_BUTTON_TEXT,
+    PHOTO_BUTTON_TEXT,
+    PROFILE_BUTTON_TEXT,
+    QUICK_INPUT_BUTTON_TEXT,
+    REMINDERS_BUTTON_TEXT,
+    REPORT_BUTTON_TEXT,
+    SOS_CONTACT_BUTTON_TEXT,
+)
 from .onboarding_handlers import onboarding_conv, onboarding_poll_answer
 from .common_handlers import menu_command, help_command, smart_input_help
 from .router import callback_router
@@ -73,31 +83,43 @@ def register_handlers(
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("hypoalert", security_handlers.hypo_alert_faq))
     app.add_handler(PollAnswerHandler[ContextTypes.DEFAULT_TYPE](onboarding_poll_answer))
     app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📄 Мой профиль$"), profile.profile_view)
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📈 Отчёт$"), reporting_handlers.report_request)
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📊 История$"), reporting_handlers.history_view)
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📷 Фото еды$"), photo_handlers.photo_prompt)
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^🕹 Быстрый ввод$"), smart_input_help)
-    )
-    app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^⏰ Напоминания$"), reminder_handlers.reminders_list
+            filters.Regex(f"^{PROFILE_BUTTON_TEXT}$"), profile.profile_view
         )
     )
     app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^ℹ️ Помощь$"), help_command)
+        MessageHandler[ContextTypes.DEFAULT_TYPE](
+            filters.Regex(f"^{REPORT_BUTTON_TEXT}$"), reporting_handlers.report_request
+        )
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^🆘 SOS контакт$"), sos_handlers.sos_contact_start
+            filters.Regex(f"^{HISTORY_BUTTON_TEXT}$"), reporting_handlers.history_view
+        )
+    )
+    app.add_handler(
+        MessageHandler[ContextTypes.DEFAULT_TYPE](
+            filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), photo_handlers.photo_prompt
+        )
+    )
+    app.add_handler(
+        MessageHandler[ContextTypes.DEFAULT_TYPE](
+            filters.Regex(f"^{QUICK_INPUT_BUTTON_TEXT}$"), smart_input_help
+        )
+    )
+    app.add_handler(
+        MessageHandler[ContextTypes.DEFAULT_TYPE](
+            filters.Regex(f"^{REMINDERS_BUTTON_TEXT}$"), reminder_handlers.reminders_list
+        )
+    )
+    app.add_handler(
+        MessageHandler[ContextTypes.DEFAULT_TYPE](
+            filters.Regex(f"^{HELP_BUTTON_TEXT}$"), help_command
+        )
+    )
+    app.add_handler(
+        MessageHandler[ContextTypes.DEFAULT_TYPE](
+            filters.Regex(f"^{SOS_CONTACT_BUTTON_TEXT}$"), sos_handlers.sos_contact_start
         )
     )
     app.add_handler(

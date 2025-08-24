@@ -7,6 +7,7 @@ from telegram import Update
 
 import pytest
 from telegram.ext import CallbackContext, ConversationHandler, MessageHandler
+from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -36,9 +37,9 @@ async def test_sugar_back_fallback_cancels() -> None:
     handler = next(
         h
         for h in dose_calc.sugar_conv.fallbacks
-        if isinstance(h, MessageHandler) and _filter_pattern_equals(h, "^↩️ Назад$")
+        if isinstance(h, MessageHandler) and _filter_pattern_equals(h, f"^{BACK_BUTTON_TEXT}$")
     )
-    message = DummyMessage("↩️ Назад")
+    message = DummyMessage(BACK_BUTTON_TEXT)
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
@@ -73,6 +74,6 @@ def test_sugar_conv_has_back_fallback() -> None:
     assert any(
         isinstance(h, MessageHandler)
         and h.callback is dose_calc.dose_cancel
-        and _filter_pattern_equals(h, "^↩️ Назад$")
+        and _filter_pattern_equals(h, f"^{BACK_BUTTON_TEXT}$")
         for h in fallbacks
     )

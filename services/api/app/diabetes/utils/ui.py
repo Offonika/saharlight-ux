@@ -8,15 +8,38 @@ UI-компоненты бота «Diabet Buddy».
 """
 
 from telegram import (
-    InlineKeyboardMarkup,
     InlineKeyboardButton,
-    ReplyKeyboardMarkup,
+    InlineKeyboardMarkup,
     KeyboardButton,
+    ReplyKeyboardMarkup,
     WebAppInfo,
 )
 from services.api.app import config
 
+PHOTO_BUTTON_TEXT = "📷 Фото еды"
+SUGAR_BUTTON_TEXT = "🩸 Уровень сахара"
+DOSE_BUTTON_TEXT = "💉 Доза инсулина"
+HISTORY_BUTTON_TEXT = "📊 История"
+REPORT_BUTTON_TEXT = "📈 Отчёт"
+PROFILE_BUTTON_TEXT = "📄 Мой профиль"
+QUICK_INPUT_BUTTON_TEXT = "🕹 Быстрый ввод"
+HELP_BUTTON_TEXT = "ℹ️ Помощь"
+REMINDERS_BUTTON_TEXT = "⏰ Напоминания"
+SOS_CONTACT_BUTTON_TEXT = "🆘 SOS контакт"
+BACK_BUTTON_TEXT = "↩️ Назад"
+
 __all__ = (
+    "PHOTO_BUTTON_TEXT",
+    "SUGAR_BUTTON_TEXT",
+    "DOSE_BUTTON_TEXT",
+    "HISTORY_BUTTON_TEXT",
+    "REPORT_BUTTON_TEXT",
+    "PROFILE_BUTTON_TEXT",
+    "QUICK_INPUT_BUTTON_TEXT",
+    "HELP_BUTTON_TEXT",
+    "REMINDERS_BUTTON_TEXT",
+    "SOS_CONTACT_BUTTON_TEXT",
+    "BACK_BUTTON_TEXT",
     "menu_keyboard",
     "dose_keyboard",
     "sugar_keyboard",
@@ -30,23 +53,23 @@ _WEBAPP_URL = config.settings.webapp_url.rstrip("/") if config.settings.webapp_u
 
 # Create WebApp buttons when WebApp is configured, fall back to text buttons otherwise
 profile_button = (
-    KeyboardButton("📄 Мой профиль", web_app=WebAppInfo(f"{_WEBAPP_URL}/profile"))
+    KeyboardButton(PROFILE_BUTTON_TEXT, web_app=WebAppInfo(f"{_WEBAPP_URL}/profile"))
     if _WEBAPP_URL
-    else KeyboardButton("📄 Мой профиль")
+    else KeyboardButton(PROFILE_BUTTON_TEXT)
 )
 reminders_button = (
-    KeyboardButton("⏰ Напоминания", web_app=WebAppInfo(f"{_WEBAPP_URL}/reminders"))
+    KeyboardButton(REMINDERS_BUTTON_TEXT, web_app=WebAppInfo(f"{_WEBAPP_URL}/reminders"))
     if _WEBAPP_URL
-    else KeyboardButton("⏰ Напоминания")
+    else KeyboardButton(REMINDERS_BUTTON_TEXT)
 )
 
 menu_keyboard = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton("📷 Фото еды"), KeyboardButton("🩸 Уровень сахара")],
-        [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
-        [KeyboardButton("📈 Отчёт"), profile_button],
-        [KeyboardButton("🕹 Быстрый ввод"), KeyboardButton("ℹ️ Помощь")],
-        [reminders_button, KeyboardButton("🆘 SOS контакт")],
+        [KeyboardButton(PHOTO_BUTTON_TEXT), KeyboardButton(SUGAR_BUTTON_TEXT)],
+        [KeyboardButton(DOSE_BUTTON_TEXT), KeyboardButton(HISTORY_BUTTON_TEXT)],
+        [KeyboardButton(REPORT_BUTTON_TEXT), profile_button],
+        [KeyboardButton(QUICK_INPUT_BUTTON_TEXT), KeyboardButton(HELP_BUTTON_TEXT)],
+        [reminders_button, KeyboardButton(SOS_CONTACT_BUTTON_TEXT)],
     ],
     resize_keyboard=True,
     one_time_keyboard=False,
@@ -56,7 +79,7 @@ menu_keyboard = ReplyKeyboardMarkup(
 dose_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton("ХЕ"), KeyboardButton("Углеводы")],
-        [KeyboardButton("↩️ Назад")],
+        [KeyboardButton(BACK_BUTTON_TEXT)],
     ],
     resize_keyboard=True,
     one_time_keyboard=True,
@@ -64,14 +87,14 @@ dose_keyboard = ReplyKeyboardMarkup(
 )
 
 sugar_keyboard = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton("↩️ Назад")]],
+    keyboard=[[KeyboardButton(BACK_BUTTON_TEXT)]],
     resize_keyboard=True,
     one_time_keyboard=True,
     input_field_placeholder="Введите уровень сахара…",
 )
 
 back_keyboard = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton("↩️ Назад")]],
+    keyboard=[[KeyboardButton(BACK_BUTTON_TEXT)]],
     resize_keyboard=True,
     one_time_keyboard=True,
 )

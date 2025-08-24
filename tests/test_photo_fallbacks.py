@@ -15,10 +15,11 @@ os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 from services.api.app.diabetes.handlers import (
     dose_calc,
-    profile as profile_handlers,
     onboarding_handlers,
+    profile as profile_handlers,
     sos_handlers,
 )
+from services.api.app.diabetes.utils.ui import PHOTO_BUTTON_TEXT
 
 
 def _find_handler(
@@ -57,7 +58,7 @@ async def _exercise(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
     ],
 ) -> None:
-    message = DummyMessage("📷 Фото еды")
+    message = DummyMessage(PHOTO_BUTTON_TEXT)
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
@@ -75,25 +76,25 @@ async def _exercise(
 
 @pytest.mark.asyncio
 async def test_profile_conv_photo_fallback() -> None:
-    handler = _find_handler(profile_handlers.profile_conv.fallbacks, "^📷 Фото еды$")
+    handler = _find_handler(profile_handlers.profile_conv.fallbacks, f"^{PHOTO_BUTTON_TEXT}$")
     await _exercise(handler)
 
 
 @pytest.mark.asyncio
 async def test_sugar_conv_photo_fallback() -> None:
-    handler = _find_handler(dose_calc.sugar_conv.fallbacks, "^📷 Фото еды$")
+    handler = _find_handler(dose_calc.sugar_conv.fallbacks, f"^{PHOTO_BUTTON_TEXT}$")
     await _exercise(handler)
 
 
 @pytest.mark.asyncio
 async def test_onboarding_conv_photo_fallback() -> None:
     handler = _find_handler(
-        onboarding_handlers.onboarding_conv.fallbacks, "^📷 Фото еды$"
+        onboarding_handlers.onboarding_conv.fallbacks, f"^{PHOTO_BUTTON_TEXT}$"
     )
     await _exercise(handler)
 
 
 @pytest.mark.asyncio
 async def test_sos_contact_conv_photo_fallback() -> None:
-    handler = _find_handler(sos_handlers.sos_contact_conv.fallbacks, "^📷 Фото еды$")
+    handler = _find_handler(sos_handlers.sos_contact_conv.fallbacks, f"^{PHOTO_BUTTON_TEXT}$")
     await _exercise(handler)

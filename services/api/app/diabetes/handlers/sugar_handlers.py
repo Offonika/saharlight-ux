@@ -16,7 +16,13 @@ from sqlalchemy.orm import Session
 from services.api.app.diabetes.services.db import Entry, SessionLocal
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.functions import _safe_float
-from services.api.app.diabetes.utils.ui import menu_keyboard, sugar_keyboard
+from services.api.app.diabetes.utils.ui import (
+    BACK_BUTTON_TEXT,
+    PHOTO_BUTTON_TEXT,
+    SUGAR_BUTTON_TEXT,
+    menu_keyboard,
+    sugar_keyboard,
+)
 
 from . import EntryData, UserData
 from .alert_handlers import check_alert
@@ -133,16 +139,16 @@ prompt_sugar = sugar_start
 sugar_conv = ConversationHandler(
     entry_points=[
         CommandHandler("sugar", sugar_start),
-        MessageHandler(filters.Regex("^🩸 Уровень сахара$"), sugar_start),
+        MessageHandler(filters.Regex(f"^{SUGAR_BUTTON_TEXT}$"), sugar_start),
     ],
     states={
         SUGAR_VAL: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), sugar_val)],
     },
     fallbacks=[
-        MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
+        MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
         MessageHandler(
-            filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
+            filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), cast(object, _cancel_then(photo_prompt))
         ),
     ],
 )
