@@ -122,4 +122,5 @@ def test_stats_no_data(monkeypatch: pytest.MonkeyPatch) -> None:
             params={"telegramId": 5},
             headers={TG_INIT_DATA_HEADER: init_data},
         )
-    assert resp.status_code == 204
+    assert resp.status_code == 200
+    assert resp.json() == {}
