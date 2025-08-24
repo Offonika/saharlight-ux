@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getDevInitData } from "../lib/telegram-auth";
 
 type Scheme = "light" | "dark";
 
@@ -141,6 +142,19 @@ export const useTelegram = (
   useEffect(() => {
     if (!tg) {
       console.warn("[TG] not in Telegram, enabling dev fallback");
+      if (import.meta.env.DEV) {
+        const initData = getDevInitData();
+        if (initData) {
+          const userStr = new URLSearchParams(initData).get("user");
+          if (userStr) {
+            try {
+              setUser(JSON.parse(userStr));
+            } catch (e) {
+              console.error("[TG] failed to parse dev user:", e);
+            }
+          }
+        }
+      }
       applyTheme(null, forceLight);
       setReady(true);
       return;
