@@ -2,15 +2,9 @@
 
 from __future__ import annotations
 
-from telegram import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    Update,
-    WebAppInfo,
-)
+from telegram import Update
 from telegram.ext import ContextTypes
 
-from services.api.app import config
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 
@@ -18,9 +12,7 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """Display the main menu keyboard using ``menu_keyboard``."""
     message = update.message
     if message:
-        await message.reply_text(
-            "📋 Выберите действие:", reply_markup=menu_keyboard()
-        )
+        await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -87,27 +79,9 @@ async def smart_input_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await message.reply_text(text, parse_mode="Markdown")
 
 
-async def open_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a button that opens the WebApp if configured."""
-
-    webapp_url = config.get_webapp_url()
-    if not webapp_url:
-        return
-
-    button = InlineKeyboardButton(
-        "Открыть приложение",
-        web_app=WebAppInfo(webapp_url),
-    )
-    markup = InlineKeyboardMarkup([[button]])
-    message = update.message
-    if message:
-        await message.reply_text("🌐 WebApp", reply_markup=markup)
-
-
 __all__ = [
     "menu_keyboard",
     "menu_command",
     "help_command",
     "smart_input_help",
-    "open_command",
 ]
