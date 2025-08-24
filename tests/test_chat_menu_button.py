@@ -7,7 +7,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from telegram import MenuButtonWebApp
 
 from services.bot.main import commands, post_init
 

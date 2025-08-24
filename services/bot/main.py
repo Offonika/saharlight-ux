@@ -6,7 +6,7 @@ Bot entry point and configuration.
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, cast
 
 from telegram import BotCommand, MenuButtonWebApp, WebAppInfo
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
