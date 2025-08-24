@@ -6,7 +6,7 @@ from typing import cast
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import Profile, SessionLocal, User, run_db
-from ..diabetes.services.repository import commit
+from ..diabetes.services.repository import CommitError, commit
 from ..schemas.profile import ProfileSchema
 from ..types import SessionProtocol
 
@@ -19,8 +19,10 @@ async def set_timezone(telegram_id: int, tz: str) -> None:
             cast(Session, session).add(user)
         else:
             user.timezone = tz
-        if not commit(cast(Session, session)):
-            raise HTTPException(status_code=500, detail="db commit failed")
+        try:
+            commit(cast(Session, session))
+        except CommitError as exc:
+            raise HTTPException(status_code=500, detail="db commit failed") from exc
 
     await run_db(_save, sessionmaker=SessionLocal)
 
@@ -60,8 +62,10 @@ async def save_profile(data: ProfileSchema) -> None:
         profile.sos_alerts_enabled = (
             data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
         )
-        if not commit(cast(Session, session)):
-            raise HTTPException(status_code=500, detail="db commit failed")
+        try:
+            commit(cast(Session, session))
+        except CommitError as exc:
+            raise HTTPException(status_code=500, detail="db commit failed") from exc
 
     await run_db(_save, sessionmaker=SessionLocal)
 

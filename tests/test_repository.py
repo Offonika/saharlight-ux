@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
 from services.api.app.diabetes.services import repository
+from services.api.app.diabetes.services.repository import CommitError
 
 
 class DummyError(SQLAlchemyError):
@@ -22,7 +23,8 @@ def test_commit_success() -> None:
 def test_commit_failure() -> None:
     session = MagicMock()
     session.commit.side_effect = DummyError("boom")
-    assert repository.commit(session) is False
+    with pytest.raises(CommitError):
+        repository.commit(session)
     session.rollback.assert_called_once()
 
 

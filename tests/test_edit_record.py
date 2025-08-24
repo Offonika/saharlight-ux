@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 from services.api.app.diabetes.handlers import UserData
+from services.api.app.diabetes.services.repository import CommitError
 
 os.environ.setdefault("DB_PASSWORD", "test")
 from services.api.app.diabetes.services.db import Base, User, Entry
@@ -162,7 +163,7 @@ async def test_edit_dose_commit_failure() -> None:
     )
 
     def commit_fail(session: Session) -> bool:
-        return False
+        raise CommitError
 
     result = await gpt_handlers._handle_edit_entry(
         "5",

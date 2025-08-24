@@ -13,7 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import services.api.app.diabetes.handlers.alert_handlers as handlers
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.services.db import Base, User, Profile, Alert
 
 
@@ -343,7 +343,7 @@ async def test_commit_failure_logs_error_on_schedule(
         handlers.SessionLocal = TestSession
 
         def fake_commit(session: Any) -> bool:
-            return False
+            raise CommitError
 
         monkeypatch.setattr(handlers, "commit", fake_commit)
 
@@ -385,7 +385,7 @@ async def test_commit_failure_logs_error(
         def fake_commit(session: Any) -> bool:
             call_count["n"] += 1
             if call_count["n"] == 4:
-                return False
+                raise CommitError
             return real_commit(session)
 
         monkeypatch.setattr(handlers, "commit", fake_commit)

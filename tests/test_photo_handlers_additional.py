@@ -15,6 +15,7 @@ os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
+from services.api.app.diabetes.services.repository import CommitError
 
 
 class DummyPhoto:
@@ -61,7 +62,9 @@ async def test_photo_handler_commit_failure(
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
     monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
-    monkeypatch.setattr(photo_handlers, "commit", lambda session: False)
+    monkeypatch.setattr(
+        photo_handlers, "commit", lambda session: (_ for _ in ()).throw(CommitError())
+    )
     monkeypatch.setattr(photo_handlers, "send_message", send_message_mock)
 
     message = DummyMessage()

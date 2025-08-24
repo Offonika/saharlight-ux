@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import importlib
 
 from services.api.app.diabetes.services.db import Base, User, Profile
+from services.api.app.diabetes.services.repository import CommitError
 
 profile_api = importlib.import_module("services.api.app.diabetes.handlers.profile.api")
 
@@ -15,7 +16,9 @@ profile_api = importlib.import_module("services.api.app.diabetes.handlers.profil
 def session_factory() -> Generator[sessionmaker[Session], None, None]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    TestSession: sessionmaker[Session] = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    TestSession: sessionmaker[Session] = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False
+    )
     try:
         yield TestSession
     finally:
@@ -137,7 +140,7 @@ def test_save_profile_commit_failure(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
     def fail_commit(session: object) -> bool:
-        return False
+        raise CommitError
 
     monkeypatch.setattr(profile_api, "commit", fail_commit)
     with session_factory() as session:
@@ -201,7 +204,7 @@ def test_set_timezone_commit_failure(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
     def fail_commit(session: object) -> bool:
-        return False
+        raise CommitError
 
     monkeypatch.setattr(profile_api, "commit", fail_commit)
     with session_factory() as session:

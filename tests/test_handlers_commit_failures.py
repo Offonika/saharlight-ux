@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from services.api.app.diabetes.services.repository import CommitError
 from telegram import Bot, Update, User
 from telegram.ext import CallbackContext, ConversationHandler, Job, JobQueue
 from services.api.app.diabetes.handlers import profile as profile_handlers
@@ -309,7 +310,7 @@ async def test_reminder_callback_commit_failure(
 
     def failing_commit(sess: Session) -> bool:
         sess.rollback()
-        return False
+        raise CommitError
 
     monkeypatch.setattr(reminder_handlers, "commit", failing_commit)
 

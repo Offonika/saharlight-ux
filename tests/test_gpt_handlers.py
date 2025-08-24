@@ -7,6 +7,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.handlers import gpt_handlers
+from services.api.app.diabetes.services.repository import CommitError
 
 
 class DummyMessage:
@@ -334,6 +335,7 @@ async def test_freeform_handler_quick_entry_complete(
 
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
+
     async def fake_check_alert(
         update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
     ) -> None:
@@ -534,10 +536,12 @@ async def test_freeform_handler_pending_entry_commit(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),
     )
+
     async def fake_check_alert(
         update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
     ) -> None:
         return None
+
     class DummySession:
         def __enter__(self) -> "DummySession":
             return self
@@ -582,6 +586,7 @@ async def test_freeform_handler_pending_entry_commit_fail(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),
     )
+
     class DummySession:
         def __enter__(self) -> "DummySession":
             return self
@@ -603,7 +608,7 @@ async def test_freeform_handler_pending_entry_commit_fail(
     monkeypatch.setattr(gpt_handlers, "run_db", None)
     monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
     await gpt_handlers.freeform_handler(
-        update, context, commit=lambda s: False
+        update, context, commit=lambda s: (_ for _ in ()).throw(CommitError())
     )
     assert message.texts == ["⚠️ Не удалось сохранить запись."]
 
@@ -639,6 +644,7 @@ async def test_freeform_handler_pending_entry_numeric_add_carbs(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),
     )
+
     class DummySession:
         def __enter__(self) -> "DummySession":
             return self

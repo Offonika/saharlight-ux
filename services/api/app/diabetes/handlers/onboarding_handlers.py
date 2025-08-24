@@ -38,7 +38,7 @@ from services.api.app.diabetes.utils.ui import (
     menu_keyboard,
     build_timezone_webapp_button,
 )
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import CommitError, commit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from openai import OpenAIError
@@ -93,7 +93,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
                 return ConversationHandler.END
             user_obj = User(telegram_id=user_id, thread_id=thread_id)
             session.add(user_obj)
-            if not commit(session):
+            try:
+                commit(session)
+            except CommitError:
                 await message.reply_text("⚠️ Не удалось сохранить профиль пользователя.")
                 return ConversationHandler.END
 
@@ -220,7 +222,9 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         prof.icr = icr
         prof.cf = cf
         prof.target_bg = target
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             await message.reply_text("⚠️ Не удалось сохранить профиль.")
             return ConversationHandler.END
 
@@ -291,7 +295,9 @@ async def onboarding_timezone(
         user_obj = session.get(User, user_id)
         if user_obj:
             user_obj.timezone = tz_name
-            if not commit(session):
+            try:
+                commit(session)
+            except CommitError:
                 await message.reply_text("⚠️ Не удалось сохранить часовой пояс.")
                 return ConversationHandler.END
 
@@ -381,7 +387,9 @@ async def onboarding_reminders(
                 )
                 for rem in reminders:
                     rem.is_enabled = False
-            if not commit(session):
+            try:
+                commit(session)
+            except CommitError:
                 await query.message.reply_text("⚠️ Не удалось сохранить настройки.")
                 return ConversationHandler.END
 
@@ -431,7 +439,9 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         user_obj = session.get(User, user_id)
         if user_obj:
             user_obj.onboarding_complete = True
-            if not commit(session):
+            try:
+                commit(session)
+            except CommitError:
                 await query.message.reply_text(
                     "⚠️ Не удалось сохранить настройки.",
                     reply_markup=menu_keyboard,

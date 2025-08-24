@@ -30,7 +30,7 @@ from .diabetes.services.db import (
     init_db,
     run_db,
 )
-from .diabetes.services.repository import commit
+from .diabetes.services.repository import CommitError, commit
 from .legacy import router as legacy_router
 from .routers.stats import router as stats_router
 from .schemas.history import ALLOWED_HISTORY_TYPES, HistoryRecordSchema, HistoryType
@@ -133,8 +133,10 @@ async def put_timezone(
             session.add(obj)
         else:
             obj.tz = data.tz
-        if not commit(session):
-            raise HTTPException(status_code=500, detail="db commit failed")
+        try:
+            commit(session)
+        except CommitError as exc:
+            raise HTTPException(status_code=500, detail="db commit failed") from exc
 
     await run_db(_save_timezone)
     return {"status": "ok"}
@@ -178,8 +180,10 @@ async def create_user(
         db_user = session.get(UserDB, data.telegramId)
         if db_user is None:
             session.add(UserDB(telegram_id=data.telegramId, thread_id="webapp"))
-        if not commit(session):
-            raise HTTPException(status_code=500, detail="db commit failed")
+        try:
+            commit(session)
+        except CommitError as exc:
+            raise HTTPException(status_code=500, detail="db commit failed") from exc
 
     await run_db(_create_user)
     return {"status": "ok"}
@@ -219,8 +223,10 @@ async def post_history(
         obj.insulin = data.insulin
         obj.notes = data.notes
         obj.type = validated_type
-        if not commit(session):
-            raise HTTPException(status_code=500, detail="db commit failed")
+        try:
+            commit(session)
+        except CommitError as exc:
+            raise HTTPException(status_code=500, detail="db commit failed") from exc
 
     await run_db(_save)
     return {"status": "ok"}
@@ -274,8 +280,10 @@ async def delete_history(
 
     def _delete(session: Session) -> None:
         session.delete(record)
-        if not commit(session):
-            raise HTTPException(status_code=500, detail="db commit failed")
+        try:
+            commit(session)
+        except CommitError as exc:
+            raise HTTPException(status_code=500, detail="db commit failed") from exc
 
     await run_db(_delete)
     return {"status": "ok"}
@@ -288,6 +296,4 @@ app.include_router(api_router, prefix="/api")
 if __name__ == "__main__":  # pragma: no cover
     import uvicorn
 
-    uvicorn.run(
-        "services.api.app.main:app", host="0.0.0.0", port=8000, ws="wsproto"
-    )
+    uvicorn.run("services.api.app.main:app", host="0.0.0.0", port=8000, ws="wsproto")

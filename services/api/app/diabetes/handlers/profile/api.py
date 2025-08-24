@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from services.api.app import config
 from services.api.app.diabetes.services.db import Profile, User, SessionLocal
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import CommitError, commit
 
 
 logger = logging.getLogger(__name__)
@@ -136,7 +136,11 @@ def save_profile(
     prof.high_threshold = high
     prof.sos_contact = sos_contact
     prof.sos_alerts_enabled = sos_alerts_enabled
-    return bool(commit(session))
+    try:
+        commit(session)
+    except CommitError:
+        return False
+    return True
 
 
 def set_timezone(session: Session, user_id: int, tz: str) -> tuple[bool, bool]:
@@ -145,8 +149,11 @@ def set_timezone(session: Session, user_id: int, tz: str) -> tuple[bool, bool]:
     if not user:
         return False, False
     user.timezone = tz
-    ok = bool(commit(session))
-    return True, ok
+    try:
+        commit(session)
+    except CommitError:
+        return True, False
+    return True, True
 
 
 def fetch_profile(

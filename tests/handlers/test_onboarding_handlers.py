@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
+from services.api.app.diabetes.services.repository import CommitError
 
 from services.api.app.diabetes.services.db import Base, User
 
@@ -129,7 +130,9 @@ async def test_onboarding_target_commit_fail(monkeypatch: pytest.MonkeyPatch) ->
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    monkeypatch.setattr(onboarding, "commit", lambda s: False)
+    monkeypatch.setattr(
+        onboarding, "commit", lambda s: (_ for _ in ()).throw(CommitError())
+    )
     monkeypatch.setattr(onboarding, "build_timezone_webapp_button", lambda: None)
 
     message = DummyMessage()
@@ -162,7 +165,9 @@ async def test_onboarding_timezone_commit_fail(monkeypatch: pytest.MonkeyPatch) 
         session.commit()
 
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    monkeypatch.setattr(onboarding, "commit", lambda s: False)
+    monkeypatch.setattr(
+        onboarding, "commit", lambda s: (_ for _ in ()).throw(CommitError())
+    )
     monkeypatch.setattr(onboarding, "build_timezone_webapp_button", lambda: None)
 
     message = DummyMessage()

@@ -15,15 +15,13 @@ from telegram.ext import (
 
 from services.api.app.diabetes.services.db import SessionLocal, Profile
 from services.api.app.diabetes.utils.ui import back_keyboard, menu_keyboard
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import CommitError, commit
 from . import dose_calc, _cancel_then
 
-SOS_CONTACT, = range(1)
+(SOS_CONTACT,) = range(1)
 
 
-async def sos_contact_start(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def sos_contact_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user to enter emergency contact."""
     message = update.message
     if message is None:
@@ -43,9 +41,7 @@ def _is_valid_contact(text: str) -> bool:
     return bool(username or chat_id)
 
 
-async def sos_contact_save(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def sos_contact_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Save provided contact to profile."""
     message = update.message
     if message is None:
@@ -73,7 +69,9 @@ async def sos_contact_save(
             profile = Profile(telegram_id=user_id)
             session.add(profile)
         profile.sos_contact = contact
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             await message.reply_text(
                 "⚠️ Не удалось сохранить контакт.",
                 reply_markup=menu_keyboard,
@@ -87,9 +85,7 @@ async def sos_contact_save(
     return ConversationHandler.END
 
 
-async def sos_contact_cancel(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def sos_contact_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel SOS contact input."""
     message = update.message
     if message is None:
@@ -101,7 +97,9 @@ async def sos_contact_cancel(
 
 sos_contact_conv = ConversationHandler(
     entry_points=[CommandHandler("soscontact", sos_contact_start)],
-    states={SOS_CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, sos_contact_save)]},
+    states={
+        SOS_CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, sos_contact_save)]
+    },
     fallbacks=[
         MessageHandler(filters.Regex("^↩️ Назад$"), sos_contact_cancel),
         CommandHandler("cancel", sos_contact_cancel),
