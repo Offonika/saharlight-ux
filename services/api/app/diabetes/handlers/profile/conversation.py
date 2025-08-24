@@ -223,7 +223,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     profile = fetch_profile(api, ApiException, user_id)
 
     if not profile:
-        if config.settings.webapp_url:
+        if config.get_webapp_url():
             keyboard = InlineKeyboardMarkup(
                 [
                     [
@@ -260,7 +260,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🌐 Часовой пояс", callback_data="profile_timezone")],
         [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
     ]
-    if config.settings.webapp_url:
+    if config.get_webapp_url():
         rows.insert(
             1,
             [
@@ -510,7 +510,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await sos_handlers.sos_contact_start(update, context)
         return
-    if action == "add" and config.settings.webapp_url:
+    if action == "add" and config.get_webapp_url():
         button = InlineKeyboardButton(
             "📝 Новое",
             web_app=WebAppInfo(reminder_handlers.build_webapp_url("/reminders")),

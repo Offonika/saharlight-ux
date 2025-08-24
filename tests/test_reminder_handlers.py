@@ -3,7 +3,6 @@ from types import TracebackType
 from typing import Any
 from unittest.mock import MagicMock
 
-import importlib
 import pytest
 from telegram import Update, User
 from telegram.ext import CallbackContext
@@ -14,22 +13,9 @@ from services.api.app.diabetes.utils.helpers import INVALID_TIME_MSG
 @pytest.fixture
 def reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setenv("WEBAPP_URL", "https://example.com")
-    import services.api.app.config as config
     import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
-    importlib.reload(config)
-    importlib.reload(reminder_handlers)
-    yield reminder_handlers
-    monkeypatch.delenv("WEBAPP_URL", raising=False)
-    importlib.reload(config)
-    importlib.reload(reminder_handlers)
-
-
-@pytest.fixture
-def settings(reminder_handlers: Any) -> Any:  # noqa: ANN401
-    import services.api.app.config as config
-
-    return config.settings
+    return reminder_handlers
 
 
 class DummyMessage:
@@ -194,19 +180,20 @@ async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None
 )
 def test_build_webapp_url(
     reminder_handlers: Any,
-    settings: Any,
     monkeypatch: pytest.MonkeyPatch,
     base_url: str,
     expected: str,
 ) -> None:
-    monkeypatch.setattr(settings, "webapp_url", base_url)
+    monkeypatch.setenv("WEBAPP_URL", base_url)
     url = reminder_handlers.build_webapp_url("/reminders")
     assert url == expected
     assert "//" not in url.split("://", 1)[1]
 
 
-def test_build_webapp_url_without_base(reminder_handlers: Any, settings: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_webapp_url_without_base(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     path = "/reminders"
-    monkeypatch.setattr(settings, "webapp_url", "")
+    monkeypatch.delenv("WEBAPP_URL", raising=False)
     with pytest.raises(RuntimeError, match="WEBAPP_URL not configured"):
         reminder_handlers.build_webapp_url(path)

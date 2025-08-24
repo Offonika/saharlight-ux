@@ -66,15 +66,14 @@ PLAN_LIMITS = {"free": 5, "pro": 10}
 def build_webapp_url(path: str) -> str:
     """Build an absolute webapp URL from ``path``.
 
-    Raises ``RuntimeError`` if ``config.settings.webapp_url`` is not configured.
+    Raises ``RuntimeError`` if ``WEBAPP_URL`` is not configured.
     """
-    base_url = config.settings.webapp_url
+    base_url = config.get_webapp_url()
     if not base_url:
         raise RuntimeError("WEBAPP_URL not configured")
-    base = base_url.rstrip("/")
     if not path.startswith("/"):
         path = "/" + path
-    return base + path
+    return base_url + path
 
 
 # Map reminder type codes to display names
@@ -170,8 +169,9 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
     if active_count > limit:
         header += " ⚠️"
 
+    webapp_url = config.get_webapp_url()
     add_button_row = None
-    if config.settings.webapp_url:
+    if webapp_url:
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
@@ -181,7 +181,7 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
     if not rems:
         text = header
 
-        if config.settings.webapp_url and add_button_row is not None:
+        if webapp_url and add_button_row is not None:
             text += "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
             return text, InlineKeyboardMarkup([add_button_row])
         text += "\nУ вас нет напоминаний. Отправьте /addreminder."
@@ -198,7 +198,7 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
         line = f"{r.id}. {title}"
         status_icon = "🔔" if r.is_enabled else "🔕"
         row: list[InlineKeyboardButton] = []
-        if config.settings.webapp_url:
+        if webapp_url:
             row.append(
                 InlineKeyboardButton(
                     "✏️",

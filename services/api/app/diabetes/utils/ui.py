@@ -53,21 +53,14 @@ __all__ = (
 )
 
 
-def _webapp_url() -> str | None:
-    """Return ``settings.webapp_url`` without a trailing slash."""
-
-    url = config.settings.webapp_url
-    return url.rstrip("/") if url else None
-
-
 def menu_keyboard() -> ReplyKeyboardMarkup:
     """Build the main menu keyboard.
 
-    ``settings.webapp_url`` is read at call time to determine whether WebApp
-    buttons should be used for profile and reminders.
+    ``config.get_webapp_url()`` is read at call time to determine whether
+    WebApp buttons should be used for profile and reminders.
     """
 
-    webapp_url = _webapp_url()
+    webapp_url = config.get_webapp_url()
     profile_button = (
         KeyboardButton(
             PROFILE_BUTTON_TEXT, web_app=WebAppInfo(f"{webapp_url}/profile")
@@ -155,7 +148,7 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
         Button instance when ``WEBAPP_URL`` is set and valid, otherwise ``None``.
     """
 
-    webapp_url = _webapp_url()
+    webapp_url = config.get_webapp_url()
     if not webapp_url:
         return None
 
