@@ -1,5 +1,4 @@
 import importlib
-from urllib.parse import urlparse
 
 import pytest
 from telegram import MenuButtonWebApp
@@ -32,11 +31,7 @@ async def test_post_init_sets_chat_menu(monkeypatch: pytest.MonkeyPatch) -> None
 
     assert len(calls) == 1
     _, kwargs = calls[0]
-    buttons = kwargs["menu_button"]
-    assert isinstance(buttons, list)
-    assert len(buttons) == 4
-    paths = ["/reminders", "/history", "/profile", "/subscription"]
-    for btn, path in zip(buttons, paths):
-        assert isinstance(btn, MenuButtonWebApp)
-        assert btn.web_app is not None
-        assert urlparse(btn.web_app.url).path == path
+    button = kwargs["menu_button"]
+    assert isinstance(button, MenuButtonWebApp)
+    assert button.web_app is not None
+    assert button.web_app.url == base_url
