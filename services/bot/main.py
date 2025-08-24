@@ -3,17 +3,18 @@
 Bot entry point and configuration.
 """
 
+import asyncio
 import logging
 import sys
 from typing import Any
 
-from telegram import BotCommand
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
 from sqlalchemy.exc import SQLAlchemyError
 
 from services.api.app.diabetes.services.db import init_db
 
 from services.api.app.config import settings
+from services.bot.configure_commands import configure_commands
 
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 logger = logging.getLogger(__name__)
@@ -24,9 +25,7 @@ TELEGRAM_TOKEN = settings.telegram_token
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log errors that occur while processing updates."""
-    logger.exception(
-        "Exception while handling update %s", update, exc_info=context.error
-    )
+    logger.exception("Exception while handling update %s", update, exc_info=context.error)
 
 
 def main() -> None:
@@ -44,9 +43,7 @@ def main() -> None:
         sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
         logger.error("Failed to initialize the database", exc_info=exc)
-        sys.exit(
-            "Database initialization failed. Please check your configuration and try again."
-        )
+        sys.exit("Database initialization failed. Please check your configuration and try again.")
 
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:
@@ -55,31 +52,6 @@ def main() -> None:
         )
         sys.exit(1)
 
-    commands = [
-        BotCommand("start", "Запустить бота"),
-        BotCommand("menu", "Главное меню"),
-        BotCommand("profile", "Мой профиль"),
-        BotCommand("report", "Отчёт"),
-        BotCommand("sugar", "Расчёт сахара"),
-        BotCommand("gpt", "Чат с GPT"),
-        BotCommand("reminders", "Список напоминаний"),
-        BotCommand("addreminder", "Добавить напоминание"),
-        BotCommand("delreminder", "Удалить напоминание"),
-        BotCommand("help", "Справка"),
-    ]
-
-    async def post_init(
-        app: Application[
-            ExtBot[None],
-            ContextTypes.DEFAULT_TYPE,
-            dict[str, Any],
-            dict[str, Any],
-            dict[str, Any],
-            DefaultJobQueue,
-        ],
-    ) -> None:
-        await app.bot.set_my_commands(commands)
-
     application: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
@@ -87,12 +59,9 @@ def main() -> None:
         dict[str, Any],
         dict[str, Any],
         DefaultJobQueue,
-    ] = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .post_init(post_init)  # registers post-init handler
-        .build()
-    )
+    ] = Application.builder().token(BOT_TOKEN).build()
+
+    asyncio.run(configure_commands(application))
     application.add_error_handler(error_handler)
 
     from services.api.app.diabetes.handlers.registration import register_handlers
