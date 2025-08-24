@@ -3,7 +3,7 @@ import { http } from './http';
 
 export async function getReminders(telegramId: number): Promise<Reminder[]> {
   try {
-    return await http.get<Reminder[]>(`/reminders?telegramId=${telegramId}`);
+    return await http.get<Reminder[]>(`/reminders?telegram_id=${telegramId}`);
   } catch (error) {
     console.error('[API] Failed to fetch reminders:', error);
     throw new Error('Не удалось загрузить напоминания');
@@ -16,7 +16,7 @@ export async function getReminder(
 ): Promise<Reminder | null> {
   try {
     const data = await http.get<Reminder | Reminder[]>(
-      `/reminders?telegramId=${telegramId}&id=${id}`,
+      `/reminders?telegram_id=${telegramId}&id=${id}`,
     );
     return Array.isArray(data) ? data[0] ?? null : data ?? null;
   } catch (error) {
@@ -45,7 +45,7 @@ export async function updateReminder(reminder: Reminder) {
 
 export async function deleteReminder(telegramId: number, id: number) {
   try {
-    return await http.delete(`/reminders/${id}?telegramId=${telegramId}`);
+    return await http.delete(`/reminders/${id}?telegram_id=${telegramId}`);
   } catch (error) {
     console.error('Failed to delete reminder:', error);
     throw new Error('Не удалось удалить напоминание');
