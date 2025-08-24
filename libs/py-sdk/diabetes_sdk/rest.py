@@ -16,6 +16,7 @@ import io
 import json
 import re
 import ssl
+from collections.abc import Iterable
 
 import urllib3
 
@@ -188,11 +189,14 @@ class RESTClientObject:
                     del headers["Content-Type"]
                     # Ensure ``fields`` only contains (key, value) tuples and
                     # serialize nested structures to JSON
-                    items = (
-                        post_params.items()
-                        if isinstance(post_params, dict)
-                        else post_params
-                    )
+                    if isinstance(post_params, dict):
+                        items = post_params.items()
+                    elif isinstance(post_params, Iterable):
+                        items = post_params
+                    else:
+                        raise ApiValueError(
+                            "post_params must be a dict or iterable",
+                        )
                     fields = []
                     for item in items:
                         try:
