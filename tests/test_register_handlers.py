@@ -16,7 +16,11 @@ from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
 from services.api.app.diabetes.handlers.registration import register_handlers
 from services.api.app.diabetes.handlers.router import callback_router
 from services.api.app.diabetes.handlers.onboarding_handlers import start_command
-from services.api.app.diabetes.handlers import security_handlers, reminder_handlers
+from services.api.app.diabetes.handlers import (
+    security_handlers,
+    reminder_handlers,
+    webapp_openers,
+)
 
 
 def test_register_handlers_attaches_expected_handlers(
@@ -48,10 +52,14 @@ def test_register_handlers_attaches_expected_handlers(
     assert sugar_handlers.prompt_sugar not in callbacks
     assert callback_router in callbacks
     assert reporting_handlers.report_period_callback in callbacks
-    assert profile_handlers.profile_view in callbacks
     assert profile_handlers.profile_back in callbacks
     assert reporting_handlers.report_request in callbacks
-    assert reporting_handlers.history_view in callbacks
+    assert webapp_openers.open_history_webapp in callbacks
+    assert webapp_openers.open_profile_webapp in callbacks
+    assert webapp_openers.open_subscription_webapp in callbacks
+    assert webapp_openers.open_reminders_webapp in callbacks
+    assert profile_handlers.profile_view not in callbacks
+    assert reporting_handlers.history_view not in callbacks
     assert gpt_handlers.chat_with_gpt in callbacks
     assert security_handlers.hypo_alert_faq in callbacks
     # Reminder handlers should be registered
@@ -161,7 +169,7 @@ def test_register_handlers_attaches_expected_handlers(
         for h in handlers
         if isinstance(h, MessageHandler) and h.callback is profile_handlers.profile_view
     ]
-    assert profile_view_handlers
+    assert not profile_view_handlers
 
     report_handlers = [
         h
@@ -192,7 +200,21 @@ def test_register_handlers_attaches_expected_handlers(
         if isinstance(h, MessageHandler)
         and h.callback is reporting_handlers.history_view
     ]
-    assert history_handlers
+    assert not history_handlers
+
+    reminders_text_handlers = [
+        h
+        for h in handlers
+        if isinstance(h, MessageHandler) and h.callback is reminder_handlers.reminders_list
+    ]
+    assert not reminders_text_handlers
+
+    reminders_cmd_handlers = [
+        h
+        for h in handlers
+        if isinstance(h, CommandHandler) and h.callback is reminder_handlers.reminders_list
+    ]
+    assert not reminders_cmd_handlers
 
     cb_handlers = [
         h

@@ -18,6 +18,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from .onboarding_handlers import onboarding_conv, onboarding_poll_answer
 from .common_handlers import menu_command, help_command, smart_input_help
 from .router import callback_router
+from .webapp_openers import (
+    open_history_webapp,
+    open_profile_webapp,
+    open_reminders_webapp,
+    open_subscription_webapp,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +70,10 @@ def register_handlers(
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("help", help_command))
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("gpt", gpt_handlers.chat_with_gpt))
-    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("reminders", reminder_handlers.reminders_list))
+    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("history", open_history_webapp))
+    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("profile", open_profile_webapp))
+    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("subscription", open_subscription_webapp))
+    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("reminders", open_reminders_webapp))
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("addreminder", reminder_handlers.add_reminder))
     app.add_handler(reminder_handlers.reminder_action_handler)
     app.add_handler(reminder_handlers.reminder_webapp_handler)
@@ -73,24 +82,13 @@ def register_handlers(
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("hypoalert", security_handlers.hypo_alert_faq))
     app.add_handler(PollAnswerHandler[ContextTypes.DEFAULT_TYPE](onboarding_poll_answer))
     app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📄 Мой профиль$"), profile.profile_view)
-    )
-    app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📈 Отчёт$"), reporting_handlers.report_request)
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📊 История$"), reporting_handlers.history_view)
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^📷 Фото еды$"), photo_handlers.photo_prompt)
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^🕹 Быстрый ввод$"), smart_input_help)
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex("^⏰ Напоминания$"), reminder_handlers.reminders_list
-        )
     )
     app.add_handler(
         MessageHandler[ContextTypes.DEFAULT_TYPE](filters.Regex("^ℹ️ Помощь$"), help_command)
