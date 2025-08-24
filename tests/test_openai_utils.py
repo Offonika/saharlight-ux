@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from unittest.mock import AsyncMock, Mock
 
@@ -140,3 +141,4 @@ def test_get_async_openai_client_without_proxy(monkeypatch: pytest.MonkeyPatch) 
     http_client_mock.assert_not_called()
     openai_mock.assert_called_once_with(api_key="key", http_client=None)
     assert client is openai_mock.return_value
+

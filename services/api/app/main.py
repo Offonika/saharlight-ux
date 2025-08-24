@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import time as dt_time
 import logging
 import os
@@ -48,12 +50,14 @@ except (ValueError, SQLAlchemyError) as exc:
         "Database initialization failed. Please check your configuration and try again."
     ) from exc
 
-app = FastAPI(title="Diabetes Assistant API", version="1.0.0")
 
-
-@app.on_event("shutdown")
-async def shutdown_openai_client() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    yield
     dispose_http_client()
+
+
+app = FastAPI(title="Diabetes Assistant API", version="1.0.0", lifespan=lifespan)
 
 
 # ────────── роуты статистики / legacy ──────────

@@ -98,7 +98,9 @@ def dispose_http_client() -> None:
     with _async_http_client_lock:
         if _async_http_client is not None:
             try:
-                asyncio.run(_async_http_client.aclose())
+                loop = asyncio.get_running_loop()
             except RuntimeError:
-                asyncio.get_event_loop().create_task(_async_http_client.aclose())
+                asyncio.run(_async_http_client.aclose())
+            else:
+                loop.create_task(_async_http_client.aclose())
             _async_http_client = None
