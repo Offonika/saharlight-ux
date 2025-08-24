@@ -8,10 +8,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from telegram import (
-    MenuButtonDefault,
-    MenuButtonWebApp,
-)
+from telegram import MenuButtonDefault
+
 
 
 def _reload_main() -> ModuleType:
@@ -29,7 +27,7 @@ def _reload_main() -> ModuleType:
 async def test_post_init_sets_chat_menu_button(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """WEBAPP_URL triggers chat menu button setup."""
+    """Chat menu button is always set to default."""
     monkeypatch.setenv("WEBAPP_URL", "https://app.example")
     main = _reload_main()
     bot = SimpleNamespace(
@@ -43,16 +41,14 @@ async def test_post_init_sets_chat_menu_button(
 
     menu = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
 
-    assert isinstance(menu, MenuButtonWebApp)
-    assert menu.text == "Menu"
-    assert menu.web_app.url == "https://app.example"
+    assert isinstance(menu, MenuButtonDefault)
 
 
 @pytest.mark.asyncio
 async def test_post_init_skips_chat_menu_button_without_url(
     monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Missing WEBAPP_URL skips setup."""
+    ) -> None:
+    """Default menu is used when WEBAPP_URL is missing."""
     monkeypatch.delenv("WEBAPP_URL", raising=False)
     main = _reload_main()
     bot = SimpleNamespace(
