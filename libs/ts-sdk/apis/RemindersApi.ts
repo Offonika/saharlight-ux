@@ -40,11 +40,11 @@ export interface RemindersIdGetRequest {
 }
 
 export interface RemindersPatchRequest {
-    reminder: ReminderSchema;
+    reminder: ReminderSchema | null;
 }
 
 export interface RemindersPostRequest {
-    reminder: ReminderSchema;
+    reminder: ReminderSchema | null;
 }
 
 /**
