@@ -33,7 +33,7 @@ from services.api.app.diabetes.services.reporting import (
     make_sugar_plot,
     generate_pdf_report,
 )
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import menu_keyboard, BACK_BUTTON_TEXT
 from . import UserData
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ def report_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton("Месяц", callback_data="report_period:month"),
             InlineKeyboardButton("Произвольно", callback_data="report_period:custom"),
         ],
-        [InlineKeyboardButton("↩️ Назад", callback_data="report_back")],
+        [InlineKeyboardButton(BACK_BUTTON_TEXT, callback_data="report_back")],
     ]
     return InlineKeyboardMarkup(rows)
 
@@ -193,7 +193,7 @@ async def report_period_callback(
             await message.reply_text(
                 "Ожидаю дату…",
                 reply_markup=ReplyKeyboardMarkup(
-                    [[KeyboardButton("↩️ Назад")]],
+                    [[KeyboardButton(BACK_BUTTON_TEXT)]],
                     resize_keyboard=True,
                     one_time_keyboard=True,
                 ),

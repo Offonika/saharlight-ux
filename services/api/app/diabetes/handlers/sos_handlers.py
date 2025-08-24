@@ -14,7 +14,12 @@ from telegram.ext import (
 )
 
 from services.api.app.diabetes.services.db import SessionLocal, Profile
-from services.api.app.diabetes.utils.ui import back_keyboard, menu_keyboard
+from services.api.app.diabetes.utils.ui import (
+    back_keyboard,
+    menu_keyboard,
+    BACK_BUTTON_TEXT,
+    PHOTO_BUTTON_TEXT,
+)
 from services.api.app.diabetes.services.repository import commit
 from . import dose_calc, _cancel_then
 
@@ -103,10 +108,10 @@ sos_contact_conv = ConversationHandler(
     entry_points=[CommandHandler("soscontact", sos_contact_start)],
     states={SOS_CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, sos_contact_save)]},
     fallbacks=[
-        MessageHandler(filters.Regex("^↩️ Назад$"), sos_contact_cancel),
+        MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), sos_contact_cancel),
         CommandHandler("cancel", sos_contact_cancel),
         MessageHandler(
-            filters.Regex("^📷 Фото еды$"),
+            filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"),
             _cancel_then(dose_calc.photo_prompt),
         ),
     ],

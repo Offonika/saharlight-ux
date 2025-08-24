@@ -3,7 +3,7 @@ import re
 from typing import cast
 
 from telegram.ext import ApplicationBuilder, MessageHandler, filters
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import menu_keyboard, REMINDERS_BUTTON_TEXT
 import services.api.app.diabetes.handlers.registration as handlers
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
@@ -14,7 +14,7 @@ def test_reminders_button_matches_regex() -> None:
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
     button_texts = [btn.text for row in menu_keyboard().keyboard for btn in row]
-    assert "⏰ Напоминания" in button_texts
+    assert REMINDERS_BUTTON_TEXT in button_texts
 
     app = ApplicationBuilder().token("TESTTOKEN").build()
     handlers.register_handlers(app)
@@ -25,5 +25,5 @@ def test_reminders_button_matches_regex() -> None:
         and h.callback is reminder_handlers.reminders_list
     )
     pattern = cast(filters.Regex, reminder_handler.filters).pattern.pattern
-    assert pattern == "^⏰ Напоминания$"
-    assert re.fullmatch(pattern, "⏰ Напоминания")
+    assert pattern == f"^{REMINDERS_BUTTON_TEXT}$"
+    assert re.fullmatch(pattern, REMINDERS_BUTTON_TEXT)
