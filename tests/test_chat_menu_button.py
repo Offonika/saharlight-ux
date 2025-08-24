@@ -1,4 +1,5 @@
 """Tests for ChatMenuButton configuration in bot.main."""
+
 from __future__ import annotations
 
 import importlib
@@ -6,6 +7,7 @@ from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from telegram import MenuButtonWebApp
 
 
 def _reload_main() -> ModuleType:
