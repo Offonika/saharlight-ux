@@ -85,9 +85,11 @@ export const useTelegram = (
     }
     let cancelled = false;
     const params = new URLSearchParams(tg?.initData ?? "");
+    const searchParams = new URLSearchParams(window.location.search);
     const startParam =
       tg?.initDataUnsafe?.start_param ??
       params.get("tgWebAppStartParam") ??
+      searchParams.get("tgWebAppStartParam") ??
       (window as TelegramWindow).tgWebAppStartParam;
     if (startParam === "reminders") {
       navigate("/reminders");

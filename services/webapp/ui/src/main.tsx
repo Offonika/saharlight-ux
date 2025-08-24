@@ -10,6 +10,13 @@ import { TelegramProvider } from '@/contexts/TelegramProvider'
 import './styles/theme.css'
 import './index.css'
 
+const tgStartParam = new URLSearchParams(window.location.search).get(
+  'tgWebAppStartParam',
+)
+if (tgStartParam) {
+  (window as any).tgWebAppStartParam = tgStartParam
+}
+
 const rootElement = document.getElementById('root')
 
 if (rootElement === null) {

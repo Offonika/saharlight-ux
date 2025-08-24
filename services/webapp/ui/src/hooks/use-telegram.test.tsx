@@ -16,6 +16,7 @@ describe("useTelegram start_param", () => {
   afterEach(() => {
     delete (window as any).Telegram;
     delete (window as any).tgWebAppStartParam;
+    window.history.pushState({}, "", "/");
     navigate.mockReset();
   });
 
@@ -55,6 +56,34 @@ describe("useTelegram start_param", () => {
       },
     };
     (window as any).tgWebAppStartParam = "reminders";
+
+    const TestComponent = () => {
+      useTelegram();
+      return null;
+    };
+
+    render(<TestComponent />);
+
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith("/reminders");
+    });
+  });
+
+  it("navigates to reminders when query param tgWebAppStartParam is reminders", async () => {
+    (window as any).Telegram = {
+      WebApp: {
+        initDataUnsafe: { user: { id: 1 } },
+        initData: "",
+        expand: vi.fn(),
+        ready: vi.fn(),
+        onEvent: vi.fn(),
+        offEvent: vi.fn(),
+      },
+    };
+
+    const url = new URL(window.location.href);
+    url.search = "?tgWebAppStartParam=reminders";
+    window.history.pushState({}, "", url);
 
     const TestComponent = () => {
       useTelegram();
