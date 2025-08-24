@@ -11,6 +11,7 @@ import pytest
 from telegram import MenuButtonDefault
 
 
+
 def _reload_main() -> ModuleType:
     import services.api.app.config as config
     import services.api.app.menu_button as menu_button
