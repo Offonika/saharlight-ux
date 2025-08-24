@@ -134,3 +134,14 @@ def test_multipart_invalid_post_params() -> None:
             headers={"Content-Type": "multipart/form-data"},
             post_params=[("foo",)],
         )
+
+
+def test_multipart_invalid_string() -> None:
+    client = _client()
+    with pytest.raises(ApiValueError):
+        client.request(  # type: ignore[no-untyped-call]
+            "POST",
+            "http://example.com",
+            headers={"Content-Type": "multipart/form-data"},
+            post_params="invalid",
+        )
