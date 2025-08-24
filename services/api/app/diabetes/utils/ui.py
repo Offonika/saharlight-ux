@@ -15,6 +15,7 @@ from telegram import (
     WebAppInfo,
 )
 from services.api.app import config
+from services.api.app.diabetes.handlers import reminder_handlers
 
 PROFILE_BUTTON_TEXT = "📄 Мой профиль"
 REMINDERS_BUTTON_TEXT = "⏰ Напоминания"
@@ -63,14 +64,16 @@ def menu_keyboard() -> ReplyKeyboardMarkup:
     webapp_url = config.get_webapp_url()
     profile_button = (
         KeyboardButton(
-            PROFILE_BUTTON_TEXT, web_app=WebAppInfo(f"{webapp_url}/profile")
+            PROFILE_BUTTON_TEXT,
+            web_app=WebAppInfo(reminder_handlers.build_webapp_url("/profile")),
         )
         if webapp_url
         else KeyboardButton(PROFILE_BUTTON_TEXT)
     )
     reminders_button = (
         KeyboardButton(
-            REMINDERS_BUTTON_TEXT, web_app=WebAppInfo(f"{webapp_url}/reminders")
+            REMINDERS_BUTTON_TEXT,
+            web_app=WebAppInfo(reminder_handlers.build_webapp_url("/reminders")),
         )
         if webapp_url
         else KeyboardButton(REMINDERS_BUTTON_TEXT)
@@ -87,6 +90,7 @@ def menu_keyboard() -> ReplyKeyboardMarkup:
         one_time_keyboard=False,
         input_field_placeholder="Выберите действие…",
     )
+
 
 dose_keyboard = ReplyKeyboardMarkup(
     keyboard=[

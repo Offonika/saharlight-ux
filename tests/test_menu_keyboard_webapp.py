@@ -5,8 +5,18 @@ import pytest
 import services.api.app.diabetes.utils.ui as ui
 
 
-@pytest.mark.parametrize("base_url", ["https://example.com", "https://example.com/"])
-def test_menu_keyboard_webapp_urls(monkeypatch: pytest.MonkeyPatch, base_url: str) -> None:
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "https://example.com",
+        "https://example.com/",
+        "https://example.com/ui",
+        "https://example.com/ui/",
+    ],
+)
+def test_menu_keyboard_webapp_urls(
+    monkeypatch: pytest.MonkeyPatch, base_url: str
+) -> None:
     """Menu buttons should open webapp paths for profile and reminders."""
     monkeypatch.setenv("WEBAPP_URL", base_url)
 
@@ -15,6 +25,6 @@ def test_menu_keyboard_webapp_urls(monkeypatch: pytest.MonkeyPatch, base_url: st
     reminders_btn = next(b for b in buttons if b.text == ui.REMINDERS_BUTTON_TEXT)
 
     assert profile_btn.web_app is not None
-    assert urlparse(profile_btn.web_app.url).path == "/profile"
+    assert urlparse(profile_btn.web_app.url).path.endswith("/profile")
     assert reminders_btn.web_app is not None
-    assert urlparse(reminders_btn.web_app.url).path == "/reminders"
+    assert urlparse(reminders_btn.web_app.url).path.endswith("/reminders")
