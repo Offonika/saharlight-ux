@@ -113,7 +113,7 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
     try:
         ZoneInfo(tz_row.tz)
     except ZoneInfoNotFoundError as exc:
-        raise HTTPException(status_code=500, detail="invalid timezone entry") from exc
+        raise HTTPException(status_code=400, detail="invalid timezone entry") from exc
     return {"tz": tz_row.tz}
 
 
