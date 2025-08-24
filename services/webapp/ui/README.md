@@ -36,6 +36,20 @@ pnpm install
 pnpm run dev
 ```
 
+## Testing
+
+Run the Vitest suite to verify the UI behavior:
+
+```sh
+pnpm test
+```
+
+You can also invoke the runner directly:
+
+```sh
+pnpm vitest run --config ../../../vitest.config.ts
+```
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).
