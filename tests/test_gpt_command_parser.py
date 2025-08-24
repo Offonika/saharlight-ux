@@ -407,7 +407,7 @@ def test_extract_first_json_array_single_object() -> None:
     }
 
 
-def test_extract_first_json_array_multiple_objects() -> None:
+def test_extract_first_json_multi_object_array() -> None:
     text = (
         '[{"action":"add_entry","fields":{}},' '{"action":"delete_entry","fields":{}}]'
     )
@@ -475,6 +475,49 @@ def test_extract_first_json_simple_object() -> None:
 
 def test_extract_first_json_no_object() -> None:
     assert gpt_command_parser._extract_first_json("just some text without json") is None
+
+
+def test_extract_first_json_with_escaped_quotes() -> None:
+    text = (
+        'prefix "escaped \\"quote\\"" '
+        '{"action":"add_entry","fields":{"note":"He said \\"hi\\""}}'
+    )
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {"note": 'He said "hi"'},
+    }
+
+
+def test_extract_first_json_array_with_many_objects() -> None:
+    text = (
+        '[{"action":"add_entry","fields":{}},'
+        ' {"action":"delete_entry","fields":{}}]'
+    )
+    assert gpt_command_parser._extract_first_json(text) is None
+
+
+def test_extract_first_json_malformed_then_valid() -> None:
+    text = '{"bad":1] {"action":"add_entry","fields":{}}'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
+def test_extract_first_json_non_dict_reset(monkeypatch: pytest.MonkeyPatch) -> None:
+    orig_loads = gpt_command_parser.json.loads
+
+    def fake_loads(s: str, *args: object, **kwargs: object) -> object:
+        if s == '{"skip":1}':
+            return 1
+        return orig_loads(s, *args, **kwargs)
+
+    monkeypatch.setattr(gpt_command_parser.json, "loads", fake_loads)
+    text = '{"skip":1} {"action":"add_entry","fields":{}}'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
 
 
 @pytest.mark.asyncio
