@@ -8,7 +8,9 @@ import services.api.app.main as server
 
 
 def _run_server() -> Server:
-    config = Config(server.app, host="127.0.0.1", port=8001, log_level="info")
+    config = Config(
+        server.app, host="127.0.0.1", port=8001, log_level="info", ws="wsproto"
+    )
     srv = Server(config)
     thread = threading.Thread(target=srv.run, daemon=True)
     thread.start()

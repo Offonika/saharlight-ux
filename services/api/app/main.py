@@ -284,4 +284,6 @@ app.include_router(api_router, prefix="/api")
 if __name__ == "__main__":  # pragma: no cover
     import uvicorn
 
-    uvicorn.run("services.api.app.main:app", host="0.0.0.0", port=8000)
+    uvicorn.run(
+        "services.api.app.main:app", host="0.0.0.0", port=8000, ws="wsproto"
+    )

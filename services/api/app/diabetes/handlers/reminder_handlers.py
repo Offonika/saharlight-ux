@@ -28,7 +28,10 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest, TelegramError
 
-from services.api.app.config import settings
+from services.api.app import config
+
+# Aliased settings for easier monkeypatching in tests
+settings = config.settings
 from services.api.app.diabetes.services.db import (
     Reminder,
     ReminderLog,
