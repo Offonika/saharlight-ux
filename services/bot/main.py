@@ -4,17 +4,17 @@ Bot entry point and configuration.
 """
 
 import logging
-import os
 import sys
 from typing import Any
 
-from telegram import BotCommand, MenuButtonWebApp, WebAppInfo
+from telegram import BotCommand
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
 from sqlalchemy.exc import SQLAlchemyError
 
 from services.api.app.diabetes.services.db import init_db
 
 from services.api.app.config import settings
+from services.api.app.menu_button import post_init as menu_button_post_init
 
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 logger = logging.getLogger(__name__)
@@ -47,19 +47,7 @@ async def post_init(
     ],
 ) -> None:
     await app.bot.set_my_commands(commands)
-    webapp_url = os.getenv("WEBAPP_URL")
-    if not webapp_url:
-        logger.warning("WEBAPP_URL not configured, skip ChatMenuButton")
-        return
-
-
-    menu = [
-        MenuButtonWebApp("⏰", WebAppInfo(url=f"{webapp_url}/reminders")),
-        MenuButtonWebApp("📊", WebAppInfo(url=f"{webapp_url}/history")),
-        MenuButtonWebApp("📄", WebAppInfo(url=f"{webapp_url}/profile")),
-        MenuButtonWebApp("💳", WebAppInfo(url=f"{webapp_url}/subscription")),
-    ]
-    await app.bot.set_chat_menu_button(menu_button=cast(Any, menu))
+    await menu_button_post_init(app)
 
 
 

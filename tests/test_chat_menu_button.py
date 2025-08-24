@@ -1,15 +1,22 @@
 """Tests for ChatMenuButton configuration in bot.main."""
-
 from __future__ import annotations
 
-import logging
-from types import SimpleNamespace
+import importlib
+from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from telegram import MenuButtonWebApp
 
-from services.bot.main import commands, post_init
+
+def _reload_main() -> ModuleType:
+    import services.api.app.config as config
+    import services.api.app.menu_button as menu_button
+    import services.bot.main as main
+
+    importlib.reload(config)
+    importlib.reload(menu_button)
+    importlib.reload(main)
+    return main
 
 
 @pytest.mark.asyncio
@@ -18,13 +25,14 @@ async def test_post_init_sets_chat_menu_button(
 ) -> None:
     """WEBAPP_URL triggers chat menu button setup."""
     monkeypatch.setenv("WEBAPP_URL", "https://app.example")
+    main = _reload_main()
     bot = SimpleNamespace(
         set_my_commands=AsyncMock(),
         set_chat_menu_button=AsyncMock(),
     )
     app = SimpleNamespace(bot=bot)
-    await post_init(app)
-    bot.set_my_commands.assert_awaited_once_with(commands)
+    await main.post_init(app)
+    bot.set_my_commands.assert_awaited_once_with(main.commands)
     bot.set_chat_menu_button.assert_awaited_once()
 
     menu = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
@@ -41,16 +49,16 @@ async def test_post_init_sets_chat_menu_button(
 
 @pytest.mark.asyncio
 async def test_post_init_skips_chat_menu_button_without_url(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Missing WEBAPP_URL logs warning and skips setup."""
+    """Missing WEBAPP_URL skips setup."""
     monkeypatch.delenv("WEBAPP_URL", raising=False)
+    main = _reload_main()
     bot = SimpleNamespace(
         set_my_commands=AsyncMock(),
         set_chat_menu_button=AsyncMock(),
     )
     app = SimpleNamespace(bot=bot)
-    with caplog.at_level(logging.WARNING, logger="services.bot.main"):
-        await post_init(app)
+    await main.post_init(app)
+    bot.set_my_commands.assert_awaited_once_with(main.commands)
     bot.set_chat_menu_button.assert_not_called()
-    assert "WEBAPP_URL not configured" in caplog.text
