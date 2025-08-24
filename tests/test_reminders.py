@@ -71,9 +71,7 @@ class DummyBot:
     async def send_message(self, chat_id: int | str, text: str, **kwargs: Any) -> None:
         self.messages.append((chat_id, text, kwargs))
 
-    async def answer_callback_query(
-        self, callback_query_id: str, text: str | None = None, **kwargs: Any
-    ) -> None:
+    async def answer_callback_query(self, callback_query_id: str, text: str | None = None, **kwargs: Any) -> None:
         self.cb_answers.append((callback_query_id, text))
 
 
@@ -163,11 +161,7 @@ def test_schedule_reminder_replaces_existing_job() -> None:
     handlers.SessionLocal = TestSession
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow"))
-        session.add(
-            Reminder(
-                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
-            )
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
         session.commit()
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
@@ -199,9 +193,7 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(handlers, "datetime", DummyDatetime)
     user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
-    rem = Reminder(
-        telegram_id=1, type="sugar", interval_hours=2, is_enabled=True, user=user
-    )
+    rem = Reminder(telegram_id=1, type="sugar", interval_hours=2, is_enabled=True, user=user)
     icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏱"
     assert schedule == "каждые 2 ч (next 12:00)"
@@ -211,9 +203,7 @@ def test_schedule_with_next_invalid_timezone_logs_warning(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Invalid/Zone")
-    rem = Reminder(
-        telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user
-    )
+    rem = Reminder(telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user)
     with caplog.at_level(logging.WARNING):
         icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏰"
@@ -224,9 +214,7 @@ def test_schedule_reminder_invalid_timezone_logs_warning(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Bad/Zone")
-    rem = Reminder(
-        id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user
-    )
+    rem = Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user)
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with caplog.at_level(logging.WARNING):
         handlers.schedule_reminder(rem, job_queue)
@@ -265,9 +253,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add_all(
             [
-                Reminder(
-                    id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
-                ),
+                Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True),
                 Reminder(
                     id=2,
                     telegram_id=1,
@@ -296,7 +282,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "2. <s>🔕title2</s>" in text
     assert markup.inline_keyboard
     assert any(
-        btn.web_app is not None and btn.web_app.url.endswith("/ui/reminders")
+        btn.web_app is not None and btn.web_app.url.endswith("/reminders")
         for row in markup.inline_keyboard
         for btn in row
     )
@@ -310,11 +296,7 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config.settings, "webapp_url", None)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(
-            Reminder(
-                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
-            )
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
         session.commit()
     with TestSession() as session:
         text, markup = handlers._render_reminders(session, 1)
@@ -389,7 +371,6 @@ async def test_reminders_list_keyboard_no_webapp(
     captured: dict[str, Any] = {}
 
     async def fake_reply_text(text: str, **kwargs: Any) -> None:
-
         captured["kwargs"] = kwargs
 
     message = MagicMock(spec=Message)
@@ -417,11 +398,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(
-            Reminder(
-                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
-            )
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
         session.commit()
 
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
@@ -653,9 +630,7 @@ def client(
         yield test_client
 
 
-def test_empty_returns_200(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -664,9 +639,7 @@ def test_empty_returns_200(
     assert resp.json() == []
 
 
-def test_nonempty_returns_list(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -697,9 +670,7 @@ def test_nonempty_returns_list(
     ]
 
 
-def test_get_single_reminder(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_get_single_reminder(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -736,9 +707,7 @@ def test_real_404(client: TestClient) -> None:
     assert resp.json() == []
 
 
-def test_get_single_reminder_not_found(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_get_single_reminder_not_found(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -747,9 +716,7 @@ def test_get_single_reminder_not_found(
     assert resp.json() == {"detail": "reminder not found"}
 
 
-def test_post_reminder_forbidden(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_post_reminder_forbidden(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -764,9 +731,7 @@ def test_post_reminder_forbidden(
     fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
 
 
-def test_patch_reminder_forbidden(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_patch_reminder_forbidden(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(

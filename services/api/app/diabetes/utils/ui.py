@@ -26,20 +26,16 @@ __all__ = (
 )
 
 # ─────────────── Reply-клавиатуры (отображаются на экране чата) ───────────────
-_WEBAPP_URL = (
-    config.settings.webapp_url.rstrip("/").removesuffix("/ui")
-    if config.settings.webapp_url
-    else None
-)
+_WEBAPP_URL = config.settings.webapp_url.rstrip("/") if config.settings.webapp_url else None
 
 # Create WebApp buttons when WebApp is configured, fall back to text buttons otherwise
 profile_button = (
-    KeyboardButton("📄 Мой профиль", web_app=WebAppInfo(f"{_WEBAPP_URL}/ui/profile"))
+    KeyboardButton("📄 Мой профиль", web_app=WebAppInfo(f"{_WEBAPP_URL}/profile"))
     if _WEBAPP_URL
     else KeyboardButton("📄 Мой профиль")
 )
 reminders_button = (
-    KeyboardButton("⏰ Напоминания", web_app=WebAppInfo(f"{_WEBAPP_URL}/ui/reminders"))
+    KeyboardButton("⏰ Напоминания", web_app=WebAppInfo(f"{_WEBAPP_URL}/reminders"))
     if _WEBAPP_URL
     else KeyboardButton("⏰ Напоминания")
 )
@@ -122,5 +118,5 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
 
     return InlineKeyboardButton(
         "Определить автоматически",
-        web_app=WebAppInfo(f"{_WEBAPP_URL}/ui/timezone"),
+        web_app=WebAppInfo(f"{_WEBAPP_URL}/timezone"),
     )

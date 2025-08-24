@@ -89,9 +89,7 @@ async def test_profile_command_and_view(
         session.commit()
 
     message = DummyMessage()
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=123))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=123)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=args, user_data={}),
@@ -148,9 +146,7 @@ async def test_profile_command_and_view(
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_invalid_values(
-    monkeypatch: pytest.MonkeyPatch, args: Any, expected_attr: str
-) -> None:
+async def test_profile_command_invalid_values(monkeypatch: pytest.MonkeyPatch, args: Any, expected_attr: str) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -166,9 +162,7 @@ async def test_profile_command_invalid_values(
     monkeypatch.setattr(handlers, "post_profile", post_profile_mock)
 
     message = DummyMessage()
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=args, user_data={}),
@@ -194,9 +188,7 @@ async def test_profile_command_help_and_dialog(monkeypatch: pytest.MonkeyPatch) 
 
     # Test /profile help
     help_msg = DummyMessage()
-    update = cast(
-        Update, SimpleNamespace(message=help_msg, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=help_msg, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=["help"], user_data={}),
@@ -244,9 +236,7 @@ async def test_profile_view_preserves_user_data(
         session.commit()
 
     message = DummyMessage()
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"thread_id": "tid", "foo": "bar"}),
@@ -281,9 +271,7 @@ async def test_profile_view_missing_profile_shows_webapp_button(
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 
     msg = DummyMessage()
-    update = cast(
-        Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(),
@@ -296,4 +284,4 @@ async def test_profile_view_missing_profile_shows_webapp_button(
     button = markup.inline_keyboard[0][0]
     assert button.text == "📝 Заполнить форму"
     assert button.web_app is not None
-    assert urlparse(button.web_app.url).path == "/ui/profile"
+    assert urlparse(button.web_app.url).path == "/profile"
