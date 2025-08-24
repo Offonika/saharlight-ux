@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
+
 
 from telegram import (
     MenuButton,
@@ -10,6 +11,7 @@ from telegram import (
     MenuButtonWebApp,
     WebAppInfo,
 )
+
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
 
 from . import config
@@ -27,7 +29,9 @@ async def post_init(
         DefaultJobQueue,
     ],
 ) -> None:
+
     """Set chat menu buttons to open WebApp sections if configured.
+
 
     Falls back to ``MenuButtonDefault`` when WebApp URLs are disabled.
     """
@@ -36,6 +40,7 @@ async def post_init(
     if not base_url:
         await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
         return
+
     buttons: list[MenuButtonWebApp] = [
         MenuButtonWebApp("Reminders", WebAppInfo(f"{base_url}/reminders")),
         MenuButtonWebApp("Stats", WebAppInfo(f"{base_url}/history")),
@@ -43,6 +48,7 @@ async def post_init(
         MenuButtonWebApp("Billing", WebAppInfo(f"{base_url}/subscription")),
     ]
     await app.bot.set_chat_menu_button(menu_button=cast(MenuButton, buttons))
+
 
 
 __all__ = ["post_init"]

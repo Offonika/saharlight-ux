@@ -1,5 +1,4 @@
 import importlib
-from urllib.parse import urlparse
 
 import pytest
 from telegram import MenuButtonDefault, MenuButtonWebApp
@@ -34,6 +33,7 @@ async def test_post_init_sets_chat_menu(monkeypatch: pytest.MonkeyPatch) -> None
 
     assert len(calls) == 1
     _, kwargs = calls[0]
+
     buttons = kwargs["menu_button"]
     assert isinstance(buttons, list)
     assert len(buttons) == 4
@@ -69,3 +69,4 @@ async def test_post_init_uses_default_menu_without_url(
     _, kwargs = calls[0]
     button = kwargs["menu_button"]
     assert isinstance(button, MenuButtonDefault)
+
