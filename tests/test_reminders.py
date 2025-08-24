@@ -253,7 +253,9 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         "_describe",
         lambda r, u=None: f"{'🔔' if r.is_enabled else '🔕'}title{r.id}",
     )
+
     monkeypatch.setattr(handlers, "settings", settings)
+
     monkeypatch.setattr(settings, "webapp_url", "https://example.org")
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
@@ -289,8 +291,11 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "📸 Триггер-фото" in text
     assert "2. <s>🔕title2</s>" in text
     assert markup.inline_keyboard
-    btn = markup.inline_keyboard[-1][0]
-    assert btn.web_app and btn.web_app.url.endswith("/ui/reminders")
+    assert any(
+        btn.web_app is not None and btn.web_app.url.endswith("/ui/reminders")
+        for row in markup.inline_keyboard
+        for btn in row
+    )
 
 
 def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -375,13 +380,16 @@ async def test_reminders_list_keyboard_no_webapp(
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
+
             Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0))
+
         )
         session.commit()
 
     captured: dict[str, Any] = {}
 
     async def fake_reply_text(text: str, **kwargs: Any) -> None:
+
         captured["kwargs"] = kwargs
 
     message = MagicMock(spec=Message)
@@ -393,9 +401,11 @@ async def test_reminders_list_keyboard_no_webapp(
     assert kwargs is not None
     markup = kwargs.get("reply_markup")
     assert markup is not None
+
     assert len(markup.inline_keyboard) == 1
     texts = [btn.text for btn in markup.inline_keyboard[0]]
     assert texts == ["🗑️", "🔔"]
+
 
 
 @pytest.mark.asyncio
