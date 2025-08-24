@@ -176,18 +176,14 @@ def _render_reminders(
     if active_count > limit:
         header += " ⚠️"
 
-    add_button_row: list[InlineKeyboardButton] | None = None
+    add_button_row = None
     if config.settings.webapp_url:
         add_button_row = [
-
             InlineKeyboardButton(
                 "➕ Добавить",
                 web_app=WebAppInfo(build_webapp_url("/ui/reminders")),
             )
         ]
-        if settings.webapp_url
-        else None
-    )
     if not rems:
         text = header
 
