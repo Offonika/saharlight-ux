@@ -185,5 +185,16 @@ export const useTelegram = (
   };
   const hideBackButton = () => tg?.BackButton?.hide?.();
 
-  return { tg, isReady, user, colorScheme, sendData, showMainButton, hideMainButton, showBackButton, hideBackButton };
+  return {
+    tg,
+    isReady,
+    user,
+    colorScheme,
+    sendData,
+    showMainButton,
+    hideMainButton,
+    showBackButton,
+    hideBackButton,
+    isTelegram: Boolean(tg),
+  };
 };
