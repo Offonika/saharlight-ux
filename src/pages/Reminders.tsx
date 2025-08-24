@@ -159,7 +159,10 @@ export default function Reminders() {
         console.log('[Reminders] API response:', data)
         
         if (cancelled) return
-        const normalized: Reminder[] = (data || []).map((r: ApiReminder) => {
+        
+        // Ensure data is an array before mapping
+        const rawData = Array.isArray(data) ? data : [];
+        const normalized: Reminder[] = rawData.map((r: ApiReminder) => {
           const nt = normalizeType(r.type as ReminderType)
           return {
             id: r.id ?? 0,
