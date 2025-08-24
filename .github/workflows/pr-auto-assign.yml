@@ -12,10 +12,14 @@ jobs:
   assign:
     runs-on: ubuntu-latest
     steps:
-      - name: Add reviewers and labels
+      - name: Add reviewers
         uses: wow-actions/auto-assign@v2
         with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           reviewers: |
             offonar
-          labels: |
-            webapp-sync
+      - name: Add webapp-sync label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: webapp-sync
