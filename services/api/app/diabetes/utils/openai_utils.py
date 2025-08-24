@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import threading
+from typing import Literal, overload
 
 import httpx
 from openai import AsyncOpenAI, OpenAI
@@ -16,6 +17,40 @@ _async_http_client: httpx.AsyncClient | None = None
 _async_http_client_lock = threading.Lock()
 
 
+@overload
+def _build_http_client(
+    proxy: str | None, async_: Literal[False]
+) -> httpx.Client | None: ...
+
+
+@overload
+def _build_http_client(
+    proxy: str | None, async_: Literal[True]
+) -> httpx.AsyncClient | None: ...
+
+
+def _build_http_client(
+    proxy: str | None, async_: bool
+) -> httpx.Client | httpx.AsyncClient | None:
+    """Return an httpx client configured with optional proxy."""
+
+    if proxy is None:
+        return None
+
+    if async_:
+        global _async_http_client
+        with _async_http_client_lock:
+            if _async_http_client is None:
+                _async_http_client = httpx.AsyncClient(proxies=proxy)
+            return _async_http_client
+
+    global _http_client
+    with _http_client_lock:
+        if _http_client is None:
+            _http_client = httpx.Client(proxies=proxy)
+        return _http_client
+
+
 def get_openai_client() -> OpenAI:
     """Return a configured OpenAI client.
 
@@ -29,15 +64,8 @@ def get_openai_client() -> OpenAI:
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
-    client: OpenAI
-    if settings.openai_proxy:
-        global _http_client
-        with _http_client_lock:
-            if _http_client is None:
-                _http_client = httpx.Client(proxies=settings.openai_proxy)
-            client = OpenAI(api_key=settings.openai_api_key, http_client=_http_client)
-    else:
-        client = OpenAI(api_key=settings.openai_api_key, http_client=None)
+    http_client = _build_http_client(settings.openai_proxy, False)
+    client = OpenAI(api_key=settings.openai_api_key, http_client=http_client)
 
     if settings.openai_assistant_id:
         logger.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)
@@ -52,17 +80,8 @@ def get_async_openai_client() -> AsyncOpenAI:
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
-    client: AsyncOpenAI
-    if settings.openai_proxy:
-        global _async_http_client
-        with _async_http_client_lock:
-            if _async_http_client is None:
-                _async_http_client = httpx.AsyncClient(proxies=settings.openai_proxy)
-            client = AsyncOpenAI(
-                api_key=settings.openai_api_key, http_client=_async_http_client
-            )
-    else:
-        client = AsyncOpenAI(api_key=settings.openai_api_key, http_client=None)
+    http_client = _build_http_client(settings.openai_proxy, True)
+    client = AsyncOpenAI(api_key=settings.openai_api_key, http_client=http_client)
 
     if settings.openai_assistant_id:
         logger.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)
@@ -79,7 +98,9 @@ def dispose_http_client() -> None:
     with _async_http_client_lock:
         if _async_http_client is not None:
             try:
-                asyncio.run(_async_http_client.aclose())
+                loop = asyncio.get_running_loop()
             except RuntimeError:
-                asyncio.get_event_loop().create_task(_async_http_client.aclose())
+                asyncio.run(_async_http_client.aclose())
+            else:
+                loop.create_task(_async_http_client.aclose())
             _async_http_client = None

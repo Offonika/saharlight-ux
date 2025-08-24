@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from unittest.mock import AsyncMock, Mock
 
@@ -102,6 +103,7 @@ def test_http_client_lock_used(monkeypatch: pytest.MonkeyPatch) -> None:
     assert dummy_lock.entered and dummy_lock.exited
 
 
+
 def test_get_async_openai_client_requires_api_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -115,11 +117,13 @@ def test_get_async_openai_client_uses_proxy(monkeypatch: pytest.MonkeyPatch) -> 
     fake_async_client = Mock()
     fake_async_client.aclose = AsyncMock()
     async_client_mock = Mock(return_value=fake_async_client)
+
     openai_mock = Mock()
 
     monkeypatch.setattr(openai_utils, "_async_http_client", None)
     monkeypatch.setattr(settings, "openai_api_key", "key")
     monkeypatch.setattr(settings, "openai_proxy", "http://proxy")
+
     monkeypatch.setattr(httpx, "AsyncClient", async_client_mock)
     monkeypatch.setattr(openai_utils, "AsyncOpenAI", openai_mock)
     monkeypatch.setattr(openai_utils, "_http_client", None)
@@ -149,3 +153,4 @@ def test_dispose_http_client_resets_all(monkeypatch: pytest.MonkeyPatch) -> None
     fake_async_client.aclose.assert_awaited_once()
     assert openai_utils._http_client is None
     assert openai_utils._async_http_client is None
+
