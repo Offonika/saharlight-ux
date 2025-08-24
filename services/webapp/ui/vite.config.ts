@@ -8,12 +8,28 @@ import { ServerResponse } from 'node:http'
 function telegramInitPlugin(): Plugin {
   const shared = path.resolve(__dirname, '../public')
   const files = ['telegram-init.js']
+  const telegramInitPath = path.join(shared, 'telegram-init.js')
   const serve = async (res: ServerResponse, file: string) => {
     res.setHeader('Content-Type', 'application/javascript')
     res.end(await readFile(path.join(shared, file), 'utf8'))
   }
   return {
     name: 'telegram-init',
+    resolveId(id, importer) {
+      if (id === 'telegram-init.js' || id === '/ui/telegram-init.js') {
+        return telegramInitPath
+      }
+      if (importer === telegramInitPath && id === './assets/telegram-theme.js') {
+        return { id, external: true }
+      }
+      return null
+    },
+    async load(id) {
+      if (id === telegramInitPath) {
+        return await readFile(telegramInitPath, 'utf8')
+      }
+      return null
+    },
     async configureServer(server: ViteDevServer) {
       server.middlewares.use((req, res, next) => {
         for (const file of files) {
@@ -49,11 +65,6 @@ export default defineConfig(async ({ mode, command }) => {
   const port = 5173 // или оставьте 8080 и укажите его в .lovable.yml
   const rollupOptions = {
     ...(mode === 'development' ? { treeshake: false } : {}),
-    external: [
-      'telegram-init.js',
-      '/telegram-init.js',
-      `${base}telegram-init.js`,
-    ],
     input: {
       main: path.resolve(__dirname, 'index.html'),
       'telegram-theme': path.resolve(
