@@ -194,7 +194,7 @@ EOF
 curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/getChatMenuButton"
 ```
 
-Команды зависят от значения `WEBAPP_URL`, которое должно указывать на публичный HTTPS‑адрес вашего WebApp. Чтобы удалить кастомную кнопку и вернуться к стандартному меню, выполните:
+Команды зависят от значения `WEBAPP_URL`, которое должно указывать на публичный HTTPS‑адрес вашего WebApp. Чтобы вручную удалить кастомную кнопку и вернуться к стандартному меню, выполните:
 
 ```bash
 curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setChatMenuButton" \
@@ -202,7 +202,7 @@ curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setChatMenuButton" \
   -d '{"menu_button":{"type":"default"}}'
 ```
 
-После этого переменную `WEBAPP_URL` можно очистить или убрать из `.env`.
+После этого переменную `WEBAPP_URL` можно очистить или убрать из `.env` — без неё бот автоматически восстанавливает стандартное меню команд.
 
 ### Docker Compose
 

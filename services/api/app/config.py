@@ -11,10 +11,7 @@ from pydantic import Field, field_validator
 try:  # pragma: no cover - import guard
     from pydantic_settings import BaseSettings, SettingsConfigDict
 except ModuleNotFoundError as exc:  # pragma: no cover - executed at import time
-    raise ImportError(
-        "`pydantic-settings` is required. Install it with "
-        "`pip install pydantic-settings`."
-    ) from exc
+    raise ImportError("`pydantic-settings` is required. Install it with `pip install pydantic-settings`.") from exc
 
 
 logger = logging.getLogger(__name__)
@@ -51,21 +48,21 @@ class Settings(BaseSettings):
     uvicorn_workers: int = Field(default=1, alias="UVICORN_WORKERS")
 
     # Optional service URLs and API keys
-    webapp_url: Optional[str] = Field(default=None, alias="WEBAPP_URL")
+    webapp_url: Optional[str] = Field(
+        default=None,
+        alias="WEBAPP_URL",
+        description="Base WebApp URL; if missing, default menu is kept",
+    )
     api_url: Optional[str] = Field(default=None, alias="API_URL")
     openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
-    openai_assistant_id: Optional[str] = Field(
-        default=None, alias="OPENAI_ASSISTANT_ID"
-    )
+    openai_assistant_id: Optional[str] = Field(default=None, alias="OPENAI_ASSISTANT_ID")
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
     telegram_token: Optional[str] = Field(default=None, alias="TELEGRAM_TOKEN")
 
     @field_validator("log_level", mode="before")
     @classmethod
-    def parse_log_level(
-        cls, v: int | str | None
-    ) -> int:  # pragma: no cover - simple parsing
+    def parse_log_level(cls, v: int | str | None) -> int:  # pragma: no cover - simple parsing
         if isinstance(v, str):
             v_lower = v.lower()
             if v_lower in {"1", "true", "debug"}:
