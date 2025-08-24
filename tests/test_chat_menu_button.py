@@ -8,8 +8,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from telegram import MenuButtonWebApp
-
+from telegram import MenuButtonDefault, MenuButtonWebApp
 
 
 def _reload_main() -> ModuleType:
@@ -41,9 +40,9 @@ async def test_post_init_sets_chat_menu_button(
 
     menu = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
 
-    assert isinstance(menu, list)
-    assert all(isinstance(btn, MenuButtonWebApp) for btn in menu)
-    assert menu[0].web_app.url == "https://app.example/reminders"
+    assert isinstance(menu, MenuButtonWebApp)
+    assert menu.text == "Menu"
+    assert menu.web_app.url == "https://app.example"
 
 
 @pytest.mark.asyncio
