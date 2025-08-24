@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from unittest.mock import Mock
 
@@ -100,3 +101,53 @@ def test_http_client_lock_used(monkeypatch: pytest.MonkeyPatch) -> None:
 
     openai_utils.dispose_http_client()
     assert dummy_lock.entered and dummy_lock.exited
+
+
+def test_dispose_http_client_without_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    closed = False
+
+    class DummyAsyncClient:
+        async def aclose(self) -> None:
+            nonlocal closed
+            closed = True
+
+    client = DummyAsyncClient()
+    monkeypatch.setattr(openai_utils, "_async_http_client", client)
+
+    original_run = asyncio.run
+    run_called = False
+
+    def run_wrapper(coro: object) -> object:
+        nonlocal run_called
+        run_called = True
+        return original_run(coro)
+
+    monkeypatch.setattr(asyncio, "run", run_wrapper)
+
+    openai_utils.dispose_http_client()
+
+    assert run_called
+    assert closed
+
+
+@pytest.mark.asyncio
+async def test_dispose_http_client_with_running_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    closed = False
+
+    class DummyAsyncClient:
+        async def aclose(self) -> None:
+            nonlocal closed
+            closed = True
+
+    client = DummyAsyncClient()
+    monkeypatch.setattr(openai_utils, "_async_http_client", client)
+    run_mock = Mock()
+    monkeypatch.setattr(asyncio, "run", run_mock)
+
+    openai_utils.dispose_http_client()
+    await asyncio.sleep(0)
+
+    run_mock.assert_not_called()
+    assert closed
