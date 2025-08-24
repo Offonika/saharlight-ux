@@ -1,6 +1,6 @@
 
-import { render, waitFor, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, waitFor, screen, fireEvent, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 
 const mockNavigate = vi.fn();

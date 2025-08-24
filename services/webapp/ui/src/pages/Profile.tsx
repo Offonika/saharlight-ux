@@ -300,6 +300,25 @@ const Profile = () => {
                   <Save className="w-4 h-4" />
                   Сохранить настройки
                 </MedicalButton>
+                {/* Дополнительные кнопки */}
+                <div className="mt-4 space-y-2">
+                  <MedicalButton
+                    onClick={() => navigate('/history')}
+                    className="w-full flex items-center justify-center gap-2"
+                    size="lg"
+                    variant="secondary"
+                  >
+                    📊 История
+                  </MedicalButton>
+                  <MedicalButton
+                    onClick={() => navigate('/subscription')}
+                    className="w-full flex items-center justify-center gap-2"
+                    size="lg"
+                    variant="secondary"
+                  >
+                    💳 Подписка
+                  </MedicalButton>
+                </div>
               </div>
             </div>
 
