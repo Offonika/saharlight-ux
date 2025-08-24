@@ -1,3 +1,5 @@
+import { http } from './http';
+
 export interface AnalyticsPoint {
   date: string;
   sugar: number;
@@ -24,11 +26,7 @@ export const fallbackDayStats: DayStats = {
 };
 
 export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint[]> {
-  const res = await fetch(`/api/analytics?telegramId=${telegramId}`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch analytics');
-  }
-  const data = await res.json();
+  const data = await http.get<unknown>(`/analytics?telegramId=${telegramId}`);
   if (!Array.isArray(data)) {
     throw new Error('Invalid analytics data');
   }
@@ -36,11 +34,7 @@ export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint
 }
 
 export async function fetchDayStats(telegramId: number): Promise<DayStats> {
-  const res = await fetch(`/api/stats?telegramId=${telegramId}`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch stats');
-  }
-  const data = await res.json();
+  const data = await http.get<unknown>(`/stats?telegramId=${telegramId}`);
 
   if (!data || typeof data !== 'object' || Array.isArray(data)) {
     throw new Error('Invalid stats data');
