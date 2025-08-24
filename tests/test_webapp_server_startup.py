@@ -1,5 +1,6 @@
 """Tests for API server startup checks."""
 
+import asyncio
 import importlib
 from pathlib import Path
 
@@ -25,4 +26,6 @@ def test_app_import_without_ui(monkeypatch: pytest.MonkeyPatch) -> None:
     from services.api.app.diabetes.services import db
 
     monkeypatch.setattr(db, "init_db", lambda: None)
-    importlib.reload(importlib.import_module("services.api.app.main"))
+    main = importlib.reload(importlib.import_module("services.api.app.main"))
+    asyncio.run(main.app.router.startup())
+    asyncio.run(main.app.router.shutdown())

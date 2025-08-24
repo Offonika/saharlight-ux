@@ -42,17 +42,17 @@ from services.api.app.diabetes.utils.openai_utils import dispose_http_client
 
 # ────────── init ──────────
 logger = logging.getLogger(__name__)
-try:
-    init_db()  # создаёт/инициализирует БД
-except (ValueError, SQLAlchemyError) as exc:
-    logger.error("Failed to initialize the database: %s", exc)
-    raise RuntimeError(
-        "Database initialization failed. Please check your configuration and try again."
-    ) from exc
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    try:
+        init_db()  # создаёт/инициализирует БД
+    except (ValueError, SQLAlchemyError) as exc:
+        logger.error("Failed to initialize the database: %s", exc)
+        raise RuntimeError(
+            "Database initialization failed. Please check your configuration and try again."
+        ) from exc
     yield
     dispose_http_client()
 

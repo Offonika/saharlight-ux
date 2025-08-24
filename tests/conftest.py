@@ -45,6 +45,17 @@ setattr(sqlalchemy, "create_engine", _tracking_create_engine)
 db_module.init_db = lambda: None
 
 
+@pytest.fixture(autouse=True)
+def _reset_init_db() -> Iterator[None]:
+    yield
+    from services.api.app.diabetes.services import db as db_module
+    db_module.init_db = lambda: None
+    import sys
+    main_module = sys.modules.get("services.api.app.main")
+    if main_module is not None:
+        setattr(main_module, "init_db", db_module.init_db)
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _build_ui_assets() -> Iterator[None]:
     """Build webapp UI if static assets are missing."""
