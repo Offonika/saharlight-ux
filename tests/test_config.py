@@ -26,3 +26,4 @@ def test_init_db_raises_when_no_password(monkeypatch: pytest.MonkeyPatch) -> Non
     assert config.get_db_password() is None
     with pytest.raises(ValueError):
         db.init_db()
+    db.init_db = lambda: None

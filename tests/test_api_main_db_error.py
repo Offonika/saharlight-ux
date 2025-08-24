@@ -1,3 +1,4 @@
+import asyncio
 import importlib
 import logging
 
@@ -16,14 +17,21 @@ def test_main_logs_db_error(
         raise SQLAlchemyError("boom")
 
     monkeypatch.setattr(db, "init_db", faulty_init_db)
+    main = importlib.reload(main)
+
+    async def _start() -> None:
+        async with main.app.router.lifespan_context(main.app):
+            pass
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(RuntimeError, match="Database initialization failed"):
-            importlib.reload(main)
+            asyncio.run(_start())
     assert any(
         "Failed to initialize the database" in record.getMessage()
         for record in caplog.records
     )
 
     monkeypatch.setattr(db, "init_db", lambda: None)
-    importlib.reload(main)
+    main = importlib.reload(main)
+
+    asyncio.run(_start())
