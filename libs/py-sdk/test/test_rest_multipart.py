@@ -55,6 +55,25 @@ def test_multipart_list() -> None:
     ]
 
 
+def test_multipart_tuple() -> None:
+    client = _client()
+    mock = MagicMock(return_value=_mock_response())
+    client.pool_manager.request = mock  # type: ignore[method-assign]
+    client.request(  # type: ignore[no-untyped-call]
+        "POST",
+        "http://example.com",
+        headers={"Content-Type": "multipart/form-data"},
+        post_params=(("foo", "bar"), ("baz", {"a": 1})),
+    )
+    kwargs = mock.call_args.kwargs
+    assert kwargs["encode_multipart"] is True
+    assert all(len(item) == 2 for item in kwargs["fields"])
+    assert kwargs["fields"] == [
+        ("foo", "bar"),
+        ("baz", json.dumps({"a": 1})),
+    ]
+
+
 def test_multipart_nested_dict() -> None:
     client = _client()
     mock = MagicMock(return_value=_mock_response())
