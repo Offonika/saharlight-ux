@@ -8,7 +8,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from telegram import MenuButtonDefault, MenuButtonWebApp
+from telegram import (
+    MenuButtonDefault,
+    MenuButtonWebApp,
+)
 
 
 def _reload_main() -> ModuleType:
