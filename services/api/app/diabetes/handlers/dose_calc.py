@@ -29,6 +29,13 @@ from services.api.app.diabetes.utils.ui import (
     confirm_keyboard,
     dose_keyboard,
     menu_keyboard,
+    PHOTO_BUTTON_TEXT,
+    SUGAR_BUTTON_TEXT,
+    DOSE_BUTTON_TEXT,
+    HISTORY_BUTTON_TEXT,
+    REPORT_BUTTON_TEXT,
+    PROFILE_BUTTON_TEXT,
+    BACK_BUTTON_TEXT,
 )
 
 from . import EntryData, UserData
@@ -327,7 +334,7 @@ chat_with_gpt = _gpt_handlers.chat_with_gpt
 dose_conv = ConversationHandler(
     entry_points=[
         CommandHandler("dose", dose_start),
-        MessageHandler(filters.Regex("^💉 Доза инсулина$"), dose_start),
+        MessageHandler(filters.Regex(f"^{DOSE_BUTTON_TEXT}$"), dose_start),
     ],
     states={
         DOSE_METHOD: [
@@ -338,23 +345,23 @@ dose_conv = ConversationHandler(
         DOSE_SUGAR: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)],
     },
     fallbacks=[
-        MessageHandler(filters.Regex("^↩️ Назад$"), dose_cancel),
+        MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
         MessageHandler(
-            filters.Regex("^📷 Фото еды$"), cast(object, _cancel_then(photo_prompt))
+            filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), cast(object, _cancel_then(photo_prompt))
         ),
         MessageHandler(
-            filters.Regex("^🩸 Уровень сахара$"),
+            filters.Regex(f"^{SUGAR_BUTTON_TEXT}$"),
             cast(object, _cancel_then(sugar_start)),
         ),
         MessageHandler(
-            filters.Regex("^📊 История$"), cast(object, _cancel_then(history_view))
+            filters.Regex(f"^{HISTORY_BUTTON_TEXT}$"), cast(object, _cancel_then(history_view))
         ),
         MessageHandler(
-            filters.Regex("^📈 Отчёт$"), cast(object, _cancel_then(report_request))
+            filters.Regex(f"^{REPORT_BUTTON_TEXT}$"), cast(object, _cancel_then(report_request))
         ),
         MessageHandler(
-            filters.Regex("^📄 Мой профиль$"), cast(object, _cancel_then(profile_view))
+            filters.Regex(f"^{PROFILE_BUTTON_TEXT}$"), cast(object, _cancel_then(profile_view))
         ),
     ],
 )
