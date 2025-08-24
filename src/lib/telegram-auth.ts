@@ -1,7 +1,7 @@
 const HEADER = 'x-telegram-init-data';
 const LS_KEY = 'tg_init_data';
 
-function getDevInitData(): string | null {
+export function getDevInitData(): string | null {
   if (typeof localStorage !== 'undefined') {
     const ls = localStorage.getItem(LS_KEY);
     if (ls) return ls;
