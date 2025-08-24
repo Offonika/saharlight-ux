@@ -8,7 +8,7 @@ describe('getTelegramAuthHeaders', () => {
     // Ensure clean globals and env
     (globalThis as any).window = {};
     delete (globalThis as any).localStorage;
-    (import.meta.env as any).DEV = false;
+    (import.meta.env as any).MODE = 'production';
     delete (import.meta.env as any).VITE_TELEGRAM_INIT_DATA;
   });
 
@@ -27,7 +27,7 @@ describe('getTelegramAuthHeaders', () => {
   it('falls back to localStorage in dev when global init data absent', () => {
     const localInit = 'localInit';
     (globalThis as any).localStorage = { getItem: vi.fn(() => localInit) };
-    (import.meta.env as any).DEV = true;
+    (import.meta.env as any).MODE = 'development';
 
     const headers = getTelegramAuthHeaders();
     expect(headers[HEADER]).toBe(localInit);
@@ -36,10 +36,16 @@ describe('getTelegramAuthHeaders', () => {
 
   it('uses VITE_TELEGRAM_INIT_DATA env var when localStorage is empty', () => {
     (globalThis as any).localStorage = { getItem: vi.fn(() => null) };
-    (import.meta.env as any).DEV = true;
+    (import.meta.env as any).MODE = 'development';
     (import.meta.env as any).VITE_TELEGRAM_INIT_DATA = 'envInit';
 
     const headers = getTelegramAuthHeaders();
     expect(headers[HEADER]).toBe('envInit');
+  });
+
+  it('does not inject headers in production when no init data', () => {
+    const headers = getTelegramAuthHeaders();
+    expect(headers[HEADER]).toBeUndefined();
+    expect(Object.keys(headers).length).toBe(0);
   });
 });
