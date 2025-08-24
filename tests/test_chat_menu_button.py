@@ -28,9 +28,9 @@ async def test_post_init_sets_chat_menu_button(
     menu = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
     assert [b.web_app.url for b in menu] == [
         "https://app.example/reminders",
-        "https://app.example/stats",
+        "https://app.example/history",
         "https://app.example/profile",
-        "https://app.example/billing",
+        "https://app.example/subscription",
     ]
 
 

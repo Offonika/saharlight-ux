@@ -30,9 +30,9 @@ async def post_init(
     base_url = base_url.rstrip("/")
     buttons: list[MenuButtonWebApp] = [
         MenuButtonWebApp("Reminders", WebAppInfo(f"{base_url}/reminders")),
-        MenuButtonWebApp("Stats", WebAppInfo(f"{base_url}/stats")),
+        MenuButtonWebApp("Stats", WebAppInfo(f"{base_url}/history")),
         MenuButtonWebApp("Profile", WebAppInfo(f"{base_url}/profile")),
-        MenuButtonWebApp("Billing", WebAppInfo(f"{base_url}/billing")),
+        MenuButtonWebApp("Billing", WebAppInfo(f"{base_url}/subscription")),
     ]
     await app.bot.set_chat_menu_button(
         menu_button=cast(MenuButton, buttons)
