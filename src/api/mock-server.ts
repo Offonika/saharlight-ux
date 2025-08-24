@@ -1,0 +1,41 @@
+
+// Mock server для тестирования в режиме разработки
+let mockReminders: any[] = [];
+let nextId = 1;
+
+export const mockApi = {
+  async getReminders(telegramId: number) {
+    console.log('[MockAPI] Getting reminders for telegram ID:', telegramId);
+    return mockReminders.filter(r => r.telegramId === telegramId);
+  },
+
+  async createReminder(reminder: any) {
+    console.log('[MockAPI] Creating reminder:', reminder);
+    const newReminder = {
+      ...reminder,
+      id: nextId++,
+    };
+    mockReminders.push(newReminder);
+    return { id: newReminder.id, status: 'ok' };
+  },
+
+  async updateReminder(reminder: any) {
+    console.log('[MockAPI] Updating reminder:', reminder);
+    const index = mockReminders.findIndex(r => r.id === reminder.id);
+    if (index >= 0) {
+      mockReminders[index] = reminder;
+    }
+    return { id: reminder.id, status: 'ok' };
+  },
+
+  async deleteReminder(telegramId: number, id: number) {
+    console.log('[MockAPI] Deleting reminder:', id);
+    mockReminders = mockReminders.filter(r => !(r.id === id && r.telegramId === telegramId));
+    return { status: 'ok' };
+  },
+
+  async getReminder(telegramId: number, id: number) {
+    console.log('[MockAPI] Getting single reminder:', id);
+    return mockReminders.find(r => r.id === id && r.telegramId === telegramId) || null;
+  }
+};

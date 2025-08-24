@@ -1,8 +1,17 @@
+
 import { Reminder } from '@sdk';
 import { http } from './http';
+import { mockApi } from './mock-server';
+
+// Определяем, находимся ли мы в режиме разработки
+const isDevelopment = import.meta.env.DEV;
 
 export async function getReminders(telegramId: number): Promise<Reminder[]> {
   try {
+    if (isDevelopment) {
+      console.log('[API] Using mock server for getReminders');
+      return await mockApi.getReminders(telegramId);
+    }
     return await http.get<Reminder[]>(`/reminders?telegramId=${telegramId}`);
   } catch (error) {
     console.error('[API] Failed to fetch reminders:', error);
@@ -15,6 +24,10 @@ export async function getReminder(
   id: number,
 ): Promise<Reminder | null> {
   try {
+    if (isDevelopment) {
+      console.log('[API] Using mock server for getReminder');
+      return await mockApi.getReminder(telegramId, id);
+    }
     const data = await http.get<Reminder | Reminder[]>(
       `/reminders?telegramId=${telegramId}&id=${id}`,
     );
@@ -27,6 +40,10 @@ export async function getReminder(
 
 export async function createReminder(reminder: Reminder) {
   try {
+    if (isDevelopment) {
+      console.log('[API] Using mock server for createReminder');
+      return await mockApi.createReminder(reminder);
+    }
     return await http.post<Reminder>('/reminders', { reminder });
   } catch (error) {
     console.error('Failed to create reminder:', error);
@@ -36,6 +53,10 @@ export async function createReminder(reminder: Reminder) {
 
 export async function updateReminder(reminder: Reminder) {
   try {
+    if (isDevelopment) {
+      console.log('[API] Using mock server for updateReminder');
+      return await mockApi.updateReminder(reminder);
+    }
     return await http.patch<Reminder>('/reminders', { reminder });
   } catch (error) {
     console.error('Failed to update reminder:', error);
@@ -45,6 +66,10 @@ export async function updateReminder(reminder: Reminder) {
 
 export async function deleteReminder(telegramId: number, id: number) {
   try {
+    if (isDevelopment) {
+      console.log('[API] Using mock server for deleteReminder');
+      return await mockApi.deleteReminder(telegramId, id);
+    }
     return await http.delete(`/reminders/${id}?telegramId=${telegramId}`);
   } catch (error) {
     console.error('Failed to delete reminder:', error);
