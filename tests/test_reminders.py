@@ -383,11 +383,7 @@ async def test_reminders_list_keyboard_no_webapp(
     monkeypatch.setattr(config.settings, "webapp_url", None)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(
-
-            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0))
-
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
         session.commit()
 
     captured: dict[str, Any] = {}
@@ -409,7 +405,6 @@ async def test_reminders_list_keyboard_no_webapp(
     assert len(markup.inline_keyboard) == 1
     texts = [btn.text for btn in markup.inline_keyboard[0]]
     assert texts == ["🗑️", "🔔"]
-
 
 
 @pytest.mark.asyncio
