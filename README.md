@@ -154,6 +154,26 @@ python services/api/app/main.py
    ```
    Приложение также подключает маршруты из `legacy.py`, предоставляя эндпоинты `/api/profiles` и `/api/reminders`, совместимые с SDK.
 
+### Кнопка WebApp в меню
+
+После деплоя WebApp и указания переменной `WEBAPP_URL` можно добавить ссылку на приложение в меню чата Telegram:
+
+```bash
+curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setChatMenuButton" \
+  -H "Content-Type: application/json" \
+  -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Open WebApp\",\"web_app\":{\"url\":\"${WEBAPP_URL}\"}}}"
+```
+
+Команда зависит от значения `WEBAPP_URL`, которое должно указывать на публичный HTTPS‑адрес вашего WebApp. Чтобы удалить кастомную кнопку и вернуться к стандартному меню, выполните:
+
+```bash
+curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setChatMenuButton" \
+  -H "Content-Type: application/json" \
+  -d '{"menu_button":{"type":"default"}}'
+```
+
+После этого переменную `WEBAPP_URL` можно очистить или убрать из `.env`.
+
 ### Docker Compose
 
 Перед запуском создайте файл `.env` в корне проекта (например, `cp infra/env/.env.example .env`) и убедитесь, что в `infra/docker/docker-compose.yml` путь `env_file` указывает на него (`../../.env`).
