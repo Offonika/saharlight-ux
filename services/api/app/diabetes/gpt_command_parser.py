@@ -34,7 +34,8 @@ SYSTEM_PROMPT = (
     '  "time": "HH:MM",                          '
     "// ⇦ если в сообщении было лишь время\n"
     '  "fields": { ... }                         '
-    "// xe, carbs_g, dose, sugar_before и пр.\n"
+    "// параметры (xe, carbs_g, dose, sugar_before и др.); "
+    "если они не нужны — опусти это поле\n"
     "}\n\n"
     "📌  Правила временных полей:\n"
     "•  Если пользователь назвал только время (напр. «в 9:00») — заполни поле "
@@ -169,7 +170,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
     -------
     dict[str, object] | None
         A dictionary with keys like ``action``, ``entry_date`` or ``time`` and
-        nested ``fields`` describing the command, or ``None`` if parsing fails.
+        optional ``fields`` describing the command, or ``None`` if parsing fails.
     """
 
     try:
@@ -234,7 +235,12 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
         logger.error("No JSON object found in response")
         return None
     try:
-        return CommandSchema.model_validate(parsed).model_dump(exclude_none=True)
+        cmd = CommandSchema.model_validate(parsed)
     except ValidationError:
         logger.exception("Invalid command structure")
         return None
+    cmd_dict = cmd.model_dump(exclude_none=True)
+    if cmd.action != "get_day_summary" and "fields" not in cmd_dict:
+        logger.error("Invalid command structure")
+        return None
+    return cmd_dict
