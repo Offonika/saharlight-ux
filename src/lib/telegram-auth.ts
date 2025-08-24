@@ -15,7 +15,8 @@ export function getTelegramAuthHeaders(): Record<string, string> {
   const globalInitData = (
     window as unknown as { Telegram?: { WebApp?: { initData?: string } } }
   )?.Telegram?.WebApp?.initData;
-  const initData = globalInitData || (import.meta.env.DEV ? getDevInitData() : null);
+  const initData =
+    globalInitData || (import.meta.env.MODE !== 'production' ? getDevInitData() : null);
   if (initData) {
     headers[HEADER] = initData;
   }
