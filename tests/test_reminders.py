@@ -15,8 +15,6 @@ from sqlalchemy.pool import StaticPool
 from telegram import Message, Update, User
 from telegram.ext import CallbackContext, Job
 
-# Ensure handlers use current settings after config reloads
-from services.api.app import config
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.services.db import (
@@ -234,13 +232,6 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
     monkeypatch.setenv("WEBAPP_URL", "https://example.org")
-    import importlib
-    import services.api.app.config as config_module
-
-    importlib.reload(config_module)
-    global config
-    config = config_module
-    importlib.reload(handlers)
     monkeypatch.setattr(handlers, "_limit_for", lambda u: 1)
     # Make _describe deterministic and include status icon to test strikethrough
     monkeypatch.setattr(
@@ -293,7 +284,7 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.setattr(config.settings, "webapp_url", None)
+    monkeypatch.delenv("WEBAPP_URL", raising=False)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
@@ -314,7 +305,7 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.setattr(config.settings, "webapp_url", None)
+    monkeypatch.delenv("WEBAPP_URL", raising=False)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
@@ -330,7 +321,7 @@ async def test_reminders_list_no_keyboard(monkeypatch: pytest.MonkeyPatch) -> No
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.setattr(config.settings, "webapp_url", None)
+    monkeypatch.delenv("WEBAPP_URL", raising=False)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
@@ -362,7 +353,7 @@ async def test_reminders_list_keyboard_no_webapp(
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.setattr(config.settings, "webapp_url", None)
+    monkeypatch.delenv("WEBAPP_URL", raising=False)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))

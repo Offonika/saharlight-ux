@@ -93,3 +93,10 @@ def get_db_password() -> Optional[str]:
     """
 
     return os.environ.get("DB_PASSWORD")
+
+
+def get_webapp_url() -> str | None:
+    """Return ``WEBAPP_URL`` from the environment without a trailing slash."""
+
+    url = os.getenv("WEBAPP_URL")
+    return url.rstrip("/") if url else None
