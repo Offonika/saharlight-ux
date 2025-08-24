@@ -99,7 +99,7 @@ def test_timezone_partial_file(
 
     with TestClient(server.app) as client:
         resp = client.get("/api/timezone", headers=auth_headers)
-        assert resp.status_code == 500
+        assert resp.status_code == 400
 
 
 def test_timezone_concurrent_writes(
