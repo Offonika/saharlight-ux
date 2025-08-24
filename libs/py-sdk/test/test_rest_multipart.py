@@ -1,9 +1,11 @@
 import json
 from unittest.mock import MagicMock
 
+import pytest
 import urllib3
 
 from diabetes_sdk.configuration import Configuration
+from diabetes_sdk.exceptions import ApiValueError
 from diabetes_sdk.rest import RESTClientObject
 
 
@@ -68,3 +70,14 @@ def test_multipart_nested_dict() -> None:
     assert kwargs["encode_multipart"] is True
     assert all(len(item) == 2 for item in kwargs["fields"])
     assert kwargs["fields"] == [("nested", json.dumps(nested))]
+
+
+def test_multipart_invalid_post_params() -> None:
+    client = _client()
+    with pytest.raises(ApiValueError):
+        client.request(  # type: ignore[no-untyped-call]
+            "POST",
+            "http://example.com",
+            headers={"Content-Type": "multipart/form-data"},
+            post_params=[("foo",)],
+        )

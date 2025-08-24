@@ -175,17 +175,24 @@ def _render_reminders(
     header = f"Ваши напоминания  ({active_count} / {limit} 🔔)"
     if active_count > limit:
         header += " ⚠️"
+
     add_button_row: list[InlineKeyboardButton] | None = None
     if config.settings.webapp_url:
         add_button_row = [
+
             InlineKeyboardButton(
                 "➕ Добавить",
                 web_app=WebAppInfo(build_webapp_url("/ui/reminders")),
             )
         ]
+        if settings.webapp_url
+        else None
+    )
     if not rems:
         text = header
+
         if config.settings.webapp_url and add_button_row is not None:
+
             text += (
                 "\nУ вас нет напоминаний. "
                 "Нажмите кнопку ниже или отправьте /addreminder."
@@ -360,10 +367,10 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             text, keyboard = render_fn(session, user_id)
     else:
         text, keyboard = await run_db(render_fn, user_id, sessionmaker=SessionLocal)
+    kwargs = {"parse_mode": "HTML"}
     if keyboard is not None:
-        await message.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
-    else:
-        await message.reply_text(text, parse_mode="HTML")
+        kwargs["reply_markup"] = keyboard
+    await message.reply_text(text, **kwargs)
 
 
 async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
