@@ -93,7 +93,7 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/api/user`;
+        let urlPath = `/user`;
 
         const response = await this.request({
             path: urlPath,
@@ -139,7 +139,7 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/api/analytics`;
+        let urlPath = `/analytics`;
 
         const response = await this.request({
             path: urlPath,
@@ -179,7 +179,7 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/api/user/{user_id}/role`;
+        let urlPath = `/user/{user_id}/role`;
         urlPath = urlPath.replace(`{${"user_id"}}`, encodeURIComponent(String(requestParameters['userId'])));
 
         const response = await this.request({
@@ -224,7 +224,7 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/api/stats`;
+        let urlPath = `/stats`;
 
         const response = await this.request({
             path: urlPath,
@@ -264,7 +264,7 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/api/timezone`;
+        let urlPath = `/timezone`;
 
         const response = await this.request({
             path: urlPath,
@@ -293,7 +293,7 @@ export class DefaultApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/api/health`;
+        let urlPath = `/health`;
 
         const response = await this.request({
             path: urlPath,
@@ -326,7 +326,7 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/api/profile/self`;
+        let urlPath = `/profile/self`;
 
         const response = await this.request({
             path: urlPath,
@@ -375,7 +375,7 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/api/user/{user_id}/role`;
+        let urlPath = `/user/{user_id}/role`;
         urlPath = urlPath.replace(`{${"user_id"}}`, encodeURIComponent(String(requestParameters['userId'])));
 
         const response = await this.request({
@@ -419,7 +419,7 @@ export class DefaultApi extends runtime.BaseAPI {
         }
 
 
-        let urlPath = `/api/timezone`;
+        let urlPath = `/timezone`;
 
         const response = await this.request({
             path: urlPath,
