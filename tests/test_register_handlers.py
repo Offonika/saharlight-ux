@@ -7,13 +7,19 @@ from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
     ConversationHandler,
+    ContextTypes,
+    JobQueue,
     MessageHandler,
 )
 from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
     CallbackQueryNoWarnHandler,
 )
 
-from services.api.app.diabetes.handlers.registration import register_handlers
+from services.api.app.diabetes.handlers.registration import (
+    register_handlers,
+    register_profile_handlers,
+    register_reminder_handlers,
+)
 from services.api.app.diabetes.handlers.router import callback_router
 from services.api.app.diabetes.handlers.onboarding_handlers import start_command
 from services.api.app.diabetes.handlers import security_handlers, reminder_handlers
@@ -214,3 +220,76 @@ def test_register_handlers_attaches_expected_handlers(
         and h.callback is profile_handlers.profile_back
     ]
     assert profile_back_handlers
+
+
+def test_register_profile_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
+    os.environ.setdefault("OPENAI_API_KEY", "test")
+    os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
+    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    from services.api.app.diabetes.handlers import profile as profile_handlers
+
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+    register_profile_handlers(app)
+
+    handlers = app.handlers[0]
+
+    assert profile_handlers.profile_conv in handlers
+    assert profile_handlers.profile_webapp_handler in handlers
+    assert any(
+        isinstance(h, MessageHandler) and h.callback is profile_handlers.profile_view
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CallbackQueryHandler)
+        and h.callback is profile_handlers.profile_security
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CallbackQueryHandler)
+        and h.callback is profile_handlers.profile_back
+        for h in handlers
+    )
+
+
+def test_register_reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
+    os.environ.setdefault("OPENAI_API_KEY", "test")
+    os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
+    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    from services.api.app.diabetes.handlers import reminder_handlers as rh
+
+    called = False
+
+    def fake_schedule(job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(rh, "schedule_all", fake_schedule)
+
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+    register_reminder_handlers(app)
+
+    assert called
+    handlers = app.handlers[0]
+
+    assert any(
+        isinstance(h, CommandHandler) and h.callback is rh.reminders_list
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CommandHandler) and h.callback is rh.add_reminder
+        for h in handlers
+    )
+    assert rh.reminder_action_handler in handlers
+    assert rh.reminder_webapp_handler in handlers
+    assert any(
+        isinstance(h, CommandHandler) and h.callback is rh.delete_reminder
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, MessageHandler) and h.callback is rh.reminders_list
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CallbackQueryHandler) and h.callback is rh.reminder_callback
+        for h in handlers
+    )
