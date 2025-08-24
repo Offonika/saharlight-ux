@@ -1,3 +1,5 @@
+import { http } from './http';
+
 export interface HistoryRecord {
   id: string;
   date: string;
@@ -12,11 +14,7 @@ export interface HistoryRecord {
 
 export async function getHistory(): Promise<HistoryRecord[]> {
   try {
-    const res = await fetch('/api/history');
-    if (!res.ok) {
-      throw new Error('Не удалось загрузить историю');
-    }
-    const data = await res.json();
+    const data = await http.get<unknown>('/history');
     if (!Array.isArray(data)) {
       throw new Error('Некорректный ответ');
     }
@@ -29,16 +27,7 @@ export async function getHistory(): Promise<HistoryRecord[]> {
 
 export async function updateRecord(record: HistoryRecord) {
   try {
-    const res = await fetch('/api/history', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(record),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.status !== 'ok') {
-      throw new Error(data.detail || 'Не удалось обновить запись');
-    }
-    return data;
+    return await http.post('/history', record);
   } catch (error) {
     console.error('Failed to update history record:', error);
     throw new Error('Не удалось обновить запись');
@@ -47,12 +36,7 @@ export async function updateRecord(record: HistoryRecord) {
 
 export async function deleteRecord(id: string) {
   try {
-    const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.status !== 'ok') {
-      throw new Error(data.detail || 'Не удалось удалить запись');
-    }
-    return data;
+    return await http.delete(`/history/${id}`);
   } catch (error) {
     console.error('Failed to delete history record:', error);
     throw new Error('Не удалось удалить запись');
