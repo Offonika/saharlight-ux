@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from telegram import MenuButtonWebApp
 
 from services.bot.main import commands, post_init
 
@@ -26,12 +27,9 @@ async def test_post_init_sets_chat_menu_button(
     bot.set_my_commands.assert_awaited_once_with(commands)
     bot.set_chat_menu_button.assert_awaited_once()
     menu = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
-    assert [b.web_app.url for b in menu] == [
-        "https://app.example/reminders",
-        "https://app.example/stats",
-        "https://app.example/profile",
-        "https://app.example/billing",
-    ]
+    assert isinstance(menu, MenuButtonWebApp)
+    assert menu.web_app is not None
+    assert menu.web_app.url == "https://app.example/reminders"
 
 
 @pytest.mark.asyncio
