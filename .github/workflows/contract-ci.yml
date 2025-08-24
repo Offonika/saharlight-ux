@@ -1,0 +1,42 @@
+name: Contract CI (OpenAPI → SDK → UI build)
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get OpenAPI from main
+        run: |
+          git fetch origin main
+          git show origin/main:libs/contracts/openapi.yaml > /tmp/openapi_main.yaml
+
+      - name: Breaking check (oasdiff)
+        run: |
+          docker run --rm -v "$PWD:/work" ghcr.io/tufin/oasdiff:latest \
+            breaking /tmp/openapi_main.yaml libs/contracts/openapi.yaml \
+            --fail-on-diff
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install OpenAPI generator
+        run: npm i -g @openapitools/openapi-generator-cli
+
+      - name: Generate TS SDK
+        run: bash scripts/gen_ts_sdk.sh
+
+      - name: UI build
+        working-directory: services/webapp/ui
+        run: |
+          npm ci
+          npm run build
