@@ -48,9 +48,7 @@ try:
 except ImportError:  # pragma: no cover - optional db runner
     run_db = None
 except Exception as exc:  # pragma: no cover - log unexpected errors
-    logging.getLogger(__name__).exception(
-        "Unexpected error importing run_db", exc_info=exc
-    )
+    logging.getLogger(__name__).exception("Unexpected error importing run_db", exc_info=exc)
     raise
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
@@ -73,10 +71,10 @@ def build_webapp_url(path: str) -> str:
     base_url = config.settings.webapp_url
     if not base_url:
         raise RuntimeError("WEBAPP_URL not configured")
-    base = base_url.rstrip("/") + "/"
+    base = base_url.rstrip("/")
     if not path.startswith("/"):
         path = "/" + path
-    return urljoin(base, path)
+    return base + path
 
 
 # Map reminder type codes to display names
@@ -135,9 +133,7 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
     next_dt: datetime.datetime | None
     if rem.time:
         type_icon = "⏰"
-        next_dt = now.replace(
-            hour=rem.time.hour, minute=rem.time.minute, second=0, microsecond=0
-        )
+        next_dt = now.replace(hour=rem.time.hour, minute=rem.time.minute, second=0, microsecond=0)
         if next_dt <= now:
             next_dt += timedelta(days=1)
         base = rem.time.strftime("%H:%M")
@@ -165,9 +161,7 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
     return type_icon, schedule
 
 
-def _render_reminders(
-    session: Session, user_id: int
-) -> tuple[str, InlineKeyboardMarkup | None]:
+def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
     user = session.query(User).filter_by(telegram_id=user_id).first()
     limit = _limit_for(user)
@@ -181,18 +175,14 @@ def _render_reminders(
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(build_webapp_url("/ui/reminders")),
+                web_app=WebAppInfo(build_webapp_url("/reminders")),
             )
         ]
     if not rems:
         text = header
 
         if config.settings.webapp_url and add_button_row is not None:
-
-            text += (
-                "\nУ вас нет напоминаний. "
-                "Нажмите кнопку ниже или отправьте /addreminder."
-            )
+            text += "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
             return text, InlineKeyboardMarkup([add_button_row])
         text += "\nУ вас нет напоминаний. Отправьте /addreminder."
         return text, None
@@ -212,7 +202,7 @@ def _render_reminders(
             row.append(
                 InlineKeyboardButton(
                     "✏️",
-                    web_app=WebAppInfo(build_webapp_url(f"/ui/reminders?id={r.id}")),
+                    web_app=WebAppInfo(build_webapp_url(f"/reminders?id={r.id}")),
                 )
             )
         row.extend(
@@ -231,9 +221,7 @@ def _render_reminders(
     lines: list[str] = []
     buttons: list[list[InlineKeyboardButton]] = []
 
-    def extend(
-        section: str, items: list[tuple[str, list[InlineKeyboardButton]]]
-    ) -> None:
+    def extend(section: str, items: list[tuple[str, list[InlineKeyboardButton]]]) -> None:
         if not items:
             return
         if lines:
@@ -262,8 +250,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
         job.schedule_removal()
     if not rem.is_enabled:
         logger.debug(
-            "Reminder %s disabled, skipping "
-            "(type=%s, time=%s, interval=%s, minutes_after=%s)",
+            "Reminder %s disabled, skipping (type=%s, time=%s, interval=%s, minutes_after=%s)",
             rem.id,
             rem.type,
             rem.time,
@@ -293,8 +280,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
     if rem.type in {"sugar", "long_insulin", "medicine"}:
         if rem.time:
             logger.debug(
-                "Adding job for reminder %s "
-                "(type=%s, time=%s, interval=%s, minutes_after=%s)",
+                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
                 rem.id,
                 rem.type,
                 rem.time,
@@ -309,8 +295,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
             )
         elif rem.interval_hours:
             logger.debug(
-                "Adding job for reminder %s "
-                "(type=%s, time=%s, interval=%s, minutes_after=%s)",
+                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
                 rem.id,
                 rem.type,
                 rem.time,
@@ -325,8 +310,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
             )
     # xe_after reminders are scheduled when entry is logged
     logger.debug(
-        "Finished scheduling reminder %s "
-        "(type=%s, time=%s, interval=%s, minutes_after=%s)",
+        "Finished scheduling reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
         rem.id,
         rem.type,
         rem.time,
@@ -439,17 +423,12 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         with SessionLocal() as session:
             status, db_user, limit, rid_or_count = db_add(session)
     else:
-        status, db_user, limit, rid_or_count = await run_db(
-            db_add, sessionmaker=SessionLocal
-        )
+        status, db_user, limit, rid_or_count = await run_db(db_add, sessionmaker=SessionLocal)
 
     if status == "limit":
         count = rid_or_count
         await message.reply_text(
-            (
-                f"У вас уже {count} активных из {limit}. "
-                "Отключите одно или Апгрейд до Pro, чтобы поднять лимит до 10"
-            ),
+            (f"У вас уже {count} активных из {limit}. Отключите одно или Апгрейд до Pro, чтобы поднять лимит до 10"),
         )
         return
     if status == "error":
@@ -465,9 +444,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
 
 
-async def reminder_webapp_save(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Save reminder data sent from the web app."""
     msg: Message | None = update.effective_message
     user = update.effective_user
@@ -504,17 +481,13 @@ async def reminder_webapp_save(
     else:
         if not re.fullmatch(r"\d{1,2}:\d{2}|\d+h", value):
             logger.warning("Invalid reminder value format: %s", value)
-            await msg.reply_text(
-                "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h."
-            )
+            await msg.reply_text("❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h.")
             return
         try:
             parsed = parse_time_interval(value)
         except ValueError:
             logger.warning("Failed to parse reminder value: %s", value)
-            await msg.reply_text(
-                "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h."
-            )
+            await msg.reply_text("❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h.")
             return
         minutes = None
 
@@ -531,11 +504,7 @@ async def reminder_webapp_save(
             if not rem or rem.telegram_id != user_id:
                 return "not_found", None, None, None
         else:
-            count = (
-                session.query(Reminder)
-                .filter_by(telegram_id=user_id, is_enabled=True)
-                .count()
-            )
+            count = session.query(Reminder).filter_by(telegram_id=user_id, is_enabled=True).count()
             user = session.get(User, user_id)
             plan = getattr(user, "plan", "free").lower()
             limit = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
@@ -575,10 +544,7 @@ async def reminder_webapp_save(
         if plan is None:
             return
         await msg.reply_text(
-            (
-                f"У вас уже {limit} активных (лимит {plan.upper()}). "
-                "Отключите одно или откройте PRO."
-            ),
+            (f"У вас уже {limit} активных (лимит {plan.upper()}). Отключите одно или откройте PRO."),
         )
         return
     if status == "error":
@@ -604,9 +570,7 @@ async def reminder_webapp_save(
 
 
 async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message: Message | None = update.message or (
-        update.callback_query.message if update.callback_query else None
-    )
+    message: Message | None = update.message or (update.callback_query.message if update.callback_query else None)
     args = getattr(context, "args", [])
     if not args:
         if message:
@@ -660,17 +624,13 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton(
-                    "Отложить 10 мин", callback_data=f"remind_snooze:{rid}"
-                ),
+                InlineKeyboardButton("Отложить 10 мин", callback_data=f"remind_snooze:{rid}"),
                 InlineKeyboardButton("Отмена", callback_data=f"remind_cancel:{rid}"),
             ]
         ]
     )
     try:
-        await context.bot.send_message(
-            chat_id=chat_id, text=text, reply_markup=keyboard
-        )
+        await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
     except TelegramError:
         logger.exception("Failed to send reminder %s to chat %s", rid, chat_id)
 
@@ -691,14 +651,10 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await query.answer()
         session.add(ReminderLog(reminder_id=rid, telegram_id=chat_id, action=action))
         if not commit(session):
-            logger.error(
-                "Failed to log reminder action %s for reminder %s", action, rid
-            )
+            logger.error("Failed to log reminder action %s for reminder %s", action, rid)
             return
     if action == "remind_snooze":
-        job_queue: DefaultJobQueue | None = cast(
-            DefaultJobQueue | None, context.job_queue
-        )
+        job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
         if job_queue is not None:
             job_queue.run_once(
                 reminder_job,
@@ -723,9 +679,7 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 raise
 
 
-async def reminder_action_cb(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     user = update.effective_user
     if query is None or query.data is None or user is None:
@@ -761,9 +715,7 @@ async def reminder_action_cb(
         else:
             return "unknown", None
         if not commit(session):
-            logger.error(
-                "Failed to commit reminder action %s for reminder %s", action, rid
-            )
+            logger.error("Failed to commit reminder action %s for reminder %s", action, rid)
             return "error", None
         if action == "toggle":
             session.refresh(rem)
@@ -813,9 +765,7 @@ async def reminder_action_cb(
         )
     try:
         if keyboard is not None:
-            await query.edit_message_text(
-                text, parse_mode="HTML", reply_markup=keyboard
-            )
+            await query.edit_message_text(text, parse_mode="HTML", reply_markup=keyboard)
         else:
             await query.edit_message_text(text, parse_mode="HTML")
     except BadRequest as exc:
@@ -832,11 +782,7 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
         logger.warning("schedule_after_meal called without job_queue")
         return
     with SessionLocal() as session:
-        rems = (
-            session.query(Reminder)
-            .filter_by(telegram_id=user_id, type="xe_after", is_enabled=True)
-            .all()
-        )
+        rems = session.query(Reminder).filter_by(telegram_id=user_id, type="xe_after", is_enabled=True).all()
     for rem in rems:
         minutes_after = rem.minutes_after
         if minutes_after is None:
@@ -849,12 +795,8 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
         )
 
 
-reminder_action_handler = CallbackQueryHandler(
-    reminder_action_cb, pattern="^rem_(del|toggle):"
-)
-reminder_webapp_handler = MessageHandler(
-    filters.StatusUpdate.WEB_APP_DATA, reminder_webapp_save
-)
+reminder_action_handler = CallbackQueryHandler(reminder_action_cb, pattern="^rem_(del|toggle):")
+reminder_webapp_handler = MessageHandler(filters.StatusUpdate.WEB_APP_DATA, reminder_webapp_save)
 
 
 __all__ = [

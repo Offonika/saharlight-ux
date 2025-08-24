@@ -16,6 +16,7 @@ def reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setenv("WEBAPP_URL", "https://example.com")
     import services.api.app.config as config
     import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
+
     importlib.reload(config)
     importlib.reload(reminder_handlers)
     yield reminder_handlers
@@ -27,6 +28,7 @@ def reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> Any:
 @pytest.fixture
 def settings(reminder_handlers: Any) -> Any:  # noqa: ANN401
     import services.api.app.config as config
+
     return config.settings
 
 
@@ -83,9 +85,7 @@ async def test_add_reminder_fewer_args(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_invalid_time(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_sugar_invalid_time(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "ab:cd"])
@@ -100,9 +100,7 @@ async def test_add_reminder_sugar_invalid_time(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_non_numeric_interval(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_sugar_non_numeric_interval(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "abc"])
@@ -128,12 +126,11 @@ async def test_add_reminder_unknown_type(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_valid_type(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_valid_type(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "2"], job_queue=None)
+
     class DummyQuery:
         def filter_by(self, **kwargs: Any) -> "DummyQuery":
             return self
@@ -176,9 +173,7 @@ async def test_add_reminder_valid_type(
 
 
 @pytest.mark.asyncio
-async def test_reminder_webapp_save_unknown_type(
-    reminder_handlers: Any
-) -> None:
+async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None:
     message = DummyWebAppMessage(json.dumps({"type": "bad", "value": "10:00"}))
     update = make_update(effective_message=message, effective_user=make_user(1))
     context = make_context()
@@ -189,27 +184,29 @@ async def test_reminder_webapp_save_unknown_type(
 
 
 @pytest.mark.parametrize(
-    "base_url",
+    "base_url, expected",
     [
-        "https://example.com",
-        "https://example.com/",
-        "https://example.com/ui",
-        "https://example.com/ui/",
+        ("https://example.com", "https://example.com/reminders"),
+        ("https://example.com/", "https://example.com/reminders"),
+        ("https://example.com/ui", "https://example.com/ui/reminders"),
+        ("https://example.com/ui/", "https://example.com/ui/reminders"),
     ],
 )
 def test_build_webapp_url(
-    reminder_handlers: Any, settings: Any, monkeypatch: pytest.MonkeyPatch, base_url: str
+    reminder_handlers: Any,
+    settings: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    base_url: str,
+    expected: str,
 ) -> None:
     monkeypatch.setattr(settings, "webapp_url", base_url)
-    url = reminder_handlers.build_webapp_url("/ui/reminders")
-    assert url == "https://example.com/ui/reminders"
+    url = reminder_handlers.build_webapp_url("/reminders")
+    assert url == expected
     assert "//" not in url.split("://", 1)[1]
 
 
-def test_build_webapp_url_without_base(
-    reminder_handlers: Any, settings: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    path = "/ui/reminders"
+def test_build_webapp_url_without_base(reminder_handlers: Any, settings: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = "/reminders"
     monkeypatch.setattr(settings, "webapp_url", "")
     with pytest.raises(RuntimeError, match="WEBAPP_URL not configured"):
         reminder_handlers.build_webapp_url(path)
