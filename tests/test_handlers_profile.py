@@ -276,7 +276,7 @@ async def test_profile_view_missing_profile_shows_webapp_button(
     importlib.reload(config)
     importlib.reload(reminder_handlers)
     importlib.reload(handlers.reminder_handlers)
-    importlib.reload(handlers)
+    handlers.config = config
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 

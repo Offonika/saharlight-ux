@@ -245,6 +245,14 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
+    monkeypatch.setenv("WEBAPP_URL", "https://example.org")
+    import importlib
+    import services.api.app.config as config_module
+
+    importlib.reload(config_module)
+    global config
+    config = config_module
+    importlib.reload(handlers)
     monkeypatch.setattr(handlers, "_limit_for", lambda u: 1)
     # Make _describe deterministic and include status icon to test strikethrough
     monkeypatch.setattr(
@@ -252,12 +260,6 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         "_describe",
         lambda r, u=None: f"{'🔔' if r.is_enabled else '🔕'}title{r.id}",
     )
-
-    monkeypatch.setenv("WEBAPP_URL", "https://example.org")
-    import importlib
-
-    importlib.reload(config)
-    importlib.reload(handlers)
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
@@ -378,7 +380,7 @@ async def test_reminders_list_keyboard_no_webapp(
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.setattr(settings, "webapp_url", None)
+    monkeypatch.setattr(config.settings, "webapp_url", None)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
