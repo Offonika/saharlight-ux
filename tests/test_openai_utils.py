@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
@@ -100,3 +100,43 @@ def test_http_client_lock_used(monkeypatch: pytest.MonkeyPatch) -> None:
 
     openai_utils.dispose_http_client()
     assert dummy_lock.entered and dummy_lock.exited
+
+
+def test_get_async_openai_client_uses_proxy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_http_client = AsyncMock()
+    http_client_mock = Mock(return_value=fake_http_client)
+    openai_mock = Mock()
+
+    monkeypatch.setattr(openai_utils, "_async_http_client", None)
+    monkeypatch.setattr(settings, "openai_api_key", "key")
+    monkeypatch.setattr(settings, "openai_proxy", "http://proxy")
+    monkeypatch.setattr(httpx, "AsyncClient", http_client_mock)
+    monkeypatch.setattr(openai_utils, "AsyncOpenAI", openai_mock)
+
+    client = openai_utils.get_async_openai_client()
+
+    http_client_mock.assert_called_once_with(proxies="http://proxy")
+    openai_mock.assert_called_once_with(api_key="key", http_client=fake_http_client)
+    assert client is openai_mock.return_value
+
+    openai_utils.dispose_http_client()
+    fake_http_client.aclose.assert_awaited_once()
+
+
+def test_get_async_openai_client_without_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    openai_mock = Mock()
+    http_client_mock = Mock()
+
+    monkeypatch.setattr(openai_utils, "_async_http_client", None)
+    monkeypatch.setattr(openai_utils, "AsyncOpenAI", openai_mock)
+    monkeypatch.setattr(settings, "openai_api_key", "key")
+    monkeypatch.setattr(settings, "openai_proxy", None)
+    monkeypatch.setattr(httpx, "AsyncClient", http_client_mock)
+
+    client = openai_utils.get_async_openai_client()
+
+    http_client_mock.assert_not_called()
+    openai_mock.assert_called_once_with(api_key="key", http_client=None)
+    assert client is openai_mock.return_value
