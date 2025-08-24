@@ -27,9 +27,15 @@ async def test_post_init_sets_chat_menu_button(
     bot.set_my_commands.assert_awaited_once_with(commands)
     bot.set_chat_menu_button.assert_awaited_once()
 
-    button = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
-    assert button.web_app.url == "https://app.example/reminders"
-    assert button.text == "Menu"
+    menu = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
+
+    assert [b.web_app.url for b in menu] == [
+        "https://app.example/reminders",
+        "https://app.example/history",
+        "https://app.example/profile",
+        "https://app.example/subscription",
+    ]
+
 
 
 

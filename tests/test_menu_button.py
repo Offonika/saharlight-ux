@@ -35,7 +35,7 @@ async def test_post_init_sets_chat_menu(monkeypatch: pytest.MonkeyPatch) -> None
     buttons = kwargs["menu_button"]
     assert isinstance(buttons, list)
     assert len(buttons) == 4
-    paths = ["/reminders", "/stats", "/profile", "/billing"]
+    paths = ["/reminders", "/history", "/profile", "/subscription"]
     for btn, path in zip(buttons, paths):
         assert isinstance(btn, MenuButtonWebApp)
         assert btn.web_app is not None
