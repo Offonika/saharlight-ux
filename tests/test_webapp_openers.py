@@ -27,14 +27,17 @@ class DummyMessage:
         (handlers.open_history_webapp, "/history"),
         (handlers.open_profile_webapp, "/profile"),
         (handlers.open_subscription_webapp, "/subscription"),
-        (handlers.open_reminders_webapp, "/reminders"),
+        (handlers.open_reminders_webapp, "/api/reminders"),
     ],
 )
 async def test_webapp_openers(monkeypatch: pytest.MonkeyPatch, func: Callable[..., Any], path: str) -> None:
     base_url = "https://example.com/app/"
-    monkeypatch.setattr(handlers.config.settings, "webapp_url", base_url)
+    reminder_handlers = importlib.import_module(
+        "services.api.app.diabetes.handlers.reminder_handlers"
+    )
+    monkeypatch.setattr(reminder_handlers.config.settings, "webapp_url", base_url)
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(effective_message=message))
     context: Any = SimpleNamespace()
 
     await func(update, context)

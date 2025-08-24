@@ -48,7 +48,7 @@ def _make_handler(
 history_command = _make_handler("/history", "📊 История")
 profile_command = _make_handler("/profile", "📄 Мой профиль")
 subscription_command = _make_handler("/subscription", "💳 Подписка")
-reminders_command = _make_handler("/reminders", "⏰ Напоминания")
+reminders_command = _make_handler("/api/reminders", "⏰ Напоминания")
 
 
 __all__ = [

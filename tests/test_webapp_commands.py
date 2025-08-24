@@ -71,7 +71,7 @@ async def test_configure_commands_sets_expected_commands() -> None:
         (webapp_commands.history_command, "/history"),
         (webapp_commands.profile_command, "/profile"),
         (webapp_commands.subscription_command, "/subscription"),
-        (webapp_commands.reminders_command, "/reminders"),
+        (webapp_commands.reminders_command, "/api/reminders"),
     ],
 )
 async def test_commands_reply_with_webapp_url(

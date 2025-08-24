@@ -282,7 +282,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "2. <s>🔕title2</s>" in text
     assert markup.inline_keyboard
     assert any(
-        btn.web_app is not None and btn.web_app.url.endswith("/reminders")
+        btn.web_app is not None and btn.web_app.url.endswith("/api/reminders")
         for row in markup.inline_keyboard
         for btn in row
     )
