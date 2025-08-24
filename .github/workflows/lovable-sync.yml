@@ -83,6 +83,16 @@ jobs:
           git status
           git --no-pager diff --stat || true
 
+      - name: Guard changed paths
+        run: |
+          git fetch origin ${{ env.TARGET_BRANCH }}
+          CHANGED=$(git diff --name-only remotes/origin/${{ env.TARGET_BRANCH }}...HEAD)
+          echo "$CHANGED" | awk '{print " - " $0}'
+          echo "$CHANGED" | grep -E '^(services/webapp/ui/(src|public)/|libs/ts-sdk/)' || {
+            echo "::error ::Changes outside allowed paths detected"
+            exit 1
+          }
+
       - name: Build webapp UI
         working-directory: services/webapp/ui
         run: |
