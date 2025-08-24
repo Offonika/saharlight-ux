@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
-from services.api.app.config import settings
+from services.api.app import config
 from services.api.app.diabetes.services.db import Profile, User, SessionLocal
 from services.api.app.diabetes.services.repository import commit
 
@@ -109,7 +109,7 @@ def get_api(
             "diabetes_sdk could not be initialized. Falling back to local profile API.",
         )
         return LocalProfileAPI(sessionmaker), Exception, LocalProfile
-    api = DefaultApi(ApiClient(Configuration(host=settings.api_url)))
+    api = DefaultApi(ApiClient(Configuration(host=config.settings.api_url)))
     return api, ApiException, ProfileModel
 
 

@@ -267,14 +267,16 @@ async def test_profile_view_missing_profile_shows_webapp_button(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from urllib.parse import urlparse
-    from services.api.app.config import settings as config_settings
-    from services.api.app.diabetes.handlers import profile as handlers
+    import importlib
+    import services.api.app.config as config
+    import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
+    import services.api.app.diabetes.handlers.profile as handlers
 
-    monkeypatch.setattr(config_settings, "webapp_url", "https://example.com")
-    monkeypatch.setattr(handlers, "settings", config_settings, raising=False)
-    monkeypatch.setattr(
-        handlers.reminder_handlers, "settings", config_settings, raising=False
-    )
+    monkeypatch.setenv("WEBAPP_URL", "https://example.com")
+    importlib.reload(config)
+    importlib.reload(reminder_handlers)
+    importlib.reload(handlers.reminder_handlers)
+    importlib.reload(handlers)
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 

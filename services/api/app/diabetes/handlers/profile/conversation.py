@@ -56,7 +56,7 @@ from services.api.app.diabetes.utils.ui import (  # noqa: E402
     back_keyboard as _back_keyboard,
     menu_keyboard,
 )
-from services.api.app.config import settings  # noqa: E402
+from services.api.app import config  # noqa: E402
 from services.api.app.diabetes.services.repository import commit  # noqa: E402
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers  # noqa: E402
 
@@ -238,7 +238,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     profile = fetch_profile(api, ApiException, user_id)
 
     if not profile:
-        if settings.webapp_url:
+        if config.settings.webapp_url:
             keyboard = InlineKeyboardMarkup(
                 [
                     [
@@ -279,7 +279,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🌐 Часовой пояс", callback_data="profile_timezone")],
         [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
     ]
-    if settings.webapp_url:
+    if config.settings.webapp_url:
         rows.insert(
             1,
             [
@@ -541,7 +541,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await sos_handlers.sos_contact_start(update, context)
         return
-    if action == "add" and settings.webapp_url:
+    if action == "add" and config.settings.webapp_url:
         button = InlineKeyboardButton(
             "📝 Новое",
             web_app=WebAppInfo(reminder_handlers.build_webapp_url("/ui/reminders")),

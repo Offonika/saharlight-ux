@@ -14,7 +14,7 @@ from telegram import (
     KeyboardButton,
     WebAppInfo,
 )
-from services.api.app.config import settings
+from services.api.app import config
 
 __all__ = (
     "menu_keyboard",
@@ -27,23 +27,19 @@ __all__ = (
 
 # ─────────────── Reply-клавиатуры (отображаются на экране чата) ───────────────
 _WEBAPP_URL = (
-    settings.webapp_url.rstrip("/").removesuffix("/ui")
-    if settings.webapp_url
+    config.settings.webapp_url.rstrip("/").removesuffix("/ui")
+    if config.settings.webapp_url
     else None
 )
 
 # Create WebApp buttons when WebApp is configured, fall back to text buttons otherwise
 profile_button = (
-    KeyboardButton(
-        "📄 Мой профиль", web_app=WebAppInfo(f"{_WEBAPP_URL}/ui/profile")
-    )
+    KeyboardButton("📄 Мой профиль", web_app=WebAppInfo(f"{_WEBAPP_URL}/ui/profile"))
     if _WEBAPP_URL
     else KeyboardButton("📄 Мой профиль")
 )
 reminders_button = (
-    KeyboardButton(
-        "⏰ Напоминания", web_app=WebAppInfo(f"{_WEBAPP_URL}/ui/reminders")
-    )
+    KeyboardButton("⏰ Напоминания", web_app=WebAppInfo(f"{_WEBAPP_URL}/ui/reminders"))
     if _WEBAPP_URL
     else KeyboardButton("⏰ Напоминания")
 )
@@ -101,16 +97,14 @@ def confirm_keyboard(back_cb: str | None = None) -> InlineKeyboardMarkup:
     rows = [
         [
             InlineKeyboardButton("✅ Подтвердить", callback_data="confirm_entry"),
-            InlineKeyboardButton("✏️ Исправить",  callback_data="edit_entry"),
+            InlineKeyboardButton("✏️ Исправить", callback_data="edit_entry"),
         ],
         [
             InlineKeyboardButton("❌ Отмена", callback_data="cancel_entry"),
         ],
     ]
     if back_cb:
-        rows.append(
-            [InlineKeyboardButton("🔙 Назад", callback_data=back_cb)]
-        )
+        rows.append([InlineKeyboardButton("🔙 Назад", callback_data=back_cb)])
     return InlineKeyboardMarkup(rows)
 
 
