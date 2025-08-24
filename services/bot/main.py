@@ -47,19 +47,21 @@ async def post_init(
     ],
 ) -> None:
     await app.bot.set_my_commands(commands)
+
     await menu_button_post_init(app)
 
 
 
 
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:  # pragma: no cover
     """Log errors that occur while processing updates."""
     logger.exception(
         "Exception while handling update %s", update, exc_info=context.error
     )
 
 
-def main() -> None:
+def main() -> None:  # pragma: no cover
     """Configure and run the bot."""
     logging.basicConfig(
         level=settings.log_level,
@@ -109,5 +111,5 @@ def main() -> None:
 __all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN"]
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
