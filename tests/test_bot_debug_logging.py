@@ -29,7 +29,7 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bot, "init_db", lambda: None)
 
     class DummyBot:
-        def set_my_commands(self, commands: list[tuple[str, str]]) -> None:
+        async def set_my_commands(self, commands: list[tuple[str, str]]) -> None:
             return None
 
     class DummyApp:
@@ -38,9 +38,7 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
 
         def add_error_handler(
             self,
-            handler: Callable[
-                [object, ContextTypes.DEFAULT_TYPE], Awaitable[None]
-            ],
+            handler: Callable[[object, ContextTypes.DEFAULT_TYPE], Awaitable[None]],
         ) -> None:
             return None
 
@@ -65,9 +63,7 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
         def builder() -> DummyBuilder:
             return DummyBuilder()
 
-        def __class_getitem__(
-            cls, _: object
-        ) -> type[DummyApplication]:  # Support subscripting in type hints
+        def __class_getitem__(cls, _: object) -> type[DummyApplication]:  # Support subscripting in type hints
             return cls
 
     monkeypatch.setattr(bot, "Application", DummyApplication)

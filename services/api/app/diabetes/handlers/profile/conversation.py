@@ -505,7 +505,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if action == "add" and config.settings.webapp_url:
         button = InlineKeyboardButton(
             "📝 Новое",
-            web_app=WebAppInfo(reminder_handlers.build_webapp_url("/reminders")),
+            web_app=WebAppInfo(reminder_handlers.build_webapp_url("/api/reminders")),
         )
         keyboard = InlineKeyboardMarkup([[button]])
         await q_message.reply_text("Создать напоминание:", reply_markup=keyboard)

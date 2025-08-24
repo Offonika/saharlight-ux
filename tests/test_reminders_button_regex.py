@@ -1,14 +1,13 @@
 import os
-import re
-from typing import cast
 
-from telegram.ext import ApplicationBuilder, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler
 from services.api.app.diabetes.utils.ui import menu_keyboard
 import services.api.app.diabetes.handlers.registration as handlers
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
+from services.api.app.diabetes.handlers import webapp_openers
 
 
-def test_reminders_button_matches_regex() -> None:
+def test_reminders_button_has_no_regex_handler() -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -18,12 +17,13 @@ def test_reminders_button_matches_regex() -> None:
 
     app = ApplicationBuilder().token("TESTTOKEN").build()
     handlers.register_handlers(app)
-    reminder_handler = next(
-        h
+
+    assert not any(
+        isinstance(h, MessageHandler) and h.callback is reminder_handlers.reminders_list
         for h in app.handlers[0]
-        if isinstance(h, MessageHandler)
-        and h.callback is reminder_handlers.reminders_list
     )
-    pattern = cast(filters.Regex, reminder_handler.filters).pattern.pattern
-    assert pattern == "^⏰ Напоминания$"
-    assert re.fullmatch(pattern, "⏰ Напоминания")
+
+    assert any(
+        isinstance(h, CommandHandler) and h.callback is webapp_openers.open_reminders_webapp
+        for h in app.handlers[0]
+    )
