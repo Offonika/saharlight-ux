@@ -17,15 +17,14 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont, TTFError
 from reportlab.pdfgen import canvas
 
-from services.api.app.config import settings
+from services.api.app import config
 
 logger = logging.getLogger(__name__)
 
 date2num_typed: Callable[[datetime], float] = date2num
 
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
-DEFAULT_FONT_DIR = '/usr/share/fonts/truetype/dejavu'
-_font_dir = settings.font_dir or DEFAULT_FONT_DIR
+DEFAULT_FONT_DIR = "/usr/share/fonts/truetype/dejavu"
 _fonts_registered = False
 _font_lock = threading.Lock()
 
@@ -36,8 +35,10 @@ class SugarEntry(Protocol):
     event_time: datetime
     sugar_before: float | None
 
+
 def _register_font(name: str, filename: str) -> str | None:
-    path = os.path.join(_font_dir, filename)
+    font_dir = config.settings.font_dir or DEFAULT_FONT_DIR
+    path = os.path.join(font_dir, filename)
     try:
         pdfmetrics.registerFont(TTFont(name, path))
         return None
@@ -47,22 +48,16 @@ def _register_font(name: str, filename: str) -> str | None:
         else:
             msg = f"[PDF] Invalid font {name} at {path}: {e}"
         logger.warning(msg)
-        if _font_dir != DEFAULT_FONT_DIR:
+        if font_dir != DEFAULT_FONT_DIR:
             fallback = os.path.join(DEFAULT_FONT_DIR, filename)
             try:
                 pdfmetrics.registerFont(TTFont(name, fallback))
-                return (
-                    f"Использован запасной шрифт {fallback} для {name}: {e}"
-                )
+                return f"Использован запасной шрифт {fallback} для {name}: {e}"
             except (OSError, TTFError) as e2:
                 if isinstance(e2, OSError):
-                    msg2 = (
-                        f"[PDF] Failed to register default font {name} at {fallback}: {e2}"
-                    )
+                    msg2 = f"[PDF] Failed to register default font {name} at {fallback}: {e2}"
                 else:
-                    msg2 = (
-                        f"[PDF] Invalid default font {name} at {fallback}: {e2}"
-                    )
+                    msg2 = f"[PDF] Invalid default font {name} at {fallback}: {e2}"
                 logger.warning(msg2)
                 return msg2
         return msg
@@ -136,17 +131,17 @@ def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.Byte
         return buf
 
     plt.figure(figsize=(7, 3))
-    plt.plot(times, sugars_plot, marker='o', label='Сахар (ммоль/л)')
+    plt.plot(times, sugars_plot, marker="o", label="Сахар (ммоль/л)")
     plt.gca().xaxis_date()
     plt.gcf().autofmt_xdate()
-    plt.title(f'Динамика сахара за {period_label}')
-    plt.xlabel('Дата')
-    plt.ylabel('Сахар, ммоль/л')
+    plt.title(f"Динамика сахара за {period_label}")
+    plt.xlabel("Дата")
+    plt.ylabel("Сахар, ммоль/л")
     plt.grid(True)
     plt.legend()
     plt.tight_layout()
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    plt.savefig(buf, format="png")
     buf.seek(0)
     plt.close()
     return buf

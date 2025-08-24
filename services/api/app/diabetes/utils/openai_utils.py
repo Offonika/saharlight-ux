@@ -6,7 +6,7 @@ from typing import Literal, overload
 import httpx
 from openai import AsyncOpenAI, OpenAI
 
-from services.api.app.config import settings
+from services.api.app import config
 
 logger = logging.getLogger(__name__)
 
@@ -59,32 +59,34 @@ def get_openai_client() -> OpenAI:
     mutated, keeping proxy settings local to the OpenAI client.
     """
 
-    if not settings.openai_api_key:
+    if not config.settings.openai_api_key:
         message = "OPENAI_API_KEY is not set"
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
-    http_client = _build_http_client(settings.openai_proxy, False)
-    client = OpenAI(api_key=settings.openai_api_key, http_client=http_client)
+    http_client = _build_http_client(config.settings.openai_proxy, False)
+    client = OpenAI(api_key=config.settings.openai_api_key, http_client=http_client)
 
-    if settings.openai_assistant_id:
-        logger.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)
+    if config.settings.openai_assistant_id:
+        logger.info("[OpenAI] Using assistant: %s", config.settings.openai_assistant_id)
     return client
 
 
 def get_async_openai_client() -> AsyncOpenAI:
     """Return a configured asynchronous OpenAI client."""
 
-    if not settings.openai_api_key:
+    if not config.settings.openai_api_key:
         message = "OPENAI_API_KEY is not set"
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
-    http_client = _build_http_client(settings.openai_proxy, True)
-    client = AsyncOpenAI(api_key=settings.openai_api_key, http_client=http_client)
+    http_client = _build_http_client(config.settings.openai_proxy, True)
+    client = AsyncOpenAI(
+        api_key=config.settings.openai_api_key, http_client=http_client
+    )
 
-    if settings.openai_assistant_id:
-        logger.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)
+    if config.settings.openai_assistant_id:
+        logger.info("[OpenAI] Using assistant: %s", config.settings.openai_assistant_id)
     return client
 
 

@@ -29,9 +29,6 @@ from telegram.ext import (
 from telegram.error import BadRequest, TelegramError
 
 from services.api.app import config
-
-# Aliased settings for easier monkeypatching in tests
-settings = config.settings
 from services.api.app.diabetes.services.db import (
     Reminder,
     ReminderLog,
@@ -71,9 +68,9 @@ PLAN_LIMITS = {"free": 5, "pro": 10}
 def build_webapp_url(path: str) -> str:
     """Build an absolute webapp URL from ``path``.
 
-    Raises ``RuntimeError`` if ``settings.webapp_url`` is not configured.
+    Raises ``RuntimeError`` if ``config.settings.webapp_url`` is not configured.
     """
-    base_url = settings.webapp_url
+    base_url = config.settings.webapp_url
     if not base_url:
         raise RuntimeError("WEBAPP_URL not configured")
     base = base_url.rstrip("/") + "/"
@@ -178,8 +175,11 @@ def _render_reminders(
     header = f"Ваши напоминания  ({active_count} / {limit} 🔔)"
     if active_count > limit:
         header += " ⚠️"
-    add_button_row: list[InlineKeyboardButton] | None = (
-        [
+
+    add_button_row: list[InlineKeyboardButton] | None = None
+    if config.settings.webapp_url:
+        add_button_row = [
+
             InlineKeyboardButton(
                 "➕ Добавить",
                 web_app=WebAppInfo(build_webapp_url("/ui/reminders")),
@@ -190,7 +190,9 @@ def _render_reminders(
     )
     if not rems:
         text = header
-        if add_button_row is not None:
+
+        if config.settings.webapp_url and add_button_row is not None:
+
             text += (
                 "\nУ вас нет напоминаний. "
                 "Нажмите кнопку ниже или отправьте /addreminder."
@@ -210,7 +212,7 @@ def _render_reminders(
         line = f"{r.id}. {title}"
         status_icon = "🔔" if r.is_enabled else "🔕"
         row: list[InlineKeyboardButton] = []
-        if settings.webapp_url:
+        if config.settings.webapp_url:
             row.append(
                 InlineKeyboardButton(
                     "✏️",
