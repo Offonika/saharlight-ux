@@ -140,51 +140,64 @@ export const useTelegram = (
   );
 
   useEffect(() => {
+    const createDevUser = (): TelegramUser => {
+      let devUser: TelegramUser | null = null;
+      
+      const initData = getDevInitData();
+      if (initData) {
+        const userStr = new URLSearchParams(initData).get("user");
+        if (userStr) {
+          try {
+            devUser = JSON.parse(userStr);
+            console.log("[TG] parsed dev user from initData:", devUser);
+          } catch (e) {
+            console.error("[TG] failed to parse dev user:", e);
+          }
+        }
+      }
+      
+      // If no user from initData, create fallback test user
+      if (!devUser) {
+        const devUserId = import.meta.env.VITE_DEV_USER_ID || "12345";
+        devUser = {
+          id: parseInt(devUserId, 10),
+          first_name: "Test",
+          last_name: "User",
+          username: "testuser",
+          language_code: "ru",
+        };
+        console.log("[TG] created fallback dev user:", devUser);
+      }
+      
+      return devUser;
+    };
+
     if (!tg) {
       console.warn("[TG] not in Telegram, enabling dev fallback");
       
-      // In development mode, try to get user from initData or create fallback
+      // In development mode, create fallback user
       if (import.meta.env.MODE !== 'production') {
-        let devUser: TelegramUser | null = null;
-        
-        const initData = getDevInitData();
-        if (initData) {
-          const userStr = new URLSearchParams(initData).get("user");
-          if (userStr) {
-            try {
-              devUser = JSON.parse(userStr);
-              console.log("[TG] parsed dev user from initData:", devUser);
-            } catch (e) {
-              console.error("[TG] failed to parse dev user:", e);
-            }
-          }
-        }
-        
-        // If no user from initData, create fallback test user
-        if (!devUser) {
-          const devUserId = import.meta.env.VITE_DEV_USER_ID || "12345";
-          devUser = {
-            id: parseInt(devUserId, 10),
-            first_name: "Test",
-            last_name: "User",
-            username: "testuser",
-            language_code: "ru",
-          };
-          console.log("[TG] created fallback dev user:", devUser);
-        }
-        
-        setUser(devUser);
+        setUser(createDevUser());
       }
       
       applyTheme(null, forceLight);
       setReady(true);
       return;
     }
+    
     try {
       tg.expand?.();
       tg.ready?.();
       applyTheme(tg, forceLight);
-      setUser(tg.user ?? null);
+      
+      // If no user in Telegram WebApp and in development mode, create fallback
+      if (!tg.user && import.meta.env.MODE !== 'production') {
+        console.warn("[TG] no user in Telegram WebApp, creating dev fallback");
+        setUser(createDevUser());
+      } else {
+        setUser(tg.user ?? null);
+      }
+      
       setReady(true);
       const onTheme = () => applyTheme(tg, forceLight);
       tg.onEvent?.("themeChanged", onTheme);
