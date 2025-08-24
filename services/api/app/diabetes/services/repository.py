@@ -10,6 +10,10 @@ from sqlalchemy.orm import Session
 logger = logging.getLogger(__name__)
 
 
+class CommitError(RuntimeError):
+    """Raised when a database commit fails."""
+
+
 def commit(session: Session) -> bool:
     """Commit an SQLAlchemy session.
 
@@ -21,16 +25,15 @@ def commit(session: Session) -> bool:
     Returns
     -------
     bool
-        ``True`` if the commit succeeded. If an error occurs the session is
-        rolled back, the error is logged and ``False`` is returned.
+        ``True`` if the commit succeeded. ``CommitError`` is raised otherwise.
     """
     try:
         session.commit()
         return True
-    except SQLAlchemyError:  # pragma: no cover - logging only
+    except SQLAlchemyError as exc:  # pragma: no cover - logging only
         session.rollback()
         logger.exception("DB commit failed")
-        return False
+        raise CommitError from exc
 
 
 @contextmanager

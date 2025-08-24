@@ -600,11 +600,12 @@ async def test_freeform_handler_pending_entry_commit_fail(
     def session_factory() -> DummySession:
         return DummySession()
 
+    def fail_commit(_: Any) -> bool:
+        raise gpt_handlers.CommitError
+
     monkeypatch.setattr(gpt_handlers, "run_db", None)
     monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
-    await gpt_handlers.freeform_handler(
-        update, context, commit=lambda s: False
-    )
+    await gpt_handlers.freeform_handler(update, context, commit=fail_commit)
     assert message.texts == ["⚠️ Не удалось сохранить запись."]
 
 

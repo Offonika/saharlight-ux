@@ -35,7 +35,7 @@ from services.api.app.diabetes.services.db import (
     SessionLocal as _SessionLocal,
     User,
 )
-from services.api.app.diabetes.services.repository import commit as _commit
+from services.api.app.diabetes.services.repository import CommitError, commit as _commit
 from services.api.app.diabetes.utils.helpers import (
     INVALID_TIME_MSG,
     parse_time_interval,
@@ -414,7 +414,9 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if count >= limit:
             return "limit", db_user, limit, count
         session.add(reminder)
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             logger.error("Failed to commit new reminder for user %s", user_id)
             return "error", db_user, limit, count
         return "ok", db_user, limit, reminder.id
@@ -526,7 +528,9 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
                 if parsed is None:
                     return "error", None, None, None
                 rem.interval_hours = int(parsed.total_seconds() // 3600)
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             logger.error("Failed to commit reminder via webapp for user %s", user_id)
             return "error", None, None, None
         session.refresh(rem)
@@ -589,7 +593,9 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await message.reply_text("Не найдено")
             return
         session.delete(rem)
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             logger.error("Failed to commit reminder deletion for %s", rid)
             if message:
                 await message.reply_text("⚠️ Не удалось удалить напоминание.")
@@ -616,7 +622,9 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         if not rem:
             return
         session.add(ReminderLog(reminder_id=rid, telegram_id=chat_id, action="trigger"))
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             logger.error("Failed to log reminder trigger for reminder %s", rid)
             return
         user = session.get(User, chat_id)
@@ -650,7 +658,9 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             return
         await query.answer()
         session.add(ReminderLog(reminder_id=rid, telegram_id=chat_id, action=action))
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             logger.error("Failed to log reminder action %s for reminder %s", action, rid)
             return
     if action == "remind_snooze":
@@ -714,8 +724,12 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
             rem.is_enabled = not rem.is_enabled
         else:
             return "unknown", None
-        if not commit(session):
-            logger.error("Failed to commit reminder action %s for reminder %s", action, rid)
+        try:
+            commit(session)
+        except CommitError:
+            logger.error(
+                "Failed to commit reminder action %s for reminder %s", action, rid
+            )
             return "error", None
         if action == "toggle":
             session.refresh(rem)

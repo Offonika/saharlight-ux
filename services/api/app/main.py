@@ -30,7 +30,7 @@ from .diabetes.services.db import (
     init_db,
     run_db,
 )
-from .diabetes.services.repository import commit
+from .diabetes.services.repository import CommitError, commit
 from .legacy import router as legacy_router
 from .routers.stats import router as stats_router
 from .schemas.history import ALLOWED_HISTORY_TYPES, HistoryRecordSchema, HistoryType
@@ -133,7 +133,9 @@ async def put_timezone(
             session.add(obj)
         else:
             obj.tz = data.tz
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_save_timezone)
@@ -178,7 +180,9 @@ async def create_user(
         db_user = session.get(UserDB, data.telegramId)
         if db_user is None:
             session.add(UserDB(telegram_id=data.telegramId, thread_id="webapp"))
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_create_user)
@@ -219,7 +223,9 @@ async def post_history(
         obj.insulin = data.insulin
         obj.notes = data.notes
         obj.type = validated_type
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_save)
@@ -274,7 +280,9 @@ async def delete_history(
 
     def _delete(session: Session) -> None:
         session.delete(record)
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_delete)

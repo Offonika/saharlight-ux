@@ -19,7 +19,7 @@ from services.api.app.diabetes.services.gpt_client import (
     create_thread,
     send_message,
 )
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.utils.functions import extract_nutrition_info
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
@@ -101,7 +101,9 @@ async def photo_handler(
                 else:
                     thread_id = await create_thread()
                     session.add(User(telegram_id=user_id, thread_id=thread_id))
-                    if not commit(session):
+                    try:
+                        commit(session)
+                    except CommitError:
                         await message.reply_text("⚠️ Не удалось сохранить данные пользователя.")
                         return END
             user_data["thread_id"] = thread_id

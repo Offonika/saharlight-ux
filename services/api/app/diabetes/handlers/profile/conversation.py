@@ -57,7 +57,7 @@ from services.api.app.diabetes.utils.ui import (  # noqa: E402
     menu_keyboard,
 )
 from services.api.app import config  # noqa: E402
-from services.api.app.diabetes.services.repository import commit  # noqa: E402
+from services.api.app.diabetes.services.repository import CommitError, commit  # noqa: E402
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers  # noqa: E402
 
 from .api import (  # noqa: E402
@@ -464,10 +464,17 @@ def _security_db(session: Session, user_id: int, action: str | None) -> dict[str
     commit_ok = True
     alert_sugar = None
     if changed:
-        commit_ok = commit(session)
-        if commit_ok:
-            alert = session.query(Alert).filter_by(user_id=user_id).order_by(Alert.ts.desc()).first()
+        try:
+            commit(session)
+            alert = (
+                session.query(Alert)
+                .filter_by(user_id=user_id)
+                .order_by(Alert.ts.desc())
+                .first()
+            )
             alert_sugar = alert.sugar if alert else None
+        except CommitError:
+            commit_ok = False
 
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
     rem_text = "\n".join(f"{r.id}. {reminder_handlers._describe(r, user)}" for r in rems) if rems else "нет"

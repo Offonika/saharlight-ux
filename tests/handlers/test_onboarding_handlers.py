@@ -129,7 +129,10 @@ async def test_onboarding_target_commit_fail(monkeypatch: pytest.MonkeyPatch) ->
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    monkeypatch.setattr(onboarding, "commit", lambda s: False)
+    def fail_commit(session: object) -> bool:
+        raise onboarding.CommitError
+
+    monkeypatch.setattr(onboarding, "commit", fail_commit)
     monkeypatch.setattr(onboarding, "build_timezone_webapp_button", lambda: None)
 
     message = DummyMessage()
@@ -162,7 +165,10 @@ async def test_onboarding_timezone_commit_fail(monkeypatch: pytest.MonkeyPatch) 
         session.commit()
 
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    monkeypatch.setattr(onboarding, "commit", lambda s: False)
+    def fail_commit(session: object) -> bool:
+        raise onboarding.CommitError
+
+    monkeypatch.setattr(onboarding, "commit", fail_commit)
     monkeypatch.setattr(onboarding, "build_timezone_webapp_button", lambda: None)
 
     message = DummyMessage()
