@@ -11,7 +11,7 @@ permissions:
   pull-requests: write
 
 env:
-  TARGET_BRANCH: dev            # <-- целевая ветка для PR
+  TARGET_BRANCH: main            # <-- целевая ветка для PR
   SYNC_INDEX_HTML: 'false'      # true — если надо разово подтянуть index.html
   SYNC_OPENAPI: 'false'         # true — если нужно тянуть openapi.yaml (обычно false)
   SYNC_BRANCH_PREFIX: lovable-sync
