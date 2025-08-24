@@ -111,6 +111,7 @@ export default function CreateReminder() {
       telegramId: user.id,
       type,
       time,
+      title,
       intervalHours:
         intervalMinutes != null ? intervalMinutes / 60 : undefined,
       isEnabled: true,
