@@ -15,7 +15,12 @@ from telegram.ext import (
 
 from services.api.app.diabetes.services.db import SessionLocal, Profile
 
-from services.api.app.diabetes.utils.ui import back_keyboard, menu_keyboard
+from services.api.app.diabetes.utils.ui import (
+    BACK_BUTTON_TEXT,
+    PHOTO_BUTTON_TEXT,
+    back_keyboard,
+    menu_keyboard,
+)
 from services.api.app.diabetes.services.repository import CommitError, commit
 
 from . import dose_calc, _cancel_then
