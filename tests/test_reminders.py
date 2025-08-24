@@ -30,6 +30,8 @@ from services.api.app.routers.reminders import router as reminders_router
 from services.api.app.services import reminders
 from services.api.app.telegram_auth import require_tg_user
 
+# Ensure handlers use current settings after config reloads
+handlers.settings = settings
 
 class DummyMessage:
     def __init__(self, text: str | None = None) -> None:
