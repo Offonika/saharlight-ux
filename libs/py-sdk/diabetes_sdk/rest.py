@@ -191,7 +191,9 @@ class RESTClientObject:
                     # serialize nested structures to JSON
                     if isinstance(post_params, dict):
                         items = post_params.items()
-                    elif isinstance(post_params, Iterable):
+                    elif isinstance(post_params, Iterable) and not isinstance(
+                        post_params, (str, bytes)
+                    ):
                         items = post_params
                     else:
                         raise ApiValueError(
