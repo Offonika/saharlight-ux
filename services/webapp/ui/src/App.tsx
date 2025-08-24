@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,14 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Suspense, lazy } from "react";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import useHardwareAcceleration from "@/hooks/use-hardware-acceleration";
 import { useTelegramContext } from "@/contexts/telegram-context";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import MedicalButton from "@/components/MedicalButton";
 
 const Home = lazy(() => import("./pages/Home"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -32,15 +28,27 @@ const AppContent = () => {
   const { isReady, error, tg } = useTelegramContext();
   const hasAcceleration = useHardwareAcceleration();
 
+  const telegramBot = import.meta.env.VITE_TELEGRAM_BOT;
+  const telegramLink = telegramBot
+    ? `https://t.me/${telegramBot}?startapp=reminders`
+    : undefined;
+
   const openInTelegram = (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-4">
         <p className="text-lg font-medium">
           Не удалось определить пользователя Telegram
         </p>
         <p className="text-muted-foreground">
           Попробуйте открыть приложение из Telegram.
         </p>
+        {error?.code === "no-user" && telegramLink && (
+          <MedicalButton asChild variant="outline">
+            <a href={telegramLink} target="_blank" rel="noopener noreferrer">
+              Открыть в Telegram
+            </a>
+          </MedicalButton>
+        )}
       </div>
     </div>
   );
@@ -65,7 +73,9 @@ const AppContent = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-2">
           <p className="text-lg font-medium">Что-то пошло не так</p>
-          <p className="text-muted-foreground">Попробуйте обновить приложение.</p>
+          <p className="text-muted-foreground">
+            Попробуйте обновить приложение.
+          </p>
           <p className="text-sm text-muted-foreground">
             {error.message ?? error.code}
           </p>
@@ -82,9 +92,10 @@ const AppContent = () => {
             <Alert variant="destructive">
               <AlertTitle>Аппаратное ускорение недоступно</AlertTitle>
               <AlertDescription>
-                Графические функции могут быть отключены. В доверенной среде можно
-                запустить браузер с флагом <code>--enable-unsafe-swiftshader</code> для
-                программного рендеринга.
+                Графические функции могут быть отключены. В доверенной среде
+                можно запустить браузер с флагом{" "}
+                <code>--enable-unsafe-swiftshader</code> для программного
+                рендеринга.
               </AlertDescription>
             </Alert>
           </div>
