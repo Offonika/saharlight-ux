@@ -52,6 +52,7 @@ async def post_init(
         logger.warning("WEBAPP_URL not configured, skip ChatMenuButton")
         return
 
+
     menu = [
         MenuButtonWebApp("⏰", WebAppInfo(url=f"{webapp_url}/reminders")),
         MenuButtonWebApp("📊", WebAppInfo(url=f"{webapp_url}/history")),
@@ -59,6 +60,7 @@ async def post_init(
         MenuButtonWebApp("💳", WebAppInfo(url=f"{webapp_url}/subscription")),
     ]
     await app.bot.set_chat_menu_button(menu_button=cast(Any, menu))
+
 
 
 
