@@ -110,6 +110,7 @@ export default function CreateReminder() {
     const payload: ApiReminder = {
       telegramId: user.id,
       type,
+      title,
       time,
       intervalHours:
         intervalMinutes != null ? intervalMinutes / 60 : undefined,
