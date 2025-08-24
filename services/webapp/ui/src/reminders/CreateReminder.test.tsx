@@ -1,10 +1,14 @@
+
 import { render, waitFor, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+
+const mockNavigate = vi.fn();
+const mockUseParams = vi.fn();
 vi.mock("react-router-dom", () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
   useLocation: () => ({ state: undefined }),
-  useParams: () => ({ id: "1" }),
+  useParams: () => mockUseParams(),
 }));
 
 vi.mock("../contexts/telegram-context", () => ({
@@ -24,19 +28,30 @@ vi.mock("../api/reminders", () => ({
 }));
 
 import CreateReminder from "./CreateReminder";
+
 import { getReminder, updateReminder } from "../api/reminders";
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
+
 describe("CreateReminder", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  afterEach(() => {
+    cleanup();
+  });
+
   it("requests reminder only once", async () => {
+    mockUseParams.mockReturnValue({ id: "1" });
     render(<CreateReminder />);
     await waitFor(() => expect(getReminder).toHaveBeenCalledTimes(1));
     const [, , signal] = vi.mocked(getReminder).mock.calls[0];
     expect(signal).toBeInstanceOf(AbortSignal);
   });
+
 
   it("submits custom title", async () => {
     render(<CreateReminder />);
@@ -48,5 +63,6 @@ describe("CreateReminder", () => {
     expect(updateReminder).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Custom" }),
     );
+
   });
 });
