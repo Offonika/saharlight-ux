@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
@@ -100,3 +100,52 @@ def test_http_client_lock_used(monkeypatch: pytest.MonkeyPatch) -> None:
 
     openai_utils.dispose_http_client()
     assert dummy_lock.entered and dummy_lock.exited
+
+
+def test_get_async_openai_client_requires_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(openai_utils, "_async_http_client", None)
+    monkeypatch.setattr(settings, "openai_api_key", "")
+    with pytest.raises(RuntimeError):
+        openai_utils.get_async_openai_client()
+
+
+def test_get_async_openai_client_uses_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_async_client = Mock()
+    fake_async_client.aclose = AsyncMock()
+    async_client_mock = Mock(return_value=fake_async_client)
+    openai_mock = Mock()
+
+    monkeypatch.setattr(openai_utils, "_async_http_client", None)
+    monkeypatch.setattr(settings, "openai_api_key", "key")
+    monkeypatch.setattr(settings, "openai_proxy", "http://proxy")
+    monkeypatch.setattr(httpx, "AsyncClient", async_client_mock)
+    monkeypatch.setattr(openai_utils, "AsyncOpenAI", openai_mock)
+    monkeypatch.setattr(openai_utils, "_http_client", None)
+
+    client = openai_utils.get_async_openai_client()
+
+    async_client_mock.assert_called_once_with(proxies="http://proxy")
+    openai_mock.assert_called_once_with(api_key="key", http_client=fake_async_client)
+    assert client is openai_mock.return_value
+
+    openai_utils.dispose_http_client()
+    fake_async_client.aclose.assert_awaited_once()
+    assert openai_utils._async_http_client is None
+
+
+def test_dispose_http_client_resets_all(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_http_client = Mock()
+    fake_async_client = Mock()
+    fake_async_client.aclose = AsyncMock()
+
+    monkeypatch.setattr(openai_utils, "_http_client", fake_http_client)
+    monkeypatch.setattr(openai_utils, "_async_http_client", fake_async_client)
+
+    openai_utils.dispose_http_client()
+
+    fake_http_client.close.assert_called_once()
+    fake_async_client.aclose.assert_awaited_once()
+    assert openai_utils._http_client is None
+    assert openai_utils._async_http_client is None
