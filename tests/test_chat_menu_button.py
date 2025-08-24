@@ -41,8 +41,6 @@ async def test_post_init_sets_chat_menu_button(
     assert menu.web_app.url == "https://app.example"
 
 
-
-
 @pytest.mark.asyncio
 async def test_post_init_skips_chat_menu_button_without_url(
     monkeypatch: pytest.MonkeyPatch,
