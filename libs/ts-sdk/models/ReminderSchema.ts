@@ -13,6 +13,21 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ScheduleKind } from './ScheduleKind';
+import {
+    ScheduleKindFromJSON,
+    ScheduleKindFromJSONTyped,
+    ScheduleKindToJSON,
+    ScheduleKindToJSONTyped,
+} from './ScheduleKind';
+import type { ReminderType } from './ReminderType';
+import {
+    ReminderTypeFromJSON,
+    ReminderTypeFromJSONTyped,
+    ReminderTypeToJSON,
+    ReminderTypeToJSONTyped,
+} from './ReminderType';
+
 /**
  * 
  * @export
@@ -33,16 +48,22 @@ export interface ReminderSchema {
     id?: number | null;
     /**
      * 
-     * @type {string}
+     * @type {ReminderType}
      * @memberof ReminderSchema
      */
-    type: string;
+    type: ReminderType;
     /**
      * 
      * @type {string}
      * @memberof ReminderSchema
      */
     title?: string | null;
+    /**
+     * 
+     * @type {ScheduleKind}
+     * @memberof ReminderSchema
+     */
+    kind?: ScheduleKind;
     /**
      * 
      * @type {string}
@@ -54,13 +75,25 @@ export interface ReminderSchema {
      * @type {number}
      * @memberof ReminderSchema
      */
-    intervalHours?: number | null;
+    intervalMinutes?: number | null;
     /**
      * 
      * @type {number}
      * @memberof ReminderSchema
      */
     minutesAfter?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ReminderSchema
+     */
+    intervalHours?: number | null;
+    /**
+     * 
+     * @type {Set<number>}
+     * @memberof ReminderSchema
+     */
+    daysOfWeek?: Set<number> | null;
     /**
      * 
      * @type {boolean}
@@ -73,6 +106,12 @@ export interface ReminderSchema {
      * @memberof ReminderSchema
      */
     orgId?: number | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof ReminderSchema
+     */
+    nextAt?: Date | null;
 }
 
 /**
@@ -96,13 +135,17 @@ export function ReminderSchemaFromJSONTyped(json: any, ignoreDiscriminator: bool
         
         'telegramId': json['telegramId'],
         'id': json['id'] == null ? undefined : json['id'],
-        'type': json['type'],
+        'type': ReminderTypeFromJSON(json['type']),
         'title': json['title'] == null ? undefined : json['title'],
+        'kind': json['kind'] == null ? undefined : ScheduleKindFromJSON(json['kind']),
         'time': json['time'] == null ? undefined : json['time'],
-        'intervalHours': json['intervalHours'] == null ? undefined : json['intervalHours'],
+        'intervalMinutes': json['intervalMinutes'] == null ? undefined : json['intervalMinutes'],
         'minutesAfter': json['minutesAfter'] == null ? undefined : json['minutesAfter'],
+        'intervalHours': json['intervalHours'] == null ? undefined : json['intervalHours'],
+        'daysOfWeek': json['daysOfWeek'] == null ? undefined : new Set(json['daysOfWeek']),
         'isEnabled': json['isEnabled'] == null ? undefined : json['isEnabled'],
         'orgId': json['orgId'] == null ? undefined : json['orgId'],
+        'nextAt': json['nextAt'] == null ? undefined : (new Date(json['nextAt'])),
     };
 }
 
@@ -119,13 +162,17 @@ export function ReminderSchemaToJSONTyped(value?: ReminderSchema | null, ignoreD
         
         'telegramId': value['telegramId'],
         'id': value['id'],
-        'type': value['type'],
+        'type': ReminderTypeToJSON(value['type']),
         'title': value['title'],
+        'kind': ScheduleKindToJSON(value['kind']),
         'time': value['time'],
-        'intervalHours': value['intervalHours'],
+        'intervalMinutes': value['intervalMinutes'],
         'minutesAfter': value['minutesAfter'],
+        'intervalHours': value['intervalHours'],
+        'daysOfWeek': value['daysOfWeek'] == null ? undefined : Array.from(value['daysOfWeek'] as Set<any>),
         'isEnabled': value['isEnabled'],
         'orgId': value['orgId'],
+        'nextAt': value['nextAt'] === null ? null : ((value['nextAt'] as any)?.toISOString()),
     };
 }
 

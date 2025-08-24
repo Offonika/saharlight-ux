@@ -1,4 +1,6 @@
+
 from __future__ import annotations
+
 
 from enum import Enum
 from typing import List, Literal, Optional
@@ -60,11 +62,13 @@ class ReminderIn(BaseModel):
         if self.intervalHours and not self.intervalMinutes:
             self.intervalMinutes = self.intervalHours * 60
 
+
         provided = [
             bool(self.time),
             bool(self.intervalMinutes),
             bool(self.minutesAfter),
         ]
+
         if sum(provided) != 1:
             raise ValueError(
                 "exactly one of time, intervalMinutes or minutesAfter must be provided"
