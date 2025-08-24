@@ -244,7 +244,7 @@ async def test_photo_handler_removes_file(monkeypatch: pytest.MonkeyPatch, tmp_p
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
-    monkeypatch.setattr(photo_handlers, "menu_keyboard", None)
+    monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
     monkeypatch.setattr(
         photo_handlers.os,
         "makedirs",
@@ -295,7 +295,7 @@ async def test_photo_then_freeform_calculates_dose(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
-    monkeypatch.setattr(photo_handlers, "menu_keyboard", None)
+    monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
     monkeypatch.setattr(gpt_handlers, "confirm_keyboard", lambda: None)
 
     photo_msg = DummyMessage(photo=(DummyPhoto(),))

@@ -37,7 +37,7 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message is None:
         return
-    await message.reply_text("📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard)
+    await message.reply_text("📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard())
 
 
 async def photo_handler(
@@ -220,7 +220,7 @@ async def photo_handler(
                 f"Вот полный ответ Vision:\n<pre>{vision_text}</pre>\n"
                 "Введите /dose и укажите их вручную.",
                 parse_mode="HTML",
-                reply_markup=menu_keyboard,
+                reply_markup=menu_keyboard(),
             )
             return END
 
@@ -250,7 +250,7 @@ async def photo_handler(
                 raise
         await message.reply_text(
             f"🍽️ На фото:\n{vision_text}\n\nВведите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина.",
-            reply_markup=menu_keyboard,
+            reply_markup=menu_keyboard(),
         )
         return PHOTO_SUGAR
 

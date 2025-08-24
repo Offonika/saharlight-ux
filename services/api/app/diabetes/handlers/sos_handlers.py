@@ -76,13 +76,13 @@ async def sos_contact_save(
         if not commit(session):
             await message.reply_text(
                 "⚠️ Не удалось сохранить контакт.",
-                reply_markup=menu_keyboard,
+                reply_markup=menu_keyboard(),
             )
             return ConversationHandler.END
 
     await message.reply_text(
         "✅ Контакт для SOS сохранён.",
-        reply_markup=menu_keyboard,
+        reply_markup=menu_keyboard(),
     )
     return ConversationHandler.END
 
@@ -95,7 +95,7 @@ async def sos_contact_cancel(
     if message is None:
         return ConversationHandler.END
     assert message is not None
-    await message.reply_text("Отменено.", reply_markup=menu_keyboard)
+    await message.reply_text("Отменено.", reply_markup=menu_keyboard())
     return ConversationHandler.END
 
 

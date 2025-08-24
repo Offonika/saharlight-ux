@@ -18,7 +18,7 @@ def test_menu_keyboard_webapp_urls(monkeypatch: pytest.MonkeyPatch, base_url: st
     importlib.reload(config)
     importlib.reload(ui)
 
-    buttons = [btn for row in ui.menu_keyboard.keyboard for btn in row]
+    buttons = [btn for row in ui.menu_keyboard().keyboard for btn in row]
     profile_btn = next(b for b in buttons if b.text == "📄 Мой профиль")
     reminders_btn = next(b for b in buttons if b.text == "⏰ Напоминания")
 

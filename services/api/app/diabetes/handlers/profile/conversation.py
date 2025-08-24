@@ -206,7 +206,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"• Низкий порог: {low} ммоль/л\n"
         f"• Высокий порог: {high} ммоль/л" + warning_msg,
         parse_mode="Markdown",
-        reply_markup=menu_keyboard,
+        reply_markup=menu_keyboard(),
     )
     return END
 
@@ -285,13 +285,13 @@ async def profile_webapp_save(
     web_app = getattr(eff_msg, "web_app_data", None)
     error_msg = "⚠️ Некорректные данные из WebApp."
     if web_app is None:
-        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard)
+        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
         return
     raw = web_app.data
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard)
+        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
         return
     if {
         "icr",
@@ -300,7 +300,7 @@ async def profile_webapp_save(
         "low",
         "high",
     } - data.keys():
-        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard)
+        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
         return
     try:
         icr = float(str(data["icr"]).replace(",", "."))
@@ -309,11 +309,11 @@ async def profile_webapp_save(
         low = float(str(data["low"]).replace(",", "."))
         high = float(str(data["high"]).replace(",", "."))
     except ValueError:
-        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard)
+        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
         return
     user = update.effective_user
     if user is None:
-        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard)
+        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
         return
     user_id = user.id
     ok, err = post_profile(
@@ -330,7 +330,7 @@ async def profile_webapp_save(
     if not ok:
         await eff_msg.reply_text(
             err or "⚠️ Не удалось сохранить профиль.",
-            reply_markup=menu_keyboard,
+            reply_markup=menu_keyboard(),
         )
         return
     await eff_msg.reply_text(
@@ -340,7 +340,7 @@ async def profile_webapp_save(
         f"• Целевой сахар: {target} ммоль/л\n"
         f"• Низкий порог: {low} ммоль/л\n"
         f"• Высокий порог: {high} ммоль/л",
-        reply_markup=menu_keyboard,
+        reply_markup=menu_keyboard(),
     )
 
 
@@ -348,7 +348,7 @@ async def profile_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """Cancel profile creation conversation."""
     message = update.message
     if message is not None:
-        await message.reply_text("Отменено.", reply_markup=menu_keyboard)
+        await message.reply_text("Отменено.", reply_markup=menu_keyboard())
     return END
 
 
@@ -359,7 +359,7 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     await query.answer()
     await query.message.delete()
-    await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
+    await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
 
 
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -420,15 +420,15 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
     else:
         exists, ok = await run_db(db_set_timezone, sessionmaker=SessionLocal)
     if not exists:
-        await message.reply_text("Профиль не найден.", reply_markup=menu_keyboard)
+        await message.reply_text("Профиль не найден.", reply_markup=menu_keyboard())
         return END
     if not ok:
         await message.reply_text(
             "⚠️ Не удалось обновить часовой пояс.",
-            reply_markup=menu_keyboard,
+            reply_markup=menu_keyboard(),
         )
         return END
-    await message.reply_text("✅ Часовой пояс обновлён.", reply_markup=menu_keyboard)
+    await message.reply_text("✅ Часовой пояс обновлён.", reply_markup=menu_keyboard())
     return END
 
 
@@ -526,7 +526,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if not result.get("commit_ok", True):
         await q_message.reply_text(
             "⚠️ Не удалось сохранить настройки.",
-            reply_markup=menu_keyboard,
+            reply_markup=menu_keyboard(),
         )
         return
     alert_sugar = result.get("alert_sugar")
@@ -812,7 +812,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         f"• Целевой сахар: {target} ммоль/л\n"
         f"• Низкий порог: {low} ммоль/л\n"
         f"• Высокий порог: {high} ммоль/л" + warning_msg,
-        reply_markup=menu_keyboard,
+        reply_markup=menu_keyboard(),
     )
     return END
 

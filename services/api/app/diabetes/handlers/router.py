@@ -94,7 +94,7 @@ async def handle_cancel_entry(
     message = query.message
     if message is None:
         return
-    await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
+    await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
 
 
 async def handle_edit_or_delete(

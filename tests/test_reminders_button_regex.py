@@ -13,7 +13,7 @@ def test_reminders_button_matches_regex() -> None:
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
-    button_texts = [btn.text for row in menu_keyboard.keyboard for btn in row]
+    button_texts = [btn.text for row in menu_keyboard().keyboard for btn in row]
     assert "⏰ Напоминания" in button_texts
 
     app = ApplicationBuilder().token("TESTTOKEN").build()

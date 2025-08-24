@@ -131,7 +131,7 @@ async def test_start_command_existing_user(monkeypatch: pytest.MonkeyPatch) -> N
         session.commit()
 
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    monkeypatch.setattr(onboarding, "menu_keyboard", "MK")
+    monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
 
     def fake_skip_markup() -> str:  # must not be called
         raise AssertionError("_skip_markup should not be used for existing user")

@@ -13,7 +13,7 @@ async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message:
         await message.reply_text(
-            "📋 Выберите действие:", reply_markup=menu_keyboard
+            "📋 Выберите действие:", reply_markup=menu_keyboard()
         )
 
 
@@ -65,7 +65,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
     message = update.message
     if message:
-        await message.reply_text(text, reply_markup=menu_keyboard)
+        await message.reply_text(text, reply_markup=menu_keyboard())
 
 
 async def smart_input_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

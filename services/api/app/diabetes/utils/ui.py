@@ -25,33 +25,48 @@ __all__ = (
     "build_timezone_webapp_button",
 )
 
-# ─────────────── Reply-клавиатуры (отображаются на экране чата) ───────────────
-_WEBAPP_URL = config.settings.webapp_url.rstrip("/") if config.settings.webapp_url else None
 
-# Create WebApp buttons when WebApp is configured, fall back to text buttons otherwise
-profile_button = (
-    KeyboardButton("📄 Мой профиль", web_app=WebAppInfo(f"{_WEBAPP_URL}/profile"))
-    if _WEBAPP_URL
-    else KeyboardButton("📄 Мой профиль")
-)
-reminders_button = (
-    KeyboardButton("⏰ Напоминания", web_app=WebAppInfo(f"{_WEBAPP_URL}/reminders"))
-    if _WEBAPP_URL
-    else KeyboardButton("⏰ Напоминания")
-)
+def _webapp_url() -> str | None:
+    """Return ``settings.webapp_url`` without a trailing slash."""
 
-menu_keyboard = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton("📷 Фото еды"), KeyboardButton("🩸 Уровень сахара")],
-        [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
-        [KeyboardButton("📈 Отчёт"), profile_button],
-        [KeyboardButton("🕹 Быстрый ввод"), KeyboardButton("ℹ️ Помощь")],
-        [reminders_button, KeyboardButton("🆘 SOS контакт")],
-    ],
-    resize_keyboard=True,
-    one_time_keyboard=False,
-    input_field_placeholder="Выберите действие…",
-)
+    url = config.settings.webapp_url
+    return url.rstrip("/") if url else None
+
+
+def menu_keyboard() -> ReplyKeyboardMarkup:
+    """Build the main menu keyboard.
+
+    ``settings.webapp_url`` is read at call time to determine whether WebApp
+    buttons should be used for profile and reminders.
+    """
+
+    webapp_url = _webapp_url()
+    profile_button = (
+        KeyboardButton(
+            "📄 Мой профиль", web_app=WebAppInfo(f"{webapp_url}/profile")
+        )
+        if webapp_url
+        else KeyboardButton("📄 Мой профиль")
+    )
+    reminders_button = (
+        KeyboardButton(
+            "⏰ Напоминания", web_app=WebAppInfo(f"{webapp_url}/reminders")
+        )
+        if webapp_url
+        else KeyboardButton("⏰ Напоминания")
+    )
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton("📷 Фото еды"), KeyboardButton("🩸 Уровень сахара")],
+            [KeyboardButton("💉 Доза инсулина"), KeyboardButton("📊 История")],
+            [KeyboardButton("📈 Отчёт"), profile_button],
+            [KeyboardButton("🕹 Быстрый ввод"), KeyboardButton("ℹ️ Помощь")],
+            [reminders_button, KeyboardButton("🆘 SOS контакт")],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=False,
+        input_field_placeholder="Выберите действие…",
+    )
 
 dose_keyboard = ReplyKeyboardMarkup(
     keyboard=[
@@ -113,10 +128,11 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
         Button instance when ``WEBAPP_URL`` is set and valid, otherwise ``None``.
     """
 
-    if not _WEBAPP_URL:
+    webapp_url = _webapp_url()
+    if not webapp_url:
         return None
 
     return InlineKeyboardButton(
         "Определить автоматически",
-        web_app=WebAppInfo(f"{_WEBAPP_URL}/timezone"),
+        web_app=WebAppInfo(f"{webapp_url}/timezone"),
     )

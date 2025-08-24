@@ -101,7 +101,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             greeting = f"👋 Привет, {first_name}!" if first_name else "👋 Привет!"
             greeting += " Рада видеть тебя. Надеюсь, у тебя сегодня всё отлично."
             await message.reply_text(
-                f"{greeting}\n\n📋 Выберите действие:", reply_markup=menu_keyboard
+                f"{greeting}\n\n📋 Выберите действие:", reply_markup=menu_keyboard()
             )
             return ConversationHandler.END
 
@@ -413,7 +413,7 @@ async def onboarding_reminders(
         logger.warning("Poll message missing poll object for user %s", user_id)
 
     await query.message.reply_text(
-        "Готово! Спасибо за настройку.", reply_markup=menu_keyboard
+        "Готово! Спасибо за настройку.", reply_markup=menu_keyboard()
     )
     return ConversationHandler.END
 
@@ -434,7 +434,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if not commit(session):
                 await query.message.reply_text(
                     "⚠️ Не удалось сохранить настройки.",
-                    reply_markup=menu_keyboard,
+                    reply_markup=menu_keyboard(),
                 )
                 return ConversationHandler.END
 
@@ -449,7 +449,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     else:
         logger.warning("Poll message missing poll object for user %s", user_id)
 
-    await query.message.reply_text("Пропущено.", reply_markup=menu_keyboard)
+    await query.message.reply_text("Пропущено.", reply_markup=menu_keyboard())
     return ConversationHandler.END
 
 
