@@ -164,7 +164,37 @@ curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setChatMenuButton" \
   -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Open WebApp\",\"web_app\":{\"url\":\"${WEBAPP_URL}\"}}}"
 ```
 
-Команда зависит от значения `WEBAPP_URL`, которое должно указывать на публичный HTTPS‑адрес вашего WebApp. Чтобы удалить кастомную кнопку и вернуться к стандартному меню, выполните:
+> Если `WEBAPP_URL` не задан, этот шаг можно пропустить — будет использовано стандартное меню.
+
+Чтобы настроить несколько пунктов (до четырёх), каждый из которых открывает WebApp:
+
+```bash
+curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setChatMenuButton" \
+  -H "Content-Type: application/json" \
+  -d @- <<EOF
+{
+  "menu_button": {
+    "type": "web_app",
+    "text": "Меню",
+    "web_app": {"url": "${WEBAPP_URL}"},
+    "menu_items": [
+      {"type": "web_app", "text": "One", "web_app": {"url": "${WEBAPP_URL}/one"}},
+      {"type": "web_app", "text": "Two", "web_app": {"url": "${WEBAPP_URL}/two"}},
+      {"type": "web_app", "text": "Three", "web_app": {"url": "${WEBAPP_URL}/three"}},
+      {"type": "web_app", "text": "Four", "web_app": {"url": "${WEBAPP_URL}/four"}}
+    ]
+  }
+}
+EOF
+```
+
+Проверить текущую конфигурацию можно так:
+
+```bash
+curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/getChatMenuButton"
+```
+
+Команды зависят от значения `WEBAPP_URL`, которое должно указывать на публичный HTTPS‑адрес вашего WebApp. Чтобы удалить кастомную кнопку и вернуться к стандартному меню, выполните:
 
 ```bash
 curl "https://api.telegram.org/bot${TELEGRAM_TOKEN}/setChatMenuButton" \
