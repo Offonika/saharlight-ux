@@ -11,7 +11,7 @@ from services.api.app.diabetes.handlers import profile as handlers
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
-from services.api.app.config import settings
+from services.api.app import config
 
 
 class DummyMessage:
@@ -229,7 +229,8 @@ async def test_profile_security_add_delete_calls_handlers(
 
     monkeypatch.setattr(reminder_handlers, "delete_reminder", fake_del)
 
-    monkeypatch.setattr(settings, "webapp_url", "http://example")
+    monkeypatch.setattr(config.settings, "webapp_url", "http://example")
+    monkeypatch.setattr(reminder_handlers.config.settings, "webapp_url", "http://example")
     query_add = DummyQuery(DummyMessage(), "profile_security:add")
     update_add = cast(
         Any,
