@@ -121,7 +121,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await check_alert(update, context, sugar)
     await message.reply_text(
         f"✅ Уровень сахара {sugar} ммоль/л сохранён.",
-        reply_markup=menu_keyboard,
+        reply_markup=menu_keyboard(),
     )
     if chat_data is not None:
         chat_data.pop("sugar_active", None)

@@ -31,7 +31,7 @@ from services.api.app.diabetes.gpt_command_parser import (
 from services.api.app.diabetes.utils.constants import XE_GRAMS
 from services.api.app.diabetes.utils.ui import (
     confirm_keyboard,
-    menu_keyboard as _menu_keyboard,
+    menu_keyboard,
 )
 
 from .alert_handlers import check_alert as _check_alert
@@ -41,7 +41,6 @@ from . import EntryData, UserData
 
 commit = _commit
 check_alert = _check_alert
-menu_keyboard = _menu_keyboard
 
 T = TypeVar("T")
 
@@ -602,7 +601,7 @@ async def freeform_handler(
     SessionLocal = SessionLocal or globals()["SessionLocal"]
     commit = commit or globals()["commit"]
     check_alert = check_alert or globals()["check_alert"]
-    menu_keyboard_markup = menu_keyboard_markup or globals()["menu_keyboard"]
+    menu_keyboard_markup = menu_keyboard_markup or globals()["menu_keyboard"]()
     assert SessionLocal is not None
     assert commit is not None
     assert check_alert is not None

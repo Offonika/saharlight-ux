@@ -159,7 +159,7 @@ async def report_period_callback(
         if message is not None:
             await message.delete()
             await message.reply_text(
-                "📋 Выберите действие:", reply_markup=menu_keyboard
+                "📋 Выберите действие:", reply_markup=menu_keyboard()
             )
         return
     period = query.data.split(":", 1)[1]

@@ -147,7 +147,7 @@ async def test_onboarding_reminders_repeated(monkeypatch: pytest.MonkeyPatch) ->
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    monkeypatch.setattr(onboarding, "menu_keyboard", "MK")
+    monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -201,7 +201,7 @@ async def test_onboarding_reminders_poll_missing(
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    monkeypatch.setattr(onboarding, "menu_keyboard", "MK")
+    monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -233,7 +233,7 @@ async def test_onboarding_skip_commit_failure(monkeypatch: pytest.MonkeyPatch) -
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
     monkeypatch.setattr(onboarding, "commit", lambda session: False)
-    monkeypatch.setattr(onboarding, "menu_keyboard", "MK")
+    monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))

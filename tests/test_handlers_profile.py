@@ -110,7 +110,7 @@ async def test_profile_command_and_view(
         await handlers.profile_view(update2, context2)
         dispose_engine(engine)
 
-    assert message.markups[0] is menu_keyboard
+    assert message.markups[0].keyboard == menu_keyboard().keyboard
     assert f"• ИКХ: {expected_icr} г/ед." in message.texts[0]
     assert f"• КЧ: {expected_cf} ммоль/л" in message.texts[0]
     assert f"• Целевой сахар: {expected_target} ммоль/л" in message.texts[0]
