@@ -1,19 +1,18 @@
-"""Configure Telegram chat menu button with WebApp links."""
+"""Configure Telegram chat menu button.
+
+The bot previously replaced Telegram's default menu button with a WebApp link
+which hid the built-in command list. To keep the standard menu available we
+always reset the button to :class:`telegram.MenuButtonDefault`.
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
 
-from telegram import (
-    MenuButtonDefault,
-    MenuButtonWebApp,
-    WebAppInfo,
-)
+from telegram import MenuButtonDefault
 
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
-
-from . import config
 
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 
@@ -28,19 +27,9 @@ async def post_init(
         DefaultJobQueue,
     ],
 ) -> None:
-    """Set chat menu buttons to open WebApp sections if configured.
+    """Always restore the default Telegram menu button."""
 
-
-    Falls back to ``MenuButtonDefault`` when WebApp URLs are disabled.
-    """
-
-    base_url = config.get_webapp_url()
-    if not base_url:
-        await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
-        return
-
-    button = MenuButtonWebApp("Menu", WebAppInfo(f"{base_url}"))
-    await app.bot.set_chat_menu_button(menu_button=button)
+    await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
 
 
 __all__ = ["post_init"]

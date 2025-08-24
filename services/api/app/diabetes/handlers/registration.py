@@ -16,7 +16,7 @@ from telegram.ext import (
 from sqlalchemy.exc import SQLAlchemyError
 
 from .onboarding_handlers import onboarding_conv, onboarding_poll_answer
-from .common_handlers import menu_command, help_command, smart_input_help
+from .common_handlers import menu_command, help_command, smart_input_help, open_command
 from .router import callback_router
 from ..utils.ui import (
     PROFILE_BUTTON_TEXT,
@@ -142,6 +142,7 @@ def register_handlers(
 
     app.add_handler(onboarding_conv)
     app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("menu", menu_command))
+    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("open", open_command))
     app.add_handler(
         CommandHandler[ContextTypes.DEFAULT_TYPE](
             "report", reporting_handlers.report_request
