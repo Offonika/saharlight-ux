@@ -3,6 +3,7 @@ import importlib
 import pytest
 from telegram import MenuButtonDefault, MenuButtonWebApp
 from telegram.ext import ApplicationBuilder, ExtBot
+from urllib.parse import urlparse
 
 
 def _reload_config() -> None:

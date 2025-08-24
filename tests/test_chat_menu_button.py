@@ -7,7 +7,9 @@ from types import ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+
 from telegram import MenuButtonWebApp
+
 
 
 def _reload_main() -> ModuleType:
@@ -39,8 +41,9 @@ async def test_post_init_sets_chat_menu_button(
 
     menu = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
 
-    assert isinstance(menu, MenuButtonWebApp)
-    assert menu.web_app.url == "https://app.example"
+    assert isinstance(menu, list)
+    assert all(isinstance(btn, MenuButtonWebApp) for btn in menu)
+    assert menu[0].web_app.url == "https://app.example/reminders"
 
 
 @pytest.mark.asyncio
@@ -57,4 +60,6 @@ async def test_post_init_skips_chat_menu_button_without_url(
     app = SimpleNamespace(bot=bot)
     await main.post_init(app)
     bot.set_my_commands.assert_awaited_once_with(main.commands)
-    bot.set_chat_menu_button.assert_not_called()
+    bot.set_chat_menu_button.assert_awaited_once()
+    button = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
+    assert isinstance(button, MenuButtonDefault)
