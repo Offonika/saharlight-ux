@@ -6,7 +6,7 @@ Bot entry point and configuration.
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, cast
 
 from telegram import BotCommand, MenuButtonWebApp, WebAppInfo
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
@@ -52,7 +52,6 @@ async def post_init(
         logger.warning("WEBAPP_URL not configured, skip ChatMenuButton")
         return
 
-
     menu = [
         MenuButtonWebApp("⏰", WebAppInfo(url=f"{webapp_url}/reminders")),
         MenuButtonWebApp("📊", WebAppInfo(url=f"{webapp_url}/history")),
@@ -62,13 +61,9 @@ async def post_init(
     await app.bot.set_chat_menu_button(menu_button=cast(Any, menu))
 
 
-
-
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log errors that occur while processing updates."""
-    logger.exception(
-        "Exception while handling update %s", update, exc_info=context.error
-    )
+    logger.exception("Exception while handling update %s", update, exc_info=context.error)
 
 
 def main() -> None:
@@ -86,9 +81,7 @@ def main() -> None:
         sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
         logger.error("Failed to initialize the database", exc_info=exc)
-        sys.exit(
-            "Database initialization failed. Please check your configuration and try again."
-        )
+        sys.exit("Database initialization failed. Please check your configuration and try again.")
 
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:

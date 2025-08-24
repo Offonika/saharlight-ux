@@ -7,7 +7,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from telegram import MenuButtonWebApp
 
 from services.bot.main import commands, post_init
 
@@ -35,8 +34,6 @@ async def test_post_init_sets_chat_menu_button(
         "https://app.example/profile",
         "https://app.example/subscription",
     ]
-
-
 
 
 @pytest.mark.asyncio
