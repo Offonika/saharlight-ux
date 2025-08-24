@@ -1,24 +1,9 @@
-import { DefaultApi, Reminder } from '@sdk';
-
-const api = new DefaultApi();
+import { Reminder } from '@sdk';
+import { http } from './http';
 
 export async function getReminders(telegramId: number): Promise<Reminder[]> {
   try {
-    console.log('[API] Getting reminders for telegramId:', telegramId);
-    const data = await api.remindersGet({ telegramId });
-    console.log('[API] Reminders response:', data);
-
-    if (!data) {
-      console.log('[API] No data received, returning empty array');
-      return [];
-    }
-
-    if (!Array.isArray(data)) {
-      console.error('[API] Unexpected reminders API response:', data);
-      return [];
-    }
-
-    return data;
+    return await http.get<Reminder[]>(`/reminders?telegramId=${telegramId}`);
   } catch (error) {
     console.error('[API] Failed to fetch reminders:', error);
     throw new Error('Не удалось загрузить напоминания');
@@ -30,11 +15,10 @@ export async function getReminder(
   id: number,
 ): Promise<Reminder | null> {
   try {
-    const data = await api.remindersGet({ telegramId, id });
-    if (Array.isArray(data)) {
-      return data[0] ?? null;
-    }
-    return data ?? null;
+    const data = await http.get<Reminder | Reminder[]>(
+      `/reminders?telegramId=${telegramId}&id=${id}`,
+    );
+    return Array.isArray(data) ? data[0] ?? null : data ?? null;
   } catch (error) {
     console.error('Failed to fetch reminder:', error);
     throw new Error('Не удалось загрузить напоминание');
@@ -43,7 +27,7 @@ export async function getReminder(
 
 export async function createReminder(reminder: Reminder) {
   try {
-    return await api.remindersPost({ reminder });
+    return await http.post<Reminder>('/reminders', { reminder });
   } catch (error) {
     console.error('Failed to create reminder:', error);
     throw new Error('Не удалось создать напоминание');
@@ -52,7 +36,7 @@ export async function createReminder(reminder: Reminder) {
 
 export async function updateReminder(reminder: Reminder) {
   try {
-    return await api.remindersPatch({ reminder });
+    return await http.patch<Reminder>('/reminders', { reminder });
   } catch (error) {
     console.error('Failed to update reminder:', error);
     throw new Error('Не удалось обновить напоминание');
@@ -61,7 +45,7 @@ export async function updateReminder(reminder: Reminder) {
 
 export async function deleteReminder(telegramId: number, id: number) {
   try {
-    return await api.remindersDelete({ telegramId, id });
+    return await http.delete(`/reminders/${id}?telegramId=${telegramId}`);
   } catch (error) {
     console.error('Failed to delete reminder:', error);
     throw new Error('Не удалось удалить напоминание');
