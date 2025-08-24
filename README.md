@@ -224,7 +224,7 @@ pip install -r services/api/app/requirements-dev.txt
 Тесты используют переменные `OPENAI_API_KEY`, `DB_PASSWORD` и другие из `.env`.
 Отсутствие обязательных пакетов (например, SQLAlchemy, `python-telegram-bot`, `openai`) приведёт к `ModuleNotFoundError`.
 
-Запустите тесты:
+Тесты необходимо запускать из корня репозитория:
 
 ```bash
 pytest tests/

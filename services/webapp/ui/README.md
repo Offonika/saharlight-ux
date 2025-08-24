@@ -93,3 +93,13 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Testing
+
+> **Warning:** `pytest` is intended for backend tests and should be run from the project root or a backend subdirectory, for example:
+
+```bash
+pytest tests/
+```
+
+Running `pytest` inside this front-end directory is not supported.
