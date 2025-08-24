@@ -51,10 +51,12 @@ async def post_init(
     if not webapp_url:
         logger.warning("WEBAPP_URL not configured, skip ChatMenuButton")
         return
+
     menu_button = MenuButtonWebApp(
         "Menu", WebAppInfo(url=f"{webapp_url}/reminders")
     )
     await app.bot.set_chat_menu_button(menu_button=menu_button)
+
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
