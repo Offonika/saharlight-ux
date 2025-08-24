@@ -11,4 +11,4 @@ class CommandSchema(BaseModel):
     action: str
     entry_date: Optional[str] = None
     time: Optional[str] = None
-    fields: dict[str, object]
+    fields: Optional[dict[str, object]] = None

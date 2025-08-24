@@ -151,6 +151,29 @@ async def test_parse_command_with_array_multiple_objects(
 
 
 @pytest.mark.asyncio
+async def test_parse_command_without_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {"message": type("Msg", (), {"content": '{"action":"get_day_summary"}'})()},
+            )
+        ]
+
+    async def create(*args: Any, **kwargs: Any) -> Any:
+        return FakeResponse()
+
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
+
+    result = await gpt_command_parser.parse_command("test")
+
+    assert result == {"action": "get_day_summary"}
+
+
+@pytest.mark.asyncio
 async def test_parse_command_with_multiple_json_objects(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
