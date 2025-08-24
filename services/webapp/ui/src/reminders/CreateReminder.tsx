@@ -3,9 +3,15 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
-import { Reminder as ApiReminder } from "@sdk";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast } from "@/hooks/use-toast";
+import {
+  buildReminderPayload,
+  type ScheduleKind,
+  type ReminderFormValues,
+  type ReminderType as ApiReminderType,
+} from "@/features/reminders/api/buildPayload";
+import { Reminder as ApiReminder } from "@sdk";
 
 // Reminder type returned from API may contain legacy value "meds",
 // normalize it to "medicine" for UI usage
@@ -27,6 +33,19 @@ const PRESETS: Record<NormalizedReminderType, number[]> = {
   insulin: [120, 180, 240],
   meal: [180, 240, 360],
   medicine: [240, 480, 720]
+};
+
+const mapType = (t: NormalizedReminderType): ApiReminderType => {
+  switch (t) {
+    case "sugar":
+      return "sugar";
+    case "insulin":
+      return "insulin_short";
+    case "meal":
+      return "meal";
+    default:
+      return "custom";
+  }
 };
 
 function isValidTime(time: string): boolean {
@@ -62,10 +81,11 @@ export default function CreateReminder() {
   const [type, setType] = useState<NormalizedReminderType>(
     editing?.type ?? "sugar",
   );
+  const [kind, setKind] = useState<ScheduleKind>("at_time");
   const [title, setTitle] = useState(editing?.title ?? "");
   const [time, setTime] = useState(editing?.time ?? "");
-  // interval is stored in minutes for UI, API expects hours
   const [interval, setInterval] = useState<number | undefined>(editing?.interval ?? 60);
+  const [minutesAfter, setMinutesAfter] = useState<number | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [typeOpen, setTypeOpen] = useState(false);
 
@@ -88,6 +108,7 @@ export default function CreateReminder() {
             setTitle(loaded.title);
             setTime(loaded.time);
             setInterval(loaded.interval ?? 60);
+            setKind(loaded.interval != null ? "every" : "at_time");
           } else {
             const message = "Не удалось загрузить напоминание";
             setError(message);
@@ -103,31 +124,43 @@ export default function CreateReminder() {
     }
   }, [editing, params.id, user?.id, toast]);
 
-  const validName = title.trim().length >= 2;
-  const validTime = isValidTime(time);
-  const validInterval = typeof interval === "number" && interval >= 5;
-  const formValid = validName && validTime && validInterval;
+  const validTime = kind !== "at_time" || isValidTime(time);
+  const validInterval =
+    kind !== "every" || (typeof interval === "number" && interval >= 5);
+  const validMinutesAfter =
+    kind !== "after_event" ||
+    (typeof minutesAfter === "number" && minutesAfter >= 1);
+  const formValid = validTime && validInterval && validMinutesAfter;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formValid || !user?.id) return;
     setError(null);
-    const payload: ApiReminder = {
+    const formValues: ReminderFormValues = {
       telegramId: user.id,
-      type,
+      type: mapType(type),
+      kind,
       time,
-      intervalHours: interval != null ? interval / 60 : undefined,
+      intervalMinutes: interval,
+      minutesAfter,
+      title,
       isEnabled: true,
+    };
+    const payload = {
+      ...buildReminderPayload(formValues),
       ...(editing ? { id: editing.id } : {}),
     };
     try {
       const res = editing
-        ? await updateReminder(payload)
-        : await createReminder(payload);
+        ? await updateReminder(payload as unknown as ApiReminder)
+        : await createReminder(payload as unknown as ApiReminder);
       const rid = editing ? editing.id : res?.id;
-      const hours = interval != null ? interval / 60 : undefined;
       const value =
-        hours != null && Number.isInteger(hours) ? `${hours}h` : time;
+        kind === "at_time"
+          ? time
+          : kind === "every"
+            ? `${interval}m`
+            : `${minutesAfter}m`;
       if (rid) {
         sendData({ id: rid, type, value });
       }
@@ -140,6 +173,16 @@ export default function CreateReminder() {
     }
   };
 
+  const apiType = mapType(type);
+  const preview = buildReminderPayload({
+    telegramId: user?.id ?? 0,
+    type: apiType,
+    kind,
+    time,
+    intervalMinutes: interval,
+    minutesAfter,
+    title,
+  });
   const typeInfo = TYPES[type];
 
   return (
@@ -168,8 +211,21 @@ export default function CreateReminder() {
           maxLength={40}
         />
       </div>
+      <div>
+        <label htmlFor="kind">Тип расписания</label>
+        <select
+          id="kind"
+          className="input"
+          value={kind}
+          onChange={(e) => setKind(e.target.value as ScheduleKind)}
+        >
+          <option value="at_time">По времени</option>
+          <option value="every">Каждые N мин</option>
+          <option value="after_event">После события</option>
+        </select>
+      </div>
 
-      <div className="grid gap-2 md:grid-cols-2">
+      {kind === "at_time" && (
         <div>
           <label htmlFor="time">Время</label>
           <input
@@ -180,6 +236,8 @@ export default function CreateReminder() {
             onChange={(e) => setTime(e.target.value)}
           />
         </div>
+      )}
+      {kind === "every" && (
         <div>
           <label htmlFor="interval">Интервал (мин)</label>
           <input
@@ -211,7 +269,24 @@ export default function CreateReminder() {
             ))}
           </div>
         </div>
-      </div>
+      )}
+      {kind === "after_event" && (
+        <div>
+          <label htmlFor="minutesAfter">Через (мин)</label>
+          <input
+            id="minutesAfter"
+            className="input"
+            type="number"
+            min={5}
+            step={5}
+            value={minutesAfter ?? ""}
+            onChange={(e) => {
+              const val = parseInt(e.target.value, 10);
+              setMinutesAfter(Number.isNaN(val) ? undefined : val);
+            }}
+          />
+        </div>
+      )}
 
       <Sheet open={typeOpen} onClose={() => setTypeOpen(false)}>
         <div className="p-4 grid grid-cols-3 gap-4">
@@ -232,17 +307,16 @@ export default function CreateReminder() {
         </div>
       </Sheet>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-4 flex items-center justify-between gap-4">
-        <div className="text-sm">
-          <span>{typeInfo.emoji} </span>
-          {title.trim() || typeInfo.label}, {time}
-          {interval && ` • каждые ${interval} мин`}
-        </div>
-        <div className="flex gap-2">
-          <MedicalButton
-            type="button"
-            variant="secondary"
-            onClick={() => navigate("/reminders")}
+        <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-4 flex items-center justify-between gap-4">
+          <div className="text-sm">
+            <span>{typeInfo.emoji} </span>
+            {preview.title}
+          </div>
+          <div className="flex gap-2">
+            <MedicalButton
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/reminders")}
           >
             Отмена
           </MedicalButton>
