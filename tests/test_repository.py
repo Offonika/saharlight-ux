@@ -22,7 +22,8 @@ def test_commit_success() -> None:
 def test_commit_failure() -> None:
     session = MagicMock()
     session.commit.side_effect = DummyError("boom")
-    assert repository.commit(session) is False
+    with pytest.raises(repository.CommitError):
+        repository.commit(session)
     session.rollback.assert_called_once()
 
 

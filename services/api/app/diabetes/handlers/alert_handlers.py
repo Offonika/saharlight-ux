@@ -15,7 +15,7 @@ from services.api.app.diabetes.services.db import (
     Profile,
     SessionLocal as _SessionLocal,
 )
-from services.api.app.diabetes.services.repository import commit as _commit
+from services.api.app.diabetes.services.repository import CommitError, commit as _commit
 from services.api.app.diabetes.utils.helpers import get_coords_and_link
 
 run_db: Callable[..., Awaitable[object]] | None
@@ -148,7 +148,9 @@ async def evaluate_sugar(
             atype = "hypo" if low is not None and sugar < low else "hyper"
             alert = Alert(user_id=user_id, sugar=sugar, type=atype)
             session.add(alert)
-            if not commit(session):
+            try:
+                commit(session)
+            except CommitError:
                 logger.error("Failed to commit new alert for user %s", user_id)
                 return False, None
             alerts = (
@@ -162,7 +164,9 @@ async def evaluate_sugar(
             if notify:
                 for a in alerts:
                     a.resolved = True
-                if not commit(session):
+                try:
+                    commit(session)
+                except CommitError:
                     logger.error(
                         "Failed to commit resolved alerts for user %s", user_id
                     )
@@ -178,7 +182,9 @@ async def evaluate_sugar(
         else:
             for a in active:
                 a.resolved = True
-            if not commit(session):
+            try:
+                commit(session)
+            except CommitError:
                 logger.error("Failed to commit resolved alerts for user %s", user_id)
                 return False, None
             return True, {"action": "remove", "notify": False}
@@ -270,7 +276,9 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             )
             for a in alerts:
                 a.resolved = True
-            if not commit(session):
+            try:
+                commit(session)
+            except CommitError:
                 logger.error("Failed to commit resolved alerts for user %s", user_id)
         job.schedule_removal()
         return

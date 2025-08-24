@@ -309,7 +309,7 @@ async def test_reminder_callback_commit_failure(
 
     def failing_commit(sess: Session) -> bool:
         sess.rollback()
-        return False
+        raise reminder_handlers.CommitError
 
     monkeypatch.setattr(reminder_handlers, "commit", failing_commit)
 

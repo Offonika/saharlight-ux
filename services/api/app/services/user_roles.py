@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import SessionLocal, UserRole, run_db
-from ..diabetes.services.repository import commit
+from ..diabetes.services.repository import CommitError, commit
 from ..types import SessionProtocol
 
 ALLOWED_ROLES = {"patient", "clinician", "org_admin", "superadmin"}
@@ -31,7 +31,9 @@ async def set_user_role(user_id: int, role: str) -> None:
             cast(Session, session).add(obj)
         else:
             obj.role = role
-        if not commit(cast(Session, session)):
+        try:
+            commit(cast(Session, session))
+        except CommitError:
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_save, sessionmaker=SessionLocal)

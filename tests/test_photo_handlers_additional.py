@@ -61,7 +61,10 @@ async def test_photo_handler_commit_failure(
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
     monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
-    monkeypatch.setattr(photo_handlers, "commit", lambda session: False)
+    def fail_commit(session: object) -> bool:
+        raise photo_handlers.CommitError
+
+    monkeypatch.setattr(photo_handlers, "commit", fail_commit)
     monkeypatch.setattr(photo_handlers, "send_message", send_message_mock)
 
     message = DummyMessage()

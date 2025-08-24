@@ -162,7 +162,7 @@ async def test_edit_dose_commit_failure() -> None:
     )
 
     def commit_fail(session: Session) -> bool:
-        return False
+        raise gpt_handlers.CommitError
 
     result = await gpt_handlers._handle_edit_entry(
         "5",

@@ -137,7 +137,7 @@ def test_save_profile_commit_failure(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
     def fail_commit(session: object) -> bool:
-        return False
+        raise profile_api.CommitError
 
     monkeypatch.setattr(profile_api, "commit", fail_commit)
     with session_factory() as session:
@@ -201,7 +201,7 @@ def test_set_timezone_commit_failure(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
     def fail_commit(session: object) -> bool:
-        return False
+        raise profile_api.CommitError
 
     monkeypatch.setattr(profile_api, "commit", fail_commit)
     with session_factory() as session:

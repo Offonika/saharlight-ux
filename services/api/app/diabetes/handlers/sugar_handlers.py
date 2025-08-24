@@ -14,7 +14,7 @@ from telegram.ext import (
 from sqlalchemy.orm import Session
 
 from services.api.app.diabetes.services.db import Entry, SessionLocal
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.utils.functions import _safe_float
 from services.api.app.diabetes.utils.ui import (
     menu_keyboard,
@@ -114,7 +114,11 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     def save_entry(session: Session, data: EntryData) -> bool:
         entry = Entry(**data)
         session.add(entry)
-        return commit(session)
+        try:
+            commit(session)
+        except CommitError:
+            return False
+        return True
 
     if run_db is None:
         with SessionLocal() as session:

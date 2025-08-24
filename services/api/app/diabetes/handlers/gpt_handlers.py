@@ -18,7 +18,7 @@ from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session, sessionmaker
 
 from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile
-from services.api.app.diabetes.services.repository import commit as _commit
+from services.api.app.diabetes.services.repository import CommitError, commit as _commit
 from services.api.app.diabetes.utils.functions import (
     PatientProfile,
     calc_bolus,
@@ -116,7 +116,11 @@ async def _save_entry(
     def _db_save(session: Session) -> bool:
         entry = Entry(**entry_data)
         session.add(entry)
-        return bool(commit(session))
+        try:
+            commit(session)
+        except CommitError:
+            return False
+        return True
 
     if run_db is None:
         with SessionLocal() as session:
@@ -311,7 +315,9 @@ async def _handle_edit_entry(
             entry.xe = value
         else:
             entry.dose = value
-        if not commit(session):
+        try:
+            commit(session)
+        except CommitError:
             return None
         session.refresh(entry)
         return entry

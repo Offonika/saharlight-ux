@@ -28,7 +28,7 @@ from services.api.app.diabetes.services.gpt_client import (
     _get_client,
     create_thread,
 )
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.services.reporting import (
     make_sugar_plot,
     generate_pdf_report,
@@ -280,10 +280,12 @@ async def send_report(
                     db_user.thread_id = thread_id
                 else:
                     session.add(User(telegram_id=user_id, thread_id=thread_id))
-                if commit(session):
-                    user_data["thread_id"] = thread_id
-                else:
+                try:
+                    commit(session)
+                except CommitError:
                     thread_id = None
+                else:
+                    user_data["thread_id"] = thread_id
             else:
                 user_data["thread_id"] = thread_id
     if thread_id:
