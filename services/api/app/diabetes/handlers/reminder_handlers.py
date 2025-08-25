@@ -8,7 +8,6 @@ import logging
 import re
 from datetime import time, timedelta, timezone
 from typing import Awaitable, Callable, Literal, cast
-from urllib.parse import urljoin
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -175,7 +174,7 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(build_webapp_url("/reminders/new")),
+                web_app=WebAppInfo(build_webapp_url("/reminders")),
             )
         ]
     if not rems:

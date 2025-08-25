@@ -279,7 +279,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         if btn.text == "➕ Добавить"
     )
     assert add_btn.web_app is not None
-    assert add_btn.web_app.url.endswith("/reminders/new")
+    assert add_btn.web_app.url.endswith("/reminders")
 
 
 def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
