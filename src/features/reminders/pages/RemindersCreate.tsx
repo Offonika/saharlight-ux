@@ -4,6 +4,7 @@ import { useRemindersApi } from "../api/reminders"; // ваш хук, возвр
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
 import { DaysPresets } from "../components/DaysPresets";
 import { buildReminderPayload, ReminderFormValues, ScheduleKind, ReminderType } from "../api/buildPayload";
+import { validate, hasErrors } from "../logic/validate";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 import { getTelegramUserId } from "../../../shared/telegram";
 import { mockApi } from "../../../api/mock-server";
@@ -40,6 +41,9 @@ export default function RemindersCreate() {
   });
   const [loading, setLoading] = useState(false);
 
+  const errors = validate(form);
+  const formHasErrors = hasErrors(errors);
+
   const onChange = <K extends keyof ReminderFormValues>(k: K, v: ReminderFormValues[K]) =>
     setForm((s) => ({ ...s, [k]: v }));
 
@@ -49,6 +53,8 @@ export default function RemindersCreate() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (formHasErrors) return;
+    
     setLoading(true);
     try {
       const payload = buildReminderPayload({ ...form, telegramId });
@@ -133,10 +139,13 @@ export default function RemindersCreate() {
               <label className="block text-sm font-medium text-foreground">Время (HH:MM)</label>
               <input
                 type="time"
-                className="medical-input"
+                className={`medical-input ${errors.time ? "border-destructive focus:border-destructive" : ""}`}
                 value={form.time || ""}
                 onChange={(e) => onChange("time", e.target.value)}
               />
+              {errors.time && (
+                <p className="text-xs text-destructive mt-1">{errors.time}</p>
+              )}
               <div className="flex gap-2 flex-wrap">
                 {presetsTime.map((t) => (
                   <button 
@@ -158,10 +167,13 @@ export default function RemindersCreate() {
               <input
                 type="number" 
                 min={1}
-                className="medical-input"
+                className={`medical-input ${errors.intervalMinutes ? "border-destructive focus:border-destructive" : ""}`}
                 value={form.intervalMinutes ?? ""}
                 onChange={(e) => onChange("intervalMinutes", Number(e.target.value || 0))}
               />
+              {errors.intervalMinutes && (
+                <p className="text-xs text-destructive mt-1">{errors.intervalMinutes}</p>
+              )}
               <div className="flex gap-2 flex-wrap">
                 {presetsEvery.map((m) => (
                   <button 
@@ -183,10 +195,13 @@ export default function RemindersCreate() {
               <input
                 type="number" 
                 min={1}
-                className="medical-input"
+                className={`medical-input ${errors.minutesAfter ? "border-destructive focus:border-destructive" : ""}`}
                 value={form.minutesAfter ?? ""}
                 onChange={(e) => onChange("minutesAfter", Number(e.target.value || 0))}
               />
+              {errors.minutesAfter && (
+                <p className="text-xs text-destructive mt-1">{errors.minutesAfter}</p>
+              )}
               <div className="flex gap-2 flex-wrap">
                 {presetsAfter.map((m) => (
                   <button 
@@ -234,7 +249,7 @@ export default function RemindersCreate() {
           </label>
 
           <button 
-            disabled={loading} 
+            disabled={loading || formHasErrors} 
             className="w-full bg-primary text-primary-foreground rounded-xl py-3 shadow-soft hover:shadow-medium hover:bg-primary/90 disabled:opacity-50 transition-all duration-200"
           >
             {loading ? "Сохранение…" : "Сохранить"}

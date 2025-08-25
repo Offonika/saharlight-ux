@@ -7,6 +7,7 @@ import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast } from "@/hooks/use-toast";
+import { validate, hasErrors, FormErrors } from "@/features/reminders/logic/validate";
 
 // Reminder type returned from API may contain legacy value "meds",
 // normalize it to "medicine" for UI usage
@@ -70,6 +71,11 @@ export default function CreateReminder() {
   const [error, setError] = useState<string | null>(null);
   const [typeOpen, setTypeOpen] = useState(false);
 
+  // Form validation
+  const formData = { kind: "at_time", time, intervalMinutes: interval };
+  const errors = validate(formData as any);
+  const formHasErrors = hasErrors(errors);
+
   useEffect(() => {
     if (!editing && params.id && user?.id) {
       (async () => {
@@ -107,7 +113,7 @@ export default function CreateReminder() {
   const validName = title.trim().length >= 2;
   const validTime = isValidTime(time);
   const validInterval = typeof interval === "number" && interval >= 5;
-  const formValid = validName && validTime && validInterval;
+  const formValid = validName && validTime && validInterval && !formHasErrors;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,11 +210,14 @@ export default function CreateReminder() {
               </label>
               <input
                 id="time"
-                className="medical-input"
+                className={`medical-input ${errors.time ? "border-destructive focus:border-destructive" : ""}`}
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
               />
+              {errors.time && (
+                <p className="text-xs text-destructive mt-1">{errors.time}</p>
+              )}
             </div>
             <div>
               <label htmlFor="interval" className="block text-sm font-medium text-foreground mb-2">
@@ -216,7 +225,7 @@ export default function CreateReminder() {
               </label>
               <input
                 id="interval"
-                className="medical-input"
+                className={`medical-input ${errors.intervalMinutes ? "border-destructive focus:border-destructive" : ""}`}
                 type="number"
                 min={5}
                 step={5}
@@ -227,6 +236,9 @@ export default function CreateReminder() {
                 }}
                 placeholder="60"
               />
+              {errors.intervalMinutes && (
+                <p className="text-xs text-destructive mt-1">{errors.intervalMinutes}</p>
+              )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {PRESETS[type].map((n) => (
                   <button
