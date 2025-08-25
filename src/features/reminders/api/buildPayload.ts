@@ -35,6 +35,11 @@ function generateTitle(v: ReminderFormValues): string {
 }
 
 export function buildReminderPayload(v: ReminderFormValues) {
+  // Guard: force after_event to use after_meal type
+  if (v.kind === "after_event" && v.type !== "after_meal") {
+    v.type = "after_meal";
+  }
+
   const base = {
     telegram_id: v.telegramId,
     type: v.type,
