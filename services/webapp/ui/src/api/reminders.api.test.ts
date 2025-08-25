@@ -7,6 +7,7 @@ const mockRemindersPost = vi.hoisted(() => vi.fn());
 const mockRemindersPatch = vi.hoisted(() => vi.fn());
 const mockRemindersDelete = vi.hoisted(() => vi.fn());
 const mockInstanceOfReminder = vi.hoisted(() => vi.fn());
+const mockTgFetch = vi.hoisted(() => vi.fn());
 
 vi.mock(
   '@offonika/diabetes-ts-sdk/runtime',
@@ -46,12 +47,15 @@ vi.mock(
   { virtual: true },
 );
 
+vi.mock('../lib/tgFetch', () => ({ tgFetch: mockTgFetch }), { virtual: true });
+
 import {
   getReminder,
   getReminders,
   createReminder,
   updateReminder,
   deleteReminder,
+  snoozeReminder,
 } from './reminders';
 
 afterEach(() => {
@@ -61,6 +65,7 @@ afterEach(() => {
   mockRemindersPatch.mockReset();
   mockRemindersDelete.mockReset();
   mockInstanceOfReminder.mockReset();
+  mockTgFetch.mockReset();
 });
 
 describe('getReminder', () => {
@@ -171,5 +176,22 @@ describe('deleteReminder', () => {
     const error = new Error('api error');
     mockRemindersDelete.mockRejectedValueOnce(error);
     await expect(deleteReminder(1, 2)).rejects.toBe(error);
+  });
+});
+
+describe('snoozeReminder', () => {
+  it('sends snooze parameter', async () => {
+    mockTgFetch.mockResolvedValueOnce(new Response('{}'));
+    await snoozeReminder(1, 2, 5);
+    expect(mockTgFetch).toHaveBeenCalledWith(
+      '/api/reminders/snooze?telegramId=1&id=2&snooze=5',
+      { method: 'POST' },
+    );
+  });
+
+  it('rethrows errors', async () => {
+    const error = new Error('net');
+    mockTgFetch.mockRejectedValueOnce(error);
+    await expect(snoozeReminder(1, 2, 5)).rejects.toBe(error);
   });
 });
