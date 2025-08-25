@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRemindersApi } from "../api/reminders";
 import { formatNextAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
+import { mockApi } from "../../../api/mock-server";
 
 type ReminderDto = {
   id: number;
@@ -45,8 +46,14 @@ export default function RemindersList() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const res = await api.remindersGet({ telegramId: user.id });
-      setItems(res as any);
+      try {
+        const res = await api.remindersGet({ telegramId: user.id });
+        setItems(res as any);
+      } catch (apiError) {
+        console.warn("Backend API failed, using mock API:", apiError);
+        const res = await mockApi.getReminders(user.id);
+        setItems(res as any);
+      }
     } finally {
       setLoading(false);
     }
@@ -67,7 +74,12 @@ export default function RemindersList() {
     const optimistic = items.map(x => x.id === r.id ? { ...x, isEnabled: !x.isEnabled } : x);
     setItems(optimistic);
     try {
-      await api.remindersPatch({ reminder: { telegramId: r.telegramId, id: r.id, isEnabled: !r.isEnabled } });
+      try {
+        await api.remindersPatch({ reminder: { telegramId: r.telegramId, id: r.id, isEnabled: !r.isEnabled } });
+      } catch (apiError) {
+        console.warn("Backend API failed, using mock API:", apiError);
+        await mockApi.updateReminder({ ...r, isEnabled: !r.isEnabled });
+      }
       load();
     } catch {
       setItems(items);
@@ -80,7 +92,12 @@ export default function RemindersList() {
     const optimistic = items.filter(x => x.id !== r.id);
     setItems(optimistic);
     try {
-      await api.remindersDelete({ telegramId: r.telegramId, id: r.id });
+      try {
+        await api.remindersDelete({ telegramId: r.telegramId, id: r.id });
+      } catch (apiError) {
+        console.warn("Backend API failed, using mock API:", apiError);
+        await mockApi.deleteReminder(r.telegramId, r.id);
+      }
     } catch {
       alert("Не удалось удалить");
       setItems(items);

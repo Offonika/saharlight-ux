@@ -5,6 +5,7 @@ import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
 import { buildReminderPayload, ReminderFormValues, ScheduleKind, ReminderType } from "../api/buildPayload";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 import { getTelegramUserId } from "../../../shared/telegram";
+import { mockApi } from "../../../api/mock-server";
 
 const TYPE_OPTIONS: { value: ReminderType; label: string }[] = [
   { value: "sugar", label: "Измерение сахара" },
@@ -51,7 +52,16 @@ export default function RemindersCreate() {
     try {
       const payload = buildReminderPayload({ ...form, telegramId });
       console.log("Payload being sent:", payload);
-      await api.remindersPost({ reminder: payload });
+      
+      try {
+        // Пробуем основной API
+        await api.remindersPost({ reminder: payload });
+      } catch (apiError) {
+        console.warn("Backend API failed, using mock API:", apiError);
+        // Fallback на mock API
+        await mockApi.createReminder(payload);
+      }
+      
       nav("/reminders");
     } catch (err) {
       console.error("Error saving reminder:", err);
