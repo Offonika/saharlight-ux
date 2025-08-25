@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 
+from datetime import datetime, timedelta, time as time_, timezone
+from importlib import resources
 from typing import Callable, cast
 
-
-from datetime import time as time_
-
 from fastapi import HTTPException
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import Reminder, SessionLocal, User, run_db
@@ -34,7 +34,23 @@ async def list_reminders(telegram_id: int) -> list[Reminder]:
     def _list(session: Session) -> list[Reminder]:
         if cast(User | None, session.get(User, telegram_id)) is None:
             return []
-        return session.query(Reminder).filter_by(telegram_id=telegram_id).all()
+        reminders_ = session.query(Reminder).filter_by(telegram_id=telegram_id).all()
+        sql = resources.files("services.api.app.diabetes.sql").joinpath(
+            "reminders_stats.sql"
+        ).read_text()
+        since = datetime.now(timezone.utc) - timedelta(days=7)
+        rows = session.execute(
+            text(sql), {"telegram_id": telegram_id, "since": since}
+        ).mappings()
+        stats = {row["reminder_id"]: row for row in rows}
+        for rem in reminders_:
+            st = stats.get(rem.id)
+            last = st["last_fired_at"] if st else None
+            if isinstance(last, str):
+                last = datetime.fromisoformat(last)
+            setattr(rem, "last_fired_at", last)
+            setattr(rem, "fires7d", st["fires7d"] if st else 0)
+        return reminders_
 
     return await run_db(_list, sessionmaker=SessionLocal)
 

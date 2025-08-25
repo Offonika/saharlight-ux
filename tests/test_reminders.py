@@ -646,6 +646,8 @@ def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker
             "minutesAfter": None,
             "isEnabled": True,
             "orgId": None,
+            "lastFiredAt": None,
+            "fires7d": 0,
         }
     ]
 
@@ -676,6 +678,8 @@ def test_get_single_reminder(client: TestClient, session_factory: sessionmaker[S
         "minutesAfter": None,
         "isEnabled": True,
         "orgId": None,
+        "lastFiredAt": None,
+        "fires7d": 0,
     }
 
 
