@@ -13,11 +13,14 @@ const WEEKDAY_LABELS = [
 ];
 
 export interface DayOfWeekPickerProps {
-  value: number[];
-  onChange: (value: number[]) => void;
+  value?: number[];
+  onChange: (next: number[]) => void;
 }
 
-export default function DayOfWeekPicker({ value, onChange }: DayOfWeekPickerProps) {
+export default function DayOfWeekPicker({
+  value = [],
+  onChange,
+}: DayOfWeekPickerProps) {
   const toggle = useCallback(
     (index: number) => {
       const next = value.includes(index)
