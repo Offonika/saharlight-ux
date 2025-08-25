@@ -18,9 +18,9 @@ if config.config_file_name is not None:
 
 # === PYTHONPATH: добавим корень репозитория, чтобы импортировать app.* ===
 # .../services/api/alembic -> поднимаемся на два уровня к services/api, затем к корню
-HERE = os.path.dirname(os.path.abspath(__file__))              # .../services/api/alembic
-API_DIR = os.path.dirname(HERE)                                 # .../services/api
-REPO_ROOT = os.path.dirname(API_DIR)                            # .../saharlight-ux
+HERE = os.path.dirname(os.path.abspath(__file__))  # .../services/api/alembic
+API_DIR = os.path.dirname(HERE)  # .../services/api
+REPO_ROOT = os.path.dirname(API_DIR)  # .../saharlight-ux
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
@@ -28,7 +28,8 @@ if REPO_ROOT not in sys.path:
 try:
     from dotenv import load_dotenv
 except ImportError:
-    logger.info("python-dotenv is not installed")
+    # "python-dotenv" is optional; ignore if it's missing.
+    pass
 else:
     load_dotenv()
 
@@ -60,7 +61,9 @@ def _compose_url_from_env() -> str | None:
     name = os.getenv("DB_NAME")
 
     if user and password and name:
-        return f"postgresql+psycopg2://{user}:{quote_plus(password)}@{host}:{port}/{name}"
+        return (
+            f"postgresql+psycopg2://{user}:{quote_plus(password)}@{host}:{port}/{name}"
+        )
     return None
 
 
@@ -77,7 +80,12 @@ def _get_database_url() -> str:
 
     # 3) Из настроек приложения (Pydantic settings)
     # частые варианты имён поля:
-    for attr in ("database_url", "DATABASE_URL", "sqlalchemy_database_url", "SQLALCHEMY_DATABASE_URL"):
+    for attr in (
+        "database_url",
+        "DATABASE_URL",
+        "sqlalchemy_database_url",
+        "SQLALCHEMY_DATABASE_URL",
+    ):
         if hasattr(settings, attr):
             val = getattr(settings, attr)
             if val:

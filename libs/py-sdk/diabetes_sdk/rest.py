@@ -214,7 +214,7 @@ class RESTClientObject:
                             raise ApiValueError(
                                 "Invalid number of elements in post_params",
                             ) from exc
-                        if isinstance(value, (dict, list, tuple)):
+                        if isinstance(value, (Mapping, list, tuple)):
                             value = json.dumps(value)
                         fields.append((key, value))
                     r = self.pool_manager.request(
