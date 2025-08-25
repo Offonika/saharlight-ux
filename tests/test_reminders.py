@@ -316,48 +316,8 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
 
 
 @pytest.mark.asyncio
-async def test_reminders_list_no_keyboard(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
-    monkeypatch.delenv("WEBAPP_URL", raising=False)
-    with TestSession() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.commit()
-
-    captured: dict[str, Any] = {}
-
-    async def fake_reply_text(text: str, **kwargs: Any) -> None:
-        captured["text"] = text
-        captured["kwargs"] = kwargs
-
-    message = MagicMock(spec=Message)
-    message.reply_text = fake_reply_text
-    update = make_update(effective_user=make_user(1), message=message)
-    context = make_context()
-    await handlers.reminders_list(update, context)
-    text = captured.get("text")
-    assert text is not None
-    assert "У вас нет напоминаний" in text
-    kwargs = captured.get("kwargs")
-    assert kwargs is not None
-    assert "reply_markup" not in kwargs
-
-
-@pytest.mark.asyncio
-async def test_reminders_list_keyboard_no_webapp(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
-    monkeypatch.delenv("WEBAPP_URL", raising=False)
-    with TestSession() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
-        session.commit()
+async def test_reminders_list_sends_webapp_button(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("WEBAPP_URL", "https://example.org")
 
     captured: dict[str, Any] = {}
 
@@ -368,15 +328,16 @@ async def test_reminders_list_keyboard_no_webapp(
     message.reply_text = fake_reply_text
     update = make_update(effective_user=make_user(1), message=message)
     context = make_context()
+
     await handlers.reminders_list(update, context)
+
     kwargs = captured.get("kwargs")
     assert kwargs is not None
     markup = kwargs.get("reply_markup")
     assert markup is not None
-
-    assert len(markup.inline_keyboard) == 1
-    texts = [btn.text for btn in markup.inline_keyboard[0]]
-    assert texts == ["🗑️", "🔔"]
+    button = markup.inline_keyboard[0][0]
+    assert button.web_app is not None
+    assert button.web_app.url.endswith("/reminders")
 
 
 @pytest.mark.asyncio
