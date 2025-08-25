@@ -71,16 +71,15 @@ export default function RemindersCreate() {
     }
   }
 
-  // Гарантируем «ровно одно» поле
-  const clearScheduleFields = (nextKind: ScheduleKind) => {
+  // switchKind: фиксируем type и поля расписания  
+  const switchKind = (k: ScheduleKind) =>
     setForm(s => {
-      const base = { ...s, kind: nextKind, time: undefined, intervalMinutes: undefined, minutesAfter: undefined };
-      if (nextKind === "at_time") base.time = "07:30";
-      if (nextKind === "every") base.intervalMinutes = 60;
-      if (nextKind === "after_event") base.minutesAfter = 120;
+      const base = { ...s, kind: k, time: undefined, intervalMinutes: undefined, minutesAfter: undefined };
+      if (k === "at_time") base.time = "07:30";
+      if (k === "every") base.intervalMinutes = 60;
+      if (k === "after_event") { base.minutesAfter = 120; base.type = "after_meal"; }
       return base;
     });
-  };
 
   return (
     <form className="max-w-xl mx-auto p-4 space-y-4" onSubmit={onSubmit}>
@@ -90,11 +89,17 @@ export default function RemindersCreate() {
       <label className="block text-sm font-medium">Тип</label>
       <select
         className="w-full border rounded-lg px-3 py-2"
-        value={form.type}
+        value={form.kind === "after_event" ? "after_meal" : form.type}
         onChange={(e) => onChange("type", e.target.value as ReminderType)}
+        disabled={form.kind === "after_event"}
       >
         {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
+      {form.kind === "after_event" && (
+        <p className="text-xs text-gray-500 mt-1">
+          Это напоминание сработает <b>после записи приёма пищи</b> в разделе «История».
+        </p>
+      )}
 
       {/* Режим */}
       <label className="block text-sm font-medium">Режим</label>
@@ -102,7 +107,7 @@ export default function RemindersCreate() {
         {KIND_OPTIONS.map((o) => (
           <button
             type="button" key={o.value}
-            onClick={() => clearScheduleFields(o.value)}
+            onClick={() => switchKind(o.value)}
             className={`px-3 py-1 rounded-2xl border ${form.kind===o.value?"bg-black text-white border-black":"border-gray-300"}`}
           >
             {o.label}
@@ -147,7 +152,7 @@ export default function RemindersCreate() {
 
       {form.kind === "after_event" && (
         <>
-          <label className="block text-sm font-medium">Задержка (мин)</label>
+          <label className="block text-sm font-medium">Задержка после еды (мин)</label>
           <input
             type="number" min={1}
             className="w-full border rounded-lg px-3 py-2"

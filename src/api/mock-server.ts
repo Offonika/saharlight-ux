@@ -33,14 +33,25 @@ export const mockApi = {
 
   async createReminder(reminder: any) {
     console.log('[MockAPI] Creating reminder:', reminder);
+    
+    // Determine kind based on payload data
+    let kind: "at_time" | "every" | "after_event" = "at_time";
+    if (reminder.time) {
+      kind = "at_time";
+    } else if (reminder.interval_hours || reminder.interval_minutes) {
+      kind = "every";
+    } else if (reminder.minutes_after) {
+      kind = "after_event";
+    }
+    
     const newReminder = {
       id: nextId++,
       telegramId: reminder.telegram_id,
       type: reminder.type,
       title: reminder.title || null,
-      kind: "at_time" as const,
-      time: reminder.time,
-      intervalMinutes: reminder.interval_minutes || null,
+      kind,
+      time: reminder.time || null,
+      intervalMinutes: reminder.interval_minutes || (reminder.interval_hours ? Math.round(reminder.interval_hours * 60) : null),
       minutesAfter: reminder.minutes_after || null,
       daysOfWeek: reminder.days_of_week || null,
       isEnabled: reminder.is_enabled,
@@ -55,11 +66,22 @@ export const mockApi = {
     console.log('[MockAPI] Updating reminder:', reminder);
     const index = mockReminders.findIndex(r => r.id === reminder.id);
     if (index >= 0) {
+      // Determine kind based on payload data
+      let kind: "at_time" | "every" | "after_event" = mockReminders[index].kind;
+      if (reminder.time) {
+        kind = "at_time";
+      } else if (reminder.interval_hours || reminder.interval_minutes) {
+        kind = "every";
+      } else if (reminder.minutes_after) {
+        kind = "after_event";
+      }
+      
       const updated = {
         ...mockReminders[index],
         type: reminder.type || mockReminders[index].type,
+        kind,
         time: reminder.time || null,
-        intervalMinutes: reminder.interval_hours ? reminder.interval_hours * 60 : null,
+        intervalMinutes: reminder.interval_hours ? Math.round(reminder.interval_hours * 60) : (reminder.interval_minutes || null),
         minutesAfter: reminder.minutes_after || null,
         isEnabled: reminder.is_enabled !== undefined ? reminder.is_enabled : mockReminders[index].isEnabled,
         title: reminder.title || mockReminders[index].title,

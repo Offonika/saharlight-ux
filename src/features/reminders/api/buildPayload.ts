@@ -36,24 +36,25 @@ function generateTitle(v: ReminderFormValues): string {
 
 export function buildReminderPayload(v: ReminderFormValues) {
   // Guard: force after_event to use after_meal type
-  if (v.kind === "after_event" && v.type !== "after_meal") {
-    v.type = "after_meal";
+  const values = { ...v };
+  if (values.kind === "after_event" && values.type !== "after_meal") {
+    values.type = "after_meal";
   }
 
   const base = {
-    telegram_id: v.telegramId,
-    type: v.type,
-    is_enabled: v.isEnabled ?? true,
+    telegram_id: values.telegramId,
+    type: values.type,
+    is_enabled: values.isEnabled ?? true,
   };
   
   // Backend only supports one of: time, interval_hours, minutes_after
-  if (v.kind === "at_time" && v.time) {
-    return { ...base, time: v.time };
-  } else if (v.kind === "every" && v.intervalMinutes) {
+  if (values.kind === "at_time" && values.time) {
+    return { ...base, time: values.time };
+  } else if (values.kind === "every" && values.intervalMinutes) {
     // Convert minutes to hours for backend
-    return { ...base, interval_hours: Math.round(v.intervalMinutes / 60 * 100) / 100 };
-  } else if (v.kind === "after_event" && v.minutesAfter) {
-    return { ...base, minutes_after: v.minutesAfter };
+    return { ...base, interval_hours: Math.round(values.intervalMinutes / 60 * 100) / 100 };
+  } else if (values.kind === "after_event" && values.minutesAfter) {
+    return { ...base, minutes_after: values.minutesAfter };
   }
   
   return base;
