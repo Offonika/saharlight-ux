@@ -11,6 +11,16 @@ class ProfileSchema(BaseModel):
     target: float
     low: float
     high: float
+    quietStart: str = Field(
+        default="23:00",
+        alias="quietStart",
+        validation_alias=AliasChoices("quietStart", "quiet_start"),
+    )
+    quietEnd: str = Field(
+        default="07:00",
+        alias="quietEnd",
+        validation_alias=AliasChoices("quietEnd", "quiet_end"),
+    )
     orgId: Optional[int] = None
     sosContact: Optional[str] = Field(
         default=None,

@@ -163,6 +163,8 @@ class Profile(Base):
     high_threshold: Mapped[Optional[float]] = mapped_column(Float)
     sos_contact: Mapped[Optional[str]] = mapped_column(String)
     sos_alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    quiet_start: Mapped[time] = mapped_column(Time, default=time(hour=23))
+    quiet_end: Mapped[time] = mapped_column(Time, default=time(hour=7))
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     user: Mapped[User] = relationship("User")
 
