@@ -1,14 +1,20 @@
 from collections.abc import Generator
+from datetime import datetime, time, timedelta, timezone
 from typing import Any, ContextManager, cast
 
 import pytest
 from fastapi import HTTPException
-from datetime import time
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session as SASession, sessionmaker
 
-from services.api.app.diabetes.services.db import Base, Reminder, SessionMaker, User
+from services.api.app.diabetes.services.db import (
+    Base,
+    Reminder,
+    ReminderLog,
+    SessionMaker,
+    User,
+)
 from services.api.app.schemas.reminders import ReminderSchema
 from services.api.app.services import reminders
 
@@ -137,6 +143,34 @@ async def test_list_reminders_invalid_user(
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     reminders_list = await reminders.list_reminders(999)
     assert reminders_list == []
+
+
+@pytest.mark.asyncio
+async def test_list_reminders_stats(
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    now = datetime.now(timezone.utc)
+    with cast(ContextManager[SASession], session_factory()) as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar"))
+        recent = now - timedelta(days=1)
+        session.add(
+            ReminderLog(reminder_id=1, telegram_id=1, event_time=recent)
+        )
+        session.add(
+            ReminderLog(
+                reminder_id=1, telegram_id=1, event_time=now - timedelta(days=8)
+            )
+        )
+        session.commit()
+    reminders_list = await reminders.list_reminders(1)
+    assert getattr(reminders_list[0], "fires7d") == 1
+    last = getattr(reminders_list[0], "last_fired_at")
+    assert last is not None
+    assert last.replace(tzinfo=None, microsecond=0) == recent.replace(
+        tzinfo=None, microsecond=0
+    )
 
 
 @pytest.mark.asyncio

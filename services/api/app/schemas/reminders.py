@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import time as time_
+from datetime import datetime as datetime_, time as time_
 from typing import Optional
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
@@ -16,5 +16,11 @@ class ReminderSchema(BaseModel):
     minutesAfter: Optional[int] = None
     isEnabled: bool = True
     orgId: Optional[int] = None
+    lastFiredAt: Optional[datetime_] = Field(
+        default=None,
+        alias="lastFiredAt",
+        validation_alias=AliasChoices("lastFiredAt", "last_fired_at"),
+    )
+    fires7d: int = Field(default=0, alias="fires7d")
 
     model_config = ConfigDict(populate_by_name=True)

@@ -82,6 +82,8 @@ def test_nonempty_returns_list(
             "minutesAfter": None,
             "isEnabled": True,
             "orgId": None,
+            "lastFiredAt": None,
+            "fires7d": 0,
         }
     ]
 
@@ -114,6 +116,8 @@ def test_get_single_reminder(
         "minutesAfter": None,
         "isEnabled": True,
         "orgId": None,
+        "lastFiredAt": None,
+        "fires7d": 0,
     }
 
 

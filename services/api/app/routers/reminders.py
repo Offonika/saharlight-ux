@@ -1,4 +1,7 @@
 import logging
+from datetime import datetime
+from typing import Optional, cast
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from ..schemas.reminders import ReminderSchema
@@ -40,20 +43,25 @@ async def get_reminders(
     log_patient_access(getattr(request.state, "user_id", None), tid)
 
     rems = await list_reminders(tid)
-    return [
-        {
-            "telegramId": r.telegram_id,
-            "id": r.id,
-            "type": r.type,
-            "title": r.title,
-            "time": r.time.strftime("%H:%M") if r.time else None,
-            "intervalHours": r.interval_hours,
-            "minutesAfter": r.minutes_after,
-            "isEnabled": r.is_enabled,
-            "orgId": r.org_id,
-        }
-        for r in rems
-    ]
+    result: list[dict[str, object]] = []
+    for r in rems:
+        last = cast(Optional[datetime], getattr(r, "last_fired_at", None))
+        result.append(
+            {
+                "telegramId": r.telegram_id,
+                "id": r.id,
+                "type": r.type,
+                "title": r.title,
+                "time": r.time.strftime("%H:%M") if r.time else None,
+                "intervalHours": r.interval_hours,
+                "minutesAfter": r.minutes_after,
+                "isEnabled": r.is_enabled,
+                "orgId": r.org_id,
+                "lastFiredAt": last.isoformat() if last else None,
+                "fires7d": cast(int, getattr(r, "fires7d", 0)),
+            }
+        )
+    return result
 
 
 @router.get("/reminders/{id}")
@@ -83,6 +91,7 @@ async def get_reminder(
     rems = await list_reminders(tid)
     for r in rems:
         if r.id == id:
+            last = cast(Optional[datetime], getattr(r, "last_fired_at", None))
             return {
                 "telegramId": r.telegram_id,
                 "id": r.id,
@@ -93,6 +102,8 @@ async def get_reminder(
                 "minutesAfter": r.minutes_after,
                 "isEnabled": r.is_enabled,
                 "orgId": r.org_id,
+                "lastFiredAt": last.isoformat() if last else None,
+                "fires7d": cast(int, getattr(r, "fires7d", 0)),
             }
     raise HTTPException(status_code=404, detail="reminder not found")
 
