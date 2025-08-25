@@ -9,6 +9,8 @@ import { useTelegram } from '@/hooks/useTelegram'
 import MedicalButton from '@/components/MedicalButton'
 import { cn } from '@/lib/utils'
 import { Reminder as ApiReminder } from '@sdk'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 type NormalizedReminderType = 'sugar' | 'insulin' | 'meal' | 'medicine'
 type ReminderType = NormalizedReminderType | 'meds'
@@ -136,6 +138,23 @@ export default function Reminders() {
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dndNight, setDndNight] = useState(false)
+
+  useEffect(() => {
+    const value = localStorage.getItem('dnd-night')
+    setDndNight(value === 'true')
+  }, [])
+
+  const handleToggleDndNight = (checked: boolean) => {
+    setDndNight(checked)
+    localStorage.setItem('dnd-night', checked ? 'true' : 'false')
+    toast({
+      title: 'Настройки обновлены',
+      description: checked
+        ? 'Не беспокоить ночью включено'
+        : 'Не беспокоить ночью выключено',
+    })
+  }
 
   useEffect(() => {
     console.log('[Reminders] useEffect triggered, user:', user)
@@ -309,7 +328,16 @@ export default function Reminders() {
 
   return (
     <div className="min-h-screen bg-background">
-      <MedicalHeader title="Напоминания" showBack onBack={() => navigate('/')}>
+      <MedicalHeader title="Напоминания" showBack onBack={() => navigate('/')}> 
+        <div className="flex items-center gap-1">
+          <Switch
+            id="dnd-night"
+            checked={dndNight}
+            onCheckedChange={handleToggleDndNight}
+            aria-label="Не беспокоить ночью"
+          />
+          <Label htmlFor="dnd-night" className="text-sm">Тише ночью</Label>
+        </div>
         <MedicalButton
           size="icon"
           onClick={() => navigate('/reminders/new')}
