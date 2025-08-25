@@ -754,15 +754,18 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             minutes = None
 
     chat_id = user.id
+    snooze_minutes: int | None = 10 if action == "remind_snooze" else None
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != chat_id:
             await query.answer("Не найдено", show_alert=True)
             return
         await query.answer()
+
         log_action = action if minutes is None else f"{action}:{minutes}"
         session.add(
             ReminderLog(reminder_id=rid, telegram_id=chat_id, action=log_action)
+
         )
         try:
             commit(session)

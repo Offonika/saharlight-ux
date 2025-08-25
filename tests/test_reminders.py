@@ -551,6 +551,7 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
         log = session.query(ReminderLog).first()
         assert log is not None
         assert log.action == "trigger"
+        assert log.snooze_minutes is None
 
 
 @pytest.mark.asyncio
@@ -611,6 +612,38 @@ async def test_cancel_callback(monkeypatch: pytest.MonkeyPatch) -> None:
         log = session.query(ReminderLog).first()
         assert log is not None
         assert log.action == "remind_cancel"
+        assert log.snooze_minutes is None
+
+
+@pytest.mark.asyncio
+async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit = commit
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
+        session.commit()
+
+    query = DummyCallbackQuery("remind_snooze:1", DummyMessage())
+    job_queue = DummyJobQueue()
+    context = make_context(job_queue=job_queue, bot=DummyBot())
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    await handlers.reminder_callback(update, context)
+
+    assert query.edited is not None
+    edited_text, _ = query.edited
+    assert edited_text == "⏰ Отложено на 10 минут"
+    assert query.answers == [None]
+    assert job_queue.jobs
+    with TestSession() as session:
+        log = session.query(ReminderLog).first()
+        assert log is not None
+        assert log.action == "remind_snooze"
+        assert log.snooze_minutes == 10
 
 
 @pytest.mark.asyncio
