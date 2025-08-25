@@ -333,18 +333,31 @@ def schedule_all(job_queue: DefaultJobQueue | None) -> None:
 
 
 async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Reply with a WebApp button opening the reminders page."""
+    """Reply with the user's reminders list."""
 
     user = update.effective_user
     message: Message | None = update.message
     if user is None or message is None:
         return
+    user_id = user.id
 
-    url = build_webapp_url("/reminders")
-    keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("Открыть напоминания", web_app=WebAppInfo(url))]]
+    render_fn = cast(
+        Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
+        _render_reminders,
     )
-    await message.reply_text("Перейдите в веб-приложение", reply_markup=keyboard)
+    if run_db is None:
+        with SessionLocal() as session:
+            text, keyboard = render_fn(session, user_id)
+    else:
+        text, keyboard = cast(
+            tuple[str, InlineKeyboardMarkup | None],
+            await run_db(render_fn, user_id, sessionmaker=SessionLocal),
+        )
+
+    if keyboard is not None:
+        await message.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
+    else:
+        await message.reply_text(text, parse_mode="HTML")
 
 
 async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
