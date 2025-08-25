@@ -3,6 +3,7 @@ import { useRemindersApi } from "../api/reminders";
 import { formatNextAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
 import { mockApi } from "../../../api/mock-server";
+import { useToast } from "../../../shared/toast";
 
 type ReminderDto = {
   id: number;
@@ -39,6 +40,7 @@ function scheduleLine(r: ReminderDto) {
 export default function RemindersList() {
   const api = useRemindersApi();
   const { user } = useTelegram();
+  const toast = useToast();
   const [items, setItems] = useState<ReminderDto[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -83,7 +85,7 @@ export default function RemindersList() {
       load();
     } catch {
       setItems(items);
-      alert("Не удалось обновить статус");
+      toast.error("Не удалось обновить статус");
     }
   }
 
@@ -99,7 +101,7 @@ export default function RemindersList() {
         await mockApi.deleteReminder(r.telegramId, r.id);
       }
     } catch {
-      alert("Не удалось удалить");
+      toast.error("Не удалось удалить");
       setItems(items);
     }
   }

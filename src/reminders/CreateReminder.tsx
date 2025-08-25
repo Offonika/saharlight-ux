@@ -6,8 +6,9 @@ import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
 import { useTelegram } from "@/hooks/useTelegram";
-import { useToast } from "@/hooks/use-toast";
+import { useToast as useShadcnToast } from "@/hooks/use-toast";
 import { validate, hasErrors, FormErrors } from "@/features/reminders/logic/validate";
+import { useToast } from "@/shared/toast";
 
 // Reminder type returned from API may contain legacy value "meds",
 // normalize it to "medicine" for UI usage
@@ -56,7 +57,8 @@ export default function CreateReminder() {
   const location = useLocation();
   const params = useParams();
   const { user, sendData } = useTelegram();
-  const { toast } = useToast();
+  const shadcnToast = useShadcnToast();
+  const toast = useToast();
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
   );
@@ -98,13 +100,13 @@ export default function CreateReminder() {
           } else {
             const message = "Не удалось загрузить напоминание";
             setError(message);
-            toast({ title: "Ошибка", description: message, variant: "destructive" });
+            toast.error(message);
           }
         } catch (err) {
           const message =
             err instanceof Error ? err.message : "Не удалось загрузить напоминание";
           setError(message);
-          toast({ title: "Ошибка", description: message, variant: "destructive" });
+          toast.error(message);
         }
       })();
     }
@@ -138,18 +140,15 @@ export default function CreateReminder() {
       if (rid) {
         sendData({ id: rid, type, value });
       }
-      toast({
-        title: editing ? "Напоминание обновлено" : "Напоминание создано",
-        description: editing
-          ? "Напоминание успешно обновлено"
-          : "Напоминание успешно сохранено",
-      });
+      toast.success(
+        editing ? "Напоминание обновлено" : "Напоминание создано"
+      );
       navigate("/reminders");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Не удалось сохранить напоминание";
       setError(message);
-      toast({ title: "Ошибка", description: message, variant: "destructive" });
+      toast.error(message);
     }
   };
 

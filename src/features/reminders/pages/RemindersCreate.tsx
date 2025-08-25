@@ -8,6 +8,7 @@ import { validate, hasErrors } from "../logic/validate";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 import { getTelegramUserId } from "../../../shared/telegram";
 import { mockApi } from "../../../api/mock-server";
+import { useToast } from "../../../shared/toast";
 
 const TYPE_OPTIONS: { value: ReminderType; label: string }[] = [
   { value: "sugar", label: "Измерение сахара" },
@@ -31,6 +32,7 @@ export default function RemindersCreate() {
   const initData = useTelegramInitData();
   const telegramId = useMemo(() => getTelegramUserId(initData), [initData]);
   const nav = useNavigate();
+  const toast = useToast();
 
   const [form, setForm] = useState<ReminderFormValues>({
     telegramId,
@@ -69,10 +71,11 @@ export default function RemindersCreate() {
         await mockApi.createReminder(payload);
       }
       
+      toast.success("Напоминание успешно создано");
       nav("/reminders");
     } catch (err) {
       console.error("Error saving reminder:", err);
-      alert("Ошибка: не удалось сохранить напоминание");
+      toast.error("Ошибка: не удалось сохранить напоминание");
     } finally {
       setLoading(false);
     }
