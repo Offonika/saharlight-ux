@@ -4,7 +4,7 @@ import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { useTelegram } from "@/hooks/useTelegram";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/shared/toast";
 import {
   buildReminderPayload,
   type ScheduleKind,
@@ -73,7 +73,7 @@ export default function CreateReminder() {
   const location = useLocation();
   const params = useParams();
   const { user, sendData } = useTelegram();
-  const { toast } = useToast();
+  const { success, error: showError } = useToast();
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
   );
@@ -112,13 +112,13 @@ export default function CreateReminder() {
           } else {
             const message = "Не удалось загрузить напоминание";
             setError(message);
-            toast({ title: "Ошибка", description: message, variant: "destructive" });
+            showError(message);
           }
         } catch (err) {
           const message =
             err instanceof Error ? err.message : "Не удалось загрузить напоминание";
           setError(message);
-          toast({ title: "Ошибка", description: message, variant: "destructive" });
+          showError(message);
         }
       })();
     }
@@ -164,12 +164,13 @@ export default function CreateReminder() {
       if (rid) {
         sendData({ id: rid, type, value });
       }
+      success("Напоминание сохранено");
       navigate("/reminders");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Не удалось сохранить напоминание";
       setError(message);
-      toast({ title: "Ошибка", description: message, variant: "destructive" });
+      showError(message);
     }
   };
 

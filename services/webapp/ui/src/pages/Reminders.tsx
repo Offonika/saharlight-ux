@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react'
 import { MedicalHeader } from '@/components/MedicalHeader'
-import { useToast } from '@/hooks/use-toast'
+import { Checkbox } from '@/components/ui/checkbox'
+import { useToast } from '@/shared/toast'
 import { getReminders, updateReminder, deleteReminder } from '@/api/reminders'
 import { useTelegram } from '@/hooks/useTelegram'
 import MedicalButton from '@/components/MedicalButton'
@@ -130,8 +131,16 @@ function ReminderRow({
 
 export default function Reminders() {
   const navigate = useNavigate()
-  const { toast } = useToast()
+  const { success, error: showError } = useToast()
   const { user, sendData } = useTelegram()
+
+  const DND_KEY = 'dnd-night'
+  const [dndNight, setDndNight] = useState(() =>
+    localStorage.getItem(DND_KEY) === 'true'
+  )
+  useEffect(() => {
+    localStorage.setItem(DND_KEY, dndNight ? 'true' : 'false')
+  }, [dndNight])
 
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [loading, setLoading] = useState(true)
@@ -161,14 +170,14 @@ export default function Reminders() {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : 'Не удалось загрузить напоминания'
           setError(message)
-          toast({ title: 'Ошибка', description: message, variant: 'destructive' })
+          showError(message)
         }
       } finally {
         if (!cancelled) setLoading(false)
       }
     })()
     return () => { cancelled = true }
-  }, [toast, user?.id])
+  }, [showError, user?.id])
 
   const handleToggleReminder = async (id: number) => {
     if (!user?.id) return
@@ -192,18 +201,11 @@ export default function Reminders() {
       const value =
         hours != null && Number.isInteger(hours) ? `${hours}h` : target.time
       sendData({ id, type: target.type, value })
-      toast({
-        title: 'Напоминание обновлено',
-        description: 'Статус напоминания изменён',
-      })
+      success('Статус напоминания изменён', 'Напоминание обновлено')
     } catch (err) {
       setReminders(prevReminders)
       const message = err instanceof Error ? err.message : 'Не удалось обновить напоминание'
-      toast({
-        title: 'Ошибка',
-        description: message,
-        variant: 'destructive',
-      })
+      showError(message)
     }
   }
 
@@ -213,18 +215,11 @@ export default function Reminders() {
     setReminders(prev => prev.filter(r => r.id !== id))
     try {
       await deleteReminder(user.id, id)
-      toast({
-        title: 'Напоминание удалено',
-        description: 'Напоминание успешно удалено',
-      })
+      success('Напоминание успешно удалено', 'Напоминание удалено')
     } catch (err) {
       setReminders(prevReminders)
       const message = err instanceof Error ? err.message : 'Не удалось удалить напоминание'
-      toast({
-        title: 'Ошибка',
-        description: message,
-        variant: 'destructive',
-      })
+      showError(message)
     }
   }
 
@@ -279,6 +274,16 @@ export default function Reminders() {
       </MedicalHeader>
 
       <main className="container mx-auto px-4 py-6">
+        <div className="flex items-center space-x-2 mb-6">
+          <Checkbox
+            id="dnd-night"
+            checked={dndNight}
+            onCheckedChange={(checked) => setDndNight(checked === true)}
+          />
+          <label htmlFor="dnd-night" className="text-sm text-foreground">
+            Не беспокоить ночью (23:00–07:00)
+          </label>
+        </div>
         {content}
       </main>
     </div>
