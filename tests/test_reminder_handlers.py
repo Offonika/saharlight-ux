@@ -1,13 +1,23 @@
 import json
+from datetime import time, timedelta
 from types import TracebackType
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from telegram import Update, User
 from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.utils.helpers import INVALID_TIME_MSG
+from services.api.app.diabetes.services.db import (
+    Base,
+    Reminder,
+    ReminderLog,
+    User as DbUser,
+)
+from services.api.app.diabetes.services.repository import commit
 
 
 @pytest.fixture
@@ -37,6 +47,20 @@ class DummyWebAppMessage(DummyMessage):
     def __init__(self, data: str) -> None:
         super().__init__()
         self.web_app_data = DummyWebAppData(data)
+
+
+class DummyJobQueue:
+    def __init__(self) -> None:
+        self.calls: list[tuple[Any, Any, dict[str, Any] | None, str | None]] = []
+
+    def run_once(
+        self,
+        callback: Any,
+        when: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> None:
+        self.calls.append((callback, when, data, name))
 
 
 def make_user(user_id: int) -> MagicMock:
@@ -169,31 +193,71 @@ async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None
     assert message.texts == ["Неизвестный тип напоминания."]
 
 
-    @pytest.mark.parametrize(
-        "base_url, expected",
-        [
-            ("https://example.com", "https://example.com/reminders/new"),
-            ("https://example.com/", "https://example.com/reminders/new"),
-            ("https://example.com/ui", "https://example.com/ui/reminders/new"),
-            ("https://example.com/ui/", "https://example.com/ui/reminders/new"),
-        ],
-    )
-    def test_build_webapp_url(
-        reminder_handlers: Any,
-        monkeypatch: pytest.MonkeyPatch,
-        base_url: str,
-        expected: str,
-    ) -> None:
-        monkeypatch.setenv("WEBAPP_URL", base_url)
-        url = reminder_handlers.build_webapp_url("/reminders/new")
-        assert url == expected
-        assert "//" not in url.split("://", 1)[1]
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload",
+    [json.dumps({"id": 1, "snooze": 7}), "snooze=7&id=1"],
+)
+async def test_reminder_webapp_save_snooze(
+    reminder_handlers: Any, payload: str
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    reminder_handlers.SessionLocal = TestSession
+    reminder_handlers.commit = commit
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
+        session.commit()
+
+    message = DummyWebAppMessage(payload)
+    update = make_update(effective_message=message, effective_user=make_user(1))
+    job_queue = DummyJobQueue()
+    context = make_context(job_queue=job_queue)
+
+    await reminder_handlers.reminder_webapp_save(update, context)
+
+    assert message.texts == ["⏰ Отложено на 7 минут"]
+    assert job_queue.calls
+    callback, when, data, name = job_queue.calls[0]
+    assert callback is reminder_handlers.reminder_job
+    assert data == {"reminder_id": 1, "chat_id": 1}
+    assert name == "reminder_1"
+    assert when == timedelta(minutes=7)
+
+    with TestSession() as session:
+        log = session.query(ReminderLog).one()
+        assert log.action == "snooze"
+        assert log.reminder_id == 1
 
 
-    def test_build_webapp_url_without_base(
-        reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        path = "/reminders/new"
-        monkeypatch.delenv("WEBAPP_URL", raising=False)
-        with pytest.raises(RuntimeError, match="WEBAPP_URL not configured"):
-            reminder_handlers.build_webapp_url(path)
+@pytest.mark.parametrize(
+    "base_url, expected",
+    [
+        ("https://example.com", "https://example.com/reminders/new"),
+        ("https://example.com/", "https://example.com/reminders/new"),
+        ("https://example.com/ui", "https://example.com/ui/reminders/new"),
+        ("https://example.com/ui/", "https://example.com/ui/reminders/new"),
+    ],
+)
+def test_build_webapp_url(
+    reminder_handlers: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    base_url: str,
+    expected: str,
+) -> None:
+    monkeypatch.setenv("WEBAPP_URL", base_url)
+    url = reminder_handlers.build_webapp_url("/reminders/new")
+    assert url == expected
+    assert "//" not in url.split("://", 1)[1]
+
+
+def test_build_webapp_url_without_base(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = "/reminders/new"
+    monkeypatch.delenv("WEBAPP_URL", raising=False)
+    with pytest.raises(RuntimeError, match="WEBAPP_URL not configured"):
+        reminder_handlers.build_webapp_url(path)
