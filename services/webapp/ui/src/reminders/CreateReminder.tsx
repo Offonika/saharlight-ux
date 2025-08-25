@@ -164,6 +164,12 @@ export default function CreateReminder() {
       if (rid) {
         sendData({ id: rid, type, value });
       }
+      toast({
+        title: editing ? "Напоминание обновлено" : "Напоминание создано",
+        description: editing
+          ? "Напоминание успешно обновлено"
+          : "Напоминание успешно сохранено",
+      });
       navigate("/reminders");
     } catch (err) {
       const message =
