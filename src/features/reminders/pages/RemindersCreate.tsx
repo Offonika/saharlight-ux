@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRemindersApi } from "../api/reminders"; // ваш хук, возвращающий DefaultApi
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
+import { DaysPresets } from "../components/DaysPresets";
 import { buildReminderPayload, ReminderFormValues, ScheduleKind, ReminderType } from "../api/buildPayload";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 import { getTelegramUserId } from "../../../shared/telegram";
@@ -204,7 +205,10 @@ export default function RemindersCreate() {
           {/* Дни недели */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Дни недели (опционально)</label>
-            <DayOfWeekPicker value={form.daysOfWeek} onChange={(v)=>onChange("daysOfWeek", v)} />
+            <div className="space-y-3">
+              <DaysPresets value={form.daysOfWeek} onChange={(v) => onChange("daysOfWeek", v)} />
+              <DayOfWeekPicker value={form.daysOfWeek} onChange={(v) => onChange("daysOfWeek", v)} />
+            </div>
           </div>
 
           {/* Название (необяз.) */}
