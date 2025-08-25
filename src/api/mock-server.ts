@@ -1,7 +1,26 @@
 
 // Mock server для тестирования в режиме разработки
-let mockReminders: any[] = [];
-let nextId = 1;
+const STORAGE_KEY = 'mockReminders';
+
+function loadFromStorage(): any[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveToStorage(reminders: any[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reminders));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+let mockReminders: any[] = loadFromStorage();
+let nextId = Math.max(...mockReminders.map(r => r.id), 0) + 1;
 
 export const mockApi = {
   async getReminders(telegramId: number) {
@@ -28,6 +47,7 @@ export const mockApi = {
       nextAt: reminder.next_at || null,
     };
     mockReminders.push(newReminder);
+    saveToStorage(mockReminders);
     return { id: newReminder.id, status: 'ok' };
   },
 
@@ -36,6 +56,7 @@ export const mockApi = {
     const index = mockReminders.findIndex(r => r.id === reminder.id);
     if (index >= 0) {
       mockReminders[index] = reminder;
+      saveToStorage(mockReminders);
     }
     return { id: reminder.id, status: 'ok' };
   },
@@ -43,6 +64,7 @@ export const mockApi = {
   async deleteReminder(telegramId: number, id: number) {
     console.log('[MockAPI] Deleting reminder:', id);
     mockReminders = mockReminders.filter(r => !(r.id === id && r.telegramId === telegramId));
+    saveToStorage(mockReminders);
     return { status: 'ok' };
   },
 
