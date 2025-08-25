@@ -4,6 +4,7 @@ import { formatNextAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
 import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
+import { Templates } from "../components/Templates";
 
 type ReminderDto = {
   id: number;
@@ -108,6 +109,10 @@ export default function RemindersList() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      {user?.id && (
+        <Templates telegramId={user.id} onCreated={load} />
+      )}
+      
       {loading && (
         <div className="flex items-center justify-center py-8">
           <div className="animate-pulse text-center">
