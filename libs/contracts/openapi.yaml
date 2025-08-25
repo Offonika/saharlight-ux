@@ -681,6 +681,14 @@ components:
         high:
           type: number
           title: High
+        quietStart:
+          type: string
+          title: Quiet Start
+          default: '23:00'
+        quietEnd:
+          type: string
+          title: Quiet End
+          default: '07:00'
         sosContact:
           anyOf:
           - type: string

@@ -109,3 +109,21 @@ export async function deleteReminder(telegramId: number, id: number) {
     throw new Error('Не удалось удалить напоминание');
   }
 }
+
+export async function snoozeReminder(
+  telegramId: number,
+  id: number,
+  minutes: number,
+) {
+  try {
+    const url = `${API_BASE}/reminders/snooze?telegramId=${telegramId}&id=${id}&snooze=${minutes}`;
+    const response = await tgFetch(url, { method: 'POST' });
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to snooze reminder:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Не удалось отложить напоминание');
+  }
+}
