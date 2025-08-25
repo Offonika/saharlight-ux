@@ -286,3 +286,14 @@ pytest tests/
 pip install -r services/api/app/requirements-dev.txt
 ruff services/api/app/diabetes tests
 ```
+
+### Проверка ресурсов Telegram WebApp
+
+Скрипт убеждается, что `telegram-init.js` и `telegram-theme.js` доступны
+и отдаются с типом `application/javascript`:
+
+```bash
+scripts/check-telegram-assets.sh
+```
+
+При успехе выводится `OK`.
