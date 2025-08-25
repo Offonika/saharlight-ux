@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useTelegram } from "@/hooks/useTelegram";
 import { ThemeProvider } from "next-themes";
+import { useTimezoneSync } from "./features/timezone/useTimezoneSync";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Reminders from "./pages/Reminders";
@@ -23,6 +24,9 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { isReady } = useTelegram();
+  
+  // Автосинхронизация часового пояса
+  useTimezoneSync();
 
   if (!isReady) {
     return (
