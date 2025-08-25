@@ -204,7 +204,7 @@ export class DefaultApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/api/reminders`;
+        let urlPath = `/reminders`;
 
         const response = await this.request({
             path: urlPath,
@@ -242,7 +242,7 @@ export class DefaultApi extends runtime.BaseAPI {
         headerParameters['Content-Type'] = 'application/json';
 
 
-        let urlPath = `/api/reminders`;
+        let urlPath = `/reminders`;
 
         const response = await this.request({
             path: urlPath,
@@ -280,7 +280,7 @@ export class DefaultApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
-        let urlPath = `/api/reminders`;
+        let urlPath = `/reminders`;
 
         const response = await this.request({
             path: urlPath,
@@ -324,7 +324,7 @@ export class DefaultApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        let urlPath = `/api/reminders`;
+        let urlPath = `/reminders`;
 
         const response = await this.request({
             path: urlPath,
