@@ -1,6 +1,6 @@
 (async function () {
     const { default: applyTheme } = await import(
-        new URL('./telegram-theme.js', import.meta.url),
+        new URL('./telegram-theme.js', import.meta.url)
     );
     const app = window.Telegram?.WebApp;
     if (!app) {
