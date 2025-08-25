@@ -218,9 +218,12 @@ class Reminder(Base):
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     type: Mapped[str] = mapped_column(String, nullable=False)
     title: Mapped[Optional[str]] = mapped_column(String)
+    kind: Mapped[Optional[str]] = mapped_column(String)
     time: Mapped[Optional[time]] = mapped_column(Time)
     interval_hours: Mapped[Optional[int]] = mapped_column(Integer)
+    interval_minutes: Mapped[Optional[int]] = mapped_column(Integer)
     minutes_after: Mapped[Optional[int]] = mapped_column(Integer)
+    days_mask: Mapped[Optional[int]] = mapped_column(Integer)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
