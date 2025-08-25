@@ -50,10 +50,11 @@ export default function RemindersCreate() {
     setLoading(true);
     try {
       const payload = buildReminderPayload({ ...form, telegramId });
+      console.log("Payload being sent:", payload);
       await api.remindersPost({ reminder: payload });
       nav("/reminders");
     } catch (err) {
-      console.error(err);
+      console.error("Error saving reminder:", err);
       alert("Ошибка: не удалось сохранить напоминание");
     } finally {
       setLoading(false);
