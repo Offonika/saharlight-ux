@@ -1,84 +1,116 @@
-# file: services/api/alembic/env.py
-from __future__ import annotations
-
-import logging
-import os
+# файл: services/api/alembic/env.py
 from logging.config import fileConfig
+import os
+import sys
 from urllib.parse import quote_plus
-from pathlib import Path
 
 from alembic import context
-from sqlalchemy import create_engine, pool  # используем create_engine — без set_main_option
+from sqlalchemy import engine_from_config, pool
 
-logger = logging.getLogger(__name__)
-
-# Загружаем .env: сначала корень, затем сервисный (сервисный перекрывает)
-try:
-    from dotenv import load_dotenv
-
-    _HERE = Path(__file__).resolve()
-    root_env = _HERE.parents[3] / ".env"  # <repo_root>/.env
-    service_env = _HERE.parents[1] / ".env"  # services/api/.env
-    load_dotenv(root_env)
-    load_dotenv(service_env, override=True)
-except ImportError:
-    logger.info("python-dotenv is not installed; skipping .env loading")
-except (FileNotFoundError, OSError) as exc:
-    logger.error("Failed to load .env file: %s", exc)
-    raise
-
+# === ЛОГИРОВАНИЕ ===
 config = context.config
-if config.config_file_name:
+if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = None  # миграции ручные, metadata не требуется
+# === PYTHONPATH: добавим корень репозитория, чтобы импортировать app.* ===
+# .../services/api/alembic -> поднимаемся на два уровня к services/api, затем к корню
+HERE = os.path.dirname(os.path.abspath(__file__))              # .../services/api/alembic
+API_DIR = os.path.dirname(HERE)                                 # .../services/api
+REPO_ROOT = os.path.dirname(API_DIR)                            # .../saharlight-ux
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+# === ИМПОРТ НАСТРОЕК И МОДЕЛЕЙ ===
+# Ожидаем, что в app/diabetes/models.py определён Base
+try:
+    from services.api.app.config import settings  # FastAPI/Pydantic settings
+except Exception:
+    # альтернативный импорт, если пакетная структура другая
+    from app.config import settings  # type: ignore
+
+try:
+    from services.api.app.diabetes.models import Base
+except Exception:
+    from app.diabetes.models import Base  # type: ignore
+
+target_metadata = Base.metadata
 
 
-def build_db_url() -> str:
-    # 1) DATABASE_URL, если задан
-    url = os.getenv("DATABASE_URL")
-    if url:
-        return url
-    # 2) Собираем из DB_* (экранируем пароль)
-    user = os.getenv("DB_USER", "")
-    pwd = os.getenv("DB_PASSWORD", "")
-    host = os.getenv("DB_HOST", "127.0.0.1")
+def _compose_url_from_env() -> str | None:
+    """
+    Пытаемся собрать URL БД из переменных окружения, если DATABASE_URL не задан.
+    Поддерживаем стандартные имена: DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME.
+    """
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASSWORD")
+    host = os.getenv("DB_HOST", "localhost")
     port = os.getenv("DB_PORT", "5432")
-    name = os.getenv("DB_NAME", "")
-    pwd_enc = quote_plus(pwd) if pwd else ""
-    return f"postgresql+psycopg2://{user}:{pwd_enc}@{host}:{port}/{name}"
+    name = os.getenv("DB_NAME")
+
+    if user and password and name:
+        return f"postgresql+psycopg2://{user}:{quote_plus(password)}@{host}:{port}/{name}"
+    return None
+
+
+def _get_database_url() -> str:
+    # 1) Прямо из переменной окружения
+    env_url = os.getenv("DATABASE_URL")
+    if env_url:
+        return env_url
+
+    # 2) Попытка собрать из отдельных переменных
+    composed = _compose_url_from_env()
+    if composed:
+        return composed
+
+    # 3) Из настроек приложения (Pydantic settings)
+    # частые варианты имён поля:
+    for attr in ("database_url", "DATABASE_URL", "sqlalchemy_database_url", "SQLALCHEMY_DATABASE_URL"):
+        if hasattr(settings, attr):
+            val = getattr(settings, attr)
+            if val:
+                return str(val)
+
+    raise RuntimeError(
+        "Не найден URL базы данных. Задай переменную окружения DATABASE_URL "
+        "или проверь settings.* (database_url / SQLALCHEMY_DATABASE_URL)."
+    )
 
 
 def run_migrations_offline() -> None:
-    url = build_db_url()
+    """Offline-режим: без подключения к БД."""
+    url = _get_database_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         compare_type=True,
         compare_server_default=True,
-        dialect_opts={"paramstyle": "named"},
     )
     with context.begin_transaction():
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
-    url = build_db_url()
-    # создаём движок напрямую — никаких проблем с '%' и configparser
-    engine = create_engine(url, poolclass=pool.NullPool, future=True)
-    try:
-        with engine.connect() as connection:
-            context.configure(
-                connection=connection,
-                target_metadata=target_metadata,
-                compare_type=True,
-                compare_server_default=True,
-            )
-            with context.begin_transaction():
-                context.run_migrations()
-    finally:
-        engine.dispose()
+    """Online-режим: с подключением к БД."""
+    configuration = config.get_section(config.config_ini_section) or {}
+    configuration["sqlalchemy.url"] = _get_database_url()
+
+    connectable = engine_from_config(
+        configuration,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+        future=True,
+    )
+    with connectable.connect() as connection:
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            compare_server_default=True,
+        )
+        with context.begin_transaction():
+            context.run_migrations()
 
 
 if context.is_offline_mode():
