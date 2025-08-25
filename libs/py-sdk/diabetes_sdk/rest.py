@@ -126,14 +126,17 @@ class RESTClientObject:
         :param url: http request url
         :param headers: http request headers
         :param body: request json body, for `application/json`
-        :param post_params: request post parameters for
-                            `application/x-www-form-urlencoded` or
-                            `multipart/form-data`. Accepts either a
-                            ``dict`` or any iterable of ``(key, value)``
-                            pairs. Values that are ``dict``, ``list`` or
-                            ``tuple`` are JSON serialized.
+        :param post_params: request parameters for
+                            ``application/x-www-form-urlencoded`` or
+                            ``multipart/form-data``. May be provided as a
+                            mapping (e.g. ``dict``) or as any iterable of
+                            ``(key, value)`` pairs. Each item **must**
+                            contain exactly two elements. Values that are
+                            themselves mappings or non-string iterables are
+                            JSON serialized before being sent.
 
-                            Examples:
+                            Examples::
+
                                 post_params = {"a": 1, "meta": {"b": 2}}
                                 post_params = [("a", 1), ("meta", {"b": 2})]
         :param _request_timeout: timeout setting for this request. If one
@@ -212,12 +215,12 @@ class RESTClientObject:
                             item, (str, bytes)
                         ):
                             raise ApiValueError(
-                                "Invalid number of elements in post_params",
+                                "Items in post_params must be 2-item iterables",
                             )
                         pair = list(item)
                         if len(pair) != 2:
                             raise ApiValueError(
-                                "Invalid number of elements in post_params",
+                                "Items in post_params must be 2-item iterables",
                             )
                         key, value = pair
                         if isinstance(value, Mapping) or (
