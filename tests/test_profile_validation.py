@@ -34,6 +34,7 @@ def test_validate_profile_rejects_target_outside_limits(target: Any) -> None:
     assert str(exc.value) == "target must be between low and high"
 
 
+
 @pytest.mark.parametrize(
     "field,value",
     [("quietStart", "25:00"), ("quietEnd", "bad")],
@@ -50,3 +51,4 @@ def test_profile_rejects_malformed_quiet_times(field: str, value: str) -> None:
     kwargs[field] = value
     with pytest.raises(ValidationError):
         ProfileSchema(**kwargs)
+

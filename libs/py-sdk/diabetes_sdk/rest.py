@@ -212,7 +212,7 @@ class RESTClientObject:
                             item, (str, bytes)
                         ):
                             raise ApiValueError(
-                                "post_params elements must be pairs",
+                                "Invalid number of elements in post_params",
                             )
                         pair = list(item)
                         if len(pair) != 2:
