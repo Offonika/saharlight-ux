@@ -22,6 +22,39 @@ function saveToStorage(reminders: any[]) {
 let mockReminders: any[] = loadFromStorage();
 let nextId = Math.max(...mockReminders.map(r => r.id), 0) + 1;
 
+// Initialize with after-meal 30min reminder if it doesn't exist
+function initializeDefaultReminders() {
+  const telegramId = 12345;
+  const hasAfterMeal30 = mockReminders.some(r => 
+    r.telegramId === telegramId && 
+    r.type === "after_meal" && 
+    r.kind === "after_event" && 
+    r.minutesAfter === 30
+  );
+  
+  if (!hasAfterMeal30) {
+    const newReminder = {
+      id: nextId++,
+      telegramId,
+      type: "after_meal",
+      title: null,
+      kind: "after_event",
+      time: null,
+      intervalMinutes: null,
+      minutesAfter: 30,
+      daysOfWeek: null,
+      isEnabled: true,
+      nextAt: null,
+    };
+    mockReminders.push(newReminder);
+    saveToStorage(mockReminders);
+    console.log('[MockAPI] Added after-meal 30min reminder');
+  }
+}
+
+// Initialize on load
+initializeDefaultReminders();
+
 export const mockApi = {
   async getReminders(telegramId: number) {
     console.log('[MockAPI] Getting reminders for telegram ID:', telegramId);
