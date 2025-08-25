@@ -1,3 +1,5 @@
+"""Database model exports for the diabetes service."""
+
 from .services.db import Base, Reminder
 
 metadata = Base.metadata
