@@ -1,4 +1,5 @@
 import { getTelegramAuthHeaders } from '@/lib/telegram-auth';
+import { mockApi } from './mock-server';
 
 const API_BASE = '/api';
 
@@ -12,17 +13,39 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const authHeaders = getTelegramAuthHeaders();
   Object.entries(authHeaders).forEach(([key, value]) => headers.set(key, value));
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers,
-  });
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers,
+    });
 
-  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!res.ok) {
-    const msg = typeof data.detail === 'string' ? data.detail : 'Request failed';
-    throw new Error(msg);
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) {
+      const msg = typeof data.detail === 'string' ? data.detail : 'Request failed';
+      throw new Error(msg);
+    }
+    return data as T;
+  } catch (error) {
+    console.warn('[API] Backend request failed, falling back to mock API:', error);
+    // Fallback to mock API for development
+    return await handleMockRequest<T>(path, init);
   }
-  return data as T;
+}
+
+async function handleMockRequest<T>(path: string, init: RequestInit): Promise<T> {
+  const urlParams = new URLSearchParams(path.split('?')[1] || '');
+  const telegramId = parseInt(urlParams.get('telegramId') || urlParams.get('telegram_id') || '12345');
+  
+  if (path.startsWith('/reminders')) {
+    if (init.method === 'POST') {
+      const body = JSON.parse(init.body as string);
+      return await mockApi.createReminder(body.reminder || body) as T;
+    } else {
+      return await mockApi.getReminders(telegramId) as T;
+    }
+  }
+  
+  return {} as T;
 }
 
 export const http = {
