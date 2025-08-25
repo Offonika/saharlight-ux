@@ -1,7 +1,7 @@
 import json
 import logging
 from collections.abc import Generator
-from datetime import datetime, time, timezone, tzinfo
+from datetime import datetime, time, timedelta, timezone, tzinfo
 from zoneinfo import ZoneInfo
 from unittest.mock import MagicMock
 from typing import Any, Callable, cast
@@ -560,6 +560,47 @@ async def test_cancel_callback(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_snooze_callback_schedules_job_and_logs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit = commit
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
+        session.commit()
+
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    run_once_mock = MagicMock(wraps=job_queue.run_once)
+    job_queue.run_once = run_once_mock  # type: ignore[assignment]
+
+    query = DummyCallbackQuery("remind_snooze:1", DummyMessage())
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=job_queue, bot=DummyBot())
+    await handlers.reminder_callback(update, context)
+
+    run_once_mock.assert_called_once()
+    when = run_once_mock.call_args.kwargs["when"]
+    assert when == timedelta(minutes=10)
+    assert run_once_mock.call_args.kwargs["data"] == {
+        "reminder_id": 1,
+        "chat_id": 1,
+    }
+    assert run_once_mock.call_args.kwargs["name"] == "reminder_1"
+    assert query.edited is not None
+    edited_text, _ = query.edited
+    assert edited_text == "⏰ Отложено на 10 минут"
+    with TestSession() as session:
+        log = session.query(ReminderLog).first()
+        assert log is not None
+        assert log.action == "remind_snooze"
+
+
+@pytest.mark.asyncio
 async def test_reminder_callback_foreign_rid(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -615,6 +656,15 @@ def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Ses
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
     resp = client.get("/api/reminders", params={"telegramId": 1})
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+def test_webapp_snooze_param(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+    with session_factory() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+    resp = client.get("/api/reminders", params={"telegramId": 1, "snooze": 10})
     assert resp.status_code == 200
     assert resp.json() == []
 
