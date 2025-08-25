@@ -3,7 +3,6 @@ apis/HistoryApi.ts
 apis/ProfilesApi.ts
 apis/RemindersApi.ts
 apis/index.ts
-index.ts
 models/AnalyticsPoint.ts
 models/DayStats.ts
 models/HTTPValidationError.ts
@@ -20,4 +19,5 @@ models/ValidationError.ts
 models/ValidationErrorLocInner.ts
 models/WebUser.ts
 models/index.ts
+index.ts
 runtime.ts
