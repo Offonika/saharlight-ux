@@ -9,6 +9,7 @@ import re
 from datetime import time, timedelta, timezone
 from typing import Awaitable, Callable, Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from urllib.parse import parse_qsl
 
 from sqlalchemy.orm import Session, sessionmaker
 from telegram import (
@@ -465,7 +466,57 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
+        data = dict(parse_qsl(raw))
+
+    snooze_raw = data.get("snooze")
+    if snooze_raw is not None:
+        rid = data.get("id")
+        if rid is None:
+            return
+        try:
+            minutes = int(snooze_raw)
+        except (TypeError, ValueError):
+            await msg.reply_text("Неверный формат")
+            return
+        user_id = user.id
+
+        def log_snooze(session: Session) -> Literal["ok"] | Literal["error"]:
+            session.add(
+                ReminderLog(
+                    reminder_id=int(rid), telegram_id=user_id, action="snooze"
+                )
+            )
+            try:
+                commit(session)
+            except CommitError:
+                logger.error(
+                    "Failed to log reminder snooze for reminder %s", rid
+                )
+                return "error"
+            return "ok"
+
+        if run_db is None:
+            with SessionLocal() as session:
+                status = log_snooze(session)
+        else:
+            status = cast(
+                Literal["ok"] | Literal["error"],
+                await run_db(log_snooze, sessionmaker=SessionLocal),
+            )
+        if status == "ok":
+            job_queue: DefaultJobQueue | None = cast(
+                DefaultJobQueue | None, context.job_queue
+            )
+            if job_queue is not None:
+                job_queue.run_once(
+                    reminder_job,
+                    when=timedelta(minutes=minutes),
+                    data={"reminder_id": int(rid), "chat_id": user_id},
+                    name=f"reminder_{rid}",
+                )
+            await msg.reply_text(f"⏰ Отложено на {minutes} минут")
         return
+
     rtype = data.get("type")
     raw_value = data.get("value")
     rid = data.get("id")
