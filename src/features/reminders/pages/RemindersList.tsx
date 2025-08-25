@@ -45,7 +45,7 @@ export default function RemindersList() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const res = await api.remindersGet({ telegramId: user.id } as any);
+      const res = await api.remindersGet({ telegramId: user.id });
       setItems(res as any);
     } finally {
       setLoading(false);
@@ -67,7 +67,7 @@ export default function RemindersList() {
     const optimistic = items.map(x => x.id === r.id ? { ...x, isEnabled: !x.isEnabled } : x);
     setItems(optimistic);
     try {
-      await api.remindersPatch({ telegramId: r.telegramId, id: r.id, isEnabled: !r.isEnabled } as any);
+      await api.remindersPatch({ telegramId: r.telegramId, id: r.id, isEnabled: !r.isEnabled });
       load();
     } catch {
       setItems(items);
@@ -80,7 +80,7 @@ export default function RemindersList() {
     const optimistic = items.filter(x => x.id !== r.id);
     setItems(optimistic);
     try {
-      await api.remindersDelete({ telegramId: r.telegramId, id: r.id } as any);
+      await api.remindersDelete({ telegramId: r.telegramId, id: r.id });
     } catch {
       alert("Не удалось удалить");
       setItems(items);
