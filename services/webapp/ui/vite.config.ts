@@ -7,8 +7,9 @@ import { ServerResponse } from 'node:http'
 
 function telegramInitPlugin(): Plugin {
   const shared = path.resolve(__dirname, '../public')
-  const files = ['telegram-init.js']
+  const files = ['telegram-init.js', 'telegram-theme.js']
   const telegramInitPath = path.join(shared, 'telegram-init.js')
+  const themeId = './telegram-theme.js'
   const serve = async (res: ServerResponse, file: string) => {
     res.setHeader('Content-Type', 'application/javascript')
     res.end(await readFile(path.join(shared, file), 'utf8'))
@@ -19,8 +20,8 @@ function telegramInitPlugin(): Plugin {
       if (id === 'telegram-init.js' || id === '/ui/telegram-init.js') {
         return telegramInitPath
       }
-      if (importer === telegramInitPath && id === './telegram-theme.js') {
-        return { id, external: true }
+      if (importer === telegramInitPath && id === themeId) {
+        return { id: themeId, external: true }
       }
       return null
     },
