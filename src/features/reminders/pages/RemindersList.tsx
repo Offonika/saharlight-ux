@@ -62,6 +62,9 @@ export default function RemindersList({
   const [items, setItems] = useState<ReminderDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(planLimit || 5);
+  const [filter, setFilter] = useState<"all" | "on" | "off">(() => {
+    return (localStorage.getItem('reminderFilter') as "all" | "on" | "off") || "all";
+  });
 
   async function load() {
     if (!user?.id) return;
@@ -109,14 +112,19 @@ export default function RemindersList({
   }, [planLimit]);
 
   const groups = useMemo(() => {
+    // Filter items based on current filter
+    const filteredItems = items.filter(r => 
+      filter === "all" || (filter === "on" ? r.isEnabled : !r.isEnabled)
+    );
+    
     const map = new Map<string, ReminderDto[]>();
-    for (const r of items) {
+    for (const r of filteredItems) {
       const k = r.type || "custom";
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(r);
     }
     return Array.from(map.entries());
-  }, [items]);
+  }, [items, filter]);
 
   async function toggleEnabled(r: ReminderDto) {
     const optimistic = items.map(x => x.id === r.id ? { ...x, isEnabled: !x.isEnabled } : x);
@@ -134,6 +142,17 @@ export default function RemindersList({
       toast.error("Не удалось обновить статус");
     }
   }
+
+  const handleFilterChange = (newFilter: "all" | "on" | "off") => {
+    setFilter(newFilter);
+    localStorage.setItem('reminderFilter', newFilter);
+  };
+
+  const filterOptions = [
+    { value: "all" as const, label: "Все", count: items.length },
+    { value: "on" as const, label: "Вкл", count: items.filter(r => r.isEnabled).length },
+    { value: "off" as const, label: "Выкл", count: items.filter(r => !r.isEnabled).length }
+  ];
 
   async function remove(r: ReminderDto) {
     if (!confirm("Удалить напоминание?")) return;
@@ -163,6 +182,25 @@ export default function RemindersList({
             }
           }} 
         />
+      )}
+
+      {/* Filter Chips */}
+      {items.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          {filterOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => handleFilterChange(option.value)}
+              className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 ${
+                filter === option.value
+                  ? "bg-primary text-primary-foreground border-primary shadow-soft"
+                  : "border-border bg-background text-foreground hover:bg-secondary hover:border-primary/20"
+              }`}
+            >
+              {option.label} ({option.count})
+            </button>
+          ))}
+        </div>
       )}
       
       {loading && (
