@@ -29,9 +29,9 @@ except Exception:
     from app.config import settings  # type: ignore
 
 try:
-    from services.api.app.diabetes.models import Base
+    from services.api.app.diabetes.services.db import Base
 except Exception:
-    from app.diabetes.models import Base  # type: ignore
+    from app.diabetes.services.db import Base  # type: ignore
 
 target_metadata = Base.metadata
 
