@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
-import { createReminder, updateReminder, getReminder } from "@/api/reminders";
+import { updateReminder, getReminder } from "@/api/reminders";
+import { useRemindersApi } from "@/features/reminders/api/reminders";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -74,6 +75,7 @@ export default function CreateReminder() {
   const params = useParams();
   const { user, sendData } = useTelegram();
   const { toast } = useToast();
+  const { createReminder } = useRemindersApi();
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
   );
