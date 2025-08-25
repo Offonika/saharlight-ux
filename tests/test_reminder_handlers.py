@@ -172,10 +172,10 @@ async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None
     @pytest.mark.parametrize(
         "base_url, expected",
         [
-            ("https://example.com", "https://example.com/api/reminders"),
-            ("https://example.com/", "https://example.com/api/reminders"),
-            ("https://example.com/ui", "https://example.com/ui/api/reminders"),
-            ("https://example.com/ui/", "https://example.com/ui/api/reminders"),
+            ("https://example.com", "https://example.com/reminders/new"),
+            ("https://example.com/", "https://example.com/reminders/new"),
+            ("https://example.com/ui", "https://example.com/ui/reminders/new"),
+            ("https://example.com/ui/", "https://example.com/ui/reminders/new"),
         ],
     )
     def test_build_webapp_url(
@@ -185,7 +185,7 @@ async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None
         expected: str,
     ) -> None:
         monkeypatch.setenv("WEBAPP_URL", base_url)
-        url = reminder_handlers.build_webapp_url("/api/reminders")
+        url = reminder_handlers.build_webapp_url("/reminders/new")
         assert url == expected
         assert "//" not in url.split("://", 1)[1]
 
@@ -193,7 +193,7 @@ async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None
     def test_build_webapp_url_without_base(
         reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        path = "/api/reminders"
+        path = "/reminders/new"
         monkeypatch.delenv("WEBAPP_URL", raising=False)
         with pytest.raises(RuntimeError, match="WEBAPP_URL not configured"):
             reminder_handlers.build_webapp_url(path)
