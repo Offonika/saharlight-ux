@@ -286,12 +286,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "📸 Триггер-фото" in text
     assert "2. <s>🔕title2</s>" in text
     assert markup.inline_keyboard
-    add_btn = next(
-        btn
-        for row in markup.inline_keyboard
-        for btn in row
-        if btn.text == "➕ Добавить"
-    )
+    add_btn = next(btn for row in markup.inline_keyboard for btn in row if btn.text == "➕ Добавить")
     assert add_btn.web_app is not None
     assert add_btn.web_app.url.endswith("/reminders/new")
 
@@ -546,10 +541,12 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
     reply_markup = kwargs.get("reply_markup")
     assert reply_markup is not None
     assert reply_markup.inline_keyboard
+
     keyboard = reply_markup.inline_keyboard[0]
     assert len(keyboard) >= 2
     assert keyboard[0].callback_data == "remind_snooze:1:10"
     assert keyboard[1].callback_data == "remind_cancel:1"
+
     with TestSession() as session:
         log = session.query(ReminderLog).first()
         assert log is not None
@@ -614,6 +611,40 @@ async def test_cancel_callback(monkeypatch: pytest.MonkeyPatch) -> None:
         log = session.query(ReminderLog).first()
         assert log is not None
         assert log.action == "remind_cancel"
+
+
+@pytest.mark.asyncio
+async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit = commit
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
+        session.commit()
+
+    query = DummyCallbackQuery("remind_snooze:1:15", DummyMessage())
+    job_queue = MagicMock(spec=DummyJobQueue)
+    context = make_context(job_queue=job_queue)
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    await handlers.reminder_callback(update, context)
+
+    job_queue.run_once.assert_called_once()
+    _, kwargs = job_queue.run_once.call_args
+    assert kwargs["when"] == timedelta(minutes=15)
+    assert kwargs["data"] == {"reminder_id": 1, "chat_id": 1}
+    assert kwargs["name"] == "reminder_1"
+    assert query.edited is not None
+    edited_text, _ = query.edited
+    assert edited_text == "⏰ Отложено на 15 минут"
+    assert query.answers == [None]
+    with TestSession() as session:
+        log = session.query(ReminderLog).first()
+        assert log is not None
+        assert log.action == "remind_snooze"
 
 
 @pytest.mark.asyncio

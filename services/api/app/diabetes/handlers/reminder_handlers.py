@@ -665,10 +665,12 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         [
             [
                 InlineKeyboardButton(
+
                     "Отложить 10 мин", callback_data=f"remind_snooze:{rid}:10"
                 ),
                 InlineKeyboardButton("Отмена", callback_data=f"remind_cancel:{rid}"),
             ]
+
         ]
     )
     try:
@@ -688,6 +690,7 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     if len(parts) < 2:
         return
     action, rid_str = parts[0], parts[1]
+
     try:
         rid = int(rid_str)
     except ValueError:
@@ -698,6 +701,7 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             minutes = int(parts[2])
         except ValueError:
             minutes = None
+
     chat_id = user.id
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
@@ -716,6 +720,7 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 "Failed to log reminder action %s for reminder %s", log_action, rid
             )
             return
+
     if action == "remind_snooze":
         mins = minutes or 10
         job_queue: DefaultJobQueue | None = cast(
@@ -725,11 +730,14 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             job_queue.run_once(
                 reminder_job,
                 when=timedelta(minutes=mins),
+
                 data={"reminder_id": rid, "chat_id": chat_id},
                 name=f"reminder_{rid}",
             )
         try:
+
             await query.edit_message_text(f"⏰ Отложено на {mins} минут")
+
         except BadRequest as exc:
             if "Message is not modified" in str(exc):
                 await query.answer()
@@ -785,9 +793,7 @@ async def reminder_action_cb(
         try:
             commit(session)
         except CommitError:
-            logger.error(
-                "Failed to commit reminder action %s for reminder %s", action, rid
-            )
+            logger.error("Failed to commit reminder action %s for reminder %s", action, rid)
             return "error", None
         if action == "toggle":
             session.refresh(rem)
