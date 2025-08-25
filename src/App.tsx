@@ -40,8 +40,8 @@ const AppContent = () => {
       <Route path="/" element={<Home />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/reminders" element={<Reminders />} />
-      <Route path="/reminders/new" element={<CreateReminder />} />
-      <Route path="/reminders/:id/edit" element={<CreateReminder />} />
+        <Route path="/reminders/new" element={<CreateReminder />} />
+        <Route path="/reminders/:id/edit" element={<CreateReminder />} />
       <Route path="/history" element={<History />} />
       <Route path="/history/new-measurement" element={<NewMeasurement />} />
       <Route path="/history/new-meal" element={<NewMeal />} />

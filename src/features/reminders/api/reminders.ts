@@ -1,4 +1,4 @@
-import { Configuration, RemindersApi } from "../../../../../libs/ts-sdk";
+import { Configuration, RemindersApi } from "../../../../libs/ts-sdk";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 
 export function makeRemindersApi(initData: string) {
@@ -13,4 +13,3 @@ export function useRemindersApi() {
   const initData = useTelegramInitData();
   return makeRemindersApi(initData);
 }
-
