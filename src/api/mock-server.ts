@@ -55,7 +55,17 @@ export const mockApi = {
     console.log('[MockAPI] Updating reminder:', reminder);
     const index = mockReminders.findIndex(r => r.id === reminder.id);
     if (index >= 0) {
-      mockReminders[index] = reminder;
+      const updated = {
+        ...mockReminders[index],
+        type: reminder.type,
+        time: reminder.time || null,
+        intervalMinutes: reminder.interval_minutes ? Math.round(reminder.interval_minutes / 60 * 100) / 100 : null,
+        minutesAfter: reminder.minutes_after || null,
+        isEnabled: reminder.is_enabled,
+        title: reminder.title || null,
+        daysOfWeek: reminder.days_of_week || null,
+      };
+      mockReminders[index] = updated;
       saveToStorage(mockReminders);
     }
     return { id: reminder.id, status: 'ok' };
