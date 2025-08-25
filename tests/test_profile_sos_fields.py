@@ -1,4 +1,6 @@
 import pytest
+from datetime import time
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -58,4 +60,60 @@ async def test_save_profile_defaults_sos_fields(
     assert prof is not None
     assert prof.sos_contact == ""
     assert prof.sos_alerts_enabled is True
+    engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_save_profile_persists_quiet_hours(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
+    with TestSession() as session:
+        session.add(User(telegram_id=3, thread_id="t", timezone="UTC"))
+        session.commit()
+    data = ProfileSchema(
+        telegramId=3,
+        icr=1.0,
+        cf=2.0,
+        target=3.0,
+        low=1.0,
+        high=5.0,
+        quietStart=time(1, 30),
+        quietEnd=time(2, 30),
+    )
+    await profile_service.save_profile(data)
+    prof = await profile_service.get_profile(3)
+    assert prof is not None
+    assert prof.quiet_start == time(1, 30)
+    assert prof.quiet_end == time(2, 30)
+    engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_save_profile_defaults_quiet_hours(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
+    with TestSession() as session:
+        session.add(User(telegram_id=4, thread_id="t", timezone="UTC"))
+        session.commit()
+    data = ProfileSchema(
+        telegramId=4,
+        icr=1.0,
+        cf=2.0,
+        target=3.0,
+        low=1.0,
+        high=5.0,
+    )
+    await profile_service.save_profile(data)
+    prof = await profile_service.get_profile(4)
+    assert prof is not None
+    assert prof.quiet_start == time(22, 0)
+    assert prof.quiet_end == time(7, 0)
     engine.dispose()

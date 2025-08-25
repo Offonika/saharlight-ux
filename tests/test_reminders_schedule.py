@@ -45,6 +45,7 @@ def test_compute_next_after_event(monkeypatch: pytest.MonkeyPatch) -> None:
     assert compute_next(rem, tz) is None
 
 
+
 def test_quiet_window_same_day(monkeypatch: pytest.MonkeyPatch) -> None:
     tz = ZoneInfo("Europe/Moscow")
     _patch_now(monkeypatch, datetime(2024, 1, 1, 11, 0))
@@ -69,3 +70,4 @@ def test_quiet_window_cross_midnight_morning(
     rem = Reminder(kind="every", interval_minutes=30)
     next_dt = compute_next(rem, tz)
     assert next_dt == datetime(2024, 1, 1, 4, 0, tzinfo=timezone.utc)
+
