@@ -75,6 +75,26 @@ def test_multipart_tuple() -> None:
     ]
 
 
+def test_multipart_generator() -> None:
+    client = _client()
+    mock = MagicMock(return_value=_mock_response())
+    client.pool_manager.request = mock  # type: ignore[method-assign]
+    params = ((k, v) for k, v in [("foo", "bar"), ("baz", {"a": 1})])
+    client.request(  # type: ignore[no-untyped-call]
+        "POST",
+        "http://example.com",
+        headers={"Content-Type": "multipart/form-data"},
+        post_params=params,
+    )
+    kwargs = mock.call_args.kwargs
+    assert kwargs["encode_multipart"] is True
+    assert all(len(item) == 2 for item in kwargs["fields"])
+    assert kwargs["fields"] == [
+        ("foo", "bar"),
+        ("baz", json.dumps({"a": 1})),
+    ]
+
+
 def test_multipart_mapping() -> None:
     client = _client()
     mock = MagicMock(return_value=_mock_response())
