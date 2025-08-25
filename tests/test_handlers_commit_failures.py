@@ -313,7 +313,7 @@ async def test_reminder_callback_commit_failure(
 
     monkeypatch.setattr(reminder_handlers, "commit", failing_commit)
 
-    query = DummyQuery(DummyMessage(), "remind_snooze:1")
+    query = DummyQuery(DummyMessage(), "remind_snooze:1:10")
     update = make_update(callback_query=query, effective_user=make_user(1))
     job_queue = MagicMock(spec=JobQueue)
     job_queue.run_once = MagicMock()
@@ -325,7 +325,9 @@ async def test_reminder_callback_commit_failure(
     assert session.rollback.called
     assert query.edited == []
     assert not context.job_queue.run_once.called
-    assert "Failed to log reminder action remind_snooze for reminder 1" in caplog.text
+    assert (
+        "Failed to log reminder action remind_snooze:10 for reminder 1" in caplog.text
+    )
 
 
 @pytest.mark.asyncio
