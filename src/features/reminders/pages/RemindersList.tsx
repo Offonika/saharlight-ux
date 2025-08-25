@@ -67,7 +67,7 @@ export default function RemindersList() {
     const optimistic = items.map(x => x.id === r.id ? { ...x, isEnabled: !x.isEnabled } : x);
     setItems(optimistic);
     try {
-      await api.remindersPatch({ telegramId: r.telegramId, id: r.id, isEnabled: !r.isEnabled });
+      await api.remindersPatch({ reminder: { telegramId: r.telegramId, id: r.id, isEnabled: !r.isEnabled } });
       load();
     } catch {
       setItems(items);
