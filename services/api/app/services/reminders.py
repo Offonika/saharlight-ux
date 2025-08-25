@@ -69,10 +69,15 @@ async def save_reminder(data: ReminderSchema) -> int:
         assert rem.id is not None
         return rem.id
 
-    return cast(
-        int,
-        await run_db(cast(Callable[[Session], int], _save), sessionmaker=SessionLocal),
-    )
+    try:
+        return cast(
+            int,
+            await run_db(
+                cast(Callable[[Session], int], _save), sessionmaker=SessionLocal
+            ),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 async def delete_reminder(telegram_id: int, reminder_id: int) -> None:

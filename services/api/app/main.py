@@ -16,9 +16,9 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover
     __package__ = "services.api.app"
 
 # ────────── std / 3-rd party ──────────
-from fastapi import APIRouter, Depends, FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from pydantic import AliasChoices, BaseModel, Field
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import AliasChoices, BaseModel, Field, ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -58,6 +58,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0", lifespan=lifespan)
+
+
+@app.exception_handler(ValidationError)
+async def pydantic_422(_: Request, exc: ValidationError) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 
 # ────────── роуты статистики / legacy ──────────
@@ -296,6 +301,4 @@ app.include_router(api_router, prefix="/api")
 if __name__ == "__main__":  # pragma: no cover
     import uvicorn
 
-    uvicorn.run(
-        "services.api.app.main:app", host="0.0.0.0", port=8000, ws="wsproto"
-    )
+    uvicorn.run("services.api.app.main:app", host="0.0.0.0", port=8000, ws="wsproto")
