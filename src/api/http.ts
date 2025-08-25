@@ -19,6 +19,12 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       headers,
     });
 
+    // Check if response is HTML (backend not available)
+    const contentType = res.headers.get('content-type');
+    if (contentType?.includes('text/html')) {
+      throw new Error('Backend returned HTML instead of JSON');
+    }
+
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
       const msg = typeof data.detail === 'string' ? data.detail : 'Request failed';
