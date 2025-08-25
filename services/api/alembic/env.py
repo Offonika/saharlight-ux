@@ -29,7 +29,7 @@ try:
     from dotenv import load_dotenv
 except ImportError:
     # "python-dotenv" is optional; ignore if it's missing.
-    pass
+    logger.debug("python-dotenv is not installed; skipping .env loading")
 else:
     load_dotenv()
 
