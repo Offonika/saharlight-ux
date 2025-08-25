@@ -173,16 +173,20 @@ export default function CreateReminder() {
     }
   };
 
+  const telegramId = user?.id;
   const apiType = mapType(type);
-  const preview = buildReminderPayload({
-    telegramId: user?.id ?? 0,
-    type: apiType,
-    kind,
-    time,
-    intervalMinutes: interval,
-    minutesAfter,
-    title,
-  });
+  const preview =
+    telegramId != null
+      ? buildReminderPayload({
+          telegramId,
+          type: apiType,
+          kind,
+          time,
+          intervalMinutes: interval,
+          minutesAfter,
+          title,
+        })
+      : null;
   const typeInfo = TYPES[type];
 
   return (
@@ -310,7 +314,7 @@ export default function CreateReminder() {
         <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-4 flex items-center justify-between gap-4">
           <div className="text-sm">
             <span>{typeInfo.emoji} </span>
-            {preview.title}
+            {preview?.title ?? title}
           </div>
           <div className="flex gap-2">
             <MedicalButton
