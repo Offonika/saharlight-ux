@@ -3,7 +3,8 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from telegram import Message
+from sqlalchemy.orm import Session
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -298,11 +299,9 @@ def test_register_reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_reminders_command_sends_webapp_button(
+async def test_reminders_command_renders_list(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("WEBAPP_URL", "https://example.org")
-
     app = ApplicationBuilder().token("TESTTOKEN").build()
     register_reminder_handlers(app)
     handler = next(
@@ -311,9 +310,36 @@ async def test_reminders_command_sends_webapp_button(
         if isinstance(h, CommandHandler) and "reminders" in h.commands
     )
 
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+
+    session_obj = object()
+
+    class DummySessionCtx:
+        def __enter__(self) -> object:
+            return session_obj
+
+        def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+            return None
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: DummySessionCtx())
+
+    keyboard = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("btn", callback_data="1")]]
+    )
+
+    def fake_render(
+        session: Session, user_id: int
+    ) -> tuple[str, InlineKeyboardMarkup | None]:
+        assert session is session_obj
+        assert user_id == 1
+        return "rendered", keyboard
+
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", fake_render)
+
     captured: dict[str, Any] = {}
 
     async def fake_reply_text(text: str, **kwargs: Any) -> None:
+        captured["text"] = text
         captured["kwargs"] = kwargs
 
     message = MagicMock(spec=Message)
@@ -330,10 +356,7 @@ async def test_reminders_command_sends_webapp_button(
 
     await handler.callback(update, context)
 
-    kwargs = captured.get("kwargs")
-    assert kwargs is not None
-    markup = kwargs.get("reply_markup")
-    assert markup is not None
-    button = markup.inline_keyboard[0][0]
-    assert button.web_app is not None
-    assert button.web_app.url.endswith("/reminders")
+    assert captured["text"] == "rendered"
+    kwargs = captured["kwargs"]
+    assert kwargs.get("reply_markup") is keyboard
+    assert kwargs.get("parse_mode") == "HTML"
