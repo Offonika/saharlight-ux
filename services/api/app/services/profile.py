@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 from typing import cast
+from datetime import time as dt_time
 
 from sqlalchemy.orm import Session
 
@@ -42,6 +43,12 @@ def _validate_profile(data: ProfileSchema) -> None:
     if not (data.low < data.target < data.high):
         raise ValueError("target must be between low and high")
 
+    for t in (data.quietStart, data.quietEnd):
+        try:
+            dt_time.fromisoformat(t)
+        except ValueError:
+            raise ValueError("invalid quiet time format")
+
 
 async def save_profile(data: ProfileSchema) -> None:
     _validate_profile(data)
@@ -58,6 +65,8 @@ async def save_profile(data: ProfileSchema) -> None:
         profile.target_bg = data.target
         profile.low_threshold = data.low
         profile.high_threshold = data.high
+        profile.quiet_start = dt_time.fromisoformat(data.quietStart)
+        profile.quiet_end = dt_time.fromisoformat(data.quietEnd)
         profile.sos_contact = data.sosContact or ""
         profile.sos_alerts_enabled = (
             data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True

@@ -28,6 +28,8 @@ export async function getProfile(telegramId: number): Promise<Profile | null> {
       ...data,
       sosContact: data.sosContact,
       sosAlertsEnabled: data.sosAlertsEnabled,
+      quietStart: data.quietStart,
+      quietEnd: data.quietEnd,
     };
   } catch (error) {
     console.error('Failed to fetch profile:', error);
@@ -48,6 +50,8 @@ export async function saveProfile(profile: Profile): Promise<Profile> {
         ...profile,
         sosContact: profile.sosContact,
         sosAlertsEnabled: profile.sosAlertsEnabled,
+        quietStart: profile.quietStart,
+        quietEnd: profile.quietEnd,
       },
     });
     if (!instanceOfProfile(data)) {

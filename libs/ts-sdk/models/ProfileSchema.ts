@@ -60,6 +60,18 @@ export interface ProfileSchema {
      * @type {string}
      * @memberof ProfileSchema
      */
+    quietStart?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfileSchema
+     */
+    quietEnd?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfileSchema
+     */
     sosContact?: string | null;
     /**
      * 
@@ -104,6 +116,8 @@ export function ProfileSchemaFromJSONTyped(json: any, ignoreDiscriminator: boole
         'target': json['target'],
         'low': json['low'],
         'high': json['high'],
+        'quietStart': json['quietStart'] == null ? undefined : json['quietStart'],
+        'quietEnd': json['quietEnd'] == null ? undefined : json['quietEnd'],
         'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
         'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
         'orgId': json['orgId'] == null ? undefined : json['orgId'],
@@ -127,6 +141,8 @@ export function ProfileSchemaToJSONTyped(value?: ProfileSchema | null, ignoreDis
         'target': value['target'],
         'low': value['low'],
         'high': value['high'],
+        'quietStart': value['quietStart'],
+        'quietEnd': value['quietEnd'],
         'sosContact': value['sosContact'],
         'sosAlertsEnabled': value['sosAlertsEnabled'],
         'orgId': value['orgId'],

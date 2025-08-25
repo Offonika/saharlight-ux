@@ -33,7 +33,7 @@ describe('getProfile', () => {
     await expect(getProfile(1)).rejects.toBe(err);
   });
 
-  it('returns profile with sos fields', async () => {
+  it('returns profile with quiet and sos fields', async () => {
     const profile = {
       telegramId: 1,
       icr: 0,
@@ -41,6 +41,8 @@ describe('getProfile', () => {
       target: 0,
       low: 0,
       high: 0,
+      quietStart: '22:00',
+      quietEnd: '06:30',
       sosContact: '+79998887766',
       sosAlertsEnabled: true,
     } as Profile;
@@ -58,6 +60,8 @@ describe('saveProfile', () => {
       target: 0,
       low: 0,
       high: 0,
+      quietStart: '22:00',
+      quietEnd: '06:30',
       sosContact: '+79998887766',
       sosAlertsEnabled: true,
     } as Profile;
