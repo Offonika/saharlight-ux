@@ -35,6 +35,7 @@ export default function RemindersEdit() {
       time: k==="at_time" ? (s.time ?? "07:30") : undefined,
       intervalMinutes: k==="every" ? (s.intervalMinutes ?? 60) : undefined,
       minutesAfter: k==="after_event" ? (s.minutesAfter ?? 120) : undefined,
+      type: k==="after_event" ? "after_meal" : s.type,
     } : s));
 
   useEffect(() => {
@@ -64,7 +65,7 @@ export default function RemindersEdit() {
         // маппинг API → форма
         const fv: ReminderFormValues = {
           telegramId,
-          type: dto.type as ReminderType,
+          type: kind === "after_event" ? "after_meal" : (dto.type as ReminderType),
           kind,
           time: dto.time ?? undefined,
           intervalMinutes: dto.intervalMinutes ?? (dto.intervalHours ? dto.intervalHours * 60 : undefined),
@@ -136,13 +137,19 @@ export default function RemindersEdit() {
       <label className="block text-sm font-medium">Тип</label>
       <select
         className="w-full border rounded-lg px-3 py-2"
-        value={form.type}
+        value={form.kind === "after_event" ? "after_meal" : form.type}
         onChange={(e) => onChange("type", e.target.value as ReminderType)}
+        disabled={form.kind === "after_event"}
       >
         {["sugar","insulin_short","insulin_long","after_meal","meal","sensor_change","injection_site","custom"].map(v =>
           <option key={v} value={v}>{v}</option>
         )}
       </select>
+      {form.kind === "after_event" && (
+        <p className="text-xs text-gray-500 mt-1">
+          Это напоминание сработает <b>после записи приёма пищи</b> в разделе «История».
+        </p>
+      )}
 
       {/* Режим */}
       <label className="block text-sm font-medium">Режим</label>
@@ -185,7 +192,7 @@ export default function RemindersEdit() {
 
       {form.kind==="after_event" && (
         <>
-          <label className="block text-sm font-medium">Задержка (мин)</label>
+          <label className="block text-sm font-medium">Задержка после еды (мин)</label>
           <input type="number" min={1} className="w-full border rounded-lg px-3 py-2"
             value={form.minutesAfter ?? ""} onChange={(e)=>onChange("minutesAfter", Number(e.target.value||0))} />
           <div className="flex gap-2">
