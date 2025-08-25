@@ -5,6 +5,16 @@ import { useTelegram } from "@/hooks/useTelegram";
 import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
 import { Templates } from "../components/Templates";
+import { getPlanLimit } from "../hooks/usePlan";
+import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
+
+const checkQuotaLimit = (count: number, limit: number, toast: any) => {
+  if (count >= limit) {
+    toast.error(`Достигнут лимит ${limit} напоминаний. Обновитесь до Pro для увеличения лимита!`);
+    return false;
+  }
+  return true;
+};
 
 type ReminderDto = {
   id: number;
@@ -38,17 +48,26 @@ function scheduleLine(r: ReminderDto) {
   return "";
 }
 
-export default function RemindersList() {
+export default function RemindersList({ 
+  onCountChange, 
+  planLimit 
+}: { 
+  onCountChange?: (count: number) => void; 
+  planLimit?: number; 
+} = {}) {
   const api = useRemindersApi();
   const { user } = useTelegram();
+  const initData = useTelegramInitData();
   const toast = useToast();
   const [items, setItems] = useState<ReminderDto[]>([]);
   const [loading, setLoading] = useState(false);
+  const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(planLimit || 5);
 
   async function load() {
     if (!user?.id) return;
     setLoading(true);
     try {
+      // Load reminders
       try {
         const res = await api.remindersGet({ telegramId: user.id });
         setItems(res as any);
@@ -57,11 +76,37 @@ export default function RemindersList() {
         const res = await mockApi.getReminders(user.id);
         setItems(res as any);
       }
+      
+      // Load plan limit if not provided as prop
+      if (!planLimit) {
+        try {
+          const limit = await getPlanLimit(user.id, initData);
+          setCurrentPlanLimit(limit);
+        } catch (error) {
+          console.warn("Failed to load plan limit:", error);
+          setCurrentPlanLimit(5); // Default to free tier
+        }
+      }
     } finally {
       setLoading(false);
     }
   }
-  useEffect(() => { load(); }, [user?.id]);
+  
+  useEffect(() => { 
+    load(); 
+  }, [user?.id]);
+  
+  // Update count when items change
+  useEffect(() => {
+    onCountChange?.(items.length);
+  }, [items.length, onCountChange]);
+  
+  // Update limit when prop changes
+  useEffect(() => {
+    if (planLimit) {
+      setCurrentPlanLimit(planLimit);
+    }
+  }, [planLimit]);
 
   const groups = useMemo(() => {
     const map = new Map<string, ReminderDto[]>();
@@ -110,7 +155,14 @@ export default function RemindersList() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {user?.id && (
-        <Templates telegramId={user.id} onCreated={load} />
+        <Templates 
+          telegramId={user.id} 
+          onCreated={() => {
+            if (checkQuotaLimit(items.length, currentPlanLimit, toast)) {
+              load();
+            }
+          }} 
+        />
       )}
       
       {loading && (
