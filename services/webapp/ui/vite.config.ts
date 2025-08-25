@@ -19,7 +19,7 @@ function telegramInitPlugin(): Plugin {
       if (id === 'telegram-init.js' || id === '/ui/telegram-init.js') {
         return telegramInitPath
       }
-      if (importer === telegramInitPath && id === './assets/telegram-theme.js') {
+      if (importer === telegramInitPath && id === './telegram-theme.js') {
         return { id, external: true }
       }
       return null
@@ -76,7 +76,7 @@ export default defineConfig(async ({ mode, command }) => {
     output: {
       entryFileNames: (chunk) =>
         chunk.name === 'telegram-theme'
-          ? 'assets/telegram-theme.js'
+          ? 'telegram-theme.js'
           : 'assets/[name]-[hash].js',
       manualChunks: {
         vendor: ['react', 'react-dom', 'react-router-dom'],
