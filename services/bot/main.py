@@ -28,7 +28,7 @@ commands = [
     BotCommand("report", "Отчёт"),
     BotCommand("sugar", "Расчёт сахара"),
     BotCommand("gpt", "Чат с GPT"),
-    BotCommand("reminders", "Список напоминаний"),
+    BotCommand("reminders", "Напоминания (WebApp)"),
     BotCommand("addreminder", "Добавить напоминание"),
     BotCommand("delreminder", "Удалить напоминание"),
     BotCommand("help", "Справка"),

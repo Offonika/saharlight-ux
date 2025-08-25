@@ -1,7 +1,9 @@
-import pytest
-
 import os
+from typing import Any
+from unittest.mock import MagicMock
 
+import pytest
+from telegram import Message
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -293,3 +295,45 @@ def test_register_reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
         isinstance(h, CallbackQueryHandler) and h.callback is rh.reminder_callback
         for h in handlers
     )
+
+
+@pytest.mark.asyncio
+async def test_reminders_command_sends_webapp_button(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WEBAPP_URL", "https://example.org")
+
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+    register_reminder_handlers(app)
+    handler = next(
+        h
+        for h in app.handlers[0]
+        if isinstance(h, CommandHandler) and "reminders" in h.commands
+    )
+
+    captured: dict[str, Any] = {}
+
+    async def fake_reply_text(text: str, **kwargs: Any) -> None:
+        captured["kwargs"] = kwargs
+
+    message = MagicMock(spec=Message)
+    message.reply_text = fake_reply_text
+
+    user = MagicMock()
+    user.id = 1
+
+    update = MagicMock()
+    update.effective_user = user
+    update.message = message
+
+    context = MagicMock()
+
+    await handler.callback(update, context)
+
+    kwargs = captured.get("kwargs")
+    assert kwargs is not None
+    markup = kwargs.get("reply_markup")
+    assert markup is not None
+    button = markup.inline_keyboard[0][0]
+    assert button.web_app is not None
+    assert button.web_app.url.endswith("/reminders")
