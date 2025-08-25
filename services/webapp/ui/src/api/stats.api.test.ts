@@ -33,6 +33,7 @@ import {
   fetchDayStats,
   getFallbackAnalytics,
   getFallbackDayStats,
+  type DayStats,
 } from './stats';
 
 let ResponseError: new (arg: { status: number }) => Error;
@@ -92,6 +93,14 @@ describe('fetchDayStats', () => {
   it('returns fallback on invalid response', async () => {
     mockGetStats.mockResolvedValueOnce({ sugar: 'bad' } as unknown as DayStats);
     await expect(fetchDayStats(1)).resolves.toEqual(getFallbackDayStats());
+  });
+
+  it('returns fallback on null response without logging', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockGetStats.mockResolvedValueOnce(null);
+    await expect(fetchDayStats(1)).resolves.toEqual(getFallbackDayStats());
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it('returns fallback on network error', async () => {

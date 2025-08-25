@@ -101,7 +101,11 @@ export async function fetchDayStats(telegramId: number): Promise<DayStats> {
   try {
     const data = await api.getStatsStatsGet({ telegramId });
 
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    if (data === null) {
+      return getFallbackDayStats();
+    }
+
+    if (typeof data !== 'object' || Array.isArray(data)) {
       console.error('Unexpected stats API response:', data);
       return getFallbackDayStats();
     }
