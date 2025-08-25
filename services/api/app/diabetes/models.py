@@ -1,7 +1,7 @@
-"""Database model exports for the diabetes service."""
 
-from .services.db import Base, Reminder
+from .services.db import Base
+
 
 metadata = Base.metadata
 
-__all__ = ["Base", "metadata", "Reminder"]
+__all__ = ["metadata"]
