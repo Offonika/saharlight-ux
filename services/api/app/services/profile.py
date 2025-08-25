@@ -62,6 +62,8 @@ async def save_profile(data: ProfileSchema) -> None:
         profile.sos_alerts_enabled = (
             data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
         )
+        profile.quiet_start = data.quietStart
+        profile.quiet_end = data.quietEnd
         try:
             commit(cast(Session, session))
         except CommitError:

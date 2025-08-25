@@ -43,3 +43,19 @@ def test_compute_next_after_event(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_now(monkeypatch, datetime(2024, 1, 1, 10, 0))
     rem = Reminder(kind="after_event", minutes_after=15)
     assert compute_next(rem, tz) is None
+
+
+def test_quiet_hours_delay_at_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    tz = ZoneInfo("Europe/Moscow")
+    _patch_now(monkeypatch, datetime(2024, 1, 1, 10, 0))
+    rem = Reminder(kind="at_time", time=time(23, 30))
+    next_dt = compute_next(rem, tz, time(22, 0), time(7, 0))
+    assert next_dt == datetime(2024, 1, 2, 4, 0, tzinfo=timezone.utc)
+
+
+def test_quiet_hours_delay_every(monkeypatch: pytest.MonkeyPatch) -> None:
+    tz = ZoneInfo("Europe/Moscow")
+    _patch_now(monkeypatch, datetime(2024, 1, 1, 23, 50))
+    rem = Reminder(kind="every", interval_minutes=30)
+    next_dt = compute_next(rem, tz, time(22, 0), time(7, 0))
+    assert next_dt == datetime(2024, 1, 2, 4, 0, tzinfo=timezone.utc)
