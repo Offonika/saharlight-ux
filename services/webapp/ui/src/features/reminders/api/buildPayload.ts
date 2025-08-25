@@ -36,16 +36,20 @@ function generateTitle(v: ReminderFormValues): string {
 
 export function buildReminderPayload(v: ReminderFormValues) {
   const base = {
-    telegramId: v.telegramId,
+    telegram_id: v.telegramId,
     type: v.type,
-    kind: v.kind,
-    daysOfWeek: v.daysOfWeek?.length ? v.daysOfWeek : undefined,
-    isEnabled: v.isEnabled ?? true,
+    is_enabled: v.isEnabled ?? true,
   };
-  const schedule =
-    v.kind === 'at_time' ? { time: v.time } :
-    v.kind === 'every'    ? { intervalMinutes: v.intervalMinutes } :
-                            { minutesAfter: v.minutesAfter };
-
-  return { ...base, ...schedule, title: generateTitle(v) };
+  
+  // Backend only supports one of: time, interval_hours, minutes_after
+  if (v.kind === "at_time" && v.time) {
+    return { ...base, time: v.time };
+  } else if (v.kind === "every" && v.intervalMinutes) {
+    // Convert minutes to hours for backend
+    return { ...base, interval_hours: Math.round(v.intervalMinutes / 60 * 100) / 100 };
+  } else if (v.kind === "after_event" && v.minutesAfter) {
+    return { ...base, minutes_after: v.minutesAfter };
+  }
+  
+  return base;
 }
