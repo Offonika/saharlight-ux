@@ -4,7 +4,7 @@ import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 
 export function makeRemindersApi(initData: string) {
   const cfg = new Configuration({
-    basePath: "/api",
+    basePath: "",
     headers: { "X-Telegram-Init-Data": initData },
   });
   return new DefaultApi(cfg);
