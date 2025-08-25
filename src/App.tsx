@@ -12,6 +12,7 @@ import Home from "./pages/Home"
 import Profile from "./pages/Profile"
 import Reminders from "./pages/Reminders"
 import CreateReminder from "./reminders/CreateReminder"
+import RemindersCreate from "./features/reminders/pages/RemindersCreate"
 import History from "./pages/History"
 import NewMeasurement from "./pages/NewMeasurement"
 import NewMeal from "./pages/NewMeal"
@@ -39,8 +40,8 @@ const AppContent = () => {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/profile" element={<Profile />} />
-      <Route path="/reminders" element={<Reminders />} />
-        <Route path="/reminders/new" element={<CreateReminder />} />
+        <Route path="/reminders" element={<Reminders />} />
+        <Route path="/reminders/new" element={<RemindersCreate />} />
         <Route path="/reminders/:id/edit" element={<CreateReminder />} />
       <Route path="/history" element={<History />} />
       <Route path="/history/new-measurement" element={<NewMeasurement />} />

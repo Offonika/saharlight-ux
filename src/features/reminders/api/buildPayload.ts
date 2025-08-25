@@ -43,8 +43,8 @@ export function buildReminderPayload(v: ReminderFormValues) {
     isEnabled: v.isEnabled ?? true,
   };
   const schedule =
-    v.kind === 'at_time' ? { time: v.time } :
-    v.kind === 'every'    ? { intervalMinutes: v.intervalMinutes } :
+    v.kind === "at_time" ? { time: v.time } :
+    v.kind === "every"    ? { intervalMinutes: v.intervalMinutes } :
                             { minutesAfter: v.minutesAfter };
 
   return { ...base, ...schedule, title: generateTitle(v) };
