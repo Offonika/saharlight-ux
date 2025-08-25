@@ -57,13 +57,13 @@ export const mockApi = {
     if (index >= 0) {
       const updated = {
         ...mockReminders[index],
-        type: reminder.type,
+        type: reminder.type || mockReminders[index].type,
         time: reminder.time || null,
-        intervalMinutes: reminder.interval_minutes ? Math.round(reminder.interval_minutes / 60 * 100) / 100 : null,
+        intervalMinutes: reminder.interval_hours ? reminder.interval_hours * 60 : null,
         minutesAfter: reminder.minutes_after || null,
-        isEnabled: reminder.is_enabled,
-        title: reminder.title || null,
-        daysOfWeek: reminder.days_of_week || null,
+        isEnabled: reminder.is_enabled !== undefined ? reminder.is_enabled : mockReminders[index].isEnabled,
+        title: reminder.title || mockReminders[index].title,
+        daysOfWeek: reminder.days_of_week || mockReminders[index].daysOfWeek,
       };
       mockReminders[index] = updated;
       saveToStorage(mockReminders);

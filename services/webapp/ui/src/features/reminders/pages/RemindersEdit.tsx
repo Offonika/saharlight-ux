@@ -4,6 +4,7 @@ import { useRemindersApi } from "../api/reminders";
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
 import { buildReminderPayload, type ReminderFormValues, type ScheduleKind, type ReminderType } from "../api/buildPayload";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
+import { mockApi } from "../../../api/mock-server";
 
 // --- utils: достаём telegramId из initData
 function getTelegramUserId(initData: string): number {
@@ -39,8 +40,14 @@ export default function RemindersEdit() {
   useEffect(() => {
     (async () => {
       try {
-        const response = await api.remindersGet({ telegramId, id: Number(id) });
-        const dto: any = Array.isArray(response) ? response[0] : response;
+        let dto: any = null;
+        try {
+          const response = await api.remindersGet({ telegramId, id: Number(id) });
+          dto = Array.isArray(response) ? response[0] : response;
+        } catch (apiError) {
+          console.warn("Backend API failed, using mock API:", apiError);
+          dto = await mockApi.getReminder(telegramId, Number(id));
+        }
         
         if (!dto) {
           alert("Напоминание не найдено");
@@ -48,11 +55,17 @@ export default function RemindersEdit() {
           return;
         }
 
+        // определяем kind на основе данных
+        let kind: ScheduleKind = "at_time";
+        if (dto.time) kind = "at_time";
+        else if (dto.intervalMinutes || dto.intervalHours) kind = "every";
+        else if (dto.minutesAfter) kind = "after_event";
+
         // маппинг API → форма
         const fv: ReminderFormValues = {
           telegramId,
           type: dto.type as ReminderType,
-          kind: dto.kind as ScheduleKind,
+          kind,
           time: dto.time ?? undefined,
           intervalMinutes: dto.intervalMinutes ?? (dto.intervalHours ? dto.intervalHours * 60 : undefined),
           minutesAfter: dto.minutesAfter ?? undefined,
@@ -76,7 +89,12 @@ export default function RemindersEdit() {
     if (!form) return;
     try {
       const payload = { id: Number(id), ...buildReminderPayload(form) };
-      await api.remindersPatch({ reminder: payload as any });
+      try {
+        await api.remindersPatch({ reminder: payload as any });
+      } catch (apiError) {
+        console.warn("Backend API failed, using mock API:", apiError);
+        await mockApi.updateReminder(payload);
+      }
       nav("/reminders");
     } catch (err: any) {
       const text = await err?.response?.text?.();
@@ -88,7 +106,12 @@ export default function RemindersEdit() {
   async function onDelete() {
     if (!confirm("Удалить напоминание?")) return;
     try {
-      await api.remindersDelete({ telegramId, id: Number(id) });
+      try {
+        await api.remindersDelete({ telegramId, id: Number(id) });
+      } catch (apiError) {
+        console.warn("Backend API failed, using mock API:", apiError);
+        await mockApi.deleteReminder(telegramId, Number(id));
+      }
       nav("/reminders");
     } catch (err) {
       alert("Удаление не удалось");
@@ -104,6 +127,7 @@ export default function RemindersEdit() {
   return (
     <form className="max-w-xl mx-auto p-4 space-y-4" onSubmit={onSave}>
       <div className="flex items-center justify-between">
+        <button type="button" onClick={() => nav("/reminders")} className="px-3 py-2 rounded-lg border border-gray-300">← Назад</button>
         <h1 className="text-xl font-semibold">Редактировать напоминание</h1>
         <button type="button" onClick={onDelete} className="px-3 py-2 rounded-lg border border-gray-300">🗑 Удалить</button>
       </div>
