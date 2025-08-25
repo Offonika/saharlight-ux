@@ -6,7 +6,7 @@ import asyncio
 import logging
 import threading
 from datetime import date, datetime, time
-from typing import Callable, Optional, Protocol, TypeVar
+from typing import Callable, Iterable, Optional, Protocol, TypeVar
 from typing_extensions import Concatenate, ParamSpec
 
 from sqlalchemy import (
@@ -229,6 +229,30 @@ class Reminder(Base):
         TIMESTAMP(timezone=True), server_default=func.now()
     )
     user: Mapped[User] = relationship("User")
+
+    def set_interval_hours_if_needed(self, hours: int | None) -> None:
+        """Populate ``interval_minutes`` from hours if minutes absent."""
+        if hours is not None and self.interval_minutes is None:
+            self.interval_minutes = hours * 60
+
+    @property
+    def daysOfWeek(self) -> list[int] | None:  # noqa: N802  (external naming)
+        mask = self.days_mask
+        if mask is None:
+            return None
+        return [i + 1 for i in range(7) if mask & (1 << i)]
+
+    @daysOfWeek.setter
+    def daysOfWeek(self, days: Iterable[int] | None) -> None:  # noqa: N802
+        if days is None:
+            self.days_mask = None
+            return
+        mask = 0
+        for day in days:
+            if not 1 <= day <= 7:
+                raise ValueError("day must be in 1..7")
+            mask |= 1 << (day - 1)
+        self.days_mask = mask
 
 
 class ReminderLog(Base):
