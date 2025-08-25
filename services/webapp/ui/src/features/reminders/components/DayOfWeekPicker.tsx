@@ -1,25 +1,18 @@
 import { cn } from "@/lib/utils";
 import { useCallback } from "react";
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const WEEKDAY_LABELS = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-
 export interface DayOfWeekPickerProps {
   value?: number[];
   onChange: (next: number[]) => void;
+  shortNames: string[];
+  longNames: string[];
 }
 
 export default function DayOfWeekPicker({
   value = [],
   onChange,
+  shortNames,
+  longNames,
 }: DayOfWeekPickerProps) {
   const toggle = useCallback(
     (index: number) => {
@@ -33,7 +26,7 @@ export default function DayOfWeekPicker({
 
   return (
     <div className="flex gap-2">
-      {WEEKDAYS.map((day, index) => {
+      {shortNames.map((day, index) => {
         const active = value.includes(index);
         return (
           <button
@@ -45,9 +38,9 @@ export default function DayOfWeekPicker({
               active && "bg-primary text-primary-foreground border-primary",
             )}
             aria-pressed={active}
-            aria-label={WEEKDAY_LABELS[index]}
+            aria-label={longNames[index]}
           >
-            {day[0]}
+            {day}
           </button>
         );
       })}
