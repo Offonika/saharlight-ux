@@ -32,7 +32,7 @@ const TYPE_LABEL: Record<string, string> = {
 function scheduleLine(r: ReminderDto) {
   if (r.kind === "at_time" && r.time) return `в ${r.time}`;
   if (r.kind === "every" && r.intervalMinutes) return `каждые ${r.intervalMinutes} мин`;
-  if (r.kind === "after_event" && r.minutesAfter) return `через ${r.minutesAfter} мин (после события)`;
+  if (r.kind === "after_event" && r.minutesAfter) return `после еды • через ${r.minutesAfter} мин`;
   return "";
 }
 
@@ -105,31 +105,64 @@ export default function RemindersList() {
   }
 
   return (
-    <div className="p-4 max-w-3xl mx-auto">
-      <div className="flex items-center justify-between mb-3">
-        <h1 className="text-xl font-semibold">Напоминания</h1>
-        <a href="/reminders/new" className="px-3 py-2 rounded-lg bg-black text-white">+ Добавить</a>
-      </div>
-
-      {loading && <div>Загрузка…</div>}
+    <div className="max-w-3xl mx-auto space-y-6">
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-pulse text-center">
+            <div className="w-8 h-8 rounded-full bg-primary/20 mx-auto mb-2"></div>
+            <p className="text-muted-foreground">Загрузка напоминаний...</p>
+          </div>
+        </div>
+      )}
 
       {!loading && groups.map(([type, arr]) => (
-        <div key={type} className="mb-5">
-          <h2 className="text-sm uppercase text-gray-500 mb-2">{TYPE_LABEL[type] ?? "Другое"}</h2>
-          <div className="space-y-2">
-            {arr.map(r => (
-              <div key={r.id} className="border rounded-xl p-3 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{r.title || TYPE_LABEL[r.type] || "Напоминание"}</div>
-                  <div className="text-sm text-gray-600">{scheduleLine(r)}</div>
-                  <div className="text-xs text-gray-500">Следующее: {formatNextAt(r.nextAt)}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => toggleEnabled(r)} className={`px-3 py-1 rounded-lg border ${r.isEnabled ? "bg-black text-white border-black" : "border-gray-300"}`}>
-                    {r.isEnabled ? "Вкл." : "Выкл."}
-                  </button>
-                  <a href={`/reminders/${r.id}/edit`} className="px-3 py-1 rounded-lg border border-gray-300">✏️</a>
-                  <button onClick={() => remove(r)} className="px-3 py-1 rounded-lg border border-gray-300">🗑</button>
+        <div key={type} className="space-y-3 animate-fade-in">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+            {TYPE_LABEL[type] ?? "Другое"}
+          </h2>
+          <div className="space-y-3">
+            {arr.map((r, index) => (
+              <div 
+                key={r.id} 
+                className="medical-list-item animate-slide-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-card-foreground truncate">
+                      {r.title || TYPE_LABEL[r.type] || "Напоминание"}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {scheduleLine(r)}
+                    </div>
+                    <div className="text-xs text-muted-foreground/70">
+                      Следующее: {formatNextAt(r.nextAt)}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <button 
+                      onClick={() => toggleEnabled(r)} 
+                      className={`px-3 py-1 rounded-lg border transition-all duration-200 text-sm font-medium ${
+                        r.isEnabled 
+                          ? "bg-primary text-primary-foreground border-primary shadow-soft hover:shadow-medium" 
+                          : "border-border bg-background text-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      {r.isEnabled ? "Вкл." : "Выкл."}
+                    </button>
+                    <a 
+                      href={`/reminders/${r.id}/edit`} 
+                      className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-all duration-200"
+                    >
+                      ✏️
+                    </a>
+                    <button 
+                      onClick={() => remove(r)} 
+                      className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all duration-200"
+                    >
+                      🗑
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -137,7 +170,20 @@ export default function RemindersList() {
         </div>
       ))}
 
-      {!loading && !items.length && <div className="text-gray-600">Пока нет напоминаний.</div>}
+      {!loading && !items.length && (
+        <div className="text-center py-12 animate-fade-in">
+          <div className="w-16 h-16 rounded-full bg-muted/50 mx-auto mb-4 flex items-center justify-center">
+            <span className="text-2xl">⏰</span>
+          </div>
+          <p className="text-muted-foreground">Пока нет напоминаний</p>
+          <a 
+            href="/reminders/new" 
+            className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            + Добавить первое напоминание
+          </a>
+        </div>
+      )}
     </div>
   );
 }

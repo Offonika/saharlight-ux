@@ -58,7 +58,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
       <MedicalHeader 
         title="Мой профиль" 
         showBack 
@@ -66,7 +66,7 @@ const Profile = () => {
       />
       
       <main className="container mx-auto px-4 py-6">
-        <div className="medical-card animate-slide-up bg-gradient-medical/5 border-medical-blue/20">
+        <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <div className="space-y-6">
             {/* ICR */}
             <div>
@@ -189,14 +189,14 @@ const Profile = () => {
         </div>
 
         {/* Дополнительная информация */}
-        <div className="mt-6 medical-card bg-gradient-success/5 border-medical-teal/20">
+        <div className="mt-6 medical-card bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
           <h3 className="font-semibold text-foreground mb-3">Справка</h3>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              <strong>ICR</strong> - показывает, сколько граммов углеводов покрывает 1 единица быстрого инсулина
+              <strong className="text-foreground">ICR</strong> - показывает, сколько граммов углеводов покрывает 1 единица быстрого инсулина
             </p>
             <p>
-              <strong>КЧ</strong> - показывает, на сколько ммоль/л снижает уровень глюкозы 1 единица быстрого инсулина
+              <strong className="text-foreground">КЧ</strong> - показывает, на сколько ммоль/л снижает уровень глюкозы 1 единица быстрого инсулина
             </p>
             <p>
               Эти параметры индивидуальны и должны быть определены совместно с вашим врачом

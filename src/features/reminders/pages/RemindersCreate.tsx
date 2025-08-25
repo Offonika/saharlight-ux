@@ -82,119 +82,161 @@ export default function RemindersCreate() {
     });
 
   return (
-    <form className="max-w-xl mx-auto p-4 space-y-4" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">Добавить напоминание</h1>
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
+      <div className="container mx-auto px-4 py-6">
+        <form className="max-w-xl mx-auto space-y-6 medical-card animate-slide-up" onSubmit={onSubmit}>
+          <h1 className="text-xl font-semibold text-foreground">Добавить напоминание</h1>
 
-      {/* Тип */}
-      <label className="block text-sm font-medium">Тип</label>
-      <select
-        className="w-full border rounded-lg px-3 py-2"
-        value={form.kind === "after_event" ? "after_meal" : form.type}
-        onChange={(e) => onChange("type", e.target.value as ReminderType)}
-        disabled={form.kind === "after_event"}
-      >
-        {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-      {form.kind === "after_event" && (
-        <p className="text-xs text-gray-500 mt-1">
-          Это напоминание сработает <b>после записи приёма пищи</b> в разделе «История».
-        </p>
-      )}
+          {/* Тип */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Тип</label>
+            <select
+              className="medical-input"
+              value={form.kind === "after_event" ? "after_meal" : form.type}
+              onChange={(e) => onChange("type", e.target.value as ReminderType)}
+              disabled={form.kind === "after_event"}
+            >
+              {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            {form.kind === "after_event" && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Это напоминание сработает <strong className="text-foreground">после записи приёма пищи</strong> в разделе «История».
+              </p>
+            )}
+          </div>
 
-      {/* Режим */}
-      <label className="block text-sm font-medium">Режим</label>
-      <div className="flex gap-2">
-        {KIND_OPTIONS.map((o) => (
-          <button
-            type="button" key={o.value}
-            onClick={() => switchKind(o.value)}
-            className={`px-3 py-1 rounded-2xl border ${form.kind===o.value?"bg-black text-white border-black":"border-gray-300"}`}
+          {/* Режим */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Режим</label>
+            <div className="flex gap-2">
+              {KIND_OPTIONS.map((o) => (
+                <button
+                  type="button" 
+                  key={o.value}
+                  onClick={() => switchKind(o.value)}
+                  className={`px-3 py-2 rounded-lg border transition-all duration-200 ${
+                    form.kind === o.value 
+                      ? "bg-primary text-primary-foreground border-primary shadow-soft" 
+                      : "border-border bg-background text-foreground hover:bg-secondary"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Условные поля */}
+          {form.kind === "at_time" && (
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-foreground">Время (HH:MM)</label>
+              <input
+                type="time"
+                className="medical-input"
+                value={form.time || ""}
+                onChange={(e) => onChange("time", e.target.value)}
+              />
+              <div className="flex gap-2 flex-wrap">
+                {presetsTime.map((t) => (
+                  <button 
+                    key={t} 
+                    type="button" 
+                    className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-colors" 
+                    onClick={() => onChange("time", t)}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {form.kind === "every" && (
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-foreground">Интервал (мин)</label>
+              <input
+                type="number" 
+                min={1}
+                className="medical-input"
+                value={form.intervalMinutes ?? ""}
+                onChange={(e) => onChange("intervalMinutes", Number(e.target.value || 0))}
+              />
+              <div className="flex gap-2 flex-wrap">
+                {presetsEvery.map((m) => (
+                  <button 
+                    key={m} 
+                    type="button" 
+                    className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-colors" 
+                    onClick={() => onChange("intervalMinutes", m)}
+                  >
+                    {m} мин
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {form.kind === "after_event" && (
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-foreground">Задержка после еды (мин)</label>
+              <input
+                type="number" 
+                min={1}
+                className="medical-input"
+                value={form.minutesAfter ?? ""}
+                onChange={(e) => onChange("minutesAfter", Number(e.target.value || 0))}
+              />
+              <div className="flex gap-2 flex-wrap">
+                {presetsAfter.map((m) => (
+                  <button 
+                    key={m} 
+                    type="button" 
+                    className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-colors" 
+                    onClick={() => onChange("minutesAfter", m)}
+                  >
+                    {m} мин
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Дни недели */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Дни недели (опционально)</label>
+            <DayOfWeekPicker value={form.daysOfWeek} onChange={(v)=>onChange("daysOfWeek", v)} />
+          </div>
+
+          {/* Название (необяз.) */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Название (если пусто — автогенерация)</label>
+            <input
+              className="medical-input"
+              value={form.title ?? ""}
+              onChange={(e) => onChange("title", e.target.value)}
+              placeholder="Напр.: Сахар утром"
+            />
+          </div>
+
+          {/* Вкл/Выкл */}
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.isEnabled ?? true}
+              onChange={(e) => onChange("isEnabled", e.target.checked)}
+              className="rounded border-border focus:ring-ring"
+            />
+            <span className="text-foreground">Включено</span>
+          </label>
+
+          <button 
+            disabled={loading} 
+            className="w-full bg-primary text-primary-foreground rounded-xl py-3 shadow-soft hover:shadow-medium hover:bg-primary/90 disabled:opacity-50 transition-all duration-200"
           >
-            {o.label}
+            {loading ? "Сохранение…" : "Сохранить"}
           </button>
-        ))}
+        </form>
       </div>
-
-      {/* Условные поля */}
-      {form.kind === "at_time" && (
-        <>
-          <label className="block text-sm font-medium">Время (HH:MM)</label>
-          <input
-            type="time"
-            className="w-full border rounded-lg px-3 py-2"
-            value={form.time || ""}
-            onChange={(e) => onChange("time", e.target.value)}
-          />
-          <div className="flex gap-2">
-            {presetsTime.map((t) => (
-              <button key={t} type="button" className="px-3 py-1 rounded-2xl border border-gray-300" onClick={() => onChange("time", t)}>{t}</button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {form.kind === "every" && (
-        <>
-          <label className="block text-sm font-medium">Интервал (мин)</label>
-          <input
-            type="number" min={1}
-            className="w-full border rounded-lg px-3 py-2"
-            value={form.intervalMinutes ?? ""}
-            onChange={(e) => onChange("intervalMinutes", Number(e.target.value || 0))}
-          />
-          <div className="flex gap-2">
-            {presetsEvery.map((m) => (
-              <button key={m} type="button" className="px-3 py-1 rounded-2xl border border-gray-300" onClick={() => onChange("intervalMinutes", m)}>{m} мин</button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {form.kind === "after_event" && (
-        <>
-          <label className="block text-sm font-medium">Задержка после еды (мин)</label>
-          <input
-            type="number" min={1}
-            className="w-full border rounded-lg px-3 py-2"
-            value={form.minutesAfter ?? ""}
-            onChange={(e) => onChange("minutesAfter", Number(e.target.value || 0))}
-          />
-          <div className="flex gap-2">
-            {presetsAfter.map((m) => (
-              <button key={m} type="button" className="px-3 py-1 rounded-2xl border border-gray-300" onClick={() => onChange("minutesAfter", m)}>{m} мин</button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Дни недели */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Дни недели (опционально)</label>
-        <DayOfWeekPicker value={form.daysOfWeek} onChange={(v)=>onChange("daysOfWeek", v)} />
-      </div>
-
-      {/* Название (необяз.) */}
-      <label className="block text-sm font-medium">Название (если пусто — автогенерация)</label>
-      <input
-        className="w-full border rounded-lg px-3 py-2"
-        value={form.title ?? ""}
-        onChange={(e) => onChange("title", e.target.value)}
-        placeholder="Напр.: Сахар утром"
-      />
-
-      {/* Вкл/Выкл */}
-      <label className="inline-flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={form.isEnabled ?? true}
-          onChange={(e) => onChange("isEnabled", e.target.checked)}
-        />
-        Включено
-      </label>
-
-      <button disabled={loading} className="w-full bg-black text-white rounded-xl py-3 disabled:opacity-50">
-        {loading ? "Сохранение…" : "Сохранить"}
-      </button>
-    </form>
+    </div>
   );
 }

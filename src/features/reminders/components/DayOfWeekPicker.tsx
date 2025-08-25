@@ -1,25 +1,49 @@
 import React from "react";
-const NAMES = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+
+const DAYS = [
+  { value: 1, name: "Пн", label: "Понедельник" },
+  { value: 2, name: "Вт", label: "Вторник" },
+  { value: 3, name: "Ср", label: "Среда" },
+  { value: 4, name: "Чт", label: "Четверг" },
+  { value: 5, name: "Пт", label: "Пятница" },
+  { value: 6, name: "Сб", label: "Суббота" },
+  { value: 0, name: "Вс", label: "Воскресенье" },
+];
 
 export function DayOfWeekPicker({
-  value, onChange,
-}: { value?: number[]; onChange: (v?: number[]) => void }) {
-  const set = new Set(value ?? []);
-  const toggle = (d: number) => {
-    const next = new Set(set);
-    next.has(d) ? next.delete(d) : next.add(d);
-    const arr = Array.from(next).sort((a,b)=>a-b);
-    onChange(arr.length ? arr : undefined);
+  value, 
+  onChange,
+}: { 
+  value?: number[]; 
+  onChange: (v?: number[]) => void 
+}) {
+  const selectedSet = new Set(value ?? []);
+  
+  const toggle = (dayValue: number) => {
+    const nextSet = new Set(selectedSet);
+    nextSet.has(dayValue) ? nextSet.delete(dayValue) : nextSet.add(dayValue);
+    const sortedArray = Array.from(nextSet).sort((a, b) => a - b);
+    onChange(sortedArray.length ? sortedArray : undefined);
   };
+
   return (
     <div className="flex flex-wrap gap-2">
-      {NAMES.map((n, i) => {
-        const d = i+1, active = set.has(d);
+      {DAYS.map(day => {
+        const isSelected = selectedSet.has(day.value);
         return (
           <button
-            key={d} type="button" onClick={()=>toggle(d)}
-            className={`px-3 py-1 rounded-2xl border text-sm ${active ? "bg-black text-white border-black" : "border-gray-300"}`}
-          >{n}</button>
+            key={day.value} 
+            type="button" 
+            onClick={() => toggle(day.value)}
+            className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 ${
+              isSelected 
+                ? "bg-primary text-primary-foreground border-primary shadow-soft" 
+                : "border-border bg-background text-foreground hover:bg-secondary hover:border-primary/20"
+            }`}
+            title={day.label}
+          >
+            {day.name}
+          </button>
         );
       })}
     </div>

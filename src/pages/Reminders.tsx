@@ -6,11 +6,11 @@ export default function Reminders() {
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
       <MedicalHeader title="Напоминания" showBack onBack={() => navigate('/')}>
         <a 
           href="/reminders/new" 
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg shadow-soft hover:shadow-medium hover:bg-primary/90 transition-all duration-200"
         >
           + Добавить
         </a>
