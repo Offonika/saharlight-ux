@@ -638,9 +638,26 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("Отложить 10 мин", callback_data=f"remind_snooze:{rid}"),
-                InlineKeyboardButton("Отмена", callback_data=f"remind_cancel:{rid}"),
-            ]
+                InlineKeyboardButton(
+                    "Отложить 10 мин",
+                    callback_data=f"remind_snooze:{rid}:10",
+                ),
+                InlineKeyboardButton(
+                    "Отложить 15 мин",
+                    callback_data=f"remind_snooze:{rid}:15",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    "Отложить 30 мин",
+                    callback_data=f"remind_snooze:{rid}:30",
+                ),
+                InlineKeyboardButton(
+                    "Отложить 60 мин",
+                    callback_data=f"remind_snooze:{rid}:60",
+                ),
+            ],
+            [InlineKeyboardButton("Отмена", callback_data=f"remind_cancel:{rid}")],
         ]
     )
     try:
@@ -654,8 +671,12 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     user = update.effective_user
     if query is None or query.data is None or user is None:
         return
-    action, rid_str = query.data.split(":")
+    parts = query.data.split(":")
+    if len(parts) < 2:
+        return
+    action, rid_str = parts[0], parts[1]
     rid = int(rid_str)
+    snooze_minutes = int(parts[2]) if len(parts) > 2 else None
     chat_id = user.id
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
@@ -669,17 +690,17 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         except CommitError:
             logger.error("Failed to log reminder action %s for reminder %s", action, rid)
             return
-    if action == "remind_snooze":
+    if action == "remind_snooze" and snooze_minutes is not None:
         job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
         if job_queue is not None:
             job_queue.run_once(
                 reminder_job,
-                when=timedelta(minutes=10),
+                when=timedelta(minutes=snooze_minutes),
                 data={"reminder_id": rid, "chat_id": chat_id},
                 name=f"reminder_{rid}",
             )
         try:
-            await query.edit_message_text("⏰ Отложено на 10 минут")
+            await query.edit_message_text(f"⏰ Отложено на {snooze_minutes} минут")
         except BadRequest as exc:
             if "Message is not modified" in str(exc):
                 await query.answer()
@@ -733,9 +754,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         try:
             commit(session)
         except CommitError:
-            logger.error(
-                "Failed to commit reminder action %s for reminder %s", action, rid
-            )
+            logger.error("Failed to commit reminder action %s for reminder %s", action, rid)
             return "error", None
         if action == "toggle":
             session.refresh(rem)
