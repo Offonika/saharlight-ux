@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
+import { MedicalHeader } from "@/components/MedicalHeader";
 import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
 import { Reminder as ApiReminder } from "@sdk";
@@ -16,7 +17,7 @@ const normalizeType = (t: ReminderType): NormalizedReminderType =>
   t === "meds" ? "medicine" : t;
 
 const TYPES: Record<NormalizedReminderType, { label: string; emoji: string }> = {
-  sugar: { label: "Сахар", emoji: "🩸" },
+  sugar: { label: "Измерение сахара", emoji: "🩸" },
   insulin: { label: "Инсулин", emoji: "💉" },
   meal: { label: "Приём пищи", emoji: "🍽️" },
   medicine: { label: "Лекарства", emoji: "💊" }
@@ -149,115 +150,158 @@ export default function CreateReminder() {
   const typeInfo = TYPES[type];
 
   return (
-    <form onSubmit={handleSubmit} className="pb-24 space-y-4">
-      {error && <div className="mb-4 text-destructive">{error}</div>}
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
+      <MedicalHeader 
+        title={editing ? "Редактировать напоминание" : "Создать напоминание"}
+        showBack 
+        onBack={() => navigate("/reminders")}
+      />
+      
+      <main className="container mx-auto px-4 py-6 pb-24">
+        <form onSubmit={handleSubmit} className="max-w-xl mx-auto space-y-6 medical-card animate-slide-up">
+          {error && (
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+              {error}
+            </div>
+          )}
 
-      <div>
-        <label className="block mb-1">Тип</label>
-        <button
-          type="button"
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full border bg-secondary text-sm"
-          onClick={() => setTypeOpen(true)}
-        >
-          <span>{typeInfo.emoji}</span>
-          <span>{typeInfo.label}</span>
-        </button>
-      </div>
-
-      <div>
-        <label htmlFor="title">Название</label>
-        <input
-          id="title"
-          className="input"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={40}
-        />
-      </div>
-
-      <div className="grid gap-2 md:grid-cols-2">
-        <div>
-          <label htmlFor="time">Время</label>
-          <input
-            id="time"
-            className="input"
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-          />
-        </div>
-        <div>
-          <label htmlFor="interval">Интервал (мин)</label>
-          <input
-            id="interval"
-            className="input"
-            type="number"
-            min={5}
-            step={5}
-            value={interval ?? ""}
-            onChange={(e) => {
-              const val = parseInt(e.target.value, 10);
-              setInterval(Number.isNaN(val) ? undefined : val);
-            }}
-          />
-          <div className="flex flex-wrap gap-2 mt-2">
-            {PRESETS[type].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setInterval(n)}
-                className={cn(
-                  "px-3 py-1 rounded-full border text-sm",
-                  interval === n &&
-                    "bg-primary text-primary-foreground border-primary"
-                )}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <Sheet open={typeOpen} onClose={() => setTypeOpen(false)}>
-        <div className="p-4 grid grid-cols-3 gap-4">
-          {(Object.keys(TYPES) as NormalizedReminderType[]).map((key) => (
+          {/* Тип напоминания */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Тип напоминания</label>
             <button
-              key={key}
               type="button"
-              onClick={() => {
-                setType(key);
-                setTypeOpen(false);
-              }}
-              className="flex flex-col items-center justify-center p-4 rounded-lg border"
+              className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-colors w-full justify-start"
+              onClick={() => setTypeOpen(true)}
             >
-              <span className="text-2xl">{TYPES[key].emoji}</span>
-              <span className="mt-2 text-sm">{TYPES[key].label}</span>
+              <span className="text-2xl">{typeInfo.emoji}</span>
+              <span className="font-medium">{typeInfo.label}</span>
             </button>
-          ))}
-        </div>
-      </Sheet>
+          </div>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-4 flex items-center justify-between gap-4">
-        <div className="text-sm">
-          <span>{typeInfo.emoji} </span>
-          {title.trim() || typeInfo.label}, {time}
-          {interval && ` • каждые ${interval} мин`}
-        </div>
-        <div className="flex gap-2">
-          <MedicalButton
-            type="button"
-            variant="secondary"
-            onClick={() => navigate("/reminders")}
-          >
-            Отмена
-          </MedicalButton>
-          <MedicalButton type="submit" disabled={!formValid}>
-            Сохранить
-          </MedicalButton>
-        </div>
-      </div>
-    </form>
+          {/* Название */}
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-foreground mb-2">
+              Название напоминания
+            </label>
+            <input
+              id="title"
+              className="medical-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={40}
+              placeholder={`Например: ${typeInfo.label} утром`}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Минимум 2 символа
+            </p>
+          </div>
+
+          {/* Время и интервал */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label htmlFor="time" className="block text-sm font-medium text-foreground mb-2">
+                Время
+              </label>
+              <input
+                id="time"
+                className="medical-input"
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="interval" className="block text-sm font-medium text-foreground mb-2">
+                Интервал (мин)
+              </label>
+              <input
+                id="interval"
+                className="medical-input"
+                type="number"
+                min={5}
+                step={5}
+                value={interval ?? ""}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setInterval(Number.isNaN(val) ? undefined : val);
+                }}
+                placeholder="60"
+              />
+              <div className="flex flex-wrap gap-2 mt-2">
+                {PRESETS[type].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setInterval(n)}
+                    className={cn(
+                      "px-3 py-1 rounded-lg border text-sm font-medium transition-all duration-200",
+                      interval === n
+                        ? "bg-primary text-primary-foreground border-primary shadow-soft"
+                        : "border-border bg-background text-foreground hover:bg-secondary"
+                    )}
+                  >
+                    {n} мин
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Предпросмотр */}
+          <div className="p-4 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
+            <h3 className="text-sm font-medium text-foreground mb-2">Предпросмотр</h3>
+            <div className="text-sm text-muted-foreground">
+              <span className="text-lg mr-2">{typeInfo.emoji}</span>
+              {title.trim() || typeInfo.label}, {time}
+              {interval && ` • каждые ${interval} мин`}
+            </div>
+          </div>
+
+          {/* Кнопки */}
+          <div className="flex gap-3 pt-4">
+            <MedicalButton
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => navigate("/reminders")}
+            >
+              Отмена
+            </MedicalButton>
+            <MedicalButton 
+              type="submit" 
+              disabled={!formValid}
+              className="flex-1"
+              variant="medical"
+            >
+              {editing ? "Обновить" : "Создать"}
+            </MedicalButton>
+          </div>
+        </form>
+
+        {/* Модальное окно выбора типа */}
+        <Sheet open={typeOpen} onClose={() => setTypeOpen(false)}>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Выберите тип напоминания</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {(Object.keys(TYPES) as NormalizedReminderType[]).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setType(key);
+                    setTypeOpen(false);
+                  }}
+                  className="medical-tile animate-scale-in p-4"
+                >
+                  <div className="text-3xl mb-2">{TYPES[key].emoji}</div>
+                  <div className="text-sm font-medium text-foreground">{TYPES[key].label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </Sheet>
+      </main>
+    </div>
   );
 }
 
