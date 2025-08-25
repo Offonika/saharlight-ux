@@ -31,7 +31,7 @@ const TYPE_LABEL: Record<string, string> = {
 function scheduleLine(r: ReminderDto) {
   if (r.kind === "at_time" && r.time) return `в ${r.time}`;
   if (r.kind === "every" && r.intervalMinutes) return `каждые ${r.intervalMinutes} мин`;
-  if (r.kind === "after_event" && r.minutesAfter) return `через ${r.minutesAfter} мин (после события)`;
+  if (r.kind === "after_event" && r.minutesAfter) return `после еды • через ${r.minutesAfter} мин`;
   return "";
 }
 
