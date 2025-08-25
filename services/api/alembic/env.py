@@ -1,4 +1,5 @@
 # файл: services/api/alembic/env.py
+import logging
 from logging.config import fileConfig
 import os
 import sys
@@ -6,6 +7,9 @@ from urllib.parse import quote_plus
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+
+logger = logging.getLogger(__name__)
 
 # === ЛОГИРОВАНИЕ ===
 config = context.config
@@ -19,6 +23,14 @@ API_DIR = os.path.dirname(HERE)                                 # .../services/a
 REPO_ROOT = os.path.dirname(API_DIR)                            # .../saharlight-ux
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
+
+# === ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ ОКРУЖЕНИЯ ===
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    logger.info("python-dotenv is not installed")
+else:
+    load_dotenv()
 
 # === ИМПОРТ НАСТРОЕК И МОДЕЛЕЙ ===
 # Ожидаем, что в app/diabetes/models.py определён Base
