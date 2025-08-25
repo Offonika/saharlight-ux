@@ -117,6 +117,20 @@ async def test_save_reminder_not_found_or_wrong_user(
 
 
 @pytest.mark.asyncio
+async def test_save_reminder_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fail_run_db(*args: Any, **kwargs: Any) -> Any:
+        raise ValueError("bad data")
+
+    monkeypatch.setattr(reminders, "run_db", fail_run_db)
+
+    with pytest.raises(HTTPException) as exc:
+        await reminders.save_reminder(ReminderSchema(telegramId=1, type="sugar"))
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail == "bad data"
+
+
+@pytest.mark.asyncio
 async def test_list_reminders_invalid_user(
     monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
 ) -> None:
