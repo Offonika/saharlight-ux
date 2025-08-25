@@ -43,10 +43,15 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 function scheduleLine(r: ReminderDto) {
-  if (r.kind === "at_time" && r.time) return `в ${r.time}`;
-  if (r.kind === "every" && r.intervalMinutes) return `каждые ${r.intervalMinutes} мин`;
-  if (r.kind === "after_event" && r.minutesAfter) return `после еды • через ${r.minutesAfter} мин`;
-  return "";
+  // Приоритет определения расписания:
+  // 1. Если есть time - это напоминание на время
+  if (r.time) return `в ${r.time}`;
+  // 2. Если есть intervalMinutes - это повторяющееся напоминание
+  if (r.intervalMinutes) return `каждые ${r.intervalMinutes} мин`;
+  // 3. Если есть minutesAfter - это напоминание после события
+  if (r.minutesAfter) return `после еды • через ${r.minutesAfter} мин`;
+  // 4. Fallback - показываем тип напоминания
+  return TYPE_LABEL[r.type] || "Напоминание";
 }
 
 export default function RemindersList({ 
