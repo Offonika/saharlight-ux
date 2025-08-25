@@ -56,7 +56,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/reminders": {
+    "/reminders": {
         parameters: {
             query?: never;
             header?: never;
