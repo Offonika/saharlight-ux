@@ -248,8 +248,8 @@ export default function CreateReminder() {
             step={5}
             value={interval ?? ""}
             onChange={(e) => {
-              const val = parseInt(e.target.value, 10);
-              setInterval(Number.isNaN(val) ? undefined : val);
+              const value = e.target.value ? Number(e.target.value) : undefined;
+              setInterval(value);
             }}
           />
           <div className="flex flex-wrap gap-2 mt-2">
@@ -281,8 +281,8 @@ export default function CreateReminder() {
             step={5}
             value={minutesAfter ?? ""}
             onChange={(e) => {
-              const val = parseInt(e.target.value, 10);
-              setMinutesAfter(Number.isNaN(val) ? undefined : val);
+              const value = e.target.value ? Number(e.target.value) : undefined;
+              setMinutesAfter(value);
             }}
           />
         </div>
