@@ -175,7 +175,7 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(build_webapp_url("/reminders")),
+                web_app=WebAppInfo(build_webapp_url("/reminders/new")),
             )
         ]
     if not rems:
