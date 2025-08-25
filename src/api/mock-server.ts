@@ -6,7 +6,10 @@ let nextId = 1;
 export const mockApi = {
   async getReminders(telegramId: number) {
     console.log('[MockAPI] Getting reminders for telegram ID:', telegramId);
-    return mockReminders.filter(r => r.telegramId === telegramId);
+    console.log('[MockAPI] All reminders:', mockReminders);
+    const filtered = mockReminders.filter(r => r.telegramId === telegramId);
+    console.log('[MockAPI] Filtered reminders:', filtered);
+    return filtered;
   },
 
   async createReminder(reminder: any) {
