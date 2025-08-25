@@ -46,10 +46,12 @@ export default function RemindersList() {
 
   const handleDelete = async (id: number) => {
     if (!user?.id) return;
+    const prevReminders = reminders;
+    setReminders((prev) => prev.filter((r) => r.id !== id));
     try {
       await deleteReminder(user.id, id);
-      setReminders((prev) => prev.filter((r) => r.id !== id));
     } catch (err) {
+      setReminders(prevReminders);
       console.error(err);
     }
   };
