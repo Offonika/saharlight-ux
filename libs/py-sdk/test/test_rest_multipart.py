@@ -176,7 +176,7 @@ def test_multipart_tuple_value() -> None:
 )
 def test_multipart_invalid_post_params(post_params: list[object]) -> None:
     client = _client()
-    with pytest.raises(ApiValueError):
+    with pytest.raises(ApiValueError, match="2-item"):
         client.request(  # type: ignore[no-untyped-call]
             "POST",
             "http://example.com",
