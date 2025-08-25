@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
-import { createReminder, updateReminder, getReminder } from "@/api/reminders";
+import { updateReminder, getReminder } from "@/api/reminders";
+import { useRemindersApi } from "@/features/reminders/api/reminders";
+import DayOfWeekPicker from "@/features/reminders/components/DayOfWeekPicker";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -74,6 +76,7 @@ export default function CreateReminder() {
   const params = useParams();
   const { user, sendData } = useTelegram();
   const { toast } = useToast();
+  const { createReminder } = useRemindersApi();
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
   );
@@ -86,6 +89,7 @@ export default function CreateReminder() {
   const [time, setTime] = useState(editing?.time ?? "");
   const [interval, setInterval] = useState<number | undefined>(editing?.interval ?? 60);
   const [minutesAfter, setMinutesAfter] = useState<number | undefined>();
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [typeOpen, setTypeOpen] = useState(false);
 
@@ -143,6 +147,7 @@ export default function CreateReminder() {
       time,
       intervalMinutes: interval,
       minutesAfter,
+      daysOfWeek,
       title,
       isEnabled: true,
     };
@@ -181,6 +186,7 @@ export default function CreateReminder() {
     time,
     intervalMinutes: interval,
     minutesAfter,
+    daysOfWeek,
     title,
   });
   const typeInfo = TYPES[type];
@@ -287,6 +293,11 @@ export default function CreateReminder() {
           />
         </div>
       )}
+
+      <div>
+        <label className="block mb-1">Дни недели</label>
+        <DayOfWeekPicker value={daysOfWeek} onChange={setDaysOfWeek} />
+      </div>
 
       <Sheet open={typeOpen} onClose={() => setTypeOpen(false)}>
         <div className="p-4 grid grid-cols-3 gap-4">
