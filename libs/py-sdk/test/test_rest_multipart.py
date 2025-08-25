@@ -146,14 +146,22 @@ def test_multipart_tuple_value() -> None:
     assert kwargs["fields"] == [("tuple", json.dumps(value))]
 
 
-def test_multipart_invalid_post_params() -> None:
+@pytest.mark.parametrize(
+    "post_params",
+    [
+        [("foo",)],
+        [("foo", "bar", "baz")],
+        [("foo", "bar"), "baz"],
+    ],
+)
+def test_multipart_invalid_post_params(post_params: list[object]) -> None:
     client = _client()
     with pytest.raises(ApiValueError):
         client.request(  # type: ignore[no-untyped-call]
             "POST",
             "http://example.com",
             headers={"Content-Type": "multipart/form-data"},
-            post_params=[("foo",)],
+            post_params=post_params,
         )
 
 

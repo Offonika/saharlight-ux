@@ -208,13 +208,22 @@ class RESTClientObject:
                         )
                     fields = []
                     for item in items:
-                        try:
-                            key, value = item
-                        except (TypeError, ValueError) as exc:
+                        if not isinstance(item, Iterable) or isinstance(
+                            item, (str, bytes)
+                        ):
+                            raise ApiValueError(
+                                "post_params elements must be pairs",
+                            )
+                        pair = list(item)
+                        if len(pair) != 2:
                             raise ApiValueError(
                                 "Invalid number of elements in post_params",
-                            ) from exc
-                        if isinstance(value, (Mapping, list, tuple)):
+                            )
+                        key, value = pair
+                        if isinstance(value, Mapping) or (
+                            isinstance(value, Iterable)
+                            and not isinstance(value, (str, bytes))
+                        ):
                             value = json.dumps(value)
                         fields.append((key, value))
                     r = self.pool_manager.request(
