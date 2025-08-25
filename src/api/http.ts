@@ -19,7 +19,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       headers,
     });
 
-    // Check if response is HTML (backend not available)
+    // Check if response is HTML (backend not available) - do this BEFORE parsing JSON
     const contentType = res.headers.get('content-type');
     if (contentType?.includes('text/html')) {
       throw new Error('Backend returned HTML instead of JSON');
