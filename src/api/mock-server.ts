@@ -12,8 +12,17 @@ export const mockApi = {
   async createReminder(reminder: any) {
     console.log('[MockAPI] Creating reminder:', reminder);
     const newReminder = {
-      ...reminder,
       id: nextId++,
+      telegramId: reminder.telegram_id,
+      type: reminder.type,
+      title: reminder.title || null,
+      kind: "at_time" as const,
+      time: reminder.time,
+      intervalMinutes: reminder.interval_minutes || null,
+      minutesAfter: reminder.minutes_after || null,
+      daysOfWeek: reminder.days_of_week || null,
+      isEnabled: reminder.is_enabled,
+      nextAt: reminder.next_at || null,
     };
     mockReminders.push(newReminder);
     return { id: newReminder.id, status: 'ok' };
