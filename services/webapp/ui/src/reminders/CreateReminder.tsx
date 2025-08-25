@@ -217,7 +217,13 @@ export default function CreateReminder() {
           id="kind"
           className="input"
           value={kind}
-          onChange={(e) => setKind(e.target.value as ScheduleKind)}
+          onChange={(e) => {
+            const nextKind = e.target.value as ScheduleKind;
+            setKind(nextKind);
+            setTime("");
+            setInterval(undefined);
+            setMinutesAfter(undefined);
+          }}
         >
           <option value="at_time">По времени</option>
           <option value="every">Каждые N мин</option>
