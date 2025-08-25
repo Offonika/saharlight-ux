@@ -7,6 +7,7 @@ import { useToast } from "../../../shared/toast";
 import { Templates } from "../components/Templates";
 import { getPlanLimit } from "../hooks/usePlan";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
+import { bulkToggle } from "./RemindersList.bulk";
 
 const checkQuotaLimit = (count: number, limit: number, toast: any) => {
   if (count >= limit) {
@@ -148,6 +149,38 @@ export default function RemindersList({
     localStorage.setItem('reminderFilter', newFilter);
   };
 
+  const handleBulkToggle = async (enable: boolean) => {
+    if (!items.length) return;
+    
+    const action = enable ? "включить" : "выключить";
+    const itemsToChange = items.filter(r => r.isEnabled !== enable);
+    
+    if (!itemsToChange.length) {
+      toast.success(`Все напоминания уже ${enable ? "включены" : "выключены"}`);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await bulkToggle(api, itemsToChange, enable);
+      
+      if (result.successCount > 0) {
+        toast.success(`Успешно ${enable ? "включено" : "выключено"} ${result.successCount} напоминаний`);
+      }
+      
+      if (result.errorCount > 0) {
+        toast.error(`Не удалось ${action} ${result.errorCount} напоминаний`);
+      }
+      
+      // Reload to get fresh data
+      await load();
+    } catch (error) {
+      toast.error(`Ошибка при попытке ${action} напоминания`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filterOptions = [
     { value: "all" as const, label: "Все", count: items.length },
     { value: "on" as const, label: "Вкл", count: items.filter(r => r.isEnabled).length },
@@ -186,20 +219,40 @@ export default function RemindersList({
 
       {/* Filter Chips */}
       {items.length > 0 && (
-        <div className="flex gap-2 flex-wrap">
-          {filterOptions.map((option) => (
+        <div className="space-y-3">
+          <div className="flex gap-2 flex-wrap">
+            {filterOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleFilterChange(option.value)}
+                className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 ${
+                  filter === option.value
+                    ? "bg-primary text-primary-foreground border-primary shadow-soft"
+                    : "border-border bg-background text-foreground hover:bg-secondary hover:border-primary/20"
+                }`}
+              >
+                {option.label} ({option.count})
+              </button>
+            ))}
+          </div>
+          
+          {/* Bulk Actions */}
+          <div className="flex gap-2 flex-wrap">
             <button
-              key={option.value}
-              onClick={() => handleFilterChange(option.value)}
-              className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all duration-200 ${
-                filter === option.value
-                  ? "bg-primary text-primary-foreground border-primary shadow-soft"
-                  : "border-border bg-background text-foreground hover:bg-secondary hover:border-primary/20"
-              }`}
+              onClick={() => handleBulkToggle(true)}
+              disabled={loading}
+              className="px-3 py-2 rounded-lg border border-border bg-background text-foreground hover:bg-secondary hover:border-primary/20 transition-all duration-200 text-sm font-medium disabled:opacity-50"
             >
-              {option.label} ({option.count})
+              ✅ Включить все
             </button>
-          ))}
+            <button
+              onClick={() => handleBulkToggle(false)}
+              disabled={loading}
+              className="px-3 py-2 rounded-lg border border-border bg-background text-foreground hover:bg-secondary hover:border-primary/20 transition-all duration-200 text-sm font-medium disabled:opacity-50"
+            >
+              ❌ Выключить все
+            </button>
+          </div>
         </div>
       )}
       
