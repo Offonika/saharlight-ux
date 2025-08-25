@@ -657,13 +657,21 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     action, rid_str = query.data.split(":")
     rid = int(rid_str)
     chat_id = user.id
+    snooze_minutes: int | None = 10 if action == "remind_snooze" else None
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != chat_id:
             await query.answer("Не найдено", show_alert=True)
             return
         await query.answer()
-        session.add(ReminderLog(reminder_id=rid, telegram_id=chat_id, action=action))
+        session.add(
+            ReminderLog(
+                reminder_id=rid,
+                telegram_id=chat_id,
+                action=action,
+                snooze_minutes=snooze_minutes,
+            )
+        )
         try:
             commit(session)
         except CommitError:
@@ -733,9 +741,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         try:
             commit(session)
         except CommitError:
-            logger.error(
-                "Failed to commit reminder action %s for reminder %s", action, rid
-            )
+            logger.error("Failed to commit reminder action %s for reminder %s", action, rid)
             return "error", None
         if action == "toggle":
             session.refresh(rem)
