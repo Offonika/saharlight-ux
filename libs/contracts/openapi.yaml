@@ -3,7 +3,7 @@ info:
   title: Diabetes Assistant API
   version: 1.0.0
 servers:
-  - url: /
+  - url: /api
 tags:
 - name: Profiles
 - name: History
