@@ -85,7 +85,7 @@ jobs:
           CHANGED="$(git diff --name-only "remotes/origin/${TARGET_BRANCH}"...HEAD || true)"
           echo "$CHANGED" | awk '{print " - " $0}'
           ALLOWED='^(services/webapp/ui/(src|public)/|libs/ts-sdk/)'
-          if [ "${SYNC_OPENAPI}" = "true" ] && [ -n "$CHANGED" ]; then
+          if [ "${SYNC_OPENAPI}" = "true" ]; then
             ALLOWED="${ALLOWED}|^(libs/contracts/openapi.yaml)$"
           fi
           if [ -n "$CHANGED" ] && ! echo "$CHANGED" | grep -Eq "$ALLOWED"; then
@@ -106,39 +106,31 @@ jobs:
           NODE_ENV: development
         run: npm ci --include=dev --no-audit --no-fund
 
-      - name: Ensure build-time + react deps present (no-save)
+      - name: Ensure ALL deps from package.json present (no-save)
         working-directory: services/webapp/ui
         run: |
           set -e
-          need() { node -e "require.resolve('$1')" >/dev/null 2>&1 || echo "$1"; }
-          MISSING=""
-          for P in vite @vitejs/plugin-react-swc tailwindcss postcss autoprefixer @tailwindcss/typography react/jsx-runtime react-dom; do
-            MISS=$(need "$P" || true)
-            [ -n "$MISS" ] && MISSING="$MISSING $MISS"
-          done
-
-          if echo "$MISSING" | grep -q 'react/jsx-runtime'; then
-            # выясним версии из package.json
-            RV=$(node -p "require('./package.json').dependencies?.react || ''")
-            RDV=$(node -p "require('./package.json').dependencies?.['react-dom'] || ''")
-            [ -n "$RV" ] && MISSING="$MISSING react@$RV" || MISSING="$MISSING react"
-            [ -n "$RDV" ] && MISSING="$MISSING react-dom@$RDV" || MISSING="$MISSING react-dom"
-            # убираем маркер react/jsx-runtime
-            MISSING="$(echo "$MISSING" | sed 's/react\/jsx-runtime//g')"
+          TO_INSTALL="$(node - <<'NODE'
+          const fs = require('fs');
+          const pkg = require('./package.json');
+          const deps = Object.assign({}, pkg.dependencies||{}, pkg.devDependencies||{});
+          const need = [];
+          for (const [name, spec] of Object.entries(deps)) {
+            try { require.resolve(name); }
+            catch {
+              // exact spec from package.json (keeps ^/~ and file:)
+              need.push(`${name}@${spec}`);
+            }
+          }
+          process.stdout.write(need.join(' '));
+          NODE
+          )"
+          if [ -n "$TO_INSTALL" ]; then
+            echo "Installing temporarily (no-save): $TO_INSTALL"
+            npm install --no-save $TO_INSTALL
+          else
+            echo "All deps present."
           fi
-
-          # уберём дубли и лишние пробелы
-          MISSING="$(echo "$MISSING" | xargs -n1 | sort -u | xargs || true)"
-          if [ -n "$MISSING" ]; then
-            echo "Installing temporarily (no-save): $MISSING"
-            npm install --no-save $MISSING
-          fi
-
-          echo "Versions:"
-          node -e "console.log('react:', require('react/package.json').version)"
-          node -e "console.log('react-dom:', require('react-dom/package.json').version)"
-          node -e "console.log('vite:', require('vite/package.json').version)"
-          node -e "console.log('tailwindcss:', require('tailwindcss/package.json').version)"
 
       - name: Typecheck
         working-directory: services/webapp/ui
@@ -176,6 +168,7 @@ jobs:
           labels: |
             webapp-sync
           draft: false
+
 
 
 
