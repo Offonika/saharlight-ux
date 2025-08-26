@@ -13,7 +13,7 @@ Design tokens and base styles live in styles/theme.css
   /* Медицинские компоненты */
   .medical-card {
     @apply bg-card border border-border rounded-xl p-6 shadow-soft
-           hover:shadow-medium transition-all duration-200;
+           hover:shadow-glow transition-all duration-200;
   }
 
   .medical-tile {
