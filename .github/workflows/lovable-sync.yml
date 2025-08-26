@@ -3,7 +3,7 @@ name: Sync Lovable UI into Monorepo
 
 on:
   push:
-    branches: [ lovable ]
+    branches: [lovable]
   workflow_dispatch:
 
 permissions:
@@ -15,9 +15,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  TARGET_BRANCH: main              # целевая ветка для PR
-  SYNC_INDEX_HTML: 'false'         # true — разово подтянуть index.html из lovable
-  SYNC_OPENAPI: 'false'            # true — если нужно тянуть libs/contracts/openapi.yaml
+  TARGET_BRANCH: main
+  SYNC_INDEX_HTML: "false"
+  SYNC_OPENAPI: "false"
   SYNC_BRANCH_PREFIX: lovable-sync
 
 jobs:
@@ -33,71 +33,59 @@ jobs:
 
       - name: Snapshot sources from lovable
         run: |
+          set -e
           mkdir -p /tmp/lovable_snapshot
           [ -d src ] && tar -C . -cf /tmp/lovable_snapshot/src.tar src || true
           [ -d public ] && tar -C . -cf /tmp/lovable_snapshot/public.tar public || true
           [ -d libs/ts-sdk ] && tar -C libs -cf /tmp/lovable_snapshot/ts-sdk.tar ts-sdk || true
-          if [ "${{ env.SYNC_OPENAPI }}" = "true" ] && [ -f libs/contracts/openapi.yaml ]; then
-            mkdir -p /tmp/lovable_snapshot/contracts && cp libs/contracts/openapi.yaml /tmp/lovable_snapshot/contracts/openapi.yaml
+          if [ "${SYNC_OPENAPI}" = "true" ] && [ -f libs/contracts/openapi.yaml ]; then
+            mkdir -p /tmp/lovable_snapshot/contracts
+            cp libs/contracts/openapi.yaml /tmp/lovable_snapshot/contracts/openapi.yaml
           fi
-          if [ "${{ env.SYNC_INDEX_HTML }}" = "true" ] && [ -f index.html ]; then
+          if [ "${SYNC_INDEX_HTML}" = "true" ] && [ -f index.html ]; then
             cp index.html /tmp/lovable_snapshot/index.html
           fi
 
-      - name: Switch to target branch from origin
+      - name: Switch to target branch
         run: |
           git fetch --all --prune
-          git checkout -B "${{ env.SYNC_BRANCH_PREFIX }}-${GITHUB_SHA}" "origin/${{ env.TARGET_BRANCH }}"
+          git checkout -B "${SYNC_BRANCH_PREFIX}-${GITHUB_SHA}" "origin/${TARGET_BRANCH}"
 
       - name: Restore snapshot into monorepo layout
         run: |
           set -e
-          # src → services/webapp/ui/src
           if [ -f /tmp/lovable_snapshot/src.tar ]; then
             rm -rf services/webapp/ui/src
             mkdir -p services/webapp/ui
             tar -xf /tmp/lovable_snapshot/src.tar -C services/webapp/ui
           fi
-          # public → services/webapp/ui/public
           if [ -f /tmp/lovable_snapshot/public.tar ]; then
             rm -rf services/webapp/ui/public
             mkdir -p services/webapp/ui
             tar -xf /tmp/lovable_snapshot/public.tar -C services/webapp/ui
           fi
-          # libs/ts-sdk → libs/ts-sdk
           if [ -f /tmp/lovable_snapshot/ts-sdk.tar ]; then
             rm -rf libs/ts-sdk
             mkdir -p libs
             tar -xf /tmp/lovable_snapshot/ts-sdk.tar -C libs
           fi
-          # (опц) libs/contracts/openapi.yaml
           if [ -f /tmp/lovable_snapshot/contracts/openapi.yaml ]; then
             mkdir -p libs/contracts
             cp /tmp/lovable_snapshot/contracts/openapi.yaml libs/contracts/openapi.yaml
           fi
-          # (опц) index.html → services/webapp/ui/index.html
           if [ -f /tmp/lovable_snapshot/index.html ]; then
             mkdir -p services/webapp/ui
             cp /tmp/lovable_snapshot/index.html services/webapp/ui/index.html
           fi
 
-      - name: Show diff
-        run: |
-          git status
-          git --no-pager diff --stat || true
-
       - name: Guard changed paths
         run: |
-          git fetch origin ${{ env.TARGET_BRANCH }}
-          CHANGED="$(git diff --name-only remotes/origin/${{ env.TARGET_BRANCH }}...HEAD || true)"
+          set -e
+          git fetch origin "${TARGET_BRANCH}"
+          CHANGED="$(git diff --name-only "remotes/origin/${TARGET_BRANCH}"...HEAD || true)"
           echo "$CHANGED" | awk '{print " - " $0}'
-          # Разрешены:
-          #   services/webapp/ui/src/**
-          #   services/webapp/ui/public/**
-          #   libs/ts-sdk/**
-          #   libs/contracts/openapi.yaml (если SYNC_OPENAPI=true)
           ALLOWED='^(services/webapp/ui/(src|public)/|libs/ts-sdk/)'
-          if [ "${{ env.SYNC_OPENAPI }}" = "true" ]; then
+          if [ "${SYNC_OPENAPI}" = "true" ]; then
             ALLOWED="${ALLOWED}|^(libs/contracts/openapi.yaml)$"
           fi
           if [ -n "$CHANGED" ] && ! echo "$CHANGED" | grep -Eq "$ALLOWED"; then
@@ -105,26 +93,24 @@ jobs:
             exit 1
           fi
 
-
-      - name: Setup Node (UI with cache)
+      - name: Setup Node (cache)
         uses: actions/setup-node@v4
         with:
-            node-version: '20'
-            cache: 'npm'
-            cache-dependency-path: services/webapp/ui/package-lock.json
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: services/webapp/ui/package-lock.json
 
-      - name: Install deps (always include dev)
+      - name: Install deps
         working-directory: services/webapp/ui
         env:
-              NODE_ENV: development
-            run: npm ci --include=dev --no-audit --no-fund
-      
+          NODE_ENV: development
+        run: npm ci --include=dev --no-audit --no-fund
+
       - name: Typecheck
         working-directory: services/webapp/ui
-        run: npm run typecheck || true  
-      
-        
-      - name: Build webapp UI
+        run: npm run typecheck || true
+
+      - name: Build UI
         working-directory: services/webapp/ui
         run: npm run build
 
@@ -148,15 +134,11 @@ jobs:
           base: ${{ env.TARGET_BRANCH }}
           title: "chore(ui): sync from lovable @ ${{ github.sha }}"
           body: |
-            Автосинк UI из `lovable`:
+            Sync UI from `lovable`:
             - src/ → services/webapp/ui/src/
             - public/ → services/webapp/ui/public/
             - libs/ts-sdk/ → libs/ts-sdk/
-            {% if env.SYNC_INDEX_HTML == 'true' %}- index.html → services/webapp/ui/index.html{% endif %}
-            {% if env.SYNC_OPENAPI == 'true' %}- libs/contracts/openapi.yaml включён{% endif %}
-
-            Сравнение: origin/${{ env.TARGET_BRANCH }}...lovable
+            (optional) index.html/openapi copied if SYNC_* flags are true.
           labels: |
             webapp-sync
           draft: false
-
