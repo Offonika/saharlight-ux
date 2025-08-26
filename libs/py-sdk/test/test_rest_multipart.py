@@ -1,5 +1,6 @@
 import json
 from collections import OrderedDict
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -28,10 +29,11 @@ def _call_fields(post_params: object) -> list[tuple[str, str]]:
         headers={"Content-Type": "multipart/form-data"},
         post_params=post_params,
     )
-    kwargs = mock.call_args.kwargs
+    kwargs = cast(dict[str, Any], mock.call_args.kwargs)
     assert kwargs["encode_multipart"] is True
-    assert all(len(item) == 2 for item in kwargs["fields"])
-    return kwargs["fields"]
+    fields = cast(list[tuple[str, str]], kwargs["fields"])
+    assert all(len(item) == 2 for item in fields)
+    return fields
 
 
 def test_multipart_dict() -> None:
@@ -55,6 +57,15 @@ def test_multipart_list_value() -> None:
     value = [1, 2]
     fields = _call_fields({"list": value})
     assert fields == [("list", json.dumps(value))]
+
+
+def test_multipart_sequence_pairs() -> None:
+    params = [("foo", {"a": 1}), ("list", [1, 2])]
+    fields = _call_fields(params)
+    assert fields == [
+        ("foo", json.dumps({"a": 1})),
+        ("list", json.dumps([1, 2])),
+    ]
 
 
 @pytest.mark.parametrize(
@@ -85,4 +96,3 @@ def test_multipart_invalid_string() -> None:
             headers={"Content-Type": "multipart/form-data"},
             post_params="invalid",
         )
-
