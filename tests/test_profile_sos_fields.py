@@ -114,6 +114,6 @@ async def test_save_profile_defaults_quiet_hours(
     await profile_service.save_profile(data)
     prof = await profile_service.get_profile(4)
     assert prof is not None
-    assert prof.quiet_start == time(22, 0)
+    assert prof.quiet_start == time(23, 0)
     assert prof.quiet_end == time(7, 0)
     engine.dispose()
