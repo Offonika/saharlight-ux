@@ -1,0 +1,66 @@
+# filename: .github/workflows/diagnose-sync.yml
+name: diagnose-sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "base branch (обычно main)"
+        required: true
+        default: "main"
+      source:
+        description: "head branch (обычно lovable)"
+        required: true
+        default: "lovable"
+  push:
+    branches: ["lovable"]
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Print SHAs & scoped diffs
+        run: |
+          bash -c "$(cat <<'EOF'
+          set -euo pipefail
+          TARGET_BRANCH="${{ github.event.inputs.target || 'main' }}"
+          SOURCE_BRANCH="${{ github.event.inputs.source || 'lovable' }}"
+          git fetch --all --prune
+
+          echo "### SHAs"
+          echo "- HEAD ${TARGET_BRANCH}: $(git rev-parse origin/${TARGET_BRANCH})"
+          echo "- HEAD ${SOURCE_BRANCH}: $(git rev-parse origin/${SOURCE_BRANCH})"
+          echo
+
+          echo "### Изменённые файлы (services/webapp/ui/src, public, libs/ts-sdk)"
+          for p in services/webapp/ui/src services/webapp/ui/public libs/ts-sdk; do
+            echo "#### ${p}"
+            git diff --name-status origin/${TARGET_BRANCH}...origin/${SOURCE_BRANCH} -- "$p" || true
+            echo
+          done
+
+          echo "### Конфиги (если трогались)"
+          for f in services/webapp/ui/package.json services/webapp/ui/vite.config.ts services/webapp/ui/tailwind.config.ts services/webapp/ui/index.html; do
+            if git diff --name-only origin/${TARGET_BRANCH}...origin/${SOURCE_BRANCH} -- "$f" | grep -q .; then
+              echo "#### DIFF $f"
+              # Показываем компактно
+              git diff --unified=1 origin/${TARGET_BRANCH}...origin/${SOURCE_BRANCH} -- "$f" || true
+              echo
+            fi
+          done
+          EOF
+          )" | tee diagnose-sync.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnose-sync
+          path: diagnose-sync.txt

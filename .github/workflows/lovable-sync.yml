@@ -10,10 +10,14 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: lovable-sync-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  TARGET_BRANCH: main            # <-- целевая ветка для PR
-  SYNC_INDEX_HTML: 'false'      # true — если надо разово подтянуть index.html
-  SYNC_OPENAPI: 'false'         # true — если нужно тянуть openapi.yaml (обычно false)
+  TARGET_BRANCH: main              # целевая ветка для PR
+  SYNC_INDEX_HTML: 'false'         # true — разово подтянуть index.html из lovable
+  SYNC_OPENAPI: 'false'            # true — если нужно тянуть libs/contracts/openapi.yaml
   SYNC_BRANCH_PREFIX: lovable-sync
 
 jobs:
@@ -27,7 +31,7 @@ jobs:
           fetch-depth: 0
           ref: lovable
 
-      - name: Prepare tar snapshot of sources from lovable
+      - name: Snapshot sources from lovable
         run: |
           mkdir -p /tmp/lovable_snapshot
           [ -d src ] && tar -C . -cf /tmp/lovable_snapshot/src.tar src || true
@@ -48,7 +52,6 @@ jobs:
       - name: Restore snapshot into monorepo layout
         run: |
           set -e
-          sudo apt-get update && sudo apt-get install -y rsync
           # src → services/webapp/ui/src
           if [ -f /tmp/lovable_snapshot/src.tar ]; then
             rm -rf services/webapp/ui/src
@@ -86,12 +89,28 @@ jobs:
       - name: Guard changed paths
         run: |
           git fetch origin ${{ env.TARGET_BRANCH }}
-          CHANGED=$(git diff --name-only remotes/origin/${{ env.TARGET_BRANCH }}...HEAD)
+          CHANGED="$(git diff --name-only remotes/origin/${{ env.TARGET_BRANCH }}...HEAD || true)"
           echo "$CHANGED" | awk '{print " - " $0}'
-          echo "$CHANGED" | grep -E '^(services/webapp/ui/(src|public)/|libs/ts-sdk/)' || {
+          # Разрешены:
+          #   services/webapp/ui/src/**
+          #   services/webapp/ui/public/**
+          #   libs/ts-sdk/**
+          #   libs/contracts/openapi.yaml (если SYNC_OPENAPI=true)
+          ALLOWED='^(services/webapp/ui/(src|public)/|libs/ts-sdk/)'
+          if [ "${{ env.SYNC_OPENAPI }}" = "true" ]; then
+            ALLOWED="${ALLOWED}|^(libs/contracts/openapi.yaml)$"
+          fi
+          if [ -n "$CHANGED" ] && ! echo "$CHANGED" | grep -Eq "$ALLOWED"; then
             echo "::error ::Changes outside allowed paths detected"
             exit 1
-          }
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: services/webapp/ui/package-lock.json
 
       - name: Build webapp UI
         working-directory: services/webapp/ui
@@ -120,10 +139,15 @@ jobs:
           base: ${{ env.TARGET_BRANCH }}
           title: "chore(ui): sync from lovable @ ${{ github.sha }}"
           body: |
-            This PR syncs UI (src/, public/) and ts-sdk from the `lovable` branch.
-            Options:
-            - SYNC_INDEX_HTML=${{ env.SYNC_INDEX_HTML }}
-            - SYNC_OPENAPI=${{ env.SYNC_OPENAPI }}
+            Автосинк UI из `lovable`:
+            - src/ → services/webapp/ui/src/
+            - public/ → services/webapp/ui/public/
+            - libs/ts-sdk/ → libs/ts-sdk/
+            {% if env.SYNC_INDEX_HTML == 'true' %}- index.html → services/webapp/ui/index.html{% endif %}
+            {% if env.SYNC_OPENAPI == 'true' %}- libs/contracts/openapi.yaml включён{% endif %}
+
+            Сравнение: origin/${{ env.TARGET_BRANCH }}...lovable
           labels: |
             webapp-sync
           draft: false
+
