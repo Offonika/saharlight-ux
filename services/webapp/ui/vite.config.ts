@@ -18,8 +18,6 @@ function telegramInitPlugin(): Plugin {
 
   return {
     name: 'telegram-init',
-
-    // В dev: перехватываем запросы на /ui/telegram-*.js и отдаём из public/
     async configureServer(server: ViteDevServer) {
       server.middlewares.use((req, res, next) => {
         const url = req.url ?? ''
@@ -28,32 +26,24 @@ function telegramInitPlugin(): Plugin {
         return next()
       })
     },
-
-    // Резолв только для статического импорта init (если где-то используется)
     resolveId(id, importer) {
       if (id === 'telegram-init.js' || id === '/ui/telegram-init.js') {
         return telegramInitPath
       }
-      // динамический импорт темы из init оставляем внешним модулем
       if (importer === telegramInitPath && id === themeId) {
         return { id: themeId, external: true }
       }
       return null
     },
-
-    // Подхватываем содержимое init при статическом импорте (опционально)
     async load(id) {
       if (id === telegramInitPath) return await readFile(telegramInitPath, 'utf8')
       return null
     },
-
-    // В prod: кладём telegram-*.js в КОРЕНЬ dist (dist/telegram-*.js),
-    // чтобы URL /ui/telegram-*.js резолвился через Alias /ui/ → dist/
     async generateBundle() {
       for (const file of files) {
         this.emitFile({
           type: 'asset',
-          fileName: file, // ⬅️ ВАЖНО: без префикса ui/
+          fileName: file,
           source: await readFile(path.join(shared, file), 'utf8'),
         })
       }
@@ -80,10 +70,13 @@ export default defineConfig(async ({ mode, command }) => {
     base,
     plugins,
     resolve: {
-      alias: { '@': path.resolve(__dirname, './src') },
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+        // ✅ добавляем алиас SDK (путь из UI → в корень → libs/ts-sdk/src)
+        '@sdk': path.resolve(__dirname, '../../../libs/ts-sdk/src'),
+      },
     },
     server: { host: '::', port: 5173 },
-
     build: {
       outDir: 'dist',
       minify: mode === 'development' ? false : 'esbuild',
@@ -91,7 +84,7 @@ export default defineConfig(async ({ mode, command }) => {
       sourcemap: true,
       rollupOptions: {
         ...(mode === 'development' ? { treeshake: false } : {}),
-        input: { main: path.resolve(__dirname, 'index.html') }, // ❗ только index.html
+        input: { main: path.resolve(__dirname, 'index.html') },
         preserveEntrySignatures: 'strict',
         output: {
           entryFileNames: 'assets/[name]-[hash].js',
@@ -103,3 +96,4 @@ export default defineConfig(async ({ mode, command }) => {
     },
   }
 })
+
