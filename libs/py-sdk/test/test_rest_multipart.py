@@ -86,3 +86,11 @@ def test_multipart_invalid_string() -> None:
             post_params="invalid",
         )
 
+
+def test_request_invalid_method() -> None:
+    client = _client()
+    with pytest.raises(ApiValueError):
+        client.request(  # type: ignore[no-untyped-call]
+            "TRACE",
+            "http://example.com",
+        )
