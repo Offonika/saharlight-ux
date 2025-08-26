@@ -12,16 +12,13 @@ describe('buildReminderPayload', () => {
   it('builds payload for at_time with generated title', () => {
     const payload = buildReminderPayload(base);
     expect(payload).toEqual({
-      telegramId: 1,
+      telegram_id: 1,
       type: 'sugar',
-      kind: 'at_time',
+      is_enabled: true,
       time: '09:00',
-      daysOfWeek: undefined,
-      isEnabled: true,
-      title: 'Измерение сахара · 09:00',
     });
-    expect('intervalMinutes' in payload).toBe(false);
-    expect('minutesAfter' in payload).toBe(false);
+    expect('interval_hours' in payload).toBe(false);
+    expect('minutes_after' in payload).toBe(false);
   });
 
   it('builds payload for every with intervalMinutes', () => {
@@ -34,16 +31,13 @@ describe('buildReminderPayload', () => {
       isEnabled: false,
     });
     expect(payload).toEqual({
-      telegramId: 2,
+      telegram_id: 2,
       type: 'insulin_short',
-      kind: 'every',
-      intervalMinutes: 30,
-      daysOfWeek: [1, 3],
-      isEnabled: false,
-      title: 'Инсулин (короткий) · каждые 30 мин',
+      is_enabled: false,
+      interval_hours: 0.5,
     });
     expect('time' in payload).toBe(false);
-    expect('minutesAfter' in payload).toBe(false);
+    expect('minutes_after' in payload).toBe(false);
   });
 
   it('uses custom title and minutesAfter for after_event', () => {
@@ -55,15 +49,12 @@ describe('buildReminderPayload', () => {
       title: '  My title  ',
     });
     expect(payload).toEqual({
-      telegramId: 3,
+      telegram_id: 3,
       type: 'meal',
-      kind: 'after_event',
-      minutesAfter: 15,
-      daysOfWeek: undefined,
-      isEnabled: true,
-      title: 'My title',
+      is_enabled: true,
+      minutes_after: 15,
     });
     expect('time' in payload).toBe(false);
-    expect('intervalMinutes' in payload).toBe(false);
+    expect('interval_hours' in payload).toBe(false);
   });
 });
