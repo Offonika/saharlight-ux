@@ -206,20 +206,18 @@ class RESTClientObject:
                         raise ApiValueError(
                             "post_params must be a mapping or iterable of (key, value) pairs",
                         )
-                    fields = []
+                    fields: list[tuple[str, str]] = []
                     for item in items:
-                        if not isinstance(item, Iterable) or isinstance(
-                            item, (str, bytes)
-                        ):
+                        if isinstance(item, (str, bytes)):
                             raise ApiValueError(
                                 "Items in post_params must be 2-item iterables",
                             )
-                        pair = list(item)
-                        if len(pair) != 2:
+                        try:
+                            key, value = item  # type: ignore[misc]
+                        except (TypeError, ValueError) as exc:
                             raise ApiValueError(
                                 "Items in post_params must be 2-item iterables",
-                            )
-                        key, value = pair
+                            ) from exc
                         if isinstance(value, Mapping) or (
                             isinstance(value, Iterable)
                             and not isinstance(value, (str, bytes))

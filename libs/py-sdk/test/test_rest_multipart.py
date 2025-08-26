@@ -1,5 +1,6 @@
 import json
 from collections import OrderedDict
+from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -31,7 +32,7 @@ def _call_fields(post_params: object) -> list[tuple[str, str]]:
     kwargs = mock.call_args.kwargs
     assert kwargs["encode_multipart"] is True
     assert all(len(item) == 2 for item in kwargs["fields"])
-    return kwargs["fields"]
+    return cast(list[tuple[str, str]], kwargs["fields"])
 
 
 def test_multipart_dict() -> None:
@@ -55,6 +56,20 @@ def test_multipart_list_value() -> None:
     value = [1, 2]
     fields = _call_fields({"list": value})
     assert fields == [("list", json.dumps(value))]
+
+
+def test_multipart_iterable_pairs() -> None:
+    params = [
+        ("foo", "bar"),
+        ("baz", {"a": 1}),
+        ("list", [1, 2]),
+    ]
+    fields = _call_fields(params)
+    assert fields == [
+        ("foo", "bar"),
+        ("baz", json.dumps({"a": 1})),
+        ("list", json.dumps([1, 2])),
+    ]
 
 
 @pytest.mark.parametrize(
@@ -86,3 +101,13 @@ def test_multipart_invalid_string() -> None:
             post_params="invalid",
         )
 
+
+def test_multipart_invalid_non_iterable() -> None:
+    client = _client()
+    with pytest.raises(ApiValueError):
+        client.request(  # type: ignore[no-untyped-call]
+            "POST",
+            "http://example.com",
+            headers={"Content-Type": "multipart/form-data"},
+            post_params=42,
+        )
