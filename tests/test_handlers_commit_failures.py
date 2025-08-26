@@ -97,7 +97,9 @@ async def test_profile_command_no_local_session(
 
     dummy_api = MagicMock()
     dummy_api.profiles_post = MagicMock()
-    monkeypatch.setattr(profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock))
+    monkeypatch.setattr(
+        profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock)
+    )
 
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
@@ -148,7 +150,9 @@ async def test_callback_router_commit_failure(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_add_reminder_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -207,7 +211,9 @@ async def test_reminder_webapp_save_commit_failure(
     render_mock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "_render_reminders", render_mock)
 
-    message = DummyWebAppMessage(json.dumps({"type": "sugar", "value": "23:00", "id": 1}))
+    message = DummyWebAppMessage(
+        json.dumps({"type": "sugar", "value": "23:00", "id": 1})
+    )
     update = make_update(effective_message=message, effective_user=make_user(1))
     context = make_context(job_queue=MagicMock(spec=JobQueue))
 
@@ -252,7 +258,9 @@ async def test_delete_reminder_commit_failure(
 
 
 @pytest.mark.asyncio
-async def test_reminder_job_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_reminder_job_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -316,9 +324,7 @@ async def test_reminder_callback_commit_failure(
     assert session.rollback.called
     assert query.edited == []
     assert not context.job_queue.run_once.called
-    assert (
-        "Failed to log reminder action remind_snooze:10 for reminder 1" in caplog.text
-    )
+    assert "Failed to log reminder action remind_snooze for reminder 1" in caplog.text
 
 
 @pytest.mark.asyncio
