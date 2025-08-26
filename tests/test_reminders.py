@@ -560,7 +560,7 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_snooze_callback_custom_delay(
+async def test_reminder_snooze_custom_delay(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
@@ -623,7 +623,7 @@ async def test_cancel_callback(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_snooze_callback_default_delay(
+async def test_reminder_snooze_default_delay(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
@@ -656,7 +656,7 @@ async def test_snooze_callback_default_delay(
 
 
 @pytest.mark.asyncio
-async def test_snooze_callback_magicmock(
+async def test_reminder_snooze_magicmock(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
@@ -692,7 +692,7 @@ async def test_snooze_callback_magicmock(
 
 
 @pytest.mark.asyncio
-async def test_snooze_callback_schedules_job_and_logs(
+async def test_reminder_snooze_schedules_job_and_logs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
