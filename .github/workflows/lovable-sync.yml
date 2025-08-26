@@ -85,7 +85,7 @@ jobs:
           CHANGED="$(git diff --name-only "remotes/origin/${TARGET_BRANCH}"...HEAD || true)"
           echo "$CHANGED" | awk '{print " - " $0}'
           ALLOWED='^(services/webapp/ui/(src|public)/|libs/ts-sdk/)'
-          if [ "${SYNC_OPENAPI}" = "true" ]; then
+          if [ "${SYNC_OPENAPI}" = "true" ] && [ -n "$CHANGED" ]; then
             ALLOWED="${ALLOWED}|^(libs/contracts/openapi.yaml)$"
           fi
           if [ -n "$CHANGED" ] && ! echo "$CHANGED" | grep -Eq "$ALLOWED"; then
@@ -106,22 +106,37 @@ jobs:
           NODE_ENV: development
         run: npm ci --include=dev --no-audit --no-fund
 
-      - name: Ensure build-time tools present (no-save)
+      - name: Ensure build-time + react deps present (no-save)
         working-directory: services/webapp/ui
         run: |
           set -e
-          ensure() { node -e "require.resolve('$1')" >/dev/null 2>&1 || MISSING="$MISSING $1"; }
+          need() { node -e "require.resolve('$1')" >/dev/null 2>&1 || echo "$1"; }
           MISSING=""
-          ensure vite
-          ensure @vitejs/plugin-react-swc
-          ensure tailwindcss
-          ensure postcss
-          ensure autoprefixer
-          ensure @tailwindcss/typography
+          for P in vite @vitejs/plugin-react-swc tailwindcss postcss autoprefixer @tailwindcss/typography react/jsx-runtime react-dom; do
+            MISS=$(need "$P" || true)
+            [ -n "$MISS" ] && MISSING="$MISSING $MISS"
+          done
+
+          if echo "$MISSING" | grep -q 'react/jsx-runtime'; then
+            # выясним версии из package.json
+            RV=$(node -p "require('./package.json').dependencies?.react || ''")
+            RDV=$(node -p "require('./package.json').dependencies?.['react-dom'] || ''")
+            [ -n "$RV" ] && MISSING="$MISSING react@$RV" || MISSING="$MISSING react"
+            [ -n "$RDV" ] && MISSING="$MISSING react-dom@$RDV" || MISSING="$MISSING react-dom"
+            # убираем маркер react/jsx-runtime
+            MISSING="$(echo "$MISSING" | sed 's/react\/jsx-runtime//g')"
+          fi
+
+          # уберём дубли и лишние пробелы
+          MISSING="$(echo "$MISSING" | xargs -n1 | sort -u | xargs || true)"
           if [ -n "$MISSING" ]; then
-            echo "Installing temporarily (no-save):$MISSING"
+            echo "Installing temporarily (no-save): $MISSING"
             npm install --no-save $MISSING
           fi
+
+          echo "Versions:"
+          node -e "console.log('react:', require('react/package.json').version)"
+          node -e "console.log('react-dom:', require('react-dom/package.json').version)"
           node -e "console.log('vite:', require('vite/package.json').version)"
           node -e "console.log('tailwindcss:', require('tailwindcss/package.json').version)"
 
@@ -161,5 +176,6 @@ jobs:
           labels: |
             webapp-sync
           draft: false
+
 
 
