@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify webapp UI directory exists
+        run: test -d services/webapp/ui
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
