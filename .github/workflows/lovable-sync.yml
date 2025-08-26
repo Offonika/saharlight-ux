@@ -100,7 +100,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: services/webapp/ui/package-lock.json
 
-      - name: Install deps
+      - name: Install deps (include dev)
         working-directory: services/webapp/ui
         env:
           NODE_ENV: development
@@ -112,7 +112,12 @@ jobs:
 
       - name: Build UI
         working-directory: services/webapp/ui
-        run: npm run build
+        run: |
+          if [ -x ./node_modules/.bin/vite ]; then
+            npm run build
+          else
+            npx --yes vite@5 build
+          fi
 
       - name: Commit changes
         run: |
