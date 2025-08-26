@@ -112,7 +112,6 @@ export default function CreateReminder() {
       type,
       title,
       time,
-      title,
       intervalHours:
         intervalMinutes != null ? intervalMinutes / 60 : undefined,
       isEnabled: true,
