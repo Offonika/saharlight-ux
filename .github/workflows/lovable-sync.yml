@@ -106,14 +106,24 @@ jobs:
           NODE_ENV: development
         run: npm ci --include=dev --no-audit --no-fund
 
-      - name: Ensure Vite present (no-save safety net)
+      - name: Ensure build-time tools present (no-save)
         working-directory: services/webapp/ui
         run: |
-          if [ ! -x node_modules/.bin/vite ]; then
-            echo "vite not found in node_modules — installing temporarily..."
-            npm install --no-save vite @vitejs/plugin-react-swc
+          set -e
+          ensure() { node -e "require.resolve('$1')" >/dev/null 2>&1 || MISSING="$MISSING $1"; }
+          MISSING=""
+          ensure vite
+          ensure @vitejs/plugin-react-swc
+          ensure tailwindcss
+          ensure postcss
+          ensure autoprefixer
+          ensure @tailwindcss/typography
+          if [ -n "$MISSING" ]; then
+            echo "Installing temporarily (no-save):$MISSING"
+            npm install --no-save $MISSING
           fi
-          node_modules/.bin/vite --version || npx --yes vite@5 --version
+          node -e "console.log('vite:', require('vite/package.json').version)"
+          node -e "console.log('tailwindcss:', require('tailwindcss/package.json').version)"
 
       - name: Typecheck
         working-directory: services/webapp/ui
@@ -151,4 +161,5 @@ jobs:
           labels: |
             webapp-sync
           draft: false
+
 
