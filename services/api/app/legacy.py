@@ -1,4 +1,6 @@
 import logging
+from datetime import time as dt_time
+
 from fastapi import APIRouter, HTTPException, Query
 
 from .routers.reminders import router as reminders_router
@@ -43,14 +45,14 @@ async def profiles_get(
         low=float(low_threshold) if low_threshold is not None else 0.0,
         high=float(high_threshold) if high_threshold is not None else 0.0,
         quietStart=(
-            profile.quiet_start.strftime("%H:%M")
+            profile.quiet_start
             if profile.quiet_start is not None
-            else "23:00"
+            else dt_time.fromisoformat("23:00")
         ),
         quietEnd=(
-            profile.quiet_end.strftime("%H:%M")
+            profile.quiet_end
             if profile.quiet_end is not None
-            else "07:00"
+            else dt_time.fromisoformat("07:00")
         ),
         orgId=profile.org_id,
         sosContact=profile.sos_contact or "",

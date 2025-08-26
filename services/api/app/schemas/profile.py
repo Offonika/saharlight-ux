@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from datetime import time as dt_time
+
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
@@ -14,13 +16,13 @@ class ProfileSchema(BaseModel):
     target: float
     low: float
     high: float
-    quietStart: str = Field(
-        default="23:00",
+    quietStart: dt_time = Field(
+        default=dt_time.fromisoformat("23:00"),
         alias="quietStart",
         validation_alias=AliasChoices("quietStart", "quiet_start"),
     )
-    quietEnd: str = Field(
-        default="07:00",
+    quietEnd: dt_time = Field(
+        default=dt_time.fromisoformat("07:00"),
         alias="quietEnd",
         validation_alias=AliasChoices("quietEnd", "quiet_end"),
     )
