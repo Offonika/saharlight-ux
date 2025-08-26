@@ -1,4 +1,3 @@
-# file: .github/workflows/lovable-sync.yml
 name: Sync Lovable UI into Monorepo
 
 on:
@@ -46,20 +45,20 @@ jobs:
             cp index.html /tmp/lovable_snapshot/index.html
           fi
 
-     # file: .github/workflows/lovable-sync.yml
-# file: .github/workflows/lovable-sync.yml
-      - name: Switch to target branch (work branch)
-        env:
-          WORK_BRANCH: lovable-sync-work-${{ github.sha }}
+      # ВАЖНО: работаем прямо на main — никаких work-* веток
+      - name: Switch to target branch (main)
         run: |
           set -e
           git fetch --all --prune
-          # создаём локальную рабочую ветку от origin/main БЕЗ апстрима на origin/main
-          git checkout -B "${WORK_BRANCH}" "origin/${TARGET_BRANCH}"
+          git checkout -B "${TARGET_BRANCH}" "origin/${TARGET_BRANCH}"
           git branch --unset-upstream || true
+          echo "HEAD branch: $(git symbolic-ref --short HEAD)"
 
-     
-
+      - name: Assert HEAD is main
+        run: |
+          set -e
+          CUR="$(git symbolic-ref --short HEAD)"
+          test "$CUR" = "${TARGET_BRANCH}" || { echo "::error ::Not on ${TARGET_BRANCH}, on $CUR"; exit 1; }
 
       - name: Restore snapshot into monorepo layout
         run: |
@@ -121,16 +120,11 @@ jobs:
         run: |
           set -e
           TO_INSTALL="$(node - <<'NODE'
-          const fs = require('fs');
           const pkg = require('./package.json');
           const deps = Object.assign({}, pkg.dependencies||{}, pkg.devDependencies||{});
           const need = [];
           for (const [name, spec] of Object.entries(deps)) {
-            try { require.resolve(name); }
-            catch {
-              // exact spec from package.json (keeps ^/~ and file:)
-              need.push(`${name}@${spec}`);
-            }
+            try { require.resolve(name); } catch { need.push(`${name}@${spec}`); }
           }
           process.stdout.write(need.join(' '));
           NODE
@@ -175,9 +169,10 @@ jobs:
             - public/ → services/webapp/ui/public/
             - libs/ts-sdk/ → libs/ts-sdk/
             (optional) index.html/openapi copied if SYNC_* flags are true.
-          labels: |
-            webapp-sync
+          # labels: |
+          #   webapp-sync
           draft: false
+
 
 
 
