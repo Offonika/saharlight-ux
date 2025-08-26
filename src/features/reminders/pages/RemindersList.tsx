@@ -3,7 +3,7 @@ import { useRemindersApi } from "../api/reminders";
 import { formatNextAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
 import { mockApi } from "../../../api/mock-server";
-import { useToast } from "../../../shared/toast";
+import { useToast } from "@/hooks/use-toast";
 import { Templates } from "../components/Templates";
 import { getPlanLimit } from "../hooks/usePlan";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
@@ -11,7 +11,7 @@ import { bulkToggle } from "./RemindersList.bulk";
 
 const checkQuotaLimit = (count: number, limit: number, toast: any) => {
   if (count >= limit) {
-    toast.error(`Достигнут лимит ${limit} напоминаний. Обновитесь до Pro для увеличения лимита!`);
+    toast({ title: "Лимит достигнут", description: `Достигнут лимит ${limit} напоминаний. Обновитесь до Pro для увеличения лимита!`, variant: "destructive" });
     return false;
   }
   return true;
@@ -64,7 +64,7 @@ export default function RemindersList({
   const api = useRemindersApi();
   const { user } = useTelegram();
   const initData = useTelegramInitData();
-  const toast = useToast();
+  const { toast } = useToast();
   const [items, setItems] = useState<ReminderDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(planLimit || 5);
@@ -145,7 +145,7 @@ export default function RemindersList({
       load();
     } catch {
       setItems(items);
-      toast.error("Не удалось обновить статус");
+      toast({ title: "Ошибка", description: "Не удалось обновить статус", variant: "destructive" });
     }
   }
 
@@ -161,7 +161,7 @@ export default function RemindersList({
     const itemsToChange = items.filter(r => r.isEnabled !== enable);
     
     if (!itemsToChange.length) {
-      toast.success(`Все напоминания уже ${enable ? "включены" : "выключены"}`);
+      toast({ title: "Готово", description: `Все напоминания уже ${enable ? "включены" : "выключены"}` });
       return;
     }
 
@@ -170,17 +170,17 @@ export default function RemindersList({
       const result = await bulkToggle(api, itemsToChange, enable);
       
       if (result.successCount > 0) {
-        toast.success(`Успешно ${enable ? "включено" : "выключено"} ${result.successCount} напоминаний`);
+        toast({ title: "Успешно", description: `Успешно ${enable ? "включено" : "выключено"} ${result.successCount} напоминаний` });
       }
       
       if (result.errorCount > 0) {
-        toast.error(`Не удалось ${action} ${result.errorCount} напоминаний`);
+        toast({ title: "Частично выполнено", description: `Не удалось ${action} ${result.errorCount} напоминаний`, variant: "destructive" });
       }
       
       // Reload to get fresh data
       await load();
     } catch (error) {
-      toast.error(`Ошибка при попытке ${action} напоминания`);
+      toast({ title: "Ошибка", description: `Ошибка при попытке ${action} напоминания`, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -204,7 +204,7 @@ export default function RemindersList({
         await mockApi.deleteReminder(r.telegramId, r.id);
       }
     } catch {
-      toast.error("Не удалось удалить");
+      toast({ title: "Ошибка", description: "Не удалось удалить", variant: "destructive" });
       setItems(items);
     }
   }
