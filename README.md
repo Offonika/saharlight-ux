@@ -87,7 +87,7 @@
 Приложение автоматически загружает переменные окружения из этого файла в корне проекта.
 
 - обязательные значения: `TELEGRAM_TOKEN` (токен бота), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-- дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `UVICORN_WORKERS`
+- дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `UVICORN_WORKERS`, `VITE_TELEGRAM_INIT_DATA` (для локального тестирования WebApp)
 - при необходимости настройте прокси для OpenAI через переменные окружения
 
 Telegram‑клиенты не могут обращаться к `localhost`, поэтому `WEBAPP_URL` должен быть публичным **HTTPS**‑адресом. Для локальной разработки используйте туннель (например, [ngrok](https://ngrok.com/)).
