@@ -1,4 +1,4 @@
-// vite.config.ts  (ветка lovable)
+// Vite configuration for the canonical frontend located in src/
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
@@ -12,7 +12,7 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     plugins,
-    base: mode === 'development' ? '/' : '/ui/',
+    base: '/',
     resolve: {
       alias: {
         '@':   path.resolve(__dirname, './src'),

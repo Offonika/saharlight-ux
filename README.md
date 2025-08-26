@@ -12,11 +12,12 @@
 
 ## Структура репозитория
 
-- `services/` — микросервисы и приложения
-  - `api/` — FastAPI‑сервер и телеграм‑бот (`services/api/app/diabetes/` — основной пакет с обработчиками)
-  - `bot/`, `worker/`, `clinic-panel/` — дополнительные сервисы
-  - `webapp/` — React‑SPA (`services/webapp/ui` — исходники, сборка в `dist/`)
-- `libs/` — общие библиотеки и SDK
+  - `services/` — микросервисы и приложения
+    - `api/` — FastAPI‑сервер и телеграм‑бот (`services/api/app/diabetes/` — основной пакет с обработчиками)
+    - `bot/`, `worker/`, `clinic-panel/` — дополнительные сервисы
+    - `webapp/` — вспомогательные HTML‑страницы (`public/`)
+  - `src/` — фронтенд WebApp (React), сборка в `dist/`
+  - `libs/` — общие библиотеки и SDK
   - `contracts/openapi.yaml` — OpenAPI‑спецификация API
   - `py-sdk/`, `ts-sdk/` — сгенерированные клиентские SDK
 - `infra/` — инфраструктура и конфигурации
@@ -61,15 +62,15 @@
    python3 -m venv venv
    source venv/bin/activate
    ```
-3. **Установите зависимости и соберите фронтенд:**
-   Локальный Python SDK подключается из каталога `libs/py-sdk`, поэтому он будет установлен вместе с зависимостями:
-   ```bash
-   pip install -r requirements.txt
+ 3. **Установите зависимости и соберите фронтенд:**
+    Локальный Python SDK подключается из каталога `libs/py-sdk`, поэтому он будет установлен вместе с зависимостями:
+    ```bash
+    pip install -r requirements.txt
 
-   (cd services/webapp/ui && npm ci)
+    npm ci
 
-   ```
-   Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в каталоге `services/webapp/ui`.
+    ```
+    Все команды фронтенда (`npm run dev`, `npm run build` и т.д.) запускайте в корне репозитория.
 4. **Скопируйте шаблон .env и заполните своими данными:**
    ```bash
    cp infra/env/.env.example .env
@@ -101,11 +102,10 @@ python services/api/app/main.py
 ```
 
 ### WebApp
-Исходники находятся в `services/webapp/ui`.
+Исходники находятся в `src/`.
 
 1. Сборка
    ```bash
-   cd services/webapp/ui
    npm run build
    ```
 2. Запуск FastAPI

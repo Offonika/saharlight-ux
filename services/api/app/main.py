@@ -19,10 +19,11 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 app.include_router(router)
 
-BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
-UI_DIR = BASE_DIR / "ui" / "dist"
+# Path to built frontend assets (dist/ at repo root)
+ROOT_DIR = Path(__file__).resolve().parents[3]
+UI_DIR = ROOT_DIR / "dist"
 if not UI_DIR.exists():
-    UI_DIR = BASE_DIR / "ui"
+    UI_DIR = ROOT_DIR
 UI_DIR = UI_DIR.resolve()
 
 
