@@ -106,18 +106,22 @@ jobs:
           NODE_ENV: development
         run: npm ci --include=dev --no-audit --no-fund
 
+      - name: Ensure Vite present (no-save safety net)
+        working-directory: services/webapp/ui
+        run: |
+          if [ ! -x node_modules/.bin/vite ]; then
+            echo "vite not found in node_modules — installing temporarily..."
+            npm install --no-save vite @vitejs/plugin-react-swc
+          fi
+          node_modules/.bin/vite --version || npx --yes vite@5 --version
+
       - name: Typecheck
         working-directory: services/webapp/ui
         run: npm run typecheck || true
 
       - name: Build UI
         working-directory: services/webapp/ui
-        run: |
-          if [ -x ./node_modules/.bin/vite ]; then
-            npm run build
-          else
-            npx --yes vite@5 build
-          fi
+        run: npm run build
 
       - name: Commit changes
         run: |
@@ -147,3 +151,4 @@ jobs:
           labels: |
             webapp-sync
           draft: false
+
