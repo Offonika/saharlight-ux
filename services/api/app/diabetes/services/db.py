@@ -10,6 +10,7 @@ from sqlalchemy import (
     Float,
     Text,
     TIMESTAMP,
+    Time,
     ForeignKey,
     Boolean,
     func,
@@ -99,6 +100,8 @@ class Profile(Base):
     high_threshold = Column(Float)  # верхний порог сахара
     sos_contact = Column(String)  # контакт для экстренной связи
     sos_alerts_enabled = Column(Boolean, default=True)
+    quiet_start = Column(Time)  # начало тихого режима
+    quiet_end = Column(Time)  # конец тихого режима
     org_id = Column(Integer)
     user = relationship("User")
 

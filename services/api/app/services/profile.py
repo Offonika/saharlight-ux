@@ -49,6 +49,8 @@ async def save_profile(data: ProfileSchema) -> None:
         profile.target_bg = data.target
         profile.low_threshold = data.low
         profile.high_threshold = data.high
+        profile.quiet_start = data.quiet_start
+        profile.quiet_end = data.quiet_end
         session.commit()
 
     await run_db(_save, sessionmaker=SessionLocal)
