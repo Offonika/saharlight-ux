@@ -7,8 +7,8 @@ import {
   vi,
   type Mock,
 } from 'vitest';
-import { ProfilesApi } from '@offonika/diabetes-ts-sdk';
-import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
+import { ProfilesApi } from '@sdk';
+import { Configuration } from '@sdk/runtime';
 import { tgFetch, REQUEST_TIMEOUT_MESSAGE, TG_INIT_DATA_HEADER } from './tgFetch';
 
 interface TelegramWebApp {
