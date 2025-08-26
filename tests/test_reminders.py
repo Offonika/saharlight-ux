@@ -555,7 +555,9 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_snooze_callback_custom_delay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -616,7 +618,9 @@ async def test_cancel_callback(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_snooze_callback_default_delay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -647,7 +651,9 @@ async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_snooze_callback_logs_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
