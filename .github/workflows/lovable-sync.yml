@@ -105,19 +105,28 @@ jobs:
             exit 1
           fi
 
-      - name: Setup Node
+
+      - name: Setup Node (UI with cache)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: services/webapp/ui/package-lock.json
+            node-version: '20'
+            cache: 'npm'
+            cache-dependency-path: services/webapp/ui/package-lock.json
 
+      - name: Install deps (always include dev)
+        working-directory: services/webapp/ui
+        env:
+              NODE_ENV: development
+            run: npm ci --include=dev --no-audit --no-fund
+      
+      - name: Typecheck
+        working-directory: services/webapp/ui
+        run: npm run typecheck || true  
+      
+        
       - name: Build webapp UI
         working-directory: services/webapp/ui
-        run: |
-          npm ci
-          npm run typecheck || true
-          npm run build
+        run: npm run build
 
       - name: Commit changes
         run: |
