@@ -1,5 +1,5 @@
-import { DefaultApi } from '@offonika/diabetes-ts-sdk';
-import { Configuration, ResponseError } from '@offonika/diabetes-ts-sdk/runtime';
+import { DefaultApi } from '@sdk';
+import { Configuration, ResponseError } from '@sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 

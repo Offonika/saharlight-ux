@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ResponseError, Configuration } from '@offonika/diabetes-ts-sdk/runtime';
+import { ResponseError, Configuration } from '@sdk/runtime';
 
 const mockRemindersGet = vi.hoisted(() => vi.fn());
 const mockRemindersIdGet = vi.hoisted(() => vi.fn());
@@ -10,7 +10,7 @@ const mockInstanceOfReminder = vi.hoisted(() => vi.fn());
 const mockTgFetch = vi.hoisted(() => vi.fn());
 
 vi.mock(
-  '@offonika/diabetes-ts-sdk/runtime',
+  '@sdk/runtime',
   () => ({
     ResponseError: class extends Error {
       response: Response;
@@ -25,7 +25,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@offonika/diabetes-ts-sdk',
+  '@sdk',
   () => ({
     RemindersApi: vi.fn(() => ({
       remindersGet: mockRemindersGet,
@@ -40,7 +40,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@offonika/diabetes-ts-sdk/models',
+  '@sdk/models',
   () => ({
     instanceOfReminderSchema: mockInstanceOfReminder,
   }),

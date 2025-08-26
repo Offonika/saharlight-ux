@@ -80,7 +80,10 @@ export default defineConfig(async ({ mode, command }) => {
     base,
     plugins,
     resolve: {
-      alias: { '@': path.resolve(__dirname, './src') },
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+        '@sdk': path.resolve(__dirname, '../../../libs/ts-sdk'),
+      },
     },
     server: { host: '::', port: 5173 },
 

@@ -4,7 +4,7 @@ const mockGetAnalytics = vi.hoisted(() => vi.fn());
 const mockGetStats = vi.hoisted(() => vi.fn());
 
 vi.mock(
-  '@offonika/diabetes-ts-sdk/runtime',
+  '@sdk/runtime',
   () => {
     class Configuration {}
     class ResponseError extends Error {
@@ -18,7 +18,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@offonika/diabetes-ts-sdk',
+  '@sdk',
   () => ({
     DefaultApi: vi.fn(() => ({
       getAnalyticsAnalyticsGet: mockGetAnalytics,
@@ -39,7 +39,7 @@ import {
 let ResponseError: new (arg: { status: number }) => Error;
 
 beforeAll(async () => {
-  ({ ResponseError } = await import('@offonika/diabetes-ts-sdk/runtime'));
+  ({ ResponseError } = await import('@sdk/runtime'));
 });
 
 afterEach(() => {
