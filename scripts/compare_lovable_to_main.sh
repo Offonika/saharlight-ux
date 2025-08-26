@@ -11,26 +11,44 @@ mkdir -p "$OUTDIR"
 echo "== Fetch =="
 git fetch --all --prune
 
-echo "== Сравнение src =="
-git diff --stat origin/$TARGET:services/webapp/ui/src origin/$SOURCE:src > $OUTDIR/diffs_src.log
-git diff origin/$TARGET:services/webapp/ui/src origin/$SOURCE:src > $OUTDIR/full_src_diff.log || true
+compare_pair() {
+  local target=$1
+  local source=$2
+  local label=$3
 
-echo "== Сравнение public =="
-git diff --stat origin/$TARGET:services/webapp/ui/public origin/$SOURCE:public > $OUTDIR/diffs_public.log
-git diff origin/$TARGET:services/webapp/ui/public origin/$SOURCE:public > $OUTDIR/full_public_diff.log || true
+  echo "== Сравнение $label =="
+  git diff --stat origin/$TARGET:$target origin/$SOURCE:$source > $OUTDIR/diffs_${label}.log || true
+  git diff origin/$TARGET:$target origin/$SOURCE:$source > $OUTDIR/full_${label}_diff.log || true
+}
 
-echo "== Сравнение SDK =="
-git diff --stat origin/$TARGET:libs/ts-sdk origin/$SOURCE:libs/ts-sdk > $OUTDIR/diffs_sdk.log
-git diff origin/$TARGET:libs/ts-sdk origin/$SOURCE:libs/ts-sdk > $OUTDIR/full_sdk_diff.log || true
+# src → src
+compare_pair "services/webapp/ui/src" "src" "src"
+
+# public → public
+compare_pair "services/webapp/ui/public" "public" "public"
+
+# SDK
+compare_pair "libs/ts-sdk" "libs/ts-sdk" "sdk"
 
 echo "== Сравнение конфигов =="
-FILES=(package.json vite.config.ts tailwind.config.ts index.html tsconfig.json)
-for f in "${FILES[@]}"; do
-  if git ls-tree -r origin/$SOURCE --name-only | grep -q "^$f$"; then
-    echo "-- $f"
-    git diff origin/$TARGET:services/webapp/ui/$f origin/$SOURCE:$f > $OUTDIR/diff_${f//\//_}.log || true
-  fi
-done
 
-echo "== Результаты сохранены в папку $OUTDIR =="
+# package.json
+compare_pair "services/webapp/ui/package.json" "package.json" "package.json"
+
+# vite.config.ts
+compare_pair "services/webapp/ui/vite.config.ts" "vite.config.ts" "vite.config.ts"
+
+# tailwind.config (разное расширение)
+git diff origin/$TARGET:services/webapp/ui/tailwind.config.ts origin/$SOURCE:tailwind.config.js > $OUTDIR/diff_tailwind_config.log || true
+
+# index.html
+compare_pair "services/webapp/ui/index.html" "index.html" "index.html"
+
+# tsconfig.json
+compare_pair "services/webapp/ui/tsconfig.json" "tsconfig.json" "tsconfig.json"
+
+# postcss.config.js
+compare_pair "services/webapp/ui/postcss.config.js" "postcss.config.js" "postcss.config.js"
+
+echo "== Готово. Результаты сохранены в $OUTDIR =="
 ls -lh $OUTDIR
