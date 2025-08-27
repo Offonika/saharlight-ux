@@ -24,7 +24,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@sdk/runtime": ["../../../libs/ts-sdk/runtime.ts"],
       "@sdk": ["../../../libs/ts-sdk"],
       "@sdk/*": ["../../../libs/ts-sdk/*"]
     }
