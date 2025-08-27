@@ -1,17 +1,16 @@
 import os
 import re
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, call
 
 import pytest
-from typing import cast
 
 from .context_stub import AlertContext, ContextStub
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from telegram.ext import ApplicationBuilder, CallbackContext, MessageHandler
+from telegram.ext import ApplicationBuilder, CallbackContext, MessageHandler, filters
 from telegram import Bot
 
 from services.api.app.diabetes.services.db import Base, User, Profile
@@ -153,8 +152,10 @@ async def test_sos_contact_menu_button_starts_conv(monkeypatch: Any) -> None:
         for h in app.handlers[0]
         if isinstance(h, MessageHandler) and h.callback is sos_handlers.sos_contact_start
     )
-    pattern = sos_handler.filters.pattern.pattern
-    assert re.fullmatch(pattern, "🆘 SOS контакт")
+    assert re.fullmatch(
+        cast(filters.Regex, sos_handler.filters).pattern.pattern,
+        "🆘 SOS контакт",
+    )
 
     message = DummyMessage("🆘 SOS контакт")
     update = make_update(message=message)
