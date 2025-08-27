@@ -20,7 +20,15 @@ from services.api.app.diabetes.services.reporting import make_sugar_plot, genera
 
 
 class DummyEntry:
-    def __init__(self, event_time: Any, sugar_before: Any, carbs_g: Any, xe: Any, dose: Any) -> None:
+    event_time: Any
+    sugar_before: Any
+    carbs_g: Any
+    xe: Any
+    dose: Any
+
+    def __init__(
+        self, event_time: Any, sugar_before: Any, carbs_g: Any, xe: Any, dose: Any
+    ) -> None:
         self.event_time = event_time
         self.sugar_before = sugar_before
         self.carbs_g = carbs_g
@@ -68,7 +76,7 @@ def test_make_sugar_plot_sorts_entries(monkeypatch: Any) -> None:
             6,
         ),
     ]
-    captured = {}
+    captured: dict[str, Any] = {}
 
     def fake_plot(x: Any, y: Any, **kwargs: Any) -> None:
         captured["x"] = x
@@ -128,7 +136,11 @@ def test_generate_pdf_report() -> None:
 @pytest.mark.parametrize("block", ["summary_lines", "errors", "day_lines"])
 def test_generate_pdf_report_page_breaks(block: Any) -> None:
     long_lines = [f"line {i}" for i in range(100)]
-    kwargs = {"summary_lines": [], "errors": [], "day_lines": []}
+    kwargs: dict[str, list[str]] = {
+        "summary_lines": [],
+        "errors": [],
+        "day_lines": [],
+    }
     kwargs[block] = long_lines
     pdf_buf = generate_pdf_report(gpt_text="", plot_buf=None, **kwargs)
     pdf_buf.seek(0)
@@ -168,8 +180,10 @@ async def test_send_report_uses_gpt(monkeypatch: Any) -> None:
         session.commit()
 
     class DummyMessage:
+        docs: list[Any]
+
         def __init__(self) -> None:
-            self.docs: list[Any] = []
+            self.docs = []
 
         async def reply_text(self, *args: Any, **kwargs: Any) -> None:
             pass
@@ -187,11 +201,11 @@ async def test_send_report_uses_gpt(monkeypatch: Any) -> None:
     context = make_context(user_data={"thread_id": "tid"})
 
     class Run:
-        status = "completed"
-        thread_id = "tid"
-        id = "rid"
+        status: str = "completed"
+        thread_id: str = "tid"
+        id: str = "rid"
 
-    async def fake_send_message(**kwargs: Any) -> None:
+    async def fake_send_message(**kwargs: Any) -> Run:
         return Run()
 
     class DummyClient:
