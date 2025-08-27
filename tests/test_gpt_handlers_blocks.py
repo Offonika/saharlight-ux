@@ -162,7 +162,7 @@ async def test_handle_pending_entry_value_error() -> None:
         context,
         1,
         SessionLocal=SESSION_FACTORY,
-        commit=lambda s: True,
+        commit=lambda s: None,
         check_alert=_noop_alert,
         menu_keyboard=None,
     )
@@ -187,7 +187,7 @@ async def test_handle_pending_entry_negative() -> None:
         context,
         1,
         SessionLocal=SESSION_FACTORY,
-        commit=lambda s: True,
+        commit=lambda s: None,
         check_alert=_noop_alert,
         menu_keyboard=None,
     )
@@ -212,7 +212,7 @@ async def test_handle_pending_entry_next_field() -> None:
         context,
         1,
         SessionLocal=SESSION_FACTORY,
-        commit=lambda s: True,
+        commit=lambda s: None,
         check_alert=_noop_alert,
         menu_keyboard=None,
     )
@@ -251,7 +251,7 @@ async def test_handle_pending_entry_complete(monkeypatch: pytest.MonkeyPatch) ->
         context,
         1,
         SessionLocal=SESSION_FACTORY,
-        commit=lambda s: True,
+        commit=lambda s: None,
         check_alert=fake_check_alert,
         menu_keyboard=None,
     )

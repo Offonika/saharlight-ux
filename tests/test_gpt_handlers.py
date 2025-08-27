@@ -364,7 +364,7 @@ async def test_freeform_handler_quick_entry_complete(
         update,
         context,
         smart_input=fake_smart_input,
-        commit=lambda session: True,
+        commit=lambda session: None,
         check_alert=fake_check_alert,
     )
     assert message.texts[0].startswith("✅ Запись сохранена")
@@ -561,7 +561,7 @@ async def test_freeform_handler_pending_entry_commit(
     await gpt_handlers.freeform_handler(
         update,
         context,
-        commit=lambda session: True,
+        commit=lambda session: None,
         check_alert=fake_check_alert,
     )
     assert "pending_entry" not in user_data
@@ -600,7 +600,7 @@ async def test_freeform_handler_pending_entry_commit_fail(
     def session_factory() -> DummySession:
         return DummySession()
 
-    def fail_commit(_: Any) -> bool:
+    def fail_commit(_: Any) -> None:
         raise gpt_handlers.CommitError
 
     monkeypatch.setattr(gpt_handlers, "run_db", None)
@@ -660,7 +660,7 @@ async def test_freeform_handler_pending_entry_numeric_add_carbs(
 
     monkeypatch.setattr(gpt_handlers, "run_db", None)
     monkeypatch.setattr(gpt_handlers, "SessionLocal", session_factory)
-    await gpt_handlers.freeform_handler(update, context, commit=lambda s: True)
+    await gpt_handlers.freeform_handler(update, context, commit=lambda s: None)
     assert entry["carbs_g"] == 12
     assert "Введите количество углеводов" in message.texts[0]
 

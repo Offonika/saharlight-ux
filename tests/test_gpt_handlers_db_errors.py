@@ -51,7 +51,7 @@ async def test_freeform_handler_db_error_propagates(
     def session_factory() -> Session:
         return cast(Session, DummySession())
 
-    def failing_commit(session: Session) -> bool:
+    def failing_commit(session: Session) -> None:
         raise AttributeError("db failure")
 
     monkeypatch.setattr(gpt_handlers, "run_db", None)
@@ -59,5 +59,5 @@ async def test_freeform_handler_db_error_propagates(
 
     with pytest.raises(AttributeError):
         await gpt_handlers.freeform_handler(
-            update, context, commit=cast(Callable[[Session], bool], failing_commit)
+            update, context, commit=cast(Callable[[Session], None], failing_commit)
         )

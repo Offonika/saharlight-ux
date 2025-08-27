@@ -51,7 +51,7 @@ async def test_start_command_launches_onboarding(
 
     monkeypatch.setattr(gpt_client, "create_thread", fake_thread)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    monkeypatch.setattr(onboarding, "commit", lambda s: True)
+    monkeypatch.setattr(onboarding, "commit", lambda s: None)
 
     message = DummyMessage()
     update = cast(
@@ -83,7 +83,7 @@ async def test_onboarding_skip_cancels(monkeypatch: pytest.MonkeyPatch) -> None:
         session.commit()
 
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    monkeypatch.setattr(onboarding, "commit", lambda s: True)
+    monkeypatch.setattr(onboarding, "commit", lambda s: None)
     monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
 
     message = DummyMessage()
@@ -129,7 +129,7 @@ async def test_onboarding_target_commit_fail(monkeypatch: pytest.MonkeyPatch) ->
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    def fail_commit(session: object) -> bool:
+    def fail_commit(session: object) -> None:
         raise onboarding.CommitError
 
     monkeypatch.setattr(onboarding, "commit", fail_commit)
@@ -165,7 +165,7 @@ async def test_onboarding_timezone_commit_fail(monkeypatch: pytest.MonkeyPatch) 
         session.commit()
 
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    def fail_commit(session: object) -> bool:
+    def fail_commit(session: object) -> None:
         raise onboarding.CommitError
 
     monkeypatch.setattr(onboarding, "commit", fail_commit)
