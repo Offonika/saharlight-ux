@@ -17,8 +17,6 @@ import logging
 from pathlib import Path
 from typing import Any, cast
 
-from typing import Any, cast
-
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -42,7 +40,6 @@ from services.api.app.diabetes.services.repository import commit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from openai import OpenAIError
-from typing import Any
 
 
 logger = logging.getLogger(__name__)
@@ -204,9 +201,9 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         if profile is None:
             profile = Profile(telegram_id=user_id)
             session.add(profile)
-        cast(Any, profile).icr = icr
-        cast(Any, profile).cf = cf
-        cast(Any, profile).target_bg = target
+        profile.icr = icr
+        profile.cf = cf
+        profile.target_bg = target
         if not commit(session):
             await message.reply_text("⚠️ Не удалось сохранить профиль.")
             return ConversationHandler.END
