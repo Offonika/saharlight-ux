@@ -8,6 +8,7 @@ import asyncio
 import os
 import re
 from pathlib import Path
+from typing import Awaitable, Callable
 
 from openai import OpenAIError
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -20,6 +21,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from sqlalchemy.orm import Session
 
 from services.api.app.diabetes.services.db import (
     SessionLocal,
@@ -266,17 +268,19 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return ConversationHandler.END
 
 
-def _cancel_then(handler):
+def _cancel_then(
+    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]],
+):
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
-    async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await dose_cancel(update, context)
         return await handler(update, context)
 
     return wrapped
 
 
-async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle freeform text commands for adding diary entries."""
     raw_text = update.message.text.strip()
     user_id = update.effective_user.id
@@ -358,7 +362,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "Введите дозу инсулина (ед.)."
                 )
             return
-        def db_save(session) -> bool:
+        def db_save(session: Session) -> bool:
             entry = Entry(**pending_entry)
             session.add(entry)
             return commit(session)
@@ -550,7 +554,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "Доза инсулина не может быть отрицательной."
                 )
             return
-        def db_update(session):
+        def db_update(session: Session):
             entry = session.get(Entry, context.user_data["edit_id"])
             if not entry:
                 return "missing", None
@@ -645,7 +649,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
         if not missing:
-            def db_save(session):
+            def db_save(session: Session):
                 entry = Entry(**entry_data)
                 session.add(entry)
                 return commit(session)
@@ -657,7 +661,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ok = db_save(session)
             if not ok:
                 await update.message.reply_text(
-                    "⚠️ Не удалось сохранить запись."
+                    "⚠️ Не удалось сохранить запись.",
                 )
                 return
             if sugar is not None:
@@ -763,7 +767,11 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await update.message.reply_text("🗨️ Чат с GPT временно недоступен.")
 
 
-async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo: bool = False):
+async def photo_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    demo: bool = False,
+) -> int:
     """Process food photos and trigger nutrition analysis."""
     message = update.message or update.callback_query.message
     user_id = update.effective_user.id
@@ -1006,7 +1014,9 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE, demo
         context.user_data.pop(WAITING_GPT_FLAG, None)
 
 
-async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def doc_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     """Handle images sent as documents."""
     document = update.message.document
     if not document:

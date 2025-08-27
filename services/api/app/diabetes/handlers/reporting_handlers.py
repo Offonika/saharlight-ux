@@ -9,6 +9,7 @@ import logging
 
 from openai import OpenAIError
 from telegram import (
+    CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     KeyboardButton,
@@ -185,9 +186,9 @@ async def report_period_callback(
 async def send_report(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
-    date_from,
-    period_label,
-    query=None,
+    date_from: datetime.datetime,
+    period_label: str,
+    query: CallbackQuery | None = None,
 ) -> None:
     """Generate and send a PDF report for entries after ``date_from``."""
     user_id = update.effective_user.id
