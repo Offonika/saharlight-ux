@@ -22,16 +22,15 @@ export async function getReminders(telegramId: number): Promise<Reminder[]> {
 export async function getReminder(
   telegramId: number,
   id: number,
-): Promise<Reminder | null> {
+): Promise<Reminder> {
   try {
     if (isDevelopment) {
       console.log('[API] Using mock server for getReminder');
       return await mockApi.getReminder(telegramId, id);
     }
-    const data = await http.get<Reminder | Reminder[]>(
-      `/reminders?telegramId=${telegramId}&id=${id}`,
+    return await http.get<Reminder>(
+      `/reminders/${id}?telegramId=${telegramId}`,
     );
-    return Array.isArray(data) ? data[0] ?? null : data ?? null;
   } catch (error) {
     console.error('Failed to fetch reminder:', error);
     throw new Error('Не удалось загрузить напоминание');
@@ -44,7 +43,7 @@ export async function createReminder(reminder: Reminder) {
       console.log('[API] Using mock server for createReminder');
       return await mockApi.createReminder(reminder);
     }
-    return await http.post<Reminder>('/reminders', { reminder });
+    return await http.post<Reminder>('/reminders', reminder);
   } catch (error) {
     console.error('Failed to create reminder:', error);
     throw new Error('Не удалось создать напоминание');
@@ -57,7 +56,7 @@ export async function updateReminder(reminder: Reminder) {
       console.log('[API] Using mock server for updateReminder');
       return await mockApi.updateReminder(reminder);
     }
-    return await http.patch<Reminder>('/reminders', { reminder });
+    return await http.patch<Reminder>('/reminders', reminder);
   } catch (error) {
     console.error('Failed to update reminder:', error);
     throw new Error('Не удалось обновить напоминание');
@@ -70,7 +69,7 @@ export async function deleteReminder(telegramId: number, id: number) {
       console.log('[API] Using mock server for deleteReminder');
       return await mockApi.deleteReminder(telegramId, id);
     }
-    return await http.delete(`/reminders/${id}?telegramId=${telegramId}`);
+    return await http.delete(`/reminders?telegramId=${telegramId}&id=${id}`);
   } catch (error) {
     console.error('Failed to delete reminder:', error);
     throw new Error('Не удалось удалить напоминание');

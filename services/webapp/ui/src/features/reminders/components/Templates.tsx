@@ -42,7 +42,7 @@ export function Templates({
       const payload = buildReminderPayload(dto);
       
       try {
-        await api.remindersPost({ reminder: payload });
+        await api.remindersPost(payload);
       } catch (apiError) {
         console.warn("Backend API failed, using mock API:", apiError);
         await mockApi.createReminder(payload);

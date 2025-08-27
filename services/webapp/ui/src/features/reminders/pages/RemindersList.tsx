@@ -138,7 +138,7 @@ export default function RemindersList({
     setItems(optimistic);
     try {
       try {
-        await api.remindersPatch({ reminder: { telegramId: r.telegramId, id: r.id, isEnabled: !r.isEnabled } });
+        await api.remindersPatch({ telegramId: r.telegramId, id: r.id, isEnabled: !r.isEnabled });
       } catch (apiError) {
         console.warn("Backend API failed, using mock API:", apiError);
         await mockApi.updateReminder({ ...r, isEnabled: !r.isEnabled });
