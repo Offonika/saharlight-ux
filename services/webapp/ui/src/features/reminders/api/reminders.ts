@@ -1,4 +1,4 @@
-import { Configuration } from "@sdk/runtime";
+import { Configuration } from "@sdk/runtime.ts";
 import { DefaultApi } from "@sdk/apis";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 
