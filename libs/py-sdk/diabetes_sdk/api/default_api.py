@@ -1,4 +1,5 @@
 from ..api_client import ApiClient
+from ..configuration import Configuration
 from ..exceptions import ApiException
 from ..models import Profile
 
@@ -8,7 +9,12 @@ class DefaultApi:
 
     _profiles_store: dict[int, Profile] = {}
 
-    def __init__(self, api_client: ApiClient | None = None, *, configuration=None) -> None:
+    def __init__(
+        self,
+        api_client: ApiClient | None = None,
+        *,
+        configuration: Configuration | None = None,
+    ) -> None:
         if api_client is not None:
             self.api_client = api_client
         else:
@@ -31,7 +37,7 @@ class DefaultApi:
             raise ApiException("Все значения должны быть больше 0")
         self._profiles[profile.telegram_id] = profile
 
-    def profiles_get(self, *, telegram_id: int) -> Profile | None:
+    def profiles_get(self, *, telegram_id: int) -> Profile:
         """Retrieve profile by Telegram ID."""
         if telegram_id <= 0:
             raise ApiException("telegram_id must be greater than 0")
