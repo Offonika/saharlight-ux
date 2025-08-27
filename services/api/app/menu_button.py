@@ -7,9 +7,6 @@ always reset the button to :class:`telegram.MenuButtonDefault`.
 
 from __future__ import annotations
 
-from typing import Any
-
-
 from telegram import MenuButtonDefault
 
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
@@ -21,9 +18,9 @@ async def post_init(
     app: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
-        dict[str, Any],
-        dict[str, Any],
-        dict[str, Any],
+        dict[str, object],
+        dict[str, object],
+        dict[str, object],
         DefaultJobQueue,
     ],
 ) -> None:
