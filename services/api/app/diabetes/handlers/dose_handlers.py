@@ -265,7 +265,7 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 def _cancel_then(
     handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]],
-):
+) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
     async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

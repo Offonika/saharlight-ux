@@ -424,7 +424,7 @@ async def _photo_fallback(
     from .dose_handlers import _cancel_then, photo_prompt
 
     handler = _cancel_then(photo_prompt)
-    return await handler(update, context)
+    await handler(update, context)
 
 
 onboarding_conv = ConversationHandler(

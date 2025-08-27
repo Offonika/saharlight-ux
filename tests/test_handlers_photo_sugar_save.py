@@ -12,7 +12,7 @@ from tests.helpers import make_update
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None, photo: list[Any] | None = None):
+    def __init__(self, text: str | None = None, photo: list[Any] | None = None) -> None:
         self.text = text
         self.photo = photo
         self.replies: list[tuple[str, dict[str, Any]]] = []
@@ -22,7 +22,7 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str):
+    def __init__(self, data: str) -> None:
         self.data = data
         self.edited: list[str] = []
 
@@ -39,7 +39,7 @@ class DummyPhoto:
 
 
 class DummySession:
-    def __init__(self):
+    def __init__(self) -> None:
         self.added = []
 
     def __enter__(self) -> "DummySession":
@@ -51,10 +51,10 @@ class DummySession:
     def add(self, entry: Any) -> None:
         self.added.append(entry)
 
-    def commit(self):
+    def commit(self) -> None:
         pass
 
-    def get(self, model, user_id):
+    def get(self, model, user_id) -> Any:
         return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
 
@@ -98,7 +98,7 @@ async def test_photo_flow_saves_entry(
         thread_id = "tid"
         id = "runid"
 
-    async def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs: Any) -> Run:
         return Run()
 
     class DummyClient:
