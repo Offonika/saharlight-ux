@@ -5,12 +5,10 @@ export async function bulkToggle(api: any, items: any[], enable: boolean) {
   for (const r of items) {
     if (r.isEnabled !== enable) {
       try {
-        await api.remindersPatch({ 
-          reminder: { 
-            id: r.id, 
-            telegramId: r.telegramId, 
-            isEnabled: enable 
-          } 
+        await api.remindersPatch({
+          id: r.id,
+          telegramId: r.telegramId,
+          isEnabled: enable,
         });
         successCount++;
       } catch {
