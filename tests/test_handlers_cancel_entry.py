@@ -52,7 +52,7 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
     assert not query.edit_kwargs[0] or "reply_markup" not in query.edit_kwargs[0]
     assert len(query.message.replies) == 1
     text, kwargs = query.message.replies[0]
-    assert kwargs["reply_markup"] == common_handlers.menu_keyboard
+    assert kwargs["reply_markup"] == common_handlers.build_menu_keyboard()
     assert "pending_entry" not in context.user_data
 
 

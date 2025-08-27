@@ -34,7 +34,10 @@ from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import Cal
 
 from services.api.app.diabetes.services.db import User, Profile, Reminder
 from .db import SessionLocal
-from services.api.app.diabetes.utils.ui import menu_keyboard, build_timezone_webapp_button
+from services.api.app.diabetes.utils.ui import (
+    build_menu_keyboard,
+    build_timezone_webapp_button,
+)
 from services.api.app.diabetes.services.repository import commit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -95,7 +98,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
                 " Рада видеть тебя. Надеюсь, у тебя сегодня всё отлично."
             )
             await message.reply_text(
-                f"{greeting}\n\n📋 Выберите действие:", reply_markup=menu_keyboard
+                f"{greeting}\n\n📋 Выберите действие:",
+                reply_markup=build_menu_keyboard(),
             )
             return ConversationHandler.END
 
@@ -391,7 +395,7 @@ async def onboarding_reminders(
     polls[poll_msg.poll.id] = user_id
 
     await query.message.reply_text(
-        "Готово! Спасибо за настройку.", reply_markup=menu_keyboard
+        "Готово! Спасибо за настройку.", reply_markup=build_menu_keyboard()
     )
     return ConversationHandler.END
 
@@ -413,7 +417,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await query.message.reply_text(
 
                     "⚠️ Не удалось сохранить настройки.",
-                    reply_markup=menu_keyboard,
+                    reply_markup=build_menu_keyboard(),
 
                 )
                 return ConversationHandler.END
@@ -426,7 +430,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     context.bot_data.setdefault("onboarding_polls", {})[poll_msg.poll.id] = user_id
 
     await query.message.reply_text(
-        "Пропущено.", reply_markup=menu_keyboard
+        "Пропущено.", reply_markup=build_menu_keyboard()
     )
     return ConversationHandler.END
 

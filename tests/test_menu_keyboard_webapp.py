@@ -13,7 +13,8 @@ def test_menu_keyboard_webapp_urls(monkeypatch: Any) -> None:
     importlib.reload(config)
     importlib.reload(ui)
 
-    buttons = [btn for row in ui.menu_keyboard.keyboard for btn in row]
+    keyboard = ui.build_menu_keyboard()
+    buttons = [btn for row in keyboard.keyboard for btn in row]
     profile_btn = next(b for b in buttons if b.text == "📄 Мой профиль")
     reminders_btn = next(b for b in buttons if b.text == "⏰ Напоминания")
 

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 from telegram import InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import build_menu_keyboard
 
 from services.api.app.diabetes.services.db import Base, User, Profile
 from tests.helpers import make_context, make_update
@@ -45,8 +45,9 @@ async def test_profile_command_and_view(monkeypatch: Any, args: Any, expected_ic
     update = make_update(message=message, effective_user=TgUser(id=123))
     context = make_context(args=args, user_data={})
 
+    menu_keyboard = build_menu_keyboard()
     await handlers.profile_command(update, context)
-    assert message.markups[0] is menu_keyboard
+    assert message.markups[0] == menu_keyboard
     assert f"• ИКХ: {expected_icr} г/ед." in message.texts[0]
     assert f"• КЧ: {expected_cf} ммоль/л" in message.texts[0]
     assert f"• Целевой сахар: {expected_target} ммоль/л" in message.texts[0]

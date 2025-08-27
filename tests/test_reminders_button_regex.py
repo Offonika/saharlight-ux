@@ -4,7 +4,7 @@ from typing import cast
 
 from telegram.ext import ApplicationBuilder, MessageHandler, filters
 
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import build_menu_keyboard
 import services.api.app.diabetes.handlers.registration as handlers
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
@@ -14,6 +14,7 @@ def test_reminders_button_matches_regex() -> None:
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
+    menu_keyboard = build_menu_keyboard()
     button_texts = [btn.text for row in menu_keyboard.keyboard for btn in row]
     assert "⏰ Напоминания" in button_texts
 

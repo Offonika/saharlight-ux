@@ -7,7 +7,7 @@ from typing import Any
 
 from services.api.app.diabetes.services.db import Entry
 from .db import SessionLocal
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import build_menu_keyboard
 
 from services.api.app.diabetes.services.repository import commit
 
@@ -62,7 +62,9 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     elif data == "cancel_entry":
         context.user_data.pop("pending_entry", None)
         await query.edit_message_text("❌ Запись отменена.")
-        await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
+        await query.message.reply_text(
+            "📋 Выберите действие:", reply_markup=build_menu_keyboard()
+        )
         return
     elif data.startswith("edit:") or data.startswith("del:"):
         action, entry_id = data.split(":", 1)

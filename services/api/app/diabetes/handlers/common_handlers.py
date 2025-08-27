@@ -5,13 +5,13 @@ from __future__ import annotations
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import build_menu_keyboard
 
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Display the main menu keyboard using ``menu_keyboard``."""
+    """Display the main menu keyboard."""
     await update.message.reply_text(
-        "📋 Выберите действие:", reply_markup=menu_keyboard
+        "📋 Выберите действие:", reply_markup=build_menu_keyboard()
     )
 
 
@@ -61,7 +61,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "⏰ Напоминания\n"
         "ℹ️ Помощь"
     )
-    await update.message.reply_text(text, reply_markup=menu_keyboard)
+    await update.message.reply_text(text, reply_markup=build_menu_keyboard())
 
 
 async def smart_input_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -76,7 +76,7 @@ async def smart_input_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 
 __all__ = [
-    "menu_keyboard",
+    "build_menu_keyboard",
     "menu_command",
     "help_command",
     "smart_input_help",

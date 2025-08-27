@@ -18,7 +18,7 @@ import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
 import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 import services.api.app.diabetes.handlers.registration as handlers
 from services.api.app.diabetes.services.repository import commit
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import build_menu_keyboard
 from tests.helpers import make_context, make_update
 
 
@@ -144,6 +144,7 @@ async def test_sos_contact_menu_button_starts_conv(monkeypatch: Any) -> None:
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
+    menu_keyboard = build_menu_keyboard()
     button_texts = [btn.text for row in menu_keyboard.keyboard for btn in row]
     assert "🆘 SOS контакт" in button_texts
 

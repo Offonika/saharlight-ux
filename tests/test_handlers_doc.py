@@ -153,7 +153,7 @@ async def test_photo_handler_preserves_file(
     monkeypatch.setattr(handlers, "send_message", fake_send_message)
     monkeypatch.setattr(handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
-    monkeypatch.setattr(handlers, "menu_keyboard", None)
+    monkeypatch.setattr(handlers, "build_menu_keyboard", lambda: None)
     monkeypatch.setattr(
         handlers.os,
         "makedirs",
@@ -206,7 +206,7 @@ async def test_photo_then_freeform_calculates_dose(
     monkeypatch.setattr(handlers, "send_message", fake_send_message)
     monkeypatch.setattr(handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
-    monkeypatch.setattr(handlers, "menu_keyboard", None)
+    monkeypatch.setattr(handlers, "build_menu_keyboard", lambda: None)
     monkeypatch.setattr(handlers, "confirm_keyboard", lambda: None)
 
     photo_msg = DummyMessage(photo=[DummyPhoto()])

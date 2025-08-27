@@ -70,7 +70,7 @@ async def test_photo_flow_saves_entry(
 
     monkeypatch.setattr(dose_handlers, "parse_command", fake_parse_command)
     monkeypatch.setattr(dose_handlers, "confirm_keyboard", lambda: None)
-    monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
+    monkeypatch.setattr(dose_handlers, "build_menu_keyboard", lambda: None)
 
     msg_start = DummyMessage("/dose")
     update_start = cast(

@@ -15,7 +15,7 @@ from telegram.ext import (
 
 from services.api.app.diabetes.services.db import Profile
 from .db import SessionLocal
-from services.api.app.diabetes.utils.ui import back_keyboard, menu_keyboard
+from services.api.app.diabetes.utils.ui import back_keyboard, build_menu_keyboard
 from services.api.app.diabetes.services.repository import commit
 from . import dose_handlers
 from .dose_handlers import _cancel_then
@@ -72,13 +72,13 @@ async def sos_contact_save(
         if not commit(session):
             await message.reply_text(
                 "⚠️ Не удалось сохранить контакт.",
-                reply_markup=menu_keyboard,
+                reply_markup=build_menu_keyboard(),
             )
             return ConversationHandler.END
 
     await message.reply_text(
         "✅ Контакт для SOS сохранён.",
-        reply_markup=menu_keyboard,
+        reply_markup=build_menu_keyboard(),
     )
     return ConversationHandler.END
 
@@ -90,7 +90,7 @@ async def sos_contact_cancel(
     message: Message = update.message
     if message is None:
         return None
-    await message.reply_text("Отменено.", reply_markup=menu_keyboard)
+    await message.reply_text("Отменено.", reply_markup=build_menu_keyboard())
     return ConversationHandler.END
 
 

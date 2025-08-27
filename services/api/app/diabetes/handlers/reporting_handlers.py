@@ -28,7 +28,7 @@ from services.api.app.diabetes.services.gpt_client import (
 )
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.services.reporting import make_sugar_plot, generate_pdf_report
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import build_menu_keyboard
 
 LOW_SUGAR_THRESHOLD = 3.0
 HIGH_SUGAR_THRESHOLD = 13.0
@@ -163,7 +163,7 @@ async def report_period_callback(
     if data == "report_back":
         await query.message.delete()
         await query.message.reply_text(
-            "📋 Выберите действие:", reply_markup=menu_keyboard
+            "📋 Выберите действие:", reply_markup=build_menu_keyboard()
         )
         return
     period = data.split(":", 1)[1]

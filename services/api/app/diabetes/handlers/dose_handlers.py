@@ -33,7 +33,12 @@ from services.api.app.diabetes.utils.functions import (
 )
 from services.api.app.diabetes.services.gpt_client import create_thread, send_message, _get_client
 from services.api.app.diabetes.gpt_command_parser import parse_command
-from services.api.app.diabetes.utils.ui import menu_keyboard, confirm_keyboard, dose_keyboard, sugar_keyboard
+from services.api.app.diabetes.utils.ui import (
+    build_menu_keyboard,
+    confirm_keyboard,
+    dose_keyboard,
+    sugar_keyboard,
+)
 from services.api.app.diabetes.services.repository import commit
 from .common_handlers import menu_command
 from .alert_handlers import check_alert
@@ -62,7 +67,7 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if message is None:
         return
     await message.reply_text(
-        "📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard
+        "📸 Пришлите фото блюда для анализа.", reply_markup=build_menu_keyboard()
     )
 
 
@@ -121,7 +126,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await check_alert(update, context, sugar)
     await message.reply_text(
         f"✅ Уровень сахара {sugar} ммоль/л сохранён.",
-        reply_markup=menu_keyboard,
+        reply_markup=build_menu_keyboard(),
     )
     if chat_data is not None:
         chat_data.pop("sugar_active", None)
@@ -244,7 +249,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if carbs_g is None and xe is None:
         await message.reply_text(
             "Не указаны углеводы или ХЕ. Расчёт невозможен.",
-            reply_markup=menu_keyboard,
+            reply_markup=build_menu_keyboard(),
         )
         context.user_data.pop("pending_entry", None)
         return ConversationHandler.END
@@ -259,7 +264,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if not profile or None in (profile.icr, profile.cf, profile.target_bg):
         await message.reply_text(
             "Профиль не настроен. Установите коэффициенты через /profile.",
-            reply_markup=menu_keyboard,
+            reply_markup=build_menu_keyboard(),
         )
         context.user_data.pop("pending_entry", None)
         return ConversationHandler.END
@@ -294,7 +299,7 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     message: Message = update.message
     if message is None:
         return
-    await message.reply_text("Отменено.", reply_markup=menu_keyboard)
+    await message.reply_text("Отменено.", reply_markup=build_menu_keyboard())
     context.user_data.pop("pending_entry", None)
     context.user_data.pop("dose_method", None)
     chat_data = getattr(context, "chat_data", None)
@@ -333,7 +338,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if "назад" in text or text == "/cancel":
             context.user_data.pop("awaiting_report_date", None)
             await message.reply_text(
-                "📋 Выберите действие:", reply_markup=menu_keyboard
+                "📋 Выберите действие:", reply_markup=build_menu_keyboard()
             )
             return
         try:
@@ -431,7 +436,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         sugar_info = f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
         await update.message.reply_text(
             f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
-            reply_markup=menu_keyboard,
+            reply_markup=build_menu_keyboard(),
         )
         return
     if pending_entry is not None and edit_id is None:
@@ -472,7 +477,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 ):
                     await update.message.reply_text(
                         "Профиль не настроен. Установите коэффициенты через /profile.",
-                        reply_markup=menu_keyboard,
+                        reply_markup=build_menu_keyboard(),
                     )
                     context.user_data.pop("pending_entry", None)
                     return
@@ -713,7 +718,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 await check_alert(update, context, sugar)
             await update.message.reply_text(
                 f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
-                reply_markup=menu_keyboard,
+                reply_markup=build_menu_keyboard(),
             )
             return
         context.user_data["pending_entry"] = entry_data
@@ -1017,7 +1022,7 @@ async def photo_handler(
                 f"Вот полный ответ Vision:\n<pre>{vision_text}</pre>\n"
                 "Введите /dose и укажите их вручную.",
                 parse_mode="HTML",
-                reply_markup=menu_keyboard,
+                reply_markup=build_menu_keyboard(),
             )
             return ConversationHandler.END
 
@@ -1046,7 +1051,7 @@ async def photo_handler(
         await message.reply_text(
             f"🍽️ На фото:\n{vision_text}\n\n"
             "Введите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина.",
-            reply_markup=menu_keyboard,
+            reply_markup=build_menu_keyboard(),
         )
         return PHOTO_SUGAR
 

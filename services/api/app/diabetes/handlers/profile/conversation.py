@@ -32,7 +32,7 @@ from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
 from services.api.app.diabetes.utils.ui import (
     build_timezone_webapp_button,
     back_keyboard,
-    menu_keyboard,
+    build_menu_keyboard,
 )
 from services.api.app.config import settings
 from services.api.app.diabetes.services.repository import commit
@@ -154,7 +154,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"• Низкий порог: {low} ммоль/л\n"
         f"• Высокий порог: {high} ммоль/л" + warning_msg,
         parse_mode="Markdown",
-        reply_markup=menu_keyboard,
+        reply_markup=build_menu_keyboard(),
     )
     return ConversationHandler.END
 
@@ -232,7 +232,7 @@ async def profile_webapp_save(
     if api is None:
         await update.effective_message.reply_text(
             "⚠️ Функции профиля недоступны. Установите пакет 'diabetes_sdk'.",
-            reply_markup=menu_keyboard,
+            reply_markup=build_menu_keyboard(),
         )
         return
     raw = update.effective_message.web_app_data.data
@@ -241,7 +241,7 @@ async def profile_webapp_save(
         data = json.loads(raw)
     except json.JSONDecodeError:
         await update.effective_message.reply_text(
-            error_msg, reply_markup=menu_keyboard
+            error_msg, reply_markup=build_menu_keyboard()
         )
         return
     if {
@@ -252,7 +252,7 @@ async def profile_webapp_save(
         "high",
     } - data.keys():
         await update.effective_message.reply_text(
-            error_msg, reply_markup=menu_keyboard
+            error_msg, reply_markup=build_menu_keyboard()
         )
         return
     try:
@@ -263,7 +263,7 @@ async def profile_webapp_save(
         high = float(str(data["high"]).replace(",", "."))
     except ValueError:
         await update.effective_message.reply_text(
-            error_msg, reply_markup=menu_keyboard
+            error_msg, reply_markup=build_menu_keyboard()
         )
         return
     user_id = update.effective_user.id
@@ -281,7 +281,7 @@ async def profile_webapp_save(
     if not ok:
         await update.effective_message.reply_text(
             err or "⚠️ Не удалось сохранить профиль.",
-            reply_markup=menu_keyboard,
+            reply_markup=build_menu_keyboard(),
         )
         return
     await update.effective_message.reply_text(
@@ -291,13 +291,13 @@ async def profile_webapp_save(
         f"• Целевой сахар: {target} ммоль/л\n"
         f"• Низкий порог: {low} ммоль/л\n"
         f"• Высокий порог: {high} ммоль/л",
-        reply_markup=menu_keyboard,
+        reply_markup=build_menu_keyboard(),
     )
 
 
 async def profile_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel profile creation conversation."""
-    await update.message.reply_text("Отменено.", reply_markup=menu_keyboard)
+    await update.message.reply_text("Отменено.", reply_markup=build_menu_keyboard())
     return ConversationHandler.END
 
 
@@ -306,7 +306,9 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     query = update.callback_query
     await query.answer()
     await query.message.delete()
-    await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
+    await query.message.reply_text(
+        "📋 Выберите действие:", reply_markup=build_menu_keyboard()
+    )
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user to enter timezone."""
     query = update.callback_query
@@ -354,17 +356,17 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
     )
     if not exists:
         await update.message.reply_text(
-            "Профиль не найден.", reply_markup=menu_keyboard
+            "Профиль не найден.", reply_markup=build_menu_keyboard()
         )
         return ConversationHandler.END
     if not ok:
         await update.message.reply_text(
             "⚠️ Не удалось обновить часовой пояс.",
-            reply_markup=menu_keyboard,
+            reply_markup=build_menu_keyboard(),
         )
         return ConversationHandler.END
     await update.message.reply_text(
-        "✅ Часовой пояс обновлён.", reply_markup=menu_keyboard
+        "✅ Часовой пояс обновлён.", reply_markup=build_menu_keyboard()
     )
     return ConversationHandler.END
 
@@ -462,7 +464,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if not result.get("commit_ok", True):
         await query.message.reply_text(
             "⚠️ Не удалось сохранить настройки.",
-            reply_markup=menu_keyboard,
+            reply_markup=build_menu_keyboard(),
         )
         return
     alert_sugar = result.get("alert_sugar")
@@ -712,7 +714,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         f"• Целевой сахар: {target} ммоль/л\n"
         f"• Низкий порог: {low} ммоль/л\n"
         f"• Высокий порог: {high} ммоль/л" + warning_msg,
-        reply_markup=menu_keyboard,
+        reply_markup=build_menu_keyboard(),
     )
     return ConversationHandler.END
 

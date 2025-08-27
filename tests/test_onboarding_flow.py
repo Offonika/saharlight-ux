@@ -63,7 +63,7 @@ async def test_onboarding_flow(monkeypatch: Any) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    monkeypatch.setattr(onboarding, "menu_keyboard", "MK")
+    monkeypatch.setattr(onboarding, "build_menu_keyboard", lambda: "MK")
 
     message = DummyMessage()
     update = make_update(
