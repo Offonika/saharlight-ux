@@ -1,4 +1,4 @@
-import { Configuration } from "../../../../libs/ts-sdk/runtime";
+import { Configuration } from "../../../../libs/ts-sdk/runtime.ts";
 import { DefaultApi } from "../../../../libs/ts-sdk/apis";
 
 export async function getPlanLimit(userId: number, initData: string): Promise<number> {
