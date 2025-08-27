@@ -17,7 +17,18 @@ jobs:
         run: |
           git fetch origin main
           git show origin/main:libs/contracts/openapi.yaml > /tmp/openapi_main.yaml
-
+          - name: Login to GHCR
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}            # можно ${{ github.repository_owner }}
+            password: ${{ secrets.GHCR_PAT }}
+        
+        # дальше ваш шаг с oasdiff:
+      - name: Run oasdiff
+        run: |
+            docker run --rm -v "$PWD:/work" ghcr.io/tufin/oasdiff:latest \
+              /work/libs/contracts/openapi.yaml
       - name: Breaking check (oasdiff)
         run: |
           docker run --rm -v "$PWD:/work" ghcr.io/tufin/oasdiff:latest \
