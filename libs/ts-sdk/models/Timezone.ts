@@ -21,12 +21,6 @@ import { mapValues } from '../runtime';
 export interface Timezone {
     /**
      * 
-     * @type {number}
-     * @memberof Timezone
-     */
-    telegramId: number;
-    /**
-     * 
      * @type {string}
      * @memberof Timezone
      */
@@ -37,7 +31,6 @@ export interface Timezone {
  * Check if a given object implements the Timezone interface.
  */
 export function instanceOfTimezone(value: object): value is Timezone {
-    if (!('telegramId' in value) || value['telegramId'] === undefined) return false;
     if (!('tz' in value) || value['tz'] === undefined) return false;
     return true;
 }
@@ -52,7 +45,6 @@ export function TimezoneFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
     }
     return {
         
-        'telegramId': json['telegram_id'],
         'tz': json['tz'],
     };
 }
@@ -68,7 +60,6 @@ export function TimezoneToJSONTyped(value?: Timezone | null, ignoreDiscriminator
 
     return {
         
-        'telegram_id': value['telegramId'],
         'tz': value['tz'],
     };
 }

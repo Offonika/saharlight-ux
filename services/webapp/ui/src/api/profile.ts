@@ -1,6 +1,6 @@
 import { DefaultApi, Profile } from '@sdk';
 
-const api = new DefaultApi();
+const api = new DefaultApi({ basePath: '/api' });
 
 export async function saveProfile(profile: Profile) {
   try {
