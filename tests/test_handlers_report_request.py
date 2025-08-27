@@ -6,6 +6,7 @@ from typing import Any, cast
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
+from tests.helpers import make_update
 
 
 class DummyMessage:
@@ -40,7 +41,7 @@ async def test_report_request_and_custom_flow(
     import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
     message = DummyMessage()
-    update = SimpleNamespace(
+    update = make_update(
         message=message, effective_user=SimpleNamespace(id=1)
     )
     context = cast(
@@ -53,7 +54,7 @@ async def test_report_request_and_custom_flow(
     assert message.replies[0][1].get("reply_markup") is not None
 
     query = DummyQuery("report_period:custom")
-    update_cb = SimpleNamespace(
+    update_cb = make_update(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
 
@@ -115,7 +116,7 @@ async def test_report_period_callback_week(
     monkeypatch.setattr(reporting_handlers.datetime, "datetime", DummyDateTime)
 
     query = DummyQuery("report_period:week")
-    update_cb = SimpleNamespace(
+    update_cb = make_update(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
     context = cast(

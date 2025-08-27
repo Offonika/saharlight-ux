@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 from telegram.ext import CommandHandler
+from tests.helpers import make_context, make_update
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -34,8 +35,8 @@ def _get_menu_handler(fallbacks):
 async def test_sugar_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(dose_handlers.sugar_conv.fallbacks)
     message = DummyMessage("/menu")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(user_data={"pending_entry": {"foo": "bar"}})
 
     await handler.callback(update, context)
 
@@ -44,7 +45,7 @@ async def test_sugar_conv_menu_then_photo() -> None:
     assert context.user_data == {}
 
     next_message = DummyMessage("📷 Фото еды")
-    next_update = SimpleNamespace(
+    next_update = make_update(
         message=next_message, effective_user=SimpleNamespace(id=1)
     )
     await dose_handlers.photo_prompt(next_update, context)
@@ -54,8 +55,8 @@ async def test_sugar_conv_menu_then_photo() -> None:
 async def test_dose_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(dose_handlers.dose_conv.fallbacks)
     message = DummyMessage("/menu")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(user_data={"pending_entry": {"foo": "bar"}})
 
     await handler.callback(update, context)
 
@@ -64,7 +65,7 @@ async def test_dose_conv_menu_then_photo() -> None:
     assert context.user_data == {}
 
     next_message = DummyMessage("📷 Фото еды")
-    next_update = SimpleNamespace(
+    next_update = make_update(
         message=next_message, effective_user=SimpleNamespace(id=1)
     )
     await dose_handlers.photo_prompt(next_update, context)

@@ -11,6 +11,7 @@ from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
 from services.api.app.config import settings
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -45,8 +46,8 @@ async def test_profile_view_has_security_button(monkeypatch) -> None:
     )
 
     msg = DummyMessage()
-    update = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace()
+    update = make_update(message=msg, effective_user=SimpleNamespace(id=1))
+    context = make_context()
 
     await handlers.profile_view(update, context)
 
@@ -97,8 +98,8 @@ async def test_profile_security_threshold_changes(monkeypatch, action, expected_
     monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
 
     query = DummyQuery(f"profile_security:{action}")
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
+    update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = make_context(application=SimpleNamespace(job_queue="jq"))
 
     await handlers.profile_security(update, context)
 
@@ -142,8 +143,8 @@ async def test_profile_security_toggle_sos_alerts(monkeypatch) -> None:
     monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
 
     query = DummyQuery("profile_security:toggle_sos")
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
+    update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = make_context(application=SimpleNamespace(job_queue="jq"))
 
     await handlers.profile_security(update, context)
 
@@ -179,8 +180,8 @@ async def test_profile_security_shows_reminders(monkeypatch) -> None:
         session.commit()
 
     query = DummyQuery("profile_security")
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
+    update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = make_context(application=SimpleNamespace(job_queue="jq"))
 
     await handlers.profile_security(update, context)
 
@@ -210,14 +211,14 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch) -> None:
 
     monkeypatch.setattr(settings, "webapp_url", "http://example")
     query_add = DummyQuery("profile_security:add")
-    update_add = SimpleNamespace(callback_query=query_add, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
+    update_add = make_update(callback_query=query_add, effective_user=SimpleNamespace(id=1))
+    context = make_context(application=SimpleNamespace(job_queue="jq"))
 
     await handlers.profile_security(update_add, context)
     assert query_add.message.texts[-1] == "Создать напоминание:"
 
     query_del = DummyQuery("profile_security:del")
-    update_del = SimpleNamespace(callback_query=query_del, effective_user=SimpleNamespace(id=1))
+    update_del = make_update(callback_query=query_del, effective_user=SimpleNamespace(id=1))
 
     await handlers.profile_security(update_del, context)
     assert called["del"] is True
@@ -245,8 +246,8 @@ async def test_profile_security_sos_contact_calls_handler(monkeypatch) -> None:
     monkeypatch.setattr(sos_handlers, "sos_contact_start", fake_sos)
 
     query = DummyQuery("profile_security:sos_contact")
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(application=SimpleNamespace(job_queue="jq"))
+    update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = make_context(application=SimpleNamespace(job_queue="jq"))
 
     await handlers.profile_security(update, context)
     assert called is True

@@ -14,6 +14,7 @@ import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.helpers import parse_time_interval
 from services.api.app.config import settings
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -243,11 +244,11 @@ async def test_reminders_list_no_keyboard(monkeypatch) -> None:
         captured["text"] = text
         captured["kwargs"] = kwargs
 
-    update = SimpleNamespace(
+    update = make_update(
         effective_user=SimpleNamespace(id=1),
         message=SimpleNamespace(reply_text=fake_reply_text),
     )
-    context = SimpleNamespace()
+    context = make_context()
     await handlers.reminders_list(update, context)
     assert "У вас нет напоминаний" in captured["text"]
     assert "reply_markup" not in captured["kwargs"]
@@ -272,8 +273,8 @@ async def test_toggle_reminder_cb(monkeypatch) -> None:
         handlers.schedule_reminder(rem, job_queue)
 
     query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue, user_data={"pending_entry": {}})
+    update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = make_context(job_queue=job_queue, user_data={"pending_entry": {}})
     await handlers.reminder_action_cb(update, context)
     await router.callback_router(update, context)
 
@@ -303,8 +304,8 @@ async def test_delete_reminder_cb(monkeypatch) -> None:
         handlers.schedule_reminder(rem, job_queue)
 
     query = DummyCallbackQuery("rem_del:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue, user_data={})
+    update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = make_context(job_queue=job_queue, user_data={})
     await handlers.reminder_action_cb(update, context)
 
     with TestSession() as session:
@@ -335,8 +336,8 @@ async def test_edit_reminder(monkeypatch) -> None:
     msg.web_app_data = SimpleNamespace(
         data=json.dumps({"id": 1, "type": "medicine", "value": "09:00"})
     )
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue)
+    update = make_update(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    context = make_context(job_queue=job_queue)
     await handlers.reminder_webapp_save(update, context)
 
     with TestSession() as session:
@@ -371,7 +372,7 @@ async def test_trigger_job_logs(monkeypatch) -> None:
         )
     handlers.schedule_reminder(rem, job_queue)
     bot = DummyBot()
-    context = SimpleNamespace(
+    context = make_context(
         bot=bot,
         job=SimpleNamespace(data={"reminder_id": 1, "chat_id": 1}),
         job_queue=job_queue,
@@ -400,8 +401,8 @@ async def test_cancel_callback(monkeypatch) -> None:
         session.commit()
 
     query = DummyCallbackQuery("remind_cancel:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot())
+    update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
+    context = make_context(job_queue=DummyJobQueue(), bot=DummyBot())
     await handlers.reminder_callback(update, context)
 
     assert query.edited[0] == "❌ Напоминание отменено"
@@ -425,8 +426,8 @@ async def test_reminder_callback_foreign_rid(monkeypatch) -> None:
         session.commit()
 
     query = DummyCallbackQuery("remind_cancel:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=2))
-    context = SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot())
+    update = make_update(callback_query=query, effective_user=SimpleNamespace(id=2))
+    context = make_context(job_queue=DummyJobQueue(), bot=DummyBot())
     await handlers.reminder_callback(update, context)
 
     assert query.answers == ["Не найдено"]

@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from services.api.app.diabetes.services.db import Base, User, Reminder, Entry
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 from services.api.app.diabetes.services.repository import commit
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -48,8 +49,8 @@ def _setup_db():
 async def test_bad_input_does_not_create_entry() -> None:
     TestSession = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "bad"}))
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=DummyJobQueue())
+    update = make_update(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    context = make_context(job_queue=DummyJobQueue())
     await handlers.reminder_webapp_save(update, context)
     assert msg.replies and "Неверный формат" in msg.replies[0]
     with TestSession() as session:
@@ -60,8 +61,8 @@ async def test_bad_input_does_not_create_entry() -> None:
 async def test_good_input_updates_and_ends() -> None:
     TestSession = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "09:30"}))
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=DummyJobQueue())
+    update = make_update(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    context = make_context(job_queue=DummyJobQueue())
     await handlers.reminder_webapp_save(update, context)
     with TestSession() as session:
         rem = session.get(Reminder, 1)

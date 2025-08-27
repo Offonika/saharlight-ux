@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 from services.api.app.diabetes.services.db import Base, Reminder, User
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -42,8 +43,8 @@ async def test_reminder_limit_free_vs_pro(plan, limit, monkeypatch) -> None:
 
     msg = DummyMessage()
     msg.web_app_data.data = json.dumps({"type": "sugar", "value": "09:00"})
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=SimpleNamespace(run_daily=lambda *a, **k: None, run_repeating=lambda *a, **k: None, get_jobs_by_name=lambda name: []))
+    update = make_update(effective_message=msg, effective_user=SimpleNamespace(id=1))
+    context = make_context(job_queue=SimpleNamespace(run_daily=lambda *a, **k: None, run_repeating=lambda *a, **k: None, get_jobs_by_name=lambda name: []))
 
     await handlers.reminder_webapp_save(update, context)
 

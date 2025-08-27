@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from services.api.app.diabetes.handlers import reporting_handlers
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -46,11 +47,11 @@ async def test_history_view_does_not_block_event_loop(monkeypatch) -> None:
 
     monkeypatch.setattr(reporting_handlers, "SessionLocal", slow_session)
 
-    update = SimpleNamespace(
+    update = make_update(
         effective_user=SimpleNamespace(id=1),
         message=DummyMessage(),
     )
-    context = SimpleNamespace()
+    context = make_context()
 
     flag = False
 

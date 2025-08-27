@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from tests.helpers import make_context, make_update
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -24,7 +25,7 @@ class DummyMessage:
 @pytest.mark.asyncio
 async def test_prompt_photo_sends_message() -> None:
     message = DummyMessage()
-    update = SimpleNamespace(message=message)
+    update = make_update(message=message)
     await dose_handlers.prompt_photo(update, SimpleNamespace())
     assert any("фото" in t.lower() for t in message.texts)
 
@@ -32,8 +33,8 @@ async def test_prompt_photo_sends_message() -> None:
 @pytest.mark.asyncio
 async def test_prompt_sugar_sends_message() -> None:
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(user_data={})
     await dose_handlers.prompt_sugar(update, context)
     assert any("сахар" in t.lower() for t in message.texts)
     assert message.kwargs and message.kwargs[0].get("reply_markup") is sugar_keyboard
@@ -42,8 +43,8 @@ async def test_prompt_sugar_sends_message() -> None:
 @pytest.mark.asyncio
 async def test_prompt_dose_sends_message() -> None:
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(user_data={})
     await dose_handlers.prompt_dose(update, context)
     assert any("доз" in t.lower() for t in message.texts)
 

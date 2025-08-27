@@ -10,6 +10,7 @@ from telegram.ext import ConversationHandler
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 from services.api.app.diabetes.services.db import Base, User, Profile
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -54,8 +55,8 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
         session.commit()
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=123))
-    context = SimpleNamespace(args=args, user_data={})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=123))
+    context = make_context(args=args, user_data={})
 
     await handlers.profile_command(update, context)
     assert message.markups[0] is menu_keyboard
@@ -66,8 +67,8 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     assert f"• Высокий порог: {expected_high} ммоль/л" in message.texts[0]
 
     message2 = DummyMessage()
-    update2 = SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=123))
-    context2 = SimpleNamespace(user_data={})
+    update2 = make_update(message=message2, effective_user=SimpleNamespace(id=123))
+    context2 = make_context(user_data={})
 
     await handlers.profile_view(update2, context2)
     assert f"• ИКХ: {expected_icr} г/ед." in message2.texts[0]
@@ -108,8 +109,8 @@ async def test_profile_command_invalid_values(monkeypatch, args) -> None:
     monkeypatch.setattr(handlers, "SessionLocal", session_local_mock)
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(args=args, user_data={})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(args=args, user_data={})
 
     await handlers.profile_command(update, context)
 
@@ -129,16 +130,16 @@ async def test_profile_command_help_and_dialog(monkeypatch) -> None:
 
     # Test /profile help
     help_msg = DummyMessage()
-    update = SimpleNamespace(message=help_msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(args=["help"], user_data={})
+    update = make_update(message=help_msg, effective_user=SimpleNamespace(id=1))
+    context = make_context(args=["help"], user_data={})
     result = await handlers.profile_command(update, context)
     assert result == ConversationHandler.END
     assert "Формат команды" in help_msg.texts[0]
 
     # Test starting dialog with empty args
     dialog_msg = DummyMessage()
-    update2 = SimpleNamespace(message=dialog_msg, effective_user=SimpleNamespace(id=1))
-    context2 = SimpleNamespace(args=[], user_data={})
+    update2 = make_update(message=dialog_msg, effective_user=SimpleNamespace(id=1))
+    context2 = make_context(args=[], user_data={})
     result2 = await handlers.profile_command(update2, context2)
     assert result2 == handlers.PROFILE_ICR
     assert dialog_msg.texts[0].startswith("Введите коэффициент ИКХ")
@@ -166,8 +167,8 @@ async def test_profile_view_preserves_user_data(monkeypatch) -> None:
         session.commit()
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={"thread_id": "tid", "foo": "bar"})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(user_data={"thread_id": "tid", "foo": "bar"})
 
     await handlers.profile_view(update, context)
 
@@ -188,8 +189,8 @@ async def test_profile_view_missing_profile_shows_webapp_button(monkeypatch) -> 
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 
     msg = DummyMessage()
-    update = SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace()
+    update = make_update(message=msg, effective_user=SimpleNamespace(id=1))
+    context = make_context()
 
     await handlers.profile_view(update, context)
 

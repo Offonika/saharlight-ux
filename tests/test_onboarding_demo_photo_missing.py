@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from services.api.app.diabetes.services.db import Base
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -45,10 +46,10 @@ async def test_onboarding_demo_photo_missing(monkeypatch, caplog) -> None:
     monkeypatch.setattr(onboarding, "menu_keyboard", "MK")
 
     message = DummyMessage()
-    update = SimpleNamespace(
+    update = make_update(
         message=message, effective_user=SimpleNamespace(id=1, first_name="Ann")
     )
-    context = SimpleNamespace(user_data={}, bot_data={})
+    context = make_context(user_data={}, bot_data={})
 
     await onboarding.start_command(update, context)
     update.message.text = "10"

@@ -8,6 +8,7 @@ from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 import services.api.app.diabetes.handlers.router as router
+from tests.helpers import make_update
 
 
 class DummyMessage:
@@ -129,7 +130,7 @@ async def test_photo_flow_saves_entry(
     context.user_data["thread_id"] = "tid"
 
     msg_photo = DummyMessage(photo=[DummyPhoto()])
-    update_photo = SimpleNamespace(
+    update_photo = make_update(
         message=msg_photo, effective_user=SimpleNamespace(id=1)
     )
     await dose_handlers.photo_handler(update_photo, context)
@@ -157,7 +158,7 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(alert_handlers, "check_alert", noop)
 
     query = DummyQuery("confirm_entry")
-    update_confirm = SimpleNamespace(callback_query=query)
+    update_confirm = make_update(callback_query=query)
     await router.callback_router(update_confirm, context)
 
     assert len(session.added) == 1
