@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -35,7 +36,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch, tmp_path) -> None:
     async def fake_send_chat_action(*args: Any, **kwargs: Any) -> None:
         pass
 
-    context = SimpleNamespace(
+    context = make_context(
         user_data={"thread_id": "tid"},
         bot=SimpleNamespace(get_file=fake_get_file, send_chat_action=fake_send_chat_action),
     )
@@ -79,7 +80,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
 
     msg_photo = DummyMessage(photo=[DummyPhoto()])
-    update = SimpleNamespace(message=msg_photo, effective_user=SimpleNamespace(id=1))
+    update = make_update(message=msg_photo, effective_user=SimpleNamespace(id=1))
 
     await dose_handlers.photo_handler(update, context)
 

@@ -12,6 +12,7 @@ from services.api.app.diabetes.handlers import profile as profile_handlers
 import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -60,8 +61,8 @@ async def test_profile_command_no_local_session(monkeypatch) -> None:
     )
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(args=["10", "2", "6", "4", "9"], user_data={})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(args=["10", "2", "6", "4", "9"], user_data={})
 
     result = await profile_handlers.profile_command(update, context)
 
@@ -94,8 +95,8 @@ async def test_callback_router_commit_failure(monkeypatch, caplog) -> None:
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
     query = DummyQuery("confirm_entry")
-    update = SimpleNamespace(callback_query=query)
-    context = SimpleNamespace(user_data={"pending_entry": pending_entry})
+    update = make_update(callback_query=query)
+    context = make_context(user_data={"pending_entry": pending_entry})
 
     with caplog.at_level(logging.ERROR):
         await router.callback_router(update, context)
@@ -125,8 +126,8 @@ async def test_add_reminder_commit_failure(monkeypatch, caplog) -> None:
     monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(
         args=["sugar", "23:00"],
         job_queue=SimpleNamespace(get_jobs_by_name=lambda name: []),
     )
@@ -167,10 +168,10 @@ async def test_reminder_webapp_save_commit_failure(monkeypatch, caplog) -> None:
     message = DummyWebAppMessage(
         json.dumps({"type": "sugar", "value": "23:00", "id": 1})
     )
-    update = SimpleNamespace(
+    update = make_update(
         effective_message=message, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(job_queue=SimpleNamespace())
+    context = make_context(job_queue=SimpleNamespace())
 
     with caplog.at_level(logging.ERROR):
         await reminder_handlers.reminder_webapp_save(update, context)
@@ -197,8 +198,8 @@ async def test_delete_reminder_commit_failure(monkeypatch, caplog) -> None:
 
     job_queue = SimpleNamespace(get_jobs_by_name=MagicMock())
     message = DummyMessage()
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace(args=["1"], job_queue=job_queue)
+    update = make_update(message=message)
+    context = make_context(args=["1"], job_queue=job_queue)
 
     with caplog.at_level(logging.ERROR):
         await reminder_handlers.delete_reminder(update, context)
@@ -224,7 +225,7 @@ async def test_reminder_job_commit_failure(monkeypatch, caplog) -> None:
     describe_mock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "_describe", describe_mock)
 
-    context = SimpleNamespace(
+    context = make_context(
         job=SimpleNamespace(data={"reminder_id": 1, "chat_id": 1}),
         bot=SimpleNamespace(send_message=MagicMock()),
     )
@@ -260,10 +261,10 @@ async def test_reminder_callback_commit_failure(monkeypatch, caplog) -> None:
     monkeypatch.setattr(reminder_handlers, "commit", failing_commit)
 
     query = DummyQuery("remind_snooze:1")
-    update = SimpleNamespace(
+    update = make_update(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(job_queue=SimpleNamespace(run_once=MagicMock()))
+    context = make_context(job_queue=SimpleNamespace(run_once=MagicMock()))
 
     with caplog.at_level(logging.ERROR):
         await reminder_handlers.reminder_callback(update, context)
@@ -291,10 +292,10 @@ async def test_reminder_action_cb_commit_failure(monkeypatch, caplog) -> None:
 
     job_queue = SimpleNamespace(get_jobs_by_name=MagicMock())
     query = DummyQuery("rem_toggle:1")
-    update = SimpleNamespace(
+    update = make_update(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(job_queue=job_queue)
+    context = make_context(job_queue=job_queue)
 
     with caplog.at_level(logging.ERROR):
         await reminder_handlers.reminder_action_cb(update, context)

@@ -9,6 +9,7 @@ from telegram.ext import CallbackContext
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
+from tests.helpers import make_update
 
 os.environ.setdefault("DB_PASSWORD", "test")
 from services.api.app.diabetes.services.db import Base, User, Entry
@@ -90,7 +91,7 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
         entry_ids = [e.id for e in session.query(Entry).all()]
 
     message = DummyMessage()
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     context = cast(
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
     )
@@ -162,7 +163,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     entry_message = DummyMessage(chat_id=42, message_id=24)
     query = DummyQuery(f"edit:{entry_id}", message=entry_message)
-    update_cb = SimpleNamespace(
+    update_cb = make_update(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
     context = cast(
@@ -183,7 +184,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert f"edit_field:{entry_id}:dose" in buttons
 
     field_query = DummyQuery(f"edit_field:{entry_id}:xe", message=entry_message)
-    update_cb2 = SimpleNamespace(
+    update_cb2 = make_update(
         callback_query=field_query, effective_user=SimpleNamespace(id=1)
     )
     await router.callback_router(update_cb2, context)

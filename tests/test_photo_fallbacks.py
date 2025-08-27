@@ -5,6 +5,7 @@ from typing import Any, cast
 
 import pytest
 from telegram.ext import CallbackContext, MessageHandler
+from tests.helpers import make_update
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -40,7 +41,7 @@ class DummyMessage:
 
 async def _exercise(handler) -> None:
     message = DummyMessage("📷 Фото еды")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     context = cast(
         CallbackContext[Any, Any, Any, Any],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"}),

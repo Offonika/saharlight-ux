@@ -1,8 +1,8 @@
 import pytest
-from types import SimpleNamespace
 from typing import Any
 
 import services.api.app.diabetes.handlers.common_handlers as handlers
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -21,8 +21,8 @@ async def test_quick_input_help_button() -> None:
     """Simulate the "🕹 Быстрый ввод" menu button and verify the hint."""
 
     message = DummyMessage("🕹 Быстрый ввод")
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace()
+    update = make_update(message=message)
+    context = make_context()
 
     await handlers.smart_input_help(update, context)
 

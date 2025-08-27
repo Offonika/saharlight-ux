@@ -20,6 +20,7 @@ import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 import services.api.app.diabetes.handlers.registration as handlers
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.ui import menu_keyboard
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -52,8 +53,8 @@ async def test_soscontact_stores_contact(test_session, contact) -> None:
         session.commit()
 
     message = DummyMessage(contact)
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace()
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context()
 
     result = await sos_handlers.sos_contact_save(update, context)
 
@@ -74,10 +75,10 @@ async def test_alert_notifies_user_and_contact(test_session, monkeypatch) -> Non
 
     # Save SOS contact via handler
     message = DummyMessage("@alice")
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     await sos_handlers.sos_contact_save(update, SimpleNamespace())
 
-    update_alert = SimpleNamespace(
+    update_alert = make_update(
         effective_user=SimpleNamespace(id=1, first_name="Ivan")
     )
     context: AlertContext = ContextStub(bot=cast(Bot, SimpleNamespace()))
@@ -115,7 +116,7 @@ async def test_alert_skips_phone_contact(test_session, monkeypatch) -> None:
         )
         session.commit()
 
-    update_alert = SimpleNamespace(
+    update_alert = make_update(
         effective_user=SimpleNamespace(id=1, first_name="Ivan")
     )
     context: AlertContext = ContextStub(bot=cast(Bot, SimpleNamespace()))
@@ -156,8 +157,8 @@ async def test_sos_contact_menu_button_starts_conv(monkeypatch) -> None:
     assert re.fullmatch(pattern, "🆘 SOS контакт")
 
     message = DummyMessage("🆘 SOS контакт")
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace()
+    update = make_update(message=message)
+    context = make_context()
     state = await sos_handler.callback(update, context)
 
     assert state == sos_handlers.SOS_CONTACT

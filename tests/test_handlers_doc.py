@@ -7,6 +7,7 @@ from telegram import Message, Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as handlers
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage(Message):
@@ -46,8 +47,8 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
         mime_type="image/png",
     )
     message = SimpleNamespace(document=document, photo=None)
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(bot=dummy_bot, user_data={})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(bot=dummy_bot, user_data={})
 
     monkeypatch.setattr(handlers, "photo_handler", fake_photo_handler)
     monkeypatch.setattr(handlers.os, "makedirs", lambda *args, **kwargs: None)
@@ -74,8 +75,8 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
         mime_type=None,
     )
     message = SimpleNamespace(document=document, photo=None)
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(user_data={})
 
     monkeypatch.setattr(handlers, "photo_handler", fake_photo_handler)
 
@@ -89,8 +90,8 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
 @pytest.mark.asyncio
 async def test_photo_handler_handles_typeerror() -> None:
     message = DummyMessage(photo=None)
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(user_data={})
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    context = make_context(user_data={})
 
     result = await handlers.photo_handler(update, context)
 
@@ -113,7 +114,7 @@ async def test_photo_handler_preserves_file(
         pass
 
     message = SimpleNamespace(photo=[DummyPhoto()], reply_text=reply_text)
-    update = SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
 
     class DummyFile:
         async def download_to_drive(self, path) -> None:
@@ -123,7 +124,7 @@ async def test_photo_handler_preserves_file(
         return DummyFile()
 
     dummy_bot = SimpleNamespace(get_file=fake_get_file)
-    context = SimpleNamespace(bot=dummy_bot, user_data={"thread_id": "tid"})
+    context = make_context(bot=dummy_bot, user_data={"thread_id": "tid"})
 
     call = {}
 
@@ -209,7 +210,7 @@ async def test_photo_then_freeform_calculates_dose(
     monkeypatch.setattr(handlers, "confirm_keyboard", lambda: None)
 
     photo_msg = DummyMessage(photo=[DummyPhoto()])
-    update_photo = SimpleNamespace(
+    update_photo = make_update(
         message=photo_msg, effective_user=SimpleNamespace(id=1)
     )
     context = cast(

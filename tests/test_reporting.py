@@ -1,3 +1,4 @@
+from tests.helpers import make_context, make_update
 # test_reporting.py
 
 import datetime
@@ -180,10 +181,10 @@ async def test_send_report_uses_gpt(monkeypatch) -> None:
             self.docs.append(document)
 
     message = DummyMessage()
-    update = SimpleNamespace(
+    update = make_update(
         message=message, effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(user_data={"thread_id": "tid"})
+    context = make_context(user_data={"thread_id": "tid"})
 
     class Run:
         status = "completed"

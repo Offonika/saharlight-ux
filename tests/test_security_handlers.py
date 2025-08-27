@@ -1,8 +1,8 @@
 import pytest
-from types import SimpleNamespace
 from typing import Any
 
 import services.api.app.diabetes.handlers.security_handlers as handlers
+from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
@@ -16,8 +16,8 @@ class DummyMessage:
 @pytest.mark.asyncio
 async def test_hypoalert_faq_returns_message() -> None:
     message = DummyMessage()
-    update = SimpleNamespace(message=message)
-    context = SimpleNamespace()
+    update = make_update(message=message)
+    context = make_context()
 
     await handlers.hypo_alert_faq(update, context)
 

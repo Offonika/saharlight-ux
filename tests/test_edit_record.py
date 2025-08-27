@@ -8,6 +8,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from tests.helpers import make_update
 
 os.environ.setdefault("DB_PASSWORD", "test")
 from services.api.app.diabetes.services.db import Base, User, Entry
@@ -77,7 +78,7 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
 
     entry_message = DummyMessage(chat_id=42, message_id=24)
     query = DummyQuery(f"edit:{entry_id}", message=entry_message)
-    update_cb = SimpleNamespace(
+    update_cb = make_update(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
     context = cast(
@@ -88,7 +89,7 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     await router.callback_router(update_cb, context)
 
     field_query = DummyQuery(f"edit_field:{entry_id}:dose", message=entry_message)
-    update_cb2 = SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1))
+    update_cb2 = make_update(callback_query=field_query, effective_user=SimpleNamespace(id=1))
     await router.callback_router(update_cb2, context)
     assert context.user_data["edit_field"] == "dose"
 

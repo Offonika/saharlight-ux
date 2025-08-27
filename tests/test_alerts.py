@@ -13,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 import services.api.app.diabetes.handlers.alert_handlers as handlers
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.services.db import Base, User, Profile, Alert
+from tests.helpers import make_update
 
 
 class DummyJob:
@@ -180,7 +181,7 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
         async def send_message(self, chat_id: int | str, text: str) -> None:
             self.sent.append((chat_id, text))
 
-    update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
+    update = make_update(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
     context = cast(AlertContext, ContextStub(bot=DummyBot()))
     async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
         return ("0,0", "link")
@@ -227,7 +228,7 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
         async def send_message(self, chat_id: int | str, text: str) -> None:
             self.sent.append((chat_id, text))
 
-    update = SimpleNamespace(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
+    update = make_update(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
     context = cast(AlertContext, ContextStub(bot=DummyBot()))
 
     async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
