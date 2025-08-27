@@ -1,5 +1,5 @@
 
-import { Reminder } from '@sdk';
+import type { Reminder } from '@sdk/models/Reminder';
 import { http } from './http';
 import { mockApi } from './mock-server';
 

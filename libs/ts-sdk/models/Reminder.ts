@@ -13,6 +13,21 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ScheduleKind } from './ScheduleKind';
+import {
+    ScheduleKindFromJSON,
+    ScheduleKindFromJSONTyped,
+    ScheduleKindToJSON,
+    ScheduleKindToJSONTyped,
+} from './ScheduleKind';
+import type { ReminderType } from './ReminderType';
+import {
+    ReminderTypeFromJSON,
+    ReminderTypeFromJSONTyped,
+    ReminderTypeToJSON,
+    ReminderTypeToJSONTyped,
+} from './ReminderType';
+
 /**
  * 
  * @export
@@ -30,19 +45,43 @@ export interface Reminder {
      * @type {number}
      * @memberof Reminder
      */
-    id?: number;
+    id?: number | null;
+    /**
+     * 
+     * @type {ReminderType}
+     * @memberof Reminder
+     */
+    type: ReminderType;
     /**
      * 
      * @type {string}
      * @memberof Reminder
      */
-    type: string;
+    title?: string | null;
+    /**
+     * 
+     * @type {ScheduleKind}
+     * @memberof Reminder
+     */
+    kind?: ScheduleKind;
     /**
      * 
      * @type {string}
      * @memberof Reminder
      */
-    time?: string;
+    time?: string | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof Reminder
+     */
+    intervalMinutes?: number | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof Reminder
+     */
+    minutesAfter?: number | null;
     /**
      * 
      * @type {number}
@@ -51,10 +90,28 @@ export interface Reminder {
     intervalHours?: number | null;
     /**
      * 
+     * @type {Set<number>}
+     * @memberof Reminder
+     */
+    daysOfWeek?: Set<number> | null;
+    /**
+     * 
      * @type {boolean}
      * @memberof Reminder
      */
     isEnabled?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof Reminder
+     */
+    orgId?: number | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof Reminder
+     */
+    nextAt?: Date | null;
 }
 
 /**
@@ -76,12 +133,19 @@ export function ReminderFromJSONTyped(json: any, ignoreDiscriminator: boolean): 
     }
     return {
         
-        'telegramId': json['telegram_id'],
+        'telegramId': json['telegramId'],
         'id': json['id'] == null ? undefined : json['id'],
-        'type': json['type'],
+        'type': ReminderTypeFromJSON(json['type']),
+        'title': json['title'] == null ? undefined : json['title'],
+        'kind': json['kind'] == null ? undefined : ScheduleKindFromJSON(json['kind']),
         'time': json['time'] == null ? undefined : json['time'],
-        'intervalHours': json['interval_hours'] == null ? undefined : json['interval_hours'],
-        'isEnabled': json['is_enabled'] == null ? undefined : json['is_enabled'],
+        'intervalMinutes': json['intervalMinutes'] == null ? undefined : json['intervalMinutes'],
+        'minutesAfter': json['minutesAfter'] == null ? undefined : json['minutesAfter'],
+        'intervalHours': json['intervalHours'] == null ? undefined : json['intervalHours'],
+        'daysOfWeek': json['daysOfWeek'] == null ? undefined : new Set(json['daysOfWeek']),
+        'isEnabled': json['isEnabled'] == null ? undefined : json['isEnabled'],
+        'orgId': json['orgId'] == null ? undefined : json['orgId'],
+        'nextAt': json['nextAt'] == null ? undefined : (new Date(json['nextAt'])),
     };
 }
 
@@ -96,12 +160,19 @@ export function ReminderToJSONTyped(value?: Reminder | null, ignoreDiscriminator
 
     return {
         
-        'telegram_id': value['telegramId'],
+        'telegramId': value['telegramId'],
         'id': value['id'],
-        'type': value['type'],
+        'type': ReminderTypeToJSON(value['type']),
+        'title': value['title'],
+        'kind': ScheduleKindToJSON(value['kind']),
         'time': value['time'],
-        'interval_hours': value['intervalHours'],
-        'is_enabled': value['isEnabled'],
+        'intervalMinutes': value['intervalMinutes'],
+        'minutesAfter': value['minutesAfter'],
+        'intervalHours': value['intervalHours'],
+        'daysOfWeek': value['daysOfWeek'] == null ? undefined : Array.from(value['daysOfWeek'] as Set<any>),
+        'isEnabled': value['isEnabled'],
+        'orgId': value['orgId'],
+        'nextAt': value['nextAt'] === null ? null : ((value['nextAt'] as any)?.toISOString()),
     };
 }
 

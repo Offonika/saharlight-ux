@@ -8,5 +8,7 @@ models/RemindersGet200Response.ts
 models/RemindersPost200Response.ts
 models/Status.ts
 models/Timezone.ts
+models/ReminderType.ts
+models/ScheduleKind.ts
 models/index.ts
 runtime.ts

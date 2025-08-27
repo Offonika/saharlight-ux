@@ -4,7 +4,7 @@ import { MedicalButton, Sheet } from "@/components";
 import { MedicalHeader } from "@/components/MedicalHeader";
 import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
-import { Reminder as ApiReminder } from "@sdk";
+import type { Reminder as ApiReminder } from "@sdk/models/Reminder";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast as useShadcnToast } from "@/hooks/use-toast";
 import { validate, hasErrors, FormErrors } from "@/features/reminders/logic/validate";
