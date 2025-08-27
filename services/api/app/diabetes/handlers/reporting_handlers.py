@@ -346,23 +346,25 @@ async def send_report(
     if query is not None:
         await query.edit_message_text(report_msg, parse_mode="HTML")
         q_message = query.message
-        if q_message is not None:
-            await q_message.reply_photo(
-                plot_buf,
-                caption="График сахара за период",
-            )
-            await q_message.reply_document(
-                pdf_buf,
-                filename="diabetes_report.pdf",
-                caption="PDF-отчёт для врача",
-            )
-    elif message is not None:
-        await message.reply_text(report_msg, parse_mode="HTML")
-        await message.reply_photo(
+        if q_message is None:
+            return
+        await q_message.reply_photo(
             plot_buf,
             caption="График сахара за период",
         )
-        await message.reply_document(
+        await q_message.reply_document(
+            pdf_buf,
+            filename="diabetes_report.pdf",
+            caption="PDF-отчёт для врача",
+        )
+    elif message is not None:
+        msg = message
+        await msg.reply_text(report_msg, parse_mode="HTML")
+        await msg.reply_photo(
+            plot_buf,
+            caption="График сахара за период",
+        )
+        await msg.reply_document(
             pdf_buf,
             filename="diabetes_report.pdf",
             caption="PDF-отчёт для врача",
