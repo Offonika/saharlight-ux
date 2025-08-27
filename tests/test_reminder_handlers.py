@@ -1,7 +1,7 @@
 import json
 from datetime import time, timedelta
 from types import TracebackType
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -69,18 +69,23 @@ def make_user(user_id: int) -> MagicMock:
     return user
 
 
-def make_update(**kwargs: Any) -> MagicMock:
+def make_update(**kwargs: Any) -> Update:
     update = MagicMock(spec=Update)
     for key, value in kwargs.items():
         setattr(update, key, value)
-    return update
+    return cast(Update, update)
 
 
-def make_context(**kwargs: Any) -> MagicMock:
+def make_context(
+    **kwargs: Any,
+) -> CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
     context = MagicMock(spec=CallbackContext)
     for key, value in kwargs.items():
         setattr(context, key, value)
-    return context
+    return cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        context,
+    )
 
 
 @pytest.mark.asyncio
@@ -95,7 +100,9 @@ async def test_add_reminder_fewer_args(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_invalid_time(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_add_reminder_sugar_invalid_time(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "ab:cd"])
@@ -110,7 +117,9 @@ async def test_add_reminder_sugar_invalid_time(reminder_handlers: Any, monkeypat
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_non_numeric_interval(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_add_reminder_sugar_non_numeric_interval(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "abc"])
@@ -136,7 +145,9 @@ async def test_add_reminder_unknown_type(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_valid_type(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_add_reminder_valid_type(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "2"], job_queue=None)
