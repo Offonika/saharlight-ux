@@ -23,8 +23,9 @@
 
     "baseUrl": ".",
     "paths": {
+      "@sdk/*": ["../../../libs/ts-sdk/*"],
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../../../libs/ts-sdk"]
 }
