@@ -16,6 +16,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from typing import Any, cast
+
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -192,13 +194,13 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     user_id = user.id
 
     with SessionLocal() as session:
-        prof = session.get(Profile, user_id)
-        if not prof:
-            prof = Profile(telegram_id=user_id)
-            session.add(prof)
-        prof.icr = icr
-        prof.cf = cf
-        prof.target_bg = target
+        profile = session.get(Profile, user_id)
+        if profile is None:
+            profile = Profile(telegram_id=user_id)
+            session.add(profile)
+        cast(Any, profile).icr = icr
+        cast(Any, profile).cf = cf
+        cast(Any, profile).target_bg = target
         if not commit(session):
             await message.reply_text("⚠️ Не удалось сохранить профиль.")
             return ConversationHandler.END
