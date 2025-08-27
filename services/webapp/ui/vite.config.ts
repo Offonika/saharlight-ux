@@ -3,11 +3,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import tsconfigPaths from 'vite-tsconfig-paths'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 export default defineConfig(async ({ mode }) => {
-  const plugins = [react()]
+  const plugins = [react(), tsconfigPaths()]
   if (mode === 'development') {
     const { componentTagger } = await import('lovable-tagger')
     plugins.push(componentTagger())
@@ -20,7 +21,7 @@ export default defineConfig(async ({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        '@sdk': path.resolve(__dirname, '../../../libs/ts-sdk'),
+        '@sdk': path.resolve(__dirname, '../../..', 'libs/ts-sdk'),
       },
     },
     server: { host: '::', port: 8080 },
