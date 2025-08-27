@@ -1,3 +1,4 @@
+# file: .github/workflows/openapi-check.yml
 name: OpenAPI Check
 
 on:
