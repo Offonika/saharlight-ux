@@ -9,8 +9,3 @@ mkdir -p services/api services/bot libs infra docs/ADR
 : > libs/.gitkeep
 : > infra/.gitkeep
 : > docs/ADR/.gitkeep
-
-# Move webapp into services if it exists at the repository root
-if [ -d webapp ]; then
-    mv webapp services/webapp
-fi

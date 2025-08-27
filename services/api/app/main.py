@@ -19,10 +19,10 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 app.include_router(router)
 
-BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
-UI_DIR = BASE_DIR / "ui" / "dist"
+BASE_DIR = Path(__file__).resolve().parents[2]
+UI_DIR = BASE_DIR / "dist"
 if not UI_DIR.exists():
-    UI_DIR = BASE_DIR / "ui"
+    UI_DIR = BASE_DIR / "src"
 UI_DIR = UI_DIR.resolve()
 
 
