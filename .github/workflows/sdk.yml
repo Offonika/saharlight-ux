@@ -1,4 +1,4 @@
-name: Generate SDKs
+name: Generate TS SDK
 
 on:
   push:
@@ -26,12 +26,13 @@ jobs:
           node-version: "20"
           cache: pnpm
       - run: pnpm install
-      - name: Generate SDKs
-        run: pnpm run generate:sdk
-      - name: Commit SDKs
+      - name: Install OpenAPI Generator CLI
+        run: pnpm add --global @openapitools/openapi-generator-cli
+      - name: Generate TS SDK
+        run: bash scripts/gen_ts_sdk.sh
+      - name: Commit TS SDK
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: 'chore: regenerate SDKs'
+          commit_message: 'chore: regenerate TS SDK'
           file_pattern: |
             libs/ts-sdk/**
-            libs/py-sdk/**
