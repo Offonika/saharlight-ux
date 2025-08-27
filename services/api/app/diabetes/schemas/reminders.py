@@ -84,4 +84,4 @@ class ReminderIn(BaseModel):
 
 
 class ReminderOut(ReminderIn):
-    nextAt: Optional[str] = None  # ISO datetime, filled by service
+    lastFiredAt: Optional[str] = None  # ISO datetime, filled by service

@@ -44,7 +44,7 @@ function initializeDefaultReminders() {
       minutesAfter: 30,
       daysOfWeek: null,
       isEnabled: true,
-      nextAt: null,
+      lastFiredAt: null,
     };
     mockReminders.push(newReminder);
     saveToStorage(mockReminders);
@@ -88,7 +88,7 @@ export const mockApi = {
       minutesAfter: reminder.minutes_after || null,
       daysOfWeek: reminder.days_of_week || null,
       isEnabled: reminder.is_enabled,
-      nextAt: reminder.next_at || null,
+      lastFiredAt: reminder.last_fired_at || null,
     };
     mockReminders.push(newReminder);
     saveToStorage(mockReminders);

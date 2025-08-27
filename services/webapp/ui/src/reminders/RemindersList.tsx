@@ -9,7 +9,7 @@ export interface Reminder {
   title: string
   type: string
   isEnabled: boolean
-  nextAt?: string | null
+  lastFiredAt?: string | null
 }
 
 interface Props {
@@ -28,9 +28,7 @@ export default function RemindersList({ reminders: initial }: Props) {
     if (index === -1) return
     const nextValue = !prev[index].isEnabled
     const updated = prev.map(r =>
-      r.id === id
-        ? { ...r, isEnabled: nextValue, nextAt: nextValue ? r.nextAt : undefined }
-        : r,
+      r.id === id ? { ...r, isEnabled: nextValue } : r,
     )
     setReminders(updated)
     try {
@@ -55,8 +53,8 @@ export default function RemindersList({ reminders: initial }: Props) {
         >
           <div>
             <div className="font-medium">{r.title}</div>
-            {r.isEnabled && r.nextAt && (
-              <div className="text-xs text-muted-foreground">{r.nextAt}</div>
+            {r.isEnabled && r.lastFiredAt && (
+              <div className="text-xs text-muted-foreground">{r.lastFiredAt}</div>
             )}
           </div>
           <button

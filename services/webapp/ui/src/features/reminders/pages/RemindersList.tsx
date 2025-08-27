@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useRemindersApi } from "../api/reminders";
-import { formatNextAt } from "../../../shared/datetime";
+import { formatLastFiredAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
 import { mockApi } from "../../../api/mock-server";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +29,7 @@ type ReminderDto = {
   minutesAfter?: number | null;
   daysOfWeek?: number[] | null;
   isEnabled: boolean;
-  nextAt?: string | null;
+  lastFiredAt?: string | null;
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -292,7 +292,7 @@ export default function RemindersList({
                       {scheduleLine(r)}
                     </div>
                     <div className="text-xs text-muted-foreground/70">
-                      Следующее: {formatNextAt(r.nextAt)}
+                      Последний запуск: {formatLastFiredAt(r.lastFiredAt)}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 ml-4">

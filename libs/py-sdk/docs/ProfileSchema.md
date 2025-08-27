@@ -11,6 +11,8 @@ Name | Type | Description | Notes
 **target** | **float** |  | 
 **low** | **float** |  | 
 **high** | **float** |  | 
+**quiet_start** | **str** |  | [optional] [default to '23:00']
+**quiet_end** | **str** |  | [optional] [default to '07:00']
 **sos_contact** | **str** |  | [optional] 
 **sos_alerts_enabled** | **bool** |  | [optional] [default to True]
 **org_id** | **int** |  | [optional] 

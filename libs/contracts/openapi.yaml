@@ -807,14 +807,14 @@ components:
           - type: integer
           - type: 'null'
           title: Org Id
-        nextAt:
+        lastFiredAt:
           anyOf:
           - type: string
             format: date-time
           - type: 'null'
           readOnly: true
-          description: Next fire in user timezone
-          title: Next At
+          description: Last fire in user timezone
+          title: Last Fired At
       type: object
       required:
       - telegramId

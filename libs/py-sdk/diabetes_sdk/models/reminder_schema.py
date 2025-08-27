@@ -17,8 +17,12 @@ import pprint
 import re  # noqa: F401
 import json
 
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
+from diabetes_sdk.models.reminder_type import ReminderType
+from diabetes_sdk.models.schedule_kind import ScheduleKind
 from typing import Optional, Set
 from typing_extensions import Self
 
@@ -28,14 +32,18 @@ class ReminderSchema(BaseModel):
     """ # noqa: E501
     telegram_id: StrictInt = Field(alias="telegramId")
     id: Optional[StrictInt] = None
-    type: StrictStr
+    type: ReminderType
     title: Optional[StrictStr] = None
+    kind: Optional[ScheduleKind] = None
     time: Optional[StrictStr] = None
-    interval_hours: Optional[StrictInt] = Field(default=None, alias="intervalHours")
-    minutes_after: Optional[StrictInt] = Field(default=None, alias="minutesAfter")
+    interval_minutes: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, alias="intervalMinutes")
+    minutes_after: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, alias="minutesAfter")
+    interval_hours: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(default=None, alias="intervalHours")
+    days_of_week: Optional[List[Annotated[int, Field(le=7, strict=True, ge=1)]]] = Field(default=None, alias="daysOfWeek")
     is_enabled: Optional[StrictBool] = Field(default=True, alias="isEnabled")
     org_id: Optional[StrictInt] = Field(default=None, alias="orgId")
-    __properties: ClassVar[List[str]] = ["telegramId", "id", "type", "title", "time", "intervalHours", "minutesAfter", "isEnabled", "orgId"]
+    last_fired_at: Optional[datetime] = Field(default=None, alias="lastFiredAt")
+    __properties: ClassVar[List[str]] = []
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -76,36 +84,6 @@ class ReminderSchema(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # set to None if id (nullable) is None
-        # and model_fields_set contains the field
-        if self.id is None and "id" in self.model_fields_set:
-            _dict['id'] = None
-
-        # set to None if title (nullable) is None
-        # and model_fields_set contains the field
-        if self.title is None and "title" in self.model_fields_set:
-            _dict['title'] = None
-
-        # set to None if time (nullable) is None
-        # and model_fields_set contains the field
-        if self.time is None and "time" in self.model_fields_set:
-            _dict['time'] = None
-
-        # set to None if interval_hours (nullable) is None
-        # and model_fields_set contains the field
-        if self.interval_hours is None and "interval_hours" in self.model_fields_set:
-            _dict['intervalHours'] = None
-
-        # set to None if minutes_after (nullable) is None
-        # and model_fields_set contains the field
-        if self.minutes_after is None and "minutes_after" in self.model_fields_set:
-            _dict['minutesAfter'] = None
-
-        # set to None if org_id (nullable) is None
-        # and model_fields_set contains the field
-        if self.org_id is None and "org_id" in self.model_fields_set:
-            _dict['orgId'] = None
-
         return _dict
 
     @classmethod
@@ -118,15 +96,6 @@ class ReminderSchema(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "telegramId": obj.get("telegramId"),
-            "id": obj.get("id"),
-            "type": obj.get("type"),
-            "title": obj.get("title"),
-            "time": obj.get("time"),
-            "intervalHours": obj.get("intervalHours"),
-            "minutesAfter": obj.get("minutesAfter"),
-            "isEnabled": obj.get("isEnabled") if obj.get("isEnabled") is not None else True,
-            "orgId": obj.get("orgId")
         })
         return _obj
 

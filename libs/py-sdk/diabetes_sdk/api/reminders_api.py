@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
 from pydantic import StrictInt
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from diabetes_sdk.models.reminder_schema import ReminderSchema
 
 from diabetes_sdk.api_client import ApiClient, RequestSerialized
@@ -871,7 +871,7 @@ class RemindersApi:
     @validate_call
     def reminders_patch(
         self,
-        reminder: ReminderSchema,
+        reminder: Optional[ReminderSchema],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -938,7 +938,7 @@ class RemindersApi:
     @validate_call
     def reminders_patch_with_http_info(
         self,
-        reminder: ReminderSchema,
+        reminder: Optional[ReminderSchema],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1005,7 +1005,7 @@ class RemindersApi:
     @validate_call
     def reminders_patch_without_preload_content(
         self,
-        reminder: ReminderSchema,
+        reminder: Optional[ReminderSchema],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1145,7 +1145,7 @@ class RemindersApi:
     @validate_call
     def reminders_post(
         self,
-        reminder: ReminderSchema,
+        reminder: Optional[ReminderSchema],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1212,7 +1212,7 @@ class RemindersApi:
     @validate_call
     def reminders_post_with_http_info(
         self,
-        reminder: ReminderSchema,
+        reminder: Optional[ReminderSchema],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1279,7 +1279,7 @@ class RemindersApi:
     @validate_call
     def reminders_post_without_preload_content(
         self,
-        reminder: ReminderSchema,
+        reminder: Optional[ReminderSchema],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],

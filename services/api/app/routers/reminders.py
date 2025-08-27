@@ -45,7 +45,7 @@ async def get_reminders(
     rems = await list_reminders(tid)
     result: list[dict[str, object]] = []
     for r in rems:
-        last = cast(Optional[datetime], getattr(r, "last_fired_at", None))
+        last_fired_at = cast(Optional[datetime], getattr(r, "last_fired_at", None))
         result.append(
             {
                 "telegramId": r.telegram_id,
@@ -58,7 +58,7 @@ async def get_reminders(
                 "minutesAfter": r.minutes_after,
                 "isEnabled": r.is_enabled,
                 "orgId": r.org_id,
-                "lastFiredAt": last.isoformat() if last else None,
+                "lastFiredAt": last_fired_at.isoformat() if last_fired_at else None,
                 "fires7d": cast(int, getattr(r, "fires7d", 0)),
             }
         )
@@ -92,7 +92,7 @@ async def get_reminder(
     rems = await list_reminders(tid)
     for r in rems:
         if r.id == id:
-            last = cast(Optional[datetime], getattr(r, "last_fired_at", None))
+            last_fired_at = cast(Optional[datetime], getattr(r, "last_fired_at", None))
             return {
                 "telegramId": r.telegram_id,
                 "id": r.id,
@@ -104,7 +104,7 @@ async def get_reminder(
                 "minutesAfter": r.minutes_after,
                 "isEnabled": r.is_enabled,
                 "orgId": r.org_id,
-                "lastFiredAt": last.isoformat() if last else None,
+                "lastFiredAt": last_fired_at.isoformat() if last_fired_at else None,
                 "fires7d": cast(int, getattr(r, "fires7d", 0)),
             }
     raise HTTPException(status_code=404, detail="reminder not found")
