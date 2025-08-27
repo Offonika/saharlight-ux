@@ -1,5 +1,5 @@
 
-import { Reminder } from '@sdk';
+import { Reminder, RemindersPost200Response } from '@sdk';
 import { http } from './http';
 import { mockApi } from './mock-server';
 
@@ -37,26 +37,36 @@ export async function getReminder(
   }
 }
 
-export async function createReminder(reminder: Reminder) {
+export async function createReminder(
+  reminder: Reminder,
+): Promise<RemindersPost200Response> {
   try {
     if (isDevelopment) {
       console.log('[API] Using mock server for createReminder');
       return await mockApi.createReminder(reminder);
     }
-    return await http.post<Reminder>('/reminders', reminder);
+    return await http.post<RemindersPost200Response>(
+      '/reminders',
+      reminder,
+    );
   } catch (error) {
     console.error('Failed to create reminder:', error);
     throw new Error('Не удалось создать напоминание');
   }
 }
 
-export async function updateReminder(reminder: Reminder) {
+export async function updateReminder(
+  reminder: Reminder,
+): Promise<RemindersPost200Response> {
   try {
     if (isDevelopment) {
       console.log('[API] Using mock server for updateReminder');
       return await mockApi.updateReminder(reminder);
     }
-    return await http.patch<Reminder>('/reminders', reminder);
+    return await http.patch<RemindersPost200Response>(
+      '/reminders',
+      reminder,
+    );
   } catch (error) {
     console.error('Failed to update reminder:', error);
     throw new Error('Не удалось обновить напоминание');

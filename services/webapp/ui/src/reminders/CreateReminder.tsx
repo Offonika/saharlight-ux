@@ -133,7 +133,7 @@ export default function CreateReminder() {
       const res = editing
         ? await updateReminder(payload)
         : await createReminder(payload);
-      const rid = editing ? editing.id : res?.id;
+      const rid = editing ? editing.id : res.id;
       const hours = interval != null ? interval / 60 : undefined;
       const value =
         hours != null && Number.isInteger(hours) ? `${hours}h` : time;

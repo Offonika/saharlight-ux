@@ -20,24 +20,26 @@ import { mapValues } from '../runtime';
  */
 export interface RemindersPost200Response {
     /**
-     * 
+     *
      * @type {string}
      * @memberof RemindersPost200Response
      */
-    status?: string;
+    status: string;
     /**
-     * 
+     *
      * @type {number}
      * @memberof RemindersPost200Response
      */
-    id?: number;
+    id: number;
 }
 
 /**
  * Check if a given object implements the RemindersPost200Response interface.
  */
-export function instanceOfRemindersPost200Response(value: object): value is RemindersPost200Response {
-    return true;
+export function instanceOfRemindersPost200Response(
+    value: object,
+): value is RemindersPost200Response {
+    return 'status' in value && 'id' in value;
 }
 
 export function RemindersPost200ResponseFromJSON(json: any): RemindersPost200Response {
@@ -50,8 +52,8 @@ export function RemindersPost200ResponseFromJSONTyped(json: any, ignoreDiscrimin
     }
     return {
         
-        'status': json['status'] == null ? undefined : json['status'],
-        'id': json['id'] == null ? undefined : json['id'],
+        status: json['status'],
+        id: json['id'],
     };
 }
 
