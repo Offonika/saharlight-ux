@@ -45,7 +45,6 @@ jobs:
             cp index.html /tmp/lovable_snapshot/index.html
           fi
 
-      # ВАЖНО: работаем прямо на main — никаких work-* веток
       - name: Switch to target branch (main)
         run: |
           set -e
@@ -159,7 +158,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PAT }}  # <--- вот тут! Используем Personal Access Token
           branch: ${{ env.SYNC_BRANCH_PREFIX }}-${{ github.sha }}
           base: ${{ env.TARGET_BRANCH }}
           title: "chore(ui): sync from lovable @ ${{ github.sha }}"
@@ -172,8 +171,3 @@ jobs:
           # labels: |
           #   webapp-sync
           draft: false
-
-
-
-
-
