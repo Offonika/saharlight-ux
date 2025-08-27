@@ -9,8 +9,7 @@ import { ThemeProvider } from "next-themes";
 import { useTimezoneSync } from "./features/timezone/useTimezoneSync";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
-import Reminders from "./pages/Reminders";
-import CreateReminder from "./reminders/CreateReminder";
+import RemindersList from "./features/reminders/pages/RemindersList";
 import RemindersCreate from "./features/reminders/pages/RemindersCreate";
 import RemindersEdit from "./features/reminders/pages/RemindersEdit";
 import History from "./pages/History";
@@ -43,9 +42,9 @@ const AppContent = () => {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/profile" element={<Profile />} />
-        <Route path="/reminders" element={<Reminders />} />
-        <Route path="/reminders/new" element={<RemindersCreate />} />
-        <Route path="/reminders/:id/edit" element={<RemindersEdit />} />
+      <Route path="/reminders" element={<RemindersList />} />
+      <Route path="/reminders/new" element={<RemindersCreate />} />
+      <Route path="/reminders/:id/edit" element={<RemindersEdit />} />
       <Route path="/history" element={<History />} />
       <Route path="/history/new-measurement" element={<NewMeasurement />} />
       <Route path="/history/new-meal" element={<NewMeal />} />
