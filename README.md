@@ -125,9 +125,12 @@ API контейнер запускает `uvicorn` напрямую как ко
 Файл `libs/contracts/openapi.yaml` содержит спецификацию API. По нему генерируются SDK:
 
 ```bash
-npx @openapitools/openapi-generator-cli generate -i libs/contracts/openapi.yaml -g python -o libs/py-sdk
-npx @openapitools/openapi-generator-cli generate -i libs/contracts/openapi.yaml -g typescript-fetch -o libs/ts-sdk
+npm run generate:sdk
 ```
+
+Скрипт `generate:ts-sdk` запускает `scripts/fix-sdk-runtime.sh`, который заменяет импорты
+`from '@sdk/runtime'` и `from "...libs/ts-sdk/runtime"` на варианты с явным расширением
+`.ts`.
 
 ## Сервисный запуск
 
