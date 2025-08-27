@@ -18,26 +18,26 @@ class DummyMessage:
 async def test_history_view_does_not_block_event_loop(monkeypatch: Any) -> None:
     """The database query is executed in a thread and doesn't block."""
 
-    def slow_session() -> None:
+    def slow_session() -> Any:
         class FakeSession:
-            def __enter__(self) -> None:
+            def __enter__(self) -> Any:
                 return self
 
             def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
                 pass
 
-            def query(self, *args: Any, **kwargs: Any) -> None:
+            def query(self, *args: Any, **kwargs: Any) -> Any:
                 class Q:
-                    def filter(self, *args: Any, **kwargs: Any) -> None:
+                    def filter(self, *args: Any, **kwargs: Any) -> Any:
                         return self
 
-                    def order_by(self, *args: Any, **kwargs: Any) -> None:
+                    def order_by(self, *args: Any, **kwargs: Any) -> Any:
                         return self
 
-                    def limit(self, *args: Any, **kwargs: Any) -> None:
+                    def limit(self, *args: Any, **kwargs: Any) -> Any:
                         return self
 
-                    def all(self) -> None:
+                    def all(self) -> list[Any]:
                         time.sleep(0.5)  # Blocking call executed in to_thread
                         return []
 

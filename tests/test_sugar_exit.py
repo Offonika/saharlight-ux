@@ -13,7 +13,7 @@ import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F40
 from services.api.app.diabetes.handlers import dose_handlers
 
 
-def _filter_pattern_equals(h: Any, regex: str) -> None:
+def _filter_pattern_equals(h: Any, regex: str) -> bool:
     filt = getattr(h, "filters", None)
     pattern = getattr(filt, "pattern", None)
     return isinstance(pattern, Pattern) and pattern.pattern == regex

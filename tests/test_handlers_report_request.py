@@ -108,7 +108,7 @@ async def test_report_period_callback_week(
 
     class DummyDateTime(dt.datetime):
         @classmethod
-        def now(cls, tz: dt.tzinfo | None = None) -> None:
+        def now(cls, tz: dt.tzinfo | None = None) -> dt.datetime:
             return fixed_now
 
     fixed_now = DummyDateTime(2024, 1, 10, tzinfo=dt.timezone.utc)

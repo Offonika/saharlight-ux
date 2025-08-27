@@ -15,7 +15,7 @@ def test_get_client_thread_safe(monkeypatch: Any) -> None:
     fake_client = object()
     call_count = 0
 
-    def fake_get_openai_client() -> None:
+    def fake_get_openai_client() -> Any:
         nonlocal call_count
         time.sleep(0.01)
         call_count += 1
@@ -100,7 +100,7 @@ async def test_send_message_empty_string_preserved(tmp_path: Any, monkeypatch: A
 
     captured = {}
 
-    def fake_files_create(file: Any, purpose: Any) -> None:
+    def fake_files_create(file: Any, purpose: Any) -> SimpleNamespace:
         return SimpleNamespace(id="f1")
 
     def fake_messages_create(*, thread_id: Any, role: Any, content: Any) -> None:

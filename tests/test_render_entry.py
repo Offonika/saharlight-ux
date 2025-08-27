@@ -1,11 +1,11 @@
 import datetime
 from types import SimpleNamespace
-
-from services.api.app.diabetes.handlers.reporting_handlers import render_entry
 from typing import Any
 
+from services.api.app.diabetes.handlers.reporting_handlers import render_entry
 
-def make_entry(**kwargs: Any) -> None:
+
+def make_entry(**kwargs: Any) -> SimpleNamespace:
     defaults = dict(
         event_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
         sugar_before=5.5,

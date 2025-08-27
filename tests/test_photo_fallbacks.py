@@ -18,7 +18,7 @@ from services.api.app.diabetes.handlers import (
 )
 
 
-def _find_handler(fallbacks: Any, regex: str) -> None:
+def _find_handler(fallbacks: Any, regex: str) -> MessageHandler:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
             filt = getattr(h, "filters", None)

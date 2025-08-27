@@ -1,11 +1,11 @@
 import re
 
 
-def parse_values(text: str) -> None:
+def parse_values(text: str) -> dict[str, float]:
     parts = dict(
         re.findall(r"(\w+)\s*=\s*(-?\d+(?:[.,]\d+)?)(?=\s|$)", text)
     )
-    result = {}
+    result: dict[str, float] = {}
     if "xe" in parts:
         result["xe"] = float(parts["xe"].replace(",", "."))
     if "carbs" in parts:
