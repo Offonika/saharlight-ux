@@ -21,12 +21,12 @@ R = TypeVar("R")
 async def run_db(
     fn: Callable[Concatenate[Session, P], R],
     *args: P.args,
-    sessionmaker: sessionmaker[Session] = SessionLocal,
     **kwargs: P.kwargs,
 ) -> R:
     """Proxy to :func:`services.api.app.diabetes.services.db.run_db` with types."""
 
-    return await _run_db(fn, *args, sessionmaker=sessionmaker, **kwargs)
+    session_factory: sessionmaker[Session] = kwargs.pop("sessionmaker", SessionLocal)
+    return await _run_db(fn, *args, sessionmaker=session_factory, **kwargs)
 
 
 __all__ = ["SessionLocal", "run_db"]
