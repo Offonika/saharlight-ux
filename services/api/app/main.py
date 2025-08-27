@@ -4,6 +4,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from functools import partial
+
 from pydantic import BaseModel
 
 from .diabetes.services.db import (
@@ -66,7 +68,7 @@ async def put_timezone(data: Timezone) -> dict:
             obj.tz = tz
         session.commit()
 
-    await run_db(_save_timezone, data.tz)
+    await run_db(partial(_save_timezone, tz=data.tz))
     return {"status": "ok"}
 
 
@@ -114,7 +116,7 @@ async def post_history(data: HistoryRecordSchema) -> dict:
         session.commit()
 
     try:
-        await run_db(_save_history, data)
+        await run_db(partial(_save_history, record=data))
     except Exception as exc:  # pragma: no cover - unexpected errors
         logger.exception("failed to save history")
         raise HTTPException(status_code=500, detail="failed to save history") from exc

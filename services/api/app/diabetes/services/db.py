@@ -17,11 +17,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import URL
 from sqlalchemy.exc import UnboundExecutionError
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy.orm import Session, declarative_base, relationship, sessionmaker
 import asyncio
 import logging
 import threading
-from typing import Any, Callable, TypeVar
+from typing import Callable, TypeVar
 
 from services.api.app.config import get_db_password, settings
 logger = logging.getLogger(__name__)
@@ -38,24 +38,22 @@ T = TypeVar("T")
 
 
 async def run_db(
-    fn: Callable[[Any], T], *args: Any, sessionmaker: Callable[[], Any] = SessionLocal, **kwargs: Any
+    fn: Callable[[Session], T], *, sessionmaker: Callable[[], Session] = SessionLocal
 ) -> T:
     """Execute blocking DB work in a thread and return the result.
 
     Parameters
     ----------
     fn:
-        Callable accepting an active session as first argument.
+        Callable accepting an active session as its sole argument.
     sessionmaker:
         Factory to create new :class:`~sqlalchemy.orm.Session` instances. Defaults
         to the module's ``SessionLocal`` so tests can inject their own.
-    *args, **kwargs:
-        Additional arguments forwarded to ``fn``.
     """
 
     def wrapper() -> T:
         with sessionmaker() as session:
-            return fn(session, *args, **kwargs)
+            return fn(session)
 
     try:
         with sessionmaker() as _session:

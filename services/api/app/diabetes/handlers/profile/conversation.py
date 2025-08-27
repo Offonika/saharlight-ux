@@ -12,6 +12,7 @@ from telegram.ext import (
 )
 import json
 import logging
+from functools import partial
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from services.api.app.diabetes.services.db import (
@@ -348,7 +349,7 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
         return PROFILE_TZ
     user_id = update.effective_user.id
     exists, ok = await run_db(
-        set_timezone, user_id, raw, sessionmaker=SessionLocal
+        partial(set_timezone, user_id=user_id, tz=raw), sessionmaker=SessionLocal
     )
     if not exists:
         await update.message.reply_text(
@@ -450,7 +451,8 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await reminder_handlers.delete_reminder(update, context)
 
     result = await run_db(
-        _security_db, user_id, action, sessionmaker=SessionLocal
+        partial(_security_db, user_id=user_id, action=action),
+        sessionmaker=SessionLocal,
     )
     if not result.get("found"):
         await query.edit_message_text("Профиль не найден.")
@@ -674,13 +676,15 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         return ConversationHandler.END
     user_id = update.effective_user.id
     ok = await run_db(
-        save_profile,
-        user_id,
-        icr,
-        cf,
-        target,
-        low,
-        high,
+        partial(
+            save_profile,
+            user_id=user_id,
+            icr=icr,
+            cf=cf,
+            target=target,
+            low=low,
+            high=high,
+        ),
         sessionmaker=SessionLocal,
     )
     if not ok:

@@ -20,7 +20,9 @@ def setup_db(monkeypatch):
     db.Base.metadata.create_all(bind=engine)
 
     async def run_db_wrapper(fn, *args, **kwargs):
-        return await db.run_db(fn, *args, sessionmaker=Session, **kwargs)
+        return await db.run_db(
+            lambda session: fn(session, *args, **kwargs), sessionmaker=Session
+        )
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
     return Session

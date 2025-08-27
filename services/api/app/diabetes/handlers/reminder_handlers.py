@@ -7,6 +7,7 @@ import json
 import logging
 import re
 from datetime import time, timedelta, timezone
+from functools import partial
 from typing import Callable
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -298,7 +299,7 @@ def schedule_all(job_queue) -> None:
 async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     text, keyboard = await run_db(
-        _render_reminders, user_id, sessionmaker=SessionLocal
+        partial(_render_reminders, user_id=user_id), sessionmaker=SessionLocal
     )
     kwargs = {"parse_mode": "HTML"}
     if keyboard is not None:
@@ -490,7 +491,7 @@ async def reminder_webapp_save(
 
     schedule_reminder(rem, context.job_queue)
     text, keyboard = await run_db(
-        _render_reminders, user_id, sessionmaker=SessionLocal
+        partial(_render_reminders, user_id=user_id), sessionmaker=SessionLocal
     )
     kwargs = {"parse_mode": "HTML"}
     if keyboard is not None:
@@ -665,7 +666,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
             job.schedule_removal()
 
     text, keyboard = await run_db(
-        _render_reminders, user_id, sessionmaker=SessionLocal
+        partial(_render_reminders, user_id=user_id), sessionmaker=SessionLocal
     )
     kwargs = {"parse_mode": "HTML"}
     if keyboard is not None:
