@@ -25,6 +25,7 @@ from diabetes_sdk.configuration import Configuration
 from diabetes_sdk.exceptions import ApiException, ApiValueError
 
 SUPPORTED_SOCKS_PROXIES = {"socks5", "socks5h", "socks4", "socks4a"}
+ALLOWED_HTTP_METHODS = {"GET", "HEAD", "DELETE", "POST", "PUT", "PATCH", "OPTIONS"}
 RESTResponseType = urllib3.HTTPResponse
 
 
@@ -152,8 +153,11 @@ class RESTClientObject:
         """
         # Normalize and validate HTTP method
         method = method.upper()
-        if method not in {"GET", "HEAD", "DELETE", "POST", "PUT", "PATCH", "OPTIONS"}:
-            raise ApiValueError(f"{method} is not a supported HTTP method")
+        if method not in ALLOWED_HTTP_METHODS:
+            allowed = ", ".join(ALLOWED_HTTP_METHODS)
+            raise ApiValueError(
+                f"Unsupported HTTP method {method!r}; allowed methods: {allowed}"
+            )
 
         if post_params and body:
             raise ApiValueError(
