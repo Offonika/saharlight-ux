@@ -7,8 +7,8 @@ import re
 from datetime import datetime, time, timedelta
 from urllib.request import urlopen
 
-from reportlab.pdfbase.pdfmetrics import stringWidth  # type: ignore[import-not-found]
-from reportlab.lib.units import mm  # type: ignore[import-not-found]
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.lib.units import mm
 
 
 def clean_markdown(text: str) -> str:

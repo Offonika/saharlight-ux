@@ -4,4 +4,4 @@ pytest-cov
 mypy
 types-reportlab
 playwright
-# types-alembic stub package is not available; Alembic imports are ignored in mypy
+# types-alembic stubs unavailable; Alembic imports use type: ignore
