@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@sdk/*": ["libs/ts-sdk/*"]
+    }
+  }
+}
