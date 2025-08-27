@@ -1,3 +1,5 @@
+"""Alert scheduling logic for abnormal sugar levels."""
+
 from __future__ import annotations
 
 import datetime
