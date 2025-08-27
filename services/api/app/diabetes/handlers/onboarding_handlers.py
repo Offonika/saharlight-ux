@@ -431,9 +431,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return ConversationHandler.END
 
 
-async def onboarding_poll_answer(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def onboarding_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log poll answers from onboarding feedback."""
     poll_answer = update.poll_answer
     if poll_answer is None:
@@ -447,13 +445,16 @@ async def onboarding_poll_answer(
     logger.info("Onboarding poll result from %s: %s", user_id, option)
 
 
-async def _photo_fallback(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    from typing import Awaitable, Callable, cast
+
     from .dose_handlers import _cancel_then, photo_prompt
+
     if update.message is None:
         return
-    handler = _cancel_then(photo_prompt)
+    handler = _cancel_then(
+        cast(Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]], photo_prompt)
+    )
     await handler(update, context)
 
 
