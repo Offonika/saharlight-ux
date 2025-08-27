@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
 from telegram.ext import ContextTypes
+from typing import Any
 
 from services.api.app.diabetes.services.db import Entry
 from .db import SessionLocal
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle inline button callbacks for pending entries and history actions."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     query = update.callback_query
     await query.answer()
     data = query.data or ""
@@ -23,7 +25,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
 
     if data == "confirm_entry":
-        entry_data = context.user_data.pop("pending_entry", None)
+        entry_data: dict[str, Any] | None = context.user_data.pop("pending_entry", None)
         if not entry_data:
             await query.edit_message_text("❗ Нет данных для сохранения.")
             return
@@ -45,7 +47,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reminder_handlers.schedule_after_meal(update.effective_user.id, job_queue)
         return
     elif data == "edit_entry":
-        entry_data = context.user_data.get("pending_entry")
+        entry_data: dict[str, Any] | None = context.user_data.get("pending_entry")
         if not entry_data:
             await query.edit_message_text("❗ Нет данных для редактирования.")
             return
@@ -125,11 +127,12 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         context.user_data["edit_id"] = entry_id
         context.user_data["edit_field"] = field
         context.user_data["edit_query"] = query
-        prompt = {
+        prompts: dict[str, str] = {
             "sugar": "Введите уровень сахара (ммоль/л).",
             "xe": "Введите количество ХЕ.",
             "dose": "Введите дозу инсулина (ед.).",
-        }.get(field, "Введите значение")
+        }
+        prompt = prompts.get(field, "Введите значение")
         await query.message.reply_text(prompt, reply_markup=ForceReply(selective=True))
         return
     else:

@@ -38,6 +38,7 @@ from services.api.app.diabetes.services.repository import commit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from openai import OpenAIError
+from typing import Any
 
 
 logger = logging.getLogger(__name__)
@@ -115,6 +116,7 @@ def _skip_markup() -> InlineKeyboardMarkup:
 
 async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     message: Message = update.message
     if message is None:
         return
@@ -140,6 +142,7 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     message: Message = update.message
     if message is None:
         return
@@ -165,6 +168,7 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input and proceed to demo."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     message: Message = update.message
     user = update.effective_user
     if message is None or user is None:
