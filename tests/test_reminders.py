@@ -1,12 +1,15 @@
 import json
 import logging
 import pytest
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time
 from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from typing import Any
+from typing import Any, cast
+
+from telegram import Update
+from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.services.db import Base, User, Reminder, ReminderLog
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
@@ -17,6 +20,8 @@ from services.api.app.config import settings
 
 
 class DummyMessage:
+    web_app_data: Any | None = None
+
     def __init__(self, text: str | None = None):
         self.text = text
         self.texts: list[str] = []
@@ -101,6 +106,7 @@ def test_schedule_reminder_replaces_existing_job():
     job_queue = DummyJobQueue()
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
         handlers.schedule_reminder(rem, job_queue)
     jobs = job_queue.get_jobs_by_name("reminder_1")
@@ -237,17 +243,20 @@ async def test_reminders_list_no_keyboard(monkeypatch) -> None:
         session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
 
-    captured: dict[str, dict] = {}
+    captured: dict[str, Any] = {}
 
     async def fake_reply_text(text: str, **kwargs: Any) -> None:
         captured["text"] = text
         captured["kwargs"] = kwargs
 
-    update = SimpleNamespace(
-        effective_user=SimpleNamespace(id=1),
-        message=SimpleNamespace(reply_text=fake_reply_text),
+    update = cast(
+        Update,
+        SimpleNamespace(
+            effective_user=SimpleNamespace(id=1),
+            message=SimpleNamespace(reply_text=fake_reply_text),
+        ),
     )
-    context = SimpleNamespace()
+    context = cast(CallbackContext, SimpleNamespace())
     await handlers.reminders_list(update, context)
     assert "У вас нет напоминаний" in captured["text"]
     assert "reply_markup" not in captured["kwargs"]
@@ -269,16 +278,19 @@ async def test_toggle_reminder_cb(monkeypatch) -> None:
     job_queue = DummyJobQueue()
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
 
     query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue, user_data={"pending_entry": {}})
+    update = cast(Update, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)))
+    context = cast(CallbackContext, SimpleNamespace(job_queue=job_queue, user_data={"pending_entry": {}}))
     await handlers.reminder_action_cb(update, context)
     await router.callback_router(update, context)
 
     with TestSession() as session:
-        assert not session.get(Reminder, 1).is_enabled
+        rem_check = session.get(Reminder, 1)
+        assert rem_check is not None
+        assert not rem_check.is_enabled
     assert job_queue.get_jobs_by_name("reminder_1")[0].removed
     assert query.answers[0] == "Готово ✅"
     assert "pending_entry" in context.user_data
@@ -300,11 +312,12 @@ async def test_delete_reminder_cb(monkeypatch) -> None:
     job_queue = DummyJobQueue()
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
 
     query = DummyCallbackQuery("rem_del:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue, user_data={})
+    update = cast(Update, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)))
+    context = cast(CallbackContext, SimpleNamespace(job_queue=job_queue, user_data={}))
     await handlers.reminder_action_cb(update, context)
 
     with TestSession() as session:
@@ -329,19 +342,22 @@ async def test_edit_reminder(monkeypatch) -> None:
     job_queue = DummyJobQueue()
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
 
     msg = DummyMessage()
     msg.web_app_data = SimpleNamespace(
         data=json.dumps({"id": 1, "type": "medicine", "value": "09:00"})
     )
-    update = SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=job_queue)
+    update = cast(Update, SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)))
+    context = cast(CallbackContext, SimpleNamespace(job_queue=job_queue))
     await handlers.reminder_webapp_save(update, context)
 
     with TestSession() as session:
-        parsed = parse_time_interval("09:00")
-        assert session.get(Reminder, 1).time == parsed.strftime("%H:%M")
+        parsed = cast(time, parse_time_interval("09:00"))
+        rem_check = session.get(Reminder, 1)
+        assert rem_check is not None
+        assert rem_check.time == parsed.strftime("%H:%M")
     jobs = job_queue.get_jobs_by_name("reminder_1")
     assert len(jobs) == 2
     assert jobs[0].removed is True
@@ -363,6 +379,7 @@ async def test_trigger_job_logs(monkeypatch) -> None:
     job_queue = DummyJobQueue()
     with TestSession() as session:
         rem_db = session.get(Reminder, 1)
+        assert rem_db is not None
         rem = Reminder(
             id=rem_db.id,
             telegram_id=rem_db.telegram_id,
@@ -376,13 +393,14 @@ async def test_trigger_job_logs(monkeypatch) -> None:
         job=SimpleNamespace(data={"reminder_id": 1, "chat_id": 1}),
         job_queue=job_queue,
     )
-    await handlers.reminder_job(context)
+    await handlers.reminder_job(cast(CallbackContext, context))
     assert bot.messages[0][1].startswith("🔔 Замерить сахар")
     keyboard = bot.messages[0][2]["reply_markup"].inline_keyboard[0]
     assert keyboard[0].callback_data == "remind_snooze:1"
     assert keyboard[1].callback_data == "remind_cancel:1"
     with TestSession() as session:
         log = session.query(ReminderLog).first()
+        assert log is not None
         assert log.action == "trigger"
 
 
@@ -400,14 +418,16 @@ async def test_cancel_callback(monkeypatch) -> None:
         session.commit()
 
     query = DummyCallbackQuery("remind_cancel:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
-    context = SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot())
+    update = cast(Update, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)))
+    context = cast(CallbackContext, SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot()))
     await handlers.reminder_callback(update, context)
 
+    assert query.edited is not None
     assert query.edited[0] == "❌ Напоминание отменено"
     assert query.answers == [None]
     with TestSession() as session:
         log = session.query(ReminderLog).first()
+        assert log is not None
         assert log.action == "remind_cancel"
 
 
@@ -425,8 +445,8 @@ async def test_reminder_callback_foreign_rid(monkeypatch) -> None:
         session.commit()
 
     query = DummyCallbackQuery("remind_cancel:1", DummyMessage())
-    update = SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=2))
-    context = SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot())
+    update = cast(Update, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=2)))
+    context = cast(CallbackContext, SimpleNamespace(job_queue=DummyJobQueue(), bot=DummyBot()))
     await handlers.reminder_callback(update, context)
 
     assert query.answers == ["Не найдено"]

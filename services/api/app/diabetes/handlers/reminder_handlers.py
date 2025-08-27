@@ -6,7 +6,7 @@ import datetime
 import json
 import logging
 import re
-from datetime import time, timedelta, timezone
+from datetime import time, timedelta, timezone, tzinfo
 from typing import Callable
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -75,7 +75,7 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
     dt_cls = getattr(datetime, "datetime", datetime)
     if user is None:
         user = rem.__dict__.get("user")
-    tz = timezone.utc
+    tz: tzinfo = timezone.utc
     tzname = getattr(user, "timezone", None)
     if tzname:
         try:
@@ -221,7 +221,7 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
         )
         return
 
-    tz = timezone.utc
+    tz: tzinfo = timezone.utc
     user = rem.__dict__.get("user")
     if user is None or getattr(user, "timezone", None) is None:
         with SessionLocal() as session:
@@ -296,6 +296,8 @@ def schedule_all(job_queue) -> None:
 
 
 async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if update.effective_user is None or update.message is None:
+        return
     user_id = update.effective_user.id
     text, keyboard = await run_db(
         _render_reminders, user_id, sessionmaker=SessionLocal
@@ -308,6 +310,8 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Add a reminder using command arguments."""
+    if update.effective_user is None or update.message is None or context.job_queue is None:
+        return
     user_id = update.effective_user.id
     args = getattr(context, "args", [])
     if len(args) < 2:
@@ -396,6 +400,13 @@ async def reminder_webapp_save(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Save reminder data sent from the web app."""
+    if (
+        update.effective_message is None
+        or update.effective_user is None
+        or context.job_queue is None
+        or update.effective_message.web_app_data is None
+    ):
+        return
     raw = update.effective_message.web_app_data.data
     try:
         data = json.loads(raw)
@@ -512,6 +523,10 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if message:
             await message.reply_text("ID должен быть числом: /delreminder <id>")
         return
+    if context.job_queue is None:
+        if message:
+            await message.reply_text("Нет очереди заданий")
+        return
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
         if not rem:
@@ -570,9 +585,12 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
+    user = update.effective_user
+    if query is None or user is None or context.job_queue is None:
+        return
     action, rid_str = query.data.split(":")
     rid = int(rid_str)
-    chat_id = update.effective_user.id
+    chat_id = user.id
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != chat_id:
@@ -613,6 +631,9 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
+    user = update.effective_user
+    if query is None or user is None or context.job_queue is None:
+        return
     action_raw, rid_str = query.data.split(":", 1)
     if not action_raw.startswith("rem_"):
         await query.answer("Некорректное действие", show_alert=True)
@@ -623,7 +644,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except ValueError:
         await query.answer("Некорректный ID", show_alert=True)
         return
-    user_id = update.effective_user.id
+    user_id = user.id
 
     def db_action(session):
         rem = session.get(Reminder, rid)
@@ -683,6 +704,8 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 def schedule_after_meal(user_id: int, job_queue) -> None:
+    if job_queue is None:
+        return
     with SessionLocal() as session:
         rems = (
             session.query(Reminder)
