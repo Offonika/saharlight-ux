@@ -34,8 +34,10 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install -r services/api/app/requirements-dev.txt
-      - name: Generate SDK
-        run: pnpm run generate:sdk
+      - name: Install OpenAPI Generator CLI
+        run: pnpm add --global @openapitools/openapi-generator-cli
+      - name: Generate TS SDK
+        run: bash scripts/gen_ts_sdk.sh
       - name: Build webapp UI
         run: pnpm --filter services/webapp/ui run build
       - name: Type-check webapp UI

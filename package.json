@@ -10,7 +10,7 @@
     "dev":       "pnpm --filter ./services/webapp/ui dev",
     "build":     "pnpm --filter ./services/webapp/ui build",
     "preview":   "pnpm --filter ./services/webapp/ui preview",
-    "generate:sdk": "pnpm dlx @openapitools/openapi-generator-cli generate -i libs/contracts/openapi.yaml -g typescript-fetch -o libs/ts-sdk -p useSingleRequestParameter=true && pnpm dlx @openapitools/openapi-generator-cli generate -i libs/contracts/openapi.yaml -g python -o libs/py-sdk -p packageName=diabetes_sdk,modelPropertyNaming=camelCase,snakeCaseIfNeed=false"
+    "generate:sdk": "bash scripts/gen_ts_sdk.sh"
   },
   "pnpm": {
     "overrides": {
