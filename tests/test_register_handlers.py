@@ -10,7 +10,15 @@ from telegram.ext import (
 from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
 from services.api.app.diabetes.handlers.registration import register_handlers
-from services.api.app.diabetes.handlers.router import callback_router
+from services.api.app.diabetes.handlers.router import (
+    handle_cancel_entry,
+    handle_confirm_entry,
+    handle_delete_entry,
+    handle_edit_entry,
+    handle_edit_field,
+    handle_edit_pending_entry,
+    handle_unknown_callback,
+)
 from services.api.app.diabetes.handlers.onboarding_handlers import start_command
 from services.api.app.diabetes.handlers import security_handlers, reminder_handlers
 from typing import Any
@@ -38,7 +46,13 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: Any) -> None:
     assert dose_handlers.prompt_photo in callbacks
     assert dose_handlers.dose_cancel in callbacks
     assert dose_handlers.prompt_sugar not in callbacks
-    assert callback_router in callbacks
+    assert handle_confirm_entry in callbacks
+    assert handle_edit_pending_entry in callbacks
+    assert handle_cancel_entry in callbacks
+    assert handle_edit_entry in callbacks
+    assert handle_delete_entry in callbacks
+    assert handle_edit_field in callbacks
+    assert handle_unknown_callback in callbacks
     assert reporting_handlers.report_period_callback in callbacks
     assert profile_handlers.profile_view in callbacks
     assert profile_handlers.profile_back in callbacks
@@ -191,7 +205,16 @@ def test_register_handlers_attaches_expected_handlers(monkeypatch: Any) -> None:
     cb_handlers = [
         h
         for h in handlers
-        if isinstance(h, CallbackQueryHandler) and h.callback is callback_router
+        if isinstance(h, CallbackQueryHandler)
+        and h.callback in {
+            handle_confirm_entry,
+            handle_edit_pending_entry,
+            handle_cancel_entry,
+            handle_edit_entry,
+            handle_delete_entry,
+            handle_edit_field,
+            handle_unknown_callback,
+        }
     ]
     assert cb_handlers
     report_cb_handlers = [

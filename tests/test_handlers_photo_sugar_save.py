@@ -159,7 +159,7 @@ async def test_photo_flow_saves_entry(
 
     query = DummyQuery("confirm_entry")
     update_confirm = make_update(callback_query=query)
-    await router.callback_router(update_confirm, context)
+    await router.handle_confirm_entry(update_confirm, context)
 
     assert len(session.added) == 1
     saved = session.added[0]

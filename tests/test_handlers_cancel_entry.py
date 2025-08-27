@@ -32,7 +32,7 @@ class DummyQuery:
 
 
 @pytest.mark.asyncio
-async def test_callback_router_cancel_entry_sends_menu() -> None:
+async def test_handle_cancel_entry_sends_menu() -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
@@ -46,7 +46,7 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
         SimpleNamespace(user_data={"pending_entry": {"telegram_id": 1}}),
     )
 
-    await router.callback_router(update, context)
+    await router.handle_cancel_entry(update, context)
 
     assert query.edited == ["❌ Запись отменена."]
     assert not query.edit_kwargs[0] or "reply_markup" not in query.edit_kwargs[0]
@@ -57,7 +57,7 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
 
 
 @pytest.mark.asyncio
-async def test_callback_router_invalid_entry_id(
+async def test_handle_delete_entry_invalid_id(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     os.environ["OPENAI_API_KEY"] = "test"
@@ -73,14 +73,14 @@ async def test_callback_router_invalid_entry_id(
     )
 
     with caplog.at_level(logging.WARNING):
-        await router.callback_router(update, context)
+        await router.handle_delete_entry(update, context)
 
     assert query.edited == ["Некорректный идентификатор записи."]
     assert "Invalid entry_id in callback data" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_callback_router_unknown_data(
+async def test_handle_unknown_callback(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     os.environ["OPENAI_API_KEY"] = "test"
@@ -96,14 +96,14 @@ async def test_callback_router_unknown_data(
     )
 
     with caplog.at_level(logging.WARNING):
-        await router.callback_router(update, context)
+        await router.handle_unknown_callback(update, context)
 
     assert query.edited == ["Команда не распознана"]
     assert "Unrecognized callback data" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_callback_router_ignores_reminder_action() -> None:
+async def test_handle_unknown_callback_ignores_reminder() -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
@@ -116,7 +116,27 @@ async def test_callback_router_ignores_reminder_action() -> None:
         SimpleNamespace(user_data={"pending_entry": {}}),
     )
 
-    await router.callback_router(update, context)
+    await router.handle_unknown_callback(update, context)
 
     assert query.edited == []
     assert "pending_entry" in context.user_data
+
+
+@pytest.mark.asyncio
+async def test_handle_edit_pending_entry() -> None:
+    os.environ["OPENAI_API_KEY"] = "test"
+    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
+    import services.api.app.diabetes.handlers.router as router
+
+    query = DummyQuery("edit_entry")
+    update = cast(Update, SimpleNamespace(callback_query=query))
+    context = cast(
+        CallbackContext[Any, Any, Any, Any],
+        SimpleNamespace(user_data={"pending_entry": {"telegram_id": 1}}),
+    )
+
+    await router.handle_edit_pending_entry(update, context)
+
+    assert query.edited
+    assert context.user_data.get("edit_id") is None

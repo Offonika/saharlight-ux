@@ -72,7 +72,9 @@ async def test_profile_command_no_local_session(monkeypatch: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_callback_router_commit_failure(monkeypatch: Any, caplog: Any) -> None:
+async def test_handle_confirm_entry_commit_failure(
+    monkeypatch: Any, caplog: Any
+) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -99,7 +101,7 @@ async def test_callback_router_commit_failure(monkeypatch: Any, caplog: Any) -> 
     context = make_context(user_data={"pending_entry": pending_entry})
 
     with caplog.at_level(logging.ERROR):
-        await router.callback_router(update, context)
+        await router.handle_confirm_entry(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text

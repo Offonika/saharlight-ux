@@ -276,7 +276,7 @@ async def test_toggle_reminder_cb(monkeypatch: Any) -> None:
     update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
     context = make_context(job_queue=job_queue, user_data={"pending_entry": {}})
     await handlers.reminder_action_cb(update, context)
-    await router.callback_router(update, context)
+    await router.handle_unknown_callback(update, context)
 
     with TestSession() as session:
         assert not session.get(Reminder, 1).is_enabled

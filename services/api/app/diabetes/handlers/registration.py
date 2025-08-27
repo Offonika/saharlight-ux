@@ -15,7 +15,15 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .onboarding_handlers import onboarding_conv, onboarding_poll_answer
 from .common_handlers import menu_command, help_command, smart_input_help
-from .router import callback_router
+from .router import (
+    handle_cancel_entry,
+    handle_confirm_entry,
+    handle_delete_entry,
+    handle_edit_entry,
+    handle_edit_field,
+    handle_edit_pending_entry,
+    handle_unknown_callback,
+)
 
 __all__ = ["register_handlers", "profile_conv", "profile_webapp_handler"]
 
@@ -120,8 +128,26 @@ def register_handlers(app: Application[Any]) -> None:
     app.add_handler(
         CallbackQueryHandler(profile.profile_back, pattern="^profile_back$")
     )
+    app.add_handler(
+        CallbackQueryHandler(handle_confirm_entry, pattern="^confirm_entry$")
+    )
+    app.add_handler(
+        CallbackQueryHandler(handle_edit_pending_entry, pattern="^edit_entry$")
+    )
+    app.add_handler(
+        CallbackQueryHandler(handle_cancel_entry, pattern="^cancel_entry$")
+    )
+    app.add_handler(
+        CallbackQueryHandler(handle_edit_entry, pattern="^edit:\d+$")
+    )
+    app.add_handler(
+        CallbackQueryHandler(handle_delete_entry, pattern="^del:\d+$")
+    )
+    app.add_handler(
+        CallbackQueryHandler(handle_edit_field, pattern="^edit_field:")
+    )
     app.add_handler(CallbackQueryHandler(reminder_handlers.reminder_callback, pattern="^remind_"))
-    app.add_handler(CallbackQueryHandler(callback_router))
+    app.add_handler(CallbackQueryHandler(handle_unknown_callback))
 
     job_queue = app.job_queue
     if job_queue:
