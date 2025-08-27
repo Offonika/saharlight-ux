@@ -57,6 +57,30 @@ export interface Profile {
     high: number;
     /**
      * 
+     * @type {string}
+     * @memberof Profile
+     */
+    quietStart?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Profile
+     */
+    quietEnd?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Profile
+     */
+    sosContact?: string | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof Profile
+     */
+    sosAlertsEnabled?: boolean;
+    /**
+     * 
      * @type {number}
      * @memberof Profile
      */
@@ -86,13 +110,17 @@ export function ProfileFromJSONTyped(json: any, ignoreDiscriminator: boolean): P
     }
     return {
         
-        'telegramId': json['telegram_id'],
+        'telegramId': json['telegramId'],
         'icr': json['icr'],
         'cf': json['cf'],
         'target': json['target'],
         'low': json['low'],
         'high': json['high'],
-        'orgId': json['org_id'] == null ? undefined : json['org_id'],
+        'quietStart': json['quietStart'] == null ? undefined : json['quietStart'],
+        'quietEnd': json['quietEnd'] == null ? undefined : json['quietEnd'],
+        'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
+        'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
+        'orgId': json['orgId'] == null ? undefined : json['orgId'],
     };
 }
 
@@ -107,13 +135,17 @@ export function ProfileToJSONTyped(value?: Profile | null, ignoreDiscriminator: 
 
     return {
         
-        'telegram_id': value['telegramId'],
+        'telegramId': value['telegramId'],
         'icr': value['icr'],
         'cf': value['cf'],
         'target': value['target'],
         'low': value['low'],
         'high': value['high'],
-        'org_id': value['orgId'],
+        'quietStart': value['quietStart'],
+        'quietEnd': value['quietEnd'],
+        'sosContact': value['sosContact'],
+        'sosAlertsEnabled': value['sosAlertsEnabled'],
+        'orgId': value['orgId'],
     };
 }
 

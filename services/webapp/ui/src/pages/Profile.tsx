@@ -17,10 +17,14 @@ const Profile = () => {
     correctionFactor: '2.5',
     targetSugar: '6.0',
     lowThreshold: '4.0',
-    highThreshold: '10.0'
+    highThreshold: '10.0',
+    quietStart: '23:00',
+    quietEnd: '07:00',
+    sosContact: '',
+    sosAlertsEnabled: true,
   });
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
@@ -42,6 +46,10 @@ const Profile = () => {
         target: Number(profile.targetSugar),
         low: Number(profile.lowThreshold),
         high: Number(profile.highThreshold),
+        quietStart: profile.quietStart,
+        quietEnd: profile.quietEnd,
+        sosContact: profile.sosContact || null,
+        sosAlertsEnabled: profile.sosAlertsEnabled,
       });
       toast({
         title: 'Профиль сохранен',
@@ -173,6 +181,60 @@ const Profile = () => {
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Тихие часы */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Начало тихого режима
+                </label>
+                <input
+                  type="time"
+                  value={profile.quietStart}
+                  onChange={(e) => handleInputChange('quietStart', e.target.value)}
+                  className="medical-input"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Конец тихого режима
+                </label>
+                <input
+                  type="time"
+                  value={profile.quietEnd}
+                  onChange={(e) => handleInputChange('quietEnd', e.target.value)}
+                  className="medical-input"
+                />
+              </div>
+            </div>
+
+            {/* SOS контакт */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                SOS контакт
+              </label>
+              <input
+                type="text"
+                value={profile.sosContact}
+                onChange={(e) => handleInputChange('sosContact', e.target.value)}
+                className="medical-input"
+                placeholder="+79991234567"
+              />
+            </div>
+
+            {/* SOS уведомления */}
+            <div className="flex items-center gap-2">
+              <input
+                id="sosAlertsEnabled"
+                type="checkbox"
+                checked={profile.sosAlertsEnabled}
+                onChange={(e) => handleInputChange('sosAlertsEnabled', e.target.checked)}
+                className="h-4 w-4"
+              />
+              <label htmlFor="sosAlertsEnabled" className="text-sm font-medium text-foreground">
+                Включить SOS-уведомления
+              </label>
             </div>
 
             {/* Кнопка сохранения */}

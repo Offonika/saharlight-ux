@@ -1,6 +1,6 @@
-import { DefaultApi, Profile } from '@sdk';
+import { ProfilesApi, Profile } from '@sdk';
 
-const api = new DefaultApi();
+const api = new ProfilesApi();
 
 export async function saveProfile(profile: Profile) {
   try {
