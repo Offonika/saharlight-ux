@@ -17,6 +17,7 @@ from telegram import (
     Update,
 )
 from telegram.ext import ContextTypes
+from typing import Any
 
 from services.api.app.diabetes.services.db import Entry, User
 from .db import SessionLocal
@@ -142,6 +143,7 @@ async def report_period_callback(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Handle report period selection via inline buttons."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     query = update.callback_query
     await query.answer()
     if query.data == "report_back":
@@ -192,6 +194,7 @@ async def send_report(
     query: CallbackQuery | None = None,
 ) -> None:
     """Generate and send a PDF report for entries after ``date_from``."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     user_id = update.effective_user.id
 
     def _fetch_entries() -> list[Entry]:

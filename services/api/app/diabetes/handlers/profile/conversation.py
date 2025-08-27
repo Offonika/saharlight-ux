@@ -15,6 +15,7 @@ import logging
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.orm import Session
+from typing import Any
 
 from services.api.app.diabetes.services.db import (
     Profile,
@@ -538,6 +539,7 @@ async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         return await profile_cancel(update, context)
@@ -560,6 +562,7 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
@@ -586,6 +589,7 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
@@ -616,6 +620,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle low threshold input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
@@ -644,6 +649,7 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return PROFILE_HIGH
 async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle high threshold input and save profile."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
