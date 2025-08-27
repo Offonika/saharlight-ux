@@ -157,9 +157,9 @@ class RESTClientObject:
         # Normalize and validate HTTP method
         method = method.upper()
         if method not in ALLOWED_HTTP_METHODS:
-            allowed = ", ".join(ALLOWED_HTTP_METHODS)
             raise ApiValueError(
-                f"Unsupported HTTP method {method!r}; allowed methods: {allowed}"
+                f"Unsupported HTTP method {method!r}; "
+                f"allowed methods: {', '.join(ALLOWED_HTTP_METHODS)}"
             )
 
         if post_params and body:
