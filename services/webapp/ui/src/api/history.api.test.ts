@@ -1,18 +1,23 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { Configuration } from '@sdk/runtime';
 
 const mockHistoryGet = vi.hoisted(() => vi.fn());
 const mockHistoryPost = vi.hoisted(() => vi.fn());
 const mockHistoryIdDelete = vi.hoisted(() => vi.fn());
 
-vi.mock('@sdk', () => ({
-  HistoryApi: vi.fn(() => ({
-    historyGet: mockHistoryGet,
-    historyPost: mockHistoryPost,
-    historyIdDelete: mockHistoryIdDelete,
-  })),
-  Configuration,
-}));
+vi.mock(
+  '@sdk',
+  () => ({
+    HistoryApi: vi.fn(() => ({
+      historyGet: mockHistoryGet,
+      historyPost: mockHistoryPost,
+      historyIdDelete: mockHistoryIdDelete,
+    })),
+    Configuration: class {},
+  }),
+  { virtual: true },
+);
+
+import { Configuration } from '@sdk';
 
 import { getHistory, updateRecord, deleteRecord } from './history';
 

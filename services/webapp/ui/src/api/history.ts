@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { HistoryApi } from '@sdk';
-import { Configuration } from '@sdk/runtime';
+import { Configuration } from '@sdk';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 

@@ -1,5 +1,5 @@
 import { DefaultApi } from '@sdk';
-import { Configuration, ResponseError } from '@sdk/runtime';
+import { Configuration, ResponseError } from '@sdk';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 

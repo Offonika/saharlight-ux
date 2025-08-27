@@ -1,17 +1,31 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ResponseError, Configuration } from '@sdk/runtime';
 import type { ProfileSchema as Profile } from '@sdk/models';
 
 const mockProfilesGet = vi.hoisted(() => vi.fn());
 const mockProfilesPost = vi.hoisted(() => vi.fn());
 
-vi.mock('@sdk', () => ({
-  ProfilesApi: vi.fn(() => ({
-    profilesGet: mockProfilesGet,
-    profilesPost: mockProfilesPost,
-  })),
-  Configuration,
-}));
+vi.mock(
+  '@sdk',
+  () => {
+    class ResponseError extends Error {
+      constructor(public response: Response) {
+        super('ResponseError');
+      }
+    }
+    class Configuration {}
+    return {
+      ProfilesApi: vi.fn(() => ({
+        profilesGet: mockProfilesGet,
+        profilesPost: mockProfilesPost,
+      })),
+      ResponseError,
+      Configuration,
+    };
+  },
+  { virtual: true },
+);
+
+import { ResponseError, Configuration } from '@sdk';
 
 import { getProfile, saveProfile } from './profile';
 

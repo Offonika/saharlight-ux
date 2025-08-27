@@ -7,8 +7,30 @@ import {
   vi,
   type Mock,
 } from 'vitest';
-import { ProfilesApi } from '@sdk';
-import { Configuration } from '@sdk/runtime';
+
+vi.mock(
+  '@sdk',
+  () => {
+    class Configuration {
+      fetchApi: typeof fetch;
+      basePath: string;
+      constructor({ basePath, fetchApi }: { basePath: string; fetchApi: typeof fetch }) {
+        this.basePath = basePath;
+        this.fetchApi = fetchApi;
+      }
+    }
+    class ProfilesApi {
+      constructor(private config: Configuration) {}
+      profilesGet() {
+        return this.config.fetchApi('/api/profile/self');
+      }
+    }
+    return { ProfilesApi, Configuration };
+  },
+  { virtual: true },
+);
+
+import { ProfilesApi, Configuration } from '@sdk';
 import { tgFetch, REQUEST_TIMEOUT_MESSAGE, TG_INIT_DATA_HEADER } from './tgFetch';
 
 interface TelegramWebApp {
@@ -24,7 +46,7 @@ const originalFetch = global.fetch;
 describe('tgFetch', () => {
   beforeEach(() => {
     global.fetch = vi.fn().mockResolvedValue(new Response('{}'));
-    vi.stubGlobal('window', {} as TelegramWindow);
+    vi.stubGlobal('window', { location: { hash: '' } } as TelegramWindow);
   });
 
   afterEach(() => {
