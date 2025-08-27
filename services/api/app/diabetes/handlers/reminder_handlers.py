@@ -46,19 +46,17 @@ run_db: Callable[..., Awaitable[object]] | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
-    run_db = None
-except Exception as exc:  # pragma: no cover - log unexpected errors
-    logging.getLogger(__name__).exception(
-        "Unexpected error importing run_db", exc_info=exc
+    logging.getLogger(__name__).info(
+        "run_db is unavailable; proceeding without async DB runner"
     )
-    raise
+    run_db = None
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
 
 logger = logging.getLogger(__name__)
 
 SessionLocal: sessionmaker[Session] = _SessionLocal
-commit: Callable[[Session], bool] = _commit
+commit: Callable[[Session], None] = _commit
 
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 
@@ -496,16 +494,12 @@ async def reminder_webapp_save(
 
         def log_snooze(session: Session) -> Literal["ok"] | Literal["error"]:
             session.add(
-                ReminderLog(
-                    reminder_id=int(rid), telegram_id=user_id, action="snooze"
-                )
+                ReminderLog(reminder_id=int(rid), telegram_id=user_id, action="snooze")
             )
             try:
                 commit(session)
             except CommitError:
-                logger.error(
-                    "Failed to log reminder snooze for reminder %s", rid
-                )
+                logger.error("Failed to log reminder snooze for reminder %s", rid)
                 return "error"
             return "ok"
 
@@ -716,12 +710,10 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         [
             [
                 InlineKeyboardButton(
-
                     "Отложить 10 мин", callback_data=f"remind_snooze:{rid}:10"
                 ),
                 InlineKeyboardButton("Отмена", callback_data=f"remind_cancel:{rid}"),
             ]
-
         ]
     )
     try:
@@ -746,7 +738,7 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         rid = int(rid_str)
     except ValueError:
         return
-    minutes = None
+    minutes: int | None = None
     if len(parts) > 2:
         try:
             minutes = int(parts[2])
@@ -754,7 +746,7 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             minutes = None
 
     chat_id = user.id
-    snooze_minutes: int | None = 10 if action == "remind_snooze" else None
+    snooze_minutes: int | None = None
     with SessionLocal() as session:
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != chat_id:
@@ -762,10 +754,16 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             return
         await query.answer()
 
-        log_action = action if minutes is None else f"{action}:{minutes}"
+        if action == "remind_snooze":
+            snooze_minutes = minutes or 10
+        log_action = action
         session.add(
-            ReminderLog(reminder_id=rid, telegram_id=chat_id, action=log_action)
-
+            ReminderLog(
+                reminder_id=rid,
+                telegram_id=chat_id,
+                action=log_action,
+                snooze_minutes=snooze_minutes,
+            )
         )
         try:
             commit(session)
@@ -784,7 +782,6 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             job_queue.run_once(
                 reminder_job,
                 when=timedelta(minutes=mins),
-
                 data={"reminder_id": rid, "chat_id": chat_id},
                 name=f"reminder_{rid}",
             )
@@ -847,7 +844,9 @@ async def reminder_action_cb(
         try:
             commit(session)
         except CommitError:
-            logger.error("Failed to commit reminder action %s for reminder %s", action, rid)
+            logger.error(
+                "Failed to commit reminder action %s for reminder %s", action, rid
+            )
             return "error", None
         if action == "toggle":
             session.refresh(rem)

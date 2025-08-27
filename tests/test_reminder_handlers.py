@@ -174,7 +174,7 @@ async def test_add_reminder_valid_type(reminder_handlers: Any, monkeypatch: pyte
 
     monkeypatch.setattr(reminder_handlers, "run_db", None)
     monkeypatch.setattr(reminder_handlers, "SessionLocal", session_factory)
-    monkeypatch.setattr(reminder_handlers, "commit", lambda s: True)
+    monkeypatch.setattr(reminder_handlers, "commit", lambda s: None)
     monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
 
     await reminder_handlers.add_reminder(update, context)

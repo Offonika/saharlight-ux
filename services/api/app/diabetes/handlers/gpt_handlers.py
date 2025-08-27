@@ -57,10 +57,8 @@ run_db: RunDB | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
+    logger.info("run_db is unavailable; proceeding without async DB runner")
     run_db = None
-except Exception as exc:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db", exc_info=exc)
-    raise
 else:
     run_db = cast(RunDB, _run_db)
 
@@ -109,7 +107,7 @@ async def _save_entry(
     entry_data: EntryData,
     *,
     SessionLocal: sessionmaker[Session],
-    commit: Callable[[Session], bool],
+    commit: Callable[[Session], None],
 ) -> bool:
     """Persist an entry in the database."""
 
@@ -137,7 +135,7 @@ async def _handle_pending_entry(
     user_id: int,
     *,
     SessionLocal: sessionmaker[Session],
-    commit: Callable[[Session], bool],
+    commit: Callable[[Session], None],
     check_alert: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
     ],
@@ -283,7 +281,7 @@ async def _handle_edit_entry(
     context: ContextTypes.DEFAULT_TYPE,
     *,
     SessionLocal: sessionmaker[Session],
-    commit: Callable[[Session], bool],
+    commit: Callable[[Session], None],
 ) -> bool:
     """Apply edits to an existing entry."""
     edit_id = user_data.get("edit_id")
@@ -372,7 +370,7 @@ async def _handle_smart_input(
     user_id: int,
     *,
     SessionLocal: sessionmaker[Session],
-    commit: Callable[[Session], bool],
+    commit: Callable[[Session], None],
     check_alert: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
     ],
@@ -591,7 +589,7 @@ async def freeform_handler(
     context: ContextTypes.DEFAULT_TYPE,
     *,
     SessionLocal: sessionmaker[Session] | None = None,
-    commit: Callable[[Session], bool] | None = None,
+    commit: Callable[[Session], None] | None = None,
     check_alert: (
         Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]] | None
     ) = None,

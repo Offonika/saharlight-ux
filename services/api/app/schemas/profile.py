@@ -5,20 +5,23 @@ from datetime import time
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
+
 class ProfileSchema(BaseModel):
-    telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
+    telegramId: int = Field(
+        alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id")
+    )
     icr: float
     cf: float
     target: float
     low: float
     high: float
-    quietStart: str = Field(
-        default="23:00",
+    quietStart: time = Field(
+        default=time(23, 0),
         alias="quietStart",
         validation_alias=AliasChoices("quietStart", "quiet_start"),
     )
-    quietEnd: str = Field(
-        default="07:00",
+    quietEnd: time = Field(
+        default=time(7, 0),
         alias="quietEnd",
         validation_alias=AliasChoices("quietEnd", "quiet_end"),
     )
@@ -31,19 +34,7 @@ class ProfileSchema(BaseModel):
     sosAlertsEnabled: bool = Field(
         default=True,
         alias="sosAlertsEnabled",
-        validation_alias=AliasChoices(
-            "sosAlertsEnabled", "sos_alerts_enabled"
-        ),
-    )
-    quietStart: time = Field(
-        default=time(22, 0),
-        alias="quietStart",
-        validation_alias=AliasChoices("quietStart", "quiet_start"),
-    )
-    quietEnd: time = Field(
-        default=time(7, 0),
-        alias="quietEnd",
-        validation_alias=AliasChoices("quietEnd", "quiet_end"),
+        validation_alias=AliasChoices("sosAlertsEnabled", "sos_alerts_enabled"),
     )
 
     model_config = ConfigDict(populate_by_name=True)

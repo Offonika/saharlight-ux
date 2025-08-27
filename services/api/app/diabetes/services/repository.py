@@ -14,7 +14,7 @@ class CommitError(RuntimeError):
     """Raised when a database commit fails."""
 
 
-def commit(session: Session) -> bool:
+def commit(session: Session) -> None:
     """Commit an SQLAlchemy session.
 
     Parameters
@@ -22,14 +22,13 @@ def commit(session: Session) -> bool:
     session: Session
         Active SQLAlchemy session.
 
-    Returns
-    -------
-    bool
-        ``True`` if the commit succeeded. ``CommitError`` is raised otherwise.
+    Raises
+    ------
+    CommitError
+        If the commit fails. On success nothing is returned.
     """
     try:
         session.commit()
-        return True
     except SQLAlchemyError as exc:  # pragma: no cover - logging only
         session.rollback()
         logger.exception("DB commit failed")

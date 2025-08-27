@@ -70,7 +70,7 @@ async def test_freeform_handler_edits_pending_entry_keeps_state(
 
     monkeypatch.setattr(handlers, "run_db", None)
     monkeypatch.setattr(handlers, "SessionLocal", session_factory)
-    monkeypatch.setattr(handlers, "commit", lambda session: True)
+    monkeypatch.setattr(handlers, "commit", lambda session: None)
     monkeypatch.setattr(handlers, "check_alert", fake_check_alert)
 
     await handlers.freeform_handler(update, context)

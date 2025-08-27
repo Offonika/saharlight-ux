@@ -286,7 +286,12 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "📸 Триггер-фото" in text
     assert "2. <s>🔕title2</s>" in text
     assert markup.inline_keyboard
-    add_btn = next(btn for row in markup.inline_keyboard for btn in row if btn.text == "➕ Добавить")
+    add_btn = next(
+        btn
+        for row in markup.inline_keyboard
+        for btn in row
+        if btn.text == "➕ Добавить"
+    )
     assert add_btn.web_app is not None
     assert add_btn.web_app.url.endswith("/reminders/new")
 
@@ -555,7 +560,9 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_snooze_callback_custom_delay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -584,7 +591,8 @@ async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
     with TestSession() as session:
         log = session.query(ReminderLog).first()
         assert log is not None
-        assert log.action == "remind_snooze:15"
+        assert log.action == "remind_snooze"
+        assert log.snooze_minutes == 15
 
 
 @pytest.mark.asyncio
@@ -616,7 +624,9 @@ async def test_cancel_callback(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_snooze_callback_default_delay(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -647,7 +657,9 @@ async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_snooze_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_snooze_callback_logs_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -781,7 +793,6 @@ def test_empty_returns_200(
     resp = client.get("/api/reminders", params={"telegramId": 1})
     assert resp.status_code == 200
     assert resp.json() == []
-
 
 
 def test_nonempty_returns_list(

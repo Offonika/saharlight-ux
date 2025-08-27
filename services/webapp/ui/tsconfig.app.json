@@ -23,7 +23,10 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@sdk": ["../../../libs/ts-sdk"],
+      "@sdk/*": ["../../../libs/ts-sdk/*"],
+      "@sdk/runtime": ["../../../libs/ts-sdk/runtime.ts"]
     }
   },
   "include": ["src"]

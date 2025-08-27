@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -13,11 +12,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/stats", response_model=DayStats | dict[str, Any])
+@router.get("/stats", response_model=DayStats | dict[str, object])
 async def get_stats(
     telegram_id: int = Query(alias="telegramId"),
     user: UserContext = Depends(require_tg_user),
-) -> DayStats | dict[str, Any]:
+) -> DayStats | dict[str, object]:
     if telegram_id != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
     stats = await get_day_stats(telegram_id)

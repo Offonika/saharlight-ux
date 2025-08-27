@@ -342,7 +342,7 @@ async def test_commit_failure_logs_error_on_schedule(
         TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
         handlers.SessionLocal = TestSession
 
-        def fake_commit(session: Any) -> bool:
+        def fake_commit(session: Any) -> None:
             raise handlers.CommitError
 
         monkeypatch.setattr(handlers, "commit", fake_commit)
@@ -382,11 +382,11 @@ async def test_commit_failure_logs_error(
         call_count = {"n": 0}
         real_commit = commit
 
-        def fake_commit(session: Any) -> bool:
+        def fake_commit(session: Any) -> None:
             call_count["n"] += 1
             if call_count["n"] == 4:
                 raise handlers.CommitError
-            return real_commit(session)
+            real_commit(session)
 
         monkeypatch.setattr(handlers, "commit", fake_commit)
 

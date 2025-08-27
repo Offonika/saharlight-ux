@@ -136,7 +136,7 @@ def test_save_profile_persists(session_factory: sessionmaker[Session]) -> None:
 def test_save_profile_commit_failure(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
-    def fail_commit(session: object) -> bool:
+    def fail_commit(session: object) -> None:
         raise profile_api.CommitError
 
     monkeypatch.setattr(profile_api, "commit", fail_commit)
@@ -200,7 +200,7 @@ def test_set_timezone_persists(session_factory: sessionmaker[Session]) -> None:
 def test_set_timezone_commit_failure(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
-    def fail_commit(session: object) -> bool:
+    def fail_commit(session: object) -> None:
         raise profile_api.CommitError
 
     monkeypatch.setattr(profile_api, "commit", fail_commit)
@@ -219,7 +219,7 @@ def test_set_timezone_commit_failure(
 def test_set_timezone_user_missing(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
-    commit_mock = MagicMock(return_value=True)
+    commit_mock = MagicMock(return_value=None)
     monkeypatch.setattr(profile_api, "commit", commit_mock)
     with session_factory() as session:
         found, ok = profile_api.set_timezone(session, 999, "UTC")

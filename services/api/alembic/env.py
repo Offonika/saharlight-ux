@@ -37,13 +37,19 @@ else:
 # Ожидаем, что в app/diabetes/models.py определён Base
 try:
     from services.api.app.config import settings  # FastAPI/Pydantic settings
-except Exception:
+except ImportError:
+    logger.info(
+        "services.api.app.config not found; falling back to app.config"
+    )
     # альтернативный импорт, если пакетная структура другая
     from app.config import settings  # type: ignore
 
 try:
     from services.api.app.diabetes.services.db import Base
-except Exception:
+except ImportError:
+    logger.info(
+        "services.api.app.diabetes.services.db not found; falling back to app.diabetes.services.db"
+    )
     from app.diabetes.services.db import Base  # type: ignore
 
 target_metadata = Base.metadata

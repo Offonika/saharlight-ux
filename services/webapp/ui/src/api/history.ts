@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { HistoryApi } from '@offonika/diabetes-ts-sdk';
-import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
+import { HistoryApi } from '@sdk';
+import { Configuration } from '@sdk/runtime';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 

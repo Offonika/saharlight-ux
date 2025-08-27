@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { Configuration } from '@offonika/diabetes-ts-sdk/runtime';
+import { Configuration } from '@sdk/runtime';
 
 const mockHistoryGet = vi.hoisted(() => vi.fn());
 const mockHistoryPost = vi.hoisted(() => vi.fn());
 const mockHistoryIdDelete = vi.hoisted(() => vi.fn());
 
-vi.mock('@offonika/diabetes-ts-sdk', () => ({
+vi.mock('@sdk', () => ({
   HistoryApi: vi.fn(() => ({
     historyGet: mockHistoryGet,
     historyPost: mockHistoryPost,
@@ -103,8 +103,8 @@ describe('HistoryApi serialization', () => {
   it('sends ISO date strings', async () => {
     const fetchMock = vi.fn(async () => new Response('{}'));
     const { HistoryApi, Configuration } = await vi.importActual<
-      typeof import('@offonika/diabetes-ts-sdk')
-    >('@offonika/diabetes-ts-sdk');
+      typeof import('@sdk')
+    >('@sdk');
 
     const api = new HistoryApi(
       new Configuration({ basePath: '', fetchApi: fetchMock }),

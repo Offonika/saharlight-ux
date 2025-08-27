@@ -22,19 +22,17 @@ run_db: Callable[..., Awaitable[object]] | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
-    run_db = None
-except Exception as exc:  # pragma: no cover - log unexpected errors
-    logging.getLogger(__name__).exception(
-        "Unexpected error importing run_db", exc_info=exc
+    logging.getLogger(__name__).info(
+        "run_db is unavailable; proceeding without async DB runner"
     )
-    raise
+    run_db = None
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
 
 logger = logging.getLogger(__name__)
 
 SessionLocal: sessionmaker[Session] = _SessionLocal
-commit: Callable[[Session], bool] = _commit
+commit: Callable[[Session], None] = _commit
 
 CustomContext = ContextTypes.DEFAULT_TYPE
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]

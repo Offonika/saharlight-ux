@@ -94,11 +94,12 @@ export default {
 				'gradient-card': 'var(--gradient-card)',
 				'gradient-button': 'var(--gradient-button)'
 			},
-			boxShadow: {
-				'soft': 'var(--shadow-soft)',
-				'medium': 'var(--shadow-medium)',
-				'strong': 'var(--shadow-strong)'
-			},
+                        boxShadow: {
+                                glow: '0 0 10px hsl(var(--medical-blue) / 0.4)',
+                                soft: 'var(--shadow-soft)',
+                                medium: 'var(--shadow-medium)',
+                                strong: 'var(--shadow-strong)',
+                        },
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',

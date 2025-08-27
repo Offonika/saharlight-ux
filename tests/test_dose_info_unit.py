@@ -88,7 +88,7 @@ async def test_entry_without_dose_has_no_unit(
 
     session_factory: sessionmaker[Session] = sessionmaker(class_=DummySession)
     monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
-    monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
+    monkeypatch.setattr(dose_handlers, "commit", lambda session: None)
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", lambda: None)
 
@@ -143,7 +143,7 @@ async def test_entry_without_sugar_has_placeholder(
 
     session_factory: sessionmaker[Session] = sessionmaker(class_=DummySession)
     monkeypatch.setattr(dose_handlers, "SessionLocal", session_factory)
-    monkeypatch.setattr(dose_handlers, "commit", lambda session: True)
+    monkeypatch.setattr(dose_handlers, "commit", lambda session: None)
     monkeypatch.setattr(dose_handlers, "check_alert", noop)
     monkeypatch.setattr(dose_handlers, "menu_keyboard", lambda: None)
 

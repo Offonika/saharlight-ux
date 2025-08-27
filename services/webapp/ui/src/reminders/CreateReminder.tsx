@@ -3,7 +3,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
 import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
-import { Reminder as ApiReminder } from "@offonika/diabetes-ts-sdk";
+import { Reminder as ApiReminder } from "@sdk";
 import { useTelegramContext } from "@/contexts/telegram-context";
 import { useToast } from "@/hooks/use-toast";
 import {

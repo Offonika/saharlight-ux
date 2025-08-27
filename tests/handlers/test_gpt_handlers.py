@@ -149,7 +149,7 @@ async def test_pending_entry_commit(monkeypatch: pytest.MonkeyPatch) -> None:
     await gpt_handlers.freeform_handler(
         update,
         context,
-        commit=lambda session: True,
+        commit=lambda session: None,
         check_alert=fake_check_alert,
     )
     assert "pending_entry" not in user_data
@@ -230,7 +230,7 @@ async def test_smart_input_complete(monkeypatch: pytest.MonkeyPatch) -> None:
         update,
         context,
         smart_input=fake_smart_input,
-        commit=lambda session: True,
+        commit=lambda session: None,
         check_alert=fake_check_alert,
     )
     assert message.replies[0][0].startswith("✅ Запись сохранена")
