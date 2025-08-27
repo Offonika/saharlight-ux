@@ -18,8 +18,9 @@ from services.api.app.diabetes.utils.helpers import (
     parse_time_interval,
     split_text_by_width,
 )
+from typing import Any
 
-def test_clean_markdown():
+def test_clean_markdown() -> None:
     text = "**Жирный**\n# Заголовок\n* элемент\n1. Первый"
     cleaned = clean_markdown(text)
     assert "Жирный" in cleaned
@@ -28,7 +29,7 @@ def test_clean_markdown():
     assert "*" not in cleaned
     assert "1." not in cleaned
 
-def test_split_text_by_width_simple():
+def test_split_text_by_width_simple() -> None:
     text = "Это короткая строка"
     pdfmetrics.registerFont(TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
     lines = split_text_by_width(text, "DejaVuSans", 12, 50)
@@ -43,7 +44,7 @@ def test_split_text_by_width_simple():
         "Hello Supercalifragilisticexpialidocious world",
     ],
 )
-def test_split_text_by_width_respects_limit(text):
+def test_split_text_by_width_respects_limit(text: Any) -> None:
     pdfmetrics.registerFont(TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
     max_width = 20
     lines = split_text_by_width(text, "DejaVuSans", 12, max_width)
@@ -52,15 +53,15 @@ def test_split_text_by_width_respects_limit(text):
 
 
 @pytest.mark.asyncio
-async def test_get_coords_and_link_non_blocking(monkeypatch) -> None:
-    def slow_urlopen(*args, **kwargs):
+async def test_get_coords_and_link_non_blocking(monkeypatch: Any) -> None:
+    def slow_urlopen(*args: Any, **kwargs: Any) -> None:
         time.sleep(0.2)
 
         class Resp:
-            def __enter__(self):
+            def __enter__(self) -> None:
                 return io.StringIO('{"loc": "1,2"}')
 
-            def __exit__(self, exc_type, exc, tb):
+            def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
                 return False
 
         return Resp()
@@ -76,8 +77,8 @@ async def test_get_coords_and_link_non_blocking(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_coords_and_link_logs_warning(monkeypatch, caplog) -> None:
-    def failing_urlopen(*args, **kwargs):
+async def test_get_coords_and_link_logs_warning(monkeypatch: Any, caplog: Any) -> None:
+    def failing_urlopen(*args: Any, **kwargs: Any) -> None:
         raise OSError("network down")
 
     monkeypatch.setattr(utils, "urlopen", failing_urlopen)
@@ -90,13 +91,13 @@ async def test_get_coords_and_link_logs_warning(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_coords_and_link_invalid_loc(monkeypatch, caplog) -> None:
-    def bad_urlopen(*args, **kwargs):
+async def test_get_coords_and_link_invalid_loc(monkeypatch: Any, caplog: Any) -> None:
+    def bad_urlopen(*args: Any, **kwargs: Any) -> None:
         class Resp:
-            def __enter__(self):
+            def __enter__(self) -> None:
                 return io.StringIO('{"loc": "invalid"}')
 
-            def __exit__(self, exc_type, exc, tb):
+            def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
                 return False
 
         return Resp()
@@ -117,5 +118,5 @@ async def test_get_coords_and_link_invalid_loc(monkeypatch, caplog) -> None:
         ("3D", timedelta(days=3)),
     ],
 )
-def test_parse_interval_uppercase(text, expected):
+def test_parse_interval_uppercase(text: Any, expected: Any) -> None:
     assert parse_time_interval(text) == expected

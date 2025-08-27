@@ -39,7 +39,7 @@ class DummyJobQueue:
     def run_repeating(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def get_jobs_by_name(self, name: str) -> list[Any]:
+    def get_jobs_by_name(self, name: str) -> None:
         return []
 
 

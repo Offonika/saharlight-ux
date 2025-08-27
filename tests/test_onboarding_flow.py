@@ -13,7 +13,7 @@ from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.texts: list[str] = []
         self.photos: list[tuple[Any, str | None]] = []
         self.polls: list[tuple[str, list[str]]] = []
@@ -31,7 +31,7 @@ class DummyMessage:
 
     async def reply_poll(
         self, question: str, options: list[str], **kwargs: Any
-    ) -> SimpleNamespace:
+    ) -> None:
         self.polls.append((question, options))
         self.markups.append(kwargs.get("reply_markup"))
         return SimpleNamespace(poll=SimpleNamespace(id="p1"))
@@ -41,7 +41,7 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, message, data):
+    def __init__(self, message: Any, data: Any) -> None:
         self.message = message
         self.data = data
 
@@ -50,7 +50,7 @@ class DummyQuery:
 
 
 @pytest.mark.asyncio
-async def test_onboarding_flow(monkeypatch) -> None:
+async def test_onboarding_flow(monkeypatch: Any) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 

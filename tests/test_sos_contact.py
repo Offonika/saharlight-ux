@@ -24,7 +24,7 @@ from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
-    def __init__(self, text: str):
+    def __init__(self, text: str) -> None:
         self.text = text
         self.replies: list[str] = []
 
@@ -33,7 +33,7 @@ class DummyMessage:
 
 
 @pytest.fixture
-def test_session(monkeypatch):
+def test_session(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -46,7 +46,7 @@ def test_session(monkeypatch):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("contact", ["@alice", "123456"])
-async def test_soscontact_stores_contact(test_session, contact) -> None:
+async def test_soscontact_stores_contact(test_session: Any, contact: Any) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1))
@@ -67,7 +67,7 @@ async def test_soscontact_stores_contact(test_session, contact) -> None:
 
 
 @pytest.mark.asyncio
-async def test_alert_notifies_user_and_contact(test_session, monkeypatch) -> None:
+async def test_alert_notifies_user_and_contact(test_session: Any, monkeypatch: Any) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1, low_threshold=4, high_threshold=8))
@@ -84,7 +84,7 @@ async def test_alert_notifies_user_and_contact(test_session, monkeypatch) -> Non
     context: AlertContext = ContextStub(bot=cast(Bot, SimpleNamespace()))
     send_mock = AsyncMock()
     monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
-    async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
+    async def fake_get_coords_and_link() -> None:
         return ("0,0", "link")
 
     monkeypatch.setattr(alert_handlers, "get_coords_and_link", fake_get_coords_and_link)
@@ -102,7 +102,7 @@ async def test_alert_notifies_user_and_contact(test_session, monkeypatch) -> Non
 
 
 @pytest.mark.asyncio
-async def test_alert_skips_phone_contact(test_session, monkeypatch) -> None:
+async def test_alert_skips_phone_contact(test_session: Any, monkeypatch: Any) -> None:
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(
@@ -123,7 +123,7 @@ async def test_alert_skips_phone_contact(test_session, monkeypatch) -> None:
     send_mock = AsyncMock()
     monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
 
-    async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
+    async def fake_get_coords_and_link() -> None:
         return ("0,0", "link")
 
     monkeypatch.setattr(alert_handlers, "get_coords_and_link", fake_get_coords_and_link)
@@ -138,7 +138,7 @@ async def test_alert_skips_phone_contact(test_session, monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_sos_contact_menu_button_starts_conv(monkeypatch) -> None:
+async def test_sos_contact_menu_button_starts_conv(monkeypatch: Any) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401

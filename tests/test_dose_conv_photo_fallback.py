@@ -13,7 +13,7 @@ import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F40
 from services.api.app.diabetes.handlers import dose_handlers
 
 
-def _find_handler(fallbacks, regex: str) -> MessageHandler:
+def _find_handler(fallbacks: Any, regex: str) -> None:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
             filt = getattr(h, "filters", None)
@@ -24,7 +24,7 @@ def _find_handler(fallbacks, regex: str) -> MessageHandler:
 
 
 class DummyMessage:
-    def __init__(self, text: str = ""):
+    def __init__(self, text: str = "") -> None:
         self.text = text
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []

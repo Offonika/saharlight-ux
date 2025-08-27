@@ -1,8 +1,9 @@
 import importlib
 from urllib.parse import urlparse
+from typing import Any
 
 
-def test_menu_keyboard_webapp_urls(monkeypatch):
+def test_menu_keyboard_webapp_urls(monkeypatch: Any) -> None:
     """Menu buttons should open webapp paths for profile and reminders."""
     monkeypatch.setenv("WEBAPP_URL", "https://example.com")
 

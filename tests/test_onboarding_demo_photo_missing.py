@@ -29,7 +29,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_onboarding_demo_photo_missing(monkeypatch, caplog) -> None:
+async def test_onboarding_demo_photo_missing(monkeypatch: Any, caplog: Any) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 
@@ -63,7 +63,7 @@ async def test_onboarding_demo_photo_missing(monkeypatch, caplog) -> None:
 
     orig_open = pathlib.Path.open
 
-    def fake_open(self, *args: Any, **kwargs: Any) -> Any:
+    def fake_open(self, *args: Any, **kwargs: Any) -> None:
         if self == onboarding.DEMO_PHOTO_PATH:
             raise OSError("missing")
         return orig_open(self, *args, **kwargs)

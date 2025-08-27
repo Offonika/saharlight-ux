@@ -4,20 +4,21 @@ import importlib
 import sys
 
 import pytest
+from typing import Any
 
 
-def _reload(module: str):
+def _reload(module: str) -> None:
     if module in sys.modules:
         del sys.modules[module]
     return importlib.import_module(module)
 
 
-def test_import_config_without_db_password(monkeypatch):
+def test_import_config_without_db_password(monkeypatch: Any) -> None:
     monkeypatch.delenv("DB_PASSWORD", raising=False)
     _reload("services.api.app.config")  # should not raise
 
 
-def test_init_db_raises_when_no_password(monkeypatch):
+def test_init_db_raises_when_no_password(monkeypatch: Any) -> None:
     monkeypatch.delenv("DB_PASSWORD", raising=False)
     config = _reload("services.api.app.config")
     db = _reload("services.api.app.diabetes.services.db")

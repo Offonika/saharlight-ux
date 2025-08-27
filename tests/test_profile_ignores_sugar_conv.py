@@ -15,7 +15,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 class DummyMessage:
-    def __init__(self, text: str = ""):
+    def __init__(self, text: str = "") -> None:
         self.text = text
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
@@ -26,7 +26,7 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_profile_input_not_logged_as_sugar(monkeypatch) -> None:
+async def test_profile_input_not_logged_as_sugar(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

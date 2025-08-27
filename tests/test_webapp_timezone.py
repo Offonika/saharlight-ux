@@ -10,23 +10,24 @@ from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
 from services.api.app.diabetes.services import db
+from typing import Any
 
 
-def setup_db(monkeypatch):
+def setup_db(monkeypatch: Any) -> None:
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     Session = sessionmaker(bind=engine)
     db.Base.metadata.create_all(bind=engine)
 
-    async def run_db_wrapper(fn, *args, **kwargs):
+    async def run_db_wrapper(fn: Any, *args: Any, **kwargs: Any) -> None:
         return await db.run_db(fn, *args, sessionmaker=Session, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
     return Session
 
 
-def test_timezone_persist_and_validate(monkeypatch) -> None:
+def test_timezone_persist_and_validate(monkeypatch: Any) -> None:
     Session = setup_db(monkeypatch)
     client = TestClient(server.app)
 
@@ -54,7 +55,7 @@ def test_timezone_persist_and_validate(monkeypatch) -> None:
     assert resp.status_code in {400, 422}
 
 
-def test_timezone_partial_file(monkeypatch) -> None:
+def test_timezone_partial_file(monkeypatch: Any) -> None:
     Session = setup_db(monkeypatch)
     with Session() as session:
         session.add(db.Timezone(id=1, tz="Europe/Mosc"))
@@ -65,7 +66,7 @@ def test_timezone_partial_file(monkeypatch) -> None:
     assert resp.status_code == 500
 
 
-def test_timezone_concurrent_writes(monkeypatch) -> None:
+def test_timezone_concurrent_writes(monkeypatch: Any) -> None:
     Session = setup_db(monkeypatch)
     timezones = ["Europe/Moscow", "America/New_York", "Asia/Tokyo", "Europe/Paris"]
 
@@ -88,7 +89,7 @@ def test_timezone_concurrent_writes(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_timezone_async_writes(monkeypatch) -> None:
+async def test_timezone_async_writes(monkeypatch: Any) -> None:
     Session = setup_db(monkeypatch)
     timezones = ["Europe/Moscow", "America/New_York", "Asia/Tokyo", "Europe/Paris"]
 

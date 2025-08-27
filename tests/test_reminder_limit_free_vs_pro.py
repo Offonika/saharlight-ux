@@ -12,7 +12,7 @@ from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.web_app_data = SimpleNamespace()
         self.replies: list[str] = []
 
@@ -22,7 +22,7 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("plan, limit", [("free", 5), ("pro", 10)])
-async def test_reminder_limit_free_vs_pro(plan, limit, monkeypatch) -> None:
+async def test_reminder_limit_free_vs_pro(plan: Any, limit: Any, monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

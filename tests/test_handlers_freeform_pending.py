@@ -10,7 +10,7 @@ import services.api.app.diabetes.handlers.dose_handlers as handlers
 
 
 class DummyMessage:
-    def __init__(self, text: str):
+    def __init__(self, text: str) -> None:
         self.text = text
         self.replies: list[tuple[str, dict[str, Any]]] = []
 
@@ -59,13 +59,13 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         "photo_path": "photos/img.jpg",
     }
     class DummySession:
-        def __enter__(self) -> "DummySession":
+        def __enter__(self) -> None:
             return self
 
-        def __exit__(self, exc_type, exc, tb) -> None:
+        def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
             pass
 
-        def get(self, model, user_id):
+        def get(self, model: Any, user_id: Any) -> None:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
     handlers.SessionLocal = lambda: DummySession()

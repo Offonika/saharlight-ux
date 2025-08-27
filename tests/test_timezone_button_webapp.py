@@ -1,8 +1,9 @@
 import importlib
 from urllib.parse import urlparse
+from typing import Any
 
 
-def test_timezone_button_webapp_url(monkeypatch):
+def test_timezone_button_webapp_url(monkeypatch: Any) -> None:
     """Timezone button should open webapp path for timezone detection."""
     monkeypatch.setenv("WEBAPP_URL", "https://example.com")
 

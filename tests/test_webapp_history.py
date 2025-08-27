@@ -9,23 +9,24 @@ from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
 from services.api.app.diabetes.services import db
+from typing import Any
 
 
-def setup_db(monkeypatch):
+def setup_db(monkeypatch: Any) -> None:
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     Session = sessionmaker(bind=engine)
     db.Base.metadata.create_all(bind=engine)
 
-    async def run_db_wrapper(fn, *args, **kwargs):
+    async def run_db_wrapper(fn: Any, *args: Any, **kwargs: Any) -> None:
         return await db.run_db(fn, *args, sessionmaker=Session, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
     return Session
 
 
-def test_history_persist_and_update(monkeypatch) -> None:
+def test_history_persist_and_update(monkeypatch: Any) -> None:
     Session = setup_db(monkeypatch)
     client = TestClient(server.app)
 
@@ -57,7 +58,7 @@ def test_history_persist_and_update(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_history_concurrent_writes(monkeypatch) -> None:
+async def test_history_concurrent_writes(monkeypatch: Any) -> None:
     Session = setup_db(monkeypatch)
     records = [
         {"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"}

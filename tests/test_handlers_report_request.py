@@ -10,7 +10,7 @@ from tests.helpers import make_update
 
 
 class DummyMessage:
-    def __init__(self, text: str = ""):
+    def __init__(self, text: str = "") -> None:
         self.text = text
         self.replies: list[tuple[str, dict[str, Any]]] = []
 
@@ -19,7 +19,7 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str):
+    def __init__(self, data: str) -> None:
         self.data = data
         self.edited: list[str] = []
 
@@ -66,7 +66,7 @@ async def test_report_request_and_custom_flow(
     called = {}
 
     async def dummy_send_report(
-        update, context, date_from, period_label, query=None
+        update: Any, context: Any, date_from: Any, period_label: Any, query: Any=None
     ) -> None:
         called["called"] = True
         expected = dt.datetime(2024, 1, 1, tzinfo=dt.timezone.utc)
@@ -99,7 +99,7 @@ async def test_report_period_callback_week(
     called: dict[str, dt.datetime | str] = {}
 
     async def dummy_send_report(
-        update, context, date_from, period_label, query=None
+        update: Any, context: Any, date_from: Any, period_label: Any, query: Any=None
     ) -> None:
         called["date_from"] = date_from
         called["period_label"] = period_label
@@ -108,7 +108,7 @@ async def test_report_period_callback_week(
 
     class DummyDateTime(dt.datetime):
         @classmethod
-        def now(cls, tz: dt.tzinfo | None = None) -> "DummyDateTime":
+        def now(cls, tz: dt.tzinfo | None = None) -> None:
             return fixed_now
 
     fixed_now = DummyDateTime(2024, 1, 10, tzinfo=dt.timezone.utc)

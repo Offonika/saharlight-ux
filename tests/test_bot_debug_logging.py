@@ -3,9 +3,10 @@
 import importlib
 import logging
 import sys
+from typing import Any
 
 
-def test_log_level_debug(monkeypatch):
+def test_log_level_debug(monkeypatch: Any) -> None:
     """Setting LOG_LEVEL=DEBUG enables debug logging in bot.main."""
 
     # Prepare environment for config module
@@ -39,21 +40,21 @@ def test_log_level_debug(monkeypatch):
             return None
 
     class DummyBuilder:
-        def token(self, _: str) -> "DummyBuilder":
+        def token(self, _: str) -> None:
             return self
 
-        def post_init(self, _: object) -> "DummyBuilder":
+        def post_init(self, _: object) -> None:
             return self
 
-        def build(self) -> DummyApp:
+        def build(self) -> None:
             return DummyApp()
 
     class DummyApplication:
         @staticmethod
-        def builder() -> DummyBuilder:
+        def builder() -> None:
             return DummyBuilder()
 
-        def __class_getitem__(cls, _: object):  # Support subscripting in type hints
+        def __class_getitem__(cls, _: object) -> None:  # Support subscripting in type hints
             return cls
 
     monkeypatch.setattr(bot, "Application", DummyApplication)

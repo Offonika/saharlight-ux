@@ -20,7 +20,7 @@ from services.api.app.diabetes.services.reporting import make_sugar_plot, genera
 
 
 class DummyEntry:
-    def __init__(self, event_time, sugar_before, carbs_g, xe, dose):
+    def __init__(self, event_time: Any, sugar_before: Any, carbs_g: Any, xe: Any, dose: Any) -> None:
         self.event_time = event_time
         self.sugar_before = sugar_before
         self.carbs_g = carbs_g
@@ -28,7 +28,7 @@ class DummyEntry:
         self.dose = dose
 
 
-def test_make_sugar_plot():
+def test_make_sugar_plot() -> None:
     entries = [
         DummyEntry(
             datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
@@ -51,7 +51,7 @@ def test_make_sugar_plot():
     assert len(buf.read()) > 1000  # есть содержимое
 
 
-def test_make_sugar_plot_sorts_entries(monkeypatch):
+def test_make_sugar_plot_sorts_entries(monkeypatch: Any) -> None:
     entries = [
         DummyEntry(
             datetime.datetime(2025, 7, 1, 14, tzinfo=datetime.timezone.utc),
@@ -70,7 +70,7 @@ def test_make_sugar_plot_sorts_entries(monkeypatch):
     ]
     captured = {}
 
-    def fake_plot(x, y, **kwargs):
+    def fake_plot(x: Any, y: Any, **kwargs: Any) -> None:
         captured["x"] = x
         captured["y"] = y
 
@@ -84,7 +84,7 @@ def test_make_sugar_plot_sorts_entries(monkeypatch):
     assert captured["y"] == [7.0, 9.0]
 
 
-def test_make_sugar_plot_no_data():
+def test_make_sugar_plot_no_data() -> None:
     entries = [
         DummyEntry(
             datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
@@ -100,7 +100,7 @@ def test_make_sugar_plot_no_data():
     assert len(buf.read()) > 1000
 
 
-def test_generate_pdf_report():
+def test_generate_pdf_report() -> None:
     entries = [
         DummyEntry(
             datetime.datetime(2025, 7, 1, 9, tzinfo=datetime.timezone.utc),
@@ -126,7 +126,7 @@ def test_generate_pdf_report():
 
 
 @pytest.mark.parametrize("block", ["summary_lines", "errors", "day_lines"])
-def test_generate_pdf_report_page_breaks(block):
+def test_generate_pdf_report_page_breaks(block: Any) -> None:
     long_lines = [f"line {i}" for i in range(100)]
     kwargs = {"summary_lines": [], "errors": [], "day_lines": []}
     kwargs[block] = long_lines
@@ -137,7 +137,7 @@ def test_generate_pdf_report_page_breaks(block):
 
 
 @pytest.mark.asyncio
-async def test_send_report_uses_gpt(monkeypatch) -> None:
+async def test_send_report_uses_gpt(monkeypatch: Any) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst")
     os.environ.setdefault("DB_PASSWORD", "pwd")
@@ -168,7 +168,7 @@ async def test_send_report_uses_gpt(monkeypatch) -> None:
         session.commit()
 
     class DummyMessage:
-        def __init__(self):
+        def __init__(self) -> None:
             self.docs: list[Any] = []
 
         async def reply_text(self, *args: Any, **kwargs: Any) -> None:
@@ -191,7 +191,7 @@ async def test_send_report_uses_gpt(monkeypatch) -> None:
         thread_id = "tid"
         id = "rid"
 
-    async def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs: Any) -> None:
         return Run()
 
     class DummyClient:

@@ -13,7 +13,7 @@ from services.api.app.diabetes.handlers import dose_handlers
 
 
 class DummyMessage:
-    def __init__(self, text: str = ""):
+    def __init__(self, text: str = "") -> None:
         self.text = text
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
@@ -23,7 +23,7 @@ class DummyMessage:
         self.kwargs.append(kwargs)
 
 
-def _get_menu_handler(fallbacks):
+def _get_menu_handler(fallbacks: Any) -> None:
     return next(
         h
         for h in fallbacks

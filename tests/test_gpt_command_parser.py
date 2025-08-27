@@ -5,6 +5,7 @@ import logging
 from types import SimpleNamespace
 
 import pytest
+from typing import Any
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -13,8 +14,8 @@ from services.api.app.diabetes import gpt_command_parser  # noqa: E402
 
 
 @pytest.mark.asyncio
-async def test_parse_command_timeout_non_blocking(monkeypatch) -> None:
-    def slow_create(*args, **kwargs):
+async def test_parse_command_timeout_non_blocking(monkeypatch: Any) -> None:
+    def slow_create(*args: Any, **kwargs: Any) -> None:
         time.sleep(1)
 
         class FakeResponse:
@@ -46,7 +47,7 @@ async def test_parse_command_timeout_non_blocking(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_explanatory_text(monkeypatch) -> None:
+async def test_parse_command_with_explanatory_text(monkeypatch: Any) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -68,7 +69,7 @@ async def test_parse_command_with_explanatory_text(monkeypatch) -> None:
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> None:
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
@@ -86,7 +87,7 @@ async def test_parse_command_with_explanatory_text(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_array_response(monkeypatch) -> None:
+async def test_parse_command_with_array_response(monkeypatch: Any) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -96,7 +97,7 @@ async def test_parse_command_with_array_response(monkeypatch) -> None:
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> None:
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
@@ -114,7 +115,7 @@ async def test_parse_command_with_array_response(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_scalar_response(monkeypatch) -> None:
+async def test_parse_command_with_scalar_response(monkeypatch: Any) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -124,7 +125,7 @@ async def test_parse_command_with_scalar_response(monkeypatch) -> None:
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> None:
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
@@ -142,7 +143,7 @@ async def test_parse_command_with_scalar_response(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_invalid_schema(monkeypatch, caplog) -> None:
+async def test_parse_command_with_invalid_schema(monkeypatch: Any, caplog: Any) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -156,7 +157,7 @@ async def test_parse_command_with_invalid_schema(monkeypatch, caplog) -> None:
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> None:
         return FakeResponse()
 
     fake_client = SimpleNamespace(
@@ -177,11 +178,11 @@ async def test_parse_command_with_invalid_schema(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_missing_content(monkeypatch, caplog) -> None:
+async def test_parse_command_with_missing_content(monkeypatch: Any, caplog: Any) -> None:
     class FakeResponse:
         choices = [type("Choice", (), {"message": type("Msg", (), {})()})]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> None:
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
@@ -201,7 +202,7 @@ async def test_parse_command_with_missing_content(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_non_string_content(monkeypatch, caplog) -> None:
+async def test_parse_command_with_non_string_content(monkeypatch: Any, caplog: Any) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -211,7 +212,7 @@ async def test_parse_command_with_non_string_content(monkeypatch, caplog) -> Non
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> None:
         return FakeResponse()
     fake_client = SimpleNamespace(
         chat=SimpleNamespace(
@@ -231,7 +232,7 @@ async def test_parse_command_with_non_string_content(monkeypatch, caplog) -> Non
 
 
 @pytest.mark.asyncio
-async def test_parse_command_handles_unexpected_exception(monkeypatch, caplog) -> None:
+async def test_parse_command_handles_unexpected_exception(monkeypatch: Any, caplog: Any) -> None:
     def bad_client() -> None:
         raise RuntimeError("boom")
 
@@ -251,7 +252,7 @@ async def test_parse_command_handles_unexpected_exception(monkeypatch, caplog) -
         "ghp_" + "A1b2" * 9 + "Cd",
     ],
 )
-def test_sanitize_masks_api_like_tokens(token):
+def test_sanitize_masks_api_like_tokens(token: Any) -> None:
     text = f"before {token} after"
     assert (
         gpt_command_parser._sanitize_sensitive_data(text)
@@ -259,13 +260,13 @@ def test_sanitize_masks_api_like_tokens(token):
     )
 
 
-def test_sanitize_leaves_numeric_strings():
+def test_sanitize_leaves_numeric_strings() -> None:
     number = "1234567890" * 4 + "12"
     text = f"id {number}"
     assert gpt_command_parser._sanitize_sensitive_data(text) == text
 
 
-def test_extract_first_json_multiple_objects():
+def test_extract_first_json_multiple_objects() -> None:
     text = (
         '{"action":"add_entry","fields":{}} '
         '{"action":"delete_entry","fields":{}}'
@@ -276,13 +277,13 @@ def test_extract_first_json_multiple_objects():
     }
 
 
-def test_extract_first_json_malformed_input():
+def test_extract_first_json_malformed_input() -> None:
     text = '{"action":"add_entry","fields":{}'
     assert gpt_command_parser._extract_first_json(text) is None
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_multiple_jsons(monkeypatch) -> None:
+async def test_parse_command_with_multiple_jsons(monkeypatch: Any) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -303,7 +304,7 @@ async def test_parse_command_with_multiple_jsons(monkeypatch) -> None:
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> None:
         return FakeResponse()
 
     fake_client = SimpleNamespace(
@@ -322,7 +323,7 @@ async def test_parse_command_with_multiple_jsons(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_parse_command_with_malformed_json(monkeypatch, caplog) -> None:
+async def test_parse_command_with_malformed_json(monkeypatch: Any, caplog: Any) -> None:
     class FakeResponse:
         choices = [
             type(
@@ -340,7 +341,7 @@ async def test_parse_command_with_malformed_json(monkeypatch, caplog) -> None:
             )
         ]
 
-    def create(*args, **kwargs):
+    def create(*args: Any, **kwargs: Any) -> None:
         return FakeResponse()
 
     fake_client = SimpleNamespace(
