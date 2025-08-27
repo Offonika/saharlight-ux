@@ -5,10 +5,10 @@ import io
 import time
 import logging
 from datetime import timedelta
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase.pdfmetrics import stringWidth
-from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics  # type: ignore[import-not-found]
+from reportlab.pdfbase.ttfonts import TTFont  # type: ignore[import-not-found]
+from reportlab.pdfbase.pdfmetrics import stringWidth  # type: ignore[import-not-found]
+from reportlab.lib.units import mm  # type: ignore[import-not-found]
 
 import pytest
 

@@ -6,7 +6,7 @@ from logging.config import fileConfig
 from urllib.parse import quote_plus
 from pathlib import Path
 
-from alembic import context
+from alembic import context  # type: ignore[import-not-found]
 from sqlalchemy import create_engine, pool  # используем create_engine — без set_main_option
 
 # Загружаем .env: сначала корень, затем сервисный (сервисный перекрывает)
