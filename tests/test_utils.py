@@ -5,10 +5,10 @@ import io
 import time
 import logging
 from datetime import timedelta
-from reportlab.pdfbase import pdfmetrics  # type: ignore[import-not-found]
-from reportlab.pdfbase.ttfonts import TTFont  # type: ignore[import-not-found]
-from reportlab.pdfbase.pdfmetrics import stringWidth  # type: ignore[import-not-found]
-from reportlab.lib.units import mm  # type: ignore[import-not-found]
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.lib.units import mm
 
 import pytest
 
@@ -18,7 +18,7 @@ from services.api.app.diabetes.utils.helpers import (
     parse_time_interval,
     split_text_by_width,
 )
-from typing import Any
+from typing import Any, Literal
 
 def test_clean_markdown() -> None:
     text = "**Жирный**\n# Заголовок\n* элемент\n1. Первый"
@@ -54,14 +54,14 @@ def test_split_text_by_width_respects_limit(text: Any) -> None:
 
 @pytest.mark.asyncio
 async def test_get_coords_and_link_non_blocking(monkeypatch: Any) -> None:
-    def slow_urlopen(*args: Any, **kwargs: Any) -> None:
+    def slow_urlopen(*args: Any, **kwargs: Any) -> Any:
         time.sleep(0.2)
 
         class Resp:
-            def __enter__(self) -> None:
+            def __enter__(self) -> io.StringIO:
                 return io.StringIO('{"loc": "1,2"}')
 
-            def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+            def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> Literal[False]:
                 return False
 
         return Resp()
@@ -78,7 +78,7 @@ async def test_get_coords_and_link_non_blocking(monkeypatch: Any) -> None:
 
 @pytest.mark.asyncio
 async def test_get_coords_and_link_logs_warning(monkeypatch: Any, caplog: Any) -> None:
-    def failing_urlopen(*args: Any, **kwargs: Any) -> None:
+    def failing_urlopen(*args: Any, **kwargs: Any) -> Any:
         raise OSError("network down")
 
     monkeypatch.setattr(utils, "urlopen", failing_urlopen)
@@ -92,12 +92,12 @@ async def test_get_coords_and_link_logs_warning(monkeypatch: Any, caplog: Any) -
 
 @pytest.mark.asyncio
 async def test_get_coords_and_link_invalid_loc(monkeypatch: Any, caplog: Any) -> None:
-    def bad_urlopen(*args: Any, **kwargs: Any) -> None:
+    def bad_urlopen(*args: Any, **kwargs: Any) -> Any:
         class Resp:
-            def __enter__(self) -> None:
+            def __enter__(self) -> io.StringIO:
                 return io.StringIO('{"loc": "invalid"}')
 
-            def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+            def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> Literal[False]:
                 return False
 
         return Resp()
