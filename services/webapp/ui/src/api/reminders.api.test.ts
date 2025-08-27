@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ResponseError, Configuration } from '@sdk/runtime';
 
 const mockRemindersGet = vi.hoisted(() => vi.fn());
 const mockRemindersIdGet = vi.hoisted(() => vi.fn());
@@ -10,32 +9,28 @@ const mockInstanceOfReminder = vi.hoisted(() => vi.fn());
 const mockTgFetch = vi.hoisted(() => vi.fn());
 
 vi.mock(
-  '@sdk/runtime',
-  () => ({
-    ResponseError: class extends Error {
+  '@sdk',
+  () => {
+    class ResponseError extends Error {
       response: Response;
       constructor(response: Response) {
         super('ResponseError');
         this.response = response;
       }
-    },
-    Configuration: class {},
-  }),
-  { virtual: true },
-);
-
-vi.mock(
-  '@sdk',
-  () => ({
-    RemindersApi: vi.fn(() => ({
-      remindersGet: mockRemindersGet,
-      remindersIdGet: mockRemindersIdGet,
-      remindersPost: mockRemindersPost,
-      remindersPatch: mockRemindersPatch,
-      remindersDelete: mockRemindersDelete,
-    })),
-    Configuration,
-  }),
+    }
+    class Configuration {}
+    return {
+      RemindersApi: vi.fn(() => ({
+        remindersGet: mockRemindersGet,
+        remindersIdGet: mockRemindersIdGet,
+        remindersPost: mockRemindersPost,
+        remindersPatch: mockRemindersPatch,
+        remindersDelete: mockRemindersDelete,
+      })),
+      Configuration,
+      ResponseError,
+    };
+  },
   { virtual: true },
 );
 
@@ -49,6 +44,7 @@ vi.mock(
 
 vi.mock('../lib/tgFetch', () => ({ tgFetch: mockTgFetch }), { virtual: true });
 
+import { ResponseError, Configuration } from '@sdk';
 import {
   getReminder,
   getReminders,

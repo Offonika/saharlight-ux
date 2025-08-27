@@ -3,7 +3,7 @@ import {
   instanceOfProfileSchema as instanceOfProfile,
   type ProfileSchema as Profile,
 } from '@sdk/models';
-import { Configuration, ResponseError } from '@sdk/runtime';
+import { Configuration, ResponseError } from '@sdk';
 import { tgFetch } from '../lib/tgFetch';
 import { API_BASE } from './base';
 

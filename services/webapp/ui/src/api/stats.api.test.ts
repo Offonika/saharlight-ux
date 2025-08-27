@@ -4,7 +4,7 @@ const mockGetAnalytics = vi.hoisted(() => vi.fn());
 const mockGetStats = vi.hoisted(() => vi.fn());
 
 vi.mock(
-  '@sdk/runtime',
+  '@sdk',
   () => {
     class Configuration {}
     class ResponseError extends Error {
@@ -12,21 +12,19 @@ vi.mock(
         super('Response error');
       }
     }
-    return { Configuration, ResponseError };
+    return {
+      DefaultApi: vi.fn(() => ({
+        getAnalyticsAnalyticsGet: mockGetAnalytics,
+        getStatsStatsGet: mockGetStats,
+      })),
+      Configuration,
+      ResponseError,
+    };
   },
   { virtual: true },
 );
 
-vi.mock(
-  '@sdk',
-  () => ({
-    DefaultApi: vi.fn(() => ({
-      getAnalyticsAnalyticsGet: mockGetAnalytics,
-      getStatsStatsGet: mockGetStats,
-    })),
-  }),
-  { virtual: true },
-);
+import { ResponseError } from '@sdk';
 
 import {
   fetchAnalytics,
@@ -35,12 +33,6 @@ import {
   getFallbackDayStats,
   type DayStats,
 } from './stats';
-
-let ResponseError: new (arg: { status: number }) => Error;
-
-beforeAll(async () => {
-  ({ ResponseError } = await import('@sdk/runtime'));
-});
 
 afterEach(() => {
   mockGetAnalytics.mockReset();
