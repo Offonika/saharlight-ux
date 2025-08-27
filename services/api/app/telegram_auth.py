@@ -3,7 +3,7 @@ import hmac
 import json
 import logging
 import time
-from typing import Any, cast
+from typing import cast
 from urllib.parse import parse_qsl
 
 from fastapi import Header, HTTPException
@@ -21,7 +21,7 @@ TG_INIT_DATA_HEADER = "X-Telegram-Init-Data"
 AUTH_DATE_MAX_AGE = 24 * 60 * 60
 
 
-def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, Any]:
+def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
     """Parse and validate Telegram WebApp initialization data.
 
     Parameters
@@ -34,12 +34,13 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, Any]:
     if len(init_data) > 1024:
         raise HTTPException(status_code=413, detail="init data too long")
     try:
-        params: dict[str, Any] = dict(parse_qsl(init_data, strict_parsing=True))
+        params: dict[str, object] = dict(parse_qsl(init_data, strict_parsing=True))
     except ValueError as exc:
         raise HTTPException(status_code=401, detail="invalid init data") from exc
-    auth_hash = params.pop("hash", None)
-    if not auth_hash:
+    auth_hash_obj = params.pop("hash", None)
+    if not isinstance(auth_hash_obj, str):
         raise HTTPException(status_code=401, detail="missing hash")
+    auth_hash = auth_hash_obj
 
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
     secret = hmac.new(b"WebAppData", token.encode(), hashlib.sha256).digest()
@@ -47,17 +48,23 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, Any]:
     if not hmac.compare_digest(check, auth_hash):
         raise HTTPException(status_code=401, detail="invalid hash")
 
+    auth_date_raw = params.get("auth_date")
+    if not isinstance(auth_date_raw, (str, int)):
+        raise HTTPException(status_code=401, detail="invalid auth date")
     try:
-        auth_date: int = int(params.get("auth_date", 0))
-    except (TypeError, ValueError) as exc:
+        auth_date = int(auth_date_raw)
+    except ValueError as exc:
         raise HTTPException(status_code=401, detail="invalid auth date") from exc
     if time.time() - auth_date > AUTH_DATE_MAX_AGE:
         raise HTTPException(status_code=401, detail="expired auth data")
     params["auth_date"] = auth_date
 
-    if "user" in params:
+    user_raw = params.get("user")
+    if user_raw is not None:
+        if not isinstance(user_raw, str):
+            raise HTTPException(status_code=401, detail="invalid user data")
         try:
-            params["user"] = json.loads(params["user"])
+            params["user"] = json.loads(user_raw)
         except json.JSONDecodeError as exc:
             raise HTTPException(status_code=401, detail="invalid user data") from exc
     return params
@@ -75,8 +82,9 @@ def require_tg_user(
         logger.error("telegram token not configured")
         raise HTTPException(status_code=500, detail="server misconfigured")
 
-    data: dict[str, Any] = parse_and_verify_init_data(init_data, token)
-    user: dict[str, Any] | None = data.get("user")
-    if not isinstance(user, dict) or "id" not in user:
+    data: dict[str, object] = parse_and_verify_init_data(init_data, token)
+    user_raw = data.get("user")
+    user = user_raw if isinstance(user_raw, dict) else None
+    if user is None or "id" not in user:
         raise HTTPException(status_code=401, detail="invalid user")
     return cast(UserContext, user)

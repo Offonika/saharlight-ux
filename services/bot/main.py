@@ -5,7 +5,6 @@ Bot entry point and configuration.
 
 import logging
 import sys
-from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
 from telegram import BotCommand
@@ -39,9 +38,9 @@ async def post_init(
     app: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
-        dict[str, Any],
-        dict[str, Any],
-        dict[str, Any],
+        dict[str, object],
+        dict[str, object],
+        dict[str, object],
         DefaultJobQueue,
     ],
 ) -> None:
@@ -49,11 +48,11 @@ async def post_init(
     await menu_button_post_init(app)
 
 
-
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-
     """Log errors that occur while processing updates."""
-    logger.exception("Exception while handling update %s", update, exc_info=context.error)
+    logger.exception(
+        "Exception while handling update %s", update, exc_info=context.error
+    )
 
 
 def main() -> None:  # pragma: no cover
@@ -71,7 +70,9 @@ def main() -> None:  # pragma: no cover
         sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
         logger.error("Failed to initialize the database", exc_info=exc)
-        sys.exit("Database initialization failed. Please check your configuration and try again.")
+        sys.exit(
+            "Database initialization failed. Please check your configuration and try again."
+        )
 
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:
@@ -83,9 +84,9 @@ def main() -> None:  # pragma: no cover
     application: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
-        dict[str, Any],
-        dict[str, Any],
-        dict[str, Any],
+        dict[str, object],
+        dict[str, object],
+        dict[str, object],
         DefaultJobQueue,
     ] = (
         Application.builder()
