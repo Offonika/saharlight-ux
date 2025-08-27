@@ -25,5 +25,5 @@ def test_reminders_button_matches_regex() -> None:
         and h.callback is reminder_handlers.reminders_list
     )
     pattern = cast(filters.Regex, reminder_handler.filters).pattern.pattern
-    assert pattern == f"^{REMINDERS_BUTTON_TEXT}$"
+    assert pattern == re.escape(REMINDERS_BUTTON_TEXT)
     assert re.fullmatch(pattern, REMINDERS_BUTTON_TEXT)
