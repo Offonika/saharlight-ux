@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle inline button callbacks for pending entries and history actions."""
-    context.user_data: dict[str, Any] = context.user_data or {}
+    user_data = context.user_data
     query = update.callback_query
     await query.answer()
     data = query.data or ""
@@ -25,7 +25,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
 
     if data == "confirm_entry":
-        entry_data: dict[str, Any] | None = context.user_data.pop("pending_entry", None)
+        entry_data: dict[str, Any] | None = user_data.pop("pending_entry", None)
         if not entry_data:
             await query.edit_message_text("❗ Нет данных для сохранения.")
             return
@@ -47,11 +47,11 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             reminder_handlers.schedule_after_meal(update.effective_user.id, job_queue)
         return
     elif data == "edit_entry":
-        entry_data: dict[str, Any] | None = context.user_data.get("pending_entry")
+        entry_data: dict[str, Any] | None = user_data.get("pending_entry")
         if not entry_data:
             await query.edit_message_text("❗ Нет данных для редактирования.")
             return
-        context.user_data["edit_id"] = None
+        user_data["edit_id"] = None
         await query.edit_message_text(
             "Отправьте новое сообщение в формате:\n"
             "`сахар=<ммоль/л>  xe=<ХЕ>  carbs=<г>  dose=<ед>`\n"
@@ -60,7 +60,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return
     elif data == "cancel_entry":
-        context.user_data.pop("pending_entry", None)
+        user_data.pop("pending_entry", None)
         await query.edit_message_text("❌ Запись отменена.")
         await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
         return
@@ -90,7 +90,7 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 await query.edit_message_text("❌ Запись удалена.")
                 return
             if action == "edit":
-                context.user_data["edit_entry"] = {
+                user_data["edit_entry"] = {
                     "id": entry.id,
                     "chat_id": query.message.chat_id,
                     "message_id": query.message.message_id,
@@ -124,9 +124,9 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             logger.warning("Invalid edit_field data: %s", data)
             await query.edit_message_text("Некорректные данные для редактирования.")
             return
-        context.user_data["edit_id"] = entry_id
-        context.user_data["edit_field"] = field
-        context.user_data["edit_query"] = query
+        user_data["edit_id"] = entry_id
+        user_data["edit_field"] = field
+        user_data["edit_query"] = query
         prompts: dict[str, str] = {
             "sugar": "Введите уровень сахара (ммоль/л).",
             "xe": "Введите количество ХЕ.",
