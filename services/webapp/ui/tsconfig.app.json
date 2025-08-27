@@ -23,7 +23,7 @@
 
     "baseUrl": ".",
     "paths": {
-      "@sdk/*": ["/workspace/saharlight-ux/libs/ts-sdk/*"],
+      "@sdk/*": ["../../../libs/ts-sdk/*"],
       "@/*": ["./src/*"]
     }
   },
