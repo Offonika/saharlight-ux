@@ -17,13 +17,12 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlalchemy.orm import Session
 
 from services.api.app.diabetes.services.db import (
-    SessionLocal,
     Profile,
     Alert,
     Reminder,
     User,
-    run_db,
 )
+from ..db import SessionLocal, run_db
 
 from services.api.app.diabetes.handlers.alert_handlers import evaluate_sugar
 from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
@@ -369,7 +368,9 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
     return ConversationHandler.END
 
 
-def _security_db(session: Session, user_id: int, action: str | None):
+def _security_db(
+    session: Session, user_id: int, action: str | None
+) -> dict[str, bool | float | str | None]:
     profile = session.get(Profile, user_id)
     user = session.get(User, user_id)
     if not profile:
@@ -710,7 +711,9 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     return ConversationHandler.END
 
 
-async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def _photo_fallback(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     from ..dose_handlers import _cancel_then, photo_prompt
 
     handler = _cancel_then(photo_prompt)

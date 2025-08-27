@@ -4,7 +4,8 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
 from telegram.ext import ContextTypes
 
-from services.api.app.diabetes.services.db import Entry, SessionLocal
+from services.api.app.diabetes.services.db import Entry
+from .db import SessionLocal
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 from services.api.app.diabetes.services.repository import commit

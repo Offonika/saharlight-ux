@@ -2,24 +2,16 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Callable
 
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 from telegram import Update
 from telegram.error import TelegramError
 from telegram.ext import CallbackContext, JobQueue
 
-from services.api.app.diabetes.services.db import (
-    Alert,
-    Profile,
-    SessionLocal as _SessionLocal,
-    run_db,
-)
-from services.api.app.diabetes.services.repository import commit as _commit
+from services.api.app.diabetes.services.db import Alert, Profile
+from services.api.app.diabetes.services.repository import commit
+from .db import SessionLocal, run_db
 from services.api.app.diabetes.utils.helpers import get_coords_and_link
-
-SessionLocal: sessionmaker[Session] = _SessionLocal
-commit: Callable[[Session], bool] = _commit
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +99,7 @@ async def evaluate_sugar(
     context: CallbackContext | None = None,
     first_name: str = "",
 ) -> None:
-    def db_eval(session: Session):
+    def db_eval(session: Session) -> tuple[bool, dict[str, object] | None]:
         profile = session.get(Profile, user_id)
         if not profile:
             return False, None

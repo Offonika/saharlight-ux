@@ -18,7 +18,8 @@ from telegram import (
 )
 from telegram.ext import ContextTypes
 
-from services.api.app.diabetes.services.db import SessionLocal, Entry, User
+from services.api.app.diabetes.services.db import Entry, User
+from .db import SessionLocal
 from services.api.app.diabetes.services.gpt_client import (
     send_message,
     _get_client,
