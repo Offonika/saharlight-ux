@@ -103,10 +103,10 @@ class DummyJobQueue:
         time: Any,
         data: dict[str, Any] | None = None,
         name: str | None = None,
-    ) -> DummyJob:
+    ) -> Job:
         job = DummyJob(callback, data, name, time)
         self.jobs.append(job)
-        return job
+        return cast(Job, job)
 
     def run_repeating(
         self,
@@ -114,10 +114,10 @@ class DummyJobQueue:
         interval: Any,
         data: dict[str, Any] | None = None,
         name: str | None = None,
-    ) -> DummyJob:
+    ) -> Job:
         job = DummyJob(callback, data, name)
         self.jobs.append(job)
-        return job
+        return cast(Job, job)
 
     def run_once(
         self,
@@ -125,13 +125,13 @@ class DummyJobQueue:
         when: Any,
         data: dict[str, Any] | None = None,
         name: str | None = None,
-    ) -> DummyJob:
+    ) -> Job:
         job = DummyJob(callback, data, name)
         self.jobs.append(job)
-        return job
+        return cast(Job, job)
 
-    def get_jobs_by_name(self, name: str) -> list[DummyJob]:
-        return [j for j in self.jobs if j.name == name]
+    def get_jobs_by_name(self, name: str) -> list[Job]:
+        return cast(list[Job], [j for j in self.jobs if j.name == name])
 
 
 def make_user(user_id: int) -> MagicMock:
@@ -167,13 +167,13 @@ def test_schedule_reminder_replaces_existing_job() -> None:
             )
         )
         session.commit()
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = DummyJobQueue()
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
         handlers.schedule_reminder(rem, job_queue)
-    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
+    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
     active_jobs = [j for j in jobs if not j.removed]
     assert len(active_jobs) == 1
     job = active_jobs[0]
@@ -225,12 +225,11 @@ def test_schedule_reminder_invalid_timezone_logs_warning(
     rem = Reminder(
         id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user
     )
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = DummyJobQueue()
     with caplog.at_level(logging.WARNING):
         handlers.schedule_reminder(rem, job_queue)
-    dummy_queue = cast(DummyJobQueue, job_queue)
-    assert dummy_queue.jobs
-    job = dummy_queue.jobs[0]
+    assert job_queue.jobs
+    job = job_queue.jobs[0]
     assert job.time is not None
     job_time = cast(datetime, job.time)
     assert job_time.tzinfo is not None
@@ -405,7 +404,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         session.commit()
 
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = DummyJobQueue()
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         assert rem is not None
@@ -424,7 +423,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         rem_db = session.get(Reminder, 1)
         assert rem_db is not None
         assert not rem_db.is_enabled
-    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
+    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
     assert job.removed
@@ -449,7 +448,7 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
         session.commit()
 
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = DummyJobQueue()
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         assert rem is not None
@@ -462,7 +461,7 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
-    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
+    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
     assert job.removed
@@ -484,7 +483,7 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(Reminder(id=1, telegram_id=1, type="medicine", time=time(8, 0)))
         session.commit()
 
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = DummyJobQueue()
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         assert rem is not None
@@ -504,7 +503,7 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
         rem_db = session.get(Reminder, 1)
         assert rem_db is not None
         assert rem_db.time == parsed
-    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
+    jobs = cast(list[DummyJob], job_queue.get_jobs_by_name("reminder_1"))
     assert len(jobs) == 2
     assert jobs[0].removed is True
     assert jobs[1].removed is False
@@ -523,7 +522,7 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(23, 0)))
         session.commit()
 
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = DummyJobQueue()
     with TestSession() as session:
         rem_db = session.get(Reminder, 1)
         assert rem_db is not None
@@ -707,7 +706,7 @@ async def test_snooze_callback_schedules_job_and_logs(
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
         session.commit()
 
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = DummyJobQueue()
     run_once_mock = MagicMock(wraps=job_queue.run_once)
     job_queue.run_once = run_once_mock  # type: ignore[assignment]
 

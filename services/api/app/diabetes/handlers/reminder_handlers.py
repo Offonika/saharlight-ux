@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from datetime import time, timedelta, timezone
-from typing import Awaitable, Callable, Literal, cast
+from typing import Any, Awaitable, Callable, cast, Literal, Protocol
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import parse_qsl
 
@@ -22,6 +22,7 @@ from telegram import (
 from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
+    Job,
     JobQueue,
     MessageHandler,
     filters,
@@ -59,6 +60,34 @@ SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], None] = _commit
 
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
+
+
+class JobQueueProtocol(Protocol):
+    def run_daily(
+        self,
+        callback: Callable[..., Any],
+        time: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> Job: ...
+
+    def run_repeating(
+        self,
+        callback: Callable[..., Any],
+        interval: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> Job: ...
+
+    def run_once(
+        self,
+        callback: Callable[..., Any],
+        when: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> Job: ...
+
+    def get_jobs_by_name(self, name: str) -> list[Job]: ...
 
 PLAN_LIMITS = {"free": 5, "pro": 10}
 
@@ -247,7 +276,7 @@ def _render_reminders(
     return text, InlineKeyboardMarkup(buttons)
 
 
-def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
+def schedule_reminder(rem: Reminder, job_queue: JobQueueProtocol | None) -> None:
     if job_queue is None:
         logger.warning("schedule_reminder called without job_queue")
         return
