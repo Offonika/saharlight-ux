@@ -5,6 +5,9 @@ on:
   push:
     paths:
       - 'libs/contracts/openapi.yaml'
+  pull_request:
+    paths:
+      - 'libs/contracts/openapi.yaml'
   workflow_dispatch:
 
 jobs:
@@ -14,16 +17,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
-
-      - name: Run oasdiff
+      # Проверка, что openapi.yaml валиден для oasdiff (запуск контейнера с Docker Hub)
+      - name: Run oasdiff (Docker Hub)
         run: |
-          docker run --rm \
-            -v "$PWD:/work" \
-            ghcr.io/tufin/oasdiff:latest \
+          docker run --rm -v "$PWD:/work" \
+            tufin/oasdiff:latest \
             /work/libs/contracts/openapi.yaml
