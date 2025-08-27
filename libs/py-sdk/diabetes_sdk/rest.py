@@ -25,6 +25,9 @@ from diabetes_sdk.configuration import Configuration
 from diabetes_sdk.exceptions import ApiException, ApiValueError
 
 SUPPORTED_SOCKS_PROXIES = {"socks5", "socks5h", "socks4", "socks4a"}
+# Explicitly enumerate allowed methods instead of relying on ``urllib3``'s
+# internal set.  This keeps validation in sync with what the SDK supports and
+# produces a clearer error when a caller passes an unsupported method.
 ALLOWED_HTTP_METHODS = {"GET", "HEAD", "DELETE", "POST", "PUT", "PATCH", "OPTIONS"}
 RESTResponseType = urllib3.HTTPResponse
 
