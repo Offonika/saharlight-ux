@@ -1,8 +1,10 @@
+# file: .github/workflows/contract-ci.yml
 name: Contract CI (OpenAPI → SDK → UI build)
 
 on:
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   contract:
@@ -18,10 +20,13 @@ jobs:
           git fetch origin main
           git show origin/main:libs/contracts/openapi.yaml > /tmp/openapi_main.yaml
 
-      - name: Breaking check (oasdiff)
+      - name: Run oasdiff (breaking check from Docker Hub)
         run: |
-          docker run --rm -v "$PWD:/work" ghcr.io/tufin/oasdiff:latest \
-            breaking /tmp/openapi_main.yaml libs/contracts/openapi.yaml \
+          docker run --rm \
+            -v "$PWD:/work" \
+            -v /tmp:/tmp \
+            tufin/oasdiff:latest \
+            breaking /tmp/openapi_main.yaml /work/libs/contracts/openapi.yaml \
             --fail-on-diff
 
       - name: Setup Node
