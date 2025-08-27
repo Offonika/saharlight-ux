@@ -33,3 +33,11 @@ JSON
 ( cd "$OUT_DIR" && { find apis models -type f | sort; echo index.ts; echo runtime.ts; } > .openapi-generator/FILES )
 
 rm -rf "$TMP_DIR"
+
+# Fix imports of SDK runtime to include the `.ts` extension in UI code.
+# Vite's ESM resolver requires explicit extensions when the runtime is
+# generated as a single `runtime.ts` file instead of a directory.
+if [ ! -d "$ROOT_DIR/libs/ts-sdk/runtime" ] && [ -f "$ROOT_DIR/libs/ts-sdk/runtime.ts" ]; then
+  find "$ROOT_DIR/services/webapp/ui/src" -type f -name "*.ts*" \
+    -exec sed -i "s|from ['\"]@sdk/runtime['\"]|from '@sdk/runtime.ts'|g" {} +
+fi
