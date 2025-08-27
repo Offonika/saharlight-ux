@@ -66,6 +66,7 @@ def test_nonempty_returns_list(
                 title="Sugar check",
                 time=time(8, 0),
                 interval_hours=3,
+                interval_minutes=180,
             )
         )
         session.commit()
@@ -79,6 +80,7 @@ def test_nonempty_returns_list(
             "title": "Sugar check",
             "time": "08:00",
             "intervalHours": 3,
+            "intervalMinutes": 180,
             "minutesAfter": None,
             "isEnabled": True,
             "orgId": None,
@@ -101,6 +103,7 @@ def test_get_single_reminder(
                 title="Sugar check",
                 time=time(8, 0),
                 interval_hours=3,
+                interval_minutes=180,
             )
         )
         session.commit()
@@ -113,6 +116,7 @@ def test_get_single_reminder(
         "title": "Sugar check",
         "time": "08:00",
         "intervalHours": 3,
+        "intervalMinutes": 180,
         "minutesAfter": None,
         "isEnabled": True,
         "orgId": None,
@@ -169,7 +173,7 @@ def test_patch_updates_reminder(
             "id": 1,
             "type": "sugar",
             "time": "09:00",
-            "intervalHours": 3,
+            "intervalMinutes": 180,
             "isEnabled": True,
             "title": "New",
         },
@@ -180,6 +184,8 @@ def test_patch_updates_reminder(
         assert rem is not None
         assert rem.time == time(9, 0)
         assert rem.title == "New"
+        assert rem.interval_minutes == 180
+        assert rem.interval_hours is None
 
 
 def test_delete_reminder(
