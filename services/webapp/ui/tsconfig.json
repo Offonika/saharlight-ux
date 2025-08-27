@@ -8,7 +8,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@sdk": ["../../../libs/ts-sdk"]
+      "@sdk": ["../../../libs/ts-sdk"],
+      "@sdk/*": ["../../../libs/ts-sdk/*"]
     },
     "noImplicitAny": true,
     "noUnusedParameters": true,
