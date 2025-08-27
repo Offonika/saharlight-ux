@@ -1,13 +1,17 @@
-from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any
 
-from telegram import Update
-from telegram.ext import CallbackContext
+from tests.telegram_stubs import CallbackContext, Update
 
 
 def make_update(**kwargs: Any) -> Update:
-    return cast(Update, SimpleNamespace(**kwargs))
+    update = Update()
+    for key, value in kwargs.items():
+        setattr(update, key, value)
+    return update
 
 
-def make_context(**kwargs: Any) -> CallbackContext[Any, Any, Any, Any]:
-    return cast(CallbackContext[Any, Any, Any, Any], SimpleNamespace(**kwargs))
+def make_context(**kwargs: Any) -> CallbackContext:
+    ctx = CallbackContext()
+    for key, value in kwargs.items():
+        setattr(ctx, key, value)
+    return ctx
