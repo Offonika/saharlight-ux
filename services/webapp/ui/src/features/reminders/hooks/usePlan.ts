@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { RemindersApi, Configuration } from "@sdk";
+
+import { RemindersApi } from "@sdk";
+import { Configuration } from "@sdk/runtime";
 import { API_BASE } from "@/api/base";
 import { tgFetch } from "@/lib/tgFetch";
 
