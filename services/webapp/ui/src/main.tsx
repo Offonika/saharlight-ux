@@ -14,7 +14,8 @@ const tgStartParam = new URLSearchParams(window.location.search).get(
   'tgWebAppStartParam',
 )
 if (tgStartParam) {
-  (window as any).tgWebAppStartParam = tgStartParam
+  const win = window as { tgWebAppStartParam?: string }
+  win.tgWebAppStartParam = tgStartParam
 }
 
 const rootElement = document.getElementById('root')

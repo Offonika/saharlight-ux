@@ -13,15 +13,17 @@ vi.mock("../lib/telegram-theme", () => ({
 }));
 
 describe("useTelegram start_param", () => {
+  const win = window as Record<string, unknown>;
+
   afterEach(() => {
-    delete (window as any).Telegram;
-    delete (window as any).tgWebAppStartParam;
+    delete win.Telegram;
+    delete win.tgWebAppStartParam;
     window.history.pushState({}, "", "/");
     navigate.mockReset();
   });
 
   it("navigates to reminders when start_param is reminders", async () => {
-    (window as any).Telegram = {
+    win.Telegram = {
       WebApp: {
         initDataUnsafe: { user: { id: 1 }, start_param: "reminders" },
         initData: "",
@@ -45,7 +47,7 @@ describe("useTelegram start_param", () => {
   });
 
   it("navigates to reminders when tgWebAppStartParam is reminders", async () => {
-    (window as any).Telegram = {
+    win.Telegram = {
       WebApp: {
         initDataUnsafe: { user: { id: 1 } },
         initData: "",
@@ -55,7 +57,7 @@ describe("useTelegram start_param", () => {
         offEvent: vi.fn(),
       },
     };
-    (window as any).tgWebAppStartParam = "reminders";
+    win.tgWebAppStartParam = "reminders";
 
     const TestComponent = () => {
       useTelegram();
@@ -70,7 +72,7 @@ describe("useTelegram start_param", () => {
   });
 
   it("navigates to reminders when query param tgWebAppStartParam is reminders", async () => {
-    (window as any).Telegram = {
+    win.Telegram = {
       WebApp: {
         initDataUnsafe: { user: { id: 1 } },
         initData: "",

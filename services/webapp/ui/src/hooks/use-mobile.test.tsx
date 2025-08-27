@@ -10,13 +10,14 @@ describe("useIsMobile", () => {
       result = useIsMobile();
       return null;
     };
-    const originalWindow = (global as any).window;
+    const globalWithWindow = global as { window?: unknown };
+    const originalWindow = globalWithWindow.window;
     // @ts-expect-error simulate absence of window
-    delete (global as any).window;
+    delete globalWithWindow.window;
     act(() => {
       TestRenderer.create(<TestComponent />);
     });
-    (global as any).window = originalWindow;
+    globalWithWindow.window = originalWindow;
     expect(result).toBe(false);
   });
 });
