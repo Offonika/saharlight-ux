@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import datetime
 import logging
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 from unittest.mock import AsyncMock
 
 import pytest
 from telegram.error import TelegramError
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, JobQueue
 
 from .context_stub import AlertContext, ContextStub
 import services.api.app.diabetes.handlers.alert_handlers as handlers
@@ -16,6 +17,39 @@ import services.api.app.diabetes.handlers.alert_handlers as handlers
 async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
     """Return empty coordinates for tests."""
     return None, None
+
+
+class DummyJob:
+    """Minimal Job stub for testing schedule_alert."""
+
+    def __init__(
+        self,
+        callback: Callable[..., object],
+        when: datetime.timedelta,
+        data: dict[str, object] | None,
+        name: str | None,
+    ) -> None:
+        self.callback = callback
+        self.when = when
+        self.data = data
+        self.name = name
+
+
+class DummyJobQueue:
+    """Collects jobs scheduled via run_once."""
+
+    def __init__(self) -> None:
+        self.jobs: list[DummyJob] = []
+
+    def run_once(
+        self,
+        callback: Callable[..., object],
+        when: datetime.timedelta,
+        *,
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+    ) -> None:
+        self.jobs.append(DummyJob(callback, when, data, name))
 
 
 @pytest.mark.asyncio
@@ -104,3 +138,29 @@ async def test_send_alert_message_sos_errors(
 
     assert expected in caplog.text
     assert bot.send_message.await_count == 2
+
+
+def test_schedule_alert_schedules_job() -> None:
+    """schedule_alert stores a job with expected parameters."""
+
+    job_queue = DummyJobQueue()
+    profile: dict[str, object] = {"sos_contact": "@alice"}
+    handlers.schedule_alert(
+        1,
+        cast(JobQueue[Any], job_queue),
+        sugar=10.0,
+        profile=profile,
+        first_name="Ivan",
+        count=2,
+    )
+    assert len(job_queue.jobs) == 1
+    job = job_queue.jobs[0]
+    assert job.name == "alert_1"
+    assert job.when == handlers.ALERT_REPEAT_DELAY
+    assert job.data == {
+        "user_id": 1,
+        "count": 2,
+        "sugar": 10.0,
+        "profile": profile,
+        "first_name": "Ivan",
+    }
