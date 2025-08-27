@@ -9,7 +9,11 @@ from tests.helpers import make_context, make_update
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-from services.api.app.diabetes.handlers import dose_handlers
+from services.api.app.diabetes.handlers.dose_handlers import (
+    sugar_conv,
+    dose_conv,
+    photo_prompt,
+)
 
 
 class DummyMessage:
@@ -33,7 +37,7 @@ def _get_menu_handler(fallbacks):
 
 @pytest.mark.asyncio
 async def test_sugar_conv_menu_then_photo() -> None:
-    handler = _get_menu_handler(dose_handlers.sugar_conv.fallbacks)
+    handler = _get_menu_handler(sugar_conv.fallbacks)
     message = DummyMessage("/menu")
     update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     context = make_context(user_data={"pending_entry": {"foo": "bar"}})
@@ -48,12 +52,12 @@ async def test_sugar_conv_menu_then_photo() -> None:
     next_update = make_update(
         message=next_message, effective_user=SimpleNamespace(id=1)
     )
-    await dose_handlers.photo_prompt(next_update, context)
+    await photo_prompt(next_update, context)
     assert any("фото" in r.lower() for r in next_message.replies)
 
 @pytest.mark.asyncio
 async def test_dose_conv_menu_then_photo() -> None:
-    handler = _get_menu_handler(dose_handlers.dose_conv.fallbacks)
+    handler = _get_menu_handler(dose_conv.fallbacks)
     message = DummyMessage("/menu")
     update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     context = make_context(user_data={"pending_entry": {"foo": "bar"}})
@@ -68,6 +72,6 @@ async def test_dose_conv_menu_then_photo() -> None:
     next_update = make_update(
         message=next_message, effective_user=SimpleNamespace(id=1)
     )
-    await dose_handlers.photo_prompt(next_update, context)
+    await photo_prompt(next_update, context)
     assert any("фото" in r.lower() for r in next_message.replies)
 

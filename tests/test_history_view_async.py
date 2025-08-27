@@ -5,7 +5,8 @@ from typing import Any
 
 import pytest
 
-from services.api.app.diabetes.handlers import reporting_handlers
+import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
+from services.api.app.diabetes.handlers.reporting_handlers import history_view
 from tests.helpers import make_context, make_update
 
 
@@ -60,7 +61,7 @@ async def test_history_view_does_not_block_event_loop(monkeypatch) -> None:
         await asyncio.sleep(0.1)
         flag = True
 
-    view_task = asyncio.create_task(reporting_handlers.history_view(update, context))
+    view_task = asyncio.create_task(history_view(update, context))
     marker_task = asyncio.create_task(marker())
 
     await asyncio.wait_for(marker_task, timeout=0.2)

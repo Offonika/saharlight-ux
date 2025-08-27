@@ -58,6 +58,8 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
     import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+    from services.api.app.diabetes.handlers.router import callback_router
+    from services.api.app.diabetes.handlers.dose_handlers import freeform_handler
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -86,18 +88,18 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(user_data={}, bot=DummyBot()),
     )
 
-    await router.callback_router(update_cb, context)
+    await callback_router(update_cb, context)
 
     field_query = DummyQuery(f"edit_field:{entry_id}:dose", message=entry_message)
     update_cb2 = make_update(callback_query=field_query, effective_user=SimpleNamespace(id=1))
-    await router.callback_router(update_cb2, context)
+    await callback_router(update_cb2, context)
     assert context.user_data["edit_field"] == "dose"
 
     reply_msg = DummyMessage(text="5")
     update_msg = cast(
         Update, SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1))
     )
-    await dose_handlers.freeform_handler(update_msg, context)
+    await freeform_handler(update_msg, context)
 
     with TestSession() as session:
         updated = session.get(Entry, entry_id)

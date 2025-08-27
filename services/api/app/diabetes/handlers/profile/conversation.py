@@ -760,6 +760,12 @@ profile_webapp_handler = MessageHandler(
 
 
 __all__ = [
+    "PROFILE_ICR",
+    "PROFILE_CF",
+    "PROFILE_TARGET",
+    "PROFILE_LOW",
+    "PROFILE_HIGH",
+    "PROFILE_TZ",
     "profile_command",
     "profile_view",
     "profile_cancel",

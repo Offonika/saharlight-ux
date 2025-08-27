@@ -8,9 +8,15 @@ from telegram import InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
 from services.api.app.diabetes.utils.ui import menu_keyboard
-
 from services.api.app.diabetes.services.db import Base, User, Profile
 from tests.helpers import make_context, make_update
+import services.api.app.diabetes.handlers.profile as handlers
+from services.api.app.diabetes.handlers.profile import (
+    profile_command,
+    profile_view,
+    PROFILE_ICR,
+    back_keyboard,
+)
 
 
 class DummyMessage:
@@ -42,7 +48,6 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    from services.api.app.diabetes.handlers import profile as handlers
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -58,7 +63,7 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     update = make_update(message=message, effective_user=SimpleNamespace(id=123))
     context = make_context(args=args, user_data={})
 
-    await handlers.profile_command(update, context)
+    await profile_command(update, context)
     assert message.markups[0] is menu_keyboard
     assert f"• ИКХ: {expected_icr} г/ед." in message.texts[0]
     assert f"• КЧ: {expected_cf} ммоль/л" in message.texts[0]
@@ -70,7 +75,7 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     update2 = make_update(message=message2, effective_user=SimpleNamespace(id=123))
     context2 = make_context(user_data={})
 
-    await handlers.profile_view(update2, context2)
+    await profile_view(update2, context2)
     assert f"• ИКХ: {expected_icr} г/ед." in message2.texts[0]
     assert f"• КЧ: {expected_cf} ммоль/л" in message2.texts[0]
     assert f"• Целевой сахар: {expected_target} ммоль/л" in message2.texts[0]
@@ -101,7 +106,6 @@ async def test_profile_command_invalid_values(monkeypatch, args) -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    from services.api.app.diabetes.handlers import profile as handlers
 
     commit_mock = MagicMock()
     session_local_mock = MagicMock()
@@ -112,7 +116,7 @@ async def test_profile_command_invalid_values(monkeypatch, args) -> None:
     update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     context = make_context(args=args, user_data={})
 
-    await handlers.profile_command(update, context)
+    await profile_command(update, context)
 
     assert commit_mock.call_count == 0
     assert session_local_mock.call_count == 0
@@ -126,13 +130,12 @@ async def test_profile_command_help_and_dialog(monkeypatch) -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    from services.api.app.diabetes.handlers import profile as handlers
 
     # Test /profile help
     help_msg = DummyMessage()
     update = make_update(message=help_msg, effective_user=SimpleNamespace(id=1))
     context = make_context(args=["help"], user_data={})
-    result = await handlers.profile_command(update, context)
+    result = await profile_command(update, context)
     assert result == ConversationHandler.END
     assert "Формат команды" in help_msg.texts[0]
 
@@ -140,10 +143,10 @@ async def test_profile_command_help_and_dialog(monkeypatch) -> None:
     dialog_msg = DummyMessage()
     update2 = make_update(message=dialog_msg, effective_user=SimpleNamespace(id=1))
     context2 = make_context(args=[], user_data={})
-    result2 = await handlers.profile_command(update2, context2)
-    assert result2 == handlers.PROFILE_ICR
+    result2 = await profile_command(update2, context2)
+    assert result2 == PROFILE_ICR
     assert dialog_msg.texts[0].startswith("Введите коэффициент ИКХ")
-    assert dialog_msg.markups[0] is handlers.back_keyboard
+    assert dialog_msg.markups[0] is back_keyboard
 
 
 @pytest.mark.asyncio
@@ -153,7 +156,6 @@ async def test_profile_view_preserves_user_data(monkeypatch) -> None:
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    from services.api.app.diabetes.handlers import profile as handlers
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -170,7 +172,7 @@ async def test_profile_view_preserves_user_data(monkeypatch) -> None:
     update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     context = make_context(user_data={"thread_id": "tid", "foo": "bar"})
 
-    await handlers.profile_view(update, context)
+    await profile_view(update, context)
 
     assert context.user_data["thread_id"] == "tid"
     assert context.user_data["foo"] == "bar"
@@ -181,18 +183,17 @@ async def test_profile_view_preserves_user_data(monkeypatch) -> None:
 async def test_profile_view_missing_profile_shows_webapp_button(monkeypatch) -> None:
     from urllib.parse import urlparse
     from services.api.app.config import settings as config_settings
-    from services.api.app.diabetes.handlers import profile as handlers
-
+    global handlers
     monkeypatch.setattr(config_settings, "webapp_url", "https://example.com")
     monkeypatch.setattr(handlers, "settings", config_settings, raising=False)
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
-    monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
+    monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)  # noqa: F821
 
     msg = DummyMessage()
     update = make_update(message=msg, effective_user=SimpleNamespace(id=1))
     context = make_context()
 
-    await handlers.profile_view(update, context)
+    await profile_view(update, context)
 
     assert msg.texts[0].startswith("Ваш профиль пока не настроен.")
     markup = msg.markups[0]

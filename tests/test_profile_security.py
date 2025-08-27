@@ -6,7 +6,8 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from services.api.app.diabetes.services.db import Base, User, Profile, Alert, Reminder
-from services.api.app.diabetes.handlers import profile as handlers
+import services.api.app.diabetes.handlers.profile as handlers
+from services.api.app.diabetes.handlers.profile import profile_view, profile_security
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 import services.api.app.diabetes.handlers.sos_handlers as sos_handlers
@@ -49,7 +50,7 @@ async def test_profile_view_has_security_button(monkeypatch) -> None:
     update = make_update(message=msg, effective_user=SimpleNamespace(id=1))
     context = make_context()
 
-    await handlers.profile_view(update, context)
+    await profile_view(update, context)
 
     markup = msg.markups[0]
     buttons = [b for row in markup.inline_keyboard for b in row]
@@ -101,7 +102,7 @@ async def test_profile_security_threshold_changes(monkeypatch, action, expected_
     update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
     context = make_context(application=SimpleNamespace(job_queue="jq"))
 
-    await handlers.profile_security(update, context)
+    await profile_security(update, context)
 
     with TestSession() as session:
         profile = session.get(Profile, 1)
@@ -146,7 +147,7 @@ async def test_profile_security_toggle_sos_alerts(monkeypatch) -> None:
     update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
     context = make_context(application=SimpleNamespace(job_queue="jq"))
 
-    await handlers.profile_security(update, context)
+    await profile_security(update, context)
 
     with TestSession() as session:
         profile = session.get(Profile, 1)
@@ -183,7 +184,7 @@ async def test_profile_security_shows_reminders(monkeypatch) -> None:
     update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
     context = make_context(application=SimpleNamespace(job_queue="jq"))
 
-    await handlers.profile_security(update, context)
+    await profile_security(update, context)
 
     text, _ = query.edits[0]
     assert "1. 🔔 Замерить сахар ⏰ 08:00" in text
@@ -214,13 +215,13 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch) -> None:
     update_add = make_update(callback_query=query_add, effective_user=SimpleNamespace(id=1))
     context = make_context(application=SimpleNamespace(job_queue="jq"))
 
-    await handlers.profile_security(update_add, context)
+    await profile_security(update_add, context)
     assert query_add.message.texts[-1] == "Создать напоминание:"
 
     query_del = DummyQuery("profile_security:del")
     update_del = make_update(callback_query=query_del, effective_user=SimpleNamespace(id=1))
 
-    await handlers.profile_security(update_del, context)
+    await profile_security(update_del, context)
     assert called["del"] is True
 
 
@@ -249,5 +250,5 @@ async def test_profile_security_sos_contact_calls_handler(monkeypatch) -> None:
     update = make_update(callback_query=query, effective_user=SimpleNamespace(id=1))
     context = make_context(application=SimpleNamespace(job_queue="jq"))
 
-    await handlers.profile_security(update, context)
+    await profile_security(update, context)
     assert called is True

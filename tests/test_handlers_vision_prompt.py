@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+from services.api.app.diabetes.handlers.dose_handlers import photo_handler
 from tests.helpers import make_context, make_update
 
 
@@ -82,7 +83,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch, tmp_path) -> None:
     msg_photo = DummyMessage(photo=[DummyPhoto()])
     update = make_update(message=msg_photo, effective_user=SimpleNamespace(id=1))
 
-    await dose_handlers.photo_handler(update, context)
+    await photo_handler(update, context)
 
     assert "название" in captured["content"]
     # Final reply should include dish name from Vision response

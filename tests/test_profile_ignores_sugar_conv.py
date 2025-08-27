@@ -8,7 +8,15 @@ from tests.helpers import make_context, make_update
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-from services.api.app.diabetes.handlers import dose_handlers, profile as profile_handlers
+import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+import services.api.app.diabetes.handlers.profile as profile_handlers
+from services.api.app.diabetes.handlers.dose_handlers import sugar_start
+from services.api.app.diabetes.handlers.profile import (
+    profile_command,
+    profile_icr,
+    PROFILE_ICR,
+    PROFILE_CF,
+)
 from services.api.app.diabetes.services.db import Base, Entry, User
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -47,7 +55,7 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch) -> None:
     )
     shared_chat_data: dict = {}
     sugar_context = make_context(user_data={}, chat_data=shared_chat_data)
-    await dose_handlers.sugar_start(sugar_update, sugar_context)
+    await sugar_start(sugar_update, sugar_context)
 
     # Start profile conversation which should cancel sugar conversation
     prof_msg = DummyMessage("/profile")
@@ -57,8 +65,8 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch) -> None:
         effective_chat=SimpleNamespace(id=1),
     )
     prof_context = make_context(args=[], user_data={}, chat_data=shared_chat_data)
-    result = await profile_handlers.profile_command(prof_update, prof_context)
-    assert result == profile_handlers.PROFILE_ICR
+    result = await profile_command(prof_update, prof_context)
+    assert result == PROFILE_ICR
     assert "ИКХ" in prof_msg.replies[0]
     assert "sugar_active" not in shared_chat_data
 
@@ -70,8 +78,8 @@ async def test_profile_input_not_logged_as_sugar(monkeypatch) -> None:
         effective_chat=SimpleNamespace(id=1),
     )
     icr_context = make_context(user_data={}, chat_data=shared_chat_data)
-    result_icr = await profile_handlers.profile_icr(icr_update, icr_context)
-    assert result_icr == profile_handlers.PROFILE_CF
+    result_icr = await profile_icr(icr_update, icr_context)
+    assert result_icr == PROFILE_CF
     assert "КЧ" in icr_msg.replies[0]
 
     # Ensure no sugar entry was written

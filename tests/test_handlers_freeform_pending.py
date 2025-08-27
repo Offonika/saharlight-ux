@@ -6,7 +6,8 @@ import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
 
-import services.api.app.diabetes.handlers.dose_handlers as handlers
+import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+from services.api.app.diabetes.handlers.dose_handlers import freeform_handler
 
 
 class DummyMessage:
@@ -39,7 +40,7 @@ async def test_freeform_handler_edits_pending_entry_keeps_state() -> None:
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
-    await handlers.freeform_handler(update, context)
+    await freeform_handler(update, context)
 
     assert context.user_data["pending_entry"]["dose"] == 3.5
     assert context.user_data["pending_entry"]["carbs_g"] == 30.0
@@ -68,7 +69,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         def get(self, model, user_id):
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    handlers.SessionLocal = lambda: DummySession()
+    dose_handlers.SessionLocal = lambda: DummySession()
     message = DummyMessage("5,6")
     update = cast(
         Update,
@@ -79,7 +80,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry() -> None:
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
-    await handlers.freeform_handler(update, context)
+    await freeform_handler(update, context)
 
     assert context.user_data["pending_entry"]["sugar_before"] == 5.6
     assert "pending_entry" in context.user_data
@@ -108,7 +109,7 @@ async def test_freeform_handler_sugar_only_flow() -> None:
         SimpleNamespace(user_data={"pending_entry": entry}),
     )
 
-    await handlers.freeform_handler(update, context)
+    await freeform_handler(update, context)
 
     assert context.user_data["pending_entry"]["sugar_before"] == 4.2
     assert "pending_entry" in context.user_data

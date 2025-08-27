@@ -8,11 +8,17 @@ from unittest.mock import MagicMock
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 from telegram.ext import ConversationHandler
-from services.api.app.diabetes.handlers import profile as profile_handlers
+import services.api.app.diabetes.handlers.profile as profile_handlers
 import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 from tests.helpers import make_context, make_update
+from services.api.app.diabetes.handlers.profile import profile_command
+from services.api.app.diabetes.handlers.router import callback_router
+from services.api.app.diabetes.handlers.reminder_handlers import (
+    add_reminder,
+    reminder_webapp_save,
+)
 
 
 class DummyMessage:
@@ -64,7 +70,7 @@ async def test_profile_command_no_local_session(monkeypatch) -> None:
     update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     context = make_context(args=["10", "2", "6", "4", "9"], user_data={})
 
-    result = await profile_handlers.profile_command(update, context)
+    result = await profile_command(update, context)
 
     assert not session_factory.called
     assert message.texts[0].startswith("✅ Профиль обновлён")
@@ -99,7 +105,7 @@ async def test_callback_router_commit_failure(monkeypatch, caplog) -> None:
     context = make_context(user_data={"pending_entry": pending_entry})
 
     with caplog.at_level(logging.ERROR):
-        await router.callback_router(update, context)
+        await callback_router(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
@@ -133,7 +139,7 @@ async def test_add_reminder_commit_failure(monkeypatch, caplog) -> None:
     )
 
     with caplog.at_level(logging.ERROR):
-        await reminder_handlers.add_reminder(update, context)
+        await add_reminder(update, context)
 
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
@@ -174,7 +180,7 @@ async def test_reminder_webapp_save_commit_failure(monkeypatch, caplog) -> None:
     context = make_context(job_queue=SimpleNamespace())
 
     with caplog.at_level(logging.ERROR):
-        await reminder_handlers.reminder_webapp_save(update, context)
+        await reminder_webapp_save(update, context)
 
     assert session.rollback.called
     assert not session.refresh.called

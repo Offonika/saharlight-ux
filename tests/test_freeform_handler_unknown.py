@@ -6,7 +6,8 @@ from unittest.mock import AsyncMock
 from telegram import Update
 from telegram.ext import CallbackContext
 
-import services.api.app.diabetes.handlers.dose_handlers as handlers
+import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+from services.api.app.diabetes.handlers.dose_handlers import freeform_handler
 
 
 class DummyMessage:
@@ -31,9 +32,9 @@ async def test_freeform_handler_unknown_command(
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
     )
 
-    monkeypatch.setattr(handlers, "parse_command", AsyncMock(return_value=None))
+    monkeypatch.setattr(dose_handlers, "parse_command", AsyncMock(return_value=None))
 
-    await handlers.freeform_handler(update, context)
+    await freeform_handler(update, context)
 
     assert message.replies
     assert message.replies[0][0] == "Не понял, воспользуйтесь /help или кнопками меню"

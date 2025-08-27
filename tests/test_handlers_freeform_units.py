@@ -5,7 +5,8 @@ from typing import Any, cast
 from telegram import Update
 from telegram.ext import CallbackContext
 
-import services.api.app.diabetes.handlers.dose_handlers as handlers
+import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+from services.api.app.diabetes.handlers.dose_handlers import freeform_handler
 
 
 class DummyMessage:
@@ -28,7 +29,7 @@ async def test_freeform_handler_warns_on_sugar_unit_mix() -> None:
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
     )
 
-    await handlers.freeform_handler(update, context)
+    await freeform_handler(update, context)
 
     assert message.replies
     text, _ = message.replies[0]
@@ -46,7 +47,7 @@ async def test_freeform_handler_warns_on_dose_unit_mix() -> None:
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
     )
 
-    await handlers.freeform_handler(update, context)
+    await freeform_handler(update, context)
 
     assert message.replies
     text, _ = message.replies[0]
@@ -69,9 +70,9 @@ async def test_freeform_handler_guidance_on_valueerror(
     def fake_smart_input(_):
         raise ValueError("boom")
 
-    monkeypatch.setattr(handlers, "smart_input", fake_smart_input)
+    monkeypatch.setattr(dose_handlers, "smart_input", fake_smart_input)
 
-    await handlers.freeform_handler(update, context)
+    await freeform_handler(update, context)
 
     assert message.replies
     text, _ = message.replies[0]

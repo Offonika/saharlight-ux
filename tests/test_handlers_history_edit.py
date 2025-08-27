@@ -13,6 +13,12 @@ from tests.helpers import make_update
 
 os.environ.setdefault("DB_PASSWORD", "test")
 from services.api.app.diabetes.services.db import Base, User, Entry
+import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
+import services.api.app.diabetes.handlers.router as router
+import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+from services.api.app.diabetes.handlers.router import callback_router
+from services.api.app.diabetes.handlers.dose_handlers import freeform_handler
+from services.api.app.diabetes.handlers.reporting_handlers import history_view
 
 
 class DummyMessage:
@@ -57,9 +63,6 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
-    import services.api.app.diabetes.handlers.router as router
-    import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
     engine = create_engine(
         "sqlite:///:memory:",
@@ -96,7 +99,7 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
     )
 
-    await reporting_handlers.history_view(update, context)
+    await history_view(update, context)
 
     # First message is header, last is back button
     assert len(message.replies) == len(entry_ids) + 2
@@ -134,8 +137,6 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    import services.api.app.diabetes.handlers.router as router
-    import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 
     engine = create_engine(
         "sqlite:///:memory:",
@@ -171,7 +172,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(user_data={}, bot=DummyBot()),
     )
 
-    await router.callback_router(update_cb, context)
+    await callback_router(update_cb, context)
     assert context.user_data["edit_entry"] == {
         "id": entry_id,
         "chat_id": 42,
@@ -187,7 +188,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     update_cb2 = make_update(
         callback_query=field_query, effective_user=SimpleNamespace(id=1)
     )
-    await router.callback_router(update_cb2, context)
+    await callback_router(update_cb2, context)
     assert context.user_data["edit_id"] == entry_id
     assert context.user_data["edit_field"] == "xe"
     assert context.user_data["edit_query"] is field_query
@@ -198,7 +199,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         Update,
         SimpleNamespace(message=reply_msg, effective_user=SimpleNamespace(id=1)),
     )
-    await dose_handlers.freeform_handler(update_msg, context)
+    await freeform_handler(update_msg, context)
 
     with TestSession() as session:
         updated = session.get(Entry, entry_id)

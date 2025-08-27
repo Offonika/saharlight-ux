@@ -8,6 +8,11 @@ from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
 import services.api.app.diabetes.handlers.router as router
+from services.api.app.diabetes.handlers.dose_handlers import (
+    freeform_handler,
+    photo_handler,
+)
+from services.api.app.diabetes.handlers.router import callback_router
 from tests.helpers import make_update
 
 
@@ -80,7 +85,7 @@ async def test_photo_flow_saves_entry(
     context = cast(
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
     )
-    await dose_handlers.freeform_handler(update_start, context)
+    await freeform_handler(update_start, context)
 
     monkeypatch.chdir(tmp_path)
 
@@ -133,7 +138,7 @@ async def test_photo_flow_saves_entry(
     update_photo = make_update(
         message=msg_photo, effective_user=SimpleNamespace(id=1)
     )
-    await dose_handlers.photo_handler(update_photo, context)
+    await photo_handler(update_photo, context)
 
     entry = context.user_data["pending_entry"]
     assert entry["carbs_g"] == 30.0
@@ -146,7 +151,7 @@ async def test_photo_flow_saves_entry(
         SimpleNamespace(message=msg_sugar, effective_user=SimpleNamespace(id=1)),
     )
     dose_handlers.SessionLocal = lambda: session
-    await dose_handlers.freeform_handler(update_sugar, context)
+    await freeform_handler(update_sugar, context)
     assert context.user_data["pending_entry"]["sugar_before"] == 5.5
 
     monkeypatch.setattr(router, "SessionLocal", lambda: session)
@@ -159,7 +164,7 @@ async def test_photo_flow_saves_entry(
 
     query = DummyQuery("confirm_entry")
     update_confirm = make_update(callback_query=query)
-    await router.callback_router(update_confirm, context)
+    await callback_router(update_confirm, context)
 
     assert len(session.added) == 1
     saved = session.added[0]

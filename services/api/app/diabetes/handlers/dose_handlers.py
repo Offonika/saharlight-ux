@@ -1092,6 +1092,8 @@ dose_conv = ConversationHandler(
 
 
 __all__ = [
+    "logger",
+    "_sanitize",
     "DOSE_METHOD",
     "DOSE_XE",
     "DOSE_CARBS",
@@ -1104,15 +1106,18 @@ __all__ = [
     "sugar_start",
     "sugar_val",
     "dose_start",
+    "dose_cancel",
+    "chat_with_gpt",
     "prompt_photo",
     "prompt_sugar",
     "prompt_dose",
+    "_cancel_then",
 
     "sugar_conv",
+    "dose_conv",
 
     "freeform_handler",
     "photo_handler",
     "doc_handler",
-    "dose_conv",
     "ConversationHandler",
 ]

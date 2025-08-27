@@ -6,7 +6,15 @@ import pytest
 from telegram import Message, Update
 from telegram.ext import CallbackContext
 
-import services.api.app.diabetes.handlers.dose_handlers as handlers
+import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+from services.api.app.diabetes.handlers.dose_handlers import (
+    doc_handler,
+    photo_handler,
+    freeform_handler,
+    ConversationHandler,
+    WAITING_GPT_FLAG,
+    PHOTO_SUGAR,
+)
 from tests.helpers import make_context, make_update
 
 
@@ -50,10 +58,10 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
     update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     context = make_context(bot=dummy_bot, user_data={})
 
-    monkeypatch.setattr(handlers, "photo_handler", fake_photo_handler)
-    monkeypatch.setattr(handlers.os, "makedirs", lambda *args, **kwargs: None)
+    monkeypatch.setattr(dose_handlers, "photo_handler", fake_photo_handler)
+    monkeypatch.setattr(dose_handlers.os, "makedirs", lambda *args, **kwargs: None)
 
-    result = await handlers.doc_handler(update, context)
+    result = await doc_handler(update, context)
 
     assert result == "OK"
     assert called.flag
@@ -78,11 +86,11 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
     update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     context = make_context(user_data={})
 
-    monkeypatch.setattr(handlers, "photo_handler", fake_photo_handler)
+    monkeypatch.setattr(dose_handlers, "photo_handler", fake_photo_handler)
 
-    result = await handlers.doc_handler(update, context)
+    result = await doc_handler(update, context)
 
-    assert result == handlers.ConversationHandler.END
+    assert result == ConversationHandler.END
     assert not called.flag
     assert "__file_path" not in context.user_data
 
@@ -93,11 +101,11 @@ async def test_photo_handler_handles_typeerror() -> None:
     update = make_update(message=message, effective_user=SimpleNamespace(id=1))
     context = make_context(user_data={})
 
-    result = await handlers.photo_handler(update, context)
+    result = await photo_handler(update, context)
 
     assert message.texts == ["❗ Файл не распознан как изображение."]
-    assert result == handlers.ConversationHandler.END
-    assert handlers.WAITING_GPT_FLAG not in context.user_data
+    assert result == ConversationHandler.END
+    assert WAITING_GPT_FLAG not in context.user_data
 
 
 @pytest.mark.asyncio
@@ -150,21 +158,21 @@ async def test_photo_handler_preserves_file(
             )
         )
 
-    monkeypatch.setattr(handlers, "send_message", fake_send_message)
-    monkeypatch.setattr(handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
-    monkeypatch.setattr(handlers, "menu_keyboard", None)
+    monkeypatch.setattr(dose_handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(dose_handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(dose_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
+    monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
     monkeypatch.setattr(
-        handlers.os,
+        dose_handlers.os,
         "makedirs",
         lambda path, **kwargs: Path(path).mkdir(parents=True, exist_ok=True),
     )
 
-    result = await handlers.photo_handler(update, context)
+    result = await photo_handler(update, context)
 
     assert call["keep_image"] is True
     assert Path(call["image_path"]).exists()
-    assert result == handlers.PHOTO_SUGAR
+    assert result == PHOTO_SUGAR
 
 
 @pytest.mark.asyncio
@@ -203,11 +211,11 @@ async def test_photo_then_freeform_calculates_dose(
             )
         )
 
-    monkeypatch.setattr(handlers, "send_message", fake_send_message)
-    monkeypatch.setattr(handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
-    monkeypatch.setattr(handlers, "menu_keyboard", None)
-    monkeypatch.setattr(handlers, "confirm_keyboard", lambda: None)
+    monkeypatch.setattr(dose_handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(dose_handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(dose_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0))
+    monkeypatch.setattr(dose_handlers, "menu_keyboard", None)
+    monkeypatch.setattr(dose_handlers, "confirm_keyboard", lambda: None)
 
     photo_msg = DummyMessage(photo=[DummyPhoto()])
     update_photo = make_update(
@@ -218,7 +226,7 @@ async def test_photo_then_freeform_calculates_dose(
         SimpleNamespace(bot=dummy_bot, user_data={"thread_id": "tid"}),
     )
 
-    await handlers.photo_handler(update_photo, context)
+    await photo_handler(update_photo, context)
 
     class DummySession:
         def __enter__(self) -> "DummySession":
@@ -230,7 +238,7 @@ async def test_photo_then_freeform_calculates_dose(
         def get(self, model, user_id):
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
-    handlers.SessionLocal = lambda: DummySession()
+    dose_handlers.SessionLocal = lambda: DummySession()
 
     sugar_msg = DummyMessage(text="5")
     update_sugar = cast(
@@ -238,7 +246,7 @@ async def test_photo_then_freeform_calculates_dose(
         SimpleNamespace(message=sugar_msg, effective_user=SimpleNamespace(id=1)),
     )
 
-    await handlers.freeform_handler(update_sugar, context)
+    await freeform_handler(update_sugar, context)
 
     reply = sugar_msg.texts[0]
     assert "Углеводы: 10.0 г" in reply

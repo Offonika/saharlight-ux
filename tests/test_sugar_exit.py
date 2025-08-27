@@ -10,7 +10,7 @@ from tests.helpers import make_update
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-from services.api.app.diabetes.handlers import dose_handlers
+from services.api.app.diabetes.handlers.dose_handlers import sugar_conv, dose_cancel
 
 
 def _filter_pattern_equals(h: Any, regex: str) -> bool:
@@ -34,7 +34,7 @@ class DummyMessage:
 async def test_sugar_back_fallback_cancels() -> None:
     handler = next(
         h
-        for h in dose_handlers.sugar_conv.fallbacks
+        for h in sugar_conv.fallbacks
         if isinstance(h, MessageHandler) and _filter_pattern_equals(h, "^↩️ Назад$")
     )
     message = DummyMessage("↩️ Назад")
@@ -57,17 +57,17 @@ async def test_cancel_command_clears_state() -> None:
         CallbackContext[Any, Any, Any, Any],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
     )
-    result = await dose_handlers.dose_cancel(update, context)
+    result = await dose_cancel(update, context)
     assert result == ConversationHandler.END
     assert message.replies and message.replies[-1] == "Отменено."
     assert context.user_data == {}
 
 
 def test_sugar_conv_has_back_fallback():
-    fallbacks = dose_handlers.sugar_conv.fallbacks
+    fallbacks = sugar_conv.fallbacks
     assert any(
         isinstance(h, MessageHandler)
-        and h.callback is dose_handlers.dose_cancel
+        and h.callback is dose_cancel
         and _filter_pattern_equals(h, "^↩️ Назад$")
         for h in fallbacks
     )

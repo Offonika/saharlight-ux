@@ -134,3 +134,6 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     else:
         logger.warning("Unrecognized callback data: %s", data)
         await query.edit_message_text("Команда не распознана")
+
+
+__all__ = ["callback_router"]

@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from services.api.app.diabetes.handlers import dose_handlers
+from services.api.app.diabetes.handlers.dose_handlers import logger, _sanitize
 
 
 def test_logging_truncates_content(
@@ -10,7 +10,7 @@ def test_logging_truncates_content(
 ) -> None:
     long_text = "A" * 250 + "\x00\x01"
     with caplog.at_level(logging.DEBUG):
-        dose_handlers.logger.debug("test %s", dose_handlers._sanitize(long_text))
+        logger.debug("test %s", _sanitize(long_text))
     record = caplog.records[0]
     assert "A" * 200 in record.message
     assert "A" * 201 not in record.message

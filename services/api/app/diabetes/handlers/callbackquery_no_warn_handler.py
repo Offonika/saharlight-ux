@@ -22,3 +22,6 @@ class CallbackQueryNoWarnHandler(BaseHandler):
             if self.pattern is None or self.pattern.match(data):
                 return update.callback_query
         return None
+
+
+__all__ = ["CallbackQueryNoWarnHandler"]

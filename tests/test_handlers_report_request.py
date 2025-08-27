@@ -37,8 +37,12 @@ async def test_report_request_and_custom_flow(
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
-    import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
     import services.api.app.diabetes.handlers.dose_handlers as dose_handlers
+    from services.api.app.diabetes.handlers.reporting_handlers import (
+        report_request,
+        report_period_callback,
+    )
+    from services.api.app.diabetes.handlers.dose_handlers import freeform_handler
 
     message = DummyMessage()
     update = make_update(
@@ -48,7 +52,7 @@ async def test_report_request_and_custom_flow(
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
     )
 
-    await reporting_handlers.report_request(update, context)
+    await report_request(update, context)
     assert "awaiting_report_date" not in context.user_data
     assert any("Выберите период" in t[0] for t in message.replies)
     assert message.replies[0][1].get("reply_markup") is not None
@@ -58,7 +62,7 @@ async def test_report_request_and_custom_flow(
         callback_query=query, effective_user=SimpleNamespace(id=1)
     )
 
-    await reporting_handlers.report_period_callback(update_cb, context)
+    await report_period_callback(update_cb, context)
 
     assert context.user_data.get("awaiting_report_date") is True
     assert any("YYYY-MM-DD" in text for text in query.edited)
@@ -81,7 +85,7 @@ async def test_report_request_and_custom_flow(
             effective_user=SimpleNamespace(id=1),
         ),
     )
-    await dose_handlers.freeform_handler(update2, context)
+    await freeform_handler(update2, context)
 
     assert called.get("called")
     assert "awaiting_report_date" not in context.user_data
@@ -95,6 +99,7 @@ async def test_report_period_callback_week(
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
+    from services.api.app.diabetes.handlers.reporting_handlers import report_period_callback
 
     called: dict[str, dt.datetime | str] = {}
 
@@ -123,7 +128,7 @@ async def test_report_period_callback_week(
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
     )
 
-    await reporting_handlers.report_period_callback(update_cb, context)
+    await report_period_callback(update_cb, context)
 
     expected = (fixed_now - dt.timedelta(days=7)).replace(
         hour=0, minute=0, second=0, microsecond=0
