@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useRemindersApi } from "../api/reminders";
 import { formatNextAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
@@ -305,12 +306,12 @@ export default function RemindersList({
                     >
                       {r.isEnabled ? "Вкл." : "Выкл."}
                     </button>
-                    <a 
-                      href={`/reminders/${r.id}/edit`} 
+                    <Link
+                      to={`${r.id}/edit`}
                       className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-all duration-200"
                     >
                       ✏️
-                    </a>
+                    </Link>
                     <button 
                       onClick={() => remove(r)} 
                       className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all duration-200"
@@ -331,12 +332,12 @@ export default function RemindersList({
             <span className="text-2xl">⏰</span>
           </div>
           <p className="text-muted-foreground">Пока нет напоминаний</p>
-          <a 
-            href="/reminders/new" 
+          <Link
+            to="new"
             className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             + Добавить первое напоминание
-          </a>
+          </Link>
         </div>
       )}
     </div>
