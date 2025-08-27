@@ -39,7 +39,17 @@ jobs:
       - name: Generate TS SDK
         run: bash scripts/gen_ts_sdk.sh
       - name: Build webapp UI
-        run: pnpm --filter services/webapp/ui run build
+        id: build-webapp-ui
+        run: pnpm --filter services/webapp/ui run build 2>&1 | tee ui-build.log
+        continue-on-error: true
+      - name: Check build logs for runtime resolution
+        run: |
+          if grep -Eq "Could not resolve .* @sdk/runtime" ui-build.log; then
+            echo "Check that libs/ts-sdk/runtime.ts exists and update imports to '@sdk/runtime.ts'."
+            exit 1
+          elif [ "${{ steps.build-webapp-ui.outcome }}" = "failure" ]; then
+            exit 1
+          fi
       - name: Type-check webapp UI
         working-directory: services/webapp/ui
         run: pnpm run typecheck
