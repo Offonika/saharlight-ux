@@ -173,8 +173,8 @@ def test_schedule_reminder_replaces_existing_job() -> None:
         assert rem is not None
         handlers.schedule_reminder(rem, job_queue)
         handlers.schedule_reminder(rem, job_queue)
-    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
-    active_jobs = [j for j in jobs if not j.removed]
+    jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
+    active_jobs: list[DummyJob] = [j for j in jobs if not j.removed]
     assert len(active_jobs) == 1
     job = active_jobs[0]
     assert job.time is not None
@@ -424,7 +424,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         rem_db = session.get(Reminder, 1)
         assert rem_db is not None
         assert not rem_db.is_enabled
-    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
+    jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
     assert job.removed
@@ -462,7 +462,7 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
-    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
+    jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
     assert job.removed
@@ -504,7 +504,7 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
         rem_db = session.get(Reminder, 1)
         assert rem_db is not None
         assert rem_db.time == parsed
-    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
+    jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
     assert len(jobs) == 2
     assert jobs[0].removed is True
     assert jobs[1].removed is False
