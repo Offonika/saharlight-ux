@@ -8,7 +8,7 @@ from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None, photo: list[Any] | None = None):
+    def __init__(self, text: str | None = None, photo: list[Any] | None = None) -> None:
         self.text = text
         self.photo = photo
         self.replies: list[tuple[str, dict[str, Any]]] = []
@@ -23,10 +23,10 @@ class DummyPhoto:
 
 
 @pytest.mark.asyncio
-async def test_photo_prompt_includes_dish_name(monkeypatch, tmp_path) -> None:
+async def test_photo_prompt_includes_dish_name(monkeypatch: Any, tmp_path: Any) -> None:
     monkeypatch.chdir(tmp_path)
 
-    async def fake_get_file(file_id: str) -> Any:
+    async def fake_get_file(file_id: str) -> None:
         class File:
             async def download_to_drive(self, path: str) -> None:
                 Path(path).write_bytes(b"img")
@@ -48,7 +48,7 @@ async def test_photo_prompt_includes_dish_name(monkeypatch, tmp_path) -> None:
         thread_id = "tid"
         id = "runid"
 
-    async def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs: Any) -> None:
         captured["content"] = kwargs["content"]
         return Run()
 

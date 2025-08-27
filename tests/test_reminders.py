@@ -18,7 +18,7 @@ from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None):
+    def __init__(self, text: str | None = None) -> None:
         self.text = text
         self.texts: list[str] = []
         self.edited: tuple[str, dict[str, Any]] | None = None
@@ -60,35 +60,35 @@ class DummyBot:
 
 
 class DummyJob:
-    def __init__(self, callback, data, name, time=None):
+    def __init__(self, callback: Any, data: Any, name: Any, time: Any=None) -> None:
         self.callback = callback
         self.data = data
         self.name = name
         self.time = time
         self.removed = False
 
-    def schedule_removal(self):
+    def schedule_removal(self) -> None:
         self.removed = True
 
 
 class DummyJobQueue:
-    def __init__(self):
+    def __init__(self) -> None:
         self.jobs = []
 
-    def run_daily(self, callback, time, data=None, name=None):
+    def run_daily(self, callback: Any, time: Any, data: Any=None, name: Any=None) -> None:
         self.jobs.append(DummyJob(callback, data, name, time))
 
-    def run_repeating(self, callback, interval, data=None, name=None):
+    def run_repeating(self, callback: Any, interval: Any, data: Any=None, name: Any=None) -> None:
         self.jobs.append(DummyJob(callback, data, name))
 
-    def run_once(self, callback, when, data=None, name=None):
+    def run_once(self, callback: Any, when: Any, data: Any=None, name: Any=None) -> None:
         self.jobs.append(DummyJob(callback, data, name))
 
-    def get_jobs_by_name(self, name):
+    def get_jobs_by_name(self, name: Any) -> None:
         return [j for j in self.jobs if j.name == name]
 
 
-def test_schedule_reminder_replaces_existing_job():
+def test_schedule_reminder_replaces_existing_job() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -110,12 +110,12 @@ def test_schedule_reminder_replaces_existing_job():
     assert active_jobs[0].time.tzinfo.key == "Europe/Moscow"
 
 
-def test_schedule_with_next_interval(monkeypatch):
+def test_schedule_with_next_interval(monkeypatch: Any) -> None:
     now = datetime(2024, 1, 1, 10, 0)
 
     class DummyDatetime(datetime):
         @classmethod
-        def now(cls):  # type: ignore[override]
+        def now(cls) -> None:  # type: ignore[override]
             return now
 
     monkeypatch.setattr(handlers, "datetime", DummyDatetime)
@@ -126,7 +126,7 @@ def test_schedule_with_next_interval(monkeypatch):
     assert schedule == "каждые 2 ч (next 12:00)"
 
 
-def test_schedule_with_next_invalid_timezone_logs_warning(caplog):
+def test_schedule_with_next_invalid_timezone_logs_warning(caplog: Any) -> None:
     user = User(telegram_id=1, thread_id="t", timezone="Invalid/Zone")
     rem = Reminder(telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user)
     with caplog.at_level(logging.WARNING):
@@ -135,7 +135,7 @@ def test_schedule_with_next_invalid_timezone_logs_warning(caplog):
     assert any("Invalid timezone" in r.message for r in caplog.records)
 
 
-def test_schedule_reminder_invalid_timezone_logs_warning(caplog):
+def test_schedule_reminder_invalid_timezone_logs_warning(caplog: Any) -> None:
     user = User(telegram_id=1, thread_id="t", timezone="Bad/Zone")
     rem = Reminder(id=1, telegram_id=1, type="sugar", time="08:00", is_enabled=True, user=user)
     job_queue = DummyJobQueue()
@@ -146,7 +146,7 @@ def test_schedule_reminder_invalid_timezone_logs_warning(caplog):
     assert any("Invalid timezone" in r.message for r in caplog.records)
 
 
-def test_render_reminders_formatting(monkeypatch):
+def test_render_reminders_formatting(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -193,7 +193,7 @@ def test_render_reminders_formatting(monkeypatch):
     assert btn.web_app and btn.web_app.url.endswith("/reminders")
 
 
-def test_render_reminders_no_webapp(monkeypatch):
+def test_render_reminders_no_webapp(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -212,7 +212,7 @@ def test_render_reminders_no_webapp(monkeypatch):
     assert all(btn.web_app is None for btn in markup.inline_keyboard[0])
 
 
-def test_render_reminders_no_entries_no_webapp(monkeypatch):
+def test_render_reminders_no_entries_no_webapp(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -228,7 +228,7 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_reminders_list_no_keyboard(monkeypatch) -> None:
+async def test_reminders_list_no_keyboard(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -255,7 +255,7 @@ async def test_reminders_list_no_keyboard(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_toggle_reminder_cb(monkeypatch) -> None:
+async def test_toggle_reminder_cb(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -286,7 +286,7 @@ async def test_toggle_reminder_cb(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_reminder_cb(monkeypatch) -> None:
+async def test_delete_reminder_cb(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -315,7 +315,7 @@ async def test_delete_reminder_cb(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_edit_reminder(monkeypatch) -> None:
+async def test_edit_reminder(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -349,7 +349,7 @@ async def test_edit_reminder(monkeypatch) -> None:
     assert jobs[1].removed is False
 
 @pytest.mark.asyncio
-async def test_trigger_job_logs(monkeypatch) -> None:
+async def test_trigger_job_logs(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -388,7 +388,7 @@ async def test_trigger_job_logs(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_cancel_callback(monkeypatch) -> None:
+async def test_cancel_callback(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -413,7 +413,7 @@ async def test_cancel_callback(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_reminder_callback_foreign_rid(monkeypatch) -> None:
+async def test_reminder_callback_foreign_rid(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

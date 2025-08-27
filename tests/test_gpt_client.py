@@ -8,13 +8,14 @@ from openai import OpenAIError
 
 from services.api.app.diabetes.services import gpt_client
 from services.api.app.config import settings
+from typing import Any
 
 
-def test_get_client_thread_safe(monkeypatch):
+def test_get_client_thread_safe(monkeypatch: Any) -> None:
     fake_client = object()
     call_count = 0
 
-    def fake_get_openai_client():
+    def fake_get_openai_client() -> None:
         nonlocal call_count
         time.sleep(0.01)
         call_count += 1
@@ -24,7 +25,7 @@ def test_get_client_thread_safe(monkeypatch):
     monkeypatch.setattr(gpt_client, "_client", None)
     results = []
 
-    def worker():
+    def worker() -> None:
         results.append(gpt_client._get_client())
 
     threads = [threading.Thread(target=worker) for _ in range(10)]
@@ -38,8 +39,8 @@ def test_get_client_thread_safe(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_send_message_openaierror(monkeypatch, caplog):
-    def raise_error(**kwargs):
+async def test_send_message_openaierror(monkeypatch: Any, caplog: Any) -> None:
+    def raise_error(**kwargs: Any) -> None:
         raise OpenAIError("boom")
 
     fake_client = SimpleNamespace(
@@ -60,8 +61,8 @@ async def test_send_message_openaierror(monkeypatch, caplog):
     assert any("Failed to create message" in r.message for r in caplog.records)
 
 
-def test_create_thread_openaierror(monkeypatch, caplog):
-    def raise_error():
+def test_create_thread_openaierror(monkeypatch: Any, caplog: Any) -> None:
+    def raise_error() -> None:
         raise OpenAIError("boom")
 
     fake_client = SimpleNamespace(beta=SimpleNamespace(threads=SimpleNamespace(create=raise_error)))
@@ -76,11 +77,11 @@ def test_create_thread_openaierror(monkeypatch, caplog):
 
 
 @pytest.mark.asyncio
-async def test_send_message_upload_error_keeps_file(tmp_path, monkeypatch):
+async def test_send_message_upload_error_keeps_file(tmp_path: Any, monkeypatch: Any) -> None:
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 
-    def raise_upload(*_, **__):
+    def raise_upload(*_: Any, **__: Any) -> None:
         raise OpenAIError("boom")
 
     fake_client = SimpleNamespace(files=SimpleNamespace(create=raise_upload))
@@ -93,16 +94,16 @@ async def test_send_message_upload_error_keeps_file(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_send_message_empty_string_preserved(tmp_path, monkeypatch):
+async def test_send_message_empty_string_preserved(tmp_path: Any, monkeypatch: Any) -> None:
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 
     captured = {}
 
-    def fake_files_create(file, purpose):
+    def fake_files_create(file: Any, purpose: Any) -> None:
         return SimpleNamespace(id="f1")
 
-    def fake_messages_create(*, thread_id, role, content):
+    def fake_messages_create(*, thread_id: Any, role: Any, content: Any) -> None:
         captured["content"] = content
 
     fake_client = SimpleNamespace(

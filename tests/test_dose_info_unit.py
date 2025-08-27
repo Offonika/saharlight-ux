@@ -61,10 +61,10 @@ async def test_entry_without_dose_has_no_unit(
     )
 
     class DummySession:
-        def __enter__(self) -> "DummySession":
+        def __enter__(self) -> None:
             return self
 
-        def __exit__(self, exc_type, exc, tb) -> None:
+        def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
             pass
 
         def add(self, entry: Any) -> None:
@@ -107,10 +107,10 @@ async def test_entry_without_sugar_has_placeholder(
     )
 
     class DummySession:
-        def __enter__(self) -> "DummySession":
+        def __enter__(self) -> None:
             return self
 
-        def __exit__(self, exc_type, exc, tb) -> None:
+        def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
             pass
 
         def add(self, entry: Any) -> None:

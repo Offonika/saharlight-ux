@@ -9,7 +9,7 @@ import services.api.app.diabetes.handlers.dose_handlers as handlers
 
 
 class DummyMessage:
-    def __init__(self, text: str):
+    def __init__(self, text: str) -> None:
         self.text = text
         self.replies: list[tuple[str, dict[str, Any]]] = []
 
@@ -66,7 +66,7 @@ async def test_freeform_handler_guidance_on_valueerror(
         CallbackContext[Any, Any, Any, Any], SimpleNamespace(user_data={})
     )
 
-    def fake_smart_input(_):
+    def fake_smart_input(_: Any) -> None:
         raise ValueError("boom")
 
     monkeypatch.setattr(handlers, "smart_input", fake_smart_input)

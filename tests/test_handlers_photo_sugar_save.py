@@ -42,10 +42,10 @@ class DummySession:
     def __init__(self) -> None:
         self.added = []
 
-    def __enter__(self) -> "DummySession":
+    def __enter__(self) -> None:
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> None:
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
         pass
 
     def add(self, entry: Any) -> None:
@@ -54,7 +54,7 @@ class DummySession:
     def commit(self) -> None:
         pass
 
-    def get(self, model, user_id) -> Any:
+    def get(self, model: Any, user_id: Any) -> None:
         return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
 
@@ -63,9 +63,9 @@ session = DummySession()
 
 @pytest.mark.asyncio
 async def test_photo_flow_saves_entry(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
 ) -> None:
-    async def fake_parse_command(text: str) -> dict[str, Any]:
+    async def fake_parse_command(text: str) -> None:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
     monkeypatch.setattr(dose_handlers, "parse_command", fake_parse_command)
@@ -84,7 +84,7 @@ async def test_photo_flow_saves_entry(
 
     monkeypatch.chdir(tmp_path)
 
-    async def fake_get_file(file_id: str) -> Any:
+    async def fake_get_file(file_id: str) -> None:
         class File:
             async def download_to_drive(self, path: str) -> None:
                 Path(path).write_bytes(b"img")
@@ -98,7 +98,7 @@ async def test_photo_flow_saves_entry(
         thread_id = "tid"
         id = "runid"
 
-    async def fake_send_message(**kwargs: Any) -> Run:
+    async def fake_send_message(**kwargs: Any) -> None:
         return Run()
 
     class DummyClient:

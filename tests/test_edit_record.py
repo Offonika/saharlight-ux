@@ -15,7 +15,7 @@ from services.api.app.diabetes.services.db import Base, User, Entry
 
 
 class DummyMessage:
-    def __init__(self, text: str = "", chat_id: int = 1, message_id: int = 1):
+    def __init__(self, text: str = "", chat_id: int = 1, message_id: int = 1) -> None:
         self.text = text
         self.chat_id = chat_id
         self.message_id = message_id
@@ -26,7 +26,7 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str, message: DummyMessage | None = None):
+    def __init__(self, data: str, message: DummyMessage | None = None) -> None:
         self.data = data
         self.message = message or DummyMessage()
         self.markups = []

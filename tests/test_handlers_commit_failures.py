@@ -16,7 +16,7 @@ from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.texts: list[str] = []
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
@@ -24,7 +24,7 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str):
+    def __init__(self, data: str) -> None:
         self.data = data
         self.edited = []
 
@@ -38,13 +38,13 @@ class DummyQuery:
 
 
 class DummyWebAppMessage(DummyMessage):
-    def __init__(self, data: str):
+    def __init__(self, data: str) -> None:
         super().__init__()
         self.web_app_data = SimpleNamespace(data=data)
 
 
 @pytest.mark.asyncio
-async def test_profile_command_no_local_session(monkeypatch) -> None:
+async def test_profile_command_no_local_session(monkeypatch: Any) -> None:
     """Profile command should not touch the local DB session."""
     import os
 
@@ -72,7 +72,7 @@ async def test_profile_command_no_local_session(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_callback_router_commit_failure(monkeypatch, caplog) -> None:
+async def test_callback_router_commit_failure(monkeypatch: Any, caplog: Any) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -107,7 +107,7 @@ async def test_callback_router_commit_failure(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_commit_failure(monkeypatch, caplog) -> None:
+async def test_add_reminder_commit_failure(monkeypatch: Any, caplog: Any) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -142,7 +142,7 @@ async def test_add_reminder_commit_failure(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_reminder_webapp_save_commit_failure(monkeypatch, caplog) -> None:
+async def test_reminder_webapp_save_commit_failure(monkeypatch: Any, caplog: Any) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -185,7 +185,7 @@ async def test_reminder_webapp_save_commit_failure(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_reminder_commit_failure(monkeypatch, caplog) -> None:
+async def test_delete_reminder_commit_failure(monkeypatch: Any, caplog: Any) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -211,7 +211,7 @@ async def test_delete_reminder_commit_failure(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_reminder_job_commit_failure(monkeypatch, caplog) -> None:
+async def test_reminder_job_commit_failure(monkeypatch: Any, caplog: Any) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -241,7 +241,7 @@ async def test_reminder_job_commit_failure(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_reminder_callback_commit_failure(monkeypatch, caplog) -> None:
+async def test_reminder_callback_commit_failure(monkeypatch: Any, caplog: Any) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -254,7 +254,7 @@ async def test_reminder_callback_commit_failure(monkeypatch, caplog) -> None:
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: session)
     reminder_handlers.commit = commit
 
-    def failing_commit(sess):
+    def failing_commit(sess: Any) -> None:
         sess.rollback()
         return False
 
@@ -276,7 +276,7 @@ async def test_reminder_callback_commit_failure(monkeypatch, caplog) -> None:
 
 
 @pytest.mark.asyncio
-async def test_reminder_action_cb_commit_failure(monkeypatch, caplog) -> None:
+async def test_reminder_action_cb_commit_failure(monkeypatch: Any, caplog: Any) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None

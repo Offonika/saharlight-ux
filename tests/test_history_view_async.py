@@ -15,29 +15,29 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_history_view_does_not_block_event_loop(monkeypatch) -> None:
+async def test_history_view_does_not_block_event_loop(monkeypatch: Any) -> None:
     """The database query is executed in a thread and doesn't block."""
 
-    def slow_session():
+    def slow_session() -> None:
         class FakeSession:
-            def __enter__(self):
+            def __enter__(self) -> None:
                 return self
 
-            def __exit__(self, exc_type, exc, tb):
+            def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
                 pass
 
-            def query(self, *args, **kwargs):
+            def query(self, *args: Any, **kwargs: Any) -> None:
                 class Q:
-                    def filter(self, *args, **kwargs):
+                    def filter(self, *args: Any, **kwargs: Any) -> None:
                         return self
 
-                    def order_by(self, *args, **kwargs):
+                    def order_by(self, *args: Any, **kwargs: Any) -> None:
                         return self
 
-                    def limit(self, *args, **kwargs):
+                    def limit(self, *args: Any, **kwargs: Any) -> None:
                         return self
 
-                    def all(self):
+                    def all(self) -> None:
                         time.sleep(0.5)  # Blocking call executed in to_thread
                         return []
 

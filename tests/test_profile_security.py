@@ -15,7 +15,7 @@ from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.texts: list[str] = []
         self.markups: list[Any] = []
 
@@ -25,7 +25,7 @@ class DummyMessage:
 
 
 class DummyQuery:
-    def __init__(self, data: str):
+    def __init__(self, data: str) -> None:
         self.data = data
         self.edits: list[tuple[str, dict[str, Any]]] = []
         self.message = DummyMessage()
@@ -38,7 +38,7 @@ class DummyQuery:
 
 
 @pytest.mark.asyncio
-async def test_profile_view_has_security_button(monkeypatch) -> None:
+async def test_profile_view_has_security_button(monkeypatch: Any) -> None:
     dummy_profile = SimpleNamespace(icr=10, cf=2, target=6, low=4, high=9)
     dummy_api = SimpleNamespace(profiles_get=lambda telegram_id: dummy_profile)
     monkeypatch.setattr(
@@ -67,7 +67,7 @@ async def test_profile_view_has_security_button(monkeypatch) -> None:
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_security_threshold_changes(monkeypatch, action, expected_low, expected_high) -> None:
+async def test_profile_security_threshold_changes(monkeypatch: Any, action: Any, expected_low: Any, expected_high: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -92,7 +92,7 @@ async def test_profile_security_threshold_changes(monkeypatch, action, expected_
 
     calls = []
 
-    async def fake_eval(user_id, sugar, job_queue) -> None:
+    async def fake_eval(user_id: Any, sugar: Any, job_queue: Any) -> None:
         calls.append((user_id, sugar, job_queue))
 
     monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
@@ -112,7 +112,7 @@ async def test_profile_security_threshold_changes(monkeypatch, action, expected_
 
 
 @pytest.mark.asyncio
-async def test_profile_security_toggle_sos_alerts(monkeypatch) -> None:
+async def test_profile_security_toggle_sos_alerts(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -137,7 +137,7 @@ async def test_profile_security_toggle_sos_alerts(monkeypatch) -> None:
 
     calls = []
 
-    async def fake_eval(user_id, sugar, job_queue) -> None:
+    async def fake_eval(user_id: Any, sugar: Any, job_queue: Any) -> None:
         calls.append((user_id, sugar, job_queue))
 
     monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
@@ -156,7 +156,7 @@ async def test_profile_security_toggle_sos_alerts(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_security_shows_reminders(monkeypatch) -> None:
+async def test_profile_security_shows_reminders(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -190,7 +190,7 @@ async def test_profile_security_shows_reminders(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_security_add_delete_calls_handlers(monkeypatch) -> None:
+async def test_profile_security_add_delete_calls_handlers(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -204,7 +204,7 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch) -> None:
 
     called = {"del": False}
 
-    async def fake_del(update, context) -> None:
+    async def fake_del(update: Any, context: Any) -> None:
         called["del"] = True
 
     monkeypatch.setattr(reminder_handlers, "delete_reminder", fake_del)
@@ -225,7 +225,7 @@ async def test_profile_security_add_delete_calls_handlers(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_security_sos_contact_calls_handler(monkeypatch) -> None:
+async def test_profile_security_sos_contact_calls_handler(monkeypatch: Any) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -239,7 +239,7 @@ async def test_profile_security_sos_contact_calls_handler(monkeypatch) -> None:
 
     called = False
 
-    async def fake_sos(update, context) -> None:
+    async def fake_sos(update: Any, context: Any) -> None:
         nonlocal called
         called = True
 

@@ -10,6 +10,7 @@ from services.api.app.diabetes.utils.ui import menu_keyboard
 from services.api.app.diabetes.services.db import Base, User, Profile
 from tests.helpers import make_context, make_update
 from tests.telegram_stubs import Message, User as TgUser
+from typing import Any
 
 
 @pytest.mark.parametrize(
@@ -23,7 +24,7 @@ from tests.telegram_stubs import Message, User as TgUser
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_and_view(monkeypatch, args, expected_icr, expected_cf, expected_target, expected_low, expected_high) -> None:
+async def test_profile_command_and_view(monkeypatch: Any, args: Any, expected_icr: Any, expected_cf: Any, expected_target: Any, expected_low: Any, expected_high: Any) -> None:
     import os
     os.environ["OPENAI_API_KEY"] = "test"
     os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
@@ -81,7 +82,7 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_invalid_values(monkeypatch, args) -> None:
+async def test_profile_command_invalid_values(monkeypatch: Any, args: Any) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -106,7 +107,7 @@ async def test_profile_command_invalid_values(monkeypatch, args) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_command_help_and_dialog(monkeypatch) -> None:
+async def test_profile_command_help_and_dialog(monkeypatch: Any) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -133,7 +134,7 @@ async def test_profile_command_help_and_dialog(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_view_preserves_user_data(monkeypatch) -> None:
+async def test_profile_view_preserves_user_data(monkeypatch: Any) -> None:
     import os
 
     os.environ["OPENAI_API_KEY"] = "test"
@@ -164,7 +165,7 @@ async def test_profile_view_preserves_user_data(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_profile_view_missing_profile_shows_webapp_button(monkeypatch) -> None:
+async def test_profile_view_missing_profile_shows_webapp_button(monkeypatch: Any) -> None:
     from urllib.parse import urlparse
     from services.api.app.config import settings as config_settings
     from services.api.app.diabetes.handlers import profile as handlers

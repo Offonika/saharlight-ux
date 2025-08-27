@@ -13,9 +13,10 @@ from services.api.app.diabetes.handlers.registration import register_handlers
 from services.api.app.diabetes.handlers.router import callback_router
 from services.api.app.diabetes.handlers.onboarding_handlers import start_command
 from services.api.app.diabetes.handlers import security_handlers, reminder_handlers
+from typing import Any
 
 
-def test_register_handlers_attaches_expected_handlers(monkeypatch):
+def test_register_handlers_attaches_expected_handlers(monkeypatch: Any) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401

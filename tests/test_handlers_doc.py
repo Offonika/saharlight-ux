@@ -27,15 +27,15 @@ class DummyMessage(Message):
 async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) -> None:
     called = SimpleNamespace(flag=False)
 
-    async def fake_photo_handler(update, context) -> str:
+    async def fake_photo_handler(update: Any, context: Any) -> None:
         called.flag = True
         return "OK"
 
     class DummyFile:
-        async def download_to_drive(self, path) -> None:
+        async def download_to_drive(self, path: Any) -> None:
             self.path = path
 
-    async def fake_get_file(file_id: str) -> DummyFile:
+    async def fake_get_file(file_id: str) -> None:
         return DummyFile()
 
     dummy_bot = SimpleNamespace(get_file=fake_get_file)
@@ -65,7 +65,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> None:
     called = SimpleNamespace(flag=False)
 
-    async def fake_photo_handler(update, context) -> None:
+    async def fake_photo_handler(update: Any, context: Any) -> None:
         called.flag = True
 
     document = SimpleNamespace(
@@ -102,7 +102,7 @@ async def test_photo_handler_handles_typeerror() -> None:
 
 @pytest.mark.asyncio
 async def test_photo_handler_preserves_file(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
 ) -> None:
     monkeypatch.chdir(tmp_path)
 
@@ -117,10 +117,10 @@ async def test_photo_handler_preserves_file(
     update = make_update(message=message, effective_user=SimpleNamespace(id=1))
 
     class DummyFile:
-        async def download_to_drive(self, path) -> None:
+        async def download_to_drive(self, path: Any) -> None:
             Path(path).write_bytes(b"img")
 
-    async def fake_get_file(file_id: str) -> DummyFile:
+    async def fake_get_file(file_id: str) -> None:
         return DummyFile()
 
     dummy_bot = SimpleNamespace(get_file=fake_get_file)
@@ -128,7 +128,7 @@ async def test_photo_handler_preserves_file(
 
     call = {}
 
-    async def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs: Any) -> None:
         call.update(kwargs)
 
         class Run:
@@ -169,7 +169,7 @@ async def test_photo_handler_preserves_file(
 
 @pytest.mark.asyncio
 async def test_photo_then_freeform_calculates_dose(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
 ) -> None:
     """photo_handler + freeform_handler produce dose in reply and context."""
 
@@ -178,10 +178,10 @@ async def test_photo_then_freeform_calculates_dose(
         file_unique_id = "uid"
 
     class DummyFile:
-        async def download_to_drive(self, path) -> None:
+        async def download_to_drive(self, path: Any) -> None:
             Path(path).write_bytes(b"img")
 
-    async def fake_get_file(file_id: str) -> DummyFile:
+    async def fake_get_file(file_id: str) -> None:
         return DummyFile()
 
     monkeypatch.chdir(tmp_path)
@@ -192,7 +192,7 @@ async def test_photo_then_freeform_calculates_dose(
         thread_id = "tid"
         id = "runid"
 
-    async def fake_send_message(**kwargs):
+    async def fake_send_message(**kwargs: Any) -> None:
         return Run()
 
     class DummyClient:
@@ -221,13 +221,13 @@ async def test_photo_then_freeform_calculates_dose(
     await handlers.photo_handler(update_photo, context)
 
     class DummySession:
-        def __enter__(self) -> "DummySession":
+        def __enter__(self) -> None:
             return self
 
-        def __exit__(self, exc_type, exc, tb) -> None:
+        def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
             pass
 
-        def get(self, model, user_id):
+        def get(self, model: Any, user_id: Any) -> None:
             return SimpleNamespace(icr=10.0, cf=1.0, target_bg=6.0)
 
     handlers.SessionLocal = lambda: DummySession()

@@ -47,7 +47,7 @@ class DummyJobQueue:
     ) -> None:
         self.jobs.append(DummyJob(callback, when, data, name))
 
-    def get_jobs_by_name(self, name: str) -> list[DummyJob]:
+    def get_jobs_by_name(self, name: str) -> None:
         return [j for j in self.jobs if j.name == name]
 
 
@@ -183,7 +183,7 @@ async def test_three_alerts_notify(monkeypatch: pytest.MonkeyPatch) -> None:
 
     update = make_update(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
     context = cast(AlertContext, ContextStub(bot=DummyBot()))
-    async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
+    async def fake_get_coords_and_link() -> None:
         return ("0,0", "link")
 
     monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
@@ -231,7 +231,7 @@ async def test_alert_message_without_coords(monkeypatch: pytest.MonkeyPatch) -> 
     update = make_update(effective_user=SimpleNamespace(id=1, first_name="Ivan"))
     context = cast(AlertContext, ContextStub(bot=DummyBot()))
 
-    async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
+    async def fake_get_coords_and_link() -> None:
         return None, None
 
     monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)

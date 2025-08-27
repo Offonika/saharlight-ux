@@ -13,7 +13,7 @@ from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
-    def __init__(self, data: str):
+    def __init__(self, data: str) -> None:
         self.web_app_data = SimpleNamespace(data=data)
         self.replies: list[str] = []
 
@@ -22,17 +22,17 @@ class DummyMessage:
 
 
 class DummyJobQueue:
-    def run_daily(self, *a, **k):
+    def run_daily(self, *a: Any, **k: Any) -> None:
         pass
 
-    def run_repeating(self, *a, **k):
+    def run_repeating(self, *a: Any, **k: Any) -> None:
         pass
 
-    def get_jobs_by_name(self, name):
+    def get_jobs_by_name(self, name: Any) -> None:
         return []
 
 
-def _setup_db():
+def _setup_db() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

@@ -34,7 +34,7 @@ async def test_alert_stats_counts(monkeypatch: pytest.MonkeyPatch) -> None:
         @classmethod
         def now(
             cls, tz: dt.tzinfo | None = None
-        ) -> "DummyDateTime":  # pragma: no cover - used for typing
+        ) -> None:  # pragma: no cover - used for typing
             return fixed_now
 
     fixed_now = DummyDateTime(2024, 1, 10, tzinfo=dt.timezone.utc)

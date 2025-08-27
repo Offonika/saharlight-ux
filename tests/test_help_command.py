@@ -6,7 +6,7 @@ from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 

@@ -13,7 +13,7 @@ import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F40
 from services.api.app.diabetes.handlers import dose_handlers
 
 
-def _filter_pattern_equals(h: Any, regex: str) -> bool:
+def _filter_pattern_equals(h: Any, regex: str) -> None:
     filt = getattr(h, "filters", None)
     pattern = getattr(filt, "pattern", None)
     return isinstance(pattern, Pattern) and pattern.pattern == regex
@@ -46,7 +46,7 @@ async def test_cancel_command_clears_state() -> None:
     assert context.user_data == {}
 
 
-def test_sugar_conv_has_back_fallback():
+def test_sugar_conv_has_back_fallback() -> None:
     fallbacks = dose_handlers.sugar_conv.fallbacks
     assert any(
         isinstance(h, MessageHandler)
