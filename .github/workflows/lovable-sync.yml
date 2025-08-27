@@ -158,7 +158,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GH_PAT }}  # <--- вот тут! Используем Personal Access Token
+          token: ${{ secrets.GHCR_PAT }}  # <--- вот тут! Используем Personal Access Token
           branch: ${{ env.SYNC_BRANCH_PREFIX }}-${{ github.sha }}
           base: ${{ env.TARGET_BRANCH }}
           title: "chore(ui): sync from lovable @ ${{ github.sha }}"
