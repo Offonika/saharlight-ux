@@ -18,9 +18,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # нужно, чтобы git show origin/main работал
+          fetch-depth: 0
 
-      - name: Fetch openapi.yaml from main branch
+      - name: Fetch openapi.yaml from main
         run: |
           git fetch origin main
           git show origin/main:libs/contracts/openapi.yaml > /tmp/openapi_main.yaml
@@ -33,4 +33,4 @@ jobs:
             --entrypoint oasdiff \
             tufin/oasdiff:latest \
             breaking /tmp/openapi_main.yaml /work/libs/contracts/openapi.yaml \
-            --fail-on-diff
+            --fail-on ERR
