@@ -136,6 +136,7 @@ class RESTClientObject:
                             **must** contain exactly two elements. Values
                             that are themselves mappings or non-string
                             iterables are JSON serialized before being sent.
+                            Keys and values are coerced to strings.
 
                             Examples::
 
@@ -211,24 +212,30 @@ class RESTClientObject:
                         raise ApiValueError(
                             "post_params must be a mapping or iterable of 2-item pairs",
                         )
-                    fields: list[tuple[str, object]] = []
+
+                    fields: list[tuple[str, str]] = []
                     for pair in pairs_iter:
                         if isinstance(pair, (str, bytes)):
                             raise ApiValueError(
                                 "Items in post_params must be 2-item iterables",
                             )
-                        try:
-                            key, value = pair
-                        except Exception:  # noqa: BLE001
+
+                        pair_tuple = tuple(pair)
+                        if len(pair_tuple) != 2:
                             raise ApiValueError(
                                 "Items in post_params must be 2-item iterables",
-                            ) from None
+                            )
+                        key, value = pair_tuple
+
                         if isinstance(value, Mapping) or (
                             isinstance(value, Iterable)
                             and not isinstance(value, (str, bytes))
                         ):
-                            value = json.dumps(value)
-                        fields.append((key, value))
+                            value_str = json.dumps(value)
+                        else:
+                            value_str = str(value)
+
+                        fields.append((str(key), value_str))
                     r = self.pool_manager.request(
                         method,
                         url,

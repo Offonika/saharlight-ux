@@ -1,6 +1,6 @@
 import json
 from collections import OrderedDict
-from typing import Any, cast
+from typing import Any, Iterable, Mapping, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,17 +22,21 @@ def _mock_response() -> urllib3.HTTPResponse:
 def _call_fields(post_params: object) -> list[tuple[str, str]]:
     client = _client()
     mock = MagicMock(return_value=_mock_response())
-    client.pool_manager.request = mock  # type: ignore[method-assign]
-    client.request(  # type: ignore[no-untyped-call]
+    cast(Any, client.pool_manager).request = mock
+    typed_params = cast(
+        Mapping[str, object] | Iterable[tuple[str, object]] | None, post_params
+    )
+    client.request(
         "POST",
         "http://example.com",
         headers={"Content-Type": "multipart/form-data"},
-        post_params=post_params,
+        post_params=typed_params,
     )
     kwargs = cast(dict[str, Any], mock.call_args.kwargs)
     assert kwargs["encode_multipart"] is True
     fields = cast(list[tuple[str, str]], kwargs["fields"])
     assert all(len(item) == 2 for item in fields)
+    assert all(isinstance(k, str) and isinstance(v, str) for k, v in fields)
     return fields
 
 
@@ -68,6 +72,12 @@ def test_multipart_sequence_pairs() -> None:
     ]
 
 
+def test_multipart_coerce_to_strings() -> None:
+    params = OrderedDict([(1, True), ("num", 2)])
+    fields = _call_fields(params)
+    assert fields == [("1", "True"), ("num", "2")]
+
+
 @pytest.mark.parametrize(
     "post_params",
     [
@@ -79,20 +89,26 @@ def test_multipart_sequence_pairs() -> None:
 def test_multipart_invalid_post_params(post_params: list[object]) -> None:
     client = _client()
     with pytest.raises(ApiValueError, match="2-item"):
-        client.request(  # type: ignore[no-untyped-call]
+        client.request(
             "POST",
             "http://example.com",
             headers={"Content-Type": "multipart/form-data"},
-            post_params=post_params,
+            post_params=cast(
+                Mapping[str, object] | Iterable[tuple[str, object]] | None,
+                post_params,
+            ),
         )
 
 
 def test_multipart_invalid_string() -> None:
     client = _client()
     with pytest.raises(ApiValueError):
-        client.request(  # type: ignore[no-untyped-call]
+        client.request(
             "POST",
             "http://example.com",
             headers={"Content-Type": "multipart/form-data"},
-            post_params="invalid",
+            post_params=cast(
+                Mapping[str, object] | Iterable[tuple[str, object]] | None,
+                "invalid",
+            ),
         )
