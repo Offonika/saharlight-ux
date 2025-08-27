@@ -81,13 +81,6 @@ export default defineConfig(async ({ mode, command }) => {
     plugins,
     resolve: {
       alias: [
-        {
-          find: '@sdk/runtime',
-          replacement: path.resolve(
-            __dirname,
-            '../../../libs/ts-sdk/runtime.ts',
-          ),
-        },
         { find: '@sdk', replacement: path.resolve(__dirname, '../../../libs/ts-sdk') },
         { find: '@', replacement: path.resolve(__dirname, './src') },
       ],
