@@ -1,14 +1,18 @@
 import re
-from typing import Optional
+from typing import Any, Callable, Optional
 
 from telegram import CallbackQuery, Update
-from telegram.ext import BaseHandler
+from telegram.ext import BaseHandler, CallbackContext
 
 
 class CallbackQueryNoWarnHandler(BaseHandler):
     """Handle callback queries without triggering ConversationHandler warnings."""
 
-    def __init__(self, callback, pattern: str | None = None):
+    def __init__(
+        self,
+        callback: Callable[[Update, CallbackContext], Any],
+        pattern: str | None = None,
+    ):
         super().__init__(callback)
         self.pattern: Optional[re.Pattern[str]] = re.compile(pattern) if pattern else None
 

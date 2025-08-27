@@ -14,6 +14,8 @@ import json
 import logging
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from sqlalchemy.orm import Session
+
 from services.api.app.diabetes.services.db import (
     SessionLocal,
     Profile,
@@ -367,7 +369,7 @@ async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TY
     return ConversationHandler.END
 
 
-def _security_db(session, user_id: int, action: str | None):
+def _security_db(session: Session, user_id: int, action: str | None):
     profile = session.get(Profile, user_id)
     user = session.get(User, user_id)
     if not profile:

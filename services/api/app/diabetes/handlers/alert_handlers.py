@@ -5,8 +5,9 @@ import logging
 from typing import Callable
 
 from sqlalchemy.orm import Session, sessionmaker
+from telegram import Update
 from telegram.error import TelegramError
-from telegram.ext import ContextTypes
+from telegram.ext import CallbackContext, JobQueue
 
 from services.api.app.diabetes.services.db import (
     Alert,
@@ -28,7 +29,7 @@ ALERT_REPEAT_DELAY = datetime.timedelta(minutes=5)
 
 def schedule_alert(
     user_id: int,
-    job_queue,
+    job_queue: JobQueue,
     *,
     sugar: float,
     profile: dict,
@@ -53,7 +54,7 @@ async def _send_alert_message(
     user_id: int,
     sugar: float,
     profile_info: dict,
-    context: ContextTypes.DEFAULT_TYPE,
+    context: CallbackContext,
     first_name: str,
 ) -> None:
     coords, link = await get_coords_and_link()
@@ -101,12 +102,12 @@ async def _send_alert_message(
 async def evaluate_sugar(
     user_id: int,
     sugar: float,
-    job_queue=None,
+    job_queue: JobQueue | None = None,
     *,
-    context: ContextTypes.DEFAULT_TYPE | None = None,
+    context: CallbackContext | None = None,
     first_name: str = "",
 ) -> None:
-    def db_eval(session):
+    def db_eval(session: Session):
         profile = session.get(Profile, user_id)
         if not profile:
             return False, None
@@ -174,7 +175,7 @@ async def evaluate_sugar(
         )
 
 
-async def check_alert(update, context: ContextTypes.DEFAULT_TYPE, sugar: float) -> None:
+async def check_alert(update: Update, context: CallbackContext, sugar: float) -> None:
     """Wrapper to evaluate sugar using :func:`evaluate_sugar`."""
     job_queue = getattr(context, "job_queue", None)
     if job_queue is None:
@@ -188,7 +189,7 @@ async def check_alert(update, context: ContextTypes.DEFAULT_TYPE, sugar: float) 
     )
 
 
-async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+async def alert_job(context: CallbackContext) -> None:
     data = context.job.data
     user_id = data["user_id"]
     count = data.get("count", 1)
@@ -227,7 +228,7 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-async def alert_stats(update, context) -> None:
+async def alert_stats(update: Update, context: CallbackContext) -> None:
     """Отправить статистику предупреждений за последние 7 дней."""
     user_id = update.effective_user.id
     now = datetime.datetime.now(tz=datetime.timezone.utc)

@@ -1,4 +1,8 @@
 import logging
+from typing import Any
+
+from sqlalchemy.orm import Session
+
 from services.api.app.config import settings
 from services.api.app.diabetes.services.db import Profile, SessionLocal, User
 from services.api.app.diabetes.services.repository import commit
@@ -6,7 +10,7 @@ from services.api.app.diabetes.services.repository import commit
 logger = logging.getLogger(__name__)
 
 
-def get_api():
+def get_api() -> tuple[Any | None, type[Exception] | None, type[Any] | None]:
     """Return API client, its exception type and profile model.
 
     Separate function to make API access testable without importing SDK in UI
@@ -27,7 +31,15 @@ def get_api():
     return api, ApiException, ProfileModel
 
 
-def save_profile(session, user_id: int, icr: float, cf: float, target: float, low: float, high: float) -> bool:
+def save_profile(
+    session: Session,
+    user_id: int,
+    icr: float,
+    cf: float,
+    target: float,
+    low: float,
+    high: float,
+) -> bool:
     """Persist profile values into the local database."""
     prof = session.get(Profile, user_id)
     if not prof:
@@ -41,7 +53,7 @@ def save_profile(session, user_id: int, icr: float, cf: float, target: float, lo
     return commit(session)
 
 
-def set_timezone(session, user_id: int, tz: str) -> tuple[bool, bool]:
+def set_timezone(session: Session, user_id: int, tz: str) -> tuple[bool, bool]:
     """Update user timezone in the database."""
     user = session.get(User, user_id)
     if not user:
@@ -51,7 +63,7 @@ def set_timezone(session, user_id: int, tz: str) -> tuple[bool, bool]:
     return True, ok
 
 
-def fetch_profile(api, ApiException, user_id: int):
+def fetch_profile(api: Any, ApiException: type[Exception], user_id: int) -> Any | None:
     """Fetch profile via synchronous SDK call."""
     try:
         return api.profiles_get(telegram_id=user_id)
@@ -60,9 +72,9 @@ def fetch_profile(api, ApiException, user_id: int):
 
 
 def post_profile(
-    api,
-    ApiException,
-    ProfileModel,
+    api: Any,
+    ApiException: type[Exception],
+    ProfileModel: type[Any],
     user_id: int,
     icr: float,
     cf: float,

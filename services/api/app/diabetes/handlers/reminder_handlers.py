@@ -15,6 +15,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppI
 from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
+    JobQueue,
     MessageHandler,
     filters,
 )
@@ -127,7 +128,8 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
 
 
 def _render_reminders(
-    session, user_id: int
+    session: Session,
+    user_id: int,
 ) -> tuple[str, InlineKeyboardMarkup | None]:
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
     user = session.query(User).filter_by(telegram_id=user_id).first()
@@ -206,7 +208,7 @@ def _render_reminders(
     return text, InlineKeyboardMarkup(buttons)
 
 
-def schedule_reminder(rem: Reminder, job_queue) -> None:
+def schedule_reminder(rem: Reminder, job_queue: JobQueue) -> None:
     name = f"reminder_{rem.id}"
     for job in job_queue.get_jobs_by_name(name):
         job.schedule_removal()
@@ -282,7 +284,7 @@ def schedule_reminder(rem: Reminder, job_queue) -> None:
     )
 
 
-def schedule_all(job_queue) -> None:
+def schedule_all(job_queue: JobQueue) -> None:
     if job_queue is None:
         logger.warning("schedule_all called without job_queue")
         return
@@ -356,7 +358,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text("Неизвестный тип напоминания.")
         return
 
-    def db_add(session):
+    def db_add(session: Session):
         count = session.query(Reminder).filter_by(telegram_id=user_id).count()
         user = session.get(User, user_id)
         limit = _limit_for(user)
@@ -434,7 +436,7 @@ async def reminder_webapp_save(
             )
             return
         minutes = None
-    def db_save(session):
+    def db_save(session: Session):
         if rid:
             rem = session.get(Reminder, int(rid))
             if not rem or rem.telegram_id != user_id:
@@ -625,7 +627,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
     user_id = update.effective_user.id
 
-    def db_action(session):
+    def db_action(session: Session):
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != user_id:
             return "not_found", None
@@ -682,7 +684,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 
-def schedule_after_meal(user_id: int, job_queue) -> None:
+def schedule_after_meal(user_id: int, job_queue: JobQueue) -> None:
     with SessionLocal() as session:
         rems = (
             session.query(Reminder)
