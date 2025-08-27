@@ -13,14 +13,14 @@ from services.api.app.diabetes.services import db
 from typing import Any
 
 
-def setup_db(monkeypatch: Any) -> None:
+def setup_db(monkeypatch: Any) -> sessionmaker[Any]:
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     Session = sessionmaker(bind=engine)
     db.Base.metadata.create_all(bind=engine)
 
-    async def run_db_wrapper(fn: Any, *args: Any, **kwargs: Any) -> None:
+    async def run_db_wrapper(fn: Any, *args: Any, **kwargs: Any) -> Any:
         return await db.run_db(fn, *args, sessionmaker=Session, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)

@@ -5,12 +5,12 @@ from fastapi.testclient import TestClient
 from services.api.app.middleware.auth import AuthMiddleware
 
 
-def create_app() -> None:
+def create_app() -> FastAPI:
     app = FastAPI()
     app.add_middleware(AuthMiddleware)
 
     @app.get("/whoami")
-    async def whoami(request: Request) -> None:
+    async def whoami(request: Request) -> dict[str, int]:
         return {"user_id": request.state.user_id}
 
     return app

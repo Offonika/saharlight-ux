@@ -12,14 +12,14 @@ from services.api.app.diabetes.services import db
 from typing import Any
 
 
-def setup_db(monkeypatch: Any) -> None:
+def setup_db(monkeypatch: Any) -> sessionmaker[Any]:
     engine = create_engine(
         "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
     Session = sessionmaker(bind=engine)
     db.Base.metadata.create_all(bind=engine)
 
-    async def run_db_wrapper(fn: Any, *args: Any, **kwargs: Any) -> None:
+    async def run_db_wrapper(fn: Any, *args: Any, **kwargs: Any) -> Any:
         return await db.run_db(fn, *args, sessionmaker=Session, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
@@ -65,7 +65,7 @@ async def test_history_concurrent_writes(monkeypatch: Any) -> None:
         for i in range(5)
     ]
 
-    async def post_record(rec: dict) -> None:
+    async def post_record(rec: dict[str, Any]) -> None:
         async with AsyncClient(app=server.app, base_url="http://test") as ac:
             resp = await ac.post("/api/history", json=rec)
             assert resp.status_code == 200

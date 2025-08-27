@@ -65,7 +65,7 @@ session = DummySession()
 async def test_photo_flow_saves_entry(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Any
 ) -> None:
-    async def fake_parse_command(text: str) -> None:
+    async def fake_parse_command(text: str) -> dict[str, Any]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
     monkeypatch.setattr(dose_handlers, "parse_command", fake_parse_command)
@@ -84,7 +84,7 @@ async def test_photo_flow_saves_entry(
 
     monkeypatch.chdir(tmp_path)
 
-    async def fake_get_file(file_id: str) -> None:
+    async def fake_get_file(file_id: str) -> Any:
         class File:
             async def download_to_drive(self, path: str) -> None:
                 Path(path).write_bytes(b"img")
@@ -98,7 +98,7 @@ async def test_photo_flow_saves_entry(
         thread_id = "tid"
         id = "runid"
 
-    async def fake_send_message(**kwargs: Any) -> None:
+    async def fake_send_message(**kwargs: Any) -> Run:
         return Run()
 
     class DummyClient:

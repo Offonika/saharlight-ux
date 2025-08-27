@@ -32,7 +32,7 @@ class DummyMessage:
 
 
 @pytest.fixture
-def test_session(monkeypatch: Any) -> None:
+def test_session(monkeypatch: Any) -> sessionmaker[Any]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -85,7 +85,7 @@ async def test_alert_notifies_user_and_contact(test_session: Any, monkeypatch: A
     context: AlertContext = ContextStub(bot=cast(Bot, SimpleNamespace()))
     send_mock = AsyncMock()
     monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
-    async def fake_get_coords_and_link() -> None:
+    async def fake_get_coords_and_link() -> tuple[str, str]:
         return ("0,0", "link")
 
     monkeypatch.setattr(alert_handlers, "get_coords_and_link", fake_get_coords_and_link)
@@ -124,7 +124,7 @@ async def test_alert_skips_phone_contact(test_session: Any, monkeypatch: Any) ->
     send_mock = AsyncMock()
     monkeypatch.setattr(context.bot, "send_message", send_mock, raising=False)
 
-    async def fake_get_coords_and_link() -> None:
+    async def fake_get_coords_and_link() -> tuple[str, str]:
         return ("0,0", "link")
 
     monkeypatch.setattr(alert_handlers, "get_coords_and_link", fake_get_coords_and_link)

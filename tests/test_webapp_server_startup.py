@@ -12,7 +12,7 @@ def test_app_import_without_ui(monkeypatch: pytest.MonkeyPatch) -> None:
     ui_dir = ui_dist.parent
     original_exists = Path.exists
 
-    def fake_exists(self: Path) -> None:  # noqa: ANN001
+    def fake_exists(self: Path) -> bool:  # noqa: ANN001
         if self == ui_dist:
             return False
         if self == ui_dir:

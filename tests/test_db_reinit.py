@@ -1,11 +1,12 @@
 import importlib
 import sys
-
-import pytest
+from types import ModuleType
 from typing import Any
 
+import pytest
 
-def _reload(module: str) -> None:
+
+def _reload(module: str) -> ModuleType:
     if module in sys.modules:
         del sys.modules[module]
     return importlib.import_module(module)
@@ -35,7 +36,7 @@ def test_init_db_recreates_engine_on_url_change(monkeypatch: Any, attr: Any, ori
 
     created = []
 
-    def fake_create_engine(url: Any) -> None:
+    def fake_create_engine(url: Any) -> DummyEngine:
         engine = DummyEngine(url)
         created.append(engine)
         return engine
