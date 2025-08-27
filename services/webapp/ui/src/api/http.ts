@@ -1,4 +1,4 @@
-import { getTelegramAuthHeaders } from '../../../../src/lib/telegram-auth';
+import { getTelegramAuthHeaders } from '../../../../../src/lib/telegram-auth';
 
 const API_BASE = '/api';
 
