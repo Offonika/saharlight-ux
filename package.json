@@ -8,7 +8,10 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate:py-sdk": "npx @openapitools/openapi-generator-cli generate -i libs/contracts/openapi.yaml -g python -o libs/py-sdk",
+    "generate:ts-sdk": "npx @openapitools/openapi-generator-cli generate -i libs/contracts/openapi.yaml -g typescript-fetch -o libs/ts-sdk && bash scripts/fix-sdk-runtime.sh",
+    "generate:sdk": "npm run generate:py-sdk && npm run generate:ts-sdk"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
