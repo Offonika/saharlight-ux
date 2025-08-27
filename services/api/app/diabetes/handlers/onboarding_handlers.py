@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any, cast
 
 from telegram import (
     InlineKeyboardButton,
@@ -26,6 +27,7 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     ConversationHandler,
+    JobQueue,
     MessageHandler,
     filters,
 )
@@ -358,20 +360,19 @@ async def onboarding_reminders(
                 )
                 return ConversationHandler.END
 
-    if getattr(context, "job_queue", None):
+    if not hasattr(context, "job_queue") or context.job_queue is None:
+        logger.warning("Job queue not available, skipping reminder scheduling")
+    else:
+        job_queue = cast(JobQueue[Any], context.job_queue)
         if enable:
             from . import reminder_handlers
 
             for rem in reminders:
-                reminder_handlers.schedule_reminder(rem, context.job_queue)
+                reminder_handlers.schedule_reminder(rem, job_queue)
         else:
             for rem in reminders:
-                for job in context.job_queue.get_jobs_by_name(
-                    f"reminder_{rem.id}"
-                ):
+                for job in job_queue.get_jobs_by_name(f"reminder_{rem.id}"):
                     job.schedule_removal()
-    else:
-        logger.warning("Job queue not available, skipping reminder scheduling")
 
     logger.info("User %s reminder choice: %s", user_id, enable)
 
