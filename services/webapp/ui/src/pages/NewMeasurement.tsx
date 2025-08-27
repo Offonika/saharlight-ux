@@ -2,44 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import MedicalButton from '@/components/MedicalButton';
-import { useToast } from '@/hooks/use-toast';
-import { updateRecord, HistoryRecord } from '@/api/history';
 
 const NewMeasurement = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [sugar, setSugar] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const sugarValue = Number(sugar);
-    if (isNaN(sugarValue) || sugarValue < 0 || sugarValue > 50) {
-      toast({
-        title: 'Ошибка',
-        description: 'Уровень сахара должен быть от 0 до 50 ммоль/л',
-        variant: 'destructive',
-      });
-      return;
-    }
-    const now = new Date();
-    const record: HistoryRecord = {
-      id: Date.now().toString(),
-      date: new Date(now.toISOString().split('T')[0]),
-      time: now.toTimeString().slice(0, 5),
-      sugar: sugarValue,
-      type: 'measurement',
-    };
-    try {
-      await updateRecord(record);
-      navigate('/history');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Неизвестная ошибка';
-      toast({
-        title: 'Ошибка',
-        description: message,
-        variant: 'destructive',
-      });
-    }
+    navigate('/history');
   };
 
   return (
@@ -50,28 +20,40 @@ const NewMeasurement = () => {
         onBack={() => navigate(-1)}
       />
       <main className="container mx-auto px-4 py-6">
-        <form onSubmit={handleSubmit} className="medical-card p-4 flex flex-col gap-4">
-          <label className="text-sm font-medium">
-            Уровень сахара
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="50"
-              className="medical-input mt-2"
-              value={sugar}
-              onChange={(e) => setSugar(e.target.value)}
-              placeholder="ммоль/л"
-            />
-          </label>
+        <form onSubmit={handleSubmit} className="medical-card bg-gradient-warning/5 border-medical-error/20 animate-slide-up">
+          <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Уровень сахара в крови
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                step="0.1"
+                className="medical-input pr-20"
+                value={sugar}
+                onChange={(e) => setSugar(e.target.value)}
+                placeholder="Введите показания глюкометра"
+              />
+              <span className="absolute right-3 top-3 text-muted-foreground text-sm">
+                ммоль/л
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Нормальные значения: 4.0 - 7.0 ммоль/л
+            </p>
+          </div>
+          
           <MedicalButton
             type="submit"
             className="w-full"
+            variant="warning"
             disabled={!sugar}
             size="lg"
           >
-            Сохранить
+            Сохранить измерение
           </MedicalButton>
+        </div>
         </form>
       </main>
     </div>

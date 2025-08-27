@@ -1,41 +1,13 @@
-import type { LucideIcon } from 'lucide-react';
 import { Clock, User, BookOpen, Star } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
+import { useTelegram } from '@/hooks/useTelegram';
 import MedicalButton from '@/components/MedicalButton';
-import { useTelegramContext } from '@/contexts/telegram-context';
+import { StatCard } from '@/components/StatCard';
 import { fetchDayStats, fallbackDayStats } from '@/api/stats';
 
-const COLOR_MAP = {
-  'medical-blue': {
-    bg: 'bg-medical-blue/10',
-    text: 'text-medical-blue',
-  },
-  'medical-teal': {
-    bg: 'bg-medical-teal/10',
-    text: 'text-medical-teal',
-  },
-  'medical-success': {
-    bg: 'bg-medical-success/10',
-    text: 'text-medical-success',
-  },
-  'medical-warning': {
-    bg: 'bg-medical-warning/10',
-    text: 'text-medical-warning',
-  },
-} as const;
-
-interface MenuItem {
-  id: string;
-  title: string;
-  icon: LucideIcon;
-  description: string;
-  route: string;
-  color: keyof typeof COLOR_MAP;
-}
-
-const menuItems: MenuItem[] = [
+const menuItems = [
   {
     id: 'reminders',
     title: 'Напоминания',
@@ -70,9 +42,9 @@ const menuItems: MenuItem[] = [
   }
 ];
 
-const Home = (): JSX.Element => {
+const Home = () => {
   const navigate = useNavigate();
-  const { user } = useTelegramContext();
+  const { user } = useTelegram();
 
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['day-stats', user?.id],
@@ -82,6 +54,10 @@ const Home = (): JSX.Element => {
   });
 
   const dayStats = stats ?? fallbackDayStats;
+
+  const handleTileClick = (route: string) => {
+    navigate(route);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
@@ -102,22 +78,29 @@ const Home = (): JSX.Element => {
         <div className="grid grid-cols-2 gap-4 mb-8">
           {menuItems.map((item, index) => {
             const Icon = item.icon;
-            const { bg, text } = COLOR_MAP[item.color];
             return (
-              <Link
+              <div
                 key={item.id}
-                to={item.route}
                 className="medical-tile"
                 style={{ animationDelay: `${index * 100}ms` }}
+                onClick={() => handleTileClick(item.route)}
               >
-                <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${bg}`}
-                >
-                  <Icon className={`w-6 h-6 ${text}`} />
-                </div>
-                <h3 className="font-semibold text-foreground mb-1">{item.title}</h3>
-                <p className="text-sm text-muted-foreground">{item.description}</p>
-              </Link>
+               <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all duration-300 ${
+                 item.color === 'medical-blue' ? 'bg-medical-blue/10 shadow-glow' :
+                 item.color === 'medical-teal' ? 'bg-medical-teal/10' :
+                 item.color === 'medical-success' ? 'bg-medical-success/10' :
+                 'bg-medical-warning/10'
+               }`}>
+                 <Icon className={`w-6 h-6 ${
+                   item.color === 'medical-blue' ? 'text-medical-blue' :
+                   item.color === 'medical-teal' ? 'text-medical-teal' :
+                   item.color === 'medical-success' ? 'text-medical-success' :
+                   'text-medical-warning'
+                 }`} />
+                 </div>
+                 <h3 className="font-semibold text-foreground mb-1">{item.title}</h3>
+                 <p className="text-sm text-muted-foreground">{item.description}</p>
+              </div>
             );
           })}
         </div>
@@ -155,18 +138,24 @@ const Home = (): JSX.Element => {
           </p>
         )}
         <div className="mt-6 grid grid-cols-3 gap-3">
-          <div className="medical-card text-center py-4">
-            <div className="text-2xl font-bold text-medical-blue">{dayStats.sugar}</div>
-            <div className="text-xs text-muted-foreground">ммоль/л</div>
-          </div>
-          <div className="medical-card text-center py-4">
-            <div className="text-2xl font-bold text-medical-teal">{dayStats.breadUnits}</div>
-            <div className="text-xs text-muted-foreground">ХЕ</div>
-          </div>
-          <div className="medical-card text-center py-4">
-            <div className="text-2xl font-bold text-medical-success">{dayStats.insulin}</div>
-            <div className="text-xs text-muted-foreground">ед.</div>
-          </div>
+          <StatCard 
+            value={dayStats.sugar} 
+            unit="ммоль/л" 
+            label="Сахар"
+            variant="sugar"
+          />
+          <StatCard 
+            value={dayStats.breadUnits} 
+            unit="ХЕ" 
+            label="Хлебные единицы"
+            variant="bread"
+          />
+          <StatCard 
+            value={dayStats.insulin} 
+            unit="ед." 
+            label="Инсулин"
+            variant="insulin"
+          />
         </div>
       </main>
     </div>

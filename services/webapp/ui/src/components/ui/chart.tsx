@@ -6,50 +6,6 @@ import { cn } from "@/lib/utils"
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
 
-const COLOR_REGEX = /^[-#a-zA-Z0-9(),.%\s]+$/
-
-function sanitizeColor(color?: string): string | null {
-  if (!color) {
-    return null
-  }
-  const value = color.trim()
-
-  if (!COLOR_REGEX.test(value)) {
-    return null
-  }
-
-  if (value.includes("var(")) {
-    return value
-  }
-
-  const option = new Option()
-  option.style.color = value
-  return option.style.color || null
-}
-
-function buildStyleContent(id: string, config: ChartConfig): string {
-  const colorConfig = Object.entries(config).filter(
-    ([_, item]) => item.theme || item.color
-  )
-
-  return Object.entries(THEMES)
-    .map(([theme, prefix]) => {
-      const vars = colorConfig
-        .map(([key, itemConfig]) => {
-          const rawColor =
-            itemConfig.theme?.[theme as keyof typeof THEMES] ||
-            itemConfig.color
-          const color = sanitizeColor(rawColor)
-          return color ? `  --color-${key}: ${color};` : null
-        })
-        .filter(Boolean)
-        .join("\n")
-      return vars ? `${prefix} [data-chart=${id}] {\n${vars}\n}` : null
-    })
-    .filter(Boolean)
-    .join("\n")
-}
-
 export type ChartConfig = {
   [k in string]: {
     label?: React.ReactNode
@@ -110,22 +66,36 @@ const ChartContainer = React.forwardRef<
 ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  React.useEffect(() => {
-    const styleContent = buildStyleContent(id, config)
-    if (!styleContent) {
-      return
-    }
+  const colorConfig = Object.entries(config).filter(
+    ([_, config]) => config.theme || config.color
+  )
 
-    const style = document.createElement("style")
-    style.setAttribute("data-chart-style", id)
-    style.textContent = styleContent
-    document.head.appendChild(style)
-    return () => {
-      style.remove()
-    }
-  }, [id, config])
+  if (!colorConfig.length) {
+    return null
+  }
 
-  return null
+  return (
+    <style
+      dangerouslySetInnerHTML={{
+        __html: Object.entries(THEMES)
+          .map(
+            ([theme, prefix]) => `
+${prefix} [data-chart=${id}] {
+${colorConfig
+  .map(([key, itemConfig]) => {
+    const color =
+      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+      itemConfig.color
+    return color ? `  --color-${key}: ${color};` : null
+  })
+  .join("\n")}
+}
+`
+          )
+          .join("\n"),
+      }}
+    />
+  )
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip
