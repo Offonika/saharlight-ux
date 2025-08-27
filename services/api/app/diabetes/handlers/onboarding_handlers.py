@@ -15,15 +15,12 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, cast
-
-from typing import Any, cast
+from typing import Any, Awaitable, Callable, cast
 
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Update,
-    Message,
 )
 from telegram.ext import (
     CommandHandler,
@@ -42,7 +39,6 @@ from services.api.app.diabetes.services.repository import commit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from openai import OpenAIError
-from typing import Any
 
 
 logger = logging.getLogger(__name__)
@@ -63,10 +59,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     already completed onboarding simply shows the greeting and menu.
     """
 
-    message: Message = update.message
+    message = update.message
     user = update.effective_user
     if message is None or user is None:
-        return
+        return ConversationHandler.END
     user_id = user.id
     first_name = user.first_name or ""
 
@@ -120,10 +116,10 @@ def _skip_markup() -> InlineKeyboardMarkup:
 
 async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
-    context.user_data: dict[str, Any] = context.user_data or {}
-    message: Message = update.message
+    context.user_data = cast(dict[str, Any], context.user_data or {})
+    message = update.message
     if message is None:
-        return
+        return ONB_PROFILE_ICR
     try:
         icr = float(message.text.replace(",", "."))
     except ValueError:
@@ -146,10 +142,10 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
-    context.user_data: dict[str, Any] = context.user_data or {}
-    message: Message = update.message
+    context.user_data = cast(dict[str, Any], context.user_data or {})
+    message = update.message
     if message is None:
-        return
+        return ONB_PROFILE_CF
     try:
         cf = float(message.text.replace(",", "."))
     except ValueError:
@@ -172,11 +168,13 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input and proceed to demo."""
-    context.user_data: dict[str, Any] = context.user_data or {}
-    message: Message = update.message
+    context.user_data = cast(dict[str, Any], context.user_data or {})
+    message = update.message
+    if message is None:
+        return ONB_PROFILE_TARGET
     user = update.effective_user
-    if message is None or user is None:
-        return
+    if user is None:
+        return ConversationHandler.END
     try:
         target = float(message.text.replace(",", "."))
     except ValueError:
@@ -225,10 +223,12 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle user timezone (text or WebApp) and proceed to demo."""
-    message: Message = update.message
+    message = update.message
+    if message is None:
+        return ONB_PROFILE_TZ
     user = update.effective_user
-    if message is None or user is None:
-        return
+    if user is None:
+        return ConversationHandler.END
     if getattr(message, "web_app_data", None):
         tz_name = message.web_app_data.data
     else:
@@ -299,7 +299,7 @@ async def onboarding_demo_next(
     """Proceed from demo to reminder suggestion."""
     query = update.callback_query
     if query is None:
-        return
+        return ConversationHandler.END
     await query.answer()
     await query.message.delete()
 
@@ -325,7 +325,7 @@ async def onboarding_reminders(
     query = update.callback_query
     user = update.effective_user
     if query is None or user is None:
-        return
+        return ConversationHandler.END
     await query.answer()
     enable = query.data == "onb_rem_yes"
     user_id = user.id
@@ -401,7 +401,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     query = update.callback_query
     user = update.effective_user
     if query is None or user is None:
-        return
+        return ConversationHandler.END
     await query.answer()
 
     user_id = user.id
@@ -446,8 +446,6 @@ async def onboarding_poll_answer(update: Update, context: ContextTypes.DEFAULT_T
 
 
 async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    from typing import Awaitable, Callable, cast
-
     from .dose_handlers import _cancel_then, photo_prompt
 
     if update.message is None:
