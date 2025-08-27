@@ -83,7 +83,7 @@ paths:
       tags:
       - Reminders
       summary: Reminders Get
-      operationId: reminders_get
+      operationId: remindersGet
       parameters:
       - name: telegramId
         in: query
@@ -116,7 +116,7 @@ paths:
       tags:
       - Reminders
       summary: Reminders Post
-      operationId: reminders_post
+      operationId: remindersPost
       requestBody:
         required: true
         content:
@@ -143,7 +143,7 @@ paths:
       tags:
       - Reminders
       summary: Reminders Patch
-      operationId: reminders_patch
+      operationId: remindersPatch
       requestBody:
         required: true
         content:
@@ -170,7 +170,7 @@ paths:
       tags:
       - Reminders
       summary: Reminders Delete
-      operationId: reminders_delete
+      operationId: remindersDelete
       parameters:
       - name: telegramId
         in: query
@@ -206,7 +206,7 @@ paths:
       tags:
       - Reminders
       summary: Reminders Id Get
-      operationId: reminders_id_get
+      operationId: remindersIdGet
       parameters:
       - name: id
         in: path

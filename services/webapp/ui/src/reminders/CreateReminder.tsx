@@ -3,8 +3,9 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
 import { MedicalHeader } from "@/components/MedicalHeader";
 import { cn } from "@/lib/utils";
-import { createReminder, updateReminder, getReminder } from "@/api/reminders";
-import { Reminder as ApiReminder } from "@sdk";
+import { createReminder, updateReminder } from "@/api/reminders";
+import { ReminderSchema as ApiReminder } from "@sdk";
+import { useRemindersApi } from "@/features/reminders/api/reminders";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast as useShadcnToast } from "@/hooks/use-toast";
 import { validate, hasErrors, FormErrors } from "@/features/reminders/logic/validate";
@@ -62,6 +63,7 @@ export default function CreateReminder() {
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
   );
+  const remindersApi = useRemindersApi();
 
   const [type, setType] = useState<NormalizedReminderType>(
     editing?.type ?? "sugar",
@@ -82,7 +84,7 @@ export default function CreateReminder() {
     if (!editing && params.id && user?.id) {
       (async () => {
         try {
-          const data = await getReminder(user.id, Number(params.id));
+          const data = await remindersApi.remindersIdGet({ telegramId: user.id, id: Number(params.id) });
           if (data) {
             const nt = normalizeType(data.type as ReminderType);
             const loaded: Reminder = {

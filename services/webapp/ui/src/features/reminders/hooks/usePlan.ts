@@ -1,5 +1,5 @@
-import { Configuration } from "@sdk/runtime";
-import { DefaultApi } from "@sdk/apis";
+import { Configuration } from '@sdk/runtime.ts';
+import { RemindersApi } from "@sdk/apis";
 
 export async function getPlanLimit(userId: number, initData: string): Promise<number> {
   try {
@@ -7,7 +7,7 @@ export async function getPlanLimit(userId: number, initData: string): Promise<nu
       basePath: "",
       headers: { "X-Telegram-Init-Data": initData }
     });
-    const api = new DefaultApi(cfg);
+    const api = new RemindersApi(cfg);
     const res = await api.remindersGetRaw({ telegramId: userId });
     const limitHeader =
       res.raw.headers.get("X-Plan-Limit") ?? res.raw.headers.get("x-plan-limit");

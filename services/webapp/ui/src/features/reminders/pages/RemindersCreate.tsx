@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useRemindersApi } from "../api/reminders"; // ваш хук, возвращающий DefaultApi
+import { useRemindersApi } from "../api/reminders"; // ваш хук, возвращающий RemindersApi
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
 import { DaysPresets } from "../components/DaysPresets";
 import { buildReminderPayload, ReminderFormValues, ScheduleKind, ReminderType } from "../api/buildPayload";

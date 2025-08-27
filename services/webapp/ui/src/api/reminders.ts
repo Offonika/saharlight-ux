@@ -1,5 +1,5 @@
 
-import { Reminder } from '@sdk';
+import { ReminderSchema as Reminder } from '@sdk';
 import { http } from './http';
 import { mockApi } from './mock-server';
 
@@ -28,10 +28,10 @@ export async function getReminder(
       console.log('[API] Using mock server for getReminder');
       return await mockApi.getReminder(telegramId, id);
     }
-    const data = await http.get<Reminder | Reminder[]>(
-      `/reminders?telegramId=${telegramId}&id=${id}`,
+    const data = await http.get<Reminder>(
+      `/reminders/${id}?telegramId=${telegramId}`,
     );
-    return Array.isArray(data) ? data[0] ?? null : data ?? null;
+    return data ?? null;
   } catch (error) {
     console.error('Failed to fetch reminder:', error);
     throw new Error('Не удалось загрузить напоминание');

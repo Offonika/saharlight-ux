@@ -1,4 +1,3 @@
-
 {
   "name": "saharlight-monorepo",
   "private": true,
@@ -7,15 +6,19 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev":       "pnpm --filter ./services/webapp/ui dev",
-    "build":     "pnpm --filter ./services/webapp/ui build",
-    "preview":   "pnpm --filter ./services/webapp/ui preview",
-    "generate:sdk": "bash scripts/gen_ts_sdk.sh"
+    "dev": "pnpm --filter ./services/webapp/ui dev",
+    "build": "pnpm --filter ./services/webapp/ui build",
+    "preview": "pnpm --filter ./services/webapp/ui preview",
+    "generate:sdk": "bash scripts/gen_ts_sdk.sh",
+    "openapi:gen": "bash scripts/gen_ts_sdk.sh"
   },
   "pnpm": {
     "overrides": {
       "react-dom": "18.3.1",
       "react": "18.3.1"
     }
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.23.1"
   }
 }
