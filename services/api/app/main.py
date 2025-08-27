@@ -57,16 +57,16 @@ async def put_timezone(data: Timezone) -> dict:
     except ZoneInfoNotFoundError as exc:
         raise HTTPException(status_code=400, detail="invalid timezone") from exc
 
-    def _save_timezone(session, tz: str):
+    def _save_timezone(session):
         obj = session.get(TimezoneDB, 1)
         if obj is None:
-            obj = TimezoneDB(id=1, tz=tz)
+            obj = TimezoneDB(id=1, tz=data.tz)
             session.add(obj)
         else:
-            obj.tz = tz
+            obj.tz = data.tz
         session.commit()
 
-    await run_db(_save_timezone, data.tz)
+    await run_db(_save_timezone)
     return {"status": "ok"}
 
 
@@ -87,7 +87,8 @@ async def catch_root_ui() -> FileResponse:
 async def post_history(data: HistoryRecordSchema) -> dict:
     """Save or update a history record in the database."""
 
-    def _save_history(session, record: HistoryRecordSchema) -> None:
+    def _save_history(session) -> None:
+        record = data
         obj = session.get(HistoryRecordDB, record.id)
         if obj:
             obj.date = record.date
@@ -114,7 +115,7 @@ async def post_history(data: HistoryRecordSchema) -> dict:
         session.commit()
 
     try:
-        await run_db(_save_history, data)
+        await run_db(_save_history)
     except Exception as exc:  # pragma: no cover - unexpected errors
         logger.exception("failed to save history")
         raise HTTPException(status_code=500, detail="failed to save history") from exc
