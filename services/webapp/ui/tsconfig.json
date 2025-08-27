@@ -9,7 +9,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@sdk": ["../../../libs/ts-sdk"],
-      "@sdk/*": ["../../../libs/ts-sdk/*"]
+      "@sdk/*": ["../../../libs/ts-sdk/*"],
+      "@sdk/runtime": ["../../../libs/ts-sdk/runtime.ts"]
     },
     "noImplicitAny": true,
     "noUnusedParameters": true,
