@@ -20,7 +20,6 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Update,
-    Message,
 )
 from telegram.ext import (
     CommandHandler,
@@ -58,7 +57,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     already completed onboarding simply shows the greeting and menu.
     """
 
-    message: Message = update.message
+    message = update.message
     user = update.effective_user
     if message is None or user is None:
         return
@@ -115,7 +114,7 @@ def _skip_markup() -> InlineKeyboardMarkup:
 
 async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
-    message: Message = update.message
+    message = update.message
     if message is None:
         return
     try:
@@ -140,7 +139,7 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
-    message: Message = update.message
+    message = update.message
     if message is None:
         return
     try:
@@ -165,7 +164,7 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input and proceed to demo."""
-    message: Message = update.message
+    message = update.message
     user = update.effective_user
     if message is None or user is None:
         return
@@ -217,7 +216,7 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle user timezone (text or WebApp) and proceed to demo."""
-    message: Message = update.message
+    message = update.message
     user = update.effective_user
     if message is None or user is None:
         return
@@ -293,7 +292,10 @@ async def onboarding_demo_next(
     if query is None:
         return
     await query.answer()
-    await query.message.delete()
+    message = query.message
+    if message is None:
+        return
+    await message.delete()
 
     keyboard = InlineKeyboardMarkup(
         [
@@ -303,7 +305,7 @@ async def onboarding_demo_next(
             ]
         ]
     )
-    await query.message.reply_text(
+    await message.reply_text(
         "3/3. Включить напоминания о замерах сахара?",
         reply_markup=keyboard,
     )
@@ -319,6 +321,9 @@ async def onboarding_reminders(
     if query is None or user is None:
         return
     await query.answer()
+    message = query.message
+    if message is None:
+        return
     enable = query.data == "onb_rem_yes"
     user_id = user.id
     reminders: list[Reminder] = []
@@ -353,7 +358,7 @@ async def onboarding_reminders(
                 for rem in reminders:
                     rem.is_enabled = False
             if not commit(session):
-                await query.message.reply_text(
+                await message.reply_text(
                     "⚠️ Не удалось сохранить настройки."
                 )
                 return ConversationHandler.END
@@ -375,15 +380,17 @@ async def onboarding_reminders(
 
     logger.info("User %s reminder choice: %s", user_id, enable)
 
-    poll_msg = await query.message.reply_poll(
+    poll_msg = await message.reply_poll(
         "Как вам онбординг?",
         ["👍", "🙂", "👎"],
         is_anonymous=False,
     )
-    polls = context.bot_data.setdefault("onboarding_polls", {})
-    polls[poll_msg.poll.id] = user_id
+    poll = poll_msg.poll
+    if poll is not None:
+        polls = context.bot_data.setdefault("onboarding_polls", {})
+        polls[poll.id] = user_id
 
-    await query.message.reply_text(
+    await message.reply_text(
         "Готово! Спасибо за настройку.", reply_markup=menu_keyboard
     )
     return ConversationHandler.END
@@ -396,6 +403,9 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if query is None or user is None:
         return
     await query.answer()
+    message = query.message
+    if message is None:
+        return
 
     user_id = user.id
     with SessionLocal() as session:
@@ -403,7 +413,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if user:
             user.onboarding_complete = True
             if not commit(session):
-                await query.message.reply_text(
+                await message.reply_text(
 
                     "⚠️ Не удалось сохранить настройки.",
                     reply_markup=menu_keyboard,
@@ -411,14 +421,16 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 )
                 return ConversationHandler.END
 
-    poll_msg = await query.message.reply_poll(
+    poll_msg = await message.reply_poll(
         "Как вам онбординг?",
         ["👍", "🙂", "👎"],
         is_anonymous=False,
     )
-    context.bot_data.setdefault("onboarding_polls", {})[poll_msg.poll.id] = user_id
+    poll = poll_msg.poll
+    if poll is not None:
+        context.bot_data.setdefault("onboarding_polls", {})[poll.id] = user_id
 
-    await query.message.reply_text(
+    await message.reply_text(
         "Пропущено.", reply_markup=menu_keyboard
     )
     return ConversationHandler.END
