@@ -16,13 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
-
       - name: Fetch main openapi.yaml
         run: |
           git fetch origin main
@@ -30,8 +23,9 @@ jobs:
 
       - name: Run oasdiff breaking change check
         run: |
-          
-          docker run --rm -v "$PWD:/work" tufin/oasdiff:latest \
-
-            breaking /tmp/openapi_main.yaml libs/contracts/openapi.yaml \
+          docker run --rm \
+            -v "$PWD:/work" \
+            -v /tmp:/tmp \
+            tufin/oasdiff:latest \
+            breaking /tmp/openapi_main.yaml /work/libs/contracts/openapi.yaml \
             --fail-on-diff
