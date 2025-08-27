@@ -112,3 +112,17 @@ def test_multipart_invalid_string() -> None:
                 "invalid",
             ),
         )
+
+
+def test_multipart_invalid_bytes() -> None:
+    client = _client()
+    with pytest.raises(ApiValueError):
+        client.request(
+            "POST",
+            "http://example.com",
+            headers={"Content-Type": "multipart/form-data"},
+            post_params=cast(
+                Mapping[str, object] | Iterable[tuple[str, object]] | None,
+                b"invalid",
+            ),
+        )

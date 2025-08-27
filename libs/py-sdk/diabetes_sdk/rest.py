@@ -126,7 +126,10 @@ class RESTClientObject:
 
         :param method: http request method
         :param url: http request url
-        :param headers: http request headers
+        :param headers: http request headers. When ``Content-Type`` is
+                        ``multipart/form-data``, any existing entry is
+                        removed so ``urllib3`` can generate the correct
+                        boundary.
         :param body: request json body, for `application/json`
         :param post_params: request parameters for
                             ``application/x-www-form-urlencoded`` or
