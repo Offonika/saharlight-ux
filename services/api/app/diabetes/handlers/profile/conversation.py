@@ -38,10 +38,8 @@ run_db: Callable[..., Awaitable[object]] | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
+    logger.info("run_db is unavailable; proceeding without async DB runner")
     run_db = None
-except Exception as exc:  # pragma: no cover - log unexpected errors
-    logger.exception("Unexpected error importing run_db", exc_info=exc)
-    raise
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
 
