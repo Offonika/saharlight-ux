@@ -17,8 +17,15 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine import URL
 from sqlalchemy.exc import UnboundExecutionError
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    relationship,
+    sessionmaker,
+)
 import asyncio
+import datetime
 import logging
 import threading
 from typing import Any, Callable, TypeVar
@@ -31,7 +38,10 @@ logger = logging.getLogger(__name__)
 engine = None
 engine_lock = threading.Lock()
 SessionLocal = sessionmaker(autoflush=False, autocommit=False)
-Base = declarative_base()
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 T = TypeVar("T")
@@ -76,13 +86,15 @@ async def run_db(
 class User(Base):
     __tablename__ = "users"
 
-    telegram_id = Column(BigInteger, primary_key=True, index=True)
-    thread_id = Column(String, nullable=False)
-    onboarding_complete = Column(Boolean, default=False)
-    plan = Column(String, default="free")
-    timezone = Column(String, default="UTC")  # IANA timezone identifier
-    org_id = Column(Integer)
-    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
+    thread_id: Mapped[str] = mapped_column(String, nullable=False)
+    onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
+    plan: Mapped[str] = mapped_column(String, default="free")
+    timezone: Mapped[str] = mapped_column(String, default="UTC")
+    org_id: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
 
 
 class Profile(Base):
@@ -141,27 +153,33 @@ class Alert(Base):
 class Reminder(Base):
     __tablename__ = "reminders"
 
-    id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"))
-    org_id = Column(Integer)
-    type = Column(String, nullable=False)
-    time = Column(String)  # HH:MM format for daily reminders
-    interval_hours = Column(Integer)  # for repeating reminders
-    minutes_after = Column(Integer)  # for after-meal reminders
-    is_enabled = Column(Boolean, default=True)
-    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
-    user = relationship("User")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    telegram_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id")
+    )
+    org_id: Mapped[int | None] = mapped_column(Integer)
+    type: Mapped[str] = mapped_column(String, nullable=False)
+    time: Mapped[str | None] = mapped_column(String)
+    interval_hours: Mapped[int | None] = mapped_column(Integer)
+    minutes_after: Mapped[int | None] = mapped_column(Integer)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
+    user: Mapped[User] = relationship("User")
 
 
 class ReminderLog(Base):
     __tablename__ = "reminder_logs"
 
-    id = Column(Integer, primary_key=True, index=True)
-    reminder_id = Column(Integer, ForeignKey("reminders.id"))
-    telegram_id = Column(BigInteger)
-    org_id = Column(Integer)
-    action = Column(String)  # triggered, snoozed, cancelled
-    event_time = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    reminder_id: Mapped[int] = mapped_column(Integer, ForeignKey("reminders.id"))
+    telegram_id: Mapped[int] = mapped_column(BigInteger)
+    org_id: Mapped[int | None] = mapped_column(Integer)
+    action: Mapped[str] = mapped_column(String)
+    event_time: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
 
 
 class Timezone(Base):
