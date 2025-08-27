@@ -1,6 +1,4 @@
 import pytest
-from types import SimpleNamespace
-from typing import Any
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import MagicMock
@@ -11,19 +9,7 @@ from services.api.app.diabetes.utils.ui import menu_keyboard
 
 from services.api.app.diabetes.services.db import Base, User, Profile
 from tests.helpers import make_context, make_update
-
-
-class DummyMessage:
-    def __init__(self):
-        self.texts: list[str] = []
-        self.markups: list[Any] = []
-
-    async def reply_text(self, text: str, **kwargs: Any) -> None:
-        self.texts.append(text)
-        self.markups.append(kwargs.get("reply_markup"))
-
-    async def delete(self) -> None:
-        pass
+from tests.telegram_stubs import Message, User as TgUser
 
 
 @pytest.mark.parametrize(
@@ -54,8 +40,8 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
         session.add(User(telegram_id=123, thread_id="t"))
         session.commit()
 
-    message = DummyMessage()
-    update = make_update(message=message, effective_user=SimpleNamespace(id=123))
+    message = Message()
+    update = make_update(message=message, effective_user=TgUser(id=123))
     context = make_context(args=args, user_data={})
 
     await handlers.profile_command(update, context)
@@ -66,8 +52,8 @@ async def test_profile_command_and_view(monkeypatch, args, expected_icr, expecte
     assert f"• Низкий порог: {expected_low} ммоль/л" in message.texts[0]
     assert f"• Высокий порог: {expected_high} ммоль/л" in message.texts[0]
 
-    message2 = DummyMessage()
-    update2 = make_update(message=message2, effective_user=SimpleNamespace(id=123))
+    message2 = Message()
+    update2 = make_update(message=message2, effective_user=TgUser(id=123))
     context2 = make_context(user_data={})
 
     await handlers.profile_view(update2, context2)
@@ -108,8 +94,8 @@ async def test_profile_command_invalid_values(monkeypatch, args) -> None:
     monkeypatch.setattr(handlers, "commit", commit_mock)
     monkeypatch.setattr(handlers, "SessionLocal", session_local_mock)
 
-    message = DummyMessage()
-    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    message = Message()
+    update = make_update(message=message, effective_user=TgUser(id=1))
     context = make_context(args=args, user_data={})
 
     await handlers.profile_command(update, context)
@@ -129,16 +115,16 @@ async def test_profile_command_help_and_dialog(monkeypatch) -> None:
     from services.api.app.diabetes.handlers import profile as handlers
 
     # Test /profile help
-    help_msg = DummyMessage()
-    update = make_update(message=help_msg, effective_user=SimpleNamespace(id=1))
+    help_msg = Message()
+    update = make_update(message=help_msg, effective_user=TgUser(id=1))
     context = make_context(args=["help"], user_data={})
     result = await handlers.profile_command(update, context)
     assert result == ConversationHandler.END
     assert "Формат команды" in help_msg.texts[0]
 
     # Test starting dialog with empty args
-    dialog_msg = DummyMessage()
-    update2 = make_update(message=dialog_msg, effective_user=SimpleNamespace(id=1))
+    dialog_msg = Message()
+    update2 = make_update(message=dialog_msg, effective_user=TgUser(id=1))
     context2 = make_context(args=[], user_data={})
     result2 = await handlers.profile_command(update2, context2)
     assert result2 == handlers.PROFILE_ICR
@@ -166,8 +152,8 @@ async def test_profile_view_preserves_user_data(monkeypatch) -> None:
         session.add(Profile(telegram_id=1, icr=10, cf=2, target_bg=6))
         session.commit()
 
-    message = DummyMessage()
-    update = make_update(message=message, effective_user=SimpleNamespace(id=1))
+    message = Message()
+    update = make_update(message=message, effective_user=TgUser(id=1))
     context = make_context(user_data={"thread_id": "tid", "foo": "bar"})
 
     await handlers.profile_view(update, context)
@@ -188,8 +174,8 @@ async def test_profile_view_missing_profile_shows_webapp_button(monkeypatch) -> 
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 
-    msg = DummyMessage()
-    update = make_update(message=msg, effective_user=SimpleNamespace(id=1))
+    msg = Message()
+    update = make_update(message=msg, effective_user=TgUser(id=1))
     context = make_context()
 
     await handlers.profile_view(update, context)
