@@ -232,7 +232,7 @@ async def test_onboarding_skip_commit_failure(monkeypatch: pytest.MonkeyPatch) -
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
-    def fail_commit(session: object) -> bool:
+    def fail_commit(session: object) -> None:
         raise onboarding.CommitError
 
     monkeypatch.setattr(onboarding, "commit", fail_commit)

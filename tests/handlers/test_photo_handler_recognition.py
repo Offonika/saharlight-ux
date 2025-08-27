@@ -77,10 +77,9 @@ async def test_photo_handler_recognition_success_db_save(
     session = DummySession()
     commit_called = False
 
-    def fake_commit(sess: Any) -> bool:
+    def fake_commit(sess: Any) -> None:
         nonlocal commit_called
         commit_called = True
-        return True
 
     async def fake_create_thread() -> str:
         return "tid"

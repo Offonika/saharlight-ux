@@ -14,7 +14,7 @@ class DummyError(SQLAlchemyError):
 
 def test_commit_success() -> None:
     session = MagicMock()
-    assert repository.commit(session) is True
+    repository.commit(session)
     session.commit.assert_called_once()
     session.rollback.assert_not_called()
 

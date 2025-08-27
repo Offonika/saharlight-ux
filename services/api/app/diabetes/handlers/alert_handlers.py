@@ -32,7 +32,7 @@ else:
 logger = logging.getLogger(__name__)
 
 SessionLocal: sessionmaker[Session] = _SessionLocal
-commit: Callable[[Session], bool] = _commit
+commit: Callable[[Session], None] = _commit
 
 CustomContext = ContextTypes.DEFAULT_TYPE
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
