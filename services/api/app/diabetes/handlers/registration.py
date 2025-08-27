@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
+
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -15,10 +17,21 @@ from .onboarding_handlers import onboarding_conv, onboarding_poll_answer
 from .common_handlers import menu_command, help_command, smart_input_help
 from .router import callback_router
 
+__all__ = ["register_handlers", "profile_conv", "profile_webapp_handler"]
+
+
+def __getattr__(name: str) -> Any:
+    if name in {"profile_conv", "profile_webapp_handler"}:
+        from . import profile
+
+        return getattr(profile, name)
+    raise AttributeError(name)
+
+
 logger = logging.getLogger(__name__)
 
 
-def register_handlers(app: Application) -> None:
+def register_handlers(app: Application[Any]) -> None:
     """Register bot handlers on the provided ``Application`` instance."""
 
     # Import inside the function to avoid heavy imports at module import time
