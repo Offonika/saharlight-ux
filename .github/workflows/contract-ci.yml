@@ -22,12 +22,15 @@ jobs:
 
       - name: Run oasdiff (breaking check from Docker Hub)
         run: |
-          docker run --rm \
-            -v "$PWD:/work" \
-            -v /tmp:/tmp \
-            tufin/oasdiff:latest \
-            breaking /tmp/openapi_main.yaml /work/libs/contracts/openapi.yaml \
-            --fail-on-diff
+            docker run --rm \
+              -v "$PWD:/work" \
+              -v /tmp:/tmp \
+              --entrypoint oasdiff \
+              tufin/oasdiff:latest \
+              breaking /tmp/openapi_main.yaml /work/libs/contracts/openapi.yaml \
+              --fail-on ERR \
+              --format githubactions
+        
 
       - name: Setup Node
         uses: actions/setup-node@v4
