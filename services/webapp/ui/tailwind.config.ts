@@ -94,10 +94,11 @@ export default {
 				'gradient-button': 'var(--gradient-button)'
 			},
 			boxShadow: {
-				'soft': 'var(--shadow-soft)',
-				'medium': 'var(--shadow-medium)',
-				'strong': 'var(--shadow-strong)'
-			},
+                                'soft': 'var(--shadow-soft)',
+                                'medium': 'var(--shadow-medium)',
+                                'strong': 'var(--shadow-strong)',
+                                'glow': 'var(--shadow-glow)'
+                        },
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
