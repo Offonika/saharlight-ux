@@ -3,3 +3,10 @@ repos:
     rev: v0.6.2
     hooks:
       - id: ruff
+  - repo: local
+    hooks:
+      - id: fix-sdk-runtime
+        name: Fix TS SDK runtime imports
+        entry: bash scripts/fix-sdk-runtime.sh
+        language: system
+        pass_filenames: false
