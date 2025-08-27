@@ -252,6 +252,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.org")
     monkeypatch.setenv("UI_BASE_URL", "/ui")
     import services.api.app.config as config
+
     importlib.reload(config)
     monkeypatch.setattr(handlers, "_limit_for", lambda u: 1)
     # Make _describe deterministic and include status icon to test strikethrough
@@ -266,13 +267,20 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add_all(
             [
                 Reminder(
-                    id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
+                    id=1,
+                    telegram_id=1,
+                    type="sugar",
+                    time=time(8, 0),
+                    is_enabled=True,
+                    kind="at_time",
                 ),
                 Reminder(
                     id=2,
                     telegram_id=1,
                     type="sugar",
                     interval_hours=3,
+                    interval_minutes=180,
+                    kind="every",
                     is_enabled=False,
                 ),
                 Reminder(
@@ -280,6 +288,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
                     telegram_id=1,
                     type="xe_after",
                     minutes_after=15,
+                    kind="after_event",
                     is_enabled=True,
                 ),
             ]
@@ -313,6 +322,7 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
     monkeypatch.delenv("UI_BASE_URL", raising=False)
     import services.api.app.config as config
+
     importlib.reload(config)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
@@ -341,6 +351,7 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
     monkeypatch.delenv("UI_BASE_URL", raising=False)
     import services.api.app.config as config
+
     importlib.reload(config)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
@@ -824,6 +835,7 @@ def test_nonempty_returns_list(
                 title="Sugar check",
                 time=time(8, 0),
                 interval_hours=3,
+                kind="at_time",
             )
         )
         session.commit()
@@ -834,10 +846,13 @@ def test_nonempty_returns_list(
             "telegramId": 1,
             "id": 1,
             "type": "sugar",
+            "kind": "at_time",
             "title": "Sugar check",
             "time": "08:00",
             "intervalHours": 3,
+            "intervalMinutes": None,
             "minutesAfter": None,
+            "daysOfWeek": None,
             "isEnabled": True,
             "orgId": None,
             "lastFiredAt": None,
@@ -859,6 +874,7 @@ def test_get_single_reminder(
                 title="Sugar check",
                 time=time(8, 0),
                 interval_hours=3,
+                kind="at_time",
             )
         )
         session.commit()
@@ -868,10 +884,13 @@ def test_get_single_reminder(
         "telegramId": 1,
         "id": 1,
         "type": "sugar",
+        "kind": "at_time",
         "title": "Sugar check",
         "time": "08:00",
         "intervalHours": 3,
+        "intervalMinutes": None,
         "minutesAfter": None,
+        "daysOfWeek": None,
         "isEnabled": True,
         "orgId": None,
         "lastFiredAt": None,

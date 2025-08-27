@@ -60,11 +60,10 @@ export default function RemindersCreate() {
     setLoading(true);
     try {
       const payload = buildReminderPayload({ ...form, telegramId });
-      console.log("Payload being sent:", payload);
       
       try {
         // Пробуем основной API
-        await api.remindersPost({ reminder: payload });
+        await api.remindersPost({ reminder: payload as any });
       } catch (apiError) {
         console.warn("Backend API failed, using mock API:", apiError);
         // Fallback на mock API

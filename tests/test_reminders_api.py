@@ -66,6 +66,7 @@ def test_nonempty_returns_list(
                 title="Sugar check",
                 time=time(8, 0),
                 interval_hours=3,
+                kind="at_time",
             )
         )
         session.commit()
@@ -76,10 +77,13 @@ def test_nonempty_returns_list(
             "telegramId": 1,
             "id": 1,
             "type": "sugar",
+            "kind": "at_time",
             "title": "Sugar check",
             "time": "08:00",
             "intervalHours": 3,
+            "intervalMinutes": None,
             "minutesAfter": None,
+            "daysOfWeek": None,
             "isEnabled": True,
             "orgId": None,
             "lastFiredAt": None,
@@ -101,6 +105,7 @@ def test_get_single_reminder(
                 title="Sugar check",
                 time=time(8, 0),
                 interval_hours=3,
+                kind="at_time",
             )
         )
         session.commit()
@@ -110,10 +115,13 @@ def test_get_single_reminder(
         "telegramId": 1,
         "id": 1,
         "type": "sugar",
+        "kind": "at_time",
         "title": "Sugar check",
         "time": "08:00",
         "intervalHours": 3,
+        "intervalMinutes": None,
         "minutesAfter": None,
+        "daysOfWeek": None,
         "isEnabled": True,
         "orgId": None,
         "lastFiredAt": None,

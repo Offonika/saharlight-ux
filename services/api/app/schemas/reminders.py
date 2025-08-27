@@ -7,13 +7,26 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class ReminderSchema(BaseModel):
-    telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
+    telegramId: int = Field(
+        alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id")
+    )
     id: Optional[int] = None
     type: str
+    kind: str = Field(default="at_time")
     title: Optional[str] = None
     time: Optional[time_] = None
     intervalHours: Optional[int] = None
+    intervalMinutes: Optional[int] = Field(
+        default=None,
+        alias="intervalMinutes",
+        validation_alias=AliasChoices("intervalMinutes", "interval_minutes"),
+    )
     minutesAfter: Optional[int] = None
+    daysOfWeek: Optional[list[int]] = Field(
+        default=None,
+        alias="daysOfWeek",
+        validation_alias=AliasChoices("daysOfWeek", "days_of_week"),
+    )
     isEnabled: bool = True
     orgId: Optional[int] = None
     lastFiredAt: Optional[datetime_] = Field(

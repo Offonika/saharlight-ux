@@ -43,16 +43,22 @@ const TYPE_LABEL: Record<string, string> = {
   custom: "Другое",
 };
 
+const DAY_LABEL = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+function formatDays(days?: number[] | null) {
+  if (!days || days.length === 0) return "";
+  return days.map(d => DAY_LABEL[d - 1] ?? String(d)).join(", ");
+}
+
 function scheduleLine(r: ReminderDto) {
-  // Приоритет определения расписания:
-  // 1. Если есть time - это напоминание на время
-  if (r.time) return `в ${r.time}`;
-  // 2. Если есть intervalMinutes - это повторяющееся напоминание
-  if (r.intervalMinutes) return `каждые ${r.intervalMinutes} мин`;
-  // 3. Если есть minutesAfter - это напоминание после события
-  if (r.minutesAfter) return `после еды • через ${r.minutesAfter} мин`;
-  // 4. Fallback - показываем тип напоминания
-  return TYPE_LABEL[r.type] || "Напоминание";
+  let base: string;
+  if (r.time) base = `в ${r.time}`; // Напоминание на время
+  else if (r.intervalMinutes) base = `каждые ${r.intervalMinutes} мин`;
+  else if (r.minutesAfter) base = `после еды • через ${r.minutesAfter} мин`;
+  else base = TYPE_LABEL[r.type] || "Напоминание";
+
+  const days = formatDays(r.daysOfWeek);
+  return days ? `${base} • ${days}` : base;
 }
 
 export default function RemindersList({ 

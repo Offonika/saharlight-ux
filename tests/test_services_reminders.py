@@ -55,6 +55,34 @@ async def test_save_reminder_sets_default_title(
 
 
 @pytest.mark.asyncio
+async def test_save_reminder_with_new_fields(
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    with cast(ContextManager[SASession], session_factory()) as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+
+    rem_id = await reminders.save_reminder(
+        ReminderSchema(
+            telegramId=1,
+            type="sugar",
+            kind="every",
+            intervalMinutes=90,
+            daysOfWeek=[1, 3, 5],
+        )
+    )
+    assert rem_id > 0
+
+    reminders_list = await reminders.list_reminders(1)
+    assert len(reminders_list) == 1
+    rem = reminders_list[0]
+    assert rem.kind == "every"
+    assert rem.interval_minutes == 90
+    assert rem.daysOfWeek == [1, 3, 5]
+
+
+@pytest.mark.asyncio
 async def test_save_reminder_preserves_title_on_update(
     monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
 ) -> None:
@@ -155,9 +183,7 @@ async def test_list_reminders_stats(
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         recent = now - timedelta(days=1)
-        session.add(
-            ReminderLog(reminder_id=1, telegram_id=1, event_time=recent)
-        )
+        session.add(ReminderLog(reminder_id=1, telegram_id=1, event_time=recent))
         session.add(
             ReminderLog(
                 reminder_id=1, telegram_id=1, event_time=now - timedelta(days=8)

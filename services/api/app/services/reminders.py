@@ -35,9 +35,11 @@ async def list_reminders(telegram_id: int) -> list[Reminder]:
         if cast(User | None, session.get(User, telegram_id)) is None:
             return []
         reminders_ = session.query(Reminder).filter_by(telegram_id=telegram_id).all()
-        sql = resources.files("services.api.app.diabetes.sql").joinpath(
-            "reminders_stats.sql"
-        ).read_text()
+        sql = (
+            resources.files("services.api.app.diabetes.sql")
+            .joinpath("reminders_stats.sql")
+            .read_text()
+        )
         since = datetime.now(timezone.utc) - timedelta(days=7)
         rows = session.execute(
             text(sql), {"telegram_id": telegram_id, "since": since}
@@ -69,13 +71,17 @@ async def save_reminder(data: ReminderSchema) -> int:
         if data.orgId is not None:
             rem.org_id = data.orgId
         rem.type = data.type
+        rem.kind = data.kind
         if data.title is not None:
             rem.title = data.title
         elif rem.title is None:
             rem.title = _default_title(data.type, data.time or rem.time)
         rem.time = data.time
         rem.interval_hours = data.intervalHours
+        rem.interval_minutes = data.intervalMinutes
+        rem.set_interval_hours_if_needed(data.intervalHours)
         rem.minutes_after = data.minutesAfter
+        rem.daysOfWeek = data.daysOfWeek
         rem.is_enabled = data.isEnabled
         try:
             commit(cast(Session, session))
