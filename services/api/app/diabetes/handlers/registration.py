@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -16,6 +17,16 @@ from .common_handlers import menu_command, help_command, smart_input_help
 from .router import callback_router
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["register_handlers", "profile_conv"]
+
+
+def __getattr__(name: str) -> Any:  # pragma: no cover - lazy attribute loading
+    if name == "profile_conv":
+        from .profile import profile_conv
+
+        return profile_conv
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def register_handlers(app: Application) -> None:
