@@ -147,7 +147,7 @@ class RESTClientObject:
                                  (connection, read) timeouts.
         """
         method = method.upper()
-        if method not in ["GET", "HEAD", "DELETE", "POST", "PUT", "PATCH", "OPTIONS"]:
+        if method not in {"GET", "HEAD", "DELETE", "POST", "PUT", "PATCH", "OPTIONS"}:
             raise ApiValueError(f"{method} is not a supported HTTP method")
 
         if post_params and body:
