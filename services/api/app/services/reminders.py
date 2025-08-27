@@ -75,6 +75,8 @@ async def save_reminder(data: ReminderSchema) -> int:
             rem.title = _default_title(data.type, data.time or rem.time)
         rem.time = data.time
         rem.interval_hours = data.intervalHours
+        rem.interval_minutes = data.intervalMinutes
+        rem.set_interval_hours_if_needed(data.intervalHours)
         rem.minutes_after = data.minutesAfter
         rem.is_enabled = data.isEnabled
         try:

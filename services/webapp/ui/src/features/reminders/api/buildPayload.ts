@@ -47,12 +47,11 @@ export function buildReminderPayload(v: ReminderFormValues) {
     is_enabled: values.isEnabled ?? true,
   };
   
-  // Backend only supports one of: time, interval_hours, minutes_after
+  // Backend only supports one of: time, interval_minutes, minutes_after
   if (values.kind === "at_time" && values.time) {
     return { ...base, time: values.time };
   } else if (values.kind === "every" && values.intervalMinutes) {
-    // Convert minutes to hours for backend
-    return { ...base, interval_hours: Math.round(values.intervalMinutes / 60 * 100) / 100 };
+    return { ...base, interval_minutes: values.intervalMinutes };
   } else if (values.kind === "after_event" && values.minutesAfter) {
     return { ...base, minutes_after: values.minutesAfter };
   }

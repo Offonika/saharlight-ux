@@ -104,6 +104,24 @@ async def test_save_reminder_sets_default_title_on_update_if_missing(
 
 
 @pytest.mark.asyncio
+async def test_save_reminder_interval_minutes(
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    with cast(ContextManager[SASession], session_factory()) as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+
+    rem_id = await reminders.save_reminder(
+        ReminderSchema(telegramId=1, type="sugar", intervalMinutes=90)
+    )
+    with cast(ContextManager[SASession], session_factory()) as session:
+        rem = cast(Reminder | None, session.get(Reminder, rem_id))
+        assert rem is not None
+        assert rem.interval_minutes == 90
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("rem_id, telegram_id", [(999, 1), (1, 2)])
 async def test_save_reminder_not_found_or_wrong_user(
     monkeypatch: pytest.MonkeyPatch,
