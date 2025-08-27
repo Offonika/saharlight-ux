@@ -100,22 +100,22 @@ class User(Base):
 class Profile(Base):
     __tablename__ = "profiles"
 
-    telegram_id = Column(
+    telegram_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey("users.telegram_id"),
         primary_key=True,
     )
-    icr = Column(Float)  # г углеводов на 1 Е инсулина
-    cf = Column(Float)  # коэффициент коррекции
-    target_bg = Column(Float)  # целевой сахар
-    low_threshold = Column(Float)  # нижний порог сахара
-    high_threshold = Column(Float)  # верхний порог сахара
-    sos_contact = Column(String)  # контакт для экстренной связи
-    sos_alerts_enabled = Column(Boolean, default=True)
-    quiet_start = Column(Time)  # начало тихого режима
-    quiet_end = Column(Time)  # конец тихого режима
-    org_id = Column(Integer)
-    user = relationship("User")
+    icr: Mapped[float | None] = mapped_column(Float)  # г углеводов на 1 Е инсулина
+    cf: Mapped[float | None] = mapped_column(Float)  # коэффициент коррекции
+    target_bg: Mapped[float | None] = mapped_column(Float)  # целевой сахар
+    low_threshold: Mapped[float | None] = mapped_column(Float)  # нижний порог сахара
+    high_threshold: Mapped[float | None] = mapped_column(Float)  # верхний порог сахара
+    sos_contact: Mapped[str | None] = mapped_column(String)  # контакт для экстренной связи
+    sos_alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    quiet_start: Mapped[datetime.time | None] = mapped_column(Time)  # начало тихого режима
+    quiet_end: Mapped[datetime.time | None] = mapped_column(Time)  # конец тихого режима
+    org_id: Mapped[int | None] = mapped_column(Integer)
+    user: Mapped[User] = relationship("User")
 
 
 class Entry(Base):
