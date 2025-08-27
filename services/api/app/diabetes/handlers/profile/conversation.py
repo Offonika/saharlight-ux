@@ -221,13 +221,13 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     profile = fetch_profile(api, ApiException, user_id)
 
     if not profile:
-        if config.get_webapp_url():
+        if config.settings.public_origin:
             keyboard = InlineKeyboardMarkup(
                 [
                     [
                         InlineKeyboardButton(
                             "📝 Заполнить форму",
-                            web_app=WebAppInfo(reminder_handlers.build_webapp_url("/profile")),
+                            web_app=WebAppInfo(config.build_ui_url("/profile")),
                         )
                     ]
                 ]
@@ -258,13 +258,13 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🌐 Часовой пояс", callback_data="profile_timezone")],
         [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
     ]
-    if config.get_webapp_url():
+    if config.settings.public_origin:
         rows.insert(
             1,
             [
                 InlineKeyboardButton(
                     "📝 Заполнить форму",
-                    web_app=WebAppInfo(reminder_handlers.build_webapp_url("/profile")),
+                    web_app=WebAppInfo(config.build_ui_url("/profile")),
                 )
             ],
         )
@@ -510,10 +510,10 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await sos_handlers.sos_contact_start(update, context)
         return
-    if action == "add" and config.get_webapp_url():
+    if action == "add" and config.settings.public_origin:
         button = InlineKeyboardButton(
             "📝 Новое",
-            web_app=WebAppInfo(reminder_handlers.build_webapp_url("/reminders")),
+            web_app=WebAppInfo(config.build_ui_url("/reminders")),
         )
         keyboard = InlineKeyboardMarkup([[button]])
         await q_message.reply_text("Создать напоминание:", reply_markup=keyboard)

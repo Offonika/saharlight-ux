@@ -1,4 +1,5 @@
 import json
+import importlib
 from datetime import time, timedelta
 from types import TracebackType
 from typing import Any, cast
@@ -18,11 +19,14 @@ from services.api.app.diabetes.services.db import (
     User as DbUser,
 )
 from services.api.app.diabetes.services.repository import commit
+import services.api.app.config as config
 
 
 @pytest.fixture
 def reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> Any:
-    monkeypatch.setenv("WEBAPP_URL", "https://example.com")
+    monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.com")
+    monkeypatch.setenv("UI_BASE_URL", "/ui")
+    importlib.reload(config)
     import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
 
     return reminder_handlers
@@ -243,32 +247,28 @@ async def test_reminder_webapp_save_snooze(
         assert log.action == "snooze"
         assert log.reminder_id == 1
 
-
 @pytest.mark.parametrize(
-    "base_url, expected",
+    "origin, ui_base, path",
     [
-        ("https://example.com", "https://example.com/reminders/new"),
-        ("https://example.com/", "https://example.com/reminders/new"),
-        ("https://example.com/ui", "https://example.com/ui/reminders/new"),
-        ("https://example.com/ui/", "https://example.com/ui/reminders/new"),
+        ("https://example.com", "/ui", "/reminders/new"),
+        ("https://example.com/", "ui/", "reminders/new"),
     ],
 )
-def test_build_webapp_url(
-    reminder_handlers: Any,
-    monkeypatch: pytest.MonkeyPatch,
-    base_url: str,
-    expected: str,
+def test_build_ui_url(
+    monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str, path: str
 ) -> None:
-    monkeypatch.setenv("WEBAPP_URL", base_url)
-    url = reminder_handlers.build_webapp_url("/reminders/new")
+    expected = "https://example.com/ui/reminders/new"
+    monkeypatch.setenv("PUBLIC_ORIGIN", origin)
+    monkeypatch.setenv("UI_BASE_URL", ui_base)
+    importlib.reload(config)
+    url = config.build_ui_url(path)
     assert url == expected
     assert "//" not in url.split("://", 1)[1]
 
 
-def test_build_webapp_url_without_base(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    path = "/reminders/new"
-    monkeypatch.delenv("WEBAPP_URL", raising=False)
-    with pytest.raises(RuntimeError, match="WEBAPP_URL not configured"):
-        reminder_handlers.build_webapp_url(path)
+def test_build_ui_url_without_origin(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
+    monkeypatch.delenv("UI_BASE_URL", raising=False)
+    importlib.reload(config)
+    with pytest.raises(RuntimeError, match="PUBLIC_ORIGIN not configured"):
+        config.build_ui_url("/reminders/new")

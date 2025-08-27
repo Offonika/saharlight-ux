@@ -15,7 +15,6 @@ from telegram import (
     WebAppInfo,
 )
 from services.api.app import config
-from services.api.app.diabetes.handlers import reminder_handlers
 
 PROFILE_BUTTON_TEXT = "📄 Мой профиль"
 REMINDERS_BUTTON_TEXT = "⏰ Напоминания"
@@ -57,25 +56,24 @@ __all__ = (
 def menu_keyboard() -> ReplyKeyboardMarkup:
     """Build the main menu keyboard.
 
-    ``config.get_webapp_url()`` is read at call time to determine whether
-    WebApp buttons should be used for profile and reminders.
+    WebApp buttons are used only when ``PUBLIC_ORIGIN`` is configured.
     """
 
-    webapp_url = config.get_webapp_url()
+    webapp_enabled = bool(config.settings.public_origin)
     profile_button = (
         KeyboardButton(
             PROFILE_BUTTON_TEXT,
-            web_app=WebAppInfo(reminder_handlers.build_webapp_url("/profile")),
+            web_app=WebAppInfo(config.build_ui_url("/profile")),
         )
-        if webapp_url
+        if webapp_enabled
         else KeyboardButton(PROFILE_BUTTON_TEXT)
     )
     reminders_button = (
         KeyboardButton(
             REMINDERS_BUTTON_TEXT,
-            web_app=WebAppInfo(reminder_handlers.build_webapp_url("/reminders")),
+            web_app=WebAppInfo(config.build_ui_url("/reminders")),
         )
-        if webapp_url
+        if webapp_enabled
         else KeyboardButton(REMINDERS_BUTTON_TEXT)
     )
     return ReplyKeyboardMarkup(
@@ -149,14 +147,13 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
     Returns
     -------
     InlineKeyboardButton | None
-        Button instance when ``WEBAPP_URL`` is set and valid, otherwise ``None``.
+        Button instance when ``PUBLIC_ORIGIN`` is set and valid, otherwise ``None``.
     """
 
-    webapp_url = config.get_webapp_url()
-    if not webapp_url:
+    if not config.settings.public_origin:
         return None
 
     return InlineKeyboardButton(
         "Определить автоматически",
-        web_app=WebAppInfo(f"{webapp_url}/timezone"),
+        web_app=WebAppInfo(config.build_ui_url("/timezone")),
     )

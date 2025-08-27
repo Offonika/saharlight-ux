@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 from typing import Any, Callable, cast
 
 import pytest
+import importlib
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -248,7 +249,10 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.setenv("WEBAPP_URL", "https://example.org")
+    monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.org")
+    monkeypatch.setenv("UI_BASE_URL", "/ui")
+    import services.api.app.config as config
+    importlib.reload(config)
     monkeypatch.setattr(handlers, "_limit_for", lambda u: 1)
     # Make _describe deterministic and include status icon to test strikethrough
     monkeypatch.setattr(
@@ -306,7 +310,10 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.delenv("WEBAPP_URL", raising=False)
+    monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
+    monkeypatch.delenv("UI_BASE_URL", raising=False)
+    import services.api.app.config as config
+    importlib.reload(config)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
@@ -331,7 +338,10 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.delenv("WEBAPP_URL", raising=False)
+    monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
+    monkeypatch.delenv("UI_BASE_URL", raising=False)
+    import services.api.app.config as config
+    importlib.reload(config)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()

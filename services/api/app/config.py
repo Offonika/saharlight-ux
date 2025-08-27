@@ -48,11 +48,8 @@ class Settings(BaseSettings):
     uvicorn_workers: int = Field(default=1, alias="UVICORN_WORKERS")
 
     # Optional service URLs and API keys
-    webapp_url: Optional[str] = Field(
-        default=None,
-        alias="WEBAPP_URL",
-        description="Base WebApp URL; if missing, default menu is kept",
-    )
+    public_origin: str = Field(default="", alias="PUBLIC_ORIGIN")
+    ui_base_url: str = Field(default="/ui", alias="UI_BASE_URL")
     api_url: Optional[str] = Field(default=None, alias="API_URL")
     openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
     openai_assistant_id: Optional[str] = Field(default=None, alias="OPENAI_ASSISTANT_ID")
@@ -92,8 +89,18 @@ def get_db_password() -> Optional[str]:
     return os.environ.get("DB_PASSWORD")
 
 
-def get_webapp_url() -> str | None:
-    """Return ``WEBAPP_URL`` from the environment without a trailing slash."""
+def build_ui_url(path: str) -> str:
+    """Return an absolute UI URL for ``path``.
 
-    url = os.getenv("WEBAPP_URL")
-    return url.rstrip("/") if url else None
+    Slashes are normalized and ``settings.public_origin`` must be configured.
+    ``settings.ui_base_url`` is stripped of leading and trailing slashes.
+    """
+
+    if not settings.public_origin:
+        raise RuntimeError("PUBLIC_ORIGIN not configured")
+    origin = settings.public_origin.rstrip("/")
+    base = settings.ui_base_url.strip("/")
+    rel = path.lstrip("/")
+    if base:
+        return f"{origin}/{base}/{rel}"
+    return f"{origin}/{rel}"

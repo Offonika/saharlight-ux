@@ -14,7 +14,8 @@ def _reload_config() -> None:
 @pytest.mark.asyncio
 async def test_post_init_sets_default_menu(monkeypatch: pytest.MonkeyPatch) -> None:
     base_url = "https://example.com"
-    monkeypatch.setenv("WEBAPP_URL", base_url)
+    monkeypatch.setenv("PUBLIC_ORIGIN", base_url)
+    monkeypatch.setenv("UI_BASE_URL", "/ui")
     _reload_config()
     import services.api.app.menu_button as menu_button
 

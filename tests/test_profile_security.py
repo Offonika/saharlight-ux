@@ -1,4 +1,5 @@
 import pytest
+import importlib
 from datetime import time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -228,7 +229,10 @@ async def test_profile_security_add_delete_calls_handlers(
 
     monkeypatch.setattr(reminder_handlers, "delete_reminder", fake_del)
 
-    monkeypatch.setenv("WEBAPP_URL", "http://example")
+    monkeypatch.setenv("PUBLIC_ORIGIN", "http://example")
+    monkeypatch.setenv("UI_BASE_URL", "")
+    import services.api.app.config as config
+    importlib.reload(config)
     query_add = DummyQuery(DummyMessage(), "profile_security:add")
     update_add = cast(
         Any,

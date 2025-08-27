@@ -28,7 +28,8 @@ async def test_post_init_sets_chat_menu_button(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Chat menu button is always set to default."""
-    monkeypatch.setenv("WEBAPP_URL", "https://app.example")
+    monkeypatch.setenv("PUBLIC_ORIGIN", "https://app.example")
+    monkeypatch.setenv("UI_BASE_URL", "/ui")
     main = _reload_main()
     bot = SimpleNamespace(
         set_my_commands=AsyncMock(),
@@ -48,8 +49,9 @@ async def test_post_init_sets_chat_menu_button(
 async def test_post_init_skips_chat_menu_button_without_url(
     monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-    """Default menu is used when WEBAPP_URL is missing."""
-    monkeypatch.delenv("WEBAPP_URL", raising=False)
+    """Default menu is used when PUBLIC_ORIGIN is missing."""
+    monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
+    monkeypatch.delenv("UI_BASE_URL", raising=False)
     main = _reload_main()
     bot = SimpleNamespace(
         set_my_commands=AsyncMock(),
