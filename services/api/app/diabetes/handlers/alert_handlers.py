@@ -59,6 +59,22 @@ def schedule_alert(
     first_name: str = "",
     count: int = 1,
 ) -> None:
+    """Schedule a follow-up sugar alert job.
+
+    Args:
+        user_id: Telegram user identifier.
+        job_queue: Queue where the alert job is scheduled.
+        sugar: Measured sugar level.
+        profile: User profile data including SOS settings.
+        first_name: User first name used in messages.
+        count: Current repetition count.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Enqueues :func:`alert_job` to run after ``ALERT_REPEAT_DELAY``.
+    """
     data: AlertJobData = {
         "user_id": user_id,
         "count": count,
@@ -81,6 +97,21 @@ async def _send_alert_message(
     context: ContextTypes.DEFAULT_TYPE,
     first_name: str,
 ) -> None:
+    """Send an alert about critical sugar to the user and SOS contact.
+
+    Args:
+        user_id: Telegram user identifier.
+        sugar: Sugar level that triggered the alert.
+        profile_info: Profile settings used to reach the SOS contact.
+        context: Telegram context for sending messages.
+        first_name: User first name for personalisation.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Sends messages via the Telegram bot and logs failures.
+    """
     coords, link = await get_coords_and_link()
     msg = f"⚠️ У {first_name} критический сахар {sugar} ммоль/л."
     if coords and link:
@@ -133,6 +164,23 @@ async def evaluate_sugar(
     context: ContextTypes.DEFAULT_TYPE | None = None,
     first_name: str = "",
 ) -> None:
+    """Evaluate sugar level and manage alert notifications.
+
+    Args:
+        user_id: Telegram user identifier.
+        sugar: Current blood sugar value.
+        job_queue: Queue for scheduling repeated alerts.
+        context: Telegram context used to deliver alerts.
+        first_name: User first name for message formatting.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Interacts with the database, schedules or removes jobs, and may send
+        alert messages.
+    """
+
     def db_eval(session: Session) -> tuple[bool, dict[str, object] | None]:
         profile = session.get(Profile, user_id)
         if not profile:
@@ -246,6 +294,18 @@ async def check_alert(
 
 
 async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Process a scheduled alert job.
+
+    Args:
+        context: Telegram context containing job and bot.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Sends alert messages, updates alert records, and reschedules or removes
+        the job.
+    """
     job = cast(Job[CustomContext] | None, context.job)
     if job is None:
         return
