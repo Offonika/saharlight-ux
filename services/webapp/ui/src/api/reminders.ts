@@ -1,5 +1,5 @@
 import { RemindersApi } from '@sdk';
-import { Configuration, ResponseError } from '@sdk/runtime.ts';
+import { Configuration, ResponseError } from '@sdk/runtime.ts'; // explicit .ts extension
 import {
   instanceOfReminderSchema as instanceOfReminder,
   type ReminderSchema as Reminder,
