@@ -75,7 +75,9 @@ async def test_alert_notifies_user_and_contact(test_session: Any, monkeypatch: A
     # Save SOS contact via handler
     message = DummyMessage("@alice")
     update = make_update(message=message, effective_user=SimpleNamespace(id=1))
-    await sos_handlers.sos_contact_save(update, SimpleNamespace())
+    await sos_handlers.sos_contact_save(
+        update, cast(CallbackContext[Any, Any, Any, Any], ContextStub())
+    )
 
     update_alert = make_update(
         effective_user=SimpleNamespace(id=1, first_name="Ivan")
