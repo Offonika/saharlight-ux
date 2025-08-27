@@ -6,6 +6,7 @@ import asyncio
 import datetime
 import html
 import logging
+from typing import Any
 
 from openai import OpenAIError
 from telegram import (
@@ -87,6 +88,7 @@ def report_keyboard() -> InlineKeyboardMarkup:
 
 async def report_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompt the user to select a report period."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     await update.message.reply_text(
         "Выберите период отчёта:", reply_markup=report_keyboard()
     )
@@ -94,6 +96,7 @@ async def report_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display recent diary entries as separate messages with action buttons."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     user_id = update.effective_user.id
 
     def _fetch_entries() -> list[Entry]:
@@ -141,6 +144,7 @@ async def report_period_callback(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Handle report period selection via inline buttons."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     query = update.callback_query
     await query.answer()
     if query.data == "report_back":
@@ -191,6 +195,7 @@ async def send_report(
     query: CallbackQuery | None = None,
 ) -> None:
     """Generate and send a PDF report for entries after ``date_from``."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     user_id = update.effective_user.id
 
     def _fetch_entries() -> list[Entry]:

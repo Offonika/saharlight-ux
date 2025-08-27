@@ -12,6 +12,7 @@ from telegram.ext import (
 )
 import json
 import logging
+from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.orm import Session
@@ -55,6 +56,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     * ``/profile <args>`` → set profile directly
     """
 
+    context.user_data: dict[str, Any] = context.user_data or {}
     args = context.args
     api, ApiException, ProfileModel = get_api()
     if api is None:
@@ -161,6 +163,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display current patient profile."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     api, ApiException, _ = get_api()
     if api is None:
         await update.message.reply_text(
@@ -228,6 +231,7 @@ async def profile_webapp_save(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Save profile data sent from the web app."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     api, ApiException, ProfileModel = get_api()
     if api is None:
         await update.effective_message.reply_text(
@@ -297,18 +301,21 @@ async def profile_webapp_save(
 
 async def profile_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel profile creation conversation."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     await update.message.reply_text("Отменено.", reply_markup=menu_keyboard)
     return ConversationHandler.END
 
 
 async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Return to main menu from profile view."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     query = update.callback_query
     await query.answer()
     await query.message.delete()
     await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user to enter timezone."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     query = update.callback_query
     await query.answer()
     await query.message.reply_text(
@@ -326,6 +333,7 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Save user timezone from input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw = (
         update.message.web_app_data.data
         if getattr(update.message, "web_app_data", None)
@@ -432,6 +440,7 @@ def _security_db(session: Session, user_id: int, action: str | None):
 
 async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display and modify security settings."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
@@ -525,6 +534,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start step-by-step profile setup."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     query = update.callback_query
     await query.answer()
     await query.message.delete()
@@ -537,6 +547,7 @@ async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         return await profile_cancel(update, context)
@@ -559,6 +570,7 @@ async def profile_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
@@ -585,6 +597,7 @@ async def profile_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
@@ -615,6 +628,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle low threshold input."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
@@ -643,6 +657,7 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return PROFILE_HIGH
 async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle high threshold input and save profile."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     if "назад" in raw_text.lower():
         await update.message.reply_text(
@@ -711,6 +726,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 
 async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data: dict[str, Any] = context.user_data or {}
     from ..dose_handlers import _cancel_then, photo_prompt
 
     handler = _cancel_then(photo_prompt)

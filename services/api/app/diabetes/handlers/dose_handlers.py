@@ -8,7 +8,7 @@ import asyncio
 import os
 import re
 from pathlib import Path
-from typing import Awaitable, Callable
+from typing import Any, Awaitable, Callable
 
 from openai import OpenAIError
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -63,6 +63,7 @@ WAITING_GPT_FLAG = "waiting_gpt_response"
 
 async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompt user to send a food photo for analysis."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     await update.message.reply_text(
         "📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard
     )
@@ -70,6 +71,7 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user for current sugar level."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     context.user_data.pop("pending_entry", None)
     context.user_data["pending_entry"] = {
         "telegram_id": update.effective_user.id,
@@ -87,6 +89,7 @@ async def sugar_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Store the provided sugar level to the diary."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     chat_data = getattr(context, "chat_data", None)
     if chat_data is not None and not chat_data.get("sugar_active"):
         return ConversationHandler.END
@@ -99,7 +102,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if sugar < 0:
         await update.message.reply_text("Сахар не может быть отрицательным.")
         return SUGAR_VAL
-    entry_data = context.user_data.pop("pending_entry", None) or {
+    entry_data: dict[str, Any] = context.user_data.pop("pending_entry", None) or {
         "telegram_id": update.effective_user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
     }
@@ -122,6 +125,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Entry point for dose calculation conversation."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     context.user_data.pop("pending_entry", None)
     context.user_data.pop("edit_id", None)
     context.user_data.pop("dose_method", None)
@@ -134,6 +138,7 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle method selection for dose calculation."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     text = update.message.text.lower()
     if "назад" in text:
         return await dose_cancel(update, context)
@@ -154,6 +159,7 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture XE amount from user."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     text = update.message.text.strip().replace(",", ".")
     try:
         xe = float(text)
@@ -174,6 +180,7 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Capture carbohydrates in grams."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     text = update.message.text.strip().replace(",", ".")
     try:
         carbs = float(text)
@@ -196,6 +203,7 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Finalize dose calculation after receiving sugar level."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     text = update.message.text.strip().replace(",", ".")
     try:
         sugar = float(text)
@@ -206,7 +214,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await update.message.reply_text("Сахар не может быть отрицательным.")
         return DOSE_SUGAR
 
-    entry = context.user_data.get("pending_entry", {})
+    entry: dict[str, Any] = context.user_data.get("pending_entry", {})
     entry["sugar_before"] = sugar
     xe = entry.get("xe")
     carbs_g = entry.get("carbs_g")
@@ -259,6 +267,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel dose calculation conversation."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     await update.message.reply_text("Отменено.", reply_markup=menu_keyboard)
     context.user_data.pop("pending_entry", None)
     context.user_data.pop("dose_method", None)
@@ -274,6 +283,7 @@ def _cancel_then(
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
     async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+        context.user_data: dict[str, Any] = context.user_data or {}
         await dose_cancel(update, context)
         return await handler(update, context)
 
@@ -282,6 +292,7 @@ def _cancel_then(
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle freeform text commands for adding diary entries."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     raw_text = update.message.text.strip()
     user_id = update.effective_user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
@@ -307,8 +318,8 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         context.user_data.pop("awaiting_report_date", None)
         return
 
-    pending_entry = context.user_data.get("pending_entry")
-    pending_fields = context.user_data.get("pending_fields")
+    pending_entry: dict[str, Any] | None = context.user_data.get("pending_entry")
+    pending_fields: list[str] | None = context.user_data.get("pending_fields")
     edit_id = context.user_data.get("edit_id")
     if pending_entry is not None and edit_id is None and pending_fields:
         field = pending_fields[0]
@@ -393,7 +404,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         )
         return
     if pending_entry is not None and edit_id is None:
-        entry = pending_entry
+        entry: dict[str, Any] = pending_entry
         text = update.message.text.lower().strip()
         if re.fullmatch(r"-?\d+(?:[.,]\d+)?", text) and entry.get("sugar_before") is None:
             try:
@@ -534,6 +545,9 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     if "edit_id" in context.user_data:
         field = context.user_data.get("edit_field")
+        edit_id = context.user_data.get("edit_id")
+        if edit_id is None:
+            return
         text = update.message.text.strip().replace(",", ".")
         try:
             value = float(text)
@@ -554,11 +568,12 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     "Доза инсулина не может быть отрицательной."
                 )
             return
+
         def db_update(session: Session):
-            entry = session.get(Entry, context.user_data["edit_id"])
+            entry = session.get(Entry, edit_id)
             if not entry:
                 return "missing", None
-            field_map = {"sugar": "sugar_before", "xe": "xe", "dose": "dose"}
+            field_map: dict[str, str] = {"sugar": "sugar_before", "xe": "xe", "dose": "dose"}
             setattr(entry, field_map[field], value)
             entry.updated_at = datetime.datetime.now(datetime.timezone.utc)
             if not commit(session):
@@ -582,15 +597,15 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         if field == "sugar":
             await check_alert(update, context, value)
         render_text = render_entry(entry)
-        edit_info = context.user_data.get("edit_entry", {})
+        edit_info: dict[str, Any] = context.user_data.get("edit_entry", {})
         markup = InlineKeyboardMarkup(
             [
                 [
                     InlineKeyboardButton(
-                        "✏️ Изменить", callback_data=f"edit:{context.user_data['edit_id']}"
+                        "✏️ Изменить", callback_data=f"edit:{edit_id}"
                     ),
                     InlineKeyboardButton(
-                        "🗑 Удалить", callback_data=f"del:{context.user_data['edit_id']}"
+                        "🗑 Удалить", callback_data=f"del:{edit_id}"
                     ),
                 ]
             ]
@@ -610,7 +625,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
 
     try:
-        quick = smart_input(raw_text)
+        quick: dict[str, float | None] = smart_input(raw_text)
     except ValueError as exc:
         msg = str(exc)
         if "mismatched unit for sugar" in msg:
@@ -639,7 +654,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 "Значения не могут быть отрицательными."
             )
             return
-        entry_data = {
+        entry_data: dict[str, Any] = {
             "telegram_id": user_id,
             "event_time": datetime.datetime.now(datetime.timezone.utc),
             "sugar_before": sugar,
@@ -647,7 +662,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             "dose": dose,
             "carbs_g": xe * 12 if xe is not None else None,
         }
-        missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
+        missing: list[str] = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
         if not missing:
             def db_save(session: Session):
                 entry = Entry(**entry_data)
@@ -764,6 +779,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Placeholder GPT chat handler."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     await update.message.reply_text("🗨️ Чат с GPT временно недоступен.")
 
 
@@ -773,6 +789,7 @@ async def photo_handler(
     demo: bool = False,
 ) -> int:
     """Process food photos and trigger nutrition analysis."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     message = update.message or update.callback_query.message
     user_id = update.effective_user.id
 
@@ -781,7 +798,7 @@ async def photo_handler(
         return ConversationHandler.END
     context.user_data[WAITING_GPT_FLAG] = True
 
-    file_path = context.user_data.pop("__file_path", None)
+    file_path: str | None = context.user_data.pop("__file_path", None)
     if not file_path:
         try:
             photo = update.message.photo[-1]
@@ -966,7 +983,7 @@ async def photo_handler(
             )
             return ConversationHandler.END
 
-        pending_entry = context.user_data.get("pending_entry") or {
+        pending_entry: dict[str, Any] = context.user_data.get("pending_entry") or {
             "telegram_id": user_id,
             "event_time": datetime.datetime.now(datetime.timezone.utc),
         }
@@ -1018,6 +1035,7 @@ async def doc_handler(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Handle images sent as documents."""
+    context.user_data: dict[str, Any] = context.user_data or {}
     document = update.message.document
     if not document:
         return ConversationHandler.END

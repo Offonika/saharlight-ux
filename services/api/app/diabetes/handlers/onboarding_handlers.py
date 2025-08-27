@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from telegram import (
     InlineKeyboardButton,
@@ -56,6 +57,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     already completed onboarding simply shows the greeting and menu.
     """
 
+    context.user_data: dict[str, Any] = context.user_data or {}
     user_id = update.effective_user.id
     first_name = update.effective_user.first_name or ""
 
@@ -109,7 +111,7 @@ def _skip_markup() -> InlineKeyboardMarkup:
 
 async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ICR input."""
-
+    context.user_data: dict[str, Any] = context.user_data or {}
     try:
         icr = float(update.message.text.replace(",", "."))
     except ValueError:
@@ -132,7 +134,7 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle CF input."""
-
+    context.user_data: dict[str, Any] = context.user_data or {}
     try:
         cf = float(update.message.text.replace(",", "."))
     except ValueError:
@@ -155,7 +157,7 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle target BG input and proceed to demo."""
-
+    context.user_data: dict[str, Any] = context.user_data or {}
     try:
         target = float(update.message.text.replace(",", "."))
     except ValueError:
@@ -204,7 +206,7 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle user timezone (text or WebApp) and proceed to demo."""
-
+    context.user_data: dict[str, Any] = context.user_data or {}
     if getattr(update.message, "web_app_data", None):
         tz_name = update.message.web_app_data.data
     else:
@@ -273,7 +275,7 @@ async def onboarding_demo_next(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Proceed from demo to reminder suggestion."""
-
+    context.user_data: dict[str, Any] = context.user_data or {}
     query = update.callback_query
     await query.answer()
     await query.message.delete()
@@ -297,7 +299,7 @@ async def onboarding_reminders(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     """Handle reminder choice and finish onboarding."""
-
+    context.user_data: dict[str, Any] = context.user_data or {}
     query = update.callback_query
     await query.answer()
     enable = query.data == "onb_rem_yes"
@@ -361,7 +363,7 @@ async def onboarding_reminders(
         ["👍", "🙂", "👎"],
         is_anonymous=False,
     )
-    polls = context.bot_data.setdefault("onboarding_polls", {})
+    polls: dict[str, int] = context.bot_data.setdefault("onboarding_polls", {})
     polls[poll_msg.poll.id] = user_id
 
     await query.message.reply_text(
@@ -372,7 +374,7 @@ async def onboarding_reminders(
 
 async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Skip the onboarding entirely."""
-
+    context.user_data: dict[str, Any] = context.user_data or {}
     query = update.callback_query
     await query.answer()
 
@@ -407,7 +409,7 @@ async def onboarding_poll_answer(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     """Log poll answers from onboarding feedback."""
-
+    context.user_data: dict[str, Any] = context.user_data or {}
     poll_id = update.poll_answer.poll_id
     option_ids = update.poll_answer.option_ids
     user_id = context.bot_data.get("onboarding_polls", {}).pop(poll_id, None)
@@ -420,6 +422,7 @@ async def onboarding_poll_answer(
 async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from .dose_handlers import _cancel_then, photo_prompt
 
+    context.user_data: dict[str, Any] = context.user_data or {}
     handler = _cancel_then(photo_prompt)
     return await handler(update, context)
 
