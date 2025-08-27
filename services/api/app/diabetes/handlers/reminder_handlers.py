@@ -63,19 +63,6 @@ DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 PLAN_LIMITS = {"free": 5, "pro": 10}
 
 
-def build_webapp_url(path: str) -> str:
-    """Build an absolute webapp URL from ``path``.
-
-    Raises ``RuntimeError`` if ``WEBAPP_URL`` is not configured.
-    """
-    base_url = config.get_webapp_url()
-    if not base_url:
-        raise RuntimeError("WEBAPP_URL not configured")
-    if not path.startswith("/"):
-        path = "/" + path
-    return base_url + path
-
-
 # Map reminder type codes to display names
 REMINDER_NAMES = {
     "sugar": "Сахар",  # noqa: RUF001
@@ -173,19 +160,19 @@ def _render_reminders(
     if active_count > limit:
         header += " ⚠️"
 
-    webapp_url = config.get_webapp_url()
+    webapp_enabled = bool(config.settings.public_origin)
     add_button_row = None
-    if webapp_url:
+    if webapp_enabled:
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(build_webapp_url("/reminders/new")),
+                web_app=WebAppInfo(config.build_ui_url("/reminders/new")),
             )
         ]
     if not rems:
         text = header
 
-        if webapp_url and add_button_row is not None:
+        if webapp_enabled and add_button_row is not None:
             text += "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
             return text, InlineKeyboardMarkup([add_button_row])
         text += "\nУ вас нет напоминаний. Отправьте /addreminder."
@@ -202,11 +189,13 @@ def _render_reminders(
         line = f"{r.id}. {title}"
         status_icon = "🔔" if r.is_enabled else "🔕"
         row: list[InlineKeyboardButton] = []
-        if webapp_url:
+        if webapp_enabled:
             row.append(
                 InlineKeyboardButton(
                     "✏️",
-                    web_app=WebAppInfo(build_webapp_url(f"/reminders?id={r.id}")),
+                    web_app=WebAppInfo(
+                        config.build_ui_url(f"/reminders?id={r.id}")
+                    ),
                 )
             )
         row.extend(

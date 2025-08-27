@@ -2,6 +2,7 @@ import warnings
 from contextlib import contextmanager
 
 import pytest
+import importlib
 from types import SimpleNamespace
 from typing import Any, Iterator, cast
 from sqlalchemy import create_engine
@@ -259,7 +260,10 @@ async def test_profile_view_missing_profile_shows_webapp_button(
     from urllib.parse import urlparse
     import services.api.app.diabetes.handlers.profile as handlers
 
-    monkeypatch.setenv("WEBAPP_URL", "https://example.com")
+    monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.com")
+    monkeypatch.setenv("UI_BASE_URL", "")
+    import services.api.app.config as config
+    importlib.reload(config)
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 

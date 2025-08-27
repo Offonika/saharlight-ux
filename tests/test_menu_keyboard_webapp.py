@@ -1,24 +1,28 @@
 from urllib.parse import urlparse
 
+import importlib
 import pytest
 
 import services.api.app.diabetes.utils.ui as ui
 
 
 @pytest.mark.parametrize(
-    "base_url",
+    "origin, ui_base",
     [
-        "https://example.com",
-        "https://example.com/",
-        "https://example.com/ui",
-        "https://example.com/ui/",
+        ("https://example.com", ""),
+        ("https://example.com/", ""),
+        ("https://example.com", "/ui"),
+        ("https://example.com/", "/ui/"),
     ],
 )
 def test_menu_keyboard_webapp_urls(
-    monkeypatch: pytest.MonkeyPatch, base_url: str
+    monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str
 ) -> None:
     """Menu buttons should open webapp paths for profile and reminders."""
-    monkeypatch.setenv("WEBAPP_URL", base_url)
+    monkeypatch.setenv("PUBLIC_ORIGIN", origin)
+    monkeypatch.setenv("UI_BASE_URL", ui_base)
+    import services.api.app.config as config
+    importlib.reload(config)
 
     buttons = [btn for row in ui.menu_keyboard().keyboard for btn in row]
     profile_btn = next(b for b in buttons if b.text == ui.PROFILE_BUTTON_TEXT)
