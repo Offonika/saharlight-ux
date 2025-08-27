@@ -30,6 +30,8 @@ jobs:
 
       - name: Run oasdiff breaking change check
         run: |
-          docker run --rm -v "$PWD:/work" ghcr.io/tufin/oasdiff:latest \
+          
+          docker run --rm -v "$PWD:/work" tufin/oasdiff:latest \
+
             breaking /tmp/openapi_main.yaml libs/contracts/openapi.yaml \
             --fail-on-diff
