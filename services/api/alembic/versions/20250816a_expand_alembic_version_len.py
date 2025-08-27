@@ -1,6 +1,6 @@
 """Expand alembic_version.version_num to VARCHAR(255)."""
 
-from alembic import op
+from alembic import op  # type: ignore[import-not-found]
 
 # NB: новая ревизия ВСТАВЛЯЕТСЯ между 20250816 и 20250817
 revision = "20250816a_expand_alembic_version_len"
