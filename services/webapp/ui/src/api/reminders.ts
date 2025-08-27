@@ -1,5 +1,6 @@
-import { RemindersApi } from '@sdk';
-import { Configuration, ResponseError } from '@sdk';
+
+import { RemindersApi, Configuration, ResponseError } from '@sdk';
+
 import {
   instanceOfReminderSchema as instanceOfReminder,
   type ReminderSchema as Reminder,
