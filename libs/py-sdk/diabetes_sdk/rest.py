@@ -146,6 +146,7 @@ class RESTClientObject:
                                  timeout. It can also be a pair (tuple) of
                                  (connection, read) timeouts.
         """
+        # Normalize and validate HTTP method
         method = method.upper()
         if method not in {"GET", "HEAD", "DELETE", "POST", "PUT", "PATCH", "OPTIONS"}:
             raise ApiValueError(f"{method} is not a supported HTTP method")
