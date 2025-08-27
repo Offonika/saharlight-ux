@@ -3,7 +3,6 @@
 
 from sqlalchemy import (
     create_engine,
-    Column,
     Integer,
     BigInteger,
     String,
@@ -121,32 +120,42 @@ class Profile(Base):
 class Entry(Base):
     __tablename__ = "entries"
 
-    id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"))
-    org_id = Column(Integer)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    telegram_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id")
+    )
+    org_id: Mapped[int | None] = mapped_column(Integer)
 
-    event_time = Column(TIMESTAMP(timezone=True), nullable=False)  # время приёма
-    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
-    updated_at = Column(TIMESTAMP(timezone=True), onupdate=func.now())
+    event_time: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False
+    )  # время приёма
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime.datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True), onupdate=func.now()
+    )
 
-    photo_path = Column(String)
-    carbs_g = Column(Float)
-    xe = Column(Float)
-    sugar_before = Column(Float)
-    dose = Column(Float)
-    gpt_summary = Column(Text)
+    photo_path: Mapped[str | None] = mapped_column(String)
+    carbs_g: Mapped[float | None] = mapped_column(Float)
+    xe: Mapped[float | None] = mapped_column(Float)
+    sugar_before: Mapped[float | None] = mapped_column(Float)
+    dose: Mapped[float | None] = mapped_column(Float)
+    gpt_summary: Mapped[str | None] = mapped_column(Text)
 
 
 class Alert(Base):
     __tablename__ = "alerts"
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(BigInteger, ForeignKey("users.telegram_id"))
-    org_id = Column(Integer)
-    sugar = Column(Float)
-    type = Column(String)
-    ts = Column(TIMESTAMP(timezone=True), server_default=func.now())
-    resolved = Column(Boolean, default=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
+    org_id: Mapped[int | None] = mapped_column(Integer)
+    sugar: Mapped[float] = mapped_column(Float)
+    type: Mapped[str] = mapped_column(String)
+    ts: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
+    resolved: Mapped[bool] = mapped_column(Boolean, default=False)
     user = relationship("User")
 
 
@@ -185,22 +194,22 @@ class ReminderLog(Base):
 class Timezone(Base):
     __tablename__ = "timezones"
 
-    id = Column(Integer, primary_key=True, index=True)
-    tz = Column(String, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tz: Mapped[str] = mapped_column(String, nullable=False)
 
 
 class HistoryRecord(Base):
     __tablename__ = "history_records"
 
-    id = Column(String, primary_key=True, index=True)
-    date = Column(String, nullable=False)
-    time = Column(String, nullable=False)
-    sugar = Column(Float)
-    carbs = Column(Float)
-    bread_units = Column(Float)
-    insulin = Column(Float)
-    notes = Column(Text)
-    type = Column(String, nullable=False)
+    id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
+    date: Mapped[str] = mapped_column(String, nullable=False)
+    time: Mapped[str] = mapped_column(String, nullable=False)
+    sugar: Mapped[float | None] = mapped_column(Float)
+    carbs: Mapped[float | None] = mapped_column(Float)
+    bread_units: Mapped[float | None] = mapped_column(Float)
+    insulin: Mapped[float | None] = mapped_column(Float)
+    notes: Mapped[str | None] = mapped_column(Text)
+    type: Mapped[str] = mapped_column(String, nullable=False)
 
 
 # ────────────────────── инициализация ────────────────────────
