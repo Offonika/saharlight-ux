@@ -356,9 +356,10 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     query = update.callback_query
     if query is None or query.message is None:
         return
+    message = query.message
     await query.answer()
-    await query.message.delete()
-    await query.message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
+    await message.delete()
+    await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
 
 
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -366,15 +367,16 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     query = update.callback_query
     if query is None or query.message is None:
         return END
+    message = query.message
     await query.answer()
-    await query.message.reply_text(
+    await message.reply_text(
         "Введите ваш часовой пояс (например Europe/Moscow):",
         reply_markup=back_keyboard,
     )
     button = build_timezone_webapp_button()
     if button:
         keyboard = InlineKeyboardMarkup([[button]])
-        await query.message.reply_text("Можно определить автоматически:", reply_markup=keyboard)
+        await message.reply_text("Можно определить автоматически:", reply_markup=keyboard)
     return PROFILE_TZ
 
 
@@ -583,9 +585,10 @@ async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     query = update.callback_query
     if query is None or query.message is None:
         return END
+    message = query.message
     await query.answer()
-    await query.message.delete()
-    await query.message.reply_text(
+    await message.delete()
+    await message.reply_text(
         "Введите коэффициент ИКХ (г/ед.) — сколько граммов углеводов покрывает 1 ед. быстрого инсулина:",
         reply_markup=back_keyboard,
     )
