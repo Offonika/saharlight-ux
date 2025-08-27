@@ -1,5 +1,5 @@
-import { Configuration } from "../../../../../libs/ts-sdk/runtime";
-import { DefaultApi } from "../../../../../libs/ts-sdk/apis";
+import { Configuration } from "@sdk/runtime";
+import { DefaultApi } from "@sdk/apis";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 
 export function makeRemindersApi(initData: string) {
