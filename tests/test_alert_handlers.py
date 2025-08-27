@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 from unittest.mock import AsyncMock
 
 import pytest
@@ -16,6 +16,37 @@ import services.api.app.diabetes.handlers.alert_handlers as handlers
 async def fake_get_coords_and_link() -> tuple[str | None, str | None]:
     """Return empty coordinates for tests."""
     return None, None
+
+
+class DummyJob:
+    def __init__(self, queue: DummyJobQueue, name: str) -> None:
+        self.queue = queue
+        self.name = name
+        self.removed = False
+
+    def schedule_removal(self) -> None:  # noqa: D401 - simple stub
+        self.removed = True
+        self.queue.jobs.remove(self)
+
+
+class DummyJobQueue:
+    def __init__(self) -> None:
+        self.jobs: list[DummyJob] = []
+
+    def run_once(
+        self,
+        callback: Callable[..., Any],
+        when: Any,
+        *,
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+    ) -> DummyJob:  # noqa: D401 - simple stub
+        job = DummyJob(self, name or "")
+        self.jobs.append(job)
+        return job
+
+    def get_jobs_by_name(self, name: str) -> list[DummyJob]:  # noqa: D401 - simple stub
+        return [j for j in self.jobs if j.name == name]
 
 
 @pytest.mark.asyncio
@@ -82,9 +113,7 @@ async def test_send_alert_message_sos_errors(
 ) -> None:
     """Failures sending to SOS contact are logged."""
 
-    bot = SimpleNamespace(
-        send_message=AsyncMock(side_effect=[None, exc_cls("boom")])
-    )
+    bot = SimpleNamespace(send_message=AsyncMock(side_effect=[None, exc_cls("boom")]))
     context = cast(AlertContext, ContextStub(bot=bot))
     monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
 
@@ -104,3 +133,26 @@ async def test_send_alert_message_sos_errors(
 
     assert expected in caplog.text
     assert bot.send_message.await_count == 2
+
+
+def test_schedule_alert_replaces_existing_job() -> None:
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    handlers.schedule_alert(
+        1,
+        job_queue,
+        sugar=10.0,
+        profile={},
+        first_name="Ivan",
+    )
+    first_job = job_queue.get_jobs_by_name("alert_1")[0]
+    handlers.schedule_alert(
+        1,
+        job_queue,
+        sugar=10.0,
+        profile={},
+        first_name="Ivan",
+    )
+    jobs = job_queue.get_jobs_by_name("alert_1")
+    assert len(jobs) == 1
+    assert jobs[0] is not first_job
+    assert first_job.removed is True

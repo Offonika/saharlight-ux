@@ -66,6 +66,9 @@ def schedule_alert(
         "profile": profile,
         "first_name": first_name,
     }
+    for job in job_queue.get_jobs_by_name(f"alert_{user_id}"):
+        if job is not None:
+            job.schedule_removal()
     job_queue.run_once(
         alert_job,
         when=ALERT_REPEAT_DELAY,
