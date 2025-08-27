@@ -13,7 +13,8 @@ from telegram.ext import (
     filters,
 )
 
-from services.api.app.diabetes.services.db import SessionLocal, Profile
+from services.api.app.diabetes.services.db import Profile
+from .db import SessionLocal
 from services.api.app.diabetes.utils.ui import back_keyboard, menu_keyboard
 from services.api.app.diabetes.services.repository import commit
 from . import dose_handlers

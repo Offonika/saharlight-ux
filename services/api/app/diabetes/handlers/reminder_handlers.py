@@ -7,10 +7,9 @@ import json
 import logging
 import re
 from datetime import time, timedelta, timezone
-from typing import Callable
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import (
     CallbackQueryHandler,
@@ -21,22 +20,16 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest, TelegramError
 
-from services.api.app.diabetes.services.db import (
-    Reminder,
-    ReminderLog,
-    SessionLocal as _SessionLocal,
-    User,
-    run_db,
-)
-from services.api.app.diabetes.services.repository import commit as _commit
+from services.api.app.diabetes.services.db import Reminder, ReminderLog, User
+from services.api.app.diabetes.services.repository import commit
+from .db import SessionLocal, run_db
 from services.api.app.config import settings
 from services.api.app.diabetes.utils.helpers import (
     INVALID_TIME_MSG,
     parse_time_interval,
 )
 
-SessionLocal: sessionmaker[Session] = _SessionLocal
-commit: Callable[[Session], bool] = _commit
+
 
 logger = logging.getLogger(__name__)
 
@@ -358,7 +351,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await update.message.reply_text("Неизвестный тип напоминания.")
         return
 
-    def db_add(session: Session):
+    def db_add(session: Session) -> tuple[str, User | None, int, int]:
         count = session.query(Reminder).filter_by(telegram_id=user_id).count()
         user = session.get(User, user_id)
         limit = _limit_for(user)
@@ -436,7 +429,7 @@ async def reminder_webapp_save(
             )
             return
         minutes = None
-    def db_save(session: Session):
+    def db_save(session: Session) -> tuple[str, Reminder | None, str | None, int | None]:
         if rid:
             rem = session.get(Reminder, int(rid))
             if not rem or rem.telegram_id != user_id:
@@ -627,7 +620,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
     user_id = update.effective_user.id
 
-    def db_action(session: Session):
+    def db_action(session: Session) -> tuple[str, Reminder | None]:
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != user_id:
             return "not_found", None

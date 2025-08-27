@@ -30,7 +30,8 @@ from telegram.ext import (
 )
 from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
-from services.api.app.diabetes.services.db import SessionLocal, User, Profile, Reminder
+from services.api.app.diabetes.services.db import User, Profile, Reminder
+from .db import SessionLocal
 from services.api.app.diabetes.utils.ui import menu_keyboard, build_timezone_webapp_button
 from services.api.app.diabetes.services.repository import commit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -417,7 +418,9 @@ async def onboarding_poll_answer(
     logger.info("Onboarding poll result from %s: %s", user_id, option)
 
 
-async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def _photo_fallback(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     from .dose_handlers import _cancel_then, photo_prompt
 
     handler = _cancel_then(photo_prompt)

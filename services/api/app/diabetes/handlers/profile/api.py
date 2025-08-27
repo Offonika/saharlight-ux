@@ -4,7 +4,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from services.api.app.config import settings
-from services.api.app.diabetes.services.db import Profile, SessionLocal, User
+from services.api.app.diabetes.services.db import Profile, User
 from services.api.app.diabetes.services.repository import commit
 
 logger = logging.getLogger(__name__)

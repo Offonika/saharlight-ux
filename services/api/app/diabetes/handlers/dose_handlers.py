@@ -23,13 +23,8 @@ from telegram.ext import (
 )
 from sqlalchemy.orm import Session
 
-from services.api.app.diabetes.services.db import (
-    SessionLocal,
-    User,
-    Entry,
-    Profile,
-    run_db,
-)
+from services.api.app.diabetes.services.db import User, Entry, Profile
+from .db import SessionLocal, run_db
 from services.api.app.diabetes.utils.functions import (
     extract_nutrition_info,
     calc_bolus,
@@ -554,7 +549,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     "Доза инсулина не может быть отрицательной."
                 )
             return
-        def db_update(session: Session):
+        def db_update(session: Session) -> tuple[str, Entry | None]:
             entry = session.get(Entry, context.user_data["edit_id"])
             if not entry:
                 return "missing", None
@@ -649,7 +644,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         }
         missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
         if not missing:
-            def db_save(session: Session):
+            def db_save(session: Session) -> bool:
                 entry = Entry(**entry_data)
                 session.add(entry)
                 return commit(session)
