@@ -6,42 +6,42 @@ import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
 import { getHistory, updateRecord, deleteRecord, HistoryRecord } from '@/api/history';
 
-type HistoryFilter = 'all' | 'measurement' | 'meal' | 'insulin';
-
 const History = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const [records, setRecords] = useState<HistoryRecord[]>([]);
   const [selectedDate, setSelectedDate] = useState('');
-  const [selectedType, setSelectedType] = useState<HistoryFilter>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
   const [editingRecord, setEditingRecord] = useState<HistoryRecord | null>(null);
 
   useEffect(() => {
-    const controller = new AbortController();
+    let cancelled = false;
     (async () => {
       try {
-        const data = await getHistory(controller.signal);
-        setRecords(data);
+        const data = await getHistory();
+        if (!cancelled) {
+          setRecords(data);
+        }
       } catch (err) {
-        if (controller.signal.aborted) return;
-        const message =
-          err instanceof Error ? err.message : 'Неизвестная ошибка';
-        toast({
-          title: 'Ошибка',
-          description: message,
-          variant: 'destructive',
-        });
+        if (!cancelled) {
+          const message =
+            err instanceof Error ? err.message : 'Неизвестная ошибка';
+          toast({
+            title: 'Ошибка',
+            description: message,
+            variant: 'destructive',
+          });
+        }
       }
     })();
     return () => {
-      controller.abort();
+      cancelled = true;
     };
   }, [toast]);
 
   const filteredRecords = records.filter(record => {
-    const recordDate = record.date.toISOString().slice(0, 10);
-    const dateMatch = !selectedDate || recordDate === selectedDate;
+    const dateMatch = !selectedDate || record.date === selectedDate;
     const typeMatch = selectedType === 'all' || record.type === selectedType;
     return dateMatch && typeMatch;
   });
@@ -120,7 +120,7 @@ const History = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
       <MedicalHeader 
         title="История" 
         showBack 
@@ -137,32 +137,24 @@ const History = () => {
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="history-date"
-                className="block text-sm font-medium text-foreground mb-2"
-              >
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Дата
               </label>
               <input
-                id="history-date"
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="medical-input"
               />
             </div>
-
+            
             <div>
-              <label
-                htmlFor="history-type"
-                className="block text-sm font-medium text-foreground mb-2"
-              >
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Тип записи
               </label>
               <select
-                id="history-type"
                 value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value as HistoryFilter)}
+                onChange={(e) => setSelectedType(e.target.value)}
                 className="medical-input"
               >
                 <option value="all">Все записи</option>
@@ -176,15 +168,15 @@ const History = () => {
 
         {/* Статистика */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="medical-card text-center py-4">
+          <div className="medical-card text-center py-4 bg-gradient-success/5 border-medical-success/20">
             <div className="text-xl font-bold text-medical-success">6.8</div>
             <div className="text-xs text-muted-foreground">Средний сахар</div>
           </div>
-          <div className="medical-card text-center py-4">
+          <div className="medical-card text-center py-4 bg-gradient-medical/5 border-medical-teal/20">
             <div className="text-xl font-bold text-medical-teal">24</div>
             <div className="text-xs text-muted-foreground">Записей</div>
           </div>
-          <div className="medical-card text-center py-4">
+          <div className="medical-card text-center py-4 bg-gradient-button/5 border-medical-blue/20">
             <div className="text-xl font-bold text-medical-blue">85%</div>
             <div className="text-xs text-muted-foreground">В норме</div>
           </div>
@@ -192,29 +184,27 @@ const History = () => {
 
         {/* Список записей */}
         <div className="space-y-3">
-          {filteredRecords.map((record, index) => {
-            const color = getRecordColor(record.type);
-            return (
-              <div
-                key={record.id}
-                className="medical-list-item"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    color === 'medical-error' ? 'bg-medical-error/10' :
-                    color === 'medical-success' ? 'bg-medical-success/10' :
-                    color === 'medical-blue' ? 'bg-medical-blue/10' :
-                    'bg-neutral-500/10'
-                  }`}>
-                    <span className="text-lg">{getRecordIcon(record.type)}</span>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
+          {filteredRecords.map((record, index) => (
+            <div
+              key={record.id}
+              className="medical-list-item"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  getRecordColor(record.type) === 'medical-error' ? 'bg-medical-error/10' :
+                  getRecordColor(record.type) === 'medical-success' ? 'bg-medical-success/10' :
+                  getRecordColor(record.type) === 'medical-blue' ? 'bg-medical-blue/10' :
+                  'bg-neutral-500/10'
+                }`}>
+                  <span className="text-lg">{getRecordIcon(record.type)}</span>
+                </div>
+                
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
-                        {record.date.toLocaleDateString('ru-RU')}
+                        {new Date(record.date).toLocaleDateString('ru-RU')}
                       </span>
                       <span className="text-sm font-medium">{record.time}</span>
                     </div>
@@ -240,7 +230,7 @@ const History = () => {
                   </div>
 
                   <div className="grid grid-cols-4 gap-4 text-sm mb-2">
-                    {record.sugar !== undefined && (
+                    {record.sugar && (
                       <div>
                         <div className={`font-semibold ${getSugarColor(record.sugar)}`}>
                           {record.sugar}
@@ -248,22 +238,22 @@ const History = () => {
                         <div className="text-xs text-muted-foreground">ммоль/л</div>
                       </div>
                     )}
-
-                    {record.carbs !== undefined && (
+                    
+                    {record.carbs && (
                       <div>
                         <div className="font-semibold text-foreground">{record.carbs}</div>
                         <div className="text-xs text-muted-foreground">г углев.</div>
                       </div>
                     )}
-
-                    {record.breadUnits !== undefined && (
+                    
+                    {record.breadUnits && (
                       <div>
                         <div className="font-semibold text-foreground">{record.breadUnits}</div>
                         <div className="text-xs text-muted-foreground">ХЕ</div>
                       </div>
                     )}
-
-                    {record.insulin !== undefined && (
+                    
+                    {record.insulin && (
                       <div>
                         <div className="font-semibold text-medical-blue">{record.insulin}</div>
                         <div className="text-xs text-muted-foreground">ед.</div>
@@ -279,8 +269,7 @@ const History = () => {
                 </div>
               </div>
             </div>
-          );
-        })}
+          ))}
         </div>
 
         {/* Форма редактирования */}
@@ -295,10 +284,10 @@ const History = () => {
                 </label>
                 <input
                   type="date"
-                  value={editingRecord.date.toISOString().slice(0, 10)}
+                  value={editingRecord.date}
                   onChange={e =>
                     setEditingRecord(prev =>
-                      prev ? { ...prev, date: new Date(e.target.value) } : prev
+                      prev ? { ...prev, date: e.target.value } : prev
                     )
                   }
                   className="medical-input"
@@ -428,6 +417,7 @@ const History = () => {
                   type="button"
                   onClick={handleUpdateRecord}
                   className="flex-1"
+                  variant="success"
                   size="lg"
                 >
                   Сохранить
@@ -435,7 +425,7 @@ const History = () => {
                 <MedicalButton
                   type="button"
                   onClick={() => setEditingRecord(null)}
-                  variant="secondary"
+                  variant="outline"
                   className="flex-1"
                   size="lg"
                 >
@@ -464,6 +454,7 @@ const History = () => {
           <MedicalButton
             onClick={() => navigate('/analytics')}
             className="w-full flex items-center justify-center gap-2"
+            variant="medical"
             size="lg"
           >
             <TrendingUp className="w-4 h-4" />

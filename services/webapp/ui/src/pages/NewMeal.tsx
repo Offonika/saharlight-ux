@@ -2,46 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import MedicalButton from '@/components/MedicalButton';
-import { useToast } from '@/hooks/use-toast';
-import { updateRecord, HistoryRecord } from '@/api/history';
 
 const NewMeal = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [meal, setMeal] = useState('');
   const [carbs, setCarbs] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const carbsValue = Number(carbs);
-    if (isNaN(carbsValue) || carbsValue < 0 || carbsValue > 1000) {
-      toast({
-        title: 'Ошибка',
-        description: 'Количество углеводов должно быть от 0 до 1000 г',
-        variant: 'destructive',
-      });
-      return;
-    }
-    const now = new Date();
-    const record: HistoryRecord = {
-      id: Date.now().toString(),
-      date: new Date(now.toISOString().split('T')[0]),
-      time: now.toTimeString().slice(0, 5),
-      type: 'meal',
-      notes: meal,
-      carbs: carbsValue,
-    };
-    try {
-      await updateRecord(record);
-      navigate('/history');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Неизвестная ошибка';
-      toast({
-        title: 'Ошибка',
-        description: message,
-        variant: 'destructive',
-      });
-    }
+    navigate('/history');
   };
 
   return (
@@ -52,35 +21,44 @@ const NewMeal = () => {
         onBack={() => navigate(-1)}
       />
       <main className="container mx-auto px-4 py-6">
-        <form onSubmit={handleSubmit} className="medical-card p-4 flex flex-col gap-4">
-          <label className="text-sm font-medium">
-            Название блюда
+        <form onSubmit={handleSubmit} className="medical-card bg-gradient-success/5 border-medical-success/20 animate-slide-up">
+          <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Название блюда
+            </label>
             <input
-              className="medical-input mt-2"
+              className="medical-input"
               value={meal}
               onChange={(e) => setMeal(e.target.value)}
-              placeholder="Например: овсянка"
+              placeholder="Например: овсянка с молоком"
             />
-          </label>
-          <label className="text-sm font-medium">
-            Углеводы (г)
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Углеводы (г)
+            </label>
             <input
               type="number"
-              min="0"
-              max="1000"
-              className="medical-input mt-2"
+              step="0.1"
+              className="medical-input"
               value={carbs}
               onChange={(e) => setCarbs(e.target.value)}
+              placeholder="Введите количество углеводов"
             />
-          </label>
+          </div>
+          
           <MedicalButton
             type="submit"
             className="w-full"
+            variant="success"
             disabled={!meal || !carbs}
             size="lg"
           >
-            Сохранить
+            Сохранить блюдо
           </MedicalButton>
+        </div>
         </form>
       </main>
     </div>

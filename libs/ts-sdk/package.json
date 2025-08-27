@@ -1,10 +1,6 @@
 {
-  "name": "@offonika/diabetes-ts-sdk",
+  "name": "ts-sdk",
   "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "main": "index.ts",
-  "types": "index.ts",
-  "description": "TypeScript SDK for the Diabetes Assistant API",
-  "license": "MIT"
+  "main": "apis/index.ts",
+  "types": "apis/index.ts"
 }

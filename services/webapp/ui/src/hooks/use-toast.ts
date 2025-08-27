@@ -6,14 +6,13 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const DEFAULT_TOAST_REMOVE_DELAY = 5000
+const TOAST_REMOVE_DELAY = 1000000
 
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
-  removeDelay?: number
 }
 
 const actionTypes = {
@@ -56,7 +55,7 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
-const addToRemoveQueue = (toastId: string, removeDelay: number) => {
+const addToRemoveQueue = (toastId: string) => {
   if (toastTimeouts.has(toastId)) {
     return
   }
@@ -67,7 +66,7 @@ const addToRemoveQueue = (toastId: string, removeDelay: number) => {
       type: "REMOVE_TOAST",
       toastId: toastId,
     })
-  }, removeDelay)
+  }, TOAST_REMOVE_DELAY)
 
   toastTimeouts.set(toastId, timeout)
 }
@@ -94,13 +93,10 @@ export const reducer = (state: State, action: Action): State => {
       // ! Side effects ! - This could be extracted into a dismissToast() action,
       // but I'll keep it here for simplicity
       if (toastId) {
-        const toast = state.toasts.find((t) => t.id === toastId)
-        const delay = toast?.removeDelay ?? DEFAULT_TOAST_REMOVE_DELAY
-        addToRemoveQueue(toastId, delay)
+        addToRemoveQueue(toastId)
       } else {
         state.toasts.forEach((toast) => {
-          const delay = toast.removeDelay ?? DEFAULT_TOAST_REMOVE_DELAY
-          addToRemoveQueue(toast.id, delay)
+          addToRemoveQueue(toast.id)
         })
       }
 
@@ -127,8 +123,6 @@ export const reducer = (state: State, action: Action): State => {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
       }
-    default:
-      return state
   }
 }
 
@@ -147,7 +141,6 @@ type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
   const id = genId()
-  const removeDelay = props.removeDelay ?? DEFAULT_TOAST_REMOVE_DELAY
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -161,7 +154,6 @@ function toast({ ...props }: Toast) {
     toast: {
       ...props,
       id,
-      removeDelay,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss()
@@ -176,12 +168,7 @@ function toast({ ...props }: Toast) {
   }
 }
 
-interface UseToastOptions {
-  removeDelay?: number
-}
-
-function useToast(options: UseToastOptions = {}) {
-  const removeDelay = options.removeDelay ?? DEFAULT_TOAST_REMOVE_DELAY
+function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {
@@ -195,14 +182,9 @@ function useToast(options: UseToastOptions = {}) {
     // Empty dependency array ensures listener is added once and cleaned up on unmount
   }, [])
 
-  const toastWithOptions = React.useCallback(
-    (props: Toast) => toast({ removeDelay, ...props }),
-    [removeDelay]
-  )
-
   return {
     ...state,
-    toast: toastWithOptions,
+    toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }
