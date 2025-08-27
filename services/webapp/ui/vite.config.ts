@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const sdkPath = path.resolve(__dirname, '../../../libs/ts-sdk')
 
 export default defineConfig(async ({ mode }) => {
   const plugins = [react(), tsconfigPaths()]
@@ -21,10 +22,10 @@ export default defineConfig(async ({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        '@sdk': path.resolve(__dirname, '../../..', 'libs/ts-sdk'),
+        '@sdk': sdkPath,
       },
     },
-    server: { host: '::', port: 8080 },
+    server: { host: '::', port: 8080, fs: { allow: [sdkPath] } },
     build: { outDir: 'dist' }, // Явно задаём dist (по умолчанию и так dist)
   }
 })
