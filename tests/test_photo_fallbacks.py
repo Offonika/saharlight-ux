@@ -29,7 +29,7 @@ def _find_handler(fallbacks, regex: str) -> MessageHandler:
 
 
 class DummyMessage:
-    def __init__(self, text: str = ""):
+    def __init__(self, text: str = "") -> None:
         self.text = text
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []

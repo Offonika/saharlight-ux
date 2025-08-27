@@ -270,7 +270,7 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 def _cancel_then(
     handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]],
-):
+) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[int]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
     async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -554,7 +554,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     "Доза инсулина не может быть отрицательной."
                 )
             return
-        def db_update(session: Session):
+        def db_update(session: Session) -> tuple[str, Entry | None]:
             entry = session.get(Entry, context.user_data["edit_id"])
             if not entry:
                 return "missing", None
@@ -649,7 +649,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         }
         missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
         if not missing:
-            def db_save(session: Session):
+            def db_save(session: Session) -> bool:
                 entry = Entry(**entry_data)
                 session.add(entry)
                 return commit(session)

@@ -12,7 +12,7 @@ from tests.helpers import make_context, make_update
 
 
 class DummyMessage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.texts: list[str] = []
         self.photos: list[tuple[Any, str | None]] = []
         self.markups: list[Any] = []
@@ -63,7 +63,7 @@ async def test_onboarding_demo_photo_missing(monkeypatch, caplog) -> None:
 
     orig_open = pathlib.Path.open
 
-    def fake_open(self, *args, **kwargs):
+    def fake_open(self, *args: Any, **kwargs: Any) -> Any:
         if self == onboarding.DEMO_PHOTO_PATH:
             raise OSError("missing")
         return orig_open(self, *args, **kwargs)

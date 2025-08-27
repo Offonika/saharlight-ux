@@ -417,11 +417,13 @@ async def onboarding_poll_answer(
     logger.info("Onboarding poll result from %s: %s", user_id, option)
 
 
-async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def _photo_fallback(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     from .dose_handlers import _cancel_then, photo_prompt
 
     handler = _cancel_then(photo_prompt)
-    return await handler(update, context)
+    await handler(update, context)
 
 
 onboarding_conv = ConversationHandler(
