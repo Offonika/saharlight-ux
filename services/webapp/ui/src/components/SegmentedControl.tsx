@@ -1,8 +1,8 @@
-import { useRef, type ReactNode } from 'react';
+import { useRef } from 'react';
 
 export interface SegmentedItem {
   value: string;
-  icon?: ReactNode;
+  icon?: React.ReactNode;
   label?: string;
 }
 
@@ -39,14 +39,13 @@ export const SegmentedControl = ({ value, onChange, items }: SegmentedControlPro
   };
 
   return (
-    <div className="segmented" role="radiogroup">
+    <div className="segmented" role="group">
       {items.map((item, index) => (
         <div className="segmented__item" key={item.value}>
           <button
             ref={(el) => (itemRefs.current[index] = el!)}
             type="button"
-            role="radio"
-            aria-checked={value === item.value}
+            aria-pressed={value === item.value}
             tabIndex={value === item.value ? 0 : -1}
             onKeyDown={(e) => handleKeyDown(e, index)}
             onClick={() => onChange(item.value)}

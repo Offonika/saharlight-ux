@@ -1,28 +1,23 @@
 import { ArrowLeft } from 'lucide-react';
-import { type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ThemeToggle from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface MedicalHeaderProps {
   title: string;
   showBack?: boolean;
   onBack?: () => void;
-  children?: ReactNode;
+  children?: React.ReactNode;
 }
 
 export const MedicalHeader = ({ title, showBack, onBack, children }: MedicalHeaderProps) => {
-  const navigate = useNavigate();
-  const handleBack = onBack ?? (() => navigate(-1));
-
   return (
-    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
+    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border/60 shadow-soft">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {showBack && (
               <Button
-                onClick={handleBack}
+                onClick={onBack}
                 variant="ghost"
                 size="icon"
                 aria-label="Назад"

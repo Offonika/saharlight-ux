@@ -1,372 +1,39 @@
-// Файл: webapp/ui/src/pages/Reminders.tsx
-import { useState, useEffect, type MouseEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus, Clock, Edit2, Trash2, Bell } from 'lucide-react'
+import RemindersList from '../features/reminders/pages/RemindersList'
 import { MedicalHeader } from '@/components/MedicalHeader'
-import { useToast } from '@/hooks/use-toast'
-import { getReminders, updateReminder, deleteReminder } from '@/api/reminders'
-import MedicalButton from '@/components/MedicalButton'
-import { useTelegramContext } from '@/contexts/telegram-context'
-import { cn } from '@/lib/utils'
-import {
-  normalizeReminderType,
-  type NormalizedReminderType,
-} from '@/lib/reminders'
-import { parseTimeToMinutes } from '@/lib/time'
-import type { ReminderSchema as ApiReminder } from '@sdk/models'
-import type { Reminder } from '@/types/reminder'
-
-const TYPE_LABEL: Record<NormalizedReminderType, string> = {
-  sugar: 'Измерение сахара',
-  insulin: 'Инсулин',
-  meal: 'Приём пищи',
-  medicine: 'Лекарства',
-}
-
-const TYPE_ICON: Record<NormalizedReminderType, string> = {
-  sugar: '🩸',
-  insulin: '💉',
-  meal: '🍽️',
-  medicine: '💊',
-}
-
-function SkeletonItem() {
-  return (
-    <div className="rem-card animate-pulse">
-      <div className="rem-left" />
-      <div className="rem-main">
-        <div className="h-5 w-40 rounded bg-muted/30" />
-        <div className="rem-meta mt-1">
-          <span className="h-6 w-16 rounded-full bg-muted/30" />
-          <span className="h-6 w-28 rounded-full bg-muted/30" />
-        </div>
-      </div>
-      <div className="rem-actions">
-        <div className="icon-btn" />
-        <div className="icon-btn" />
-        <div className="icon-btn" />
-      </div>
-    </div>
-  )
-}
-
-function ReminderRow({
-  reminder,
-  index,
-  onToggle,
-  onEdit,
-  onDelete,
-  invalid,
-  canToggle = true,
-}: {
-  reminder: Reminder
-  index: number
-  onToggle?: (id: number) => void
-  onEdit: (reminder: Reminder) => void
-  onDelete: (id: number) => void
-  invalid?: boolean
-  canToggle?: boolean
-}) {
-  const nt = normalizeReminderType(reminder.type)
-  const icon = TYPE_ICON[nt]
-  const label = TYPE_LABEL[nt]
-
-  return (
-    <div
-      className={cn(
-        'rem-card',
-        !reminder.active && 'opacity-60',
-        invalid && 'border border-destructive',
-      )}
-      style={{ animationDelay: `${index * 80}ms` }}
-    >
-      <div className="rem-left" aria-hidden="true">{icon}</div>
-
-      <div className="rem-main">
-        <div className="rem-title font-medium text-foreground">{reminder.title}</div>
-        <div className="rem-meta">
-          <span className="badge"><Clock className="inline -mt-0.5 mr-1 h-3 w-3" />{reminder.time}</span>
-          <span className="badge badge-tonal">{label}</span>
-        </div>
-      </div>
-
-      <div className="rem-actions">
-        {canToggle && onToggle && (
-          <MedicalButton
-            size="icon"
-            variant="ghost"
-            className={cn(
-              reminder.active
-                ? 'bg-medical-success/10 text-medical-success'
-                : 'bg-secondary text-muted-foreground',
-            )}
-            onClick={() => onToggle(reminder.id)}
-            aria-label=
-              {reminder.active ? 'Отключить напоминание' : 'Включить напоминание'}
-          >
-            <Bell className="w-4 h-4" />
-          </MedicalButton>
-        )}
-        <MedicalButton
-          size="icon"
-          variant="ghost"
-          onClick={() => onEdit(reminder)}
-          aria-label="Редактировать"
-        >
-          <Edit2 className="w-4 h-4" />
-        </MedicalButton>
-        <MedicalButton
-          size="icon"
-          variant="destructive"
-          onClick={() => onDelete(reminder.id)}
-          aria-label="Удалить"
-        >
-          <Trash2 className="w-4 h-4" />
-        </MedicalButton>
-      </div>
-    </div>
-  )
-}
+import { useNavigate } from 'react-router-dom'
+import { useTelegram } from '@/hooks/useTelegram'
+import { useState, useEffect } from 'react'
+import { getPlanLimit } from '../features/reminders/hooks/usePlan'
+import { useTelegramInitData } from '@/hooks/useTelegramInitData'
 
 export default function Reminders() {
   const navigate = useNavigate()
-  const { toast } = useToast()
-  const { user, sendData, isReady } = useTelegramContext()
-
-  const [reminders, setReminders] = useState<Reminder[]>([])
-  const [invalidReminders, setInvalidReminders] = useState<Reminder[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const telegramBot = import.meta.env.VITE_TELEGRAM_BOT
-  const telegramLink = telegramBot
-    ? `https://t.me/${telegramBot}?startapp=reminders`
-    : '#'
-
-  const handleMissingBot = (
-    event: MouseEvent<HTMLAnchorElement>,
-  ): void => {
-    event.preventDefault()
-    toast({
-      title: 'Ссылка недоступна',
-      description: 'Телеграм-бот не настроен',
-      variant: 'destructive',
-    })
-  }
+  const { user } = useTelegram()
+  const initData = useTelegramInitData()
+  const [reminderCount, setReminderCount] = useState(0)
+  const [planLimit, setPlanLimit] = useState(5)
 
   useEffect(() => {
-    if (!isReady) return
-    if (!user?.id) {
-      setLoading(false)
-      setError('Не удалось получить данные пользователя.')
-      return
+    if (user?.id) {
+      getPlanLimit(user.id, initData).then(setPlanLimit).catch(() => setPlanLimit(5))
     }
-    const controller = new AbortController()
-    setLoading(true)
-    setError(null)
-    ;(async () => {
-      try {
-        const data = await getReminders(user.id, controller.signal)
-        const normalized: Reminder[] = (data || []).map((r: ApiReminder) => {
-          const nt = normalizeReminderType(r.type)
-          return {
-            id: r.id ?? 0,
-            type: nt,
-            title: r.title ?? TYPE_LABEL[nt],
-            time: r.time || '',
-            active: r.isEnabled ?? false,
-            interval: r.intervalHours != null ? r.intervalHours * 60 : undefined,
-          }
-        })
-        const invalid = normalized.filter(r => Number.isNaN(parseTimeToMinutes(r.time)))
-        if (invalid.length > 0) {
-          setInvalidReminders(invalid)
-          toast({
-            title: 'Ошибка',
-            description: `Некорректное время напоминания: ${invalid
-              .map(r => r.time)
-              .join(', ')}`,
-            variant: 'destructive',
-          })
-        } else {
-          setInvalidReminders([])
-        }
-        const valid = normalized.filter(r => !invalid.includes(r))
-        valid.sort((a, b) => {
-          const ta = parseTimeToMinutes(a.time)
-          const tb = parseTimeToMinutes(b.time)
-          if (Number.isNaN(ta) && Number.isNaN(tb)) return 0
-          if (Number.isNaN(ta)) return 1
-          if (Number.isNaN(tb)) return -1
-          return ta - tb
-        })
-        setReminders(valid)
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          return
-        }
-        const message = err instanceof Error ? err.message : 'Не удалось загрузить напоминания'
-        setError(message)
-        toast({ title: 'Ошибка', description: message, variant: 'destructive' })
-      } finally {
-        if (!controller.signal.aborted) setLoading(false)
-        controller.abort()
-      }
-    })()
-    return () => controller.abort()
-  }, [toast, user?.id, isReady])
+  }, [user?.id, initData])
 
-  const handleToggleReminder = async (id: number) => {
-    if (!user?.id) return
-    const prevReminders = [...reminders]
-    const target = prevReminders.find(r => r.id === id)
-    if (!target) return
-    const nextActive = !target.active
-    setReminders(prev =>
-      prev.map(r => (r.id === id ? { ...r, active: nextActive } : r)),
-    )
-    try {
-      await updateReminder({
-        telegramId: user.id,
-        id,
-        type: target.type,
-        time: target.time,
-        intervalHours: target.interval != null ? target.interval / 60 : undefined,
-        isEnabled: nextActive,
-      })
-      const hours = target.interval != null ? target.interval / 60 : undefined
-      const value =
-        hours != null && Number.isInteger(hours) ? `${hours}h` : target.time
-      sendData({ id, type: target.type, value })
-      toast({
-        title: 'Напоминание обновлено',
-        description: 'Статус напоминания изменён',
-      })
-    } catch (err) {
-      setReminders(prevReminders)
-      const message = err instanceof Error ? err.message : 'Не удалось обновить напоминание'
-      toast({
-        title: 'Ошибка',
-        description: message,
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleDeleteReminder = async (id: number) => {
-    if (!user?.id) return
-    const prevReminders = [...reminders]
-    const prevInvalid = [...invalidReminders]
-    setReminders(prev => prev.filter(r => r.id !== id))
-    setInvalidReminders(prev => prev.filter(r => r.id !== id))
-    try {
-      await deleteReminder(user.id, id)
-      toast({
-        title: 'Напоминание удалено',
-        description: 'Напоминание успешно удалено',
-      })
-    } catch (err) {
-      setReminders(prevReminders)
-      setInvalidReminders(prevInvalid)
-      const message = err instanceof Error ? err.message : 'Не удалось удалить напоминание'
-      toast({
-        title: 'Ошибка',
-        description: message,
-        variant: 'destructive',
-      })
-    }
-  }
-
-  let content
-  if (loading) {
-    content = (
-      <div className="space-y-3 mb-6">
-        {Array.from({ length: 4 }).map((_, i) => <SkeletonItem key={i} />)}
-      </div>
-    )
-  } else if (error) {
-    content = (
-      <div className="text-center py-12 space-y-4">
-        <p className="text-destructive mb-4">{error}</p>
-        <div className="flex flex-col items-center gap-2">
-          <MedicalButton onClick={() => window.location.reload()}>Повторить</MedicalButton>
-          <MedicalButton asChild variant="outline">
-            <a
-              href={telegramLink}
-              target={telegramBot ? '_blank' : undefined}
-              rel={telegramBot ? 'noopener noreferrer' : undefined}
-              onClick={!telegramBot ? handleMissingBot : undefined}
-            >
-              Открыть в Telegram
-            </a>
-          </MedicalButton>
-        </div>
-      </div>
-    )
-  } else if (reminders.length === 0) {
-    content = (
-      <div className="text-center py-12">
-        <Clock className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-foreground mb-2">Нет напоминаний</h3>
-        <p className="text-muted-foreground mb-6">Добавьте первое напоминание для контроля диабета</p>
-        <MedicalButton onClick={() => navigate('/reminders/new')} size="lg">
-          Создать напоминание
-        </MedicalButton>
-      </div>
-    )
-  } else {
-    content = (
-      <div className="space-y-3 mb-6">
-        {reminders.map((reminder, index) => (
-          <ReminderRow
-            key={reminder.id}
-            reminder={reminder}
-            index={index}
-            onToggle={handleToggleReminder}
-            onEdit={(r) => navigate(`/reminders/${r.id}/edit`, { state: r })}
-            onDelete={handleDeleteReminder}
-          />
-        ))}
-      </div>
-    )
-  }
+  const quotaBadge = `${reminderCount}/${planLimit} 🔔`
 
   return (
-    <div className="min-h-screen bg-background">
-      <MedicalHeader title="Напоминания" showBack onBack={() => navigate('/')}>
-        <MedicalButton
-          size="icon"
-          onClick={() => navigate('/reminders/new')}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 border-0"
-          aria-label="Добавить напоминание"
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
+      <MedicalHeader title={`Напоминания ${quotaBadge}`} showBack onBack={() => navigate('/')}>
+        <a 
+          href="/reminders/new" 
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg shadow-soft hover:shadow-medium hover:bg-primary/90 transition-all duration-200"
         >
-          <Plus className="w-5 h-5" />
-        </MedicalButton>
+          + Добавить
+        </a>
       </MedicalHeader>
 
       <main className="container mx-auto px-4 py-6">
-        {content}
-        {invalidReminders.length > 0 && (
-          <div className="space-y-3 mb-6 mt-8">
-            <h3 className="text-sm font-medium text-destructive">
-              Некорректные напоминания
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Исправьте время, чтобы они отображались корректно
-            </p>
-            {invalidReminders.map((reminder, index) => (
-              <ReminderRow
-                key={reminder.id}
-                reminder={reminder}
-                index={index}
-                onEdit={(r) => navigate(`/reminders/${r.id}/edit`, { state: r })}
-                onDelete={handleDeleteReminder}
-                invalid
-                canToggle={false}
-              />
-            ))}
-          </div>
-        )}
+        <RemindersList onCountChange={setReminderCount} planLimit={planLimit} />
       </main>
     </div>
   )
