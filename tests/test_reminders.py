@@ -140,18 +140,23 @@ def make_user(user_id: int) -> MagicMock:
     return user
 
 
-def make_update(**kwargs: Any) -> MagicMock:
+def make_update(**kwargs: Any) -> Update:
     update = MagicMock(spec=Update)
     for key, value in kwargs.items():
         setattr(update, key, value)
-    return update
+    return cast(Update, update)
 
 
-def make_context(**kwargs: Any) -> MagicMock:
+def make_context(
+    **kwargs: Any,
+) -> CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
     context = MagicMock(spec=CallbackContext)
     for key, value in kwargs.items():
         setattr(context, key, value)
-    return context
+    return cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        context,
+    )
 
 
 def test_schedule_reminder_replaces_existing_job() -> None:
