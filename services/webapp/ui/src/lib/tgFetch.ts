@@ -36,7 +36,10 @@ export async function tgFetch(input: RequestInfo | URL, init: RequestInit = {}):
   let signal: AbortSignal = controller.signal
   if (init.signal) {
     if (typeof AbortSignal.any === 'function') {
-      signal = (AbortSignal as any).any([controller.signal, init.signal])
+      const AbortSignalAny = AbortSignal as unknown as {
+        any(signals: readonly AbortSignal[]): AbortSignal
+      }
+      signal = AbortSignalAny.any([controller.signal, init.signal])
     } else {
       if (init.signal.aborted) controller.abort()
       else init.signal.addEventListener('abort', () => controller.abort(), { once: true })

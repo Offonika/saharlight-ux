@@ -40,7 +40,7 @@ describe('getHistory', () => {
 
   it('throws on invalid history item', async () => {
     mockHistoryGet.mockResolvedValueOnce([
-      { id: '1', time: '12:00', type: 'meal' } as any,
+      { id: '1', time: '12:00', type: 'meal' } as unknown,
     ]);
     await expect(getHistory()).rejects.toThrow(
       'Некорректная запись истории',

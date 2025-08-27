@@ -27,7 +27,7 @@ export default tseslint.config(
       "no-restricted-imports": [
         "error",
         {
-          patterns: ["../libs/ts-sdk", "../libs/ts-sdk/*"],
+          patterns: ["**/libs/ts-sdk/**"],
         },
       ],
     },
