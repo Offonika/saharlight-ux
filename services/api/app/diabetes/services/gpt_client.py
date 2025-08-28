@@ -123,18 +123,20 @@ async def send_message(
     """
     if content is None and image_path is None:
         raise ValueError("Either 'content' or 'image_path' must be provided")
+
     settings = config.get_settings()
     if not settings.openai_assistant_id:
         message = "OPENAI_ASSISTANT_ID is not set"
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
+    client: OpenAI = _get_client()
+
     # 1. Подготовка контента
     text_block: TextContentBlockParam = {
         "type": "text",
         "text": content if content is not None else "Что изображено на фото?",
     }
-    client: OpenAI = _get_client()
     message_content: Iterable[
         ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam
     ]
@@ -195,6 +197,6 @@ async def send_message(
         message = "Run creation returned None"
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
-
-    logger.debug("[OpenAI] Run %s started (thread %s)", run.id, thread_id)
-    return run
+    else:
+        logger.debug("[OpenAI] Run %s started (thread %s)", run.id, thread_id)
+        return run
