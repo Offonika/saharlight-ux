@@ -29,7 +29,7 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 async def test_profile_timezone_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(handlers, "build_timezone_webapp_button", lambda: None)
+    monkeypatch.setenv("PUBLIC_ORIGIN", "")
     message = DummyMessage()
     query = SimpleNamespace(message=message, answer=AsyncMock())
     update = cast(Update, SimpleNamespace(callback_query=query))
@@ -40,6 +40,7 @@ async def test_profile_timezone_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
     state = await handlers.profile_timezone(update, context)
     assert state == handlers.PROFILE_TZ
     assert "Введите ваш часовой пояс" in message.replies[0]
+    assert any("вручную" in r.lower() for r in message.replies)
 
 
 @pytest.mark.asyncio

@@ -229,15 +229,24 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             await message.reply_text("⚠️ Не удалось сохранить профиль.")
             return ConversationHandler.END
 
-    keyboard_buttons = []
     tz_button = build_timezone_webapp_button()
+    keyboard_buttons: list[InlineKeyboardButton] = []
     if tz_button:
         keyboard_buttons.append(tz_button)
+        prompt = (
+            "Введите ваш часовой пояс (например Europe/Moscow) "
+            "или используйте кнопку ниже:"
+        )
+    else:
+        prompt = (
+            "Введите ваш часовой пояс (например Europe/Moscow). "
+            "Автоматическое определение недоступно, укажите его вручную."
+        )
     keyboard_buttons.append(
         InlineKeyboardButton("Пропустить", callback_data="onb_skip")
     )
     await message.reply_text(
-        "Введите ваш часовой пояс (например Europe/Moscow) или используйте кнопку ниже:",
+        prompt,
         reply_markup=InlineKeyboardMarkup([keyboard_buttons]),
     )
     return ONB_PROFILE_TZ
@@ -259,23 +268,27 @@ async def onboarding_timezone(
         tz_name = message.text.strip()
     else:
         return ConversationHandler.END
-    buttons: list[InlineKeyboardButton] = []
-    tz_button = build_timezone_webapp_button()
-    if tz_button:
-        buttons.append(tz_button)
-    buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
     try:
         ZoneInfo(tz_name)
     except ZoneInfoNotFoundError:
         logger.warning("Invalid timezone provided by user %s: %s", user.id, tz_name)
-        buttons = []
+        buttons: list[InlineKeyboardButton] = []
         tz_button = build_timezone_webapp_button()
         if tz_button:
             buttons.append(tz_button)
+            prompt = (
+                "Введите корректный часовой пояс, например Europe/Moscow, "
+                "или используйте кнопку ниже."
+            )
+        else:
+            prompt = (
+                "Введите корректный часовой пояс, например Europe/Moscow. "
+                "Автоматическое определение недоступно, укажите его вручную."
+            )
         buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
 
         await message.reply_text(
-            "Введите корректный часовой пояс, например Europe/Moscow.",
+            prompt,
             reply_markup=InlineKeyboardMarkup([buttons]),
         )
         return ONB_PROFILE_TZ
@@ -286,9 +299,14 @@ async def onboarding_timezone(
             type(exc).__name__,
             exc,
         )
+        err_buttons: list[InlineKeyboardButton] = []
+        tz_button = build_timezone_webapp_button()
+        if tz_button:
+            err_buttons.append(tz_button)
+        err_buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
         await message.reply_text(
             "⚠️ Произошла ошибка при проверке часового пояса.",
-            reply_markup=InlineKeyboardMarkup([buttons]),
+            reply_markup=InlineKeyboardMarkup([err_buttons]),
         )
         return ONB_PROFILE_TZ
     user_id = user.id
