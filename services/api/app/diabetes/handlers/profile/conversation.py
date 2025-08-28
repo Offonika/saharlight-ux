@@ -510,10 +510,13 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await sos_handlers.sos_contact_start(update, context)
         return
-    if action == "add" and config.settings.public_origin:
+    from services.api.app import config as app_config
+
+    origin = app_config.settings.public_origin
+    if action == "add" and origin:
         button = InlineKeyboardButton(
             "📝 Новое",
-            web_app=WebAppInfo(config.build_ui_url("/reminders")),
+            web_app=WebAppInfo(app_config.build_ui_url("/reminders")),
         )
         keyboard = InlineKeyboardMarkup([[button]])
         await q_message.reply_text("Создать напоминание:", reply_markup=keyboard)

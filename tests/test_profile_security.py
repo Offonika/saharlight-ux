@@ -242,6 +242,14 @@ async def test_profile_security_add_delete_calls_handlers(
 
     await handlers.profile_security(update_add, context)
     assert query_add.message.texts[-1] == "Создать напоминание:"
+    markup = query_add.message.markups[-1]
+    button = markup.inline_keyboard[0][0]
+    assert button.web_app is not None
+    assert button.web_app.url == config.build_ui_url("/reminders")
+
+    monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
+    monkeypatch.delenv("UI_BASE_URL", raising=False)
+    importlib.reload(config)
 
     query_del = DummyQuery(DummyMessage(), "profile_security:del")
     update_del = cast(
