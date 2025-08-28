@@ -293,7 +293,9 @@ async def test_profile_view_missing_profile_shows_webapp_button(
     assert msg.texts[0].startswith("Ваш профиль пока не настроен.")
     markup = msg.markups[0]
     button = markup.inline_keyboard[0][0]
-    assert button.text == "Открыть профиль"
+
+    assert button.text == "🌐 Открыть профиль в WebApp"
+
     assert button.web_app is not None
     assert urlparse(button.web_app.url).path == "/profile"
 
@@ -325,6 +327,8 @@ async def test_profile_view_existing_profile_shows_webapp_button(
 
     markup = msg.markups[0]
     button = markup.inline_keyboard[1][0]
-    assert button.text == "Открыть профиль"
+
+    assert button.text == "🌐 Открыть профиль в WebApp"
+
     assert button.web_app is not None
     assert urlparse(button.web_app.url).path == "/profile"

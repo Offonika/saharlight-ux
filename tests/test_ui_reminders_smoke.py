@@ -19,3 +19,12 @@ def test_reminders_new_page_smoke() -> None:
         assert resp.status_code == 200
         assert "text/html" in resp.headers["content-type"]
         assert "<html" in resp.text.lower()
+
+
+def test_reminders_edit_page_smoke() -> None:
+    with TestClient(app) as client:
+        base = config.settings.ui_base_url.rstrip("/")
+        resp = client.get(f"{base}/reminders/1/edit")
+        assert resp.status_code == 200
+        assert "text/html" in resp.headers["content-type"]
+        assert "<html" in resp.text.lower()

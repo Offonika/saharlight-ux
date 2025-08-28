@@ -223,7 +223,10 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if settings.public_origin:
         webapp_button = [
             InlineKeyboardButton(
-                "Открыть профиль",
+
+
+                "🌐 Открыть профиль в WebApp",
+
                 web_app=WebAppInfo(config.build_ui_url("/profile")),
             )
         ]
