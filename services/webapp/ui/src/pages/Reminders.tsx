@@ -25,7 +25,7 @@ export default function Reminders() {
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
       <MedicalHeader title={`Напоминания ${quotaBadge}`} showBack onBack={() => navigate('/')}>
         <Link
-          to="new"
+          to="/reminders/new"
           className="px-4 py-2 bg-primary text-primary-foreground rounded-lg shadow-soft hover:shadow-medium hover:bg-primary/90 transition-all duration-200"
         >
           + Добавить
