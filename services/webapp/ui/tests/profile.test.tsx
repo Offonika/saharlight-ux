@@ -13,7 +13,7 @@ vi.mock('../src/hooks/use-toast', () => ({
 }));
 
 vi.mock('../src/hooks/useTelegram', () => ({
-  useTelegram: () => ({ user: null }),
+  useTelegram: () => ({ user: null, initData: null }),
 }));
 
 vi.mock('../src/hooks/useTelegramInitData', () => ({

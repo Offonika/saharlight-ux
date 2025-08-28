@@ -16,7 +16,7 @@ vi.mock('../src/hooks/use-toast', () => ({
   useToast: () => ({ toast })
 }));
 vi.mock('../src/hooks/useTelegram', () => ({
-  useTelegram: () => ({ user: { id: 1 }, sendData: vi.fn() })
+  useTelegram: () => ({ user: { id: 1 }, sendData: vi.fn(), initData: null })
 }));
 vi.mock('../src/hooks/useTelegramInitData', () => ({
   useTelegramInitData: () => ({})

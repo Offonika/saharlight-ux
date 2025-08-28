@@ -48,7 +48,7 @@ interface TelegramWebApp {
   themeParams?: ThemeParams;
   user?: TelegramUser;
   initDataUnsafe?: { user?: TelegramUser };
-  initData?: string;
+  initData?: string | null;
   setBackgroundColor?: (color: string) => void;
   setHeaderColor?: (color: string) => void;
   onEvent?: (eventType: string, handler: () => void) => void;
@@ -62,9 +62,23 @@ interface TelegramWindow extends Window {
   Telegram?: { WebApp?: TelegramWebApp };
 }
 
+interface UseTelegramResult {
+  tg: TelegramWebApp | null;
+  isReady: boolean;
+  user: TelegramUser | null;
+  initData: string | null;
+  colorScheme: Scheme;
+  sendData: (data: unknown) => void;
+  showMainButton: (text: string, onClick: () => void) => void;
+  hideMainButton: () => void;
+  showBackButton: (onClick: () => void) => void;
+  hideBackButton: () => void;
+  isTelegram: boolean;
+}
+
 export const useTelegram = (
   forceLight: boolean = import.meta.env.VITE_FORCE_LIGHT === "true",
-) => {
+): UseTelegramResult => {
   const tg = useMemo<TelegramWebApp | null>(
     () => (window as TelegramWindow)?.Telegram?.WebApp ?? null,
     [],
@@ -285,17 +299,20 @@ export const useTelegram = (
   };
   const hideBackButton = () => tg?.BackButton?.hide?.();
 
-  return {
-    tg,
-    isReady,
-    user,
-    initData: tg?.initData,
-    colorScheme,
-    sendData,
-    showMainButton,
-    hideMainButton,
-    showBackButton,
-    hideBackButton,
-    isTelegram: Boolean(tg),
+    const initData =
+      tg?.initData ?? localStorage.getItem("tg_init_data") ?? null;
+
+    return {
+      tg,
+      isReady,
+      user,
+      initData,
+      colorScheme,
+      sendData,
+      showMainButton,
+      hideMainButton,
+      showBackButton,
+      hideBackButton,
+      isTelegram: Boolean(tg),
+    };
   };
-};
