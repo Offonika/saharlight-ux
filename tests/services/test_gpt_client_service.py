@@ -20,22 +20,54 @@ async def test_send_message_requires_payload() -> None:
 async def test_send_message_missing_assistant_id(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    fake_client = SimpleNamespace(
-        beta=SimpleNamespace(
-            threads=SimpleNamespace(
-                messages=SimpleNamespace(create=lambda **_: None),
-                runs=SimpleNamespace(create=lambda **_: None),
-            )
-        )
+    called = False
+
+    def fake_get_client() -> None:
+        nonlocal called
+        called = True
+        raise AssertionError("_get_client should not be called")
+
+    monkeypatch.setattr(gpt_client, "_get_client", fake_get_client)
+    monkeypatch.setattr(
+        gpt_client.config,
+        "get_settings",
+        lambda: SimpleNamespace(openai_assistant_id=""),
     )
-    monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
-    monkeypatch.setattr(settings, "openai_assistant_id", "")
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(RuntimeError):
             await gpt_client.send_message(thread_id="t", content="hi")
 
+    assert not called
     assert any("OPENAI_ASSISTANT_ID is not set" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_send_message_run_none(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def fake_messages_create(**_: Any) -> None:
+        return None
+
+    def fake_runs_create(**_: Any) -> None:
+        return None
+
+    fake_client = SimpleNamespace(
+        beta=SimpleNamespace(
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(create=fake_messages_create),
+                runs=SimpleNamespace(create=fake_runs_create),
+            )
+        )
+    )
+    monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(settings, "openai_assistant_id", "asst")
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError):
+            await gpt_client.send_message(thread_id="t", content="hi")
+
+    assert any("Run creation returned None" in r.message for r in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -152,6 +184,7 @@ async def test_send_message_image_open_error(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     monkeypatch.setattr(gpt_client, "_get_client", lambda: SimpleNamespace())
+    monkeypatch.setattr(settings, "openai_assistant_id", "asst")
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(OSError):
