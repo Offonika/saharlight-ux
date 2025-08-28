@@ -86,7 +86,7 @@ END: int = ConversationHandler.END
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ``/profile`` command.
 
-    * ``/profile`` → start step-by-step profile setup (conversation)
+    * ``/profile`` → display current profile
     * ``/profile help`` → show usage instructions
     * ``/profile <args>`` → set profile directly
     """
@@ -132,11 +132,8 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return END
 
     if not args:
-        await message.reply_text(
-            "Введите коэффициент ИКХ (г/ед.) — сколько граммов углеводов покрывает 1 ед. быстрого инсулина:",
-            reply_markup=back_keyboard,
-        )
-        return PROFILE_ICR
+        await profile_view(update, context)
+        return END
 
     values = parse_profile_args(args)
     if values is None:
