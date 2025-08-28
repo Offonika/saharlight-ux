@@ -149,6 +149,11 @@ def register_handlers(
             "report", reporting_handlers.report_request
         )
     )
+    app.add_handler(
+        CommandHandler[ContextTypes.DEFAULT_TYPE](
+            "history", reporting_handlers.history_view
+        )
+    )
     app.add_handler(dose_calc.dose_conv)
     # Register profile conversation before sugar conversation so that numeric
     # inputs for profile aren't captured by sugar logging

@@ -25,6 +25,7 @@ commands = [
     BotCommand("menu", "Главное меню"),
     BotCommand("profile", "Мой профиль"),
     BotCommand("report", "Отчёт"),
+    BotCommand("history", "История записей"),
     BotCommand("sugar", "Расчёт сахара"),
     BotCommand("gpt", "Чат с GPT"),
     BotCommand("reminders", "Список напоминаний"),
