@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import type { ReminderSchema } from "@sdk";
 import { useRemindersApi } from "../api/reminders";
 import { formatNextAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
@@ -134,11 +135,24 @@ export default function RemindersList({
   }, [items, filter]);
 
   async function toggleEnabled(r: ReminderDto) {
-    const optimistic = items.map(x => x.id === r.id ? { ...x, isEnabled: !x.isEnabled } : x);
+    const optimistic = items.map(x =>
+      x.id === r.id ? { ...x, isEnabled: !x.isEnabled } : x
+    );
     setItems(optimistic);
     try {
       try {
-        await api.remindersPatch({ telegramId: r.telegramId, id: r.id, isEnabled: !r.isEnabled });
+        const reminder: ReminderSchema = {
+          telegramId: r.telegramId,
+          id: r.id,
+          type: r.type as any,
+          kind: r.kind,
+          time: r.time ?? undefined,
+          intervalMinutes: r.intervalMinutes ?? undefined,
+          minutesAfter: r.minutesAfter ?? undefined,
+          daysOfWeek: r.daysOfWeek ?? undefined,
+          isEnabled: !r.isEnabled,
+        };
+        await api.remindersPatch({ reminder });
       } catch (apiError) {
         console.warn("Backend API failed, using mock API:", apiError);
         await mockApi.updateReminder({ ...r, isEnabled: !r.isEnabled });
