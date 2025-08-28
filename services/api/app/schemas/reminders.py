@@ -5,12 +5,15 @@ from typing import Optional
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
+from ..diabetes.schemas.reminders import DayOfWeek, ScheduleKind
+
 
 class ReminderSchema(BaseModel):
     telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
     id: Optional[int] = None
     type: str
     title: Optional[str] = None
+    kind: ScheduleKind = ScheduleKind.at_time
     time: Optional[time_] = None
     intervalMinutes: Optional[int] = Field(
         default=None,
@@ -27,8 +30,18 @@ class ReminderSchema(BaseModel):
         alias="intervalHours",
         validation_alias=AliasChoices("intervalHours", "interval_hours"),
     )
+    daysOfWeek: Optional[list[DayOfWeek]] = Field(
+        default=None,
+        alias="daysOfWeek",
+        validation_alias=AliasChoices("daysOfWeek", "days_of_week"),
+    )
     isEnabled: bool = True
     orgId: Optional[int] = None
+    nextAt: Optional[datetime_] = Field(
+        default=None,
+        alias="nextAt",
+        validation_alias=AliasChoices("nextAt", "next_at"),
+    )
     lastFiredAt: Optional[datetime_] = Field(
         default=None,
         alias="lastFiredAt",

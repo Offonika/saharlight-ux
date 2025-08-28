@@ -121,11 +121,12 @@ export default function CreateReminder() {
     e.preventDefault();
     if (!formValid || !user?.id) return;
     setError(null);
+    const kind = interval != null ? "every" : "at_time";
     const payload: ApiReminder = {
       telegramId: user.id,
       type,
-      time,
-      intervalHours: interval != null ? interval / 60 : undefined,
+      kind,
+      ...(kind === "at_time" ? { time } : { intervalMinutes: interval ?? undefined }),
       isEnabled: true,
       ...(editing ? { id: editing.id } : {}),
     };

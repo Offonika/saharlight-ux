@@ -44,9 +44,11 @@ export function buildReminderPayload(v: ReminderFormValues) {
   const base = {
     telegram_id: values.telegramId,
     type: values.type,
+    kind: values.kind,
     is_enabled: values.isEnabled ?? true,
+    ...(values.daysOfWeek ? { days_of_week: values.daysOfWeek } : {}),
   };
-  
+
   // Backend only supports one of: time, interval_minutes, minutes_after
   if (values.kind === "at_time" && values.time) {
     return { ...base, time: values.time };

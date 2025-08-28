@@ -46,18 +46,22 @@ async def get_reminders(
     result: list[dict[str, object]] = []
     for r in rems:
         last = cast(Optional[datetime], getattr(r, "last_fired_at", None))
+        next_ = cast(Optional[datetime], getattr(r, "next_at", None))
         result.append(
             {
                 "telegramId": r.telegram_id,
                 "id": r.id,
                 "type": r.type,
                 "title": r.title,
+                "kind": r.kind,
                 "time": r.time.strftime("%H:%M") if r.time else None,
                 "intervalHours": r.interval_hours,
                 "intervalMinutes": r.interval_minutes,
                 "minutesAfter": r.minutes_after,
+                "daysOfWeek": r.daysOfWeek,
                 "isEnabled": r.is_enabled,
                 "orgId": r.org_id,
+                "nextAt": next_.isoformat() if next_ else None,
                 "lastFiredAt": last.isoformat() if last else None,
                 "fires7d": cast(int, getattr(r, "fires7d", 0)),
             }
@@ -93,17 +97,21 @@ async def get_reminder(
     for r in rems:
         if r.id == id:
             last = cast(Optional[datetime], getattr(r, "last_fired_at", None))
+            next_ = cast(Optional[datetime], getattr(r, "next_at", None))
             return {
                 "telegramId": r.telegram_id,
                 "id": r.id,
                 "type": r.type,
                 "title": r.title,
+                "kind": r.kind,
                 "time": r.time.strftime("%H:%M") if r.time else None,
                 "intervalHours": r.interval_hours,
                 "intervalMinutes": r.interval_minutes,
                 "minutesAfter": r.minutes_after,
+                "daysOfWeek": r.daysOfWeek,
                 "isEnabled": r.is_enabled,
                 "orgId": r.org_id,
+                "nextAt": next_.isoformat() if next_ else None,
                 "lastFiredAt": last.isoformat() if last else None,
                 "fires7d": cast(int, getattr(r, "fires7d", 0)),
             }

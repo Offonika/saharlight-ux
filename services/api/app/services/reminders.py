@@ -4,12 +4,14 @@ from __future__ import annotations
 from datetime import datetime, timedelta, time as time_, timezone
 from importlib import resources
 from typing import Callable, cast
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import Reminder, SessionLocal, User, run_db
+from ..diabetes.services.reminders_schedule import compute_next
 from ..diabetes.services.repository import CommitError, commit
 from ..schemas.reminders import ReminderSchema
 from ..types import SessionProtocol
@@ -32,7 +34,8 @@ def _default_title(rem_type: str, rem_time: time_ | None) -> str | None:
 
 async def list_reminders(telegram_id: int) -> list[Reminder]:
     def _list(session: Session) -> list[Reminder]:
-        if cast(User | None, session.get(User, telegram_id)) is None:
+        user = cast(User | None, session.get(User, telegram_id))
+        if user is None:
             return []
         reminders_ = session.query(Reminder).filter_by(telegram_id=telegram_id).all()
         sql = resources.files("services.api.app.diabetes.sql").joinpath(
@@ -43,6 +46,7 @@ async def list_reminders(telegram_id: int) -> list[Reminder]:
             text(sql), {"telegram_id": telegram_id, "since": since}
         ).mappings()
         stats = {row["reminder_id"]: row for row in rows}
+        tz = ZoneInfo(user.timezone)
         for rem in reminders_:
             st = stats.get(rem.id)
             last = st["last_fired_at"] if st else None
@@ -50,6 +54,9 @@ async def list_reminders(telegram_id: int) -> list[Reminder]:
                 last = datetime.fromisoformat(last)
             setattr(rem, "last_fired_at", last)
             setattr(rem, "fires7d", st["fires7d"] if st else 0)
+            rem.kind = rem.kind or "at_time"
+            next_ = compute_next(rem, tz)
+            setattr(rem, "next_at", next_)
         return reminders_
 
     return await run_db(_list, sessionmaker=SessionLocal)
@@ -69,6 +76,7 @@ async def save_reminder(data: ReminderSchema) -> int:
         if data.orgId is not None:
             rem.org_id = data.orgId
         rem.type = data.type
+        rem.kind = data.kind
         if data.title is not None:
             rem.title = data.title
         elif rem.title is None:
@@ -78,6 +86,7 @@ async def save_reminder(data: ReminderSchema) -> int:
         rem.interval_minutes = data.intervalMinutes
         rem.set_interval_hours_if_needed(data.intervalHours)
         rem.minutes_after = data.minutesAfter
+        rem.daysOfWeek = data.daysOfWeek
         rem.is_enabled = data.isEnabled
         try:
             commit(cast(Session, session))
