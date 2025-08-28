@@ -1,3 +1,5 @@
+import type { ReminderSchema } from "@sdk";
+
 export type ReminderType =
   | "sugar" | "insulin_short" | "insulin_long" | "after_meal"
   | "meal" | "sensor_change" | "injection_site" | "custom";
@@ -34,7 +36,7 @@ function generateTitle(v: ReminderFormValues): string {
   return TYPE_LABEL[v.type];
 }
 
-export function buildReminderPayload(v: ReminderFormValues) {
+export function buildReminderPayload(v: ReminderFormValues): ReminderSchema {
   // Guard: force after_event to use after_meal type
   const values = { ...v };
   if (values.kind === "after_event" && values.type !== "after_meal") {
@@ -42,21 +44,22 @@ export function buildReminderPayload(v: ReminderFormValues) {
   }
 
   const base = {
-    telegram_id: values.telegramId,
+    telegramId: values.telegramId,
     type: values.type,
     kind: values.kind,
-    is_enabled: values.isEnabled ?? true,
-    ...(values.daysOfWeek ? { days_of_week: values.daysOfWeek } : {}),
+    isEnabled: values.isEnabled ?? true,
+    title: generateTitle(values),
+    ...(values.daysOfWeek ? { daysOfWeek: new Set(values.daysOfWeek) } : {}),
   };
 
-  // Backend only supports one of: time, interval_minutes, minutes_after
+  // Backend only supports one of: time, intervalMinutes, minutesAfter
   if (values.kind === "at_time" && values.time) {
     return { ...base, time: values.time };
   } else if (values.kind === "every" && values.intervalMinutes) {
-    return { ...base, interval_minutes: values.intervalMinutes };
+    return { ...base, intervalMinutes: values.intervalMinutes };
   } else if (values.kind === "after_event" && values.minutesAfter) {
-    return { ...base, minutes_after: values.minutesAfter };
+    return { ...base, minutesAfter: values.minutesAfter };
   }
-  
+
   return base;
 }

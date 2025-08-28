@@ -59,16 +59,16 @@ export default function RemindersCreate() {
     
     setLoading(true);
     try {
-      const payload = buildReminderPayload({ ...form, telegramId });
-      console.log("Payload being sent:", payload);
-      
+      const reminder = buildReminderPayload({ ...form, telegramId });
+      console.log("Payload being sent:", reminder);
+
       try {
         // Пробуем основной API
-        await api.remindersPost(payload);
+        await api.remindersPost({ reminder });
       } catch (apiError) {
         console.warn("Backend API failed, using mock API:", apiError);
         // Fallback на mock API
-        await mockApi.createReminder(payload);
+        await mockApi.createReminder(reminder);
       }
       
       toast.success("Напоминание успешно создано");
