@@ -70,4 +70,5 @@ def test_profiles_post_invalid_values_returns_422(
     with TestClient(app) as client:
         resp = client.post("/api/profiles", json=payload)
     assert resp.status_code == 422
+    assert resp.json() == {"detail": "low must be less than high"}
     engine.dispose()

@@ -15,7 +15,10 @@ router.include_router(reminders_router)
 
 @router.post("/profiles", operation_id="profilesPost", tags=["profiles"])
 async def profiles_post(data: ProfileSchema) -> ProfileSchema:
-    await save_profile(data)
+    try:
+        await save_profile(data)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return data
 
 
