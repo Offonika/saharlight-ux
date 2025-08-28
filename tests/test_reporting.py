@@ -223,7 +223,7 @@ async def test_send_report_uses_gpt(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("DB_PASSWORD", "pwd")
 
     import services.api.app.diabetes.handlers.reporting_handlers as handlers
-    from services.api.app.diabetes.services.db import Base, Entry, User
+    from services.api.app.diabetes.services.db import Base, HistoryRecord, User
 
     engine = create_engine(
         "sqlite:///:memory:",
@@ -237,12 +237,15 @@ async def test_send_report_uses_gpt(monkeypatch: pytest.MonkeyPatch) -> None:
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="tid"))
         session.add(
-            Entry(
+            HistoryRecord(
+                id="1",
                 telegram_id=1,
-                event_time=datetime.datetime(2025, 7, 1, tzinfo=datetime.timezone.utc),
-                sugar_before=6.0,
-                carbs_g=30.0,
-                dose=5.0,
+                date=datetime.date(2025, 7, 1),
+                time=datetime.time(9, 0),
+                sugar=6.0,
+                carbs=30.0,
+                insulin=5.0,
+                type="meal",
             )
         )
         session.commit()

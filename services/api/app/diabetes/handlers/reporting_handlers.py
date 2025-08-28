@@ -8,6 +8,7 @@ import html
 import logging
 import os  # Re-export for tests and type checkers
 
+from dataclasses import dataclass
 from typing import Protocol, cast
 
 from openai import OpenAIError
@@ -23,7 +24,7 @@ from telegram import (
 )
 from telegram.ext import ContextTypes
 
-from services.api.app.diabetes.services.db import SessionLocal, Entry, User
+from services.api.app.diabetes.services.db import SessionLocal, HistoryRecord, User
 from services.api.app.diabetes.services.gpt_client import (
     send_message,
     _get_client,
@@ -34,6 +35,7 @@ from services.api.app.diabetes.services.reporting import (
     make_sugar_plot,
     generate_pdf_report,
 )
+from sqlalchemy import and_, or_
 from services.api.app.diabetes.utils.ui import menu_keyboard, BACK_BUTTON_TEXT
 from . import UserData
 
@@ -51,6 +53,27 @@ class EntryLike(Protocol):
     carbs_g: float | None
     xe: float | None
     dose: float | str | None
+
+
+@dataclass
+class HistoryEntry:
+    """Adapter converting ``HistoryRecord`` fields to ``EntryLike``."""
+
+    event_time: datetime.datetime
+    sugar_before: float | None
+    carbs_g: float | None
+    xe: float | None
+    dose: float | str | None
+
+
+def _adapt_history_record(record: HistoryRecord) -> HistoryEntry:
+    return HistoryEntry(
+        event_time=datetime.datetime.combine(record.date, record.time),
+        sugar_before=record.sugar,
+        carbs_g=record.carbs,
+        xe=record.bread_units,
+        dose=record.insulin,
+    )
 
 
 def render_entry(entry: EntryLike) -> str:
@@ -110,19 +133,19 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     user_id = user.id
 
-    def _fetch_entries() -> list[Entry]:
+    def _fetch_entries() -> list[HistoryRecord]:
         with SessionLocal() as session:
             return (
-                session.query(Entry)
-                .filter(Entry.telegram_id == user_id)
-                .order_by(Entry.event_time.desc())
+                session.query(HistoryRecord)
+                .filter(HistoryRecord.telegram_id == user_id)
+                .order_by(HistoryRecord.date.desc(), HistoryRecord.time.desc())
                 .limit(10)
                 .all()
             )
 
     # Run DB work in a thread to keep the event loop responsive.
-    entries = await asyncio.to_thread(_fetch_entries)
-    if not entries:
+    records = await asyncio.to_thread(_fetch_entries)
+    if not records:
         await message.reply_text("В дневнике пока нет записей.")
         return
 
@@ -146,15 +169,15 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             "История также доступна в WebApp:", reply_markup=open_markup
         )
 
-    for entry in entries:
-        text = render_entry(cast(EntryLike, entry))
+    for record in records:
+        text = render_entry(_adapt_history_record(record))
         markup = InlineKeyboardMarkup(
             [
                 [
                     InlineKeyboardButton(
-                        "✏️ Изменить", callback_data=f"edit:{entry.id}"
+                        "✏️ Изменить", callback_data=f"edit:{record.id}"
                     ),
-                    InlineKeyboardButton("🗑 Удалить", callback_data=f"del:{entry.id}"),
+                    InlineKeyboardButton("🗑 Удалить", callback_data=f"del:{record.id}"),
                 ]
             ]
         )
@@ -236,25 +259,37 @@ async def send_report(
     user_id = tg_user.id
     message = update.message
 
-    def _fetch_entries() -> list[Entry]:
+    def _fetch_entries() -> list[HistoryRecord]:
         with SessionLocal() as session:
+            date_part = date_from.date()
+            time_part = date_from.time()
             return (
-                session.query(Entry)
-                .filter(Entry.telegram_id == user_id)
-                .filter(Entry.event_time >= date_from)
-                .order_by(Entry.event_time)
+                session.query(HistoryRecord)
+                .filter(
+                    HistoryRecord.telegram_id == user_id,
+                    or_(
+                        HistoryRecord.date > date_part,
+                        and_(
+                            HistoryRecord.date == date_part,
+                            HistoryRecord.time >= time_part,
+                        ),
+                    ),
+                )
+                .order_by(HistoryRecord.date, HistoryRecord.time)
                 .all()
             )
 
     # Run blocking DB calls in a thread to avoid freezing the event loop.
-    entries = await asyncio.to_thread(_fetch_entries)
-    if not entries:
+    records = await asyncio.to_thread(_fetch_entries)
+    if not records:
         text = f"Нет записей за {period_label}."
         if query is not None:
             await query.edit_message_text(text)
         elif message is not None:
             await message.reply_text(text)
         return
+
+    entries = [_adapt_history_record(r) for r in records]
 
     summary_lines = [f"Всего записей: {len(entries)}"]
     errors = []

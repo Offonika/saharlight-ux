@@ -11,7 +11,7 @@ from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import Session, sessionmaker
 
 os.environ.setdefault("DB_PASSWORD", "test")
-from services.api.app.diabetes.services.db import Base, User, Entry
+from services.api.app.diabetes.services.db import Base, User, HistoryRecord, Entry
 from services.api.app.diabetes.handlers import UserData
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
@@ -83,22 +83,24 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add_all(
             [
-                Entry(
+                HistoryRecord(
+                    id="1",
                     telegram_id=1,
-                    event_time=datetime.datetime(
-                        2024, 1, 1, tzinfo=datetime.timezone.utc
-                    ),
+                    date=datetime.date(2024, 1, 1),
+                    time=datetime.time(0, 0),
+                    type="meal",
                 ),
-                Entry(
+                HistoryRecord(
+                    id="2",
                     telegram_id=1,
-                    event_time=datetime.datetime(
-                        2024, 1, 2, tzinfo=datetime.timezone.utc
-                    ),
+                    date=datetime.date(2024, 1, 2),
+                    time=datetime.time(0, 0),
+                    type="meal",
                 ),
             ]
         )
         session.commit()
-        entry_ids = [e.id for e in session.query(Entry).all()]
+        entry_ids = [e.id for e in session.query(HistoryRecord).all()]
 
     message = DummyMessage()
     update = cast(
@@ -169,9 +171,12 @@ async def test_history_view_webapp_button(
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(
-            Entry(
+            HistoryRecord(
+                id="1",
                 telegram_id=1,
-                event_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
+                date=datetime.date(2024, 1, 1),
+                time=datetime.time(0, 0),
+                type="meal",
             )
         )
         session.commit()
