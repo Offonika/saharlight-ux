@@ -282,3 +282,35 @@ async def test_profile_view_missing_profile_shows_webapp_button(
     assert button.text == "📝 Заполнить форму"
     assert button.web_app is not None
     assert urlparse(button.web_app.url).path == "/profile"
+
+
+@pytest.mark.asyncio
+async def test_profile_view_existing_profile_shows_webapp_button(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from urllib.parse import urlparse
+    import services.api.app.diabetes.handlers.profile as handlers
+
+    monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.com")
+    monkeypatch.setenv("UI_BASE_URL", "")
+    import services.api.app.config as config
+    importlib.reload(config)
+
+    profile = SimpleNamespace(icr=1, cf=1, target=1, low=1, high=1)
+    monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
+    monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: profile)
+
+    msg = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    await handlers.profile_view(update, context)
+
+    markup = msg.markups[0]
+    button = markup.inline_keyboard[1][0]
+    assert button.text == "📝 Заполнить форму"
+    assert button.web_app is not None
+    assert urlparse(button.web_app.url).path == "/profile"
