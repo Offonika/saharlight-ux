@@ -161,23 +161,22 @@ def _render_reminders(
     if active_count > limit:
         header += " ⚠️"
 
-    public_origin = config.settings.public_origin
-    add_button_row: list[InlineKeyboardButton] | None = None
-    if public_origin:
-        add_button_row = [
-            InlineKeyboardButton(
-                "➕ Добавить",
-                web_app=WebAppInfo(config.build_ui_url("/reminders/new")),
-            )
-        ]
+    webapp_enabled = bool(config.settings.public_origin)
+    add_button = (
+        InlineKeyboardButton(
+            "➕ Добавить",
+            web_app=WebAppInfo(config.build_ui_url("/reminders/new")),
+        )
+        if webapp_enabled
+        else InlineKeyboardButton("➕ Добавить", callback_data="rem_add")
+    )
+    add_button_row: list[InlineKeyboardButton] = [add_button]
     if not rems:
-        text = header
-
-        if add_button_row is not None:
-            text += "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
-            return text, InlineKeyboardMarkup([add_button_row])
-        text += "\nУ вас нет напоминаний. Отправьте /addreminder."
-        return text, None
+        text = (
+            header
+            + "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
+        )
+        return text, InlineKeyboardMarkup([add_button_row])
 
     by_time: list[tuple[str, list[InlineKeyboardButton]]] = []
     by_interval: list[tuple[str, list[InlineKeyboardButton]]] = []
@@ -190,13 +189,18 @@ def _render_reminders(
         line = f"{r.id}. {title}"
         status_icon = "🔔" if r.is_enabled else "🔕"
         row: list[InlineKeyboardButton] = []
-        if add_button_row is not None:
+        if webapp_enabled:
             row.append(
                 InlineKeyboardButton(
                     "✏️",
-                    web_app=WebAppInfo(
-                        config.build_ui_url(f"/reminders?id={r.id}")
-                    ),
+                    web_app=WebAppInfo(config.build_ui_url(f"/reminders?id={r.id}")),
+                )
+            )
+        else:
+            row.append(
+                InlineKeyboardButton(
+                    "✏️",
+                    callback_data=f"rem_edit:{r.id}",
                 )
             )
         row.extend(
@@ -231,8 +235,7 @@ def _render_reminders(
     extend("⏱ Интервал", by_interval)
     extend("📸 Триггер-фото", by_photo)
 
-    if add_button_row is not None:
-        buttons.append(add_button_row)
+    buttons.append(add_button_row)
     text = header + "\n" + "\n".join(lines)
     return text, InlineKeyboardMarkup(buttons)
 
