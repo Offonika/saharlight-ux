@@ -309,7 +309,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         if btn.text == "➕ Добавить"
     )
     assert add_btn.web_app is not None
-    assert add_btn.web_app.url.endswith("/reminders/new")
+    assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
 
 
 def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -356,6 +356,46 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
         text, markup = handlers._render_reminders(session, 1)
     assert "У вас нет напоминаний" in text
     assert markup is None
+
+
+def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    import services.api.app.config as config
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(
+                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
+            )
+        )
+        session.commit()
+
+    monkeypatch.setattr(config.settings, "public_origin", "")
+    with TestSession() as session:
+        _, markup = handlers._render_reminders(session, 1)
+    assert markup is not None
+    assert not any(
+        btn.text == "➕ Добавить"
+        for row in markup.inline_keyboard
+        for btn in row
+    )
+
+    monkeypatch.setattr(config.settings, "public_origin", "https://example.org")
+    with TestSession() as session:
+        _, markup = handlers._render_reminders(session, 1)
+    assert markup is not None
+    add_btn = next(
+        btn
+        for row in markup.inline_keyboard
+        for btn in row
+        if btn.text == "➕ Добавить"
+    )
+    assert add_btn.web_app is not None
+    assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
 
 
 @pytest.mark.asyncio
