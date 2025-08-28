@@ -289,17 +289,16 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "📸 Триггер-фото" in text
     assert "2. <s>🔕title2</s>" in text
     assert markup.inline_keyboard
-    first_row = markup.inline_keyboard[0]
-    edit_btn = first_row[0]
-    assert edit_btn.text == "✏️"
-    assert edit_btn.web_app is not None
-    assert edit_btn.web_app.url == config.build_ui_url("/reminders?id=1")
-    add_btn = next(
-        btn
-        for row in markup.inline_keyboard
-        for btn in row
-        if btn.text == "➕ Добавить"
-    )
+    assert len(markup.inline_keyboard) == 4
+    for rem_id, row in zip([1, 2, 3], markup.inline_keyboard[:-1]):
+        edit_btn = row[0]
+        assert edit_btn.text == "✏️"
+        assert edit_btn.web_app is not None
+        assert edit_btn.web_app.url == config.build_ui_url(
+            f"/reminders?id={rem_id}"
+        )
+    add_btn = markup.inline_keyboard[-1][0]
+    assert add_btn.text == "➕ Добавить"
     assert add_btn.web_app is not None
     assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
 
@@ -357,6 +356,32 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
     add_row = markup.inline_keyboard[0]
     assert [btn.text for btn in add_row] == ["➕ Добавить"]
     assert add_row[0].callback_data == "rem_add"
+
+
+def test_render_reminders_no_entries_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.org")
+    monkeypatch.setenv("UI_BASE_URL", "/ui")
+    import services.api.app.config as config
+
+    importlib.reload(config)
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+    with TestSession() as session:
+        text, markup = handlers._render_reminders(session, 1)
+    assert "У вас нет напоминаний" in text
+    assert "Нажмите кнопку" in text
+    assert markup is not None
+    assert len(markup.inline_keyboard) == 1
+    add_row = markup.inline_keyboard[0]
+    assert [btn.text for btn in add_row] == ["➕ Добавить"]
+    add_btn = add_row[0]
+    assert add_btn.web_app is not None
+    assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
 
 
 def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch) -> None:
