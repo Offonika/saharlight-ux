@@ -385,6 +385,11 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await message.reply_text(
             "Можно определить автоматически:", reply_markup=keyboard
         )
+    else:
+        await message.reply_text(
+            "Автоматическое определение недоступно, укажите часовой пояс вручную.",
+            reply_markup=back_keyboard,
+        )
     return PROFILE_TZ
 
 
@@ -417,6 +422,11 @@ async def profile_timezone_save(
             keyboard = InlineKeyboardMarkup([[button]])
             await message.reply_text(
                 "Можно определить автоматически:", reply_markup=keyboard
+            )
+        else:
+            await message.reply_text(
+                "Автоматическое определение недоступно, введите часовой пояс вручную.",
+                reply_markup=back_keyboard,
             )
         return PROFILE_TZ
     user = update.effective_user

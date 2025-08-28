@@ -129,6 +129,7 @@ async def test_onboarding_target_commit_fail(monkeypatch: pytest.MonkeyPatch) ->
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
+
     def fail_commit(session: object) -> None:
         raise onboarding.CommitError
 
@@ -165,6 +166,7 @@ async def test_onboarding_timezone_commit_fail(monkeypatch: pytest.MonkeyPatch) 
         session.commit()
 
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
+
     def fail_commit(session: object) -> None:
         raise onboarding.CommitError
 
@@ -185,6 +187,37 @@ async def test_onboarding_timezone_commit_fail(monkeypatch: pytest.MonkeyPatch) 
     state = await onboarding.onboarding_timezone(update, context)
     assert state == ConversationHandler.END
     assert any("Не удалось сохранить часовой пояс" in t for t in message.texts)
+
+
+@pytest.mark.asyncio
+async def test_onboarding_target_manual_timezone_hint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
+    monkeypatch.setattr(onboarding, "commit", lambda s: None)
+    monkeypatch.setenv("PUBLIC_ORIGIN", "")
+
+    message = DummyMessage()
+    message.text = "6"  # type: ignore[attr-defined]
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=5)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            user_data={"profile_icr": 10.0, "profile_cf": 3.0}, bot_data={}
+        ),
+    )
+
+    state = await onboarding.onboarding_target(update, context)
+    assert state == onboarding.ONB_PROFILE_TZ
+    assert any("вручную" in t.lower() for t in message.texts)
 
 
 @pytest.mark.asyncio

@@ -116,6 +116,7 @@ sudo apt install python3.12 python3.12-venv
 
 - обязательные значения: `TELEGRAM_TOKEN` (токен бота), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 - дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `VITE_API_URL`, `VITE_BASE_URL`, `UVICORN_WORKERS`
+- для появления кнопки «Определить автоматически» при выборе часового пояса нужно задать `PUBLIC_ORIGIN`
 - при необходимости настройте прокси для OpenAI через переменные окружения
 Переменная `VITE_API_URL` задаёт базовый URL API для WebApp и используется SDK‑клиентом.
 Пустое значение означает использование префикса `/api`.
