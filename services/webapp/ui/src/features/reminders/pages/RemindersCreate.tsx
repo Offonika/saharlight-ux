@@ -33,16 +33,6 @@ const KIND_OPTIONS: { value: ScheduleKind; label: string }[] = [
   { value: "after_event", label: "После события" },
 ];
 
-const BOT_TYPE_MAP: Record<ReminderType, string> = {
-  sugar: "sugar",
-  insulin_short: "insulin_short",
-  insulin_long: "long_insulin",
-  after_meal: "xe_after",
-  meal: "meal",
-  sensor_change: "sensor_change",
-  injection_site: "injection_site",
-  custom: "custom",
-};
 
 export default function RemindersCreate() {
   const api = useRemindersApi();
@@ -109,7 +99,7 @@ export default function RemindersCreate() {
               ? `${form.minutesAfter / 60}h`
               : String(form.minutesAfter);
         }
-        const type = BOT_TYPE_MAP[reminder.type];
+        const type = reminder.type;
         if (value) {
           sendData({ id: rid, type, value });
         }
