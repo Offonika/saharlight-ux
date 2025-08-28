@@ -30,7 +30,6 @@ async def test_send_message_missing_assistant_id(
     )
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(settings, "openai_assistant_id", "")
-    monkeypatch.setattr(gpt_client.config, "get_settings", lambda: settings)
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(RuntimeError):

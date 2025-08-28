@@ -38,8 +38,8 @@ def test_menu_keyboard_webapp_urls(
 
 def test_menu_keyboard_webapp_reloads_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     """``menu_keyboard`` should reflect environment changes at runtime."""
-    monkeypatch.setenv("PUBLIC_ORIGIN", "", raising=False)
-    monkeypatch.setenv("UI_BASE_URL", "", raising=False)
+    monkeypatch.setenv("PUBLIC_ORIGIN", "")
+    monkeypatch.setenv("UI_BASE_URL", "")
     config.reload_settings()
     buttons = [btn for row in ui.menu_keyboard().keyboard for btn in row]
     profile_btn = next(b for b in buttons if b.text == ui.PROFILE_BUTTON_TEXT)
