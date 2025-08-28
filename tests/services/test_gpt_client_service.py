@@ -63,11 +63,14 @@ async def test_send_message_run_none(
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(settings, "openai_assistant_id", "asst")
 
-    with caplog.at_level(logging.ERROR):
+    with caplog.at_level(logging.DEBUG):
         with pytest.raises(RuntimeError):
             await gpt_client.send_message(thread_id="t", content="hi")
 
     assert any("Run creation returned None" in r.message for r in caplog.records)
+    assert not any(
+        r.levelno == logging.DEBUG and "Run" in r.message for r in caplog.records
+    )
 
 
 @pytest.mark.asyncio
