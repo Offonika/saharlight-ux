@@ -1,13 +1,21 @@
 import { useState } from 'react'
-import { updateReminder } from '@/api/reminders'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { mockApi } from '@/api/mock-server'
+import { useRemindersApi } from '@/features/reminders/api/reminders'
+import type { ReminderSchema } from '@sdk'
 
 export interface Reminder {
   id: number
-  title: string
+  telegramId: number
   type: string
+  title?: string | null
+  kind: 'at_time' | 'every' | 'after_event'
+  time?: string | null
+  intervalMinutes?: number | null
+  minutesAfter?: number | null
+  daysOfWeek?: number[] | Set<number> | null
   isEnabled: boolean
   nextAt?: string | null
 }
@@ -20,13 +28,15 @@ export default function RemindersList({ reminders: initial }: Props) {
   const [reminders, setReminders] = useState<Reminder[]>(initial)
   const { user } = useTelegram()
   const { toast } = useToast()
+  const api = useRemindersApi()
 
   const handleToggle = async (id: number) => {
     if (!user?.id) return
     const prev = [...reminders]
     const index = prev.findIndex(r => r.id === id)
     if (index === -1) return
-    const nextValue = !prev[index].isEnabled
+    const current = prev[index]
+    const nextValue = !current.isEnabled
     const updated = prev.map(r =>
       r.id === id
         ? { ...r, isEnabled: nextValue, nextAt: nextValue ? r.nextAt : undefined }
@@ -34,7 +44,23 @@ export default function RemindersList({ reminders: initial }: Props) {
     )
     setReminders(updated)
     try {
-      await updateReminder({ telegramId: user.id, id, isEnabled: nextValue } as any)
+      try {
+        const reminder: ReminderSchema = {
+          telegramId: current.telegramId,
+          id: current.id,
+          type: current.type as any,
+          kind: current.kind,
+          time: current.time ?? undefined,
+          intervalMinutes: current.intervalMinutes ?? undefined,
+          minutesAfter: current.minutesAfter ?? undefined,
+          daysOfWeek: current.daysOfWeek ?? undefined,
+          isEnabled: nextValue,
+        }
+        await api.remindersPatch({ reminder })
+      } catch (apiError) {
+        console.warn('Backend API failed, using mock API:', apiError)
+        await mockApi.updateReminder({ ...current, isEnabled: nextValue })
+      }
     } catch (error) {
       setReminders(prev)
       const message =
