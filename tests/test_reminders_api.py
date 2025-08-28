@@ -1,6 +1,6 @@
 import pytest
 from collections.abc import Generator
-from datetime import time
+from datetime import datetime, time, timezone
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -35,6 +35,11 @@ def client(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> Generator[TestClient, None, None]:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    monkeypatch.setattr(
+        reminders,
+        "compute_next",
+        lambda rem, tz: datetime(2023, 1, 1, tzinfo=timezone.utc),
+    )
     app = FastAPI()
     app.include_router(router, prefix="/api")
     app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
@@ -78,12 +83,15 @@ def test_nonempty_returns_list(
             "id": 1,
             "type": "sugar",
             "title": "Sugar check",
+            "kind": "at_time",
             "time": "08:00",
             "intervalHours": 3,
             "intervalMinutes": 180,
             "minutesAfter": None,
+            "daysOfWeek": None,
             "isEnabled": True,
             "orgId": None,
+            "nextAt": "2023-01-01T00:00:00+00:00",
             "lastFiredAt": None,
             "fires7d": 0,
         }
@@ -114,12 +122,15 @@ def test_get_single_reminder(
         "id": 1,
         "type": "sugar",
         "title": "Sugar check",
+        "kind": "at_time",
         "time": "08:00",
         "intervalHours": 3,
         "intervalMinutes": 180,
         "minutesAfter": None,
+        "daysOfWeek": None,
         "isEnabled": True,
         "orgId": None,
+        "nextAt": "2023-01-01T00:00:00+00:00",
         "lastFiredAt": None,
         "fires7d": 0,
     }

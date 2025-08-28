@@ -192,6 +192,49 @@ async def test_list_reminders_stats(
 
 
 @pytest.mark.asyncio
+async def test_save_reminder_kind_and_days(
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    with cast(ContextManager[SASession], session_factory()) as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+
+    rem_id = await reminders.save_reminder(
+        ReminderSchema(
+            telegramId=1,
+            type="sugar",
+            kind="at_time",
+            time=time(8, 0),
+            daysOfWeek=[1, 3, 5],
+        )
+    )
+    with cast(ContextManager[SASession], session_factory()) as session:
+        rem = cast(Reminder | None, session.get(Reminder, rem_id))
+        assert rem is not None
+        assert rem.kind == "at_time"
+        assert rem.daysOfWeek == [1, 3, 5]
+
+
+@pytest.mark.asyncio
+async def test_list_reminders_next_at(
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    monkeypatch.setattr(
+        reminders,
+        "compute_next",
+        lambda rem, tz: datetime(2023, 1, 1, tzinfo=timezone.utc),
+    )
+    with cast(ContextManager[SASession], session_factory()) as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar"))
+        session.commit()
+    rems = await reminders.list_reminders(1)
+    assert getattr(rems[0], "next_at") == datetime(2023, 1, 1, tzinfo=timezone.utc)
+
+
+@pytest.mark.asyncio
 async def test_delete_reminder(
     monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
 ) -> None:
