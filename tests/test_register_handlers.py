@@ -323,12 +323,10 @@ async def test_reminders_command_renders_list(
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: DummySessionCtx())
 
-    keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("btn", callback_data="1")]]
-    )
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("btn", callback_data="1")]])
 
     def fake_render(
-        session: Session, user_id: int
+        session: Session, user_id: int, settings: Any
     ) -> tuple[str, InlineKeyboardMarkup | None]:
         assert session is session_obj
         assert user_id == 1
