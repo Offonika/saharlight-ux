@@ -64,7 +64,7 @@ export default function RemindersCreate() {
       
       try {
         // Пробуем основной API
-        await api.remindersPost(payload);
+        await api.remindersPost({ reminder: payload });
       } catch (apiError) {
         console.warn("Backend API failed, using mock API:", apiError);
         // Fallback на mock API
