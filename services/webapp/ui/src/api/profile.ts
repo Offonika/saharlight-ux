@@ -1,10 +1,10 @@
-import { DefaultApi, Profile } from '@sdk';
+import { ProfilesApi, ProfileSchema } from '@sdk';
 
-const api = new DefaultApi({ basePath: '/api' });
+const api = new ProfilesApi({ basePath: '/api' });
 
-export async function saveProfile(profile: Profile) {
+export async function saveProfile(profile: ProfileSchema) {
   try {
-    return await api.profilesPost({ profile });
+    return await api.profilesPost({ profileSchema: profile });
   } catch (error) {
     console.error('Failed to save profile:', error);
     if (error instanceof Error) {
