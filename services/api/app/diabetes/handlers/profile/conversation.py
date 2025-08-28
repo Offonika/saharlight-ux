@@ -218,8 +218,9 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user_id = user.id
     profile = fetch_profile(api, ApiException, user_id)
 
+    settings = config.get_settings()
     webapp_button: list[InlineKeyboardButton] | None = None
-    if config.settings.public_origin:
+    if settings.public_origin:
         webapp_button = [
             InlineKeyboardButton(
                 "📝 Заполнить форму",
@@ -482,7 +483,7 @@ def _security_db(session: Session, user_id: int, action: str | None) -> dict[str
 
 async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display and modify security settings."""
-    from services.api.app import config
+    from services.api.app import config as app_config
 
     query = update.callback_query
     if query is None or query.data is None:
@@ -502,16 +503,17 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await sos_handlers.sos_contact_start(update, context)
         return
-    from services.api.app import config as app_config
 
-    origin = app_config.settings.public_origin
-    if action == "add" and origin:
-        button = InlineKeyboardButton(
-            "📝 Новое",
-            web_app=WebAppInfo(app_config.build_ui_url("/reminders")),
-        )
-        keyboard = InlineKeyboardMarkup([[button]])
-        await q_message.reply_text("Создать напоминание:", reply_markup=keyboard)
+    if action == "add":
+        settings = app_config.get_settings()
+        origin = settings.public_origin
+        if origin:
+            button = InlineKeyboardButton(
+                "📝 Новое",
+                web_app=WebAppInfo(app_config.build_ui_url("/reminders")),
+            )
+            keyboard = InlineKeyboardMarkup([[button]])
+            await q_message.reply_text("Создать напоминание:", reply_markup=keyboard)
     elif action == "del":
         await reminder_handlers.delete_reminder(update, context)
 
