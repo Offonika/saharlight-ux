@@ -36,7 +36,6 @@ from services.api.app.diabetes.utils.helpers import parse_time_interval
 from services.api.app.routers.reminders import router as reminders_router
 from services.api.app.services import reminders
 from services.api.app.telegram_auth import require_tg_user
-from services.api.app.config import Settings
 
 
 class DummyMessage:
@@ -281,8 +280,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         session.commit()
     with TestSession() as session:
-        settings = config.get_settings()
-        text, markup = handlers._render_reminders(session, 1, settings)
+        text, markup = handlers._render_reminders(session, 1)
     assert markup is not None
     header, *rest = text.splitlines()
     assert header == "Ваши напоминания  (2 / 1 🔔) ⚠️"
@@ -324,7 +322,7 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         session.commit()
     with TestSession() as session:
-        text, markup = handlers._render_reminders(session, 1, settings)
+        text, markup = handlers._render_reminders(session, 1)
     assert markup is not None
     assert "Нажмите кнопку" not in text
     assert len(markup.inline_keyboard) == 2
@@ -354,7 +352,7 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
     with TestSession() as session:
-        text, markup = handlers._render_reminders(session, 1, settings)
+        text, markup = handlers._render_reminders(session, 1)
     assert "У вас нет напоминаний" in text
     assert "Нажмите кнопку" in text
     assert markup is not None
@@ -378,8 +376,7 @@ def test_render_reminders_no_entries_webapp(monkeypatch: pytest.MonkeyPatch) -> 
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
     with TestSession() as session:
-        settings = config.get_settings()
-        text, markup = handlers._render_reminders(session, 1, settings)
+        text, markup = handlers._render_reminders(session, 1)
     assert "У вас нет напоминаний" in text
     assert "Нажмите кнопку" in text
     assert markup is not None
@@ -406,7 +403,7 @@ def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch)
     settings = config.get_settings()
     monkeypatch.setattr(settings, "public_origin", "")
     with TestSession() as session:
-        _, markup = handlers._render_reminders(session, 1, settings)
+        _, markup = handlers._render_reminders(session, 1)
     assert markup is not None
     first_row = markup.inline_keyboard[0]
     assert first_row[0].callback_data == "rem_edit:1"
@@ -415,7 +412,7 @@ def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch)
 
     monkeypatch.setattr(settings, "public_origin", "https://example.org")
     with TestSession() as session:
-        _, markup = handlers._render_reminders(session, 1, settings)
+        _, markup = handlers._render_reminders(session, 1)
     assert markup is not None
     first_row = markup.inline_keyboard[0]
     edit_btn = first_row[0]
@@ -448,7 +445,7 @@ async def test_reminders_list_renders_output(
     monkeypatch.setattr(handlers, "SessionLocal", lambda: DummySessionCtx())
 
     def fake_render(
-        session: Session, user_id: int, _settings: Settings
+        session: Session, user_id: int
     ) -> tuple[str, InlineKeyboardMarkup | None]:
         assert session is session_obj
         assert user_id == 1
@@ -495,7 +492,7 @@ async def test_reminders_list_shows_menu_keyboard(
     monkeypatch.setattr(handlers, "SessionLocal", lambda: DummySessionCtx())
 
     def fake_render(
-        session: Session, user_id: int, _settings: Settings
+        session: Session, user_id: int
     ) -> tuple[str, InlineKeyboardMarkup | None]:
         return "rendered", None
 
