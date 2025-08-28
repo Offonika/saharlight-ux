@@ -62,6 +62,12 @@ def test_register_handlers_attaches_expected_handlers(
     assert profile_handlers.profile_back in callbacks
     assert reporting_handlers.report_request in callbacks
     assert reporting_handlers.history_view in callbacks
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is reporting_handlers.history_view
+        and "history" in h.commands
+        for h in handlers
+    )
     assert gpt_handlers.chat_with_gpt in callbacks
     assert security_handlers.hypo_alert_faq in callbacks
     # Reminder handlers should be registered
@@ -195,6 +201,14 @@ def test_register_handlers_attaches_expected_handlers(
         if isinstance(h, CommandHandler) and h.callback is gpt_handlers.chat_with_gpt
     ]
     assert gpt_cmd and "gpt" in gpt_cmd[0].commands
+
+    history_cmd = [
+        h
+        for h in handlers
+        if isinstance(h, CommandHandler)
+        and h.callback is reporting_handlers.history_view
+    ]
+    assert history_cmd and "history" in history_cmd[0].commands
 
     history_handlers = [
         h
