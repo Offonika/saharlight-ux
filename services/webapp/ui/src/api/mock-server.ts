@@ -66,29 +66,29 @@ export const mockApi = {
 
   async createReminder(reminder: any) {
     console.log('[MockAPI] Creating reminder:', reminder);
-    
+
     // Determine kind based on payload data
     let kind: "at_time" | "every" | "after_event" = "at_time";
     if (reminder.time) {
       kind = "at_time";
-    } else if (reminder.interval_hours || reminder.interval_minutes) {
+    } else if (reminder.intervalMinutes || reminder.intervalHours) {
       kind = "every";
-    } else if (reminder.minutes_after) {
+    } else if (reminder.minutesAfter) {
       kind = "after_event";
     }
-    
+
     const newReminder = {
       id: nextId++,
-      telegramId: reminder.telegram_id,
+      telegramId: reminder.telegramId,
       type: reminder.type,
       title: reminder.title || null,
       kind,
       time: reminder.time || null,
-      intervalMinutes: reminder.interval_minutes || (reminder.interval_hours ? Math.round(reminder.interval_hours * 60) : null),
-      minutesAfter: reminder.minutes_after || null,
-      daysOfWeek: reminder.days_of_week || null,
-      isEnabled: reminder.is_enabled,
-      nextAt: reminder.next_at || null,
+      intervalMinutes: reminder.intervalMinutes || (reminder.intervalHours ? Math.round(reminder.intervalHours * 60) : null),
+      minutesAfter: reminder.minutesAfter || null,
+      daysOfWeek: reminder.daysOfWeek ? Array.from(reminder.daysOfWeek) : null,
+      isEnabled: reminder.isEnabled,
+      nextAt: reminder.nextAt || null,
     };
     mockReminders.push(newReminder);
     saveToStorage(mockReminders);
@@ -103,22 +103,26 @@ export const mockApi = {
       let kind: "at_time" | "every" | "after_event" = mockReminders[index].kind;
       if (reminder.time) {
         kind = "at_time";
-      } else if (reminder.interval_hours || reminder.interval_minutes) {
+      } else if (reminder.intervalMinutes || reminder.intervalHours) {
         kind = "every";
-      } else if (reminder.minutes_after) {
+      } else if (reminder.minutesAfter) {
         kind = "after_event";
       }
-      
+
       const updated = {
         ...mockReminders[index],
-        type: reminder.type || mockReminders[index].type,
+        type: reminder.type ?? mockReminders[index].type,
         kind,
-        time: reminder.time || null,
-        intervalMinutes: reminder.interval_hours ? Math.round(reminder.interval_hours * 60) : (reminder.interval_minutes || null),
-        minutesAfter: reminder.minutes_after || null,
-        isEnabled: reminder.is_enabled !== undefined ? reminder.is_enabled : mockReminders[index].isEnabled,
-        title: reminder.title || mockReminders[index].title,
-        daysOfWeek: reminder.days_of_week || mockReminders[index].daysOfWeek,
+        time: reminder.time ?? null,
+        intervalMinutes: reminder.intervalHours
+          ? Math.round(reminder.intervalHours * 60)
+          : reminder.intervalMinutes ?? mockReminders[index].intervalMinutes,
+        minutesAfter: reminder.minutesAfter ?? mockReminders[index].minutesAfter,
+        isEnabled: reminder.isEnabled !== undefined ? reminder.isEnabled : mockReminders[index].isEnabled,
+        title: reminder.title ?? mockReminders[index].title,
+        daysOfWeek: reminder.daysOfWeek
+          ? Array.from(reminder.daysOfWeek)
+          : mockReminders[index].daysOfWeek,
       };
       mockReminders[index] = updated;
       saveToStorage(mockReminders);

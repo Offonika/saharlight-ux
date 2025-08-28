@@ -39,13 +39,13 @@ export function Templates({
   
   const create = async (dto: any) => {
     try {
-      const payload = buildReminderPayload(dto);
-      
+      const reminder = buildReminderPayload(dto);
+
       try {
-        await api.remindersPost(payload);
+        await api.remindersPost({ reminder });
       } catch (apiError) {
         console.warn("Backend API failed, using mock API:", apiError);
-        await mockApi.createReminder(payload);
+        await mockApi.createReminder(reminder);
       }
       
       toast.success("Напоминание создано из шаблона");
