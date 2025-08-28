@@ -18,7 +18,7 @@ from openai.types.beta.threads import (
     TextContentBlockParam,
 )
 
-from services.api.app import config
+from services.api.app.config import settings
 from services.api.app.diabetes.utils.openai_utils import (
     get_async_openai_client,
     get_openai_client,
@@ -121,7 +121,6 @@ async def send_message(
 
     >>> await send_message(thread_id="abc", image_path="/tmp/photo.jpg")
     """
-    settings = config.get_settings()
     if content is None and image_path is None:
         raise ValueError("Either 'content' or 'image_path' must be provided")
 

@@ -223,24 +223,25 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if settings.public_origin:
         webapp_button = [
             InlineKeyboardButton(
-                "📝 Заполнить форму",
+                "Открыть профиль",
                 web_app=WebAppInfo(config.build_ui_url("/profile")),
             )
         ]
 
     if not profile:
+        text = (
+            "Ваш профиль пока не настроен.\n\n"
+            "Чтобы настроить профиль, введите команду:\n"
+            "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой ммоль/л> <низкий ммоль/л> <высокий ммоль/л>\n"
+            "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой> low=<низкий> high=<высокий>\n"
+            "Пример: /profile 10 2 6 4 9 — ИКХ 10 г/ед., КЧ 2 ммоль/л, целевой 6 ммоль/л, "
+            "низкий 4 ммоль/л, высокий 9 ммоль/л"
+        )
         if webapp_button is not None:
             keyboard = InlineKeyboardMarkup([webapp_button])
-            await message.reply_text("Ваш профиль пока не настроен.", reply_markup=keyboard)
+            await message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
         else:
-            await message.reply_text(
-                "Ваш профиль пока не настроен.\n\n"
-                "Чтобы настроить профиль, введите команду:\n"
-                "/profile <ИКХ г/ед.> <КЧ ммоль/л> <целевой ммоль/л> <низкий ммоль/л> <высокий ммоль/л>\n"
-                "или /profile icr=<ИКХ> cf=<КЧ> target=<целевой> low=<низкий> high=<высокий>\n"
-                "Пример: /profile 10 2 6 4 9 — ИКХ 10 г/ед., КЧ 2 ммоль/л, целевой 6 ммоль/л, низкий 4 ммоль/л, высокий 9 ммоль/л",
-                parse_mode="Markdown",
-            )
+            await message.reply_text(text, parse_mode="Markdown")
         return
 
     msg = (
@@ -458,12 +459,7 @@ def _security_db(session: Session, user_id: int, action: str | None) -> dict[str
     if changed:
         try:
             commit(session)
-            alert = (
-                session.query(Alert)
-                .filter_by(user_id=user_id)
-                .order_by(Alert.ts.desc())
-                .first()
-            )
+            alert = session.query(Alert).filter_by(user_id=user_id).order_by(Alert.ts.desc()).first()
             alert_sugar = alert.sugar if alert else None
         except CommitError:
             commit_ok = False
