@@ -50,7 +50,9 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         init_db()  # создаёт/инициализирует БД
     except (ValueError, SQLAlchemyError) as exc:
         logger.error("Failed to initialize the database: %s", exc)
-        raise RuntimeError("Database initialization failed. Please check your configuration and try again.") from exc
+        raise RuntimeError(
+            "Database initialization failed. Please check your configuration and try again."
+        ) from exc
     yield
     dispose_http_client()
 
@@ -63,6 +65,11 @@ async def pydantic_422(_: Request, exc: ValidationError) -> JSONResponse:
     return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 
+@app.exception_handler(ValueError)
+async def value_error_handler(_: Request, exc: ValueError) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+
 # ────────── роуты статистики / legacy ──────────
 # ────────── роутер с префиксом /api ──────────
 api_router = APIRouter()
@@ -71,7 +78,11 @@ api_router.include_router(legacy_router)
 
 # ────────── статические файлы UI ──────────
 BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
-UI_DIR = (BASE_DIR / "ui" / "dist") if (BASE_DIR / "ui" / "dist").exists() else (BASE_DIR / "ui")
+UI_DIR = (
+    (BASE_DIR / "ui" / "dist")
+    if (BASE_DIR / "ui" / "dist").exists()
+    else (BASE_DIR / "ui")
+)
 UI_DIR = UI_DIR.resolve()
 
 
@@ -87,7 +98,9 @@ class Timezone(BaseModel):
 
 
 class WebUser(BaseModel):
-    telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
+    telegramId: int = Field(
+        alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id")
+    )
 
 
 # ────────── helpers ──────────
@@ -120,7 +133,9 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
 
 
 @api_router.put("/timezone")
-async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+async def put_timezone(
+    data: Timezone, _: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     try:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
@@ -170,7 +185,9 @@ async def catch_root_ui() -> FileResponse:
 
 # ────────── user CRUD / roles ──────────
 @api_router.post("/user")
-async def create_user(data: WebUser, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+async def create_user(
+    data: WebUser, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
 
@@ -201,7 +218,9 @@ async def put_role(user_id: int, data: RoleSchema) -> RoleSchema:
 
 # ────────── history (CRUD) ──────────
 @api_router.post("/history", operation_id="historyPost", tags=["History"])
-async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+async def post_history(
+    data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     validated_type = _validate_history_type(data.type)
 
     def _save(session: Session) -> None:
@@ -265,7 +284,9 @@ async def get_history(
 
 
 @api_router.delete("/history/{id}", operation_id="historyIdDelete", tags=["History"])
-async def delete_history(id: str, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
+async def delete_history(
+    id: str, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
     def _get(session: Session) -> HistoryRecordDB | None:
         return session.get(HistoryRecordDB, id)
 
