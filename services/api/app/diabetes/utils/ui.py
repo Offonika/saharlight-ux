@@ -150,10 +150,14 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
         Button instance when ``PUBLIC_ORIGIN`` is set and valid, otherwise ``None``.
     """
 
-    if not config.settings.public_origin:
+    import importlib
+
+    config_module = importlib.import_module("services.api.app.config")
+    fresh_config = importlib.reload(config_module)
+    if not fresh_config.settings.public_origin:
         return None
 
     return InlineKeyboardButton(
         "Определить автоматически",
-        web_app=WebAppInfo(config.build_ui_url("/timezone")),
+        web_app=WebAppInfo(fresh_config.build_ui_url("/timezone")),
     )
