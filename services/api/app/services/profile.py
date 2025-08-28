@@ -46,7 +46,10 @@ def _validate_profile(data: ProfileSchema) -> None:
 
 
 async def save_profile(data: ProfileSchema) -> None:
-    _validate_profile(data)
+    try:
+        _validate_profile(data)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     def _save(session: SessionProtocol) -> None:
         user = cast(User | None, session.get(User, data.telegramId))
