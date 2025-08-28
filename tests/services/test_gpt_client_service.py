@@ -22,11 +22,15 @@ async def test_send_message_missing_assistant_id(
 ) -> None:
     fake_client = SimpleNamespace(
         beta=SimpleNamespace(
-            threads=SimpleNamespace(messages=SimpleNamespace(create=lambda **_: None))
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(create=lambda **_: None),
+                runs=SimpleNamespace(create=lambda **_: None),
+            )
         )
     )
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(settings, "openai_assistant_id", "")
+    monkeypatch.setattr(gpt_client.config, "get_settings", lambda: settings)
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(RuntimeError):
