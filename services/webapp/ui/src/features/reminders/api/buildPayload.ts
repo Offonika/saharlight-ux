@@ -42,18 +42,18 @@ export function buildReminderPayload(v: ReminderFormValues) {
   }
 
   const base = {
-    telegram_id: values.telegramId,
+    telegramId: values.telegramId,
     type: values.type,
-    is_enabled: values.isEnabled ?? true,
+    isEnabled: values.isEnabled ?? true,
   };
-  
-  // Backend only supports one of: time, interval_minutes, minutes_after
+
+  // Backend only supports one of: time, intervalMinutes, minutesAfter
   if (values.kind === "at_time" && values.time) {
     return { ...base, time: values.time };
   } else if (values.kind === "every" && values.intervalMinutes) {
-    return { ...base, interval_minutes: values.intervalMinutes };
+    return { ...base, intervalMinutes: values.intervalMinutes };
   } else if (values.kind === "after_event" && values.minutesAfter) {
-    return { ...base, minutes_after: values.minutesAfter };
+    return { ...base, minutesAfter: values.minutesAfter };
   }
   
   return base;
