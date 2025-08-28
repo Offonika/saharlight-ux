@@ -272,7 +272,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
                 Reminder(
                     id=3,
                     telegram_id=1,
-                    type="xe_after",
+                    type="after_meal",
                     minutes_after=15,
                     is_enabled=True,
                 ),
@@ -574,7 +574,7 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="medicine", time=time(8, 0)))
+        session.add(Reminder(id=1, telegram_id=1, type="custom", time=time(8, 0)))
         session.commit()
 
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
@@ -585,7 +585,7 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
 
     msg = DummyMessage()
     web_app_data = MagicMock()
-    web_app_data.data = json.dumps({"id": 1, "type": "medicine", "value": "09:00"})
+    web_app_data.data = json.dumps({"id": 1, "type": "custom", "value": "09:00"})
     msg.web_app_data = web_app_data
     update = make_update(effective_message=msg, effective_user=make_user(1))
     context = make_context(job_queue=job_queue)

@@ -61,7 +61,7 @@ form {
   background: #e8f5e9;
   color: #2f855a;
 }
-.type-chip.medicine {
+.type-chip.custom {
   background: #e6fffa;
   color: #0b7285;
 }
@@ -98,7 +98,7 @@ form {
   background: #e8f5e9;
   border-color: #9ae6b4;
 }
-.reminder-card.medicine {
+.reminder-card.custom {
   background: #e6fffa;
   border-color: #81e6d9;
 }
