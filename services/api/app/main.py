@@ -50,9 +50,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         init_db()  # создаёт/инициализирует БД
     except (ValueError, SQLAlchemyError) as exc:
         logger.error("Failed to initialize the database: %s", exc)
-        raise RuntimeError(
-            "Database initialization failed. Please check your configuration and try again."
-        ) from exc
+        raise RuntimeError("Database initialization failed. Please check your configuration and try again.") from exc
     yield
     dispose_http_client()
 
@@ -73,13 +71,14 @@ api_router.include_router(legacy_router)
 
 # ────────── статические файлы UI ──────────
 BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
-UI_DIR = (
-    (BASE_DIR / "ui" / "dist")
-    if (BASE_DIR / "ui" / "dist").exists()
-    else (BASE_DIR / "ui")
-)
+UI_DIR = (BASE_DIR / "ui" / "dist") if (BASE_DIR / "ui" / "dist").exists() else (BASE_DIR / "ui")
 UI_DIR = UI_DIR.resolve()
-UI_BASE_URL = config.settings.ui_base_url.rstrip("/")
+
+
+def get_ui_base_url() -> str:
+    """Return the UI base URL without a trailing slash."""
+
+    return config.get_settings().ui_base_url.rstrip("/")
 
 
 # ────────── Schemas ──────────
@@ -88,9 +87,7 @@ class Timezone(BaseModel):
 
 
 class WebUser(BaseModel):
-    telegramId: int = Field(
-        alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id")
-    )
+    telegramId: int = Field(alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id"))
 
 
 # ────────── helpers ──────────
@@ -123,9 +120,7 @@ async def get_timezone(_: UserContext = Depends(require_tg_user)) -> dict[str, s
 
 
 @api_router.put("/timezone")
-async def put_timezone(
-    data: Timezone, _: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def put_timezone(data: Timezone, _: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     try:
         ZoneInfo(data.tz)
     except ZoneInfoNotFoundError as exc:
@@ -154,7 +149,7 @@ async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserCont
 
 
 # ────────── static UI files ──────────
-@app.get(f"{UI_BASE_URL}/{{full_path:path}}", include_in_schema=False)
+@app.get(f"{get_ui_base_url()}/{{full_path:path}}", include_in_schema=False)
 async def catch_all_ui(full_path: str) -> FileResponse:
     requested_file = (UI_DIR / full_path).resolve()
     try:
@@ -168,16 +163,14 @@ async def catch_all_ui(full_path: str) -> FileResponse:
     return FileResponse(UI_DIR / "index.html")
 
 
-@app.get(UI_BASE_URL or "/", include_in_schema=False)
+@app.get(get_ui_base_url() or "/", include_in_schema=False)
 async def catch_root_ui() -> FileResponse:
     return await catch_all_ui("")
 
 
 # ────────── user CRUD / roles ──────────
 @api_router.post("/user")
-async def create_user(
-    data: WebUser, user: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def create_user(data: WebUser, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
 
@@ -208,9 +201,7 @@ async def put_role(user_id: int, data: RoleSchema) -> RoleSchema:
 
 # ────────── history (CRUD) ──────────
 @api_router.post("/history", operation_id="historyPost", tags=["History"])
-async def post_history(
-    data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     validated_type = _validate_history_type(data.type)
 
     def _save(session: Session) -> None:
@@ -271,9 +262,7 @@ async def get_history(
 
 
 @api_router.delete("/history/{id}", operation_id="historyIdDelete", tags=["History"])
-async def delete_history(
-    id: str, user: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def delete_history(id: str, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     def _get(session: Session) -> HistoryRecordDB | None:
         return session.get(HistoryRecordDB, id)
 
