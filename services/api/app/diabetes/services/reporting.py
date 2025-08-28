@@ -37,7 +37,8 @@ class SugarEntry(Protocol):
 
 
 def _register_font(name: str, filename: str) -> str | None:
-    font_dir = config.settings.font_dir or DEFAULT_FONT_DIR
+    settings = config.get_settings()
+    font_dir = settings.font_dir or DEFAULT_FONT_DIR
     path = os.path.join(font_dir, filename)
     try:
         pdfmetrics.registerFont(TTFont(name, path))
