@@ -321,7 +321,7 @@ export default function RemindersList({
                       {r.isEnabled ? "Вкл." : "Выкл."}
                     </button>
                     <Link
-                      to={`${r.id}/edit`}
+                      to={`/reminders/${r.id}/edit`}
                       className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-all duration-200"
                     >
                       ✏️
@@ -347,7 +347,7 @@ export default function RemindersList({
           </div>
           <p className="text-muted-foreground">Пока нет напоминаний</p>
           <Link
-            to="new"
+            to="/reminders/new"
             className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             + Добавить первое напоминание
