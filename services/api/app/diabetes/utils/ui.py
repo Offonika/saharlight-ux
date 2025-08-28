@@ -151,10 +151,9 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
         Button instance when ``PUBLIC_ORIGIN`` is set and valid, otherwise ``None``.
     """
 
-    from importlib import reload
     from services.api.app import config
 
-    reload(config)
+    config.settings = config.Settings()
     if not config.settings.public_origin:
         return None
 
