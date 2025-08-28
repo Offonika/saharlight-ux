@@ -275,8 +275,9 @@ async def test_profile_view_missing_profile_shows_webapp_button(
     import services.api.app.diabetes.handlers.profile as handlers
 
     import services.api.app.config as config
-    monkeypatch.setattr(config.settings, "public_origin", "https://example.com")
-    monkeypatch.setattr(config.settings, "ui_base_url", "")
+    settings = config.get_settings()
+    monkeypatch.setattr(settings, "public_origin", "https://example.com")
+    monkeypatch.setattr(settings, "ui_base_url", "")
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 
@@ -305,8 +306,9 @@ async def test_profile_view_existing_profile_shows_webapp_button(
     import services.api.app.diabetes.handlers.profile as handlers
 
     import services.api.app.config as config
-    monkeypatch.setattr(config.settings, "public_origin", "https://example.com")
-    monkeypatch.setattr(config.settings, "ui_base_url", "")
+    settings = config.get_settings()
+    monkeypatch.setattr(settings, "public_origin", "https://example.com")
+    monkeypatch.setattr(settings, "ui_base_url", "")
 
     profile = SimpleNamespace(icr=1, cf=1, target=1, low=1, high=1)
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))

@@ -106,10 +106,13 @@ def get_db_password() -> Optional[str]:
 def build_ui_url(path: str) -> str:
     """Return an absolute UI URL for ``path``.
 
-    Slashes are normalized and ``settings.public_origin`` must be configured.
-    ``settings.ui_base_url`` is stripped of leading and trailing slashes.
+    The function fetches the latest settings via :func:`get_settings` to avoid
+    using a stale ``Settings`` instance. ``public_origin`` must be configured
+    and ``ui_base_url`` is normalized by stripping leading and trailing
+    slashes.
     """
 
+    settings = get_settings()
     if not settings.public_origin:
         raise RuntimeError("PUBLIC_ORIGIN not configured")
     origin = settings.public_origin.rstrip("/")
