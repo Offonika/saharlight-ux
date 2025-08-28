@@ -17,7 +17,7 @@ vi.mock('../src/hooks/useTelegram', () => ({
 }));
 
 vi.mock('../src/hooks/useTelegramInitData', () => ({
-  useTelegramInitData: () => '',
+  useTelegramInitData: () => null,
 }));
 
 vi.mock('react-router-dom', () => ({

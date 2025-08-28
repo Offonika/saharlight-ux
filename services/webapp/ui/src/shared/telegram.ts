@@ -1,6 +1,7 @@
-export function getTelegramUserId(initData: string): number {
+export function getTelegramUserId(initData: string | null): number {
   // initData = 'query_id=...&user=%7B...%7D&...'
   try {
+    if (!initData) return 0;
     const params = new URLSearchParams(initData);
     const raw = params.get("user");
     if (!raw) return 0;

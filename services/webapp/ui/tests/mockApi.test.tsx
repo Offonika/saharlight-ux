@@ -19,7 +19,7 @@ vi.mock('../src/hooks/useTelegram', () => ({
   useTelegram: () => ({ user: { id: 1 }, sendData: vi.fn() })
 }));
 vi.mock('../src/hooks/useTelegramInitData', () => ({
-  useTelegramInitData: () => ({})
+  useTelegramInitData: () => null
 }));
 vi.mock('../src/shared/toast', () => ({
   useToast: () => ({ success: vi.fn(), error: toastError })
@@ -38,7 +38,7 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn()
 }));
 vi.mock('../src/features/reminders/hooks/usePlan', () => ({
-  getPlanLimit: () => Promise.resolve(5)
+  getPlanLimit: (_userId: number, _initData: string | null) => Promise.resolve(5)
 }));
 
 describe('mockApi not used in production', () => {
