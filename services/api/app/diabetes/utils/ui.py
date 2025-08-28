@@ -59,12 +59,12 @@ def menu_keyboard() -> ReplyKeyboardMarkup:
     """
     from services.api.app import config
 
-    config.settings = config.Settings()
-    webapp_enabled = bool(config.settings.public_origin)
+    settings = config.get_settings()
+    webapp_enabled = bool(settings.public_origin)
     profile_button = (
         KeyboardButton(
             PROFILE_BUTTON_TEXT,
-            web_app=WebAppInfo(config.build_ui_url("/profile")),
+            web_app=WebAppInfo(config.build_ui_url("/profile", settings=settings)),
         )
         if webapp_enabled
         else KeyboardButton(PROFILE_BUTTON_TEXT)
@@ -72,7 +72,9 @@ def menu_keyboard() -> ReplyKeyboardMarkup:
     reminders_button = (
         KeyboardButton(
             REMINDERS_BUTTON_TEXT,
-            web_app=WebAppInfo(config.build_ui_url("/reminders")),
+            web_app=WebAppInfo(
+                config.build_ui_url("/reminders", settings=settings)
+            ),
         )
         if webapp_enabled
         else KeyboardButton(REMINDERS_BUTTON_TEXT)
@@ -153,11 +155,13 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
 
     from services.api.app import config
 
-    config.settings = config.Settings()
-    if not config.settings.public_origin:
+    settings = config.get_settings()
+    if not settings.public_origin:
         return None
 
     return InlineKeyboardButton(
         "Определить автоматически",
-        web_app=WebAppInfo(config.build_ui_url("/timezone")),
+        web_app=WebAppInfo(
+            config.build_ui_url("/timezone", settings=settings)
+        ),
     )

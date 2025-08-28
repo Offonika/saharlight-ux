@@ -151,8 +151,9 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
 
 
 def _render_reminders(
-    session: Session, user_id: int
+    session: Session, user_id: int, settings: config.Settings | None = None
 ) -> tuple[str, InlineKeyboardMarkup | None]:
+    settings = settings or config.get_settings()
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
     user = session.query(User).filter_by(telegram_id=user_id).first()
     limit = _limit_for(user)
@@ -161,13 +162,15 @@ def _render_reminders(
     if active_count > limit:
         header += " ⚠️"
 
-    public_origin = config.settings.public_origin
+    public_origin = settings.public_origin
     add_button_row: list[InlineKeyboardButton] | None = None
     if public_origin:
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(config.build_ui_url("/reminders/new")),
+                web_app=WebAppInfo(
+                    config.build_ui_url("/reminders/new", settings=settings)
+                ),
             )
         ]
     if not rems:
@@ -195,7 +198,9 @@ def _render_reminders(
                 InlineKeyboardButton(
                     "✏️",
                     web_app=WebAppInfo(
-                        config.build_ui_url(f"/reminders?id={r.id}")
+                        config.build_ui_url(
+                            f"/reminders?id={r.id}", settings=settings
+                        )
                     ),
                 )
             )
@@ -336,18 +341,21 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if user is None or message is None:
         return
     user_id = user.id
+    settings = config.get_settings()
 
     render_fn = cast(
-        Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
+        Callable[[Session, int, config.Settings], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
     )
     if run_db is None:
         with SessionLocal() as session:
-            text, keyboard = render_fn(session, user_id)
+            text, keyboard = render_fn(session, user_id, settings)
     else:
         text, keyboard = cast(
             tuple[str, InlineKeyboardMarkup | None],
-            await run_db(render_fn, user_id, sessionmaker=SessionLocal),
+            await run_db(
+                render_fn, user_id, settings, sessionmaker=SessionLocal
+            ),
         )
 
     if keyboard is not None:

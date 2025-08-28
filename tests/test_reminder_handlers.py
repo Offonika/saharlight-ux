@@ -26,13 +26,10 @@ from services.api.app.diabetes.services.repository import commit
 def reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.com")
     monkeypatch.setenv("UI_BASE_URL", "/ui")
-    config = importlib.import_module("services.api.app.config")
-    importlib.reload(config)
     handlers = importlib.import_module(
         "services.api.app.diabetes.handlers.reminder_handlers",
     )
     importlib.reload(handlers)
-    handlers.config = config
     return handlers
 
 

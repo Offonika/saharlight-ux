@@ -328,7 +328,7 @@ async def test_reminders_command_renders_list(
     )
 
     def fake_render(
-        session: Session, user_id: int
+        session: Session, user_id: int, settings: Any | None = None
     ) -> tuple[str, InlineKeyboardMarkup | None]:
         assert session is session_obj
         assert user_id == 1
@@ -336,11 +336,10 @@ async def test_reminders_command_renders_list(
 
     monkeypatch.setattr(reminder_handlers, "_render_reminders", fake_render)
 
-    captured: dict[str, Any] = {}
+    captured: list[tuple[str, dict[str, Any]]] = []
 
     async def fake_reply_text(text: str, **kwargs: Any) -> None:
-        captured["text"] = text
-        captured["kwargs"] = kwargs
+        captured.append((text, kwargs))
 
     message = MagicMock(spec=Message)
     message.reply_text = fake_reply_text
@@ -356,7 +355,7 @@ async def test_reminders_command_renders_list(
 
     await handler.callback(update, context)
 
-    assert captured["text"] == "rendered"
-    kwargs = captured["kwargs"]
+    assert captured and captured[0][0] == "rendered"
+    kwargs = captured[0][1]
     assert kwargs.get("reply_markup") is keyboard
     assert kwargs.get("parse_mode") == "HTML"

@@ -109,7 +109,8 @@ def get_api(
             "diabetes_sdk could not be initialized. Falling back to local profile API.",
         )
         return LocalProfileAPI(sessionmaker), Exception, LocalProfile
-    api = DefaultApi(ApiClient(Configuration(host=config.settings.api_url)))
+    settings = config.get_settings()
+    api = DefaultApi(ApiClient(Configuration(host=settings.api_url)))
     return api, ApiException, ProfileModel
 
 

@@ -222,11 +222,14 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     profile = fetch_profile(api, ApiException, user_id)
 
     webapp_button: list[InlineKeyboardButton] | None = None
-    if config.settings.public_origin:
+    settings = config.get_settings()
+    if settings.public_origin:
         webapp_button = [
             InlineKeyboardButton(
                 "📝 Заполнить форму",
-                web_app=WebAppInfo(config.build_ui_url("/profile")),
+                web_app=WebAppInfo(
+                    config.build_ui_url("/profile", settings=settings)
+                ),
             )
         ]
 
@@ -507,11 +510,14 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     from services.api.app import config as app_config
 
-    origin = app_config.settings.public_origin
+    settings = app_config.get_settings()
+    origin = settings.public_origin
     if action == "add" and origin:
         button = InlineKeyboardButton(
             "📝 Новое",
-            web_app=WebAppInfo(app_config.build_ui_url("/reminders")),
+            web_app=WebAppInfo(
+                app_config.build_ui_url("/reminders", settings=settings)
+            ),
         )
         keyboard = InlineKeyboardMarkup([[button]])
         await q_message.reply_text("Создать напоминание:", reply_markup=keyboard)

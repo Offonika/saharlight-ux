@@ -74,7 +74,13 @@ class Settings(BaseSettings):
 
 
 # Instantiate settings for external use
-settings = Settings()
+def get_settings() -> Settings:
+    """Return current application settings."""
+
+    return Settings()
+
+
+settings = get_settings()
 
 
 def get_db_password() -> Optional[str]:
@@ -89,13 +95,14 @@ def get_db_password() -> Optional[str]:
     return os.environ.get("DB_PASSWORD")
 
 
-def build_ui_url(path: str) -> str:
+def build_ui_url(path: str, settings: Settings | None = None) -> str:
     """Return an absolute UI URL for ``path``.
 
     Slashes are normalized and ``settings.public_origin`` must be configured.
     ``settings.ui_base_url`` is stripped of leading and trailing slashes.
     """
 
+    settings = settings or get_settings()
     if not settings.public_origin:
         raise RuntimeError("PUBLIC_ORIGIN not configured")
     origin = settings.public_origin.rstrip("/")

@@ -374,7 +374,7 @@ def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch)
         )
         session.commit()
 
-    monkeypatch.setattr(config.settings, "public_origin", "")
+    monkeypatch.setenv("PUBLIC_ORIGIN", "")
     with TestSession() as session:
         _, markup = handlers._render_reminders(session, 1)
     assert markup is not None
@@ -384,7 +384,7 @@ def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch)
         for btn in row
     )
 
-    monkeypatch.setattr(config.settings, "public_origin", "https://example.org")
+    monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.org")
     with TestSession() as session:
         _, markup = handlers._render_reminders(session, 1)
     assert markup is not None
@@ -420,7 +420,7 @@ async def test_reminders_list_renders_output(
     monkeypatch.setattr(handlers, "SessionLocal", lambda: DummySessionCtx())
 
     def fake_render(
-        session: Session, user_id: int
+        session: Session, user_id: int, settings: Any | None = None
     ) -> tuple[str, InlineKeyboardMarkup | None]:
         assert session is session_obj
         assert user_id == 1
@@ -467,7 +467,7 @@ async def test_reminders_list_shows_menu_keyboard(
     monkeypatch.setattr(handlers, "SessionLocal", lambda: DummySessionCtx())
 
     def fake_render(
-        session: Session, user_id: int
+        session: Session, user_id: int, settings: Any | None = None
     ) -> tuple[str, InlineKeyboardMarkup | None]:
         return "rendered", None
 
