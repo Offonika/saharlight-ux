@@ -44,6 +44,7 @@ export default function RemindersCreate() {
   );
   const nav = useNavigate();
   const toast = useToast();
+  const isDev = process.env.NODE_ENV === "development";
 
   const [form, setForm] = useState<ReminderFormValues>({
     telegramId,
@@ -81,10 +82,14 @@ export default function RemindersCreate() {
         const res = await api.remindersPost({ reminder });
         rid = res?.id;
       } catch (apiError) {
-        console.warn("Backend API failed, using mock API:", apiError);
-        // Fallback на mock API
-        const res = await mockApi.createReminder(reminder);
-        rid = (res as any)?.id;
+        if (isDev) {
+          console.warn("Backend API failed, using mock API:", apiError);
+          // Fallback на mock API
+          const res = await mockApi.createReminder(reminder);
+          rid = (res as any)?.id;
+        } else {
+          throw apiError;
+        }
       }
 
       if (rid) {
