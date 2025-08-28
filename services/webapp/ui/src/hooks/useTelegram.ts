@@ -74,6 +74,7 @@ export const useTelegram = (
   const [colorScheme, setScheme] = useState<Scheme>("light");
   const mainClickRef = useRef<(() => void) | null>(null);
   const backClickRef = useRef<(() => void) | null>(null);
+  const initData = useMemo(() => tg?.initData ?? getDevInitData() ?? "", [tg]);
 
   // Конвертация hex в HSL
   const hexToHsl = useCallback((hex: string): string => {
@@ -289,7 +290,7 @@ export const useTelegram = (
     tg,
     isReady,
     user,
-    initData: tg?.initData,
+    initData,
     colorScheme,
     sendData,
     showMainButton,
