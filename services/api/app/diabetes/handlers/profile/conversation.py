@@ -218,8 +218,9 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user_id = user.id
     profile = fetch_profile(api, ApiException, user_id)
 
+    settings = config.get_settings()
     webapp_button: list[InlineKeyboardButton] | None = None
-    if config.settings.public_origin:
+    if settings.public_origin:
         webapp_button = [
             InlineKeyboardButton(
                 "📝 Заполнить форму",
@@ -502,13 +503,13 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await sos_handlers.sos_contact_start(update, context)
         return
-    from services.api.app import config as app_config
 
-    origin = app_config.settings.public_origin
+    settings = config.get_settings()
+    origin = settings.public_origin
     if action == "add" and origin:
         button = InlineKeyboardButton(
             "📝 Новое",
-            web_app=WebAppInfo(app_config.build_ui_url("/reminders")),
+            web_app=WebAppInfo(config.build_ui_url("/reminders")),
         )
         keyboard = InlineKeyboardMarkup([[button]])
         await q_message.reply_text("Создать напоминание:", reply_markup=keyboard)

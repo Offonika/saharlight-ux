@@ -155,7 +155,8 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
     if active_count > limit:
         header += " ⚠️"
 
-    webapp_enabled: bool = bool(config.settings.public_origin)
+    settings = config.get_settings()
+    webapp_enabled: bool = bool(settings.public_origin)
     add_button = (
         InlineKeyboardButton(
             "➕ Добавить",
