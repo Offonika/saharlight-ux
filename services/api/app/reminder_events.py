@@ -1,0 +1,39 @@
+from __future__ import annotations
+
+import logging
+
+from telegram.ext import ContextTypes, JobQueue
+
+from .diabetes.handlers.reminder_handlers import DefaultJobQueue, schedule_reminder
+from .diabetes.services.db import Reminder, SessionLocal
+
+logger = logging.getLogger(__name__)
+
+_job_queue: DefaultJobQueue | None = None
+
+
+def set_job_queue(job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None) -> None:
+    """Register a shared JobQueue used to schedule reminders."""
+    global _job_queue
+    _job_queue = job_queue
+
+
+def notify_reminder_saved(reminder_id: int) -> None:
+    """Send reminder to the job queue for scheduling.
+
+    If the job queue is not configured, this function logs a warning and
+    returns without scheduling.
+    """
+    jq = _job_queue
+    if jq is None:
+        logger.warning("notify_reminder_saved called without job_queue")
+        return
+    with SessionLocal() as session:
+        rem = session.get(Reminder, reminder_id)
+    if rem is None:
+        logger.warning("Reminder %s not found for scheduling", reminder_id)
+        return
+    schedule_reminder(rem, jq)
+
+
+__all__ = ["set_job_queue", "notify_reminder_saved"]

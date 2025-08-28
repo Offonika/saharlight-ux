@@ -13,6 +13,7 @@ from ..services.reminders import (
 )
 from ..services.audit import log_patient_access
 from ..telegram_auth import require_tg_user
+from ..reminder_events import notify_reminder_saved
 
 logger = logging.getLogger(__name__)
 
@@ -126,6 +127,7 @@ async def post_reminder(
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="forbidden")
     rid = await save_reminder(data)
+    notify_reminder_saved(rid)
     return {"status": "ok", "id": rid}
 
 
@@ -139,6 +141,7 @@ async def patch_reminder(
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="forbidden")
     rid = await save_reminder(data)
+    notify_reminder_saved(rid)
     return {"status": "ok", "id": rid}
 
 
