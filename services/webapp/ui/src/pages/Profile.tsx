@@ -6,13 +6,11 @@ import { useToast } from "@/hooks/use-toast";
 import MedicalButton from "@/components/MedicalButton";
 import { saveProfile } from "@/api/profile";
 import { useTelegram } from "@/hooks/useTelegram";
-import { useTelegramInitData } from "@/hooks/useTelegramInitData";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useTelegram();
-  const initData = useTelegramInitData();
+  const { user, initData } = useTelegram();
 
   const [profile, setProfile] = useState({
     icr: "12",
@@ -29,14 +27,8 @@ const Profile = () => {
   const handleSave = async () => {
     let telegramId = user?.id;
     if (!telegramId) {
-      try {
-        const userStr = new URLSearchParams(initData).get("user");
-        if (userStr) {
-          telegramId = JSON.parse(userStr)?.id;
-        }
-      } catch (e) {
-        console.error("Failed to parse user from init data", e);
-      }
+      const userStr = new URLSearchParams(initData ?? "").get("user");
+      telegramId = userStr ? JSON.parse(userStr).id : undefined;
     }
 
     if (!telegramId) {

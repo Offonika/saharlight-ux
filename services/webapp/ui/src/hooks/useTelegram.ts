@@ -48,6 +48,7 @@ interface TelegramWebApp {
   themeParams?: ThemeParams;
   user?: TelegramUser;
   initDataUnsafe?: { user?: TelegramUser };
+  initData?: string;
   setBackgroundColor?: (color: string) => void;
   setHeaderColor?: (color: string) => void;
   onEvent?: (eventType: string, handler: () => void) => void;
@@ -86,8 +87,8 @@ export const useTelegram = (
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
     let h = 0,
-      s = 0,
-      l = (max + min) / 2;
+      s = 0;
+    const l = (max + min) / 2;
 
     if (max !== min) {
       const d = max - min;
@@ -226,6 +227,13 @@ export const useTelegram = (
     try {
       tg.expand?.();
       tg.ready?.();
+      if (tg.initData) {
+        try {
+          localStorage.setItem("tg_init_data", tg.initData);
+        } catch (e) {
+          console.error("[TG] failed to save init data:", e);
+        }
+      }
       applyTheme(tg, forceLight);
 
       const tgUser = tg.user || tg.initDataUnsafe?.user;
@@ -277,6 +285,7 @@ export const useTelegram = (
     tg,
     isReady,
     user,
+    initData: tg?.initData,
     colorScheme,
     sendData,
     showMainButton,
