@@ -39,9 +39,7 @@ class DummyQuery:
     async def answer(self, text: str | None = None) -> None:
         self.answer_texts.append(text)
 
-    async def edit_message_reply_markup(
-        self, reply_markup: Any | None = None, **kwargs: Any
-    ) -> None:
+    async def edit_message_reply_markup(self, reply_markup: Any | None = None, **kwargs: Any) -> None:
         self.markups.append(reply_markup)
 
 
@@ -52,9 +50,7 @@ class DummyBot:
     def __init__(self) -> None:
         self.edited: list[tuple[str, int, int, dict[str, Any]]] = []
 
-    async def edit_message_text(
-        self, text: str, chat_id: int, message_id: int, **kwargs: Any
-    ) -> None:
+    async def edit_message_text(self, text: str, chat_id: int, message_id: int, **kwargs: Any) -> None:
         self.edited.append((text, chat_id, message_id, kwargs))
 
 
@@ -85,15 +81,11 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
             [
                 Entry(
                     telegram_id=1,
-                    event_time=datetime.datetime(
-                        2024, 1, 1, tzinfo=datetime.timezone.utc
-                    ),
+                    event_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
                 ),
                 Entry(
                     telegram_id=1,
-                    event_time=datetime.datetime(
-                        2024, 1, 2, tzinfo=datetime.timezone.utc
-                    ),
+                    event_time=datetime.datetime(2024, 1, 2, tzinfo=datetime.timezone.utc),
                 ),
             ]
         )
@@ -121,25 +113,14 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
         datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
     ]:
         day_str = d.strftime("%d.%m %H:%M")
-        expected_texts.append(
-            f"<b>{day_str}</b>\n"
-            f"🍭 Сахар: <b>—</b>\n"
-            f"🍞 Углеводы: <b>—</b>\n"
-            f"💉 Доза: <b>—</b>"
-        )
-    for text, kwargs, expected in zip(
-        message.replies[1:-1], message.kwargs[1:-1], expected_texts
-    ):
+        expected_texts.append(f"<b>{day_str}</b>\n🍭 Сахар: <b>—</b>\n🍞 Углеводы: <b>—</b>\n💉 Доза: <b>—</b>")
+    for text, kwargs, expected in zip(message.replies[1:-1], message.kwargs[1:-1], expected_texts):
         markup = kwargs.get("reply_markup")
         assert kwargs.get("parse_mode") == "HTML"
         assert text == expected
         assert isinstance(markup, InlineKeyboardMarkup)
-        buttons: list[InlineKeyboardButton] = [
-            b for row in markup.inline_keyboard for b in row
-        ]
-        all_callbacks.extend(
-            [cast(str, b.callback_data) for b in buttons if b.callback_data is not None]
-        )
+        buttons: list[InlineKeyboardButton] = [b for row in markup.inline_keyboard for b in row]
+        all_callbacks.extend([cast(str, b.callback_data) for b in buttons if b.callback_data is not None])
     for eid in entry_ids:
         assert f"edit:{eid}" in all_callbacks
         assert f"del:{eid}" in all_callbacks
@@ -197,7 +178,7 @@ async def test_history_view_webapp_button(
     button = markup.inline_keyboard[0][0]
     assert button.text == "🌐 Открыть историю в WebApp"
     assert button.web_app is not None
-    assert button.web_app.url == config.build_ui_url("/history")
+    assert button.web_app.url == config.build_ui_url("/history?limit=10")
 
 
 @pytest.mark.asyncio
@@ -262,9 +243,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     field_query = DummyQuery(entry_message, f"edit_field:{entry_id}:xe")
     update_cb2 = cast(
         Update,
-        SimpleNamespace(
-            callback_query=field_query, effective_user=SimpleNamespace(id=1)
-        ),
+        SimpleNamespace(callback_query=field_query, effective_user=SimpleNamespace(id=1)),
     )
     await router.callback_router(update_cb2, context)
     assert context.user_data is not None
@@ -293,9 +272,7 @@ async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert field_query.answer_texts
     assert context.user_data is not None
     user_data = context.user_data
-    assert not any(
-        k in user_data for k in ("edit_id", "edit_field", "edit_entry", "edit_query")
-    )
+    assert not any(k in user_data for k in ("edit_id", "edit_field", "edit_entry", "edit_query"))
     edited_text, chat_id, message_id, kwargs = context.bot.edited[0]
     assert chat_id == 42 and message_id == 24
     reply_markup = kwargs.get("reply_markup")
@@ -349,9 +326,7 @@ async def test_handle_edit_entry_missing_metadata(
     )
 
     assert result is False
-    assert not any(
-        k in user_data for k in ("edit_id", "edit_field", "edit_entry", "edit_query")
-    )
+    assert not any(k in user_data for k in ("edit_id", "edit_field", "edit_entry", "edit_query"))
     with TestSession() as session:
         entry_obj = session.get(Entry, entry_id)
         assert entry_obj is not None

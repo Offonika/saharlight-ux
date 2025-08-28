@@ -130,9 +130,12 @@ def test_history_persist_and_update(monkeypatch: pytest.MonkeyPatch) -> None:
 
         resp = client.get("/api/history", headers=headers1)
         body = resp.json()
-        assert [r["id"] for r in body] == ["1", "2"]
-        assert body[0]["time"] == "12:00"
-        assert body[1]["time"] == "13:00"
+        assert [r["id"] for r in body] == ["2", "1"]
+        assert body[0]["time"] == "13:00"
+        assert body[1]["time"] == "12:00"
+
+        resp = client.get("/api/history?limit=1", headers=headers1)
+        assert [r["id"] for r in resp.json()] == ["2"]
 
         resp = client.get("/api/history", headers=headers2)
         assert [r["id"] for r in resp.json()] == ["3"]
@@ -184,15 +187,10 @@ async def test_history_concurrent_writes(monkeypatch: pytest.MonkeyPatch) -> Non
     Session = setup_db(monkeypatch)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     headers = {TG_INIT_DATA_HEADER: build_init_data(1)}
-    records = [
-        {"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"}
-        for i in range(5)
-    ]
+    records = [{"id": str(i), "date": "2024-01-01", "time": "12:00", "type": "measurement"} for i in range(5)]
 
     async def post_record(rec: dict[str, Any]) -> None:
-        async with AsyncClient(
-            transport=ASGITransport(app=cast(Any, server.app)), base_url="http://test"
-        ) as ac:
+        async with AsyncClient(transport=ASGITransport(app=cast(Any, server.app)), base_url="http://test") as ac:
             resp = await ac.post("/api/history", json=rec, headers=headers)
             assert resp.status_code == 200
 

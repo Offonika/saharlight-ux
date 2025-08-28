@@ -15,7 +15,7 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover
     __package__ = "services.api.app"
 
 # ────────── std / 3-rd party ──────────
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import AliasChoices, BaseModel, Field, ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -230,15 +230,18 @@ async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(re
 
 @api_router.get("/history", operation_id="historyGet", tags=["History"])
 async def get_history(
+    limit: int | None = Query(None, ge=1),
     user: UserContext = Depends(require_tg_user),
 ) -> list[HistoryRecordSchema]:
     def _query(session: Session) -> list[HistoryRecordDB]:
-        return (
+        query = (
             session.query(HistoryRecordDB)
             .filter(HistoryRecordDB.telegram_id == user["id"])
-            .order_by(HistoryRecordDB.date, HistoryRecordDB.time)
-            .all()
+            .order_by(HistoryRecordDB.date.desc(), HistoryRecordDB.time.desc())
         )
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     records = await run_db(_query)
 
