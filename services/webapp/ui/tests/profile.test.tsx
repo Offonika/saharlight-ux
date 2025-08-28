@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const toast = vi.fn();
 
@@ -17,7 +17,7 @@ vi.mock('../src/hooks/useTelegram', () => ({
 }));
 
 vi.mock('../src/hooks/useTelegramInitData', () => ({
-  useTelegramInitData: () => '',
+  useTelegramInitData: vi.fn(),
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -26,16 +26,43 @@ vi.mock('react-router-dom', () => ({
 
 import Profile from '../src/pages/Profile';
 import { saveProfile } from '../src/api/profile';
+import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
 
 describe('Profile page', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
   it('blocks save without telegramId and shows toast', () => {
+    useTelegramInitData.mockReturnValue('');
     const { getByText } = render(<Profile />);
     fireEvent.click(getByText('Сохранить настройки'));
     expect(saveProfile).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Ошибка',
-        description: 'Не удалось определить пользователя',
+        description: 'Некорректный ID пользователя',
+        variant: 'destructive',
+      }),
+    );
+  });
+
+  it('blocks save with non-numeric id in initData and shows toast', () => {
+    const invalidInitData = new URLSearchParams({
+      user: JSON.stringify({ id: 'abc' }),
+    }).toString();
+    useTelegramInitData.mockReturnValue(invalidInitData);
+    const { getByText } = render(<Profile />);
+    fireEvent.click(getByText('Сохранить настройки'));
+    expect(saveProfile).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Ошибка',
+        description: 'Некорректный ID пользователя',
         variant: 'destructive',
       }),
     );
