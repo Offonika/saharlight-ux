@@ -10,11 +10,23 @@ class ProfileSchema(BaseModel):
     telegramId: int = Field(
         alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id")
     )
-    icr: Optional[float] = None
+    icr: Optional[float] = Field(
+        default=None,
+        alias="icr",
+        validation_alias=AliasChoices("icr", "cf"),
+    )
     cf: Optional[float] = None
     target: Optional[float] = None
-    low: Optional[float] = None
-    high: Optional[float] = None
+    low: Optional[float] = Field(
+        default=None,
+        alias="low",
+        validation_alias=AliasChoices("low", "targetLow"),
+    )
+    high: Optional[float] = Field(
+        default=None,
+        alias="high",
+        validation_alias=AliasChoices("high", "targetHigh"),
+    )
     quietStart: time = Field(
         default=time(23, 0),
         alias="quietStart",
@@ -39,8 +51,21 @@ class ProfileSchema(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    @model_validator(mode="before")
+    def alias_mismatch(cls, values: dict) -> dict:
+        def _check(a: str, b: str, name: str) -> None:
+            if a in values and b in values and values[a] != values[b]:
+                raise ValueError(f"{name} mismatch")
+
+        _check("low", "targetLow", "low")
+        _check("high", "targetHigh", "high")
+        return values
+
     @model_validator(mode="after")
     def compute_target(self) -> "ProfileSchema":
-        if self.target is None and self.low is not None and self.high is not None:
-            self.target = (self.low + self.high) / 2
+        if self.low is not None and self.high is not None:
+            if self.low >= self.high:
+                raise ValueError("low must be less than high")
+            if self.target is None:
+                self.target = (self.low + self.high) / 2
         return self
