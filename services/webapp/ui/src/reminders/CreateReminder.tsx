@@ -4,32 +4,27 @@ import { MedicalButton, Sheet } from "@/components";
 import { MedicalHeader } from "@/components/MedicalHeader";
 import { cn } from "@/lib/utils";
 import { createReminder, updateReminder, getReminder } from "@/api/reminders";
-import { Reminder as ApiReminder } from "@sdk";
+import { Reminder as ApiReminder, ReminderType } from "@sdk";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast as useShadcnToast } from "@/hooks/use-toast";
 import { validate, hasErrors, FormErrors } from "@/features/reminders/logic/validate";
 import { useToast } from "@/shared/toast";
 
-// Reminder type returned from API may contain legacy value "meds",
-// normalize it to "medicine" for UI usage
-type ReminderType = "sugar" | "insulin" | "meal" | "medicine" | "meds";
-type NormalizedReminderType = "sugar" | "insulin" | "meal" | "medicine";
+const { Sugar, InsulinLong, Meal, Custom } = ReminderType;
+type SupportedReminderType = typeof Sugar | typeof InsulinLong | typeof Meal | typeof Custom;
 
-const normalizeType = (t: ReminderType): NormalizedReminderType =>
-  t === "meds" ? "medicine" : t;
-
-const TYPES: Record<NormalizedReminderType, { label: string; emoji: string }> = {
-  sugar: { label: "Измерение сахара", emoji: "🩸" },
-  insulin: { label: "Инсулин", emoji: "💉" },
-  meal: { label: "Приём пищи", emoji: "🍽️" },
-  medicine: { label: "Лекарства", emoji: "💊" }
+const TYPES: Record<SupportedReminderType, { label: string; emoji: string }> = {
+  [Sugar]: { label: "Измерение сахара", emoji: "🩸" },
+  [InsulinLong]: { label: "Инсулин", emoji: "💉" },
+  [Meal]: { label: "Приём пищи", emoji: "🍽️" },
+  [Custom]: { label: "Лекарства", emoji: "💊" }
 };
 
-const PRESETS: Record<NormalizedReminderType, number[]> = {
-  sugar: [15, 30, 60],
-  insulin: [120, 180, 240],
-  meal: [180, 240, 360],
-  medicine: [240, 480, 720]
+const PRESETS: Record<SupportedReminderType, number[]> = {
+  [Sugar]: [15, 30, 60],
+  [InsulinLong]: [120, 180, 240],
+  [Meal]: [180, 240, 360],
+  [Custom]: [240, 480, 720]
 };
 
 function isValidTime(time: string): boolean {
@@ -46,7 +41,7 @@ function isValidTime(time: string): boolean {
 
 interface Reminder {
   id: number;
-  type: NormalizedReminderType;
+  type: SupportedReminderType;
   title: string;
   time: string;
   interval?: number;
@@ -63,8 +58,8 @@ export default function CreateReminder() {
     (location.state as Reminder | undefined) ?? undefined,
   );
 
-  const [type, setType] = useState<NormalizedReminderType>(
-    editing?.type ?? "sugar",
+  const [type, setType] = useState<SupportedReminderType>(
+    (editing?.type as SupportedReminderType) ?? Sugar,
   );
   const [title, setTitle] = useState(editing?.title ?? "");
   const [time, setTime] = useState(editing?.time ?? "");
@@ -84,11 +79,11 @@ export default function CreateReminder() {
         try {
           const data = await getReminder(user.id, Number(params.id));
           if (data) {
-            const nt = normalizeType(data.type as ReminderType);
+            const rtype = data.type as SupportedReminderType;
             const loaded: Reminder = {
               id: data.id ?? Number(params.id),
-              type: nt,
-              title: data.title ?? TYPES[nt].label,
+              type: rtype,
+              title: data.title ?? TYPES[rtype].label,
               time: data.time || "",
               interval:
                 data.intervalMinutes != null
@@ -300,7 +295,7 @@ export default function CreateReminder() {
           <div className="p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">Выберите тип напоминания</h3>
             <div className="grid grid-cols-2 gap-3">
-              {(Object.keys(TYPES) as NormalizedReminderType[]).map((key) => (
+              {(Object.keys(TYPES) as SupportedReminderType[]).map((key) => (
                 <button
                   key={key}
                   type="button"

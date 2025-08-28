@@ -53,7 +53,7 @@ form {
   background: #fdeaea;
   color: #c53030;
 }
-.type-chip.insulin {
+.type-chip.insulin_long {
   background: #eaf4ff;
   color: #2b6cb0;
 }
@@ -61,7 +61,7 @@ form {
   background: #e8f5e9;
   color: #2f855a;
 }
-.type-chip.medicine {
+.type-chip.custom {
   background: #e6fffa;
   color: #0b7285;
 }
@@ -90,7 +90,7 @@ form {
   background: #fdeaea;
   border-color: #fbb6b6;
 }
-.reminder-card.insulin {
+.reminder-card.insulin_long {
   background: #eaf4ff;
   border-color: #90cdf4;
 }
@@ -98,7 +98,7 @@ form {
   background: #e8f5e9;
   border-color: #9ae6b4;
 }
-.reminder-card.medicine {
+.reminder-card.custom {
   background: #e6fffa;
   border-color: #81e6d9;
 }

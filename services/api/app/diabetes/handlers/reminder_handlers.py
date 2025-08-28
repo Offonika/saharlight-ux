@@ -41,6 +41,7 @@ from services.api.app.diabetes.utils.helpers import (
     parse_time_interval,
 )
 from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.schemas.reminders import ReminderType
 from . import UserData
 
 run_db: Callable[..., Awaitable[object]] | None
@@ -63,18 +64,18 @@ PLAN_LIMITS = {"free": 5, "pro": 10}
 
 
 # Map reminder type codes to display names
-REMINDER_NAMES = {
-    "sugar": "Сахар",  # noqa: RUF001
-    "long_insulin": "Длинный инсулин",  # noqa: RUF001
-    "medicine": "Лекарство",  # noqa: RUF001
-    "xe_after": "Проверить ХЕ после еды",  # noqa: RUF001
+REMINDER_NAMES: dict[str, str] = {
+    ReminderType.sugar: "Сахар",  # noqa: RUF001
+    ReminderType.insulin_long: "Длинный инсулин",  # noqa: RUF001
+    ReminderType.custom: "Лекарство",  # noqa: RUF001
+    ReminderType.after_meal: "Проверить ХЕ после еды",  # noqa: RUF001
 }
 
-REMINDER_ACTIONS = {
-    "sugar": "Замерить сахар",  # noqa: RUF001
-    "long_insulin": "Длинный инсулин",  # noqa: RUF001
-    "medicine": "Таблетки/лекарство",  # noqa: RUF001
-    "xe_after": "Проверить ХЕ",  # noqa: RUF001
+REMINDER_ACTIONS: dict[str, str] = {
+    ReminderType.sugar: "Замерить сахар",  # noqa: RUF001
+    ReminderType.insulin_long: "Длинный инсулин",  # noqa: RUF001
+    ReminderType.custom: "Таблетки/лекарство",  # noqa: RUF001
+    ReminderType.after_meal: "Проверить ХЕ",  # noqa: RUF001
 }
 
 
@@ -263,7 +264,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
         except (OSError, ValueError) as exc:
             logger.exception("Unexpected error loading timezone %s: %s", tzname, exc)
 
-    if rem.type in {"sugar", "long_insulin", "medicine"}:
+    if rem.type in {ReminderType.sugar, ReminderType.insulin_long, ReminderType.custom}:
         if rem.time:
             logger.debug(
                 "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
@@ -294,7 +295,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
                 data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
                 name=name,
             )
-    # xe_after reminders are scheduled when entry is logged
+    # after_meal reminders are scheduled when entry is logged
     logger.debug(
         "Finished scheduling reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
         rem.id,
@@ -390,7 +391,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             except ValueError:
                 await message.reply_text("Интервал должен быть числом.")
                 return
-    elif rtype in {"long_insulin", "medicine"}:
+    elif rtype in {ReminderType.insulin_long, ReminderType.custom}:
         try:
             parsed = parse_time_interval(value)
         except ValueError:
@@ -401,7 +402,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         else:
             await message.reply_text(INVALID_TIME_MSG)
             return
-    elif rtype == "xe_after":
+    elif rtype == ReminderType.after_meal:
         try:
             reminder.minutes_after = int(value)
         except ValueError:
@@ -516,7 +517,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     logger.debug("Received raw reminder value: %r", value)
     user_id = user.id
-    if rtype == "xe_after":
+    if rtype == ReminderType.after_meal:
         try:
             minutes = int(value)
         except ValueError:
@@ -557,7 +558,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
                 return "limit", None, plan, limit
             rem = Reminder(telegram_id=user_id, type=rtype, is_enabled=True)
             session.add(rem)
-        if rtype == "xe_after":
+        if rtype == ReminderType.after_meal:
             rem.minutes_after = minutes
             rem.time = None
             rem.interval_hours = None
@@ -866,7 +867,11 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
         logger.warning("schedule_after_meal called without job_queue")
         return
     with SessionLocal() as session:
-        rems = session.query(Reminder).filter_by(telegram_id=user_id, type="xe_after", is_enabled=True).all()
+        rems = (
+            session.query(Reminder)
+            .filter_by(telegram_id=user_id, type=ReminderType.after_meal, is_enabled=True)
+            .all()
+        )
     for rem in rems:
         minutes_after = rem.minutes_after
         if minutes_after is None:
