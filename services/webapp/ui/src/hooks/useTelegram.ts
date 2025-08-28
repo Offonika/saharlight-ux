@@ -192,7 +192,11 @@ export const useTelegram = (
           } catch (e) {
             console.error("[TG] failed to parse dev user:", e);
           }
+        } else {
+          console.warn("[TG] initData does not contain user field");
         }
+      } else {
+        console.warn("[TG] no initData found in localStorage or env");
       }
 
       // If no user from initData, create fallback test user
