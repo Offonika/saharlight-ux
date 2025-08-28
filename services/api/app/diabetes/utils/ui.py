@@ -78,10 +78,18 @@ def menu_keyboard() -> ReplyKeyboardMarkup:
         if webapp_enabled
         else KeyboardButton(REMINDERS_BUTTON_TEXT)
     )
+    history_button = (
+        KeyboardButton(
+            HISTORY_BUTTON_TEXT,
+            web_app=WebAppInfo(config.build_ui_url("/history")),
+        )
+        if webapp_enabled
+        else KeyboardButton(HISTORY_BUTTON_TEXT)
+    )
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(PHOTO_BUTTON_TEXT), KeyboardButton(SUGAR_BUTTON_TEXT)],
-            [KeyboardButton(DOSE_BUTTON_TEXT), KeyboardButton(HISTORY_BUTTON_TEXT)],
+            [KeyboardButton(DOSE_BUTTON_TEXT), history_button],
             [KeyboardButton(REPORT_BUTTON_TEXT), profile_button],
             [KeyboardButton(QUICK_INPUT_BUTTON_TEXT), KeyboardButton(HELP_BUTTON_TEXT)],
             [reminders_button, KeyboardButton(SOS_BUTTON_TEXT)],
