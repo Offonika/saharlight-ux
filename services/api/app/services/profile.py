@@ -29,15 +29,18 @@ async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
 
 def _validate_profile(data: ProfileSchema) -> None:
     """Validate business rules for a patient profile."""
-    if (
-        data.icr <= 0
-        or data.cf <= 0
-        or data.target <= 0
-        or data.low <= 0
-        or data.high <= 0
-        or data.low >= data.high
-    ):
-        raise ValueError("invalid profile values")  # pragma: no cover
+    if data.icr <= 0:
+        raise ValueError("icr must be greater than 0")  # pragma: no cover
+    if data.cf <= 0:
+        raise ValueError("cf must be greater than 0")  # pragma: no cover
+    if data.target <= 0:
+        raise ValueError("target must be greater than 0")  # pragma: no cover
+    if data.low <= 0:
+        raise ValueError("low must be greater than 0")  # pragma: no cover
+    if data.high <= 0:
+        raise ValueError("high must be greater than 0")  # pragma: no cover
+    if data.low >= data.high:
+        raise ValueError("low must be less than high")  # pragma: no cover
 
     if not (data.low < data.target < data.high):
         raise ValueError("target must be between low and high")  # pragma: no cover
@@ -46,10 +49,7 @@ def _validate_profile(data: ProfileSchema) -> None:
 
 
 async def save_profile(data: ProfileSchema) -> None:
-    try:
-        _validate_profile(data)
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+    _validate_profile(data)
 
     def _save(session: SessionProtocol) -> None:
         user = cast(User | None, session.get(User, data.telegramId))
