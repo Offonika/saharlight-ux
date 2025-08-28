@@ -1,6 +1,11 @@
-import { ProfilesApi, ProfileSchema } from '@sdk';
+import { Configuration, ProfilesApi, ProfileSchema } from '@sdk';
 
-const api = new ProfilesApi({ basePath: '/api' });
+const api = new ProfilesApi(
+  new Configuration({
+    basePath: '/api',
+    // apiKey: localStorage.getItem('token') ?? undefined,
+  }),
+);
 
 export async function saveProfile(profile: ProfileSchema) {
   try {
