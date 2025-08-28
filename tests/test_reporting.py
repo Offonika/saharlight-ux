@@ -7,6 +7,7 @@ import threading
 import time
 from types import SimpleNamespace
 from typing import Any, BinaryIO
+from pathlib import Path
 
 import pytest
 import matplotlib.pyplot as plt
@@ -24,6 +25,7 @@ from services.api.app.diabetes.services.reporting import (
     register_fonts,
 )
 import services.api.app.diabetes.services.reporting as reporting
+from services.api.app import config
 
 
 def date2num(date: datetime.datetime) -> float:
@@ -79,6 +81,27 @@ def test_register_fonts_threadsafe(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert counter["n"] == 2
     assert results and all(r == [] for r in results)
+
+
+def test_register_font_uses_dynamic_settings(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    captured: dict[str, str] = {}
+
+    def fake_ttfont(name: str, path: str) -> SimpleNamespace:
+        captured["path"] = path
+        return SimpleNamespace()
+
+    monkeypatch.setattr(reporting, "TTFont", fake_ttfont)
+    monkeypatch.setattr(reporting.pdfmetrics, "registerFont", lambda font: None)
+
+    fake_settings = SimpleNamespace(font_dir=str(tmp_path))
+    monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
+
+    msg = reporting._register_font("DejaVuSans", "DejaVuSans.ttf")
+
+    assert msg is None
+    assert captured["path"] == os.path.join(str(tmp_path), "DejaVuSans.ttf")
 
 
 def test_make_sugar_plot() -> None:
