@@ -29,6 +29,7 @@ async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
 
 def _validate_profile(data: ProfileSchema) -> None:
     """Validate business rules for a patient profile."""
+    assert data.target is not None
     if data.icr <= 0:
         raise ValueError("icr must be greater than 0")  # pragma: no cover
     if data.cf <= 0:

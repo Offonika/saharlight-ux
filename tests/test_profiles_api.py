@@ -35,7 +35,6 @@ def test_profiles_post_creates_user_for_missing_telegram_id(
         "telegramId": 777,
         "icr": 1.0,
         "cf": 1.0,
-        "target": 5.0,
         "low": 4.0,
         "high": 6.0,
         "orgId": 1,
@@ -43,6 +42,7 @@ def test_profiles_post_creates_user_for_missing_telegram_id(
     with TestClient(app) as client:
         resp = client.post("/api/profiles", json=payload)
     assert resp.status_code == 200
+    assert resp.json()["target"] == 5.0
     engine.dispose()
 
 
@@ -63,14 +63,13 @@ def test_profiles_post_invalid_values_returns_422(
         "telegramId": 777,
         "icr": 1.0,
         "cf": 1.0,
-        "target": 5.0,
         "low": 6.0,
         "high": 5.0,
     }
     with TestClient(app) as client:
         resp = client.post("/api/profiles", json=payload)
     assert resp.status_code == 422
-    assert resp.json() == {"detail": "low must be less than high"}
+    assert resp.json()["detail"][0]["msg"].endswith("low must be less than high")
     engine.dispose()
 
 
@@ -91,7 +90,6 @@ def test_profiles_post_invalid_icr_returns_422(
         "telegramId": 777,
         "icr": 0,
         "cf": 1.0,
-        "target": 5.0,
         "low": 4.0,
         "high": 6.0,
     }
@@ -119,7 +117,6 @@ def test_profiles_post_invalid_cf_returns_422(
         "telegramId": 777,
         "icr": 1.0,
         "cf": -1,
-        "target": 5.0,
         "low": 4.0,
         "high": 6.0,
     }
@@ -127,4 +124,60 @@ def test_profiles_post_invalid_cf_returns_422(
         resp = client.post("/api/profiles", json=payload)
     assert resp.status_code == 422
     assert resp.json() == {"detail": "cf must be greater than 0"}
+    engine.dispose()
+
+
+def test_profiles_post_low_mismatch_returns_422(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app = FastAPI()
+    app.include_router(router, prefix="/api")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
+    payload = {
+        "telegramId": 777,
+        "icr": 1.0,
+        "cf": 1.0,
+        "low": 4.0,
+        "targetLow": 5.0,
+        "high": 6.0,
+    }
+    with TestClient(app) as client:
+        resp = client.post("/api/profiles", json=payload)
+    assert resp.status_code == 422
+    assert resp.json()["detail"][0]["msg"].endswith("low mismatch")
+    engine.dispose()
+
+
+def test_profiles_post_high_mismatch_returns_422(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app = FastAPI()
+    app.include_router(router, prefix="/api")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
+    payload = {
+        "telegramId": 777,
+        "icr": 1.0,
+        "cf": 1.0,
+        "low": 4.0,
+        "high": 6.0,
+        "targetHigh": 7.0,
+    }
+    with TestClient(app) as client:
+        resp = client.post("/api/profiles", json=payload)
+    assert resp.status_code == 422
+    assert resp.json()["detail"][0]["msg"].endswith("high mismatch")
     engine.dispose()
