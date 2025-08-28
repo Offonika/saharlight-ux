@@ -47,6 +47,7 @@ interface TelegramWebApp {
   colorScheme?: Scheme;
   themeParams?: ThemeParams;
   user?: TelegramUser;
+  initDataUnsafe?: { user?: TelegramUser };
   setBackgroundColor?: (color: string) => void;
   setHeaderColor?: (color: string) => void;
   onEvent?: (eventType: string, handler: () => void) => void;
@@ -84,15 +85,23 @@ export const useTelegram = (
 
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
-    let h = 0, s = 0, l = (max + min) / 2;
+    let h = 0,
+      s = 0,
+      l = (max + min) / 2;
 
     if (max !== min) {
       const d = max - min;
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
       switch (max) {
-        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-        case g: h = (b - r) / d + 2; break;
-        case b: h = (r - g) / d + 4; break;
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
       }
       h /= 6;
     }
@@ -104,13 +113,17 @@ export const useTelegram = (
     (src: TelegramWebApp | null, ignoreScheme = false) => {
       const root = document.documentElement;
       const p = src?.themeParams ?? {};
-      
+
       if (ignoreScheme) {
         // Remove Telegram theme overrides to fall back to default light colors
         const themeKeys = [
-          "--tg-theme-bg-color", "--tg-theme-text-color", "--tg-theme-hint-color",
-          "--tg-theme-link-color", "--tg-theme-button-color", "--tg-theme-button-text-color",
-          "--tg-theme-secondary-bg-color"
+          "--tg-theme-bg-color",
+          "--tg-theme-text-color",
+          "--tg-theme-hint-color",
+          "--tg-theme-link-color",
+          "--tg-theme-button-color",
+          "--tg-theme-button-text-color",
+          "--tg-theme-secondary-bg-color",
         ];
         themeKeys.forEach((k) => root.style.removeProperty(k));
         root.classList.remove("dark");
@@ -121,14 +134,39 @@ export const useTelegram = (
         src?.setHeaderColor?.("#ffffff");
       } else {
         // Применяем Telegram цвета в HSL формате
-        if (p.bg_color) root.style.setProperty("--tg-theme-bg-color", hexToHsl(p.bg_color));
-        if (p.text_color) root.style.setProperty("--tg-theme-text-color", hexToHsl(p.text_color));
-        if (p.hint_color) root.style.setProperty("--tg-theme-hint-color", hexToHsl(p.hint_color));
-        if (p.link_color) root.style.setProperty("--tg-theme-link-color", hexToHsl(p.link_color));
-        if (p.button_color) root.style.setProperty("--tg-theme-button-color", hexToHsl(p.button_color));
-        if (p.button_text_color) root.style.setProperty("--tg-theme-button-text-color", hexToHsl(p.button_text_color));
-        if (p.secondary_bg_color) root.style.setProperty("--tg-theme-secondary-bg-color", hexToHsl(p.secondary_bg_color));
-        
+        if (p.bg_color)
+          root.style.setProperty("--tg-theme-bg-color", hexToHsl(p.bg_color));
+        if (p.text_color)
+          root.style.setProperty(
+            "--tg-theme-text-color",
+            hexToHsl(p.text_color),
+          );
+        if (p.hint_color)
+          root.style.setProperty(
+            "--tg-theme-hint-color",
+            hexToHsl(p.hint_color),
+          );
+        if (p.link_color)
+          root.style.setProperty(
+            "--tg-theme-link-color",
+            hexToHsl(p.link_color),
+          );
+        if (p.button_color)
+          root.style.setProperty(
+            "--tg-theme-button-color",
+            hexToHsl(p.button_color),
+          );
+        if (p.button_text_color)
+          root.style.setProperty(
+            "--tg-theme-button-text-color",
+            hexToHsl(p.button_text_color),
+          );
+        if (p.secondary_bg_color)
+          root.style.setProperty(
+            "--tg-theme-secondary-bg-color",
+            hexToHsl(p.secondary_bg_color),
+          );
+
         const isDark = src?.colorScheme === "dark";
         root.classList.toggle("dark", isDark);
         root.classList.toggle("light", !isDark);
@@ -142,7 +180,7 @@ export const useTelegram = (
   useEffect(() => {
     const createDevUser = (): TelegramUser => {
       let devUser: TelegramUser | null = null;
-      
+
       const initData = getDevInitData();
       if (initData) {
         const userStr = new URLSearchParams(initData).get("user");
@@ -155,7 +193,7 @@ export const useTelegram = (
           }
         }
       }
-      
+
       // If no user from initData, create fallback test user
       if (!devUser) {
         const devUserId = import.meta.env.VITE_DEV_USER_ID || "12345";
@@ -168,43 +206,45 @@ export const useTelegram = (
         };
         console.log("[TG] created fallback dev user:", devUser);
       }
-      
+
       return devUser;
     };
 
     if (!tg) {
       console.warn("[TG] not in Telegram, enabling dev fallback");
-      
+
       // In development mode, create fallback user
-      if (import.meta.env.MODE !== 'production') {
+      if (import.meta.env.MODE !== "production") {
         setUser(createDevUser());
       }
-      
+
       applyTheme(null, forceLight);
       setReady(true);
       return;
     }
-    
+
     try {
       tg.expand?.();
       tg.ready?.();
       applyTheme(tg, forceLight);
-      
-      // If no user in Telegram WebApp and in development mode, create fallback
-      if (!tg.user && import.meta.env.MODE !== 'production') {
+
+      const tgUser = tg.user || tg.initDataUnsafe?.user;
+      if (!tgUser && import.meta.env.MODE !== "production") {
         console.warn("[TG] no user in Telegram WebApp, creating dev fallback");
         setUser(createDevUser());
       } else {
-        setUser(tg.user ?? null);
+        setUser(tgUser ?? null);
       }
-      
+
       setReady(true);
       const onTheme = () => applyTheme(tg, forceLight);
       tg.onEvent?.("themeChanged", onTheme);
       return () => {
         tg.offEvent?.("themeChanged", onTheme);
-        if (mainClickRef.current) tg.MainButton?.offClick?.(mainClickRef.current);
-        if (backClickRef.current) tg.BackButton?.offClick?.(backClickRef.current);
+        if (mainClickRef.current)
+          tg.MainButton?.offClick?.(mainClickRef.current);
+        if (backClickRef.current)
+          tg.BackButton?.offClick?.(backClickRef.current);
       };
     } catch (e) {
       console.error("[TG] init error:", e);
