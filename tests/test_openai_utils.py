@@ -1,16 +1,20 @@
 import logging
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
 
-from services.api.app.config import settings
+from services.api.app import config
 from services.api.app.diabetes.utils import openai_utils
 
 
 def test_get_openai_client_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(openai_utils, "_http_client", None)
-    monkeypatch.setattr(settings, "openai_api_key", "")
+    fake_settings = SimpleNamespace(
+        openai_api_key="", openai_proxy=None, openai_assistant_id=None
+    )
+    monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     with pytest.raises(RuntimeError):
         openai_utils.get_openai_client()
 
@@ -20,9 +24,11 @@ def test_get_openai_client_uses_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
     http_client_mock = Mock(return_value=fake_http_client)
     openai_mock = Mock()
 
+    fake_settings = SimpleNamespace(
+        openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
+    )
+    monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client", None)
-    monkeypatch.setattr(settings, "openai_api_key", "key")
-    monkeypatch.setattr(settings, "openai_proxy", "http://proxy")
     monkeypatch.setattr(httpx, "Client", http_client_mock)
     monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
 
@@ -41,11 +47,12 @@ def test_get_openai_client_logs_assistant(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     openai_mock = Mock()
+    fake_settings = SimpleNamespace(
+        openai_api_key="key", openai_proxy=None, openai_assistant_id="assistant"
+    )
+    monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client", None)
     monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
-    monkeypatch.setattr(settings, "openai_api_key", "key")
-    monkeypatch.setattr(settings, "openai_assistant_id", "assistant")
-    monkeypatch.setattr(settings, "openai_proxy", None)
 
     with caplog.at_level(logging.INFO):
         openai_utils.get_openai_client()
@@ -57,10 +64,12 @@ def test_get_openai_client_without_proxy(monkeypatch: pytest.MonkeyPatch) -> Non
     openai_mock = Mock()
     http_client_mock = Mock()
 
+    fake_settings = SimpleNamespace(
+        openai_api_key="key", openai_proxy=None, openai_assistant_id=None
+    )
+    monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client", None)
     monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
-    monkeypatch.setattr(settings, "openai_api_key", "key")
-    monkeypatch.setattr(settings, "openai_proxy", None)
     monkeypatch.setattr(httpx, "Client", http_client_mock)
 
     client = openai_utils.get_openai_client()
@@ -84,11 +93,13 @@ def test_http_client_lock_used(monkeypatch: pytest.MonkeyPatch) -> None:
 
     dummy_lock = DummyLock()
     fake_http_client = Mock()
+    fake_settings = SimpleNamespace(
+        openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
+    )
 
+    monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client_lock", dummy_lock)
     monkeypatch.setattr(openai_utils, "_http_client", None)
-    monkeypatch.setattr(settings, "openai_api_key", "key")
-    monkeypatch.setattr(settings, "openai_proxy", "http://proxy")
     monkeypatch.setattr(httpx, "Client", Mock(return_value=fake_http_client))
     monkeypatch.setattr(openai_utils, "OpenAI", Mock())
 
@@ -107,7 +118,10 @@ def test_get_async_openai_client_requires_api_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(openai_utils, "_async_http_client", None)
-    monkeypatch.setattr(settings, "openai_api_key", "")
+    fake_settings = SimpleNamespace(
+        openai_api_key="", openai_proxy=None, openai_assistant_id=None
+    )
+    monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     with pytest.raises(RuntimeError):
         openai_utils.get_async_openai_client()
 
@@ -119,9 +133,11 @@ def test_get_async_openai_client_uses_proxy(monkeypatch: pytest.MonkeyPatch) -> 
 
     openai_mock = Mock()
 
+    fake_settings = SimpleNamespace(
+        openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
+    )
+    monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_async_http_client", None)
-    monkeypatch.setattr(settings, "openai_api_key", "key")
-    monkeypatch.setattr(settings, "openai_proxy", "http://proxy")
 
     monkeypatch.setattr(httpx, "AsyncClient", async_client_mock)
     monkeypatch.setattr(openai_utils, "AsyncOpenAI", openai_mock)
