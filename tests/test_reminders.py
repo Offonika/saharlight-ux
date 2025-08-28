@@ -294,13 +294,13 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         edit_btn = row[0]
         assert edit_btn.text == "✏️"
         assert edit_btn.web_app is not None
-        assert edit_btn.web_app.url == config.build_ui_url(
+        assert edit_btn.web_app.url == handlers.config.build_ui_url(
             f"/reminders?id={rem_id}"
         )
     add_btn = markup.inline_keyboard[-1][0]
     assert add_btn.text == "➕ Добавить"
     assert add_btn.web_app is not None
-    assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
+    assert add_btn.web_app.url == handlers.config.build_ui_url("/reminders/new")
 
 
 def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -381,7 +381,7 @@ def test_render_reminders_no_entries_webapp(monkeypatch: pytest.MonkeyPatch) -> 
     assert [btn.text for btn in add_row] == ["➕ Добавить"]
     add_btn = add_row[0]
     assert add_btn.web_app is not None
-    assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
+    assert add_btn.web_app.url == handlers.config.build_ui_url("/reminders/new")
 
 
 def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -389,8 +389,6 @@ def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch)
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    import services.api.app.config as config
-
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
@@ -412,10 +410,10 @@ def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch)
     first_row = markup.inline_keyboard[0]
     edit_btn = first_row[0]
     assert edit_btn.web_app is not None
-    assert edit_btn.web_app.url == config.build_ui_url("/reminders?id=1")
+    assert edit_btn.web_app.url == handlers.config.build_ui_url("/reminders?id=1")
     add_btn = markup.inline_keyboard[1][0]
     assert add_btn.web_app is not None
-    assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
+    assert add_btn.web_app.url == handlers.config.build_ui_url("/reminders/new")
 
 
 @pytest.mark.asyncio
