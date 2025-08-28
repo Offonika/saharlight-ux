@@ -62,6 +62,7 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
     import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
     import services.api.app.diabetes.handlers.router as router
     import services.api.app.diabetes.handlers.dose_calc as dose_calc
+    import services.api.app.config as config
 
     engine = create_engine(
         "sqlite:///:memory:",
@@ -74,6 +75,7 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(reporting_handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(router, "SessionLocal", TestSession)
     monkeypatch.setattr(dose_calc, "SessionLocal", TestSession)
+    monkeypatch.setattr(config.settings, "public_origin", "")
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
