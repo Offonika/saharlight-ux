@@ -32,7 +32,6 @@ def reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> Any:
         "services.api.app.diabetes.handlers.reminder_handlers",
     )
     importlib.reload(handlers)
-    handlers.config = config
     return handlers
 
 
