@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import type { ReminderSchema } from "@sdk";
 import { useRemindersApi } from "../api/reminders";
 import { formatNextAt } from "../../../shared/datetime";
@@ -56,7 +56,7 @@ function scheduleLine(r: ReminderDto) {
   return TYPE_LABEL[r.type] || "Напоминание";
 }
 
-export default function RemindersList({ 
+export default function RemindersList({
   onCountChange, 
   planLimit 
 }: { 
@@ -66,6 +66,7 @@ export default function RemindersList({
   const api = useRemindersApi();
   const { user } = useTelegram();
   const initData = useTelegramInitData();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [items, setItems] = useState<ReminderDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -320,12 +321,13 @@ export default function RemindersList({
                     >
                       {r.isEnabled ? "Вкл." : "Выкл."}
                     </button>
-                    <Link
-                      to={`/reminders/${r.id}/edit`}
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/reminders/${r.id}/edit`)}
                       className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-all duration-200"
                     >
                       ✏️
-                    </Link>
+                    </button>
                     <button 
                       onClick={() => remove(r)} 
                       className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all duration-200"
@@ -346,12 +348,13 @@ export default function RemindersList({
             <span className="text-2xl">⏰</span>
           </div>
           <p className="text-muted-foreground">Пока нет напоминаний</p>
-          <Link
-            to="/reminders/new"
+          <button
+            type="button"
+            onClick={() => navigate('/reminders/new')}
             className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             + Добавить первое напоминание
-          </Link>
+          </button>
         </div>
       )}
     </div>
