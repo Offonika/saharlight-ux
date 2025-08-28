@@ -55,7 +55,6 @@ from services.api.app.diabetes.utils.ui import (  # noqa: E402
     back_keyboard as _back_keyboard,
     menu_keyboard,
 )
-from services.api.app import config  # noqa: E402
 from services.api.app.diabetes.services.repository import CommitError, commit  # noqa: E402
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers  # noqa: E402
 
@@ -212,6 +211,8 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display current patient profile."""
+    from services.api.app import config
+
     message = update.message
     user = update.effective_user
     if message is None or user is None:
@@ -220,18 +221,18 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user_id = user.id
     profile = fetch_profile(api, ApiException, user_id)
 
-    if not profile:
-        if config.settings.public_origin:
-            keyboard = InlineKeyboardMarkup(
-                [
-                    [
-                        InlineKeyboardButton(
-                            "📝 Заполнить форму",
-                            web_app=WebAppInfo(config.build_ui_url("/profile")),
-                        )
-                    ]
-                ]
+    webapp_button: list[InlineKeyboardButton] | None = None
+    if config.settings.public_origin:
+        webapp_button = [
+            InlineKeyboardButton(
+                "📝 Заполнить форму",
+                web_app=WebAppInfo(config.build_ui_url("/profile")),
             )
+        ]
+
+    if not profile:
+        if webapp_button is not None:
+            keyboard = InlineKeyboardMarkup([webapp_button])
             await message.reply_text("Ваш профиль пока не настроен.", reply_markup=keyboard)
         else:
             await message.reply_text(
@@ -258,16 +259,8 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🌐 Часовой пояс", callback_data="profile_timezone")],
         [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
     ]
-    if config.settings.public_origin:
-        rows.insert(
-            1,
-            [
-                InlineKeyboardButton(
-                    "📝 Заполнить форму",
-                    web_app=WebAppInfo(config.build_ui_url("/profile")),
-                )
-            ],
-        )
+    if webapp_button is not None:
+        rows.insert(1, webapp_button)
     keyboard = InlineKeyboardMarkup(rows)
     await message.reply_text(msg, reply_markup=keyboard)
 
@@ -492,6 +485,8 @@ def _security_db(session: Session, user_id: int, action: str | None) -> dict[str
 
 async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Display and modify security settings."""
+    from services.api.app import config
+
     query = update.callback_query
     if query is None or query.data is None:
         return
