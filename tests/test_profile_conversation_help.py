@@ -30,5 +30,4 @@ async def test_profile_command_help(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(conv, "get_api", lambda: (None, Exception, object))
     result = await conv.profile_command(update, context)
     assert result == conv.END
-    assert message.texts and "Формат команды" in message.texts[0]
-
+    assert message.texts and "Настройки профиля доступны" in message.texts[0]

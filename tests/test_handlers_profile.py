@@ -87,7 +87,9 @@ async def test_profile_command_and_view(
         session.commit()
 
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=123)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=123))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=args, user_data={}),
@@ -144,7 +146,9 @@ async def test_profile_command_and_view(
     ],
 )
 @pytest.mark.asyncio
-async def test_profile_command_invalid_values(monkeypatch: pytest.MonkeyPatch, args: Any, expected_attr: str) -> None:
+async def test_profile_command_invalid_values(
+    monkeypatch: pytest.MonkeyPatch, args: Any, expected_attr: str
+) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -158,7 +162,9 @@ async def test_profile_command_invalid_values(monkeypatch: pytest.MonkeyPatch, a
     monkeypatch.setattr(handlers, "post_profile", post_profile_mock)
 
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=args, user_data={}),
@@ -181,18 +187,22 @@ async def test_profile_command_help(monkeypatch: pytest.MonkeyPatch) -> None:
     from services.api.app.diabetes.handlers import profile as handlers
 
     help_msg = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=help_msg, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=help_msg, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=["help"], user_data={}),
     )
     result = await handlers.profile_command(update, context)
     assert result == handlers.END
-    assert "Формат команды" in help_msg.texts[0]
+    assert "Настройки профиля доступны" in help_msg.texts[0]
 
 
 @pytest.mark.asyncio
-async def test_profile_command_view_existing_profile(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_profile_command_view_existing_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -210,7 +220,9 @@ async def test_profile_command_view_existing_profile(monkeypatch: pytest.MonkeyP
         session.commit()
 
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=[], user_data={}),
@@ -251,7 +263,9 @@ async def test_profile_view_preserves_user_data(
         session.commit()
 
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"thread_id": "tid", "foo": "bar"}),
@@ -282,7 +296,9 @@ async def test_profile_view_missing_profile_shows_webapp_button(
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 
     msg = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(),
@@ -317,7 +333,9 @@ async def test_profile_view_existing_profile_shows_webapp_button(
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: profile)
 
     msg = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(),
