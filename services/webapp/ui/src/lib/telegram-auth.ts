@@ -1,4 +1,4 @@
-const HEADER = 'x-telegram-init-data';
+const HEADER = 'X-Telegram-Init-Data';
 const LS_KEY = 'tg_init_data';
 
 export function getDevInitData(): string | null {

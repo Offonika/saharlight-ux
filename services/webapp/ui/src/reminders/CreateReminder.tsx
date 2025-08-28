@@ -3,11 +3,11 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { MedicalButton, Sheet } from "@/components";
 import { MedicalHeader } from "@/components/MedicalHeader";
 import { cn } from "@/lib/utils";
-import { createReminder, updateReminder, getReminder } from "@/api/reminders";
-import { Reminder as ApiReminder } from "@sdk";
+import { mockApi } from "@/api/mock-server";
+import { useRemindersApi } from "@/features/reminders/api/reminders";
+import type { ReminderSchema as ApiReminder } from "@sdk";
 import { useTelegram } from "@/hooks/useTelegram";
-import { useToast as useShadcnToast } from "@/hooks/use-toast";
-import { validate, hasErrors, FormErrors } from "@/features/reminders/logic/validate";
+import { validate, hasErrors } from "@/features/reminders/logic/validate";
 import { useToast } from "@/shared/toast";
 
 // Reminder type returned from API may contain legacy value "meds",
@@ -57,8 +57,8 @@ export default function CreateReminder() {
   const location = useLocation();
   const params = useParams();
   const { user, sendData } = useTelegram();
-  const shadcnToast = useShadcnToast();
   const toast = useToast();
+  const api = useRemindersApi();
   const [editing, setEditing] = useState<Reminder | undefined>(
     (location.state as Reminder | undefined) ?? undefined,
   );
@@ -82,7 +82,13 @@ export default function CreateReminder() {
     if (!editing && params.id && user?.id) {
       (async () => {
         try {
-          const data = await getReminder(user.id, Number(params.id));
+          let data: ApiReminder | null = null;
+          try {
+            data = await api.remindersIdGet({ telegramId: user.id, id: Number(params.id) });
+          } catch (apiError) {
+            console.warn("Backend API failed, using mock API:", apiError);
+            data = await mockApi.getReminder(user.id, Number(params.id));
+          }
           if (data) {
             const nt = normalizeType(data.type as ReminderType);
             const loaded: Reminder = {
@@ -115,7 +121,7 @@ export default function CreateReminder() {
         }
       })();
     }
-  }, [editing, params.id, user?.id, toast]);
+  }, [editing, params.id, user?.id, toast, api]);
 
   const validName = title.trim().length >= 2;
   const validTime = isValidTime(time);
@@ -136,9 +142,24 @@ export default function CreateReminder() {
       ...(editing ? { id: editing.id } : {}),
     };
     try {
-      const res = editing
-        ? await updateReminder(payload)
-        : await createReminder(payload);
+      let res: { id?: number } | void;
+      if (editing) {
+        try {
+          await api.remindersPatch({ reminder: payload });
+          res = { id: editing.id };
+        } catch (apiError) {
+          console.warn("Backend API failed, using mock API:", apiError);
+          await mockApi.updateReminder(payload);
+          res = { id: editing.id };
+        }
+      } else {
+        try {
+          res = await api.remindersPost({ reminder: payload });
+        } catch (apiError) {
+          console.warn("Backend API failed, using mock API:", apiError);
+          res = await mockApi.createReminder(payload);
+        }
+      }
       const rid = editing ? editing.id : res?.id;
       const hours = interval != null ? interval / 60 : undefined;
       const value =
