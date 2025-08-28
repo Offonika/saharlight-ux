@@ -215,7 +215,7 @@ API контейнер запускает `uvicorn` напрямую как ко
 
 ## Генерация SDK
 
-Файл `libs/contracts/openapi.yaml` содержит спецификацию API. По нему генерируются SDK. Перед генерацией установите зависимости, чтобы workspace был доступен в UI:
+Файл `libs/contracts/openapi.yaml` содержит спецификацию API. По нему генерируются SDK. В `ProfileSchema` поле `target` теперь необязательное, а для совместимости доступны алиасы `cf`, `targetLow` и `targetHigh`. Перед генерацией установите зависимости, чтобы workspace был доступен в UI:
 
 ```bash
 pnpm install

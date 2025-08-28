@@ -672,15 +672,18 @@ components:
         cf:
           type: number
           title: Cf
+          description: Alias `cf` for compatibility.
         target:
           type: number
           title: Target
         low:
           type: number
           title: Low
+          description: Alias `targetLow` accepted on input.
         high:
           type: number
           title: High
+          description: Alias `targetHigh` accepted on input.
         quietStart:
           type: string
           title: Quiet Start
@@ -708,7 +711,6 @@ components:
       - telegramId
       - icr
       - cf
-      - target
       - low
       - high
       title: ProfileSchema
