@@ -68,6 +68,7 @@ export default function RemindersList({
   const initData = useTelegramInitData();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isDev = process.env.NODE_ENV === "development";
   const [items, setItems] = useState<ReminderDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(planLimit || 5);
@@ -84,9 +85,13 @@ export default function RemindersList({
         const res = await api.remindersGet({ telegramId: user.id });
         setItems(res as any);
       } catch (apiError) {
-        console.warn("Backend API failed, using mock API:", apiError);
-        const res = await mockApi.getReminders(user.id);
-        setItems(res as any);
+        if (isDev) {
+          console.warn("Backend API failed, using mock API:", apiError);
+          const res = await mockApi.getReminders(user.id);
+          setItems(res as any);
+        } else {
+          toast({ title: "Ошибка", description: "Не удалось загрузить напоминания", variant: "destructive" });
+        }
       }
       
       // Load plan limit if not provided as prop
@@ -155,8 +160,12 @@ export default function RemindersList({
         };
         await api.remindersPatch({ reminder });
       } catch (apiError) {
-        console.warn("Backend API failed, using mock API:", apiError);
-        await mockApi.updateReminder({ ...r, isEnabled: !r.isEnabled });
+        if (isDev) {
+          console.warn("Backend API failed, using mock API:", apiError);
+          await mockApi.updateReminder({ ...r, isEnabled: !r.isEnabled });
+        } else {
+          throw apiError;
+        }
       }
       load();
     } catch {
@@ -216,8 +225,12 @@ export default function RemindersList({
       try {
         await api.remindersDelete({ telegramId: r.telegramId, id: r.id });
       } catch (apiError) {
-        console.warn("Backend API failed, using mock API:", apiError);
-        await mockApi.deleteReminder(r.telegramId, r.id);
+        if (isDev) {
+          console.warn("Backend API failed, using mock API:", apiError);
+          await mockApi.deleteReminder(r.telegramId, r.id);
+        } else {
+          throw apiError;
+        }
       }
     } catch {
       toast({ title: "Ошибка", description: "Не удалось удалить", variant: "destructive" });
