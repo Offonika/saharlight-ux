@@ -289,7 +289,17 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "📸 Триггер-фото" in text
     assert "2. <s>🔕title2</s>" in text
     assert markup.inline_keyboard
-    add_btn = next(btn for row in markup.inline_keyboard for btn in row if btn.text == "➕ Добавить")
+    first_row = markup.inline_keyboard[0]
+    edit_btn = first_row[0]
+    assert edit_btn.text == "✏️"
+    assert edit_btn.web_app is not None
+    assert edit_btn.web_app.url == config.build_ui_url("/reminders?id=1")
+    add_btn = next(
+        btn
+        for row in markup.inline_keyboard
+        for btn in row
+        if btn.text == "➕ Добавить"
+    )
     assert add_btn.web_app is not None
     assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
 
@@ -304,6 +314,7 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     import services.api.app.config as config
 
     importlib.reload(config)
+    monkeypatch.setattr(handlers.config.settings, "public_origin", "")
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
@@ -312,11 +323,15 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
         text, markup = handlers._render_reminders(session, 1)
     assert markup is not None
     assert "Нажмите кнопку" not in text
-    assert len(markup.inline_keyboard) == 1
+    assert len(markup.inline_keyboard) == 2
     first_row = markup.inline_keyboard[0]
     texts = [btn.text for btn in first_row]
-    assert texts == ["🗑️", "🔔"]
+    assert texts == ["✏️", "🗑️", "🔔"]
+    assert first_row[0].callback_data == "rem_edit:1"
     assert all(btn.web_app is None for btn in first_row)
+    add_row = markup.inline_keyboard[1]
+    assert [btn.text for btn in add_row] == ["➕ Добавить"]
+    assert add_row[0].callback_data == "rem_add"
 
 
 def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -329,13 +344,19 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
     import services.api.app.config as config
 
     importlib.reload(config)
+    monkeypatch.setattr(handlers.config.settings, "public_origin", "")
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
     with TestSession() as session:
         text, markup = handlers._render_reminders(session, 1)
     assert "У вас нет напоминаний" in text
-    assert markup is None
+    assert "Нажмите кнопку" in text
+    assert markup is not None
+    assert len(markup.inline_keyboard) == 1
+    add_row = markup.inline_keyboard[0]
+    assert [btn.text for btn in add_row] == ["➕ Добавить"]
+    assert add_row[0].callback_data == "rem_add"
 
 
 def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -350,17 +371,24 @@ def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch)
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
         session.commit()
 
-    monkeypatch.setattr(config.settings, "public_origin", "")
+    monkeypatch.setattr(handlers.config.settings, "public_origin", "")
     with TestSession() as session:
         _, markup = handlers._render_reminders(session, 1)
     assert markup is not None
-    assert not any(btn.text == "➕ Добавить" for row in markup.inline_keyboard for btn in row)
+    first_row = markup.inline_keyboard[0]
+    assert first_row[0].callback_data == "rem_edit:1"
+    add_row = markup.inline_keyboard[1]
+    assert add_row[0].callback_data == "rem_add"
 
-    monkeypatch.setattr(config.settings, "public_origin", "https://example.org")
+    monkeypatch.setattr(handlers.config.settings, "public_origin", "https://example.org")
     with TestSession() as session:
         _, markup = handlers._render_reminders(session, 1)
     assert markup is not None
-    add_btn = next(btn for row in markup.inline_keyboard for btn in row if btn.text == "➕ Добавить")
+    first_row = markup.inline_keyboard[0]
+    edit_btn = first_row[0]
+    assert edit_btn.web_app is not None
+    assert edit_btn.web_app.url == config.build_ui_url("/reminders?id=1")
+    add_btn = markup.inline_keyboard[1][0]
     assert add_btn.web_app is not None
     assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
 
