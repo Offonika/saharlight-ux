@@ -68,7 +68,7 @@ export default function CreateReminder() {
   );
   const [title, setTitle] = useState(editing?.title ?? "");
   const [time, setTime] = useState(editing?.time ?? "");
-  // interval is stored in minutes for UI, API expects hours
+  // interval is stored in minutes for both UI and API (intervalHours is legacy)
   const [interval, setInterval] = useState<number | undefined>(editing?.interval ?? 60);
   const [error, setError] = useState<string | null>(null);
   const [typeOpen, setTypeOpen] = useState(false);
@@ -90,7 +90,12 @@ export default function CreateReminder() {
               type: nt,
               title: data.title ?? TYPES[nt].label,
               time: data.time || "",
-              interval: data.intervalHours != null ? data.intervalHours * 60 : undefined,
+              interval:
+                data.intervalMinutes != null
+                  ? data.intervalMinutes
+                  : data.intervalHours != null
+                  ? data.intervalHours * 60
+                  : undefined,
             };
             setEditing(loaded);
             setType(loaded.type);
