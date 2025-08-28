@@ -121,6 +121,7 @@ async def send_message(
 
     >>> await send_message(thread_id="abc", image_path="/tmp/photo.jpg")
     """
+    settings = config.get_settings()
     if content is None and image_path is None:
         raise ValueError("Either 'content' or 'image_path' must be provided")
 
@@ -175,7 +176,7 @@ async def send_message(
         logger.exception("[OpenAI] Failed to create message: %s", exc)
         raise
 
-    if not config.settings.openai_assistant_id:
+    if not settings.openai_assistant_id:
         message = "OPENAI_ASSISTANT_ID is not set"
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
@@ -185,7 +186,7 @@ async def send_message(
         run: Run = await asyncio.to_thread(
             client.beta.threads.runs.create,
             thread_id=thread_id,
-            assistant_id=config.settings.openai_assistant_id,
+            assistant_id=settings.openai_assistant_id,
         )
     except OpenAIError as exc:
         logger.exception("[OpenAI] Failed to create run: %s", exc)
