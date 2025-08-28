@@ -7,12 +7,57 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-from typing import cast
+from typing import Any, cast
 
 from services.api.app.diabetes.services.db import Base, Reminder, User
 from services.api.app.routers.reminders import router
 from services.api.app.services import reminders
 from services.api.app.telegram_auth import require_tg_user
+from services.api.app import reminder_events
+from services.api.app.diabetes.handlers import reminder_handlers
+
+
+class DummyJob:
+    def __init__(
+        self, name: str, data: dict[str, Any] | None = None, when: Any = None
+    ) -> None:
+        self.name = name
+        self.data = data
+        self.time = when
+        self.removed = False
+
+    def schedule_removal(self) -> None:  # pragma: no cover - simple flag setter
+        self.removed = True
+
+
+class DummyJobQueue:
+    def __init__(self) -> None:
+        self.jobs: list[DummyJob] = []
+
+    def run_daily(
+        self,
+        callback: Any,
+        time: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> DummyJob:
+        job = DummyJob(name or "", data, time)
+        self.jobs.append(job)
+        return job
+
+    def run_repeating(
+        self,
+        callback: Any,
+        interval: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> DummyJob:
+        job = DummyJob(name or "", data)
+        self.jobs.append(job)
+        return job
+
+    def get_jobs_by_name(self, name: str) -> list[DummyJob]:
+        return [j for j in self.jobs if j.name == name]
 
 
 @pytest.fixture()
@@ -45,6 +90,28 @@ def client(
     app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture()
+def client_with_job_queue(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
+) -> Generator[tuple[TestClient, DummyJobQueue], None, None]:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    monkeypatch.setattr(reminder_events, "SessionLocal", session_factory)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", session_factory)
+    monkeypatch.setattr(
+        reminders,
+        "compute_next",
+        lambda rem, tz: datetime(2023, 1, 1, tzinfo=timezone.utc),
+    )
+    job_queue = DummyJobQueue()
+    reminder_events.set_job_queue(cast(Any, job_queue))
+    app = FastAPI()
+    app.include_router(router, prefix="/api")
+    app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    with TestClient(app) as test_client:
+        yield test_client, job_queue
+    reminder_events.set_job_queue(None)
 
 
 def test_empty_returns_200(
@@ -210,3 +277,43 @@ def test_delete_reminder(
     assert resp.status_code == 200
     with session_factory() as session:
         assert session.get(Reminder, 1) is None
+
+
+def test_post_reminder_schedules_job(
+    client_with_job_queue: tuple[TestClient, DummyJobQueue],
+    session_factory: sessionmaker[Session],
+) -> None:
+    client, job_queue = client_with_job_queue
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+    resp = client.post(
+        "/api/reminders",
+        json={"telegramId": 1, "type": "sugar", "time": "08:00", "isEnabled": True},
+    )
+    assert resp.status_code == 200
+    rid = resp.json()["id"]
+    assert job_queue.get_jobs_by_name(f"reminder_{rid}")
+
+
+def test_patch_reminder_schedules_job(
+    client_with_job_queue: tuple[TestClient, DummyJobQueue],
+    session_factory: sessionmaker[Session],
+) -> None:
+    client, job_queue = client_with_job_queue
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar"))
+        session.commit()
+    resp = client.patch(
+        "/api/reminders",
+        json={
+            "telegramId": 1,
+            "id": 1,
+            "type": "sugar",
+            "time": "09:00",
+            "isEnabled": True,
+        },
+    )
+    assert resp.status_code == 200
+    assert job_queue.get_jobs_by_name("reminder_1")
