@@ -21,15 +21,15 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = settings.telegram_token
 
 commands = [
-    BotCommand("start", "Запустить бота"),
-    BotCommand("menu", "Главное меню"),
-    BotCommand("profile", "Мой профиль"),
-    BotCommand("report", "Отчёт"),
-    BotCommand("history", "История записей"),
-    BotCommand("sugar", "Расчёт сахара"),
-    BotCommand("gpt", "Чат с GPT"),
-    BotCommand("reminders", "Список напоминаний"),
-    BotCommand("help", "Справка"),
+    BotCommand("start", "🚀 Запустить бота"),
+    BotCommand("menu", "📋 Главное меню"),
+    BotCommand("profile", "👤 Мой профиль"),
+    BotCommand("report", "📊 Отчёт"),
+    BotCommand("history", "📚 История записей"),
+    BotCommand("sugar", "🩸 Расчёт сахара"),
+    BotCommand("gpt", "🤖 Чат с GPT"),
+    BotCommand("reminders", "⏰ Список напоминаний"),
+    BotCommand("help", "❓ Справка"),
 ]
 
 
