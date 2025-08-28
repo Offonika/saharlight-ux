@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 from openai import OpenAIError
 
-from services.api.app.config import Settings, settings
+from services.api.app.config import settings
 from services.api.app.diabetes.services import gpt_client
 
 
