@@ -14,7 +14,6 @@ from telegram import (
     KeyboardButton,
     WebAppInfo,
 )
-from services.api.app import config
 
 PROFILE_BUTTON_TEXT = "📄 Мой профиль"
 REMINDERS_BUTTON_TEXT = "⏰ Напоминания"
@@ -58,7 +57,9 @@ def menu_keyboard() -> ReplyKeyboardMarkup:
 
     WebApp buttons are used only when ``PUBLIC_ORIGIN`` is configured.
     """
+    from services.api.app import config
 
+    config.settings = config.Settings()
     webapp_enabled = bool(config.settings.public_origin)
     profile_button = (
         KeyboardButton(
@@ -150,6 +151,9 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
         Button instance when ``PUBLIC_ORIGIN`` is set and valid, otherwise ``None``.
     """
 
+    from services.api.app import config
+
+    config.settings = config.Settings()
     if not config.settings.public_origin:
         return None
 
