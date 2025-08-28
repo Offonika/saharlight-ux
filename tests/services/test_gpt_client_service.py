@@ -6,7 +6,7 @@ from typing import Any
 import pytest
 from openai import OpenAIError
 
-from services.api.app.config import settings
+from services.api.app import config
 from services.api.app.diabetes.services import gpt_client
 
 
@@ -26,7 +26,8 @@ async def test_send_message_missing_assistant_id(
         )
     )
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
-    monkeypatch.setattr(settings, "openai_assistant_id", "")
+    cfg = config.get_settings()
+    monkeypatch.setattr(cfg, "openai_assistant_id", "")
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(RuntimeError):
@@ -57,7 +58,8 @@ async def test_send_message_run_error_retry(
         )
     )
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
-    monkeypatch.setattr(settings, "openai_assistant_id", "asst")
+    cfg = config.get_settings()
+    monkeypatch.setattr(cfg, "openai_assistant_id", "asst")
 
     with caplog.at_level(logging.DEBUG):
         for _ in range(2):
@@ -99,7 +101,8 @@ async def test_send_message_cleanup_warning(
         ),
     )
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
-    monkeypatch.setattr(settings, "openai_assistant_id", "asst")
+    cfg = config.get_settings()
+    monkeypatch.setattr(cfg, "openai_assistant_id", "asst")
 
     def fake_remove(_: str) -> None:
         raise OSError("nope")

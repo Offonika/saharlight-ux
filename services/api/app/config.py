@@ -108,12 +108,16 @@ def build_ui_url(path: str) -> str:
 
     Slashes are normalized and ``settings.public_origin`` must be configured.
     ``settings.ui_base_url`` is stripped of leading and trailing slashes.
+
+    The function retrieves the current settings via :func:`get_settings` to
+    ensure runtime updates are respected.
     """
 
-    if not settings.public_origin:
+    cfg = get_settings()
+    if not cfg.public_origin:
         raise RuntimeError("PUBLIC_ORIGIN not configured")
-    origin = settings.public_origin.rstrip("/")
-    base = settings.ui_base_url.strip("/")
+    origin = cfg.public_origin.rstrip("/")
+    base = cfg.ui_base_url.strip("/")
     rel = path.lstrip("/")
     if base:
         return f"{origin}/{base}/{rel}"

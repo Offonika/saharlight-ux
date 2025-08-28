@@ -219,7 +219,8 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     profile = fetch_profile(api, ApiException, user_id)
 
     webapp_button: list[InlineKeyboardButton] | None = None
-    if config.settings.public_origin:
+    current_settings = config.get_settings()
+    if current_settings.public_origin:
         webapp_button = [
             InlineKeyboardButton(
                 "📝 Заполнить форму",
@@ -504,7 +505,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     from services.api.app import config as app_config
 
-    origin = app_config.settings.public_origin
+    origin = app_config.get_settings().public_origin
     if action == "add" and origin:
         button = InlineKeyboardButton(
             "📝 Новое",
