@@ -308,8 +308,8 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
-    monkeypatch.delenv("UI_BASE_URL", raising=False)
+    monkeypatch.setenv("PUBLIC_ORIGIN", "", raising=False)
+    monkeypatch.setenv("UI_BASE_URL", "", raising=False)
     import services.api.app.config as config
 
     importlib.reload(config)
@@ -341,8 +341,8 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
-    monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
-    monkeypatch.delenv("UI_BASE_URL", raising=False)
+    monkeypatch.setenv("PUBLIC_ORIGIN", "", raising=False)
+    monkeypatch.setenv("UI_BASE_URL", "", raising=False)
     import services.api.app.config as config
 
     importlib.reload(config)

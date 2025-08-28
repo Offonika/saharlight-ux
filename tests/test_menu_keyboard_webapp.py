@@ -2,6 +2,7 @@ from urllib.parse import urlparse
 
 import pytest
 
+import services.api.app.config as config
 import services.api.app.diabetes.utils.ui as ui
 
 
@@ -20,6 +21,7 @@ def test_menu_keyboard_webapp_urls(
     """Menu buttons should open webapp paths for profile, reminders and history."""
     monkeypatch.setenv("PUBLIC_ORIGIN", origin)
     monkeypatch.setenv("UI_BASE_URL", ui_base)
+    config.reload_settings()
 
     buttons = [btn for row in ui.menu_keyboard().keyboard for btn in row]
     profile_btn = next(b for b in buttons if b.text == ui.PROFILE_BUTTON_TEXT)
@@ -36,8 +38,9 @@ def test_menu_keyboard_webapp_urls(
 
 def test_menu_keyboard_webapp_reloads_settings(monkeypatch: pytest.MonkeyPatch) -> None:
     """``menu_keyboard`` should reflect environment changes at runtime."""
-    monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
-    monkeypatch.delenv("UI_BASE_URL", raising=False)
+    monkeypatch.setenv("PUBLIC_ORIGIN", "", raising=False)
+    monkeypatch.setenv("UI_BASE_URL", "", raising=False)
+    config.reload_settings()
     buttons = [btn for row in ui.menu_keyboard().keyboard for btn in row]
     profile_btn = next(b for b in buttons if b.text == ui.PROFILE_BUTTON_TEXT)
     reminders_btn = next(b for b in buttons if b.text == ui.REMINDERS_BUTTON_TEXT)
@@ -48,6 +51,7 @@ def test_menu_keyboard_webapp_reloads_settings(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.com")
     monkeypatch.setenv("UI_BASE_URL", "")
+    config.reload_settings()
     buttons = [btn for row in ui.menu_keyboard().keyboard for btn in row]
     profile_btn = next(b for b in buttons if b.text == ui.PROFILE_BUTTON_TEXT)
     reminders_btn = next(b for b in buttons if b.text == ui.REMINDERS_BUTTON_TEXT)

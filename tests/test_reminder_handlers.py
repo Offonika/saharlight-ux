@@ -275,8 +275,8 @@ def test_build_ui_url(
 
 
 def test_build_ui_url_without_origin(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
-    monkeypatch.delenv("UI_BASE_URL", raising=False)
+    monkeypatch.setenv("PUBLIC_ORIGIN", "", raising=False)
+    monkeypatch.setenv("UI_BASE_URL", "", raising=False)
     config = importlib.import_module("services.api.app.config")
     importlib.reload(config)
     with pytest.raises(RuntimeError, match="PUBLIC_ORIGIN not configured"):
