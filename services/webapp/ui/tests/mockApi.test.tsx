@@ -19,7 +19,7 @@ vi.mock('../src/hooks/useTelegram', () => ({
   useTelegram: () => ({ user: { id: 1 }, sendData: vi.fn() })
 }));
 vi.mock('../src/hooks/useTelegramInitData', () => ({
-  useTelegramInitData: () => ({})
+  useTelegramInitData: () => null,
 }));
 vi.mock('../src/shared/toast', () => ({
   useToast: () => ({ success: vi.fn(), error: toastError })

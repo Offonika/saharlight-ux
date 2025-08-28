@@ -29,7 +29,14 @@ const Profile = () => {
   const handleSave = async () => {
     let telegramId = user?.id;
     if (!telegramId) {
-      const userStr = new URLSearchParams(initData || "").get("user");
+      let userStr: string | null = null;
+      if (initData) {
+        try {
+          userStr = new URLSearchParams(initData).get("user");
+        } catch (e) {
+          console.error("[Profile] failed to parse initData:", e);
+        }
+      }
       if (userStr) {
         try {
           const parsed = JSON.parse(userStr);
