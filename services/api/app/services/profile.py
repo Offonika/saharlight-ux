@@ -29,20 +29,27 @@ async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
 
 def _validate_profile(data: ProfileSchema) -> None:
     """Validate business rules for a patient profile."""
-    if data.icr <= 0:
-        raise ValueError("icr must be greater than 0")  # pragma: no cover
-    if data.cf <= 0:
-        raise ValueError("cf must be greater than 0")  # pragma: no cover
-    if data.target <= 0:
-        raise ValueError("target must be greater than 0")  # pragma: no cover
-    if data.low <= 0:
-        raise ValueError("low must be greater than 0")  # pragma: no cover
-    if data.high <= 0:
-        raise ValueError("high must be greater than 0")  # pragma: no cover
-    if data.low >= data.high:
+    required = {
+        "icr": data.icr,
+        "cf": data.cf,
+        "target": data.target,
+        "low": data.low,
+        "high": data.high,
+    }
+    for name, value in required.items():
+        if value is None:
+            raise ValueError("field is required")  # pragma: no cover
+        if value <= 0:
+            raise ValueError(f"{name} must be greater than 0")  # pragma: no cover
+
+    low = cast(float, data.low)
+    high = cast(float, data.high)
+    target = cast(float, data.target)
+
+    if low >= high:
         raise ValueError("low must be less than high")  # pragma: no cover
 
-    if not (data.low < data.target < data.high):
+    if not (low < target < high):
         raise ValueError("target must be between low and high")  # pragma: no cover
 
     # quiet times are validated by Pydantic; no additional checks required
@@ -63,11 +70,16 @@ async def save_profile(data: ProfileSchema) -> None:
             cast(Session, session).add(profile)
         if data.orgId is not None:
             profile.org_id = data.orgId
-        profile.icr = data.icr
-        profile.cf = data.cf
-        profile.target_bg = data.target
-        profile.low_threshold = data.low
-        profile.high_threshold = data.high
+        if data.icr is not None:
+            profile.icr = data.icr
+        if data.cf is not None:
+            profile.cf = data.cf
+        if data.target is not None:
+            profile.target_bg = data.target
+        if data.low is not None:
+            profile.low_threshold = data.low
+        if data.high is not None:
+            profile.high_threshold = data.high
         profile.quiet_start = data.quietStart
         profile.quiet_end = data.quietEnd
         profile.sos_contact = data.sosContact or ""

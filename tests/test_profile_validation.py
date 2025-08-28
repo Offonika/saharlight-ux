@@ -7,16 +7,16 @@ from services.api.app.schemas.profile import ProfileSchema
 from services.api.app.services.profile import _validate_profile
 
 
-def test_validate_profile_allows_target_between_limits() -> None:
+def test_validate_profile_allows_computed_target() -> None:
     data = ProfileSchema(
         telegramId=1,
         icr=1.0,
         cf=1.0,
-        target=5.0,
         low=4.0,
-        high=7.0,
+        high=6.0,
     )
     _validate_profile(data)
+    assert data.target == 5.0
 
 
 @pytest.mark.parametrize("target", [3.0, 8.0])
@@ -64,6 +64,22 @@ def test_validate_profile_rejects_invalid_values(
     with pytest.raises(ValueError) as exc:
         _validate_profile(data)
     assert str(exc.value) == message
+
+
+@pytest.mark.parametrize("field", ["icr", "cf", "low", "high"])
+def test_validate_profile_rejects_missing_fields(field: str) -> None:
+    kwargs = {
+        "telegramId": 1,
+        "icr": 1.0,
+        "cf": 1.0,
+        "low": 4.0,
+        "high": 7.0,
+    }
+    kwargs.pop(field)
+    data = ProfileSchema(**kwargs)
+    with pytest.raises(ValueError) as exc:
+        _validate_profile(data)
+    assert str(exc.value) == "field is required"
 
 
 @pytest.mark.parametrize(

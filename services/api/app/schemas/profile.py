@@ -3,18 +3,18 @@ from __future__ import annotations
 from typing import Optional
 from datetime import time
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 
 class ProfileSchema(BaseModel):
     telegramId: int = Field(
         alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id")
     )
-    icr: float
-    cf: float
-    target: float
-    low: float
-    high: float
+    icr: Optional[float] = None
+    cf: Optional[float] = None
+    target: Optional[float] = None
+    low: Optional[float] = None
+    high: Optional[float] = None
     quietStart: time = Field(
         default=time(23, 0),
         alias="quietStart",
@@ -38,3 +38,9 @@ class ProfileSchema(BaseModel):
     )
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="after")
+    def compute_target(self) -> "ProfileSchema":
+        if self.target is None and self.low is not None and self.high is not None:
+            self.target = (self.low + self.high) / 2
+        return self
