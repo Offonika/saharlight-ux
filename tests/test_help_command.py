@@ -80,8 +80,8 @@ async def test_help_lists_reminder_commands_and_menu_button() -> None:
 
     text = message.replies[0]
     assert "/reminders - список напоминаний\n" in text
-    assert "/addreminder - добавить напоминание\n" in text
-    assert "/delreminder - удалить напоминание\n" in text
+    assert "/addreminder" not in text
+    assert "/delreminder" not in text
     assert f"{REMINDERS_BUTTON_TEXT}\n" in text
 
 
