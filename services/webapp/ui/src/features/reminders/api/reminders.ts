@@ -2,10 +2,12 @@ import { Configuration } from "@sdk/runtime.ts";
 import { RemindersApi } from "@sdk/apis";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 
-export function makeRemindersApi(initData: string) {
+export function makeRemindersApi(initData: string | null) {
+  const headers: Record<string, string> = {};
+  if (initData !== null) headers["X-Telegram-Init-Data"] = initData;
   const cfg = new Configuration({
     basePath: "",
-    headers: { "X-Telegram-Init-Data": initData },
+    headers,
   });
   return new RemindersApi(cfg);
 }

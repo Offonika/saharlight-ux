@@ -29,16 +29,20 @@ const Profile = () => {
   const handleSave = async () => {
     let telegramId = user?.id;
     if (!telegramId) {
-      const userStr = new URLSearchParams(initData || "").get("user");
-      if (userStr) {
-        try {
-          const parsed = JSON.parse(userStr);
-          telegramId = typeof parsed.id === "number" ? parsed.id : undefined;
-        } catch (e) {
-          console.error("[Profile] failed to parse initData user:", e);
+      if (initData) {
+        const userStr = new URLSearchParams(initData).get("user");
+        if (userStr) {
+          try {
+            const parsed = JSON.parse(userStr);
+            telegramId = typeof parsed.id === "number" ? parsed.id : undefined;
+          } catch (e) {
+            console.error("[Profile] failed to parse initData user:", e);
+          }
+        } else {
+          console.warn("[Profile] no user field in initData");
         }
       } else {
-        console.warn("[Profile] no user field in initData");
+        console.warn("[Profile] no initData");
       }
     }
 
