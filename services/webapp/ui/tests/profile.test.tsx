@@ -38,7 +38,7 @@ describe('Profile page', () => {
   });
 
   it('blocks save without telegramId and shows toast', () => {
-    useTelegramInitData.mockReturnValue('');
+    useTelegramInitData.mockReturnValue(null);
     const { getByText } = render(<Profile />);
     fireEvent.click(getByText('Сохранить настройки'));
     expect(saveProfile).not.toHaveBeenCalled();
