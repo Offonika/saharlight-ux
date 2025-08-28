@@ -77,6 +77,20 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
+def get_settings() -> Settings:
+    """Return the current application settings."""
+
+    return settings
+
+
+def reload_settings() -> Settings:
+    """Reload settings from the environment and return them."""
+
+    global settings
+    settings = Settings()
+    return settings
+
+
 def get_db_password() -> Optional[str]:
     """Return the database password from the environment.
 

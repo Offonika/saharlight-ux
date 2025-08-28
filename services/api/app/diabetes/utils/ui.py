@@ -59,8 +59,9 @@ def menu_keyboard() -> ReplyKeyboardMarkup:
     """
     from services.api.app import config
 
-    config.settings = config.Settings()
-    webapp_enabled = bool(config.settings.public_origin)
+    config.reload_settings()
+    settings = config.get_settings()
+    webapp_enabled = bool(settings.public_origin)
     profile_button = (
         KeyboardButton(
             PROFILE_BUTTON_TEXT,
@@ -153,8 +154,9 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
 
     from services.api.app import config
 
-    config.settings = config.Settings()
-    if not config.settings.public_origin:
+    config.reload_settings()
+    settings = config.get_settings()
+    if not settings.public_origin:
         return None
 
     return InlineKeyboardButton(
