@@ -1,4 +1,4 @@
-// file: src/App.tsx
+/// file: src/App.tsx
 import React from "react"
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as Sonner } from "@/components/ui/sonner"
@@ -41,9 +41,9 @@ const AppContent = () => {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/profile" element={<Profile />} />
-        <Route path="/reminders" element={<Reminders />} />
-        <Route path="/reminders/new" element={<RemindersCreate />} />
-        <Route path="/reminders/:id/edit" element={<RemindersEdit />} />
+      <Route path="/reminders" element={<Reminders />} />
+      <Route path="/reminders/new" element={<RemindersCreate />} />
+      <Route path="/reminders/:id/edit" element={<RemindersEdit />} />
       <Route path="/history" element={<History />} />
       <Route path="/history/new-measurement" element={<NewMeasurement />} />
       <Route path="/history/new-meal" element={<NewMeal />} />
@@ -54,6 +54,8 @@ const AppContent = () => {
   )
 }
 
+const baseName = import.meta.env.BASE_URL.replace(/\/$/, "") || "/"
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
     <QueryClientProvider client={queryClient}>
@@ -61,7 +63,7 @@ const App = () => (
         <ToastProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter basename={baseName}>
             <AppContent />
           </BrowserRouter>
         </ToastProvider>
