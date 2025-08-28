@@ -19,6 +19,7 @@ from telegram import (
     KeyboardButton,
     ReplyKeyboardMarkup,
     Update,
+    WebAppInfo,
 )
 from telegram.ext import ContextTypes
 
@@ -126,6 +127,25 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     await message.reply_text("📊 Последние записи:")
+
+    from services.api.app import config
+
+    settings = config.get_settings()
+    if settings.public_origin:
+        open_markup = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "🌐 Открыть историю в WebApp",
+                        web_app=WebAppInfo(config.build_ui_url("/history")),
+                    )
+                ]
+            ]
+        )
+        await message.reply_text(
+            "История также доступна в WebApp:", reply_markup=open_markup
+        )
+
     for entry in entries:
         text = render_entry(cast(EntryLike, entry))
         markup = InlineKeyboardMarkup(

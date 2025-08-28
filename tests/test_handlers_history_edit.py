@@ -152,6 +152,55 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_history_view_webapp_button(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
+    from services.api.app import config
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(reporting_handlers, "SessionLocal", TestSession)
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(
+            Entry(
+                telegram_id=1,
+                event_time=datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
+            )
+        )
+        session.commit()
+
+    monkeypatch.setattr(config.settings, "public_origin", "https://example.com")
+
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+
+    await reporting_handlers.history_view(update, context)
+
+    assert len(message.replies) == 4
+    webapp_kwargs = message.kwargs[1]
+    markup = webapp_kwargs.get("reply_markup")
+    assert isinstance(markup, InlineKeyboardMarkup)
+    button = markup.inline_keyboard[0][0]
+    assert button.text == "🌐 Открыть историю в WebApp"
+    assert button.web_app is not None
+    assert button.web_app.url == config.build_ui_url("/history")
+
+
+@pytest.mark.asyncio
 async def test_edit_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
