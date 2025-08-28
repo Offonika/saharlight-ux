@@ -32,7 +32,8 @@ const Profile = () => {
       const userStr = new URLSearchParams(initData || "").get("user");
       if (userStr) {
         try {
-          telegramId = JSON.parse(userStr).id;
+          const parsed = JSON.parse(userStr);
+          telegramId = typeof parsed.id === "number" ? parsed.id : undefined;
         } catch (e) {
           console.error("[Profile] failed to parse initData user:", e);
         }
@@ -41,10 +42,10 @@ const Profile = () => {
       }
     }
 
-    if (!telegramId) {
+    if (typeof telegramId !== "number") {
       toast({
         title: "Ошибка",
-        description: "Не удалось определить пользователя",
+        description: "Некорректный ID пользователя",
         variant: "destructive",
       });
       return;
