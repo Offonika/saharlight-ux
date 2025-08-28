@@ -161,9 +161,9 @@ def _render_reminders(
     if active_count > limit:
         header += " ⚠️"
 
-    webapp_enabled = bool(config.settings.public_origin)
-    add_button_row = None
-    if webapp_enabled:
+    public_origin = config.settings.public_origin
+    add_button_row: list[InlineKeyboardButton] | None = None
+    if public_origin:
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
@@ -173,7 +173,7 @@ def _render_reminders(
     if not rems:
         text = header
 
-        if webapp_enabled and add_button_row is not None:
+        if add_button_row is not None:
             text += "\nУ вас нет напоминаний. Нажмите кнопку ниже или отправьте /addreminder."
             return text, InlineKeyboardMarkup([add_button_row])
         text += "\nУ вас нет напоминаний. Отправьте /addreminder."
@@ -190,7 +190,7 @@ def _render_reminders(
         line = f"{r.id}. {title}"
         status_icon = "🔔" if r.is_enabled else "🔕"
         row: list[InlineKeyboardButton] = []
-        if webapp_enabled:
+        if add_button_row is not None:
             row.append(
                 InlineKeyboardButton(
                     "✏️",
