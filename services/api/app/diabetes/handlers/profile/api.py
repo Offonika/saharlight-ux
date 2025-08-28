@@ -85,6 +85,7 @@ if TYPE_CHECKING:  # pragma: no cover - used only for type hints
 
 def get_api(
     sessionmaker: Callable[[], Session] = SessionLocal,
+    settings: config.Settings | None = None,
 ) -> tuple[object, type[Exception], type]:
     """Return API client, its exception type and profile model.
 
@@ -93,6 +94,7 @@ def get_api(
     lightweight local implementation is returned instead.  This ensures the
     rest of the code can operate without having to handle ``None`` values.
     """
+    settings = settings or config.get_settings()
     try:  # pragma: no cover - exercised in tests but flagged for clarity
         from diabetes_sdk.api.default_api import DefaultApi
         from diabetes_sdk.api_client import ApiClient
@@ -109,7 +111,7 @@ def get_api(
             "diabetes_sdk could not be initialized. Falling back to local profile API.",
         )
         return LocalProfileAPI(sessionmaker), Exception, LocalProfile
-    api = DefaultApi(ApiClient(Configuration(host=config.settings.api_url)))
+    api = DefaultApi(ApiClient(Configuration(host=settings.api_url)))
     return api, ApiException, ProfileModel
 
 
