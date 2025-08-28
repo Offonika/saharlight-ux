@@ -243,12 +243,13 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
     monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.org")
     monkeypatch.setenv("UI_BASE_URL", "/ui")
     import services.api.app.config as config
 
     importlib.reload(config)
+    importlib.reload(handlers)
+    handlers.SessionLocal = TestSession
     monkeypatch.setattr(handlers, "_limit_for", lambda u: 1)
     # Make _describe deterministic and include status icon to test strikethrough
     monkeypatch.setattr(
@@ -307,12 +308,13 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
-    monkeypatch.setenv("PUBLIC_ORIGIN", "", raising=False)
-    monkeypatch.setenv("UI_BASE_URL", "", raising=False)
+    monkeypatch.setenv("PUBLIC_ORIGIN", "")
+    monkeypatch.setenv("UI_BASE_URL", "")
     import services.api.app.config as config
 
     importlib.reload(config)
+    importlib.reload(handlers)
+    handlers.SessionLocal = TestSession
     settings = config.get_settings()
     monkeypatch.setattr(settings, "public_origin", "")
     with TestSession() as session:
@@ -340,12 +342,13 @@ def test_render_reminders_no_entries_no_webapp(monkeypatch: pytest.MonkeyPatch) 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
-    monkeypatch.setenv("PUBLIC_ORIGIN", "", raising=False)
-    monkeypatch.setenv("UI_BASE_URL", "", raising=False)
+    monkeypatch.setenv("PUBLIC_ORIGIN", "")
+    monkeypatch.setenv("UI_BASE_URL", "")
     import services.api.app.config as config
 
     importlib.reload(config)
+    importlib.reload(handlers)
+    handlers.SessionLocal = TestSession
     settings = config.get_settings()
     monkeypatch.setattr(settings, "public_origin", "")
     with TestSession() as session:
@@ -366,12 +369,13 @@ def test_render_reminders_no_entries_webapp(monkeypatch: pytest.MonkeyPatch) -> 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    handlers.SessionLocal = TestSession
     monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.org")
     monkeypatch.setenv("UI_BASE_URL", "/ui")
     import services.api.app.config as config
 
     importlib.reload(config)
+    importlib.reload(handlers)
+    handlers.SessionLocal = TestSession
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()

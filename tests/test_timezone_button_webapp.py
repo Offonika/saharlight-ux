@@ -7,8 +7,8 @@ import services.api.app.diabetes.utils.ui as ui
 
 def test_timezone_button_webapp_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Should not build button when PUBLIC_ORIGIN and UI_BASE_URL are unset."""
-    monkeypatch.setenv("PUBLIC_ORIGIN", "", raising=False)
-    monkeypatch.setenv("UI_BASE_URL", "", raising=False)
+    monkeypatch.setenv("PUBLIC_ORIGIN", "")
+    monkeypatch.setenv("UI_BASE_URL", "")
     config.reload_settings()
 
     assert ui.build_timezone_webapp_button() is None
