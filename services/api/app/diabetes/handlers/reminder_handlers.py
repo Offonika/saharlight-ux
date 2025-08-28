@@ -147,6 +147,7 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
 
 
 def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
+    settings = config.get_settings()
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
     user = session.query(User).filter_by(telegram_id=user_id).first()
     limit = _limit_for(user)
@@ -155,12 +156,21 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
     if active_count > limit:
         header += " ⚠️"
 
-    webapp_enabled = bool(config.settings.public_origin)
+    webapp_enabled = bool(settings.public_origin)
+
+    def build_url(path: str) -> str:
+        origin = settings.public_origin.rstrip("/")
+        base = settings.ui_base_url.strip("/")
+        rel = path.lstrip("/")
+        if base:
+            return f"{origin}/{base}/{rel}"
+        return f"{origin}/{rel}"
+
     if webapp_enabled:
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(config.build_ui_url("/reminders/new")),
+                web_app=WebAppInfo(build_url("/reminders/new")),
             )
         ]
     else:
@@ -188,7 +198,7 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
             InlineKeyboardButton(
                 "✏️",
                 web_app=WebAppInfo(
-                    config.build_ui_url(f"/reminders?id={r.id}")
+                    build_url(f"/reminders?id={r.id}")
                 ),
             )
             if webapp_enabled

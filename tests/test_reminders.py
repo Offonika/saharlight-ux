@@ -249,6 +249,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
     import services.api.app.config as config
 
     importlib.reload(config)
+    handlers.config = config
     monkeypatch.setattr(handlers, "_limit_for", lambda u: 1)
     # Make _describe deterministic and include status icon to test strikethrough
     monkeypatch.setattr(
@@ -365,6 +366,7 @@ def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
     import services.api.app.config as config
+    handlers.config = config
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
@@ -391,6 +393,49 @@ def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch)
     add_btn = markup.inline_keyboard[1][0]
     assert add_btn.web_app is not None
     assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
+
+
+def test_render_reminders_uses_config_get_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    import services.api.app.config as config
+
+    fake_settings = config.Settings(
+        PUBLIC_ORIGIN="https://test.org",
+        UI_BASE_URL="/app",
+    )
+    called: list[None] = []
+
+    def fake_get_settings() -> config.Settings:
+        called.append(None)
+        return fake_settings
+
+    monkeypatch.setattr(handlers.config, "get_settings", fake_get_settings)
+    monkeypatch.setattr(handlers.config.settings, "public_origin", "")
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
+        )
+        session.commit()
+
+    with TestSession() as session:
+        _, markup = handlers._render_reminders(session, 1)
+
+    assert called
+    assert markup is not None
+    first_row = markup.inline_keyboard[0]
+    edit_btn = first_row[0]
+    assert edit_btn.web_app is not None
+    assert edit_btn.web_app.url == "https://test.org/app/reminders?id=1"
+    add_btn = markup.inline_keyboard[1][0]
+    assert add_btn.web_app is not None
+    assert add_btn.web_app.url == "https://test.org/app/reminders/new"
 
 
 @pytest.mark.asyncio
