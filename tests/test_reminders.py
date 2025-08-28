@@ -13,7 +13,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update, User
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    ReplyKeyboardMarkup,
+    Update,
+    User,
+)
 from telegram.ext import CallbackContext, Job, JobQueue
 
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
@@ -381,11 +388,10 @@ async def test_reminders_list_renders_output(
 
     monkeypatch.setattr(handlers, "_render_reminders", fake_render)
 
-    captured: dict[str, Any] = {}
+    captured: list[tuple[str, dict[str, Any]]] = []
 
     async def fake_reply_text(text: str, **kwargs: Any) -> None:
-        captured["text"] = text
-        captured["kwargs"] = kwargs
+        captured.append((text, kwargs))
 
     message = MagicMock(spec=Message)
     message.reply_text = fake_reply_text
@@ -394,13 +400,57 @@ async def test_reminders_list_renders_output(
 
     await handlers.reminders_list(update, context)
 
-    assert captured["text"] == "rendered"
-    kwargs = captured["kwargs"]
+    assert captured[0][0] == "rendered"
+    kwargs = captured[0][1]
     assert kwargs.get("parse_mode") == "HTML"
     if keyboard is not None:
         assert kwargs.get("reply_markup") is keyboard
     else:
         assert "reply_markup" not in kwargs
+
+
+@pytest.mark.asyncio
+async def test_reminders_list_shows_menu_keyboard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(handlers, "run_db", None)
+
+    session_obj = object()
+
+    class DummySessionCtx:
+        def __enter__(self) -> object:
+            return session_obj
+
+        def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
+            return None
+
+    monkeypatch.setattr(handlers, "SessionLocal", lambda: DummySessionCtx())
+
+    def fake_render(
+        session: Session, user_id: int
+    ) -> tuple[str, InlineKeyboardMarkup | None]:
+        return "rendered", None
+
+    monkeypatch.setattr(handlers, "_render_reminders", fake_render)
+
+    sentinel_markup = ReplyKeyboardMarkup([[]])
+    monkeypatch.setattr(handlers, "menu_keyboard", lambda: sentinel_markup)
+
+    captured: list[tuple[str, dict[str, Any]]] = []
+
+    async def fake_reply_text(text: str, **kwargs: Any) -> None:
+        captured.append((text, kwargs))
+
+    message = MagicMock(spec=Message)
+    message.reply_text = fake_reply_text
+    update = make_update(effective_user=make_user(1), message=message)
+    context = make_context()
+
+    await handlers.reminders_list(update, context)
+
+    assert len(captured) == 2
+    second_kwargs = captured[1][1]
+    assert second_kwargs.get("reply_markup") is sentinel_markup
 
 
 @pytest.mark.asyncio

@@ -40,6 +40,7 @@ from services.api.app.diabetes.utils.helpers import (
     INVALID_TIME_MSG,
     parse_time_interval,
 )
+from services.api.app.diabetes.utils.ui import menu_keyboard
 from . import UserData
 
 run_db: Callable[..., Awaitable[object]] | None
@@ -353,6 +354,8 @@ async def reminders_list(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await message.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
     else:
         await message.reply_text(text, parse_mode="HTML")
+
+    await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
 
 
 async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
