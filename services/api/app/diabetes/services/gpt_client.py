@@ -18,7 +18,7 @@ from openai.types.beta.threads import (
     TextContentBlockParam,
 )
 
-from services.api.app.config import settings
+from services.api.app import config
 from services.api.app.diabetes.utils.openai_utils import (
     get_async_openai_client,
     get_openai_client,
@@ -175,6 +175,7 @@ async def send_message(
         logger.exception("[OpenAI] Failed to create message: %s", exc)
         raise
 
+    settings = config.get_settings()
     if not settings.openai_assistant_id:
         message = "OPENAI_ASSISTANT_ID is not set"
         logger.error("[OpenAI] %s", message)
