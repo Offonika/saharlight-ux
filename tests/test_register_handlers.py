@@ -14,6 +14,7 @@ from telegram.ext import (
     JobQueue,
     MessageHandler,
 )
+from services.api.app.config import Settings
 from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
     CallbackQueryNoWarnHandler,
 )
@@ -328,7 +329,7 @@ async def test_reminders_command_renders_list(
     )
 
     def fake_render(
-        session: Session, user_id: int
+        session: Session, user_id: int, _settings: Settings
     ) -> tuple[str, InlineKeyboardMarkup | None]:
         assert session is session_obj
         assert user_id == 1

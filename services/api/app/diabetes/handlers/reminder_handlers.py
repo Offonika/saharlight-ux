@@ -29,6 +29,7 @@ from telegram.ext import (
 from telegram.error import BadRequest, TelegramError
 
 from services.api.app import config
+from services.api.app.config import Settings
 from services.api.app.diabetes.services.db import (
     Reminder,
     ReminderLog,
@@ -146,7 +147,9 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
     return type_icon, schedule
 
 
-def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
+def _render_reminders(
+    session: Session, user_id: int, settings: Settings
+) -> tuple[str, InlineKeyboardMarkup | None]:
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
     user = session.query(User).filter_by(telegram_id=user_id).first()
     limit = _limit_for(user)
@@ -155,11 +158,19 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
     if active_count > limit:
         header += " ⚠️"
 
-    webapp_enabled: bool = bool(config.settings.public_origin)
+    webapp_enabled: bool = bool(settings.public_origin)
+
+    origin = settings.public_origin.rstrip("/")
+    base_url = settings.ui_base_url.strip("/")
+
+    def build_url(path: str) -> str:
+        rel = path.lstrip("/")
+        return f"{origin}/{base_url}/{rel}" if base_url else f"{origin}/{rel}"
+
     add_button = (
         InlineKeyboardButton(
             "➕ Добавить",
-            web_app=WebAppInfo(config.build_ui_url("/reminders/new")),
+            web_app=WebAppInfo(build_url("/reminders/new")),
         )
         if webapp_enabled
         else InlineKeyboardButton("➕ Добавить", callback_data="rem_add")
@@ -185,14 +196,10 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
         edit_button = (
             InlineKeyboardButton(
                 "✏️",
-                web_app=WebAppInfo(
-                    config.build_ui_url(f"/reminders?id={r.id}")
-                ),
+                web_app=WebAppInfo(build_url(f"/reminders?id={r.id}")),
             )
             if webapp_enabled
-            else InlineKeyboardButton(
-                "✏️", callback_data=f"rem_edit:{r.id}"
-            )
+            else InlineKeyboardButton("✏️", callback_data=f"rem_edit:{r.id}")
         )
         row: list[InlineKeyboardButton] = [edit_button]
         row.extend(
@@ -334,18 +341,19 @@ async def reminders_list(
     if user is None or message is None:
         return
     user_id = user.id
+    settings = config.get_settings()
 
     render_fn = cast(
-        Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
+        Callable[[Session, int, Settings], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
     )
     if run_db is None:
         with SessionLocal() as session:
-            text, keyboard = render_fn(session, user_id)
+            text, keyboard = render_fn(session, user_id, settings)
     else:
         text, keyboard = cast(
             tuple[str, InlineKeyboardMarkup | None],
-            await run_db(render_fn, user_id, sessionmaker=SessionLocal),
+            await run_db(render_fn, user_id, settings, sessionmaker=SessionLocal),
         )
 
     if show_menu:
@@ -604,15 +612,18 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None and rem is not None:
         schedule_reminder(rem, job_queue)
+    settings = config.get_settings()
     render_fn = cast(
-        Callable[[object], tuple[str, InlineKeyboardMarkup | None]],
+        Callable[[Session, int, Settings], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
     )
     if run_db is None:
         with SessionLocal() as session:
-            text, keyboard = render_fn(session, user_id)
+            text, keyboard = render_fn(session, user_id, settings)
     else:
-        text, keyboard = await run_db(render_fn, user_id, sessionmaker=SessionLocal)
+        text, keyboard = await run_db(
+            render_fn, user_id, settings, sessionmaker=SessionLocal
+        )
     if keyboard is not None:
         await msg.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
     else:
@@ -838,17 +849,18 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
             for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()
 
+    settings = config.get_settings()
     render_fn = cast(
-        Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
+        Callable[[Session, int, Settings], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
     )
     if run_db is None:
         with SessionLocal() as session:
-            text, keyboard = render_fn(session, user_id)
+            text, keyboard = render_fn(session, user_id, settings)
     else:
         text, keyboard = cast(
             tuple[str, InlineKeyboardMarkup | None],
-            await run_db(render_fn, user_id, sessionmaker=SessionLocal),
+            await run_db(render_fn, user_id, settings, sessionmaker=SessionLocal),
         )
     try:
         if keyboard is not None:
