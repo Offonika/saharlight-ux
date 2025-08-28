@@ -48,7 +48,7 @@ interface TelegramWebApp {
   themeParams?: ThemeParams;
   user?: TelegramUser;
   initDataUnsafe?: { user?: TelegramUser };
-  initData?: string;
+  initData?: string | null;
   setBackgroundColor?: (color: string) => void;
   setHeaderColor?: (color: string) => void;
   onEvent?: (eventType: string, handler: () => void) => void;
@@ -74,7 +74,10 @@ export const useTelegram = (
   const [colorScheme, setScheme] = useState<Scheme>("light");
   const mainClickRef = useRef<(() => void) | null>(null);
   const backClickRef = useRef<(() => void) | null>(null);
-  const initData = useMemo(() => tg?.initData ?? getDevInitData() ?? "", [tg]);
+  const initData = useMemo<string | null>(
+    () => tg?.initData ?? localStorage.getItem("tg_init_data") ?? null,
+    [tg],
+  );
 
   // Конвертация hex в HSL
   const hexToHsl = useCallback((hex: string): string => {

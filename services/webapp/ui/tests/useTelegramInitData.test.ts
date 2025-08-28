@@ -30,4 +30,13 @@ describe('useTelegram initData fallback', () => {
     });
     expect(result.current.initData).toBe(saved);
   });
+
+  it('returns null when initData is absent in tg and localStorage', async () => {
+    localStorage.removeItem('tg_init_data');
+    const { result } = renderHook(() => useTelegram(false));
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+    expect(result.current.initData).toBeNull();
+  });
 });
