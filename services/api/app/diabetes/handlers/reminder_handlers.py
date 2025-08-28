@@ -147,6 +147,7 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
 
 
 def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
+    settings = config.get_settings()
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
     user = session.query(User).filter_by(telegram_id=user_id).first()
     limit = _limit_for(user)
@@ -155,13 +156,24 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
     if active_count > limit:
         header += " ⚠️"
 
-    public_origin = config.settings.public_origin
+    public_origin = settings.public_origin
     add_button_row: list[InlineKeyboardButton] | None = None
+    build_ui_url: Callable[[str], str] | None = None
     if public_origin:
+        origin = public_origin.rstrip("/")
+        base = settings.ui_base_url.strip("/")
+
+        def _build_ui_url(path: str) -> str:
+            rel = path.lstrip("/")
+            if base:
+                return f"{origin}/{base}/{rel}"
+            return f"{origin}/{rel}"
+
+        build_ui_url = _build_ui_url
         add_button_row = [
             InlineKeyboardButton(
                 "➕ Добавить",
-                web_app=WebAppInfo(config.build_ui_url("/reminders/new")),
+                web_app=WebAppInfo(build_ui_url("/reminders/new")),
             )
         ]
     if not rems:
@@ -185,10 +197,11 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
         status_icon = "🔔" if r.is_enabled else "🔕"
         row: list[InlineKeyboardButton] = []
         if add_button_row is not None:
+            assert build_ui_url is not None
             row.append(
                 InlineKeyboardButton(
                     "✏️",
-                    web_app=WebAppInfo(config.build_ui_url(f"/reminders?id={r.id}")),
+                    web_app=WebAppInfo(build_ui_url(f"/reminders?id={r.id}")),
                 )
             )
         row.extend(
