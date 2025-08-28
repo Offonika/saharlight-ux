@@ -4,7 +4,6 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import time as dt_time
 import logging
-import os
 from pathlib import Path
 import sys
 from typing import cast
@@ -23,6 +22,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 # ────────── local ──────────
+from . import config
 from .diabetes.services.db import (
     HistoryRecord as HistoryRecordDB,
     Timezone as TimezoneDB,
@@ -79,7 +79,7 @@ UI_DIR = (
     else (BASE_DIR / "ui")
 )
 UI_DIR = UI_DIR.resolve()
-UI_BASE_URL = os.getenv("VITE_BASE_URL", "/ui/").rstrip("/")
+UI_BASE_URL = config.settings.ui_base_url.rstrip("/")
 
 
 # ────────── Schemas ──────────
