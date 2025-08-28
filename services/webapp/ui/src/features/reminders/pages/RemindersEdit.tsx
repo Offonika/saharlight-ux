@@ -62,11 +62,14 @@ function mapToForm(reminder: ReminderSchema): ReminderFormValues {
 export default function RemindersEdit() {
   const api = useRemindersApi();
   const initData = useTelegramInitData();
-  const telegramId = useMemo(() => getTelegramUserId(initData), [initData]);
+  const { sendData, user } = useTelegram();
+  const telegramId = useMemo(
+    () => getTelegramUserId(initData) || user?.id || 0,
+    [initData, user],
+  );
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const toast = useToast();
-  const { sendData } = useTelegram();
 
   const [form, setForm] = useState<ReminderFormValues | null>(null);
   const [saving, setSaving] = useState(false);

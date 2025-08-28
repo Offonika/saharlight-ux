@@ -37,8 +37,11 @@ const KIND_OPTIONS: { value: ScheduleKind; label: string }[] = [
 export default function RemindersCreate() {
   const api = useRemindersApi();
   const initData = useTelegramInitData();
-  const { sendData } = useTelegram();
-  const telegramId = useMemo(() => getTelegramUserId(initData), [initData]);
+  const { sendData, user } = useTelegram();
+  const telegramId = useMemo(
+    () => getTelegramUserId(initData) || user?.id || 0,
+    [initData, user],
+  );
   const nav = useNavigate();
   const toast = useToast();
 
