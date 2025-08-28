@@ -91,10 +91,8 @@ async def test_profile_command_no_local_session(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Profile command should not touch the local DB session."""
-    import os
-
-    os.environ["OPENAI_API_KEY"] = "test"
-    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
 
     session_factory = MagicMock()
@@ -121,10 +119,8 @@ async def test_profile_command_no_local_session(
 async def test_callback_router_commit_failure(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    import os
-
-    os.environ["OPENAI_API_KEY"] = "test"
-    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
 
     session = MagicMock()

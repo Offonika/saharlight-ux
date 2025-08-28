@@ -1,5 +1,4 @@
 import logging
-import os
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -34,9 +33,11 @@ class DummyQuery:
 
 
 @pytest.mark.asyncio
-async def test_callback_router_cancel_entry_sends_menu() -> None:
-    os.environ["OPENAI_API_KEY"] = "test"
-    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+async def test_callback_router_cancel_entry_sends_menu(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
     from services.api.app.diabetes.handlers import common_handlers
@@ -66,10 +67,10 @@ async def test_callback_router_cancel_entry_sends_menu() -> None:
 
 @pytest.mark.asyncio
 async def test_callback_router_invalid_entry_id(
-    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture,
 ) -> None:
-    os.environ["OPENAI_API_KEY"] = "test"
-    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 
@@ -89,10 +90,10 @@ async def test_callback_router_invalid_entry_id(
 
 @pytest.mark.asyncio
 async def test_callback_router_unknown_data(
-    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture,
 ) -> None:
-    os.environ["OPENAI_API_KEY"] = "test"
-    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 
@@ -111,9 +112,11 @@ async def test_callback_router_unknown_data(
 
 
 @pytest.mark.asyncio
-async def test_callback_router_ignores_reminder_action() -> None:
-    os.environ["OPENAI_API_KEY"] = "test"
-    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+async def test_callback_router_ignores_reminder_action(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 

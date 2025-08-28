@@ -2,7 +2,6 @@ import warnings
 from contextlib import contextmanager
 
 import pytest
-import importlib
 from types import SimpleNamespace
 from typing import Any, Iterator, cast
 from sqlalchemy import create_engine
@@ -72,10 +71,8 @@ async def test_profile_command_and_view(
     expected_low: Any,
     expected_high: Any,
 ) -> None:
-    import os
-
-    os.environ["OPENAI_API_KEY"] = "test"
-    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     from services.api.app.diabetes.handlers import profile as handlers
 
@@ -148,10 +145,8 @@ async def test_profile_command_and_view(
 )
 @pytest.mark.asyncio
 async def test_profile_command_invalid_values(monkeypatch: pytest.MonkeyPatch, args: Any, expected_attr: str) -> None:
-    import os
-
-    os.environ["OPENAI_API_KEY"] = "test"
-    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     from services.api.app.diabetes.handlers import profile as handlers
 
@@ -179,15 +174,12 @@ async def test_profile_command_invalid_values(monkeypatch: pytest.MonkeyPatch, a
 
 
 @pytest.mark.asyncio
-async def test_profile_command_help_and_dialog(monkeypatch: pytest.MonkeyPatch) -> None:
-    import os
-
-    os.environ["OPENAI_API_KEY"] = "test"
-    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+async def test_profile_command_help(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     from services.api.app.diabetes.handlers import profile as handlers
 
-    # Test /profile help
     help_msg = DummyMessage()
     update = cast(Update, SimpleNamespace(message=help_msg, effective_user=SimpleNamespace(id=1)))
     context = cast(
@@ -198,30 +190,52 @@ async def test_profile_command_help_and_dialog(monkeypatch: pytest.MonkeyPatch) 
     assert result == handlers.END
     assert "Формат команды" in help_msg.texts[0]
 
-    # Test starting dialog with empty args
-    dialog_msg = DummyMessage()
-    update2 = cast(
-        Update,
-        SimpleNamespace(message=dialog_msg, effective_user=SimpleNamespace(id=1)),
-    )
-    context2 = cast(
+
+@pytest.mark.asyncio
+async def test_profile_command_view_existing_profile(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
+    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
+    from services.api.app.diabetes.handlers import profile as handlers
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="tid"))
+        session.add(Profile(telegram_id=1, icr=10, cf=2, target_bg=6))
+        session.commit()
+
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(args=[], user_data={}),
     )
-    result2 = await handlers.profile_command(update2, context2)
-    assert result2 == handlers.PROFILE_ICR
-    assert dialog_msg.texts[0].startswith("Введите коэффициент ИКХ")
-    assert dialog_msg.markups[0] is handlers.back_keyboard
+
+    with no_warnings():
+        result = await handlers.profile_command(update, context)
+        dispose_engine(engine)
+
+    assert result == handlers.END
+    assert message.texts and "Ваш профиль" in message.texts[0]
+    markup = message.markups[0]
+    assert isinstance(markup, InlineKeyboardMarkup)
+    buttons = [b for row in markup.inline_keyboard for b in row]
+    callbacks = {b.text: b.callback_data for b in buttons}
+    assert callbacks["✏️ Изменить"] == "profile_edit"
+    assert callbacks["🔙 Назад"] == "profile_back"
 
 
 @pytest.mark.asyncio
 async def test_profile_view_preserves_user_data(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import os
-
-    os.environ["OPENAI_API_KEY"] = "test"
-    os.environ["OPENAI_ASSISTANT_ID"] = "asst_test"
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     from services.api.app.diabetes.handlers import profile as handlers
 
@@ -260,10 +274,9 @@ async def test_profile_view_missing_profile_shows_webapp_button(
     from urllib.parse import urlparse
     import services.api.app.diabetes.handlers.profile as handlers
 
-    monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.com")
-    monkeypatch.setenv("UI_BASE_URL", "")
     import services.api.app.config as config
-    importlib.reload(config)
+    monkeypatch.setattr(config.settings, "public_origin", "https://example.com")
+    monkeypatch.setattr(config.settings, "ui_base_url", "")
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 
@@ -291,10 +304,9 @@ async def test_profile_view_existing_profile_shows_webapp_button(
     from urllib.parse import urlparse
     import services.api.app.diabetes.handlers.profile as handlers
 
-    monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.com")
-    monkeypatch.setenv("UI_BASE_URL", "")
     import services.api.app.config as config
-    importlib.reload(config)
+    monkeypatch.setattr(config.settings, "public_origin", "https://example.com")
+    monkeypatch.setattr(config.settings, "ui_base_url", "")
 
     profile = SimpleNamespace(icr=1, cf=1, target=1, low=1, high=1)
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))

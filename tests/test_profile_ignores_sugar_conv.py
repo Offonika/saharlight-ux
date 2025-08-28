@@ -84,7 +84,7 @@ async def test_profile_input_not_logged_as_sugar(
     )
     await sugar_handlers.sugar_start(sugar_update, sugar_context)
 
-    # Start profile conversation which should cancel sugar conversation
+    # Open profile view which should cancel sugar conversation
     prof_msg = DummyMessage("/profile")
     prof_update = cast(
         Update,
@@ -99,11 +99,11 @@ async def test_profile_input_not_logged_as_sugar(
         SimpleNamespace(args=[], user_data={}, chat_data=shared_chat_data),
     )
     result = await profile_handlers.profile_command(prof_update, prof_context)
-    assert result == profile_handlers.PROFILE_ICR
-    assert "ИКХ" in prof_msg.replies[0]
+    assert result == profile_handlers.END
+    assert "Ваш профиль" in prof_msg.replies[0]
     assert "sugar_active" not in shared_chat_data
 
-    # Send ICR value
+    # Attempt to send a value; sugar conversation should be inactive
     icr_msg = DummyMessage("10")
     icr_update = cast(
         Update,
@@ -117,9 +117,8 @@ async def test_profile_input_not_logged_as_sugar(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, chat_data=shared_chat_data),
     )
-    result_icr = await profile_handlers.profile_icr(icr_update, icr_context)
-    assert result_icr == profile_handlers.PROFILE_CF
-    assert "КЧ" in icr_msg.replies[0]
+    result_icr = await sugar_handlers.sugar_val(icr_update, icr_context)
+    assert result_icr == sugar_handlers.END
 
     # Ensure no sugar entry was written
     with TestSession() as session:
