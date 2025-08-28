@@ -8,6 +8,7 @@ import html
 import logging
 import os  # Re-export for tests and type checkers
 
+from dataclasses import dataclass
 from typing import Protocol, cast
 
 from openai import OpenAIError
@@ -23,7 +24,12 @@ from telegram import (
 )
 from telegram.ext import ContextTypes
 
-from services.api.app.diabetes.services.db import SessionLocal, Entry, User
+from services.api.app.diabetes.services.db import (
+    SessionLocal,
+    Entry,
+    User,
+    HistoryRecord,
+)
 from services.api.app.diabetes.services.gpt_client import (
     send_message,
     _get_client,
@@ -71,6 +77,32 @@ def render_entry(entry: EntryLike) -> str:
     return f"<b>{day_str}</b>\n🍭 Сахар: <b>{sugar}</b>\n🍞 Углеводы: <b>{carbs_text}</b>\n💉 Доза: <b>{dose}</b>"
 
 
+@dataclass
+class HistoryEntry(EntryLike):
+    """Adapter converting ``HistoryRecord`` to ``EntryLike``."""
+
+    id: str
+    event_time: datetime.datetime
+    sugar_before: float | None
+    carbs_g: float | None
+    xe: float | None
+    dose: float | str | None
+
+
+def _history_record_to_entry(record: HistoryRecord) -> HistoryEntry:
+    """Convert ``HistoryRecord`` to ``HistoryEntry`` for rendering."""
+
+    event_dt = datetime.datetime.combine(record.date, record.time)
+    return HistoryEntry(
+        id=record.id,
+        event_time=event_dt,
+        sugar_before=record.sugar,
+        carbs_g=record.carbs,
+        xe=record.bread_units,
+        dose=record.insulin,
+    )
+
+
 def report_keyboard() -> InlineKeyboardMarkup:
     """Keyboard for selecting report period."""
     rows = [
@@ -105,19 +137,21 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     limit = 10
 
-    def _fetch_entries() -> list[Entry]:
+    def _fetch_entries() -> list[HistoryRecord]:
         with SessionLocal() as session:
             return (
-                session.query(Entry)
-                .filter(Entry.telegram_id == user_id)
-                .order_by(Entry.event_time.desc())
+                session.query(HistoryRecord)
+                .filter(HistoryRecord.telegram_id == user_id)
+                .order_by(
+                    HistoryRecord.date.desc(), HistoryRecord.time.desc()
+                )
                 .limit(limit)
                 .all()
             )
 
     # Run DB work in a thread to keep the event loop responsive.
-    entries = await asyncio.to_thread(_fetch_entries)
-    if not entries:
+    records = await asyncio.to_thread(_fetch_entries)
+    if not records:
         await message.reply_text("В дневнике пока нет записей.")
         return
 
@@ -139,8 +173,9 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         await message.reply_text("История также доступна в WebApp:", reply_markup=open_markup)
 
+    entries = [_history_record_to_entry(r) for r in records]
     for entry in entries:
-        text = render_entry(cast(EntryLike, entry))
+        text = render_entry(entry)
         markup = InlineKeyboardMarkup(
             [
                 [
