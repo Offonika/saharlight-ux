@@ -81,8 +81,11 @@ const Profile = () => {
       return;
     }
 
+    let cancelled = false;
+
     getProfile(telegramId)
       .then((data) => {
+        if (cancelled) return;
         setProfile({
           icr: data.icr.toString(),
           cf: data.cf.toString(),
@@ -92,6 +95,7 @@ const Profile = () => {
         });
       })
       .catch((error) => {
+        if (cancelled) return;
         const message = error instanceof Error ? error.message : String(error);
         toast({
           title: "Ошибка",
@@ -99,7 +103,11 @@ const Profile = () => {
           variant: "destructive",
         });
       });
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, initData, toast]);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
