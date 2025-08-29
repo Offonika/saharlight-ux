@@ -327,4 +327,14 @@ describe('resolveTelegramId', () => {
     )}`;
     expect(resolveTelegramId(null, initData)).toBeUndefined();
   });
+
+  it('treats 0 as valid user id and ignores initData', async () => {
+    const { resolveTelegramId } = await vi.importActual<
+      typeof import('../src/pages/resolveTelegramId')
+    >('../src/pages/resolveTelegramId');
+    const initData = `user=${encodeURIComponent(
+      JSON.stringify({ id: 123 }),
+    )}`;
+    expect(resolveTelegramId({ id: 0 }, initData)).toBe(0);
+  });
 });

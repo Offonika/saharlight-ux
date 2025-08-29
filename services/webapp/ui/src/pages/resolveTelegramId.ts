@@ -3,7 +3,7 @@ export const resolveTelegramId = (
   initData: string | null,
 ): number | undefined => {
   let telegramId = Number.isFinite(user?.id) ? user?.id : undefined;
-  if (!telegramId) {
+  if (telegramId === undefined) {
     let userStr: string | null = null;
     if (initData) {
       try {
