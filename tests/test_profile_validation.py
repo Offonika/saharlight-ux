@@ -11,7 +11,6 @@ def test_validate_profile_allows_computed_target() -> None:
     data = ProfileSchema(
         telegramId=1,
         icr=1.0,
-        cf=1.0,
         low=4.0,
         high=6.0,
     )
@@ -24,7 +23,6 @@ def test_validate_profile_rejects_target_outside_limits(target: Any) -> None:
     data = ProfileSchema(
         telegramId=1,
         icr=1.0,
-        cf=1.0,
         target=target,
         low=4.0,
         high=7.0,
@@ -37,8 +35,7 @@ def test_validate_profile_rejects_target_outside_limits(target: Any) -> None:
 @pytest.mark.parametrize(
     "field,value,message",
     [
-        ("icr", 0.0, "icr must be greater than 0"),
-        ("cf", 0.0, "cf must be greater than 0"),
+        ("icr", 0.0, "ratio must be greater than 0"),
         ("target", 0.0, "target must be greater than 0"),
         ("low", 0.0, "low must be greater than 0"),
         ("high", 0.0, "high must be greater than 0"),
@@ -51,7 +48,6 @@ def test_validate_profile_rejects_invalid_values(
     kwargs = {
         "telegramId": 1,
         "icr": 1.0,
-        "cf": 1.0,
         "target": 5.0,
         "low": 4.0,
         "high": 7.0,
@@ -66,12 +62,11 @@ def test_validate_profile_rejects_invalid_values(
     assert str(exc.value) == message
 
 
-@pytest.mark.parametrize("field", ["icr", "cf", "low", "high"])
+@pytest.mark.parametrize("field", ["icr", "low", "high"])
 def test_validate_profile_rejects_missing_fields(field: str) -> None:
     kwargs = {
         "telegramId": 1,
         "icr": 1.0,
-        "cf": 1.0,
         "low": 4.0,
         "high": 7.0,
     }
@@ -90,7 +85,6 @@ def test_profile_rejects_malformed_quiet_times(field: str, value: str) -> None:
     kwargs = {
         "telegramId": 1,
         "icr": 1.0,
-        "cf": 1.0,
         "target": 5.0,
         "low": 4.0,
         "high": 7.0,
