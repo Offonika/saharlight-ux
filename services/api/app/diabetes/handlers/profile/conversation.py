@@ -90,6 +90,26 @@ PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ =
 END: int = ConversationHandler.END
 
 
+def _profile_saved_message(
+    icr: float,
+    cf: float,
+    target: float,
+    low: float,
+    high: float,
+    warning_msg: str = "",
+) -> str:
+    """Compose the profile saved confirmation message."""
+
+    return (
+        "✅ Профиль обновлён:\n"
+        f"• ИКХ: {icr} г/ед.\n"
+        f"• КЧ: {cf} ммоль/л\n"
+        f"• Целевой сахар: {target} ммоль/л\n"
+        f"• Низкий порог: {low} ммоль/л\n"
+        f"• Высокий порог: {high} ммоль/л" + warning_msg
+    )
+
+
 async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle ``/profile`` command.
 
@@ -196,14 +216,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not ok:
         await message.reply_text(err or "⚠️ Не удалось сохранить профиль.")
         return END
-
+    msg = _profile_saved_message(icr, cf, target, low, high, warning_msg)
     await message.reply_text(
-        f"✅ Профиль обновлён:\n"
-        f"• ИКХ: {icr} г/ед.\n"
-        f"• КЧ: {cf} ммоль/л\n"
-        f"• Целевой сахар: {target} ммоль/л\n"
-        f"• Низкий порог: {low} ммоль/л\n"
-        f"• Высокий порог: {high} ммоль/л" + warning_msg,
+        msg,
         parse_mode="Markdown",
         reply_markup=menu_keyboard(),
     )
@@ -328,13 +343,9 @@ async def profile_webapp_save(
             reply_markup=menu_keyboard(),
         )
         return
+    msg = _profile_saved_message(icr, cf, target, low, high)
     await eff_msg.reply_text(
-        "✅ Профиль обновлён:\n"
-        f"• ИКХ: {icr} г/ед.\n"
-        f"• КЧ: {cf} ммоль/л\n"
-        f"• Целевой сахар: {target} ммоль/л\n"
-        f"• Низкий порог: {low} ммоль/л\n"
-        f"• Высокий порог: {high} ммоль/л",
+        msg,
         reply_markup=menu_keyboard(),
     )
 
@@ -831,13 +842,9 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             f"/profile {cf} {icr} {target} {low} {high}\n"
             f"(ИКХ {cf}, КЧ {icr}, целевой {target}, низкий {low}, высокий {high})\n"
         )
+    msg = _profile_saved_message(icr, cf, target, low, high, warning_msg)
     await message.reply_text(
-        "✅ Профиль обновлён:\n"
-        f"• ИКХ: {icr} г/ед.\n"
-        f"• КЧ: {cf} ммоль/л\n"
-        f"• Целевой сахар: {target} ммоль/л\n"
-        f"• Низкий порог: {low} ммоль/л\n"
-        f"• Высокий порог: {high} ммоль/л" + warning_msg,
+        msg,
         reply_markup=menu_keyboard(),
     )
     return END
