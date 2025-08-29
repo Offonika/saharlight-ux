@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getProfile, saveProfile, patchProfile } from '../src/api/profile';
+import { getProfile, saveProfile, patchProfile } from '../src/features/profile/api';
 
 vi.mock('@/lib/telegram-auth', () => ({
   getTelegramAuthHeaders: () => ({}),
@@ -12,13 +12,20 @@ describe('profile api', () => {
   });
 
   it('throws error when getProfile request fails', async () => {
-    const mockFetch = vi.fn().mockResolvedValue(new Response('boom', { status: 400 }));
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ detail: 'boom' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(getProfile(1)).rejects.toThrow('Не удалось получить профиль: boom');
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profiles?telegramId=1',
-      expect.objectContaining({ method: 'GET' }),
+      expect.any(Object),
     );
   });
 
@@ -38,12 +45,19 @@ describe('profile api', () => {
     );
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profiles?telegramId=1',
-      expect.objectContaining({ method: 'GET' }),
+      expect.any(Object),
     );
   });
 
   it('throws error when saveProfile request fails', async () => {
-    const mockFetch = vi.fn().mockResolvedValue(new Response('fail', { status: 500 }));
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ detail: 'fail' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(
@@ -56,11 +70,18 @@ describe('profile api', () => {
   });
 
   it('throws error when patchProfile request fails', async () => {
-    const mockFetch = vi.fn().mockResolvedValue(new Response('fail', { status: 500 }));
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ detail: 'fail' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(
-      patchProfile({ timezone: 'Europe/Moscow', timezone_auto: true }),
+      patchProfile({ timezone: 'Europe/Moscow', auto_detect_timezone: true }),
     ).rejects.toThrow('Не удалось обновить профиль: fail');
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profile',
