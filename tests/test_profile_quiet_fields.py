@@ -20,6 +20,7 @@ async def test_save_profile_stores_quiet_fields(monkeypatch: pytest.MonkeyPatch)
     data = ProfileSchema(
         telegramId=1,
         icr=1.0,
+        cf=1.0,
         target=3.0,
         low=1.0,
         high=5.0,
@@ -46,6 +47,7 @@ async def test_save_profile_defaults_quiet_fields(monkeypatch: pytest.MonkeyPatc
     data = ProfileSchema(
         telegramId=2,
         icr=1.0,
+        cf=1.0,
         target=3.0,
         low=1.0,
         high=5.0,
