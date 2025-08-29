@@ -115,8 +115,8 @@ sudo apt install python3.12 python3.12-venv
 Приложение автоматически загружает переменные окружения из этого файла в корне проекта.
 
 - обязательные значения: `TELEGRAM_TOKEN` (токен бота), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-- дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `VITE_API_URL`, `VITE_BASE_URL`, `UVICORN_WORKERS`
-- для появления кнопки «Определить автоматически» при выборе часового пояса нужно задать `PUBLIC_ORIGIN`
+- дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `VITE_API_URL`, `VITE_BASE_URL`, `UI_BASE_URL`, `UVICORN_WORKERS`
+- для появления кнопки «Определить автоматически» при выборе часового пояса нужно задать `PUBLIC_ORIGIN` (и оставить `UI_BASE_URL` ненулевым)
 - при необходимости настройте прокси для OpenAI через переменные окружения
 Переменная `VITE_API_URL` задаёт базовый URL API для WebApp и используется SDK‑клиентом.
 Пустое значение означает использование префикса `/api`.
@@ -133,6 +133,20 @@ VITE_API_URL=
 
 Telegram‑клиенты не могут обращаться к `localhost`, поэтому `WEBAPP_URL` должен быть публичным **HTTPS**‑адресом. Для локальной разработки используйте туннель (например, [ngrok](https://ngrok.com/)).
 Не коммитьте `.env` в репозиторий.
+
+### Часовой пояс
+
+В профиле пользователя есть поле `timezone` с IANA‑строкой (например `Europe/Moscow`). Его можно ввести вручную или определить автоматически через WebApp.
+Кнопка «Определить автоматически» появляется при заданных `PUBLIC_ORIGIN` и ненулевом `UI_BASE_URL` (по умолчанию `/ui`). При нажатии открывается страница `/timezone.html`, которая отправляет определённый часовой пояс боту.
+
+#### Пример `PATCH /api/profile`
+
+```bash
+curl -X PATCH /api/profile \
+  -H 'Content-Type: application/json' \
+  -H 'X-Telegram-Init-Data: <init-data>' \
+  -d '{"timezone": "Europe/Moscow"}'
+```
 
 ## Запуск
 
