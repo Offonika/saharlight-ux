@@ -9,19 +9,45 @@ describe("parseProfile", () => {
       target: "5",
       low: "4",
       high: "10",
+      timezone: "",
+      timezoneAuto: false,
     });
     expect(result).toEqual({ icr: 1, cf: 2, target: 5, low: 4, high: 10 });
   });
 
   it("returns null when any value is non-positive or invalid", () => {
     expect(
-      parseProfile({ icr: "0", cf: "2", target: "5", low: "4", high: "10" }),
+      parseProfile({
+        icr: "0",
+        cf: "2",
+        target: "5",
+        low: "4",
+        high: "10",
+        timezone: "",
+        timezoneAuto: false,
+      }),
     ).toBeNull();
     expect(
-      parseProfile({ icr: "1", cf: "-1", target: "5", low: "4", high: "10" }),
+      parseProfile({
+        icr: "1",
+        cf: "-1",
+        target: "5",
+        low: "4",
+        high: "10",
+        timezone: "",
+        timezoneAuto: false,
+      }),
     ).toBeNull();
     expect(
-      parseProfile({ icr: "a", cf: "2", target: "5", low: "4", high: "10" }),
+      parseProfile({
+        icr: "a",
+        cf: "2",
+        target: "5",
+        low: "4",
+        high: "10",
+        timezone: "",
+        timezoneAuto: false,
+      }),
     ).toBeNull();
   });
 
@@ -32,6 +58,8 @@ describe("parseProfile", () => {
       target: "5,5",
       low: "4",
       high: "10",
+      timezone: "",
+      timezoneAuto: false,
     });
     expect(result).toEqual({ icr: 1.5, cf: 2.5, target: 5.5, low: 4, high: 10 });
   });
@@ -43,19 +71,45 @@ describe("parseProfile", () => {
       target: "5",
       low: "4",
       high: "10",
+      timezone: "",
+      timezoneAuto: false,
     });
     expect(result).toBeNull();
   });
 
   it("returns null when low/high bounds are invalid", () => {
     expect(
-      parseProfile({ icr: "1", cf: "2", target: "5", low: "8", high: "6" }),
+      parseProfile({
+        icr: "1",
+        cf: "2",
+        target: "5",
+        low: "8",
+        high: "6",
+        timezone: "",
+        timezoneAuto: false,
+      }),
     ).toBeNull();
     expect(
-      parseProfile({ icr: "1", cf: "2", target: "3", low: "4", high: "10" }),
+      parseProfile({
+        icr: "1",
+        cf: "2",
+        target: "3",
+        low: "4",
+        high: "10",
+        timezone: "",
+        timezoneAuto: false,
+      }),
     ).toBeNull();
     expect(
-      parseProfile({ icr: "1", cf: "2", target: "12", low: "4", high: "10" }),
+      parseProfile({
+        icr: "1",
+        cf: "2",
+        target: "12",
+        low: "4",
+        high: "10",
+        timezone: "",
+        timezoneAuto: false,
+      }),
     ).toBeNull();
   });
 

@@ -5,8 +5,9 @@ import { MedicalHeader } from "@/components/MedicalHeader";
 import { useToast } from "@/hooks/use-toast";
 import MedicalButton from "@/components/MedicalButton";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import Modal from "@/components/Modal";
-import { saveProfile, getProfile } from "@/api/profile";
+import { saveProfile, getProfile, patchProfile } from "@/api/profile";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
 import { resolveTelegramId } from "./resolveTelegramId";
@@ -17,6 +18,8 @@ type ProfileForm = {
   target: string;
   low: string;
   high: string;
+  timezone: string;
+  timezoneAuto: boolean;
 };
 
 type ParsedProfile = {
@@ -53,19 +56,41 @@ const Profile = () => {
   const { toast } = useToast();
   const { user } = useTelegram();
   const initData = useTelegramInitData();
-
+  const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [profile, setProfile] = useState<ProfileForm>({
     icr: "",
     cf: "",
     target: "",
     low: "",
     high: "",
+    timezone: deviceTz,
+    timezoneAuto: true,
   });
+  const [timezones, setTimezones] = useState<string[]>([]);
 
   const [warningOpen, setWarningOpen] = useState(false);
   const [pendingProfile, setPendingProfile] = useState<
-    (ParsedProfile & { telegramId: number }) | null
+    (
+      ParsedProfile & {
+        telegramId: number;
+        timezone: string;
+        timezoneAuto: boolean;
+      }
+    ) | null
   >(null);
+
+  useEffect(() => {
+    try {
+      setTimezones(Intl.supportedValuesOf("timeZone"));
+    } catch {
+      fetch("/api/timezones")
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setTimezones(data as string[]);
+        })
+        .catch(() => undefined);
+    }
+  }, []);
 
   useEffect(() => {
     const telegramId = resolveTelegramId(user, initData);
@@ -100,12 +125,32 @@ const Profile = () => {
           typeof data.high === "number" && data.high > 0
             ? data.high.toString()
             : "";
+        const timezone =
+          typeof data.timezone === "string" && data.timezone
+            ? data.timezone
+            : deviceTz;
+        const timezoneAuto = data.timezone_auto === true;
 
         const isComplete = [icr, cf, target, low, high].every(
           (v) => Number(v) > 0,
         );
 
-        setProfile({ icr, cf, target, low, high });
+        setProfile({
+          icr,
+          cf,
+          target,
+          low,
+          high,
+          timezone,
+          timezoneAuto,
+        });
+
+        if (timezoneAuto && timezone !== deviceTz) {
+          patchProfile({ timezone: deviceTz, timezone_auto: true }).catch(
+            () => undefined,
+          );
+          setProfile((prev) => ({ ...prev, timezone: deviceTz }));
+        }
 
         if (!isComplete) {
           toast({
@@ -131,16 +176,35 @@ const Profile = () => {
   }, [user, initData, toast]);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
+    if (field === "timezone") {
+      setProfile((prev) => ({ ...prev, timezone: value }));
+      return;
+    }
     if (/^\d*(?:[.,]\d*)?$/.test(value)) {
       setProfile((prev) => ({ ...prev, [field]: value }));
     }
   };
 
   const saveParsedProfile = async (
-    data: ParsedProfile & { telegramId: number },
+    data: ParsedProfile & {
+      telegramId: number;
+      timezone: string;
+      timezoneAuto: boolean;
+    },
   ): Promise<void> => {
     try {
-      await saveProfile(data);
+      await patchProfile({
+        timezone: data.timezone,
+        timezone_auto: data.timezoneAuto,
+      });
+      await saveProfile({
+        telegramId: data.telegramId,
+        icr: data.icr,
+        cf: data.cf,
+        target: data.target,
+        low: data.low,
+        high: data.high,
+      });
       toast({
         title: "Профиль сохранен",
         description: "Ваши настройки успешно обновлены",
@@ -180,7 +244,12 @@ const Profile = () => {
     }
 
     if (shouldWarnProfile(parsed)) {
-      setPendingProfile({ telegramId, ...parsed });
+      setPendingProfile({
+        telegramId,
+        ...parsed,
+        timezone: profile.timezone,
+        timezoneAuto: profile.timezoneAuto,
+      });
       setWarningOpen(true);
       toast({
         title: "Проверьте значения",
@@ -190,7 +259,12 @@ const Profile = () => {
       return;
     }
 
-    await saveParsedProfile({ telegramId, ...parsed });
+    await saveParsedProfile({
+      telegramId,
+      ...parsed,
+      timezone: profile.timezone,
+      timezoneAuto: profile.timezoneAuto,
+    });
   };
 
   const handleConfirmSave = async () => {
@@ -342,6 +416,69 @@ const Profile = () => {
                     ммоль/л
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Таймзона */}
+            <div>
+              <label
+                htmlFor="timezone"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
+                Часовой пояс
+              </label>
+              <input
+                id="timezone"
+                type="text"
+                list="timezone-list"
+                value={profile.timezone}
+                onChange={(e) => handleInputChange("timezone", e.target.value)}
+                className="medical-input"
+                disabled={profile.timezoneAuto}
+              />
+              <datalist id="timezone-list">
+                {timezones.map((tz) => {
+                  let label = tz;
+                  try {
+                    const parts = new Intl.DateTimeFormat("en-US", {
+                      timeZone: tz,
+                      timeZoneName: "short",
+                    })
+                      .formatToParts(new Date())
+                      .find((p) => p.type === "timeZoneName")?.value;
+                    if (parts) {
+                      const m = parts.match(/GMT([+-]\d{1,2})(?::(\d{2}))?/);
+                      if (m) {
+                        const sign = m[1].startsWith("-") ? "-" : "+";
+                        const hours = Math.abs(parseInt(m[1], 10))
+                          .toString()
+                          .padStart(2, "0");
+                        const minutes = m[2] ?? "00";
+                        label = `UTC${sign}${hours}:${minutes} — ${tz}`;
+                      }
+                    }
+                  } catch {
+                    /* empty */
+                  }
+                  return <option key={tz} value={tz} label={label} />;
+                })}
+              </datalist>
+              <div className="mt-2 flex items-center gap-2">
+                <Checkbox
+                  id="timezone-auto"
+                  checked={profile.timezoneAuto}
+                  onCheckedChange={(checked) => {
+                    const auto = Boolean(checked);
+                    setProfile((prev) => ({
+                      ...prev,
+                      timezoneAuto: auto,
+                      timezone: auto ? deviceTz : prev.timezone,
+                    }));
+                  }}
+                />
+                <label htmlFor="timezone-auto" className="text-sm text-foreground">
+                  Определять автоматически
+                </label>
               </div>
             </div>
 

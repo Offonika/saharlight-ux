@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getProfile, saveProfile } from '../src/api/profile';
+import { getProfile, saveProfile, patchProfile } from '../src/api/profile';
 
 vi.mock('@/lib/telegram-auth', () => ({
   getTelegramAuthHeaders: () => ({}),
@@ -52,6 +52,19 @@ describe('profile api', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profiles',
       expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('throws error when patchProfile request fails', async () => {
+    const mockFetch = vi.fn().mockResolvedValue(new Response('fail', { status: 500 }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    await expect(
+      patchProfile({ timezone: 'Europe/Moscow', timezone_auto: true }),
+    ).rejects.toThrow('Не удалось обновить профиль: fail');
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/profile',
+      expect.objectContaining({ method: 'PATCH' }),
     );
   });
 });
