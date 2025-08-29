@@ -9,6 +9,8 @@ from sqlalchemy.orm import sessionmaker
 from telegram import Update
 from telegram.ext import CallbackContext
 
+from .profile_context_stub import ContextStub
+
 from services.api.app.diabetes.services.db import Base, User, Profile
 
 
@@ -129,8 +131,9 @@ async def test_profile_command_and_view_without_sdk(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(args=["8", "3", "6", "4", "9"], user_data={}),
+        ContextStub(),
     )
+    context.args = ["8", "3", "6", "4", "9"]
 
     with caplog.at_level(logging.WARNING):
         await handlers.profile_command(update, context)
@@ -150,7 +153,7 @@ async def test_profile_command_and_view_without_sdk(
     )
     context2 = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
+        ContextStub(),
     )
 
     with caplog.at_level(logging.WARNING):

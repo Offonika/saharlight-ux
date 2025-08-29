@@ -1,11 +1,13 @@
 import importlib
 from types import SimpleNamespace
 from typing import Any, cast
+from unittest.mock import AsyncMock
 
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
-from unittest.mock import AsyncMock
+
+from tests.profile_context_stub import ContextStub
 
 handlers = importlib.import_module(
     "services.api.app.diabetes.handlers.profile.conversation"
@@ -52,7 +54,7 @@ async def test_profile_creation_flow_success(monkeypatch: pytest.MonkeyPatch) ->
 
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
+        ContextStub(),
     )
     user = SimpleNamespace(id=1)
 
@@ -134,7 +136,7 @@ async def test_profile_creation_db_error(monkeypatch: pytest.MonkeyPatch) -> Non
 async def test_profile_icr_invalid() -> None:
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
+        ContextStub(),
     )
     user = SimpleNamespace(id=1)
     msg = DummyMessage("abc")
