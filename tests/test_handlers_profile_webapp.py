@@ -173,3 +173,30 @@ async def test_webapp_save_success(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "Целевой сахар: 6.0" in text
     assert "Низкий порог: 4.0" in text
     assert "Высокий порог: 9.0" in text
+
+
+@pytest.mark.asyncio
+async def test_webapp_save_suspicious_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    post_mock = MagicMock(return_value=(True, None))
+    monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
+    monkeypatch.setattr(handlers, "post_profile", post_mock)
+    msg = DummyMessage()
+    msg.web_app_data = SimpleNamespace(
+        data=json.dumps({"icr": 9, "cf": 2, "target": 6, "low": 4, "high": 9})
+    )
+    update = cast(
+        Update,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+    await handlers.profile_webapp_save(update, context)
+    assert post_mock.call_count == 1
+    assert post_mock.call_args[0][3:] == (1, 9.0, 2.0, 6.0, 4.0, 9.0)
+    text = msg.texts[0]
+    assert text.startswith("✅ Профиль обновлён:")
+    assert "⚠️ Проверьте, пожалуйста: возможно, вы перепутали местами ИКХ и КЧ." in text
