@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const toast = vi.fn();
 
-vi.mock('../src/api/profile', () => ({
+vi.mock('../src/features/profile/api', () => ({
   saveProfile: vi.fn(),
   getProfile: vi.fn(),
   patchProfile: vi.fn(),
@@ -31,7 +31,7 @@ vi.mock('../src/pages/resolveTelegramId', () => ({
 }));
 
 import Profile from '../src/pages/Profile';
-import { saveProfile, getProfile, patchProfile } from '../src/api/profile';
+import { saveProfile, getProfile, patchProfile } from '../src/features/profile/api';
 import { resolveTelegramId } from '../src/pages/resolveTelegramId';
 import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
 
@@ -198,7 +198,7 @@ describe('Profile page', () => {
       });
       expect(patchProfile).toHaveBeenCalledWith({
         timezone: 'Europe/Moscow',
-        timezone_auto: false,
+        auto_detect_timezone: false,
       });
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Профиль сохранен' }),
@@ -224,7 +224,7 @@ describe('Profile page', () => {
     await waitFor(() => {
       expect(patchProfile).toHaveBeenCalledWith({
         timezone: 'Europe/Berlin',
-        timezone_auto: true,
+        auto_detect_timezone: true,
       });
     });
   });
@@ -257,7 +257,7 @@ describe('Profile page', () => {
     await waitFor(() => {
       expect(patchProfile).toHaveBeenCalledWith({
         timezone: 'Europe/Berlin',
-        timezone_auto: false,
+        auto_detect_timezone: false,
       });
       expect(saveProfile).toHaveBeenCalled();
     });
@@ -410,7 +410,7 @@ describe('Profile page', () => {
       });
       expect(patchProfile).toHaveBeenCalledWith({
         timezone: 'Europe/Moscow',
-        timezone_auto: false,
+        auto_detect_timezone: false,
       });
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Профиль сохранен' }),
