@@ -36,13 +36,13 @@ export interface ProfileSchema {
      * @type {number}
      * @memberof ProfileSchema
      */
-    cf: number;
+    cf?: number;
     /**
      * 
      * @type {number}
      * @memberof ProfileSchema
      */
-    target?: number;
+    target: number;
     /**
      * Alias `targetLow` accepted on input.
      * @type {number}
@@ -93,7 +93,7 @@ export interface ProfileSchema {
 export function instanceOfProfileSchema(value: object): value is ProfileSchema {
     if (!('telegramId' in value) || value['telegramId'] === undefined) return false;
     if (!('icr' in value) || value['icr'] === undefined) return false;
-    if (!('cf' in value) || value['cf'] === undefined) return false;
+    if (!('target' in value) || value['target'] === undefined) return false;
     if (!('low' in value) || value['low'] === undefined) return false;
     if (!('high' in value) || value['high'] === undefined) return false;
     return true;
@@ -111,8 +111,8 @@ export function ProfileSchemaFromJSONTyped(json: any, ignoreDiscriminator: boole
         
         'telegramId': json['telegramId'],
         'icr': json['icr'],
-        'cf': json['cf'],
-        'target': json['target'] == null ? undefined : json['target'],
+        'cf': json['cf'] == null ? undefined : json['cf'],
+        'target': json['target'],
         'low': json['low'],
         'high': json['high'],
         'quietStart': json['quietStart'] == null ? undefined : json['quietStart'],

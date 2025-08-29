@@ -4,11 +4,10 @@ import { getTelegramAuthHeaders } from '@/lib/telegram-auth';
 export async function saveProfile({
   telegramId,
   icr,
-  cf,
   target,
   low,
   high,
-}: ProfileSchema) {
+}: Pick<ProfileSchema, 'telegramId' | 'icr' | 'target' | 'low' | 'high'>) {
   const headers = {
     'Content-Type': 'application/json',
     ...getTelegramAuthHeaders(),
@@ -18,7 +17,7 @@ export async function saveProfile({
     const res = await fetch('/api/profiles', {
       method: 'POST',
       headers,
-      body: JSON.stringify({ telegramId, icr, cf, target, low, high }),
+      body: JSON.stringify({ telegramId, icr, target, low, high }),
     });
 
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
