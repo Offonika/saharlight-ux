@@ -224,3 +224,22 @@ describe('Profile page', () => {
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('');
   });
 });
+
+describe('resolveTelegramId', () => {
+  it('returns undefined for NaN user id', async () => {
+    const { resolveTelegramId } = await vi.importActual<
+      typeof import('../src/pages/resolveTelegramId')
+    >('../src/pages/resolveTelegramId');
+    expect(resolveTelegramId({ id: Number.NaN }, null)).toBeUndefined();
+  });
+
+  it('returns undefined for non-numeric id in initData', async () => {
+    const { resolveTelegramId } = await vi.importActual<
+      typeof import('../src/pages/resolveTelegramId')
+    >('../src/pages/resolveTelegramId');
+    const initData = `user=${encodeURIComponent(
+      JSON.stringify({ id: 'abc' }),
+    )}`;
+    expect(resolveTelegramId(null, initData)).toBeUndefined();
+  });
+});
