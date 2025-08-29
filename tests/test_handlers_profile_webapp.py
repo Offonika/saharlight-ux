@@ -149,8 +149,16 @@ async def test_webapp_save_invalid_values(
 @pytest.mark.asyncio
 async def test_webapp_save_success(monkeypatch: pytest.MonkeyPatch) -> None:
     post_mock = MagicMock(return_value=(True, None))
+    save_mock = MagicMock(return_value=True)
+
+    async def run_db(func, sessionmaker):
+        session = MagicMock()
+        return func(session)
+
     monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
     monkeypatch.setattr(handlers, "post_profile", post_mock)
+    monkeypatch.setattr(handlers, "save_profile", save_mock)
+    monkeypatch.setattr(handlers, "run_db", run_db)
     msg = DummyMessage()
     msg.web_app_data = SimpleNamespace(
         data=json.dumps({"icr": 8, "cf": 3, "target": 6, "low": 4, "high": 9})
@@ -166,6 +174,8 @@ async def test_webapp_save_success(monkeypatch: pytest.MonkeyPatch) -> None:
     await handlers.profile_webapp_save(update, context)
     assert post_mock.call_count == 1
     assert post_mock.call_args[0][3:] == (1, 8.0, 3.0, 6.0, 4.0, 9.0)
+    save_mock.assert_called_once()
+    assert save_mock.call_args[0][1:] == (1, 8.0, 3.0, 6.0, 4.0, 9.0)
     text = msg.texts[0]
     assert text.startswith("✅ Профиль обновлён:")
     assert "ИКХ: 8.0" in text
@@ -173,3 +183,35 @@ async def test_webapp_save_success(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "Целевой сахар: 6.0" in text
     assert "Низкий порог: 4.0" in text
     assert "Высокий порог: 9.0" in text
+
+
+@pytest.mark.asyncio
+async def test_webapp_save_db_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    post_mock = MagicMock(return_value=(True, None))
+
+    async def run_db(func, sessionmaker):
+        session = MagicMock()
+        return func(session)
+
+    save_mock = MagicMock(return_value=False)
+
+    monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
+    monkeypatch.setattr(handlers, "post_profile", post_mock)
+    monkeypatch.setattr(handlers, "save_profile", save_mock)
+    monkeypatch.setattr(handlers, "run_db", run_db)
+    msg = DummyMessage()
+    msg.web_app_data = SimpleNamespace(
+        data=json.dumps({"icr": 8, "cf": 3, "target": 6, "low": 4, "high": 9})
+    )
+    update = cast(
+        Update,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+    await handlers.profile_webapp_save(update, context)
+    assert post_mock.call_count == 1
+    save_mock.assert_called_once()
+    assert msg.texts == ["⚠️ Не удалось сохранить профиль."]
