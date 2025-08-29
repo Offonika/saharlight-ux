@@ -16,10 +16,13 @@ export async function getProfile(telegramId: number) {
       const msg = errorText || 'Request failed';
       throw new Error(msg);
     }
-    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    const data = (await res.json()) as Record<string, unknown>;
     return data as ProfileSchema;
   } catch (error) {
     console.error('Failed to load profile:', error);
+    if (error instanceof SyntaxError) {
+      throw new Error('Не удалось получить профиль: некорректный ответ сервера');
+    }
     if (error instanceof Error) {
       throw new Error(`Не удалось получить профиль: ${error.message}`);
     }
@@ -52,7 +55,7 @@ export async function saveProfile({
       const msg = errorText || 'Request failed';
       throw new Error(msg);
     }
-    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    const data = (await res.json()) as Record<string, unknown>;
     return data as ProfileSchema;
   } catch (error) {
     console.error('Failed to save profile:', error);
