@@ -465,11 +465,14 @@ def _security_db(
             changed = True
     elif action == "high_inc":
         new = (profile.high_threshold or 0) + 0.5
-        profile.high_threshold = new
-        changed = True
+        low = profile.low_threshold
+        if low is None or new >= low + 0.5:
+            profile.high_threshold = new
+            changed = True
     elif action == "high_dec":
         new = (profile.high_threshold or 0) - 0.5
-        if profile.low_threshold is None or new > profile.low_threshold:
+        low = profile.low_threshold
+        if new > 0 and (low is None or new > low):
             profile.high_threshold = new
             changed = True
     elif action == "toggle_sos":

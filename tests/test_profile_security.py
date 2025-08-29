@@ -121,6 +121,154 @@ async def test_profile_security_threshold_changes(
 
 
 @pytest.mark.asyncio
+async def test_profile_security_high_inc_respects_low_threshold(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(handlers, "commit", commit)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(
+            Profile(
+                telegram_id=1,
+                icr=10,
+                cf=2,
+                target_bg=6,
+                low_threshold=5,
+                high_threshold=4,
+                sos_alerts_enabled=True,
+            )
+        )
+        session.add(Alert(user_id=1, sugar=5))
+        session.commit()
+
+    calls: list[tuple[int, float, str]] = []
+
+    async def fake_eval(user_id: int, sugar: float, job_queue: Any) -> None:
+        calls.append((user_id, sugar, job_queue))
+
+    monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
+
+    query = DummyQuery(DummyMessage(), "profile_security:high_inc")
+    update = cast(
+        Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq")))
+
+    await handlers.profile_security(update, context)
+
+    with TestSession() as session:
+        profile = session.get(Profile, 1)
+        assert profile is not None
+        assert profile.high_threshold == 4
+        assert profile.low_threshold == 5
+
+    assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_profile_security_high_dec_requires_above_low(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(handlers, "commit", commit)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(
+            Profile(
+                telegram_id=1,
+                icr=10,
+                cf=2,
+                target_bg=6,
+                low_threshold=4,
+                high_threshold=4.2,
+                sos_alerts_enabled=True,
+            )
+        )
+        session.add(Alert(user_id=1, sugar=5))
+        session.commit()
+
+    calls: list[tuple[int, float, str]] = []
+
+    async def fake_eval(user_id: int, sugar: float, job_queue: Any) -> None:
+        calls.append((user_id, sugar, job_queue))
+
+    monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
+
+    query = DummyQuery(DummyMessage(), "profile_security:high_dec")
+    update = cast(
+        Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq")))
+
+    await handlers.profile_security(update, context)
+
+    with TestSession() as session:
+        profile = session.get(Profile, 1)
+        assert profile is not None
+        assert profile.high_threshold == 4.2
+
+    assert calls == []
+
+
+@pytest.mark.asyncio
+async def test_profile_security_high_dec_requires_positive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(handlers, "commit", commit)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(
+            Profile(
+                telegram_id=1,
+                icr=10,
+                cf=2,
+                target_bg=6,
+                low_threshold=0,
+                high_threshold=0.4,
+                sos_alerts_enabled=True,
+            )
+        )
+        session.add(Alert(user_id=1, sugar=5))
+        session.commit()
+
+    calls: list[tuple[int, float, str]] = []
+
+    async def fake_eval(user_id: int, sugar: float, job_queue: Any) -> None:
+        calls.append((user_id, sugar, job_queue))
+
+    monkeypatch.setattr(handlers, "evaluate_sugar", fake_eval)
+
+    query = DummyQuery(DummyMessage(), "profile_security:high_dec")
+    update = cast(
+        Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq")))
+
+    await handlers.profile_security(update, context)
+
+    with TestSession() as session:
+        profile = session.get(Profile, 1)
+        assert profile is not None
+        assert profile.high_threshold == 0.4
+
+    assert calls == []
+
+
+@pytest.mark.asyncio
 async def test_profile_security_toggle_sos_alerts(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -232,6 +380,7 @@ async def test_profile_security_add_delete_calls_handlers(
     monkeypatch.setenv("PUBLIC_ORIGIN", "http://example")
     monkeypatch.setenv("UI_BASE_URL", "")
     import services.api.app.config as config
+
     importlib.reload(config)
     query_add = DummyQuery(DummyMessage(), "profile_security:add")
     update_add = cast(
