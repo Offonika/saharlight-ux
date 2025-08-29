@@ -453,7 +453,11 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             return
 
     def db_add(session: Session) -> tuple[str, User | None, int, int]:
-        count = session.query(Reminder).filter_by(telegram_id=user_id).count()
+        count = (
+            session.query(Reminder)
+            .filter_by(telegram_id=user_id, is_enabled=True)
+            .count()
+        )
         db_user = session.get(User, user_id)
         limit = _limit_for(db_user)
         if count >= limit:
