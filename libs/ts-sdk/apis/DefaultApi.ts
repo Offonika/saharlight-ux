@@ -285,6 +285,39 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Get Timezones
+     */
+    async getTimezonesTimezonesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // telegramInitData authentication
+        }
+
+
+        let urlPath = `/timezones`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Get Timezones
+     */
+    async getTimezonesTimezonesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<string>> {
+        const response = await this.getTimezonesTimezonesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Health
      */
     async healthGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {
