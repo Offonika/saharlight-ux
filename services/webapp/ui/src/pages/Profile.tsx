@@ -70,13 +70,26 @@ const Profile = () => {
     getProfile(telegramId)
       .then((data) => {
         if (cancelled) return;
-        setProfile({
-          icr: data.icr.toString(),
-          cf: data.cf.toString(),
-          target: data.target.toString(),
-          low: data.low.toString(),
-          high: data.high.toString(),
-        });
+
+        const icr = typeof data.icr === "number" ? data.icr.toString() : "";
+        const cf = typeof data.cf === "number" ? data.cf.toString() : "";
+        const target =
+          typeof data.target === "number" ? data.target.toString() : "";
+        const low = typeof data.low === "number" ? data.low.toString() : "";
+        const high =
+          typeof data.high === "number" ? data.high.toString() : "";
+
+        const isComplete = [icr, cf, target, low, high].every((v) => v !== "");
+
+        setProfile({ icr, cf, target, low, high });
+
+        if (!isComplete) {
+          toast({
+            title: "Ошибка",
+            description: "Профиль заполнен не полностью",
+            variant: "destructive",
+          });
+        }
       })
       .catch((error) => {
         if (cancelled) return;
