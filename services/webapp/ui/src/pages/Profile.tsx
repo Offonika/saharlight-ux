@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Modal from "@/components/Modal";
 import { saveProfile, getProfile, patchProfile } from "@/api/profile";
+import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
 import { resolveTelegramId } from "./resolveTelegramId";
@@ -83,12 +84,7 @@ const Profile = () => {
     try {
       setTimezones(Intl.supportedValuesOf("timeZone"));
     } catch {
-      fetch("/api/timezones")
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data)) setTimezones(data as string[]);
-        })
-        .catch(() => undefined);
+      getTimezones().then(setTimezones).catch(() => undefined);
     }
   }, []);
 

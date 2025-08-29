@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 import sys
 from typing import cast
+import zoneinfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 # ────────── Path-хаки, когда файл запускают напрямую ──────────
@@ -114,6 +115,12 @@ def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
 @api_router.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+# ────────── timezones list ──────────
+@api_router.get("/timezones")
+async def get_timezones() -> list[str]:
+    return sorted(zoneinfo.available_timezones())
 
 
 # ────────── timezone ──────────
