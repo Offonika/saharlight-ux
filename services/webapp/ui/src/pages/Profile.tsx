@@ -7,7 +7,8 @@ import MedicalButton from "@/components/MedicalButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Modal from "@/components/Modal";
-import { saveProfile, getProfile, patchProfile } from "@/features/profile/api";
+import { saveProfile, getProfile } from "@/features/profile/api";
+import { patchProfile } from "@/features/profile/api";
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
@@ -142,9 +143,25 @@ const Profile = () => {
         });
 
         if (timezoneAuto && timezone !== deviceTz) {
-          patchProfile({ timezone: deviceTz, auto_detect_timezone: true }).catch(
-            () => undefined,
-          );
+          patchProfile({
+            timezone: deviceTz ?? null,
+            auto_detect_timezone: true,
+          })
+            .then(() =>
+              toast({
+                title: "Профиль обновлен",
+                description: "Часовой пояс обновлен",
+              }),
+            )
+            .catch((error) => {
+              const message =
+                error instanceof Error ? error.message : String(error);
+              toast({
+                title: "Ошибка",
+                description: message,
+                variant: "destructive",
+              });
+            });
           setProfile((prev) => ({ ...prev, timezone: deviceTz }));
         }
 
@@ -190,8 +207,8 @@ const Profile = () => {
   ): Promise<void> => {
     try {
       await patchProfile({
-        timezone: data.timezone,
-        auto_detect_timezone: data.timezoneAuto,
+        timezone: data.timezone ?? null,
+        auto_detect_timezone: data.timezoneAuto ?? null,
       });
       await saveProfile({
         telegramId: data.telegramId,
