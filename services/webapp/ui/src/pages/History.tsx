@@ -4,7 +4,13 @@ import { Calendar, TrendingUp, Edit2, Trash2, Filter } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
-import { getHistory, updateRecord, deleteRecord, HistoryRecord } from '@/api/history';
+import { getHistory, updateRecord, deleteRecord } from '@/api/history';
+import type {
+  HistoryRecordSchemaInput,
+  HistoryRecordSchemaOutput,
+} from '@sdk/models';
+
+type HistoryRecord = HistoryRecordSchemaOutput & { date: Date };
 
 const History = () => {
   const navigate = useNavigate();
@@ -41,7 +47,9 @@ const History = () => {
   }, [toast]);
 
   const filteredRecords = records.filter(record => {
-    const dateMatch = !selectedDate || record.date === selectedDate;
+    const dateMatch =
+      !selectedDate ||
+      record.date.toISOString().slice(0, 10) === selectedDate;
     const typeMatch = selectedType === 'all' || record.type === selectedType;
     return dateMatch && typeMatch;
   });
@@ -53,7 +61,7 @@ const History = () => {
   const handleUpdateRecord = async () => {
     if (editingRecord) {
       try {
-        await updateRecord(editingRecord);
+        await updateRecord(editingRecord as HistoryRecordSchemaInput);
         setRecords(prev =>
           prev.map(r => (r.id === editingRecord.id ? editingRecord : r))
         );
@@ -204,7 +212,7 @@ const History = () => {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
-                        {new Date(record.date).toLocaleDateString('ru-RU')}
+                        {record.date.toLocaleDateString('ru-RU')}
                       </span>
                       <span className="text-sm font-medium">{record.time}</span>
                     </div>
@@ -284,10 +292,10 @@ const History = () => {
                 </label>
                 <input
                   type="date"
-                  value={editingRecord.date}
+                  value={editingRecord.date.toISOString().slice(0, 10)}
                   onChange={e =>
                     setEditingRecord(prev =>
-                      prev ? { ...prev, date: e.target.value } : prev
+                      prev ? { ...prev, date: new Date(e.target.value) } : prev
                     )
                   }
                   className="medical-input"
