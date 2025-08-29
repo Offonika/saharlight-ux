@@ -2,16 +2,44 @@
 // Mock server для тестирования в режиме разработки
 const STORAGE_KEY = 'mockReminders';
 
-function loadFromStorage(): any[] {
+export interface Reminder {
+  id: number;
+  telegramId: number;
+  type: string;
+  title: string | null;
+  kind: 'at_time' | 'every' | 'after_event';
+  time: string | null;
+  intervalMinutes: number | null;
+  minutesAfter: number | null;
+  daysOfWeek: number[] | null;
+  isEnabled: boolean;
+  nextAt: string | null;
+}
+
+export interface ReminderPayload {
+  id?: number;
+  telegramId: number;
+  type: string;
+  title?: string | null;
+  time?: string | null;
+  intervalMinutes?: number | null;
+  intervalHours?: number | null;
+  minutesAfter?: number | null;
+  daysOfWeek?: Iterable<number> | null;
+  isEnabled: boolean;
+  nextAt?: string | null;
+}
+
+function loadFromStorage(): Reminder[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    return stored ? (JSON.parse(stored) as Reminder[]) : [];
   } catch {
     return [];
   }
 }
 
-function saveToStorage(reminders: any[]) {
+function saveToStorage(reminders: Reminder[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(reminders));
   } catch {
@@ -19,7 +47,7 @@ function saveToStorage(reminders: any[]) {
   }
 }
 
-let mockReminders: any[] = loadFromStorage();
+let mockReminders: Reminder[] = loadFromStorage();
 let nextId = Math.max(...mockReminders.map(r => r.id), 0) + 1;
 
 // Initialize with after-meal 30min reminder if it doesn't exist
@@ -33,7 +61,7 @@ function initializeDefaultReminders() {
   );
   
   if (!hasAfterMeal30) {
-    const newReminder = {
+    const newReminder: Reminder = {
       id: nextId++,
       telegramId,
       type: "after_meal",
@@ -48,7 +76,6 @@ function initializeDefaultReminders() {
     };
     mockReminders.push(newReminder);
     saveToStorage(mockReminders);
-    console.log('[MockAPI] Added after-meal 30min reminder');
   }
 }
 
@@ -56,35 +83,32 @@ function initializeDefaultReminders() {
 initializeDefaultReminders();
 
 export const mockApi = {
-  async getReminders(telegramId: number) {
-    console.log('[MockAPI] Getting reminders for telegram ID:', telegramId);
-    console.log('[MockAPI] All reminders:', mockReminders);
+  async getReminders(telegramId: number): Promise<Reminder[]> {
     const filtered = mockReminders.filter(r => r.telegramId === telegramId);
-    console.log('[MockAPI] Filtered reminders:', filtered);
     return filtered;
   },
 
-  async createReminder(reminder: any) {
-    console.log('[MockAPI] Creating reminder:', reminder);
-
+  async createReminder(reminder: ReminderPayload): Promise<{ id: number; status: 'ok' }> {
     // Determine kind based on payload data
-    let kind: "at_time" | "every" | "after_event" = "at_time";
+    let kind: 'at_time' | 'every' | 'after_event' = 'at_time';
     if (reminder.time) {
-      kind = "at_time";
+      kind = 'at_time';
     } else if (reminder.intervalMinutes || reminder.intervalHours) {
-      kind = "every";
+      kind = 'every';
     } else if (reminder.minutesAfter) {
-      kind = "after_event";
+      kind = 'after_event';
     }
 
-    const newReminder = {
+    const newReminder: Reminder = {
       id: nextId++,
       telegramId: reminder.telegramId,
       type: reminder.type,
       title: reminder.title || null,
       kind,
       time: reminder.time || null,
-      intervalMinutes: reminder.intervalMinutes || (reminder.intervalHours ? Math.round(reminder.intervalHours * 60) : null),
+      intervalMinutes:
+        reminder.intervalMinutes ||
+        (reminder.intervalHours ? Math.round(reminder.intervalHours * 60) : null),
       minutesAfter: reminder.minutesAfter || null,
       daysOfWeek: reminder.daysOfWeek ? Array.from(reminder.daysOfWeek) : null,
       isEnabled: reminder.isEnabled,
@@ -95,21 +119,22 @@ export const mockApi = {
     return { id: newReminder.id, status: 'ok' };
   },
 
-  async updateReminder(reminder: any) {
-    console.log('[MockAPI] Updating reminder:', reminder);
+  async updateReminder(
+    reminder: ReminderPayload & { id: number },
+  ): Promise<{ id: number; status: 'ok' }> {
     const index = mockReminders.findIndex(r => r.id === reminder.id);
     if (index >= 0) {
       // Determine kind based on payload data
-      let kind: "at_time" | "every" | "after_event" = mockReminders[index].kind;
+      let kind: 'at_time' | 'every' | 'after_event' = mockReminders[index].kind;
       if (reminder.time) {
-        kind = "at_time";
+        kind = 'at_time';
       } else if (reminder.intervalMinutes || reminder.intervalHours) {
-        kind = "every";
+        kind = 'every';
       } else if (reminder.minutesAfter) {
-        kind = "after_event";
+        kind = 'after_event';
       }
 
-      const updated = {
+      const updated: Reminder = {
         ...mockReminders[index],
         type: reminder.type ?? mockReminders[index].type,
         kind,
@@ -118,7 +143,10 @@ export const mockApi = {
           ? Math.round(reminder.intervalHours * 60)
           : reminder.intervalMinutes ?? mockReminders[index].intervalMinutes,
         minutesAfter: reminder.minutesAfter ?? mockReminders[index].minutesAfter,
-        isEnabled: reminder.isEnabled !== undefined ? reminder.isEnabled : mockReminders[index].isEnabled,
+        isEnabled:
+          reminder.isEnabled !== undefined
+            ? reminder.isEnabled
+            : mockReminders[index].isEnabled,
         title: reminder.title ?? mockReminders[index].title,
         daysOfWeek: reminder.daysOfWeek
           ? Array.from(reminder.daysOfWeek)
@@ -130,15 +158,23 @@ export const mockApi = {
     return { id: reminder.id, status: 'ok' };
   },
 
-  async deleteReminder(telegramId: number, id: number) {
-    console.log('[MockAPI] Deleting reminder:', id);
-    mockReminders = mockReminders.filter(r => !(r.id === id && r.telegramId === telegramId));
+  async deleteReminder(
+    telegramId: number,
+    id: number,
+  ): Promise<{ status: 'ok' }> {
+    mockReminders = mockReminders.filter(
+      r => !(r.id === id && r.telegramId === telegramId),
+    );
     saveToStorage(mockReminders);
     return { status: 'ok' };
   },
 
-  async getReminder(telegramId: number, id: number) {
-    console.log('[MockAPI] Getting single reminder:', id);
-    return mockReminders.find(r => r.id === id && r.telegramId === telegramId) || null;
-  }
+  async getReminder(
+    telegramId: number,
+    id: number,
+  ): Promise<Reminder | null> {
+    return (
+      mockReminders.find(r => r.id === id && r.telegramId === telegramId) || null
+    );
+  },
 };
