@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 from telegram.ext import Job, JobQueue
@@ -18,3 +18,8 @@ class ContextStub:
     job: Job[Any] | None = None
     job_queue: JobQueue[Any] | None = None
     bot: Any | None = None
+    _user_data: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def user_data(self) -> dict[str, Any]:
+        return self._user_data

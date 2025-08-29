@@ -8,6 +8,8 @@ import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
 
+from .context_stub import ContextStub
+
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -80,8 +82,9 @@ async def test_profile_input_not_logged_as_sugar(
     shared_chat_data: dict[str, Any] = {}
     sugar_context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, chat_data=shared_chat_data),
+        ContextStub(),
     )
+    sugar_context.chat_data = shared_chat_data
     await sugar_handlers.sugar_start(sugar_update, sugar_context)
 
     # Open profile view which should cancel sugar conversation
@@ -96,8 +99,10 @@ async def test_profile_input_not_logged_as_sugar(
     )
     prof_context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(args=[], user_data={}, chat_data=shared_chat_data),
+        ContextStub(),
     )
+    prof_context.args = []
+    prof_context.chat_data = shared_chat_data
     result = await profile_handlers.profile_command(prof_update, prof_context)
     assert result == profile_handlers.END
     assert "Ваш профиль" in prof_msg.replies[0]
@@ -115,8 +120,9 @@ async def test_profile_input_not_logged_as_sugar(
     )
     icr_context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, chat_data=shared_chat_data),
+        ContextStub(),
     )
+    icr_context.chat_data = shared_chat_data
     result_icr = await sugar_handlers.sugar_val(icr_update, icr_context)
     assert result_icr == sugar_handlers.END
 

@@ -7,6 +7,8 @@ import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
 
+from .context_stub import ContextStub
+
 handlers = importlib.import_module(
     "services.api.app.diabetes.handlers.profile.conversation"
 )
@@ -140,7 +142,7 @@ async def test_profile_cf_cases(
     )
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
+        ContextStub(),
     )
     state = await handlers.profile_cf(update, ctx)
     assert state == expected_state
@@ -168,7 +170,7 @@ async def test_profile_target_cases(
     )
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
+        ContextStub(),
     )
     state = await handlers.profile_target(update, ctx)
     assert state == expected_state
@@ -196,8 +198,9 @@ async def test_profile_low_cases(
     )
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"profile_target": 6.0}),
+        ContextStub(),
     )
+    ctx.user_data["profile_target"] = 6.0
     state = await handlers.profile_low(update, ctx)
     assert state == expected_state
     assert expected_fragment in msg.replies[0]
@@ -224,8 +227,9 @@ async def test_profile_high_invalid(
     )
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"profile_low": 4.0}),
+        ContextStub(),
     )
+    ctx.user_data["profile_low"] = 4.0
     state = await handlers.profile_high(update, ctx)
     assert state == expected_state
     assert expected_fragment in msg.replies[0]
@@ -239,14 +243,15 @@ async def test_profile_high_db_error(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(
-            user_data={
-                "profile_icr": 8.0,
-                "profile_cf": 3.0,
-                "profile_target": 6.0,
-                "profile_low": 4.0,
-            }
-        ),
+        ContextStub(),
+    )
+    ctx.user_data.update(
+        {
+            "profile_icr": 8.0,
+            "profile_cf": 3.0,
+            "profile_target": 6.0,
+            "profile_low": 4.0,
+        }
     )
     run_db_mock = AsyncMock(return_value=False)
     monkeypatch.setattr(handlers, "run_db", run_db_mock)
@@ -264,14 +269,15 @@ async def test_profile_high_success_warning(monkeypatch: pytest.MonkeyPatch) -> 
     )
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(
-            user_data={
-                "profile_icr": 9.0,
-                "profile_cf": 2.0,
-                "profile_target": 6.0,
-                "profile_low": 4.0,
-            }
-        ),
+        ContextStub(),
+    )
+    ctx.user_data.update(
+        {
+            "profile_icr": 9.0,
+            "profile_cf": 2.0,
+            "profile_target": 6.0,
+            "profile_low": 4.0,
+        }
     )
     run_db_mock = AsyncMock(return_value=True)
     monkeypatch.setattr(handlers, "run_db", run_db_mock)
@@ -291,3 +297,18 @@ async def test_profile_edit_entry(monkeypatch: pytest.MonkeyPatch) -> None:
     result = await handlers._profile_edit_entry(update, context)
     assert result == handlers.PROFILE_ICR
     edit_mock.assert_awaited_once_with(update, context)
+
+
+@pytest.mark.asyncio
+async def test_profile_icr_context_stub() -> None:
+    msg = DummyMessage("8")
+    update = cast(
+        Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    )
+    ctx = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        ContextStub(),
+    )
+    data = ctx.user_data
+    await handlers.profile_icr(update, ctx)
+    assert ctx.user_data is data

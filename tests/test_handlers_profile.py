@@ -10,6 +10,8 @@ from unittest.mock import MagicMock
 from telegram import InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
+from .context_stub import ContextStub
+
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 from services.api.app.diabetes.services.db import Base, User, Profile, dispose_engine
@@ -92,8 +94,9 @@ async def test_profile_command_and_view(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(args=args, user_data={}),
+        ContextStub(),
     )
+    context.args = args
 
     message2 = DummyMessage()
     update2 = cast(
@@ -102,7 +105,7 @@ async def test_profile_command_and_view(
     )
     context2 = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
+        ContextStub(),
     )
 
     with no_warnings():
@@ -167,8 +170,9 @@ async def test_profile_command_invalid_values(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(args=args, user_data={}),
+        ContextStub(),
     )
+    context.args = args
 
     await handlers.profile_command(update, context)
 
@@ -192,8 +196,9 @@ async def test_profile_command_help(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(args=["help"], user_data={}),
+        ContextStub(),
     )
+    context.args = ["help"]
     result = await handlers.profile_command(update, context)
     assert result == handlers.END
     assert "Настройки профиля доступны" in help_msg.texts[0]
@@ -225,8 +230,9 @@ async def test_profile_command_view_existing_profile(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(args=[], user_data={}),
+        ContextStub(),
     )
+    context.args = []
 
     with no_warnings():
         result = await handlers.profile_command(update, context)
@@ -268,8 +274,9 @@ async def test_profile_view_preserves_user_data(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"thread_id": "tid", "foo": "bar"}),
+        ContextStub(),
     )
+    context.user_data.update({"thread_id": "tid", "foo": "bar"})
 
     with no_warnings():
         await handlers.profile_view(update, context)
