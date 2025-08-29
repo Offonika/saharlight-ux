@@ -30,8 +30,7 @@ async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
 def _validate_profile(data: ProfileSchema) -> None:
     """Validate business rules for a patient profile."""
     required = {
-        "icr": data.icr,
-        "cf": data.cf,
+        "ratio": data.ratio,
         "target": data.target,
         "low": data.low,
         "high": data.high,
@@ -70,10 +69,8 @@ async def save_profile(data: ProfileSchema) -> None:
             cast(Session, session).add(profile)
         if data.orgId is not None:
             profile.org_id = data.orgId
-        if data.icr is not None:
-            profile.icr = data.icr
-        if data.cf is not None:
-            profile.cf = data.cf
+        if data.ratio is not None:
+            profile.icr = data.ratio
         if data.target is not None:
             profile.target_bg = data.target
         if data.low is not None:
