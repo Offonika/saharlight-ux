@@ -4,7 +4,6 @@ import type { ReminderSchema } from "@sdk";
 import { useRemindersApi } from "../api/reminders";
 import { formatNextAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
-import { mockApi } from "../../../api/mock-server";
 import { useToast } from "@/hooks/use-toast";
 import { Templates } from "../components/Templates";
 import { getPlanLimit } from "../hooks/usePlan";
@@ -68,7 +67,7 @@ export default function RemindersList({
   const initData = useTelegramInitData();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const isDev = process.env.NODE_ENV === "development";
+  const isDev = import.meta.env.DEV;
   const [items, setItems] = useState<ReminderDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(planLimit || 5);
@@ -80,21 +79,9 @@ export default function RemindersList({
     if (!user?.id) return;
     setLoading(true);
     try {
-      // Load reminders
-      try {
-        const res = await api.remindersGet({ telegramId: user.id });
-        setItems(res as any);
-      } catch (apiError) {
-        if (isDev) {
-          console.warn("Backend API failed, using mock API:", apiError);
-          const res = await mockApi.getReminders(user.id);
-          setItems(res as any);
-        } else {
-          toast({ title: "Ошибка", description: "Не удалось загрузить напоминания", variant: "destructive" });
-        }
-      }
-      
-      // Load plan limit if not provided as prop
+      const res = await api.remindersGet({ telegramId: user.id });
+      setItems(res as any);
+
       if (!planLimit) {
         try {
           const limit = await getPlanLimit(user.id, initData);
@@ -104,6 +91,11 @@ export default function RemindersList({
           setCurrentPlanLimit(5); // Default to free tier
         }
       }
+    } catch (error) {
+      if (isDev) {
+        console.warn("Backend API failed:", error);
+      }
+      toast({ title: "Ошибка", description: "Не удалось загрузить напоминания", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -162,6 +154,7 @@ export default function RemindersList({
       } catch (apiError) {
         if (isDev) {
           console.warn("Backend API failed, using mock API:", apiError);
+          const { mockApi } = await import("../../../api/mock-server");
           await mockApi.updateReminder({ ...r, isEnabled: !r.isEnabled });
         } else {
           throw apiError;
@@ -227,6 +220,7 @@ export default function RemindersList({
       } catch (apiError) {
         if (isDev) {
           console.warn("Backend API failed, using mock API:", apiError);
+          const { mockApi } = await import("../../../api/mock-server");
           await mockApi.deleteReminder(r.telegramId, r.id);
         } else {
           throw apiError;

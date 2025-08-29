@@ -55,8 +55,8 @@ describe('mockApi not used in production', () => {
 
   it('RemindersList uses toast and not mockApi in production', async () => {
     remindersGet.mockRejectedValue(new Error('fail'));
+    vi.stubEnv('DEV', 'false');
     const { default: RemindersList } = await import('../src/features/reminders/pages/RemindersList');
-    vi.stubEnv('NODE_ENV', 'production');
     render(<RemindersList planLimit={5} />);
     await waitFor(() => {
       expect(remindersGet).toHaveBeenCalled();
@@ -67,8 +67,8 @@ describe('mockApi not used in production', () => {
 
   it('RemindersCreate uses toast and not mockApi in production', async () => {
     remindersPost.mockRejectedValue(new Error('fail'));
-    const { default: RemindersCreate } = await import('../src/features/reminders/pages/RemindersCreate');
     vi.stubEnv('NODE_ENV', 'production');
+    const { default: RemindersCreate } = await import('../src/features/reminders/pages/RemindersCreate');
     const { container } = render(<RemindersCreate />);
     const form = container.querySelector('form')!;
     fireEvent.submit(form);
