@@ -269,7 +269,8 @@ def smart_input(message: str) -> dict[str, float | None]:
     ``"сахар"`` и ``"доза"``. Если после названия показателя указаны
     единицы, не соответствующие ему (например, ``"сахар 7 XE"``), или
     вместо числа идёт произвольный текст (``"доза=abc"``), будет вызван
-    ``ValueError``.
+    ``ValueError``. Одиночное число без явного указания показателя
+    считается неоднозначным и также приводит к ``ValueError``.
 
     Args:
         message: Исходное сообщение пользователя.
@@ -287,6 +288,10 @@ def smart_input(message: str) -> dict[str, float | None]:
         Traceback (most recent call last):
         ...
         ValueError: mismatched unit for sugar
+        >>> smart_input("5")
+        Traceback (most recent call last):
+        ...
+        ValueError: ambiguous number without keyword
     """
 
     if not isinstance(message, str):
@@ -333,7 +338,7 @@ def smart_input(message: str) -> dict[str, float | None]:
     if all(v is None for v in result.values()):
         m = ONLY_NUMBER_RE.fullmatch(text)
         if m:
-            result["sugar"] = _safe_float(m.group(1))
+            raise ValueError("ambiguous number without keyword")
 
     # Явное упоминание показателя без числового значения считается ошибкой.
     for key, pattern in [
