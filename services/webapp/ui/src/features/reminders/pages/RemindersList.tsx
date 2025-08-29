@@ -6,8 +6,6 @@ import { formatNextAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast } from "@/hooks/use-toast";
 import { Templates } from "../components/Templates";
-import { getPlanLimit } from "../hooks/usePlan";
-import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 import { bulkToggle } from "./RemindersList.bulk";
 
 const checkQuotaLimit = (count: number, limit: number, toast: any) => {
@@ -56,15 +54,16 @@ function scheduleLine(r: ReminderDto) {
 }
 
 export default function RemindersList({
-  onCountChange, 
-  planLimit 
-}: { 
-  onCountChange?: (count: number) => void; 
-  planLimit?: number; 
+  onCountChange,
+  planLimit,
+  onLimitChange
+}: {
+  onCountChange?: (count: number) => void;
+  planLimit?: number;
+  onLimitChange?: (limit: number) => void;
 } = {}) {
   const api = useRemindersApi();
   const { user } = useTelegram();
-  const initData = useTelegramInitData();
   const navigate = useNavigate();
   const { toast } = useToast();
   const isDev = import.meta.env.DEV;
@@ -79,16 +78,17 @@ export default function RemindersList({
     if (!user?.id) return;
     setLoading(true);
     try {
-      const res = await api.remindersGet({ telegramId: user.id });
-      setItems(res as any);
+      const res = await api.remindersGetRaw({ telegramId: user.id });
+      const data = await res.value();
+      setItems(data as any);
 
-      if (!planLimit) {
-        try {
-          const limit = await getPlanLimit(user.id, initData);
+      const limitHeader =
+        res.raw.headers.get("X-Plan-Limit") ?? res.raw.headers.get("x-plan-limit");
+      if (limitHeader) {
+        const limit = parseInt(limitHeader, 10);
+        if (!isNaN(limit)) {
           setCurrentPlanLimit(limit);
-        } catch (error) {
-          console.warn("Failed to load plan limit:", error);
-          setCurrentPlanLimit(5); // Default to free tier
+          onLimitChange?.(limit);
         }
       }
     } catch (error) {
