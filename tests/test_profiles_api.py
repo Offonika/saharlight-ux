@@ -34,7 +34,6 @@ def test_profiles_post_creates_user_for_missing_telegram_id(
     payload = {
         "telegramId": 777,
         "icr": 1.0,
-        "cf": 1.0,
         "target": 5.0,
         "low": 4.0,
         "high": 6.0,
@@ -62,7 +61,6 @@ def test_profiles_post_invalid_values_returns_422(
     payload = {
         "telegramId": 777,
         "icr": 1.0,
-        "cf": 1.0,
         "target": 5.0,
         "low": 6.0,
         "high": 5.0,
@@ -71,7 +69,7 @@ def test_profiles_post_invalid_values_returns_422(
         resp = client.post("/api/profiles", json=payload)
     assert resp.status_code == 422
     body = resp.json()
-    assert body["detail"][0]["msg"].endswith("low must be less than high")
+    assert body["detail"].endswith("low must be less than high")
     engine.dispose()
 
 
@@ -91,7 +89,6 @@ def test_profiles_post_invalid_icr_returns_422(
     payload = {
         "telegramId": 777,
         "icr": 0,
-        "cf": 1.0,
         "target": 5.0,
         "low": 4.0,
         "high": 6.0,
@@ -99,11 +96,11 @@ def test_profiles_post_invalid_icr_returns_422(
     with TestClient(app) as client:
         resp = client.post("/api/profiles", json=payload)
     assert resp.status_code == 422
-    assert resp.json() == {"detail": "icr must be greater than 0"}
+    assert resp.json() == {"detail": "ratio must be greater than 0"}
     engine.dispose()
 
 
-def test_profiles_post_invalid_cf_returns_422(
+def test_profiles_post_invalid_cf_alias_returns_422(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     app = FastAPI()
@@ -118,7 +115,6 @@ def test_profiles_post_invalid_cf_returns_422(
     monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
     payload = {
         "telegramId": 777,
-        "icr": 1.0,
         "cf": -1,
         "target": 5.0,
         "low": 4.0,
@@ -127,7 +123,7 @@ def test_profiles_post_invalid_cf_returns_422(
     with TestClient(app) as client:
         resp = client.post("/api/profiles", json=payload)
     assert resp.status_code == 422
-    assert resp.json() == {"detail": "cf must be greater than 0"}
+    assert resp.json() == {"detail": "ratio must be greater than 0"}
     engine.dispose()
 
 
@@ -148,7 +144,6 @@ def test_profiles_post_updates_existing_profile(
         payload = {
             "telegramId": 777,
             "icr": 1.0,
-            "cf": 1.0,
             "target": 5.0,
             "low": 4.0,
             "high": 6.0,
@@ -159,8 +154,7 @@ def test_profiles_post_updates_existing_profile(
 
         update = {
             "telegramId": 777,
-            "icr": 2.0,
-            "cf": 1.5,
+            "cf": 2.0,
             "target": 6.0,
             "low": 5.0,
             "high": 7.0,

@@ -11,8 +11,11 @@ class ProfileSchema(BaseModel):
     telegramId: int = Field(
         alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id")
     )
-    icr: Optional[float] = Field(default=None, alias="icr")
-    cf: Optional[float] = None
+    ratio: Optional[float] = Field(
+        default=None,
+        alias="icr",
+        validation_alias=AliasChoices("icr", "cf"),
+    )
     target: Optional[float] = None
     low: Optional[float] = Field(
         default=None,

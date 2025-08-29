@@ -21,7 +21,6 @@ async def test_save_profile_stores_sos_fields(monkeypatch: pytest.MonkeyPatch) -
     data = ProfileSchema(
         telegramId=1,
         icr=1.0,
-        cf=2.0,
         target=3.0,
         low=1.0,
         high=5.0,
@@ -50,7 +49,6 @@ async def test_save_profile_defaults_sos_fields(
     data = ProfileSchema(
         telegramId=2,
         icr=1.0,
-        cf=2.0,
         target=3.0,
         low=1.0,
         high=5.0,
@@ -77,7 +75,6 @@ async def test_save_profile_persists_quiet_hours(
     data = ProfileSchema(
         telegramId=3,
         icr=1.0,
-        cf=2.0,
         target=3.0,
         low=1.0,
         high=5.0,
@@ -106,7 +103,6 @@ async def test_save_profile_defaults_quiet_hours(
     data = ProfileSchema(
         telegramId=4,
         icr=1.0,
-        cf=2.0,
         target=3.0,
         low=1.0,
         high=5.0,
