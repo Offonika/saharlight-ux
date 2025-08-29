@@ -254,6 +254,60 @@ describe('Profile page', () => {
     );
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('');
   });
+
+  it('shows warning modal and blocks save until confirmation', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    const { getByText, getByPlaceholderText } = render(<Profile />);
+
+    await waitFor(() => {
+      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+    });
+
+    fireEvent.click(getByText('Сохранить настройки'));
+
+    await waitFor(() => {
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Проверьте значения' }),
+      );
+    });
+
+    expect(
+      getByText(
+        'ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности введенных данных',
+      ),
+    ).toBeTruthy();
+    expect(saveProfile).not.toHaveBeenCalled();
+  });
+
+  it('saves after user confirms warning', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (saveProfile as vi.Mock).mockResolvedValue(undefined);
+
+    const { getByText, getByPlaceholderText } = render(<Profile />);
+
+    await waitFor(() => {
+      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+    });
+
+    fireEvent.click(getByText('Сохранить настройки'));
+
+    await waitFor(() => getByText('Продолжить'));
+    fireEvent.click(getByText('Продолжить'));
+
+    await waitFor(() => {
+      expect(saveProfile).toHaveBeenCalledWith({
+        telegramId: 123,
+        icr: 12,
+        cf: 2.5,
+        target: 6,
+        low: 4,
+        high: 10,
+      });
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Профиль сохранен' }),
+      );
+    });
+  });
 });
 
 describe('resolveTelegramId', () => {

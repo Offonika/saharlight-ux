@@ -4,6 +4,8 @@ import { Save } from "lucide-react";
 import { MedicalHeader } from "@/components/MedicalHeader";
 import { useToast } from "@/hooks/use-toast";
 import MedicalButton from "@/components/MedicalButton";
+import { Button } from "@/components/ui/button";
+import Modal from "@/components/Modal";
 import { saveProfile, getProfile } from "@/api/profile";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
@@ -59,6 +61,11 @@ const Profile = () => {
     low: "",
     high: "",
   });
+
+  const [warningOpen, setWarningOpen] = useState(false);
+  const [pendingProfile, setPendingProfile] = useState<
+    (ParsedProfile & { telegramId: number }) | null
+  >(null);
 
   useEffect(() => {
     const telegramId = resolveTelegramId(user, initData);
@@ -127,6 +134,25 @@ const Profile = () => {
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
+  const saveParsedProfile = async (
+    data: ParsedProfile & { telegramId: number },
+  ): Promise<void> => {
+    try {
+      await saveProfile(data);
+      toast({
+        title: "Профиль сохранен",
+        description: "Ваши настройки успешно обновлены",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast({
+        title: "Ошибка",
+        description: message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSave = async () => {
     const telegramId = resolveTelegramId(user, initData);
 
@@ -152,6 +178,8 @@ const Profile = () => {
     }
 
     if (shouldWarnProfile(parsed)) {
+      setPendingProfile({ telegramId, ...parsed });
+      setWarningOpen(true);
       toast({
         title: "Проверьте значения",
         description:
@@ -160,32 +188,48 @@ const Profile = () => {
       return;
     }
 
-    try {
-      await saveProfile({ telegramId, ...parsed });
-      toast({
-        title: "Профиль сохранен",
-        description: "Ваши настройки успешно обновлены",
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      toast({
-        title: "Ошибка",
-        description: message,
-        variant: "destructive",
-      });
-    }
+    await saveParsedProfile({ telegramId, ...parsed });
+  };
+
+  const handleConfirmSave = async () => {
+    if (!pendingProfile) return;
+    await saveParsedProfile(pendingProfile);
+    setPendingProfile(null);
+    setWarningOpen(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-      <MedicalHeader
-        title="Мой профиль"
-        showBack
-        onBack={() => navigate("/")}
-      />
+    <>
+      <Modal
+        open={warningOpen}
+        onClose={() => setWarningOpen(false)}
+        title="Проверьте значения"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setWarningOpen(false)}>
+              Отмена
+            </Button>
+            <MedicalButton onClick={handleConfirmSave}>
+              Продолжить
+            </MedicalButton>
+          </div>
+        }
+      >
+        <p>
+          ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности
+          введенных данных
+        </p>
+      </Modal>
 
-      <main className="container mx-auto px-4 py-6">
-        <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+      <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
+        <MedicalHeader
+          title="Мой профиль"
+          showBack
+          onBack={() => navigate("/")}
+        />
+
+        <main className="container mx-auto px-4 py-6">
+          <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <div className="space-y-6">
             {/* ICR */}
             <div>
@@ -328,6 +372,7 @@ const Profile = () => {
         </div>
       </main>
     </div>
+    </>
   );
 };
 
