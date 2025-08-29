@@ -32,6 +32,7 @@ vi.mock('../src/pages/resolveTelegramId', () => ({
 import Profile from '../src/pages/Profile';
 import { saveProfile, getProfile } from '../src/api/profile';
 import { resolveTelegramId } from '../src/pages/resolveTelegramId';
+import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
 
 describe('Profile page', () => {
   beforeEach(() => {
@@ -64,10 +65,22 @@ describe('Profile page', () => {
     );
   });
 
-  it('blocks save with non-numeric id in initData and shows toast', () => {
-    (resolveTelegramId as vi.Mock).mockReturnValue(undefined);
+  it('blocks save with non-numeric id in initData and shows toast', async () => {
+    const { resolveTelegramId: actualResolveTelegramId } = await vi.importActual<
+      typeof import('../src/pages/resolveTelegramId')
+    >('../src/pages/resolveTelegramId');
+    (resolveTelegramId as vi.Mock).mockImplementation(
+      actualResolveTelegramId,
+    );
+    (useTelegramInitData as vi.Mock).mockReturnValue(
+      'user=%7B%22id%22%3A%22notnumber%22%7D',
+    );
     const { getByText } = render(<Profile />);
     fireEvent.click(getByText('Сохранить настройки'));
+    expect(resolveTelegramId).toHaveBeenCalledWith(
+      null,
+      expect.stringContaining('notnumber'),
+    );
     expect(saveProfile).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
