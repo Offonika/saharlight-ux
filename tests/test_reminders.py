@@ -191,6 +191,35 @@ def test_schedule_reminder_replaces_existing_job() -> None:
     assert job_time.tzinfo.key == "Europe/Moscow"
 
 
+def test_schedule_reminder_without_user_defaults_to_utc() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                is_enabled=True,
+            )
+        )
+        session.commit()
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    with TestSession() as session:
+        rem = session.get(Reminder, 1)
+        assert rem is not None
+        handlers.schedule_reminder(rem, job_queue)
+    jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
+    assert jobs
+    job = jobs[0]
+    assert job.time is not None
+    job_time = cast(time, job.time)
+    assert job_time.tzinfo == timezone.utc
+
+
 def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
     now = datetime(2024, 1, 1, 10, 0)
 
@@ -208,6 +237,29 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
     icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏱"
     assert schedule == "каждые 2 ч (next 12:00)"
+
+
+def test_schedule_with_next_without_user(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime(2024, 1, 1, 10, 0)
+
+    class DummyDatetime(datetime):
+        @classmethod
+        def now(cls, tz: tzinfo | None = None) -> "DummyDatetime":
+            result = now
+            if tz is not None:
+                result = result.replace(tzinfo=tz)
+            return cast("DummyDatetime", result)
+
+    monkeypatch.setattr(handlers, "datetime", DummyDatetime)
+    rem = Reminder(
+        telegram_id=1,
+        type="sugar",
+        time=time(12, 0),
+        is_enabled=True,
+    )
+    icon, schedule = handlers._schedule_with_next(rem)
+    assert icon == "⏰"
+    assert schedule == "12:00 (next 12:00)"
 
 
 def test_interval_minutes_scheduling_and_rendering(
@@ -234,9 +286,7 @@ def test_interval_minutes_scheduling_and_rendering(
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         assert rem is not None
-        with patch.object(
-            job_queue, "run_repeating", wraps=job_queue.run_repeating
-        ) as mock_repeat:
+        with patch.object(job_queue, "run_repeating", wraps=job_queue.run_repeating) as mock_repeat:
             handlers.schedule_reminder(rem, job_queue)
             mock_repeat.assert_called_once()
             interval = mock_repeat.call_args.kwargs["interval"]
@@ -331,9 +381,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         edit_btn = row[0]
         assert edit_btn.text == "✏️"
         assert edit_btn.web_app is not None
-        assert edit_btn.web_app.url == config.build_ui_url(
-            f"/reminders?id={rem_id}"
-        )
+        assert edit_btn.web_app.url == config.build_ui_url(f"/reminders?id={rem_id}")
     add_btn = markup.inline_keyboard[-1][0]
     assert add_btn.text == "➕ Добавить"
     assert add_btn.web_app is not None
@@ -355,9 +403,7 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "public_origin", "")
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(
-            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
         session.commit()
     with TestSession() as session:
         text, markup = handlers._render_reminders(session, 1)
@@ -484,9 +530,7 @@ async def test_reminders_list_renders_output(
 
     monkeypatch.setattr(handlers, "SessionLocal", lambda: DummySessionCtx())
 
-    def fake_render(
-        session: Session, user_id: int
-    ) -> tuple[str, InlineKeyboardMarkup | None]:
+    def fake_render(session: Session, user_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
         assert session is session_obj
         assert user_id == 1
         return "rendered", keyboard
@@ -531,9 +575,7 @@ async def test_reminders_list_shows_menu_keyboard(
 
     monkeypatch.setattr(handlers, "SessionLocal", lambda: DummySessionCtx())
 
-    def fake_render(
-        session: Session, user_id: int
-    ) -> tuple[str, InlineKeyboardMarkup | None]:
+    def fake_render(session: Session, user_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
         return "rendered", None
 
     monkeypatch.setattr(handlers, "_render_reminders", fake_render)
