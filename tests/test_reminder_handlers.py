@@ -201,6 +201,40 @@ async def test_add_reminder_valid_type(
 
 
 @pytest.mark.asyncio
+async def test_add_reminder_ignores_disabled(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False)
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(
+                telegram_id=1,
+                type="sugar",
+                interval_hours=2,
+                is_enabled=False,
+            )
+        )
+        commit(session)
+
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["sugar", "2"], job_queue=None)
+
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
+    monkeypatch.setattr(reminder_handlers, "_limit_for", lambda u: 1)
+
+    await reminder_handlers.add_reminder(update, context)
+
+    assert message.texts == ["Сохранено: desc"]
+
+
+@pytest.mark.asyncio
 async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None:
     message = DummyWebAppMessage(json.dumps({"type": "bad", "value": "10:00"}))
     update = make_update(effective_message=message, effective_user=make_user(1))
