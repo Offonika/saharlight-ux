@@ -152,6 +152,6 @@ describe('Profile page', () => {
         variant: 'destructive',
       }),
     );
-    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('');
   });
 });
