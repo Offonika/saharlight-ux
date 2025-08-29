@@ -38,7 +38,7 @@ def _validate_profile(data: ProfileSchema) -> None:
     }
     for name, value in required.items():
         if value is None:
-            raise ValueError("field is required")  # pragma: no cover
+            raise ValueError(f"{name} is required")  # pragma: no cover
         if value <= 0:
             raise ValueError(f"{name} must be greater than 0")  # pragma: no cover
 
