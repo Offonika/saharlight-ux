@@ -115,18 +115,18 @@ sudo apt install python3.12 python3.12-venv
 Приложение автоматически загружает переменные окружения из этого файла в корне проекта.
 
 - обязательные значения: `TELEGRAM_TOKEN` (токен бота), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-- дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `VITE_API_URL`, `VITE_BASE_URL`, `UI_BASE_URL`, `UVICORN_WORKERS`
+- дополнительные: `LOG_LEVEL` или `DEBUG`, `WEBAPP_URL`, `VITE_API_BASE`, `VITE_BASE_URL`, `UI_BASE_URL`, `UVICORN_WORKERS`
 - для появления кнопки «Определить автоматически» при выборе часового пояса нужно задать `PUBLIC_ORIGIN` (и оставить `UI_BASE_URL` ненулевым)
 - при необходимости настройте прокси для OpenAI через переменные окружения
-Переменная `VITE_API_URL` задаёт базовый URL API для WebApp и используется SDK‑клиентом.
+Переменная `VITE_API_BASE` задаёт базовый URL API для WebApp и используется SDK‑клиентом.
 Пустое значение означает использование префикса `/api`.
 Для обращения к внешнему API задайте полный URL без завершающего `/`:
 
 ```env
 # префикс /api на том же домене
-VITE_API_URL=
+VITE_API_BASE=
 # внешний API
-# VITE_API_URL=http://localhost:8000
+# VITE_API_BASE=http://localhost:8000
 ```
 
 `VITE_BASE_URL` задаёт базовый путь веб-приложения. Значение по умолчанию — `/ui/`.
