@@ -3,7 +3,7 @@ import logging
 from collections.abc import Generator
 from datetime import datetime, time, timedelta, timezone, tzinfo
 from zoneinfo import ZoneInfo
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from typing import Any, Callable, cast
 
 import pytest
@@ -208,6 +208,42 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
     icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏱"
     assert schedule == "каждые 2 ч (next 12:00)"
+
+
+def test_interval_minutes_scheduling_and_rendering(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                interval_minutes=30,
+                is_enabled=True,
+            )
+        )
+        session.commit()
+
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    with TestSession() as session:
+        rem = session.get(Reminder, 1)
+        assert rem is not None
+        with patch.object(
+            job_queue, "run_repeating", wraps=job_queue.run_repeating
+        ) as mock_repeat:
+            handlers.schedule_reminder(rem, job_queue)
+            mock_repeat.assert_called_once()
+            interval = mock_repeat.call_args.kwargs["interval"]
+            assert interval == timedelta(minutes=30)
+        text, _ = handlers._render_reminders(session, 1)
+    assert "⏱ Интервал" in text
+    assert "каждые 30 мин" in text
 
 
 def test_schedule_with_next_invalid_timezone_logs_warning(

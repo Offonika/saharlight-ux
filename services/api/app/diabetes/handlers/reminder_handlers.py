@@ -134,10 +134,18 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
         if next_dt <= now:
             next_dt += timedelta(days=1)
         base = rem.time.strftime("%H:%M")
-    elif rem.interval_hours:
+    elif rem.interval_hours or rem.interval_minutes:
         type_icon = "⏱"
-        next_dt = now + timedelta(hours=rem.interval_hours)
-        base = f"каждые {rem.interval_hours} ч"
+        minutes = (
+            rem.interval_hours * 60
+            if rem.interval_hours is not None
+            else rem.interval_minutes or 0
+        )
+        next_dt = now + timedelta(minutes=minutes)
+        if rem.interval_hours:
+            base = f"каждые {rem.interval_hours} ч"
+        else:
+            base = f"каждые {rem.interval_minutes} мин"
     elif rem.minutes_after is not None:
         type_icon = "📸"
         next_dt = now + timedelta(minutes=float(rem.minutes_after))
@@ -222,7 +230,7 @@ def _render_reminders(
         )
         if r.time:
             by_time.append((line, row))
-        elif r.interval_hours:
+        elif r.interval_hours or r.interval_minutes:
             by_interval.append((line, row))
         else:
             by_photo.append((line, row))
@@ -264,7 +272,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
             rem.id,
             rem.type,
             rem.time,
-            rem.interval_hours,
+            rem.interval_hours or rem.interval_minutes,
             rem.minutes_after,
         )
         return
@@ -294,7 +302,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
                 rem.id,
                 rem.type,
                 rem.time,
-                rem.interval_hours,
+                rem.interval_hours or rem.interval_minutes,
                 rem.minutes_after,
             )
             job_queue.run_daily(
@@ -303,18 +311,23 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
                 data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
                 name=name,
             )
-        elif rem.interval_hours:
+        elif rem.interval_hours or rem.interval_minutes:
             logger.debug(
                 "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
                 rem.id,
                 rem.type,
                 rem.time,
-                rem.interval_hours,
+                rem.interval_hours or rem.interval_minutes,
                 rem.minutes_after,
+            )
+            minutes = (
+                rem.interval_hours * 60
+                if rem.interval_hours is not None
+                else rem.interval_minutes or 0
             )
             job_queue.run_repeating(
                 reminder_job,
-                interval=timedelta(hours=rem.interval_hours),
+                interval=timedelta(minutes=minutes),
                 data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
                 name=name,
             )
@@ -324,7 +337,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
         rem.id,
         rem.type,
         rem.time,
-        rem.interval_hours,
+        rem.interval_hours or rem.interval_minutes,
         rem.minutes_after,
     )
 
