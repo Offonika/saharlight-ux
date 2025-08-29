@@ -11,11 +11,12 @@ export async function getProfile(telegramId: number) {
       headers,
     });
 
-    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
-      const msg = typeof data.detail === 'string' ? data.detail : 'Request failed';
+      const errorText = await res.text().catch(() => '');
+      const msg = errorText || 'Request failed';
       throw new Error(msg);
     }
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     return data as ProfileSchema;
   } catch (error) {
     console.error('Failed to load profile:', error);
@@ -46,11 +47,12 @@ export async function saveProfile({
       body: JSON.stringify({ telegramId, icr, cf, target, low, high }),
     });
 
-    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
-      const msg = typeof data.detail === 'string' ? data.detail : 'Request failed';
+      const errorText = await res.text().catch(() => '');
+      const msg = errorText || 'Request failed';
       throw new Error(msg);
     }
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     return data as ProfileSchema;
   } catch (error) {
     console.error('Failed to save profile:', error);
