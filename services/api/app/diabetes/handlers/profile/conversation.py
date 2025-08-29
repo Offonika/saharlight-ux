@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import json
+import logging
 from collections.abc import Awaitable, Callable
 from typing import cast
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from sqlalchemy.orm import Session
 from telegram import (
-    Update,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
+    Update,
     WebAppInfo,
 )
 from telegram.ext import (
@@ -18,10 +23,6 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-import json
-import logging
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-from sqlalchemy.orm import Session
 
 from services.api.app.diabetes.services.db import (
     SessionLocal,
