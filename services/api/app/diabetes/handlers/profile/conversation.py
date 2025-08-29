@@ -198,12 +198,12 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return END
 
     await message.reply_text(
-        f"✅ Профиль обновлён:\n"
+        "✅ Профиль обновлён:\n"
         f"• ИКХ: {icr} г/ед.\n"
         f"• КЧ: {cf} ммоль/л\n"
         f"• Целевой сахар: {target} ммоль/л\n"
         f"• Низкий порог: {low} ммоль/л\n"
-        f"• Высокий порог: {high} ммоль/л" + warning_msg,
+        f"• Высокий порог: {high} ммоль/л{warning_msg}",
         parse_mode="Markdown",
         reply_markup=menu_keyboard(),
     )
@@ -329,12 +329,14 @@ async def profile_webapp_save(
         )
         return
     await eff_msg.reply_text(
-        "✅ Профиль обновлён:\n"
-        f"• ИКХ: {icr} г/ед.\n"
-        f"• КЧ: {cf} ммоль/л\n"
-        f"• Целевой сахар: {target} ммоль/л\n"
-        f"• Низкий порог: {low} ммоль/л\n"
-        f"• Высокий порог: {high} ммоль/л",
+        (
+            "✅ Профиль обновлён:\n"
+            f"• ИКХ: {icr} г/ед.\n"
+            f"• КЧ: {cf} ммоль/л\n"
+            f"• Целевой сахар: {target} ммоль/л\n"
+            f"• Низкий порог: {low} ммоль/л\n"
+            f"• Высокий порог: {high} ммоль/л"
+        ),
         reply_markup=menu_keyboard(),
     )
 
@@ -840,7 +842,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         f"• КЧ: {cf} ммоль/л\n"
         f"• Целевой сахар: {target} ммоль/л\n"
         f"• Низкий порог: {low} ммоль/л\n"
-        f"• Высокий порог: {high} ммоль/л" + warning_msg,
+        f"• Высокий порог: {high} ммоль/л{warning_msg}",
         reply_markup=menu_keyboard(),
     )
     return END
