@@ -48,7 +48,7 @@ function mapToForm(reminder: ReminderSchema): ReminderFormValues {
     telegramId: reminder.telegramId,
     type: reminder.type as ReminderType,
     kind,
-    time: reminder.time ?? undefined,
+    time: reminder.time?.slice(0, 5) ?? undefined,
     intervalMinutes: reminder.intervalMinutes ?? undefined,
     minutesAfter: reminder.minutesAfter ?? undefined,
     daysOfWeek: reminder.daysOfWeek
