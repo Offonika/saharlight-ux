@@ -31,7 +31,7 @@ function telegramInitPlugin(): Plugin {
 
     // Резолв только для статического импорта init (если где-то используется)
     resolveId(id, importer) {
-      if (id === 'telegram-init.js' || id === '/ui/telegram-init.js') {
+      if (id === 'telegram-init.js' || id === '/ui/telegram-init.js' || id === '/telegram-init.js') {
         return telegramInitPath
       }
       // динамический импорт темы из init оставляем внешним модулем
