@@ -35,6 +35,7 @@ async def profiles_get(
         raise HTTPException(status_code=404, detail="profile not found")
 
     icr: float | None = profile.icr
+    cf_val: float | None = profile.cf
     target_bg: float | None = profile.target_bg
     low_threshold: float | None = profile.low_threshold
     high_threshold: float | None = profile.high_threshold
@@ -42,6 +43,7 @@ async def profiles_get(
     return ProfileSchema(
         telegramId=profile.telegram_id,
         icr=float(icr) if icr is not None else 0.0,
+        cf=float(cf_val) if cf_val is not None else 0.0,
         target=float(target_bg) if target_bg is not None else 0.0,
         low=float(low_threshold) if low_threshold is not None else 0.0,
         high=float(high_threshold) if high_threshold is not None else 0.0,

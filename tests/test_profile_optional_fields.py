@@ -21,6 +21,7 @@ async def test_save_profile_saves_computed_target(
     data = ProfileSchema(
         telegramId=1,
         icr=1.0,
+        cf=2.0,
         low=4.0,
         high=6.0,
     )

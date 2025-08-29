@@ -9,8 +9,10 @@ Name | Type | Description | Notes
 **icr** | **float** |  | 
 **cf** | **float** |  | 
 **target** | **float** |  | 
-**low** | **float** |  | 
-**high** | **float** |  | 
+**low** | **float** | Alias &#x60;targetLow&#x60; accepted on input. | 
+**high** | **float** | Alias &#x60;targetHigh&#x60; accepted on input. | 
+**quiet_start** | **str** |  | [optional] [default to '23:00']
+**quiet_end** | **str** |  | [optional] [default to '07:00']
 **sos_contact** | **str** |  | [optional] 
 **sos_alerts_enabled** | **bool** |  | [optional] [default to True]
 **org_id** | **int** |  | [optional] 

@@ -30,12 +30,14 @@ class ProfileSchema(BaseModel):
     icr: Union[StrictFloat, StrictInt]
     cf: Union[StrictFloat, StrictInt]
     target: Union[StrictFloat, StrictInt]
-    low: Union[StrictFloat, StrictInt]
-    high: Union[StrictFloat, StrictInt]
+    low: Union[StrictFloat, StrictInt] = Field(description="Alias `targetLow` accepted on input.")
+    high: Union[StrictFloat, StrictInt] = Field(description="Alias `targetHigh` accepted on input.")
+    quiet_start: Optional[StrictStr] = Field(default='23:00', alias="quietStart")
+    quiet_end: Optional[StrictStr] = Field(default='07:00', alias="quietEnd")
     sos_contact: Optional[StrictStr] = Field(default=None, alias="sosContact")
     sos_alerts_enabled: Optional[StrictBool] = Field(default=True, alias="sosAlertsEnabled")
     org_id: Optional[StrictInt] = Field(default=None, alias="orgId")
-    __properties: ClassVar[List[str]] = ["telegramId", "icr", "cf", "target", "low", "high", "sosContact", "sosAlertsEnabled", "orgId"]
+    __properties: ClassVar[List[str]] = ["telegramId", "icr", "cf", "target", "low", "high", "quietStart", "quietEnd", "sosContact", "sosAlertsEnabled", "orgId"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -104,6 +106,8 @@ class ProfileSchema(BaseModel):
             "target": obj.get("target"),
             "low": obj.get("low"),
             "high": obj.get("high"),
+            "quietStart": obj.get("quietStart") if obj.get("quietStart") is not None else '23:00',
+            "quietEnd": obj.get("quietEnd") if obj.get("quietEnd") is not None else '07:00',
             "sosContact": obj.get("sosContact"),
             "sosAlertsEnabled": obj.get("sosAlertsEnabled") if obj.get("sosAlertsEnabled") is not None else True,
             "orgId": obj.get("orgId")

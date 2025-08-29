@@ -672,7 +672,6 @@ components:
         cf:
           type: number
           title: Cf
-          description: Alias `cf` for compatibility.
         target:
           type: number
           title: Target
@@ -710,6 +709,7 @@ components:
       required:
       - telegramId
       - icr
+      - cf
       - target
       - low
       - high

@@ -7,13 +7,17 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **telegram_id** | **int** |  | 
 **id** | **int** |  | [optional] 
-**type** | **str** |  | 
+**type** | [**ReminderType**](ReminderType.md) |  | 
 **title** | **str** |  | [optional] 
+**kind** | [**ScheduleKind**](ScheduleKind.md) |  | [optional] 
 **time** | **str** |  | [optional] 
-**interval_hours** | **int** |  | [optional] 
+**interval_minutes** | **int** |  | [optional] 
 **minutes_after** | **int** |  | [optional] 
+**interval_hours** | **int** |  | [optional] 
+**days_of_week** | **List[int]** |  | [optional] 
 **is_enabled** | **bool** |  | [optional] [default to True]
 **org_id** | **int** |  | [optional] 
+**next_at** | **datetime** |  | [optional] 
 
 ## Example
 

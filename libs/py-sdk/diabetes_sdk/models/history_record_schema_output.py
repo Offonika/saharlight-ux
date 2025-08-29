@@ -19,6 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing_extensions import Annotated
 from typing import Optional, Set
 from typing_extensions import Self
 
@@ -28,7 +29,7 @@ class HistoryRecordSchemaOutput(BaseModel):
     """ # noqa: E501
     id: StrictStr
     var_date: StrictStr = Field(alias="date")
-    time: StrictStr
+    time: Annotated[str, Field(strict=True)]
     sugar: Optional[Union[StrictFloat, StrictInt]] = None
     carbs: Optional[Union[StrictFloat, StrictInt]] = None
     bread_units: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, alias="breadUnits")
@@ -36,6 +37,13 @@ class HistoryRecordSchemaOutput(BaseModel):
     notes: Optional[StrictStr] = None
     type: StrictStr
     __properties: ClassVar[List[str]] = ["id", "date", "time", "sugar", "carbs", "breadUnits", "insulin", "notes", "type"]
+
+    @field_validator('time')
+    def time_validate_regular_expression(cls, value):
+        """Validates the regular expression"""
+        if not re.match(r"^\d{2}:\d{2}$", value):
+            raise ValueError(r"must validate the regular expression /^\d{2}:\d{2}$/")
+        return value
 
     @field_validator('type')
     def type_validate_enum(cls, value):
