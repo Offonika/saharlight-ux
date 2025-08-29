@@ -83,7 +83,32 @@ describe('Profile page', () => {
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'Ошибка',
-        description: 'Все значения должны быть положительными числами',
+        description:
+          'Проверьте, что все значения положительны, нижний порог меньше' +
+          ' верхнего, а целевой уровень между ними',
+        variant: 'destructive',
+      }),
+    );
+  });
+
+  it('blocks save when target is out of range and shows toast', () => {
+    const validInitData = new URLSearchParams({
+      user: JSON.stringify({ id: 123 }),
+    }).toString();
+    useTelegramInitData.mockReturnValue(validInitData);
+
+    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const targetInput = getByPlaceholderText('6.0');
+    fireEvent.change(targetInput, { target: { value: '12' } });
+
+    fireEvent.click(getByText('Сохранить настройки'));
+    expect(saveProfile).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Ошибка',
+        description:
+          'Проверьте, что все значения положительны, нижний порог меньше' +
+          ' верхнего, а целевой уровень между ними',
         variant: 'destructive',
       }),
     );
