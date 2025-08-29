@@ -32,8 +32,14 @@ export const parseProfile = (profile: ProfileForm): ParsedProfile | null => {
     low: Number(profile.low),
     high: Number(profile.high),
   };
-  const valid = Object.values(parsed).every((v) => Number.isFinite(v) && v > 0);
-  return valid ? parsed : null;
+  const numbersValid = Object.values(parsed).every(
+    (v) => Number.isFinite(v) && v > 0,
+  );
+  const rangeValid =
+    parsed.low < parsed.high &&
+    parsed.low < parsed.target &&
+    parsed.target < parsed.high;
+  return numbersValid && rangeValid ? parsed : null;
 };
 
 const Profile = () => {
@@ -90,7 +96,9 @@ const Profile = () => {
     if (!parsed) {
       toast({
         title: "Ошибка",
-        description: "Все значения должны быть положительными числами",
+        description:
+          "Проверьте, что все значения положительны, нижний порог меньше верхнего," +
+          " а целевой уровень между ними",
         variant: "destructive",
       });
       return;
