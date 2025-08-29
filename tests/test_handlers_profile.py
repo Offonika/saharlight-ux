@@ -143,6 +143,11 @@ async def test_profile_command_and_view(
         (["icr=8", "cf=3", "target=6", "low=0", "high=9"], "MSG_LOW_GT0"),
         (["8", "3", "6", "4", "3"], "MSG_HIGH_GT_LOW"),
         (["icr=8", "cf=3", "target=6", "low=4", "high=3"], "MSG_HIGH_GT_LOW"),
+        (["8", "3", "10", "4", "9"], "MSG_TARGET_RANGE"),
+        (
+            ["icr=8", "cf=3", "target=3", "low=4", "high=9"],
+            "MSG_TARGET_RANGE",
+        ),
     ],
 )
 @pytest.mark.asyncio

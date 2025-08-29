@@ -207,16 +207,57 @@ async def test_profile_low_cases(
 
 
 @pytest.mark.parametrize(
-    "text, expected_state, expected_fragment",
+    "text, user_data, expected_state, expected_fragment",
     [
-        ("назад", handlers.PROFILE_LOW, "Введите нижний порог сахара"),
-        ("abc", handlers.PROFILE_HIGH, "Введите верхний порог числом."),
-        ("3", handlers.PROFILE_HIGH, handlers.MSG_HIGH_GT_LOW),
+        (
+            "назад",
+            {
+                "profile_icr": 8.0,
+                "profile_cf": 3.0,
+                "profile_target": 6.0,
+                "profile_low": 4.0,
+            },
+            handlers.PROFILE_LOW,
+            "Введите нижний порог сахара",
+        ),
+        (
+            "abc",
+            {
+                "profile_icr": 8.0,
+                "profile_cf": 3.0,
+                "profile_target": 6.0,
+                "profile_low": 4.0,
+            },
+            handlers.PROFILE_HIGH,
+            "Введите верхний порог числом.",
+        ),
+        (
+            "3",
+            {
+                "profile_icr": 8.0,
+                "profile_cf": 3.0,
+                "profile_target": 6.0,
+                "profile_low": 4.0,
+            },
+            handlers.PROFILE_HIGH,
+            handlers.MSG_HIGH_GT_LOW,
+        ),
+        (
+            "9",
+            {
+                "profile_icr": 8.0,
+                "profile_cf": 3.0,
+                "profile_target": 10.0,
+                "profile_low": 4.0,
+            },
+            handlers.PROFILE_HIGH,
+            handlers.MSG_TARGET_RANGE,
+        ),
     ],
 )
 @pytest.mark.asyncio
 async def test_profile_high_invalid(
-    text: str, expected_state: int, expected_fragment: str
+    text: str, user_data: dict[str, float], expected_state: int, expected_fragment: str
 ) -> None:
     msg = DummyMessage(text)
     update = cast(
@@ -224,7 +265,7 @@ async def test_profile_high_invalid(
     )
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"profile_low": 4.0}),
+        SimpleNamespace(user_data=user_data),
     )
     state = await handlers.profile_high(update, ctx)
     assert state == expected_state
