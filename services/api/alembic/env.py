@@ -1,8 +1,9 @@
 # файл: services/api/alembic/env.py
 import logging
-from logging.config import fileConfig
 import os
 import sys
+from logging.config import fileConfig
+from pathlib import Path
 from urllib.parse import quote_plus
 
 from alembic import context
@@ -17,12 +18,9 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # === PYTHONPATH: добавим корень репозитория, чтобы импортировать app.* ===
-# .../services/api/alembic -> поднимаемся на два уровня к services/api, затем к корню
-HERE = os.path.dirname(os.path.abspath(__file__))  # .../services/api/alembic
-API_DIR = os.path.dirname(HERE)  # .../services/api
-REPO_ROOT = os.path.dirname(API_DIR)  # .../saharlight-ux
-if REPO_ROOT not in sys.path:
-    sys.path.insert(0, REPO_ROOT)
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 # === ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ ОКРУЖЕНИЯ ===
 try:
