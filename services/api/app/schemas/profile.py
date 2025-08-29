@@ -52,7 +52,7 @@ class ProfileSchema(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     @model_validator(mode="before")
-    def alias_mismatch(cls, values: dict) -> dict:
+    def alias_mismatch(cls, values: dict[str, object]) -> dict[str, object]:
         def _check(a: str, b: str, name: str) -> None:
             if a in values and b in values and values[a] != values[b]:
                 raise ValueError(f"{name} mismatch")

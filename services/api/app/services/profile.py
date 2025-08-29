@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 from typing import cast
 
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import Profile, SessionLocal, User, run_db
@@ -64,28 +65,35 @@ async def save_profile(data: ProfileSchema) -> None:
             user = User(telegram_id=data.telegramId, thread_id="api")
             cast(Session, session).add(user)
 
-        profile = cast(Profile | None, session.get(Profile, data.telegramId))
-        if profile is None:
-            profile = Profile(telegram_id=data.telegramId)
-            cast(Session, session).add(profile)
-        if data.orgId is not None:
-            profile.org_id = data.orgId
-        if data.icr is not None:
-            profile.icr = data.icr
-        if data.cf is not None:
-            profile.cf = data.cf
-        if data.target is not None:
-            profile.target_bg = data.target
-        if data.low is not None:
-            profile.low_threshold = data.low
-        if data.high is not None:
-            profile.high_threshold = data.high
-        profile.quiet_start = data.quietStart
-        profile.quiet_end = data.quietEnd
-        profile.sos_contact = data.sosContact or ""
-        profile.sos_alerts_enabled = (
-            data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
+        profile_data = {
+            "telegram_id": data.telegramId,
+            "org_id": data.orgId,
+            "icr": data.icr,
+            "cf": data.cf,
+            "target_bg": data.target,
+            "low_threshold": data.low,
+            "high_threshold": data.high,
+            "quiet_start": data.quietStart,
+            "quiet_end": data.quietEnd,
+            "sos_contact": data.sosContact or "",
+            "sos_alerts_enabled": (
+                data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
+            ),
+        }
+
+        stmt = insert(Profile).values(**profile_data)
+        update_values = {
+            key: getattr(stmt.excluded, key)
+            for key in profile_data.keys()
+            if key != "telegram_id"
+        }
+        session.execute(
+            stmt.on_conflict_do_update(
+                index_elements=[Profile.telegram_id],
+                set_=update_values,
+            )
         )
+
         try:
             commit(cast(Session, session))
         except CommitError:  # pragma: no cover

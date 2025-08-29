@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Protocol, TypeVar
+from typing import Any, Mapping, Protocol, Sequence, TypeVar
 
 T = TypeVar("T")
 
@@ -14,4 +14,12 @@ class SessionProtocol(Protocol):
 
     def delete(self, instance: object) -> None:
         """Mark an object for deletion."""
+        ...
+
+    def execute(
+        self,
+        statement: Any,
+        params: Mapping[str, Any] | Sequence[Mapping[str, Any]] | None = None,
+    ) -> Any:
+        """Execute a SQL statement."""
         ...
