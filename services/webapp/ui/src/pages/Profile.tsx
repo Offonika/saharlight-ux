@@ -49,11 +49,11 @@ const Profile = () => {
   const initData = useTelegramInitData();
 
   const [profile, setProfile] = useState<ProfileForm>({
-    icr: "12",
-    cf: "2.5",
-    target: "6.0",
-    low: "4.0",
-    high: "10.0",
+    icr: "",
+    cf: "",
+    target: "",
+    low: "",
+    high: "",
   });
 
   useEffect(() => {
