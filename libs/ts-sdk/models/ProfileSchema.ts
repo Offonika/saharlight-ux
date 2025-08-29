@@ -80,23 +80,23 @@ export interface ProfileSchema {
      */
     sosAlertsEnabled?: boolean;
     /**
-     *
-     * @type {number}
-     * @memberof ProfileSchema
-     */
-    orgId?: number | null;
-    /**
-     *
+     * 
      * @type {string}
      * @memberof ProfileSchema
      */
     timezone?: string;
     /**
-     *
+     * 
      * @type {boolean}
      * @memberof ProfileSchema
      */
     timezoneAuto?: boolean;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProfileSchema
+     */
+    orgId?: number | null;
 }
 
 /**
@@ -131,9 +131,9 @@ export function ProfileSchemaFromJSONTyped(json: any, ignoreDiscriminator: boole
         'quietEnd': json['quietEnd'] == null ? undefined : json['quietEnd'],
         'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
         'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
-        'orgId': json['orgId'] == null ? undefined : json['orgId'],
         'timezone': json['timezone'] == null ? undefined : json['timezone'],
         'timezoneAuto': json['timezoneAuto'] == null ? undefined : json['timezoneAuto'],
+        'orgId': json['orgId'] == null ? undefined : json['orgId'],
     };
 }
 
@@ -158,9 +158,9 @@ export function ProfileSchemaToJSONTyped(value?: ProfileSchema | null, ignoreDis
         'quietEnd': value['quietEnd'],
         'sosContact': value['sosContact'],
         'sosAlertsEnabled': value['sosAlertsEnabled'],
-        'orgId': value['orgId'],
         'timezone': value['timezone'],
         'timezoneAuto': value['timezoneAuto'],
+        'orgId': value['orgId'],
     };
 }
 

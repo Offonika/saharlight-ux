@@ -5,6 +5,7 @@ export * from './DayStats';
 export * from './HTTPValidationError';
 export * from './HistoryRecordSchemaInput';
 export * from './HistoryRecordSchemaOutput';
+export * from './ProfilePatchRequest';
 export * from './ProfileSchema';
 export * from './ReminderSchema';
 export * from './ReminderType';
