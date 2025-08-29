@@ -47,7 +47,9 @@ run_db: Callable[..., Awaitable[object]] | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
-    logging.getLogger(__name__).info("run_db is unavailable; proceeding without async DB runner")
+    logging.getLogger(__name__).info(
+        "run_db is unavailable; proceeding without async DB runner"
+    )
     run_db = None
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
@@ -126,7 +128,9 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
     next_dt: datetime.datetime | None
     if rem.time:
         type_icon = "⏰"
-        next_dt = now.replace(hour=rem.time.hour, minute=rem.time.minute, second=0, microsecond=0)
+        next_dt = now.replace(
+            hour=rem.time.hour, minute=rem.time.minute, second=0, microsecond=0
+        )
         if next_dt <= now:
             next_dt += timedelta(days=1)
         base = rem.time.strftime("%H:%M")
@@ -226,7 +230,9 @@ def _render_reminders(
     lines: list[str] = []
     buttons: list[list[InlineKeyboardButton]] = []
 
-    def extend(section: str, items: list[tuple[str, list[InlineKeyboardButton]]]) -> None:
+    def extend(
+        section: str, items: list[tuple[str, list[InlineKeyboardButton]]]
+    ) -> None:
         if not items:
             return
         if lines:
@@ -451,12 +457,18 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         with SessionLocal() as session:
             status, db_user, limit, rid_or_count = db_add(session)
     else:
-        status, db_user, limit, rid_or_count = await run_db(db_add, sessionmaker=SessionLocal)
+        status, db_user, limit, rid_or_count = await run_db(
+            db_add, sessionmaker=SessionLocal
+        )
 
     if status == "limit":
         count = rid_or_count
         await message.reply_text(
-            (f"У вас уже {count} активных из {limit}. Отключите одно или Апгрейд до Pro, чтобы поднять лимит до 10"),
+            (
+                f"У вас уже {count} активных из {limit}. "
+                "Отключите одно или "
+                "Апгрейд до Pro, чтобы поднять лимит до 10"
+            ),
         )
         return
     if status == "error":
@@ -472,7 +484,9 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
 
 
-async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def reminder_webapp_save(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Save reminder data sent from the web app."""
     msg: Message | None = update.effective_message
     user = update.effective_user
@@ -500,7 +514,9 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         user_id = user.id
 
         def log_snooze(session: Session) -> Literal["ok"] | Literal["error"]:
-            session.add(ReminderLog(reminder_id=int(rid), telegram_id=user_id, action="snooze"))
+            session.add(
+                ReminderLog(reminder_id=int(rid), telegram_id=user_id, action="snooze")
+            )
             try:
                 commit(session)
             except CommitError:
@@ -517,7 +533,9 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
                 await run_db(log_snooze, sessionmaker=SessionLocal),
             )
         if status == "ok":
-            job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
+            job_queue: DefaultJobQueue | None = cast(
+                DefaultJobQueue | None, context.job_queue
+            )
             if job_queue is not None:
                 job_queue.run_once(
                     reminder_job,
@@ -551,13 +569,17 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         if not re.fullmatch(r"\d{1,2}:\d{2}|\d+h", value):
             logger.warning("Invalid reminder value format: %s", value)
-            await msg.reply_text("❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h.")
+            await msg.reply_text(
+                "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h."
+            )
             return
         try:
             parsed = parse_time_interval(value)
         except ValueError:
             logger.warning("Failed to parse reminder value: %s", value)
-            await msg.reply_text("❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h.")
+            await msg.reply_text(
+                "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h."
+            )
             return
         minutes = None
 
@@ -574,7 +596,11 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
             if not rem or rem.telegram_id != user_id:
                 return "not_found", None, None, None
         else:
-            count = session.query(Reminder).filter_by(telegram_id=user_id, is_enabled=True).count()
+            count = (
+                session.query(Reminder)
+                .filter_by(telegram_id=user_id, is_enabled=True)
+                .count()
+            )
             user = session.get(User, user_id)
             plan = getattr(user, "plan", "free").lower()
             limit = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
@@ -616,7 +642,10 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         if plan is None:
             return
         await msg.reply_text(
-            (f"У вас уже {limit} активных (лимит {plan.upper()}). Отключите одно или откройте PRO."),
+            (
+                f"У вас уже {limit} активных (лимит {plan.upper()}). "
+                "Отключите одно или откройте PRO."
+            ),
         )
         return
     if status == "error":
@@ -634,9 +663,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         with SessionLocal() as session:
             text, keyboard = render_fn(session, user_id)
     else:
-        text, keyboard = await run_db(
-            render_fn, user_id, sessionmaker=SessionLocal
-        )
+        text, keyboard = await run_db(render_fn, user_id, sessionmaker=SessionLocal)
     if keyboard is not None:
         await msg.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
     else:
@@ -644,7 +671,9 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message: Message | None = update.message or (update.callback_query.message if update.callback_query else None)
+    message: Message | None = update.message or (
+        update.callback_query.message if update.callback_query else None
+    )
     args = getattr(context, "args", [])
     if not args:
         if message:
@@ -702,13 +731,17 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("Отложить 10 мин", callback_data=f"remind_snooze:{rid}:10"),
+                InlineKeyboardButton(
+                    "Отложить 10 мин", callback_data=f"remind_snooze:{rid}:10"
+                ),
                 InlineKeyboardButton("Отмена", callback_data=f"remind_cancel:{rid}"),
             ]
         ]
     )
     try:
-        await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
+        await context.bot.send_message(
+            chat_id=chat_id, text=text, reply_markup=keyboard
+        )
     except TelegramError:
         logger.exception("Failed to send reminder %s to chat %s", rid, chat_id)
 
@@ -757,12 +790,16 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         try:
             commit(session)
         except CommitError:
-            logger.error("Failed to log reminder action %s for reminder %s", log_action, rid)
+            logger.error(
+                "Failed to log reminder action %s for reminder %s", log_action, rid
+            )
             return
 
     if action == "remind_snooze":
         mins = minutes or 10
-        job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
+        job_queue: DefaultJobQueue | None = cast(
+            DefaultJobQueue | None, context.job_queue
+        )
         if job_queue is not None:
             job_queue.run_once(
                 reminder_job,
@@ -788,7 +825,9 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 raise
 
 
-async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def reminder_action_cb(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     query = update.callback_query
     user = update.effective_user
     if query is None or query.data is None or user is None:
@@ -826,7 +865,9 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         try:
             commit(session)
         except CommitError:
-            logger.error("Failed to commit reminder action %s for reminder %s", action, rid)
+            logger.error(
+                "Failed to commit reminder action %s for reminder %s", action, rid
+            )
             return "error", None
         if action == "toggle":
             session.refresh(rem)
@@ -876,7 +917,9 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
     try:
         if keyboard is not None:
-            await query.edit_message_text(text, parse_mode="HTML", reply_markup=keyboard)
+            await query.edit_message_text(
+                text, parse_mode="HTML", reply_markup=keyboard
+            )
         else:
             await query.edit_message_text(text, parse_mode="HTML")
     except BadRequest as exc:
@@ -910,8 +953,12 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
         )
 
 
-reminder_action_handler = CallbackQueryHandler(reminder_action_cb, pattern="^rem_(del|toggle):")
-reminder_webapp_handler = MessageHandler(filters.StatusUpdate.WEB_APP_DATA, reminder_webapp_save)
+reminder_action_handler = CallbackQueryHandler(
+    reminder_action_cb, pattern="^rem_(del|toggle):"
+)
+reminder_webapp_handler = MessageHandler(
+    filters.StatusUpdate.WEB_APP_DATA, reminder_webapp_save
+)
 
 
 __all__ = [
