@@ -141,20 +141,25 @@ describe('Profile page', () => {
       expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
     });
 
-    const icrInput = getByPlaceholderText('12');
+    const icrInput = getByPlaceholderText('12') as HTMLInputElement;
     fireEvent.change(icrInput, { target: { value: '1,5' } });
+    expect(icrInput.value).toBe('1,5');
 
-    const cfInput = getByPlaceholderText('2.5');
+    const cfInput = getByPlaceholderText('2.5') as HTMLInputElement;
     fireEvent.change(cfInput, { target: { value: '2,5' } });
+    expect(cfInput.value).toBe('2,5');
 
-    const targetInput = getByPlaceholderText('6.0');
+    const targetInput = getByPlaceholderText('6.0') as HTMLInputElement;
     fireEvent.change(targetInput, { target: { value: '5,5' } });
+    expect(targetInput.value).toBe('5,5');
 
-    const lowInput = getByPlaceholderText('4.0');
+    const lowInput = getByPlaceholderText('4.0') as HTMLInputElement;
     fireEvent.change(lowInput, { target: { value: '4,0' } });
+    expect(lowInput.value).toBe('4,0');
 
-    const highInput = getByPlaceholderText('10.0');
+    const highInput = getByPlaceholderText('10.0') as HTMLInputElement;
     fireEvent.change(highInput, { target: { value: '10,0' } });
+    expect(highInput.value).toBe('10,0');
 
     fireEvent.click(getByText('Сохранить настройки'));
 
@@ -167,6 +172,9 @@ describe('Profile page', () => {
         low: 4,
         high: 10,
       });
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Профиль сохранен' }),
+      );
     });
   });
 
