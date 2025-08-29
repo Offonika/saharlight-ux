@@ -29,11 +29,11 @@ type ParsedProfile = {
 
 export const parseProfile = (profile: ProfileForm): ParsedProfile | null => {
   const parsed = {
-    icr: Number(profile.icr.replace(",", ".")),
-    cf: Number(profile.cf.replace(",", ".")),
-    target: Number(profile.target.replace(",", ".")),
-    low: Number(profile.low.replace(",", ".")),
-    high: Number(profile.high.replace(",", ".")),
+    icr: Number(profile.icr.replace(/,/g, ".")),
+    cf: Number(profile.cf.replace(/,/g, ".")),
+    target: Number(profile.target.replace(/,/g, ".")),
+    low: Number(profile.low.replace(/,/g, ".")),
+    high: Number(profile.high.replace(/,/g, ".")),
   };
   const numbersValid = Object.values(parsed).every(
     (v) => Number.isFinite(v) && v > 0,
