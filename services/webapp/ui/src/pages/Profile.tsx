@@ -7,6 +7,7 @@ import MedicalButton from "@/components/MedicalButton";
 import { saveProfile, getProfile } from "@/api/profile";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
+import { resolveTelegramId } from "./resolveTelegramId";
 
 type ProfileForm = {
   icr: string;
@@ -42,6 +43,7 @@ export const parseProfile = (profile: ProfileForm): ParsedProfile | null => {
   return numbersValid && rangeValid ? parsed : null;
 };
 
+
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -57,25 +59,7 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    let telegramId = user?.id;
-    if (!telegramId) {
-      let userStr: string | null = null;
-      if (initData) {
-        try {
-          userStr = new URLSearchParams(initData).get("user");
-        } catch (e) {
-          console.error("[Profile] failed to parse initData:", e);
-        }
-      }
-      if (userStr) {
-        try {
-          const parsed = JSON.parse(userStr);
-          telegramId = typeof parsed.id === "number" ? parsed.id : undefined;
-        } catch (e) {
-          console.error("[Profile] failed to parse initData user:", e);
-        }
-      }
-    }
+    const telegramId = resolveTelegramId(user, initData);
 
     if (typeof telegramId !== "number") {
       return;
@@ -106,27 +90,7 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-    let telegramId = user?.id;
-    if (!telegramId) {
-      let userStr: string | null = null;
-      if (initData) {
-        try {
-          userStr = new URLSearchParams(initData).get("user");
-        } catch (e) {
-          console.error("[Profile] failed to parse initData:", e);
-        }
-      }
-      if (userStr) {
-        try {
-          const parsed = JSON.parse(userStr);
-          telegramId = typeof parsed.id === "number" ? parsed.id : undefined;
-        } catch (e) {
-          console.error("[Profile] failed to parse initData user:", e);
-        }
-      } else {
-        console.warn("[Profile] no user field in initData");
-      }
-    }
+    const telegramId = resolveTelegramId(user, initData);
 
     if (typeof telegramId !== "number") {
       toast({

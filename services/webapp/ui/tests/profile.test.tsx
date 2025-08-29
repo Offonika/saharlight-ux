@@ -25,9 +25,13 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }));
 
+vi.mock('../src/pages/resolveTelegramId', () => ({
+  resolveTelegramId: vi.fn(),
+}));
+
 import Profile from '../src/pages/Profile';
 import { saveProfile, getProfile } from '../src/api/profile';
-import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
+import { resolveTelegramId } from '../src/pages/resolveTelegramId';
 
 describe('Profile page', () => {
   beforeEach(() => {
@@ -47,7 +51,7 @@ describe('Profile page', () => {
   });
 
   it('blocks save without telegramId and shows toast', () => {
-    useTelegramInitData.mockReturnValue(null);
+    (resolveTelegramId as vi.Mock).mockReturnValue(undefined);
     const { getByText } = render(<Profile />);
     fireEvent.click(getByText('Сохранить настройки'));
     expect(saveProfile).not.toHaveBeenCalled();
@@ -61,10 +65,7 @@ describe('Profile page', () => {
   });
 
   it('blocks save with non-numeric id in initData and shows toast', () => {
-    const invalidInitData = new URLSearchParams({
-      user: JSON.stringify({ id: 'abc' }),
-    }).toString();
-    useTelegramInitData.mockReturnValue(invalidInitData);
+    (resolveTelegramId as vi.Mock).mockReturnValue(undefined);
     const { getByText } = render(<Profile />);
     fireEvent.click(getByText('Сохранить настройки'));
     expect(saveProfile).not.toHaveBeenCalled();
@@ -78,10 +79,7 @@ describe('Profile page', () => {
   });
 
   it('blocks save with invalid numeric input and shows toast', () => {
-    const validInitData = new URLSearchParams({
-      user: JSON.stringify({ id: 123 }),
-    }).toString();
-    useTelegramInitData.mockReturnValue(validInitData);
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
 
     const { getByText, getByPlaceholderText } = render(<Profile />);
     const icrInput = getByPlaceholderText('12');
@@ -101,10 +99,7 @@ describe('Profile page', () => {
   });
 
   it('blocks save when target is out of range and shows toast', () => {
-    const validInitData = new URLSearchParams({
-      user: JSON.stringify({ id: 123 }),
-    }).toString();
-    useTelegramInitData.mockReturnValue(validInitData);
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
 
     const { getByText, getByPlaceholderText } = render(<Profile />);
     const targetInput = getByPlaceholderText('6.0');
@@ -124,10 +119,7 @@ describe('Profile page', () => {
   });
 
   it('loads profile on mount and updates form', async () => {
-    const validInitData = new URLSearchParams({
-      user: JSON.stringify({ id: 123 }),
-    }).toString();
-    useTelegramInitData.mockReturnValue(validInitData);
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue({
       telegramId: 123,
       icr: 15,
@@ -146,10 +138,7 @@ describe('Profile page', () => {
   });
 
   it('shows toast when profile load fails', async () => {
-    const validInitData = new URLSearchParams({
-      user: JSON.stringify({ id: 123 }),
-    }).toString();
-    useTelegramInitData.mockReturnValue(validInitData);
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockRejectedValue(new Error('load failed'));
 
     const { getByPlaceholderText } = render(<Profile />);
