@@ -118,6 +118,50 @@ describe('Profile page', () => {
     );
   });
 
+  it('saves profile when values with commas are provided', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (saveProfile as vi.Mock).mockResolvedValue(undefined);
+
+    const { getByText, getByPlaceholderText } = render(<Profile />);
+
+    await waitFor(() => {
+      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+    });
+
+    const icrInput = getByPlaceholderText('12');
+    icrInput.setAttribute('type', 'text');
+    fireEvent.change(icrInput, { target: { value: '1,5' } });
+
+    const cfInput = getByPlaceholderText('2.5');
+    cfInput.setAttribute('type', 'text');
+    fireEvent.change(cfInput, { target: { value: '2,5' } });
+
+    const targetInput = getByPlaceholderText('6.0');
+    targetInput.setAttribute('type', 'text');
+    fireEvent.change(targetInput, { target: { value: '5,5' } });
+
+    const lowInput = getByPlaceholderText('4.0');
+    lowInput.setAttribute('type', 'text');
+    fireEvent.change(lowInput, { target: { value: '4,0' } });
+
+    const highInput = getByPlaceholderText('10.0');
+    highInput.setAttribute('type', 'text');
+    fireEvent.change(highInput, { target: { value: '10,0' } });
+
+    fireEvent.click(getByText('Сохранить настройки'));
+
+    await waitFor(() => {
+      expect(saveProfile).toHaveBeenCalledWith({
+        telegramId: 123,
+        icr: 1.5,
+        cf: 2.5,
+        target: 5.5,
+        low: 4,
+        high: 10,
+      });
+    });
+  });
+
   it('loads profile on mount and updates form', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue({
