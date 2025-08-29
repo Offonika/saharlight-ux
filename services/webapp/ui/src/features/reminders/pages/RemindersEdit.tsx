@@ -16,6 +16,7 @@ import { getTelegramUserId } from "../../../shared/telegram";
 import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
 import { useTelegram } from "@/hooks/useTelegram";
+import TimeInput from "@/components/TimeInput";
 
 const TYPE_OPTIONS: { value: ReminderType; label: string }[] = [
   { value: "sugar", label: "Измерение сахара" },
@@ -238,13 +239,12 @@ export default function RemindersEdit() {
               <label className="block text-sm font-medium text-foreground">
                 Время (HH:MM)
               </label>
-              <input
-                type="time"
+              <TimeInput
                 className={`medical-input ${
                   errors.time ? "border-destructive focus:border-destructive" : ""
                 }`}
                 value={form.time || ""}
-                onChange={(e) => onChange("time", e.target.value)}
+                onChange={(val) => onChange("time", val)}
               />
               {errors.time && (
                 <p className="text-xs text-destructive mt-1">{errors.time}</p>

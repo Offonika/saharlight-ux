@@ -4,6 +4,7 @@ import { Calendar, TrendingUp, Edit2, Trash2, Filter } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
+import TimeInput from '@/components/TimeInput';
 import { getHistory, updateRecord, deleteRecord } from '@/api/history';
 import type {
   HistoryRecordSchemaInput,
@@ -306,12 +307,11 @@ const History = () => {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Время
                 </label>
-                <input
-                  type="time"
+                <TimeInput
                   value={editingRecord.time}
-                  onChange={e =>
+                  onChange={val =>
                     setEditingRecord(prev =>
-                      prev ? { ...prev, time: e.target.value } : prev
+                      prev ? { ...prev, time: val } : prev
                     )
                   }
                   className="medical-input"
