@@ -60,6 +60,8 @@ const Profile = () => {
     high: "",
   });
 
+  const decimalRegex = /^\d*(?:[.,]\d*)?$/;
+
   useEffect(() => {
     const telegramId = resolveTelegramId(user, initData);
 
@@ -109,7 +111,9 @@ const Profile = () => {
   }, [user, initData, toast]);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
-    setProfile((prev) => ({ ...prev, [field]: value }));
+    if (decimalRegex.test(value)) {
+      setProfile((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleSave = async () => {
@@ -179,8 +183,9 @@ const Profile = () => {
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  step="0.1"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   value={profile.icr}
                   onChange={(e) => handleInputChange("icr", e.target.value)}
                   className="medical-input"
@@ -202,8 +207,9 @@ const Profile = () => {
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  step="0.1"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   value={profile.cf}
                   onChange={(e) => handleInputChange("cf", e.target.value)}
                   className="medical-input"
@@ -225,8 +231,9 @@ const Profile = () => {
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  step="0.1"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   value={profile.target}
                   onChange={(e) => handleInputChange("target", e.target.value)}
                   className="medical-input"
@@ -246,8 +253,9 @@ const Profile = () => {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    step="0.1"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
                     value={profile.low}
                     onChange={(e) => handleInputChange("low", e.target.value)}
                     className="medical-input"
@@ -265,8 +273,9 @@ const Profile = () => {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    step="0.1"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
                     value={profile.high}
                     onChange={(e) => handleInputChange("high", e.target.value)}
                     className="medical-input"
