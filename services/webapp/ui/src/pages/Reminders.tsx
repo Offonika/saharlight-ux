@@ -1,23 +1,12 @@
 import RemindersList from '../features/reminders/pages/RemindersList'
 import { MedicalHeader } from '@/components/MedicalHeader'
 import { useNavigate } from 'react-router-dom'
-import { useTelegram } from '@/hooks/useTelegram'
-import { useState, useEffect } from 'react'
-import { getPlanLimit } from '../features/reminders/hooks/usePlan'
-import { useTelegramInitData } from '@/hooks/useTelegramInitData'
+import { useState } from 'react'
 
 export default function Reminders() {
   const navigate = useNavigate()
-  const { user } = useTelegram()
-  const initData = useTelegramInitData()
   const [reminderCount, setReminderCount] = useState(0)
   const [planLimit, setPlanLimit] = useState(5)
-
-  useEffect(() => {
-    if (user?.id) {
-      getPlanLimit(user.id, initData).then(setPlanLimit).catch(() => setPlanLimit(5))
-    }
-  }, [user?.id, initData])
 
   const quotaBadge = `${reminderCount}/${planLimit} 🔔`
 
@@ -34,7 +23,7 @@ export default function Reminders() {
       </MedicalHeader>
 
       <main className="container mx-auto px-4 py-6">
-        <RemindersList onCountChange={setReminderCount} planLimit={planLimit} />
+        <RemindersList onCountChange={setReminderCount} planLimit={planLimit} onLimitChange={setPlanLimit} />
       </main>
     </div>
   )
