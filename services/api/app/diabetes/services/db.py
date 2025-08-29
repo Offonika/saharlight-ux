@@ -299,7 +299,9 @@ class Timezone(Base):
 class HistoryRecord(Base):
     __tablename__ = "history_records"
     id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
-    telegram_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
+    telegram_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False
+    )
     date: Mapped[date] = mapped_column(Date, nullable=False)
     time: Mapped[time] = mapped_column(Time, nullable=False)
     sugar: Mapped[Optional[float]] = mapped_column(Float)
