@@ -8,19 +8,39 @@ import { saveProfile } from "@/api/profile";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
 
+type ProfileForm = {
+  icr: string;
+  cf: string;
+  target: string;
+  low: string;
+  high: string;
+};
+
+type ParsedProfile = {
+  icr: number;
+  cf: number;
+  target: number;
+  low: number;
+  high: number;
+};
+
+export const parseProfile = (profile: ProfileForm): ParsedProfile | null => {
+  const parsed = {
+    icr: Number(profile.icr),
+    cf: Number(profile.cf),
+    target: Number(profile.target),
+    low: Number(profile.low),
+    high: Number(profile.high),
+  };
+  const valid = Object.values(parsed).every((v) => Number.isFinite(v) && v > 0);
+  return valid ? parsed : null;
+};
+
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useTelegram();
   const initData = useTelegramInitData();
-
-  type ProfileForm = {
-    icr: string;
-    cf: string;
-    target: string;
-    low: string;
-    high: string;
-  };
 
   const [profile, setProfile] = useState<ProfileForm>({
     icr: "12",
@@ -66,15 +86,18 @@ const Profile = () => {
       return;
     }
 
-    try {
-      await saveProfile({
-        telegramId,
-        icr: Number(profile.icr),
-        cf: Number(profile.cf),
-        target: Number(profile.target),
-        low: Number(profile.low),
-        high: Number(profile.high),
+    const parsed = parseProfile(profile);
+    if (!parsed) {
+      toast({
+        title: "Ошибка",
+        description: "Все значения должны быть положительными числами",
+        variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      await saveProfile({ telegramId, ...parsed });
       toast({
         title: "Профиль сохранен",
         description: "Ваши настройки успешно обновлены",

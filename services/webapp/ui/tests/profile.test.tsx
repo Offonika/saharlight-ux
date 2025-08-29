@@ -67,4 +67,25 @@ describe('Profile page', () => {
       }),
     );
   });
+
+  it('blocks save with invalid numeric input and shows toast', () => {
+    const validInitData = new URLSearchParams({
+      user: JSON.stringify({ id: 123 }),
+    }).toString();
+    useTelegramInitData.mockReturnValue(validInitData);
+
+    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const icrInput = getByPlaceholderText('12');
+    fireEvent.change(icrInput, { target: { value: '-1' } });
+
+    fireEvent.click(getByText('Сохранить настройки'));
+    expect(saveProfile).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Ошибка',
+        description: 'Все значения должны быть положительными числами',
+        variant: 'destructive',
+      }),
+    );
+  });
 });
