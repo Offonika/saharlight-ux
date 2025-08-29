@@ -285,6 +285,35 @@ export class DefaultApi extends runtime.BaseAPI {
     }
 
     /**
+     * Timezones Get
+     */
+    async getTimezonesTimezonesGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/timezones`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Timezones Get
+     */
+    async getTimezonesTimezonesGet(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<string>> {
+        const response = await this.getTimezonesTimezonesGetRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Health
      */
     async healthGetRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: string; }>> {

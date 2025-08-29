@@ -7,6 +7,7 @@ import MedicalButton from "@/components/MedicalButton";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/Modal";
 import { saveProfile, getProfile } from "@/api/profile";
+import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
 import { resolveTelegramId } from "./resolveTelegramId";
@@ -66,6 +67,23 @@ const Profile = () => {
   const [pendingProfile, setPendingProfile] = useState<
     (ParsedProfile & { telegramId: number }) | null
   >(null);
+
+  const [timezones, setTimezones] = useState<string[]>(() => {
+    if (typeof Intl.supportedValuesOf === "function") {
+      try {
+        return Intl.supportedValuesOf("timeZone");
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    if (timezones.length === 0) {
+      getTimezones().then(setTimezones).catch(() => undefined);
+    }
+  }, [timezones]);
 
   useEffect(() => {
     const telegramId = resolveTelegramId(user, initData);

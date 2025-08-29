@@ -235,6 +235,21 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '404':
           description: Reminder not found or telegramId mismatch
+  /timezones:
+    get:
+      summary: Timezones Get
+      operationId: get_timezones_timezones_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                title: Response Timezones Get
+      security: []
   /timezone:
     get:
       summary: Get Timezone
