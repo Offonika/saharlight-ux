@@ -329,11 +329,11 @@ def schedule_all(job_queue: DefaultJobQueue | None) -> None:
         return
     with SessionLocal() as session:
         reminders = session.query(Reminder).all()
-    count = len(reminders)
-    logger.debug("Found %d reminders to schedule", count)
-    for rem in reminders:
-        schedule_reminder(rem, job_queue)
-    logger.debug("Scheduled %d reminders", count)
+        count = len(reminders)
+        logger.debug("Found %d reminders to schedule", count)
+        for rem in reminders:
+            schedule_reminder(rem, job_queue)
+        logger.debug("Scheduled %d reminders", count)
 
 
 async def reminders_list(
