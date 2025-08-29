@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/style.css">
     <title>Часовой пояс</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script type="module" src="%BASE_URL%telegram-init.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -18,11 +19,11 @@
                 document.body.appendChild(btn);
             };
 
-            if (window.Telegram && Telegram.WebApp) {
+            if (window.Telegram && window.Telegram.WebApp) {
                 try {
-                    Telegram.WebApp.sendData(tz);
+                    window.Telegram.WebApp.sendData(tz);
                     status.textContent = 'Часовой пояс определён';
-                    addButton('Закрыть', () => Telegram.WebApp.close());
+                    addButton('Закрыть', () => window.Telegram.WebApp.close());
                 } catch (err) {
                     status.textContent = 'Не удалось отправить данные. Проверьте подключение к сети и попробуйте ещё раз.';
                     addButton('Повторить', () => location.reload());
