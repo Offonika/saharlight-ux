@@ -29,11 +29,11 @@ type ParsedProfile = {
 
 export const parseProfile = (profile: ProfileForm): ParsedProfile | null => {
   const parsed = {
-    icr: Number(profile.icr.replace(",", ".")),
-    cf: Number(profile.cf.replace(",", ".")),
-    target: Number(profile.target.replace(",", ".")),
-    low: Number(profile.low.replace(",", ".")),
-    high: Number(profile.high.replace(",", ".")),
+    icr: Number(profile.icr.replace(",", ".").replace(/,/g, ".")),
+    cf: Number(profile.cf.replace(",", ".").replace(/,/g, ".")),
+    target: Number(profile.target.replace(",", ".").replace(/,/g, ".")),
+    low: Number(profile.low.replace(",", ".").replace(/,/g, ".")),
+    high: Number(profile.high.replace(",", ".").replace(/,/g, ".")),
   };
   const numbersValid = Object.values(parsed).every(
     (v) => Number.isFinite(v) && v > 0,
@@ -238,8 +238,9 @@ const Profile = () => {
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  step="0.1"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   value={profile.icr}
                   onChange={(e) => handleInputChange("icr", e.target.value)}
                   className="medical-input"
@@ -261,8 +262,9 @@ const Profile = () => {
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  step="0.1"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   value={profile.cf}
                   onChange={(e) => handleInputChange("cf", e.target.value)}
                   className="medical-input"
@@ -284,8 +286,9 @@ const Profile = () => {
               </label>
               <div className="relative">
                 <input
-                  type="number"
-                  step="0.1"
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]*"
                   value={profile.target}
                   onChange={(e) => handleInputChange("target", e.target.value)}
                   className="medical-input"
@@ -305,8 +308,9 @@ const Profile = () => {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    step="0.1"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
                     value={profile.low}
                     onChange={(e) => handleInputChange("low", e.target.value)}
                     className="medical-input"
@@ -324,8 +328,9 @@ const Profile = () => {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
-                    step="0.1"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*[.,]?[0-9]*"
                     value={profile.high}
                     onChange={(e) => handleInputChange("high", e.target.value)}
                     className="medical-input"

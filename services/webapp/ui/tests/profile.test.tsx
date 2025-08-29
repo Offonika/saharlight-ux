@@ -129,23 +129,18 @@ describe('Profile page', () => {
     });
 
     const icrInput = getByPlaceholderText('12');
-    icrInput.setAttribute('type', 'text');
     fireEvent.change(icrInput, { target: { value: '1,5' } });
 
     const cfInput = getByPlaceholderText('2.5');
-    cfInput.setAttribute('type', 'text');
     fireEvent.change(cfInput, { target: { value: '2,5' } });
 
     const targetInput = getByPlaceholderText('6.0');
-    targetInput.setAttribute('type', 'text');
     fireEvent.change(targetInput, { target: { value: '5,5' } });
 
     const lowInput = getByPlaceholderText('4.0');
-    lowInput.setAttribute('type', 'text');
     fireEvent.change(lowInput, { target: { value: '4,0' } });
 
     const highInput = getByPlaceholderText('10.0');
-    highInput.setAttribute('type', 'text');
     fireEvent.change(highInput, { target: { value: '10,0' } });
 
     fireEvent.click(getByText('Сохранить настройки'));
