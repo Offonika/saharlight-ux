@@ -8,7 +8,7 @@ export function makeRemindersApi(initData: string | null) {
     headers["X-Telegram-Init-Data"] = initData;
   }
   const cfg = new Configuration({
-    basePath: "",
+    basePath: "/api",
     headers,
   });
   return new RemindersApi(cfg);
