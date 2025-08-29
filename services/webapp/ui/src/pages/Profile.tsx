@@ -14,15 +14,23 @@ const Profile = () => {
   const { user } = useTelegram();
   const initData = useTelegramInitData();
 
-  const [profile, setProfile] = useState({
+  type ProfileForm = {
+    icr: string;
+    cf: string;
+    target: string;
+    low: string;
+    high: string;
+  };
+
+  const [profile, setProfile] = useState<ProfileForm>({
     icr: "12",
-    correctionFactor: "2.5",
-    targetSugar: "6.0",
-    lowThreshold: "4.0",
-    highThreshold: "10.0",
+    cf: "2.5",
+    target: "6.0",
+    low: "4.0",
+    high: "10.0",
   });
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof ProfileForm, value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -62,10 +70,10 @@ const Profile = () => {
       await saveProfile({
         telegramId,
         icr: Number(profile.icr),
-        cf: Number(profile.correctionFactor),
-        target: Number(profile.targetSugar),
-        low: Number(profile.lowThreshold),
-        high: Number(profile.highThreshold),
+        cf: Number(profile.cf),
+        target: Number(profile.target),
+        low: Number(profile.low),
+        high: Number(profile.high),
       });
       toast({
         title: "Профиль сохранен",
@@ -124,10 +132,8 @@ const Profile = () => {
                 <input
                   type="number"
                   step="0.1"
-                  value={profile.correctionFactor}
-                  onChange={(e) =>
-                    handleInputChange("correctionFactor", e.target.value)
-                  }
+                  value={profile.cf}
+                  onChange={(e) => handleInputChange("cf", e.target.value)}
                   className="medical-input"
                   placeholder="2.5"
                 />
@@ -149,10 +155,8 @@ const Profile = () => {
                 <input
                   type="number"
                   step="0.1"
-                  value={profile.targetSugar}
-                  onChange={(e) =>
-                    handleInputChange("targetSugar", e.target.value)
-                  }
+                  value={profile.target}
+                  onChange={(e) => handleInputChange("target", e.target.value)}
                   className="medical-input"
                   placeholder="6.0"
                 />
@@ -172,10 +176,8 @@ const Profile = () => {
                   <input
                     type="number"
                     step="0.1"
-                    value={profile.lowThreshold}
-                    onChange={(e) =>
-                      handleInputChange("lowThreshold", e.target.value)
-                    }
+                    value={profile.low}
+                    onChange={(e) => handleInputChange("low", e.target.value)}
                     className="medical-input"
                     placeholder="4.0"
                   />
@@ -193,10 +195,8 @@ const Profile = () => {
                   <input
                     type="number"
                     step="0.1"
-                    value={profile.highThreshold}
-                    onChange={(e) =>
-                      handleInputChange("highThreshold", e.target.value)
-                    }
+                    value={profile.high}
+                    onChange={(e) => handleInputChange("high", e.target.value)}
                     className="medical-input"
                     placeholder="10.0"
                   />
