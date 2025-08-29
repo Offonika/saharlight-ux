@@ -74,7 +74,9 @@ export default function RemindersCreate() {
     setLoading(true);
     try {
       const reminder = buildReminderPayload({ ...form, telegramId });
-      console.log("Payload being sent:", reminder);
+      if (import.meta.env.DEV) {
+        console.log("Payload being sent:", reminder);
+      }
 
       let rid: number | undefined;
       try {
@@ -83,10 +85,12 @@ export default function RemindersCreate() {
         rid = res?.id;
       } catch (apiError) {
         if (isDev) {
-          console.warn("Backend API failed, using mock API:", apiError);
+          if (import.meta.env.DEV) {
+            console.warn("Backend API failed, using mock API:", apiError);
+          }
           // Fallback на mock API
           const res = await mockApi.createReminder(reminder);
-          rid = (res as any)?.id;
+          rid = (res as { id?: number })?.id;
         } else {
           throw apiError;
         }
