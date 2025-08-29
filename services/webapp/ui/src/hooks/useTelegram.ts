@@ -192,15 +192,21 @@ export const useTelegram = (
         if (userStr) {
           try {
             devUser = JSON.parse(userStr);
-            console.log("[TG] parsed dev user from initData:", devUser);
+            if (import.meta.env.DEV) {
+              console.log("[TG] parsed dev user from initData:", devUser);
+            }
           } catch (e) {
             console.error("[TG] failed to parse dev user:", e);
           }
         } else {
-          console.warn("[TG] initData does not contain user field");
+          if (import.meta.env.DEV) {
+            console.warn("[TG] initData does not contain user field");
+          }
         }
       } else {
-        console.warn("[TG] no initData found in localStorage or env");
+        if (import.meta.env.DEV) {
+          console.warn("[TG] no initData found in localStorage or env");
+        }
       }
 
       // If no user from initData, create fallback test user
@@ -213,14 +219,18 @@ export const useTelegram = (
           username: "testuser",
           language_code: "ru",
         };
-        console.log("[TG] created fallback dev user:", devUser);
+        if (import.meta.env.DEV) {
+          console.log("[TG] created fallback dev user:", devUser);
+        }
       }
 
       return devUser;
     };
 
     if (!tg) {
-      console.warn("[TG] not in Telegram, enabling dev fallback");
+      if (import.meta.env.DEV) {
+        console.warn("[TG] not in Telegram, enabling dev fallback");
+      }
 
       // In development mode, create fallback user
       if (import.meta.env.MODE !== "production") {
@@ -246,7 +256,9 @@ export const useTelegram = (
 
       const tgUser = tg.user || tg.initDataUnsafe?.user;
       if (!tgUser && import.meta.env.MODE !== "production") {
-        console.warn("[TG] no user in Telegram WebApp, creating dev fallback");
+        if (import.meta.env.DEV) {
+          console.warn("[TG] no user in Telegram WebApp, creating dev fallback");
+        }
         setUser(createDevUser());
       } else {
         setUser(tgUser ?? null);
