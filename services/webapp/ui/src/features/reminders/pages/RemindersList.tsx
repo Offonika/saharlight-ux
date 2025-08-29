@@ -7,8 +7,6 @@ import { useTelegram } from "@/hooks/useTelegram";
 import { mockApi } from "../../../api/mock-server";
 import { useToast } from "@/hooks/use-toast";
 import { Templates } from "../components/Templates";
-import { getPlanLimit } from "../hooks/usePlan";
-import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 import { bulkToggle } from "./RemindersList.bulk";
 
 const checkQuotaLimit = (count: number, limit: number, toast: any) => {
@@ -57,21 +55,20 @@ function scheduleLine(r: ReminderDto) {
 }
 
 export default function RemindersList({
-  onCountChange, 
-  planLimit 
-}: { 
-  onCountChange?: (count: number) => void; 
-  planLimit?: number; 
+  onCountChange,
+  onLimitChange,
+}: {
+  onCountChange?: (count: number) => void;
+  onLimitChange?: (limit: number) => void;
 } = {}) {
   const api = useRemindersApi();
   const { user } = useTelegram();
-  const initData = useTelegramInitData();
   const navigate = useNavigate();
   const { toast } = useToast();
   const isDev = process.env.NODE_ENV === "development";
   const [items, setItems] = useState<ReminderDto[]>([]);
   const [loading, setLoading] = useState(false);
-  const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(planLimit || 5);
+  const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(5);
   const [filter, setFilter] = useState<"all" | "on" | "off">(() => {
     return (localStorage.getItem('reminderFilter') as "all" | "on" | "off") || "all";
   });
@@ -80,10 +77,18 @@ export default function RemindersList({
     if (!user?.id) return;
     setLoading(true);
     try {
-      // Load reminders
       try {
-        const res = await api.remindersGet({ telegramId: user.id });
-        setItems(res as any);
+        const res = await api.remindersGetRaw({ telegramId: user.id });
+        setItems((await res.value()) as any);
+        const limitHeader =
+          res.raw.headers.get("X-Plan-Limit") ?? res.raw.headers.get("x-plan-limit");
+        if (limitHeader) {
+          const limit = parseInt(limitHeader, 10);
+          if (!isNaN(limit)) {
+            setCurrentPlanLimit(limit);
+            onLimitChange?.(limit);
+          }
+        }
       } catch (apiError) {
         if (isDev) {
           console.warn("Backend API failed, using mock API:", apiError);
@@ -91,17 +96,6 @@ export default function RemindersList({
           setItems(res as any);
         } else {
           toast({ title: "Ошибка", description: "Не удалось загрузить напоминания", variant: "destructive" });
-        }
-      }
-      
-      // Load plan limit if not provided as prop
-      if (!planLimit) {
-        try {
-          const limit = await getPlanLimit(user.id, initData);
-          setCurrentPlanLimit(limit);
-        } catch (error) {
-          console.warn("Failed to load plan limit:", error);
-          setCurrentPlanLimit(5); // Default to free tier
         }
       }
     } finally {
@@ -118,13 +112,6 @@ export default function RemindersList({
     onCountChange?.(items.length);
   }, [items.length, onCountChange]);
   
-  // Update limit when prop changes
-  useEffect(() => {
-    if (planLimit) {
-      setCurrentPlanLimit(planLimit);
-    }
-  }, [planLimit]);
-
   const groups = useMemo(() => {
     // Filter items based on current filter
     const filteredItems = items.filter(r => 

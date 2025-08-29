@@ -2,7 +2,7 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-const remindersGet = vi.fn();
+const remindersGetRaw = vi.fn();
 const remindersPost = vi.fn();
 const mockGetReminders = vi.fn();
 const mockCreateReminder = vi.fn();
@@ -10,7 +10,7 @@ const toast = vi.fn();
 const toastError = vi.fn();
 
 vi.mock('../src/features/reminders/api/reminders', () => ({
-  useRemindersApi: () => ({ remindersGet, remindersPost })
+  useRemindersApi: () => ({ remindersGetRaw, remindersPost })
 }));
 vi.mock('../src/hooks/use-toast', () => ({
   useToast: () => ({ toast })
@@ -37,15 +37,12 @@ vi.mock('../src/features/reminders/logic/validate', () => ({
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn()
 }));
-vi.mock('../src/features/reminders/hooks/usePlan', () => ({
-  getPlanLimit: () => Promise.resolve(5)
-}));
 
 describe('mockApi not used in production', () => {
   afterEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
-    remindersGet.mockReset();
+    remindersGetRaw.mockReset();
     remindersPost.mockReset();
     mockGetReminders.mockReset();
     mockCreateReminder.mockReset();
@@ -54,12 +51,12 @@ describe('mockApi not used in production', () => {
   });
 
   it('RemindersList uses toast and not mockApi in production', async () => {
-    remindersGet.mockRejectedValue(new Error('fail'));
+    remindersGetRaw.mockRejectedValue(new Error('fail'));
     const { default: RemindersList } = await import('../src/features/reminders/pages/RemindersList');
     vi.stubEnv('NODE_ENV', 'production');
-    render(<RemindersList planLimit={5} />);
+    render(<RemindersList />);
     await waitFor(() => {
-      expect(remindersGet).toHaveBeenCalled();
+      expect(remindersGetRaw).toHaveBeenCalled();
     });
     expect(mockGetReminders).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalled();
