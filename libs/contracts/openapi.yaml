@@ -78,6 +78,47 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '404':
           description: profile not found
+  /profile:
+    patch:
+      tags:
+      - Profiles
+      summary: Profile Patch
+      operationId: profilePatch
+      parameters:
+      - name: deviceTz
+        in: query
+        required: false
+        schema:
+          type: string
+          title: Device Tz
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                timezone:
+                  type: string
+                  title: Timezone
+                timezoneAuto:
+                  type: boolean
+                  title: Timezone Auto
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Profile Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /reminders:
     get:
       tags:
@@ -700,6 +741,14 @@ components:
         sosAlertsEnabled:
           type: boolean
           title: Sos Alerts Enabled
+          default: true
+        timezone:
+          type: string
+          title: Timezone
+          default: UTC
+        timezoneAuto:
+          type: boolean
+          title: Timezone Auto
           default: true
         orgId:
           anyOf:

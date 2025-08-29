@@ -1,19 +1,27 @@
 import pytest
 from collections.abc import Generator
 from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import Session, sessionmaker
 from unittest.mock import MagicMock
 
 import importlib
 
 from services.api.app.diabetes.services.db import Base, User, Profile
+from services.api.app import main
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
 profile_api = importlib.import_module("services.api.app.diabetes.handlers.profile.api")
 
 
 @pytest.fixture()
 def session_factory() -> Generator[sessionmaker[Session], None, None]:
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
     TestSession: sessionmaker[Session] = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     try:
@@ -225,3 +233,88 @@ def test_set_timezone_user_missing(
         found, ok = profile_api.set_timezone(session, 999, "UTC")
         assert (found, ok) == (False, False)
         commit_mock.assert_not_called()
+
+
+def _build_app(
+    session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
+) -> FastAPI:
+    app = FastAPI()
+    app.include_router(main.api_router, prefix="/api")
+    app.dependency_overrides[main.require_tg_user] = lambda: {"id": 1}
+    import services.api.app.diabetes.services.db as db
+    import services.api.app.legacy as legacy
+
+    monkeypatch.setattr(db, "SessionLocal", session_factory, raising=False)
+
+    async def _run_db(fn, *args, **kwargs):
+        return await db.run_db(fn, *args, sessionmaker=session_factory, **kwargs)
+
+    monkeypatch.setattr(main, "run_db", _run_db)
+    monkeypatch.setattr(legacy, "run_db", _run_db)
+    return app
+
+
+def test_profile_patch_updates_timezone(
+    session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = _build_app(session_factory, monkeypatch)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC", timezone_auto=True))
+        session.commit()
+    with TestClient(app) as client:
+        resp = client.patch(
+            "/api/profile",
+            json={"timezone": "Europe/Moscow", "timezoneAuto": False},
+        )
+        assert resp.status_code == 200
+    with session_factory() as session:
+        user = session.get(User, 1)
+        assert user is not None
+        assert user.timezone == "Europe/Moscow"
+        assert user.timezone_auto is False
+
+
+def test_profile_patch_auto_device_timezone(
+    session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = _build_app(session_factory, monkeypatch)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC", timezone_auto=True))
+        session.commit()
+    with TestClient(app) as client:
+        resp = client.patch(
+            "/api/profile",
+            params={"deviceTz": "Europe/Moscow"},
+            json={"timezoneAuto": True},
+        )
+        assert resp.status_code == 200
+    with session_factory() as session:
+        user = session.get(User, 1)
+        assert user is not None
+        assert user.timezone == "Europe/Moscow"
+        assert user.timezone_auto is True
+
+
+def test_profiles_get_returns_timezone(
+    session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = _build_app(session_factory, monkeypatch)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="Europe/Moscow", timezone_auto=False))
+        session.add(
+            Profile(
+                telegram_id=1,
+                icr=1.0,
+                cf=2.0,
+                target_bg=5.0,
+                low_threshold=4.0,
+                high_threshold=6.0,
+            )
+        )
+        session.commit()
+    with TestClient(app) as client:
+        resp = client.get("/api/profiles", params={"telegramId": 1})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["timezone"] == "Europe/Moscow"
+        assert data["timezoneAuto"] is False

@@ -138,6 +138,7 @@ class User(Base):
     onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
     plan: Mapped[str] = mapped_column(String, default="free")
     timezone: Mapped[str] = mapped_column(String, default="UTC")
+    timezone_auto: Mapped[bool] = mapped_column(Boolean, default=True)
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
