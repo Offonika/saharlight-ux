@@ -8,6 +8,7 @@ models/DayStats.ts
 models/HTTPValidationError.ts
 models/HistoryRecordSchemaInput.ts
 models/HistoryRecordSchemaOutput.ts
+models/ProfilePatchRequest.ts
 models/ProfileSchema.ts
 models/ReminderSchema.ts
 models/ReminderType.ts
