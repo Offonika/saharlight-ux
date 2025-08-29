@@ -22,6 +22,26 @@ describe('profile api', () => {
     );
   });
 
+  it('throws error when getProfile returns invalid JSON', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response('not-json', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    vi.stubGlobal('fetch', mockFetch);
+
+    await expect(getProfile(1)).rejects.toThrow(
+      'Не удалось получить профиль: некорректный ответ сервера',
+    );
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/profiles?telegramId=1',
+      expect.objectContaining({ method: 'GET' }),
+    );
+  });
+
   it('throws error when saveProfile request fails', async () => {
     const mockFetch = vi.fn().mockResolvedValue(new Response('fail', { status: 500 }));
     vi.stubGlobal('fetch', mockFetch);

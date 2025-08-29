@@ -25,7 +25,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       throw new Error('Backend returned HTML instead of JSON');
     }
 
-    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    const data = (await res.json()) as Record<string, unknown>;
     if (!res.ok) {
       const msg = typeof data.detail === 'string' ? data.detail : 'Request failed';
       throw new Error(msg);
