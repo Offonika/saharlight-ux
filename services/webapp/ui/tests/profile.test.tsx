@@ -206,6 +206,37 @@ describe('Profile page', () => {
     );
   });
 
+  it('shows toast and clears zero values from profile data', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (getProfile as vi.Mock).mockResolvedValue({
+      telegramId: 123,
+      icr: 15,
+      cf: 0,
+      target: 5,
+      low: 3,
+      high: 8,
+    });
+
+    const { getByPlaceholderText } = render(<Profile />);
+    await waitFor(() => {
+      expect(getProfile).toHaveBeenCalledWith(123);
+    });
+
+    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
+    expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('');
+    expect((getByPlaceholderText('6.0') as HTMLInputElement).value).toBe('5');
+    expect((getByPlaceholderText('4.0') as HTMLInputElement).value).toBe('3');
+    expect((getByPlaceholderText('10.0') as HTMLInputElement).value).toBe('8');
+
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Ошибка',
+        description: 'Профиль заполнен не полностью',
+        variant: 'destructive',
+      }),
+    );
+  });
+
   it('shows toast when profile load fails', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockRejectedValue(new Error('load failed'));

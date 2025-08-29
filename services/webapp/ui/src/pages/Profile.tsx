@@ -73,15 +73,30 @@ const Profile = () => {
       .then((data) => {
         if (cancelled) return;
 
-        const icr = typeof data.icr === "number" ? data.icr.toString() : "";
-        const cf = typeof data.cf === "number" ? data.cf.toString() : "";
+        const icr =
+          typeof data.icr === "number" && data.icr > 0
+            ? data.icr.toString()
+            : "";
+        const cf =
+          typeof data.cf === "number" && data.cf > 0
+            ? data.cf.toString()
+            : "";
         const target =
-          typeof data.target === "number" ? data.target.toString() : "";
-        const low = typeof data.low === "number" ? data.low.toString() : "";
+          typeof data.target === "number" && data.target > 0
+            ? data.target.toString()
+            : "";
+        const low =
+          typeof data.low === "number" && data.low > 0
+            ? data.low.toString()
+            : "";
         const high =
-          typeof data.high === "number" ? data.high.toString() : "";
+          typeof data.high === "number" && data.high > 0
+            ? data.high.toString()
+            : "";
 
-        const isComplete = [icr, cf, target, low, high].every((v) => v !== "");
+        const isComplete = [icr, cf, target, low, high].every(
+          (v) => Number(v) > 0,
+        );
 
         setProfile({ icr, cf, target, low, high });
 
