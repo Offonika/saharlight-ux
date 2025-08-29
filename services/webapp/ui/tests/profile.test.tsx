@@ -1,42 +1,45 @@
-import React from 'react';
-import { render, fireEvent, cleanup, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import React from "react";
+import { render, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const toast = vi.fn();
 
-vi.mock('../src/api/profile', () => ({
+vi.mock("../src/api/profile", () => ({
   saveProfile: vi.fn(),
   getProfile: vi.fn(),
+}));
+vi.mock("../src/features/profile/api", () => ({
   patchProfile: vi.fn(),
 }));
 
-vi.mock('../src/hooks/use-toast', () => ({
+vi.mock("../src/hooks/use-toast", () => ({
   useToast: () => ({ toast }),
 }));
 
-vi.mock('../src/hooks/useTelegram', () => ({
+vi.mock("../src/hooks/useTelegram", () => ({
   useTelegram: () => ({ user: null }),
 }));
 
-vi.mock('../src/hooks/useTelegramInitData', () => ({
+vi.mock("../src/hooks/useTelegramInitData", () => ({
   useTelegramInitData: vi.fn(),
 }));
 
-vi.mock('react-router-dom', () => ({
+vi.mock("react-router-dom", () => ({
   useNavigate: () => vi.fn(),
 }));
 
-vi.mock('../src/pages/resolveTelegramId', () => ({
+vi.mock("../src/pages/resolveTelegramId", () => ({
   resolveTelegramId: vi.fn(),
 }));
 
-import Profile from '../src/pages/Profile';
-import { saveProfile, getProfile, patchProfile } from '../src/api/profile';
-import { resolveTelegramId } from '../src/pages/resolveTelegramId';
-import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
+import Profile from "../src/pages/Profile";
+import { saveProfile, getProfile } from "../src/api/profile";
+import { patchProfile } from "../src/features/profile/api";
+import { resolveTelegramId } from "../src/pages/resolveTelegramId";
+import { useTelegramInitData } from "../src/hooks/useTelegramInitData";
 
 const originalSupportedValuesOf = (Intl as any).supportedValuesOf;
-describe('Profile page', () => {
+describe("Profile page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (getProfile as vi.Mock).mockResolvedValue({
@@ -46,23 +49,23 @@ describe('Profile page', () => {
       target: 6,
       low: 4,
       high: 10,
-      timezone: 'Europe/Moscow',
+      timezone: "Europe/Moscow",
       timezone_auto: false,
     });
     const realDTF = Intl.DateTimeFormat;
     const realResolved = realDTF.prototype.resolvedOptions;
-    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation((...args: any[]) => {
+    vi.spyOn(Intl, "DateTimeFormat").mockImplementation((...args: any[]) => {
       const formatter = new realDTF(...(args as []));
       return Object.assign(formatter, {
         resolvedOptions: () => ({
           ...realResolved.call(formatter),
-          timeZone: 'Europe/Berlin',
+          timeZone: "Europe/Berlin",
         }),
       });
     });
     (Intl as any).supportedValuesOf = vi
       .fn()
-      .mockReturnValue(['Europe/Moscow', 'Europe/Berlin']);
+      .mockReturnValue(["Europe/Moscow", "Europe/Berlin"]);
   });
 
   afterEach(() => {
@@ -71,121 +74,120 @@ describe('Profile page', () => {
     vi.restoreAllMocks();
   });
 
-  it('blocks save without telegramId and shows toast', () => {
+  it("blocks save without telegramId and shows toast", () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(undefined);
     const { getByText } = render(<Profile />);
-    fireEvent.click(getByText('Сохранить настройки'));
+    fireEvent.click(getByText("Сохранить настройки"));
     expect(saveProfile).not.toHaveBeenCalled();
     expect(patchProfile).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Ошибка',
-        description: 'Некорректный ID пользователя',
-        variant: 'destructive',
+        title: "Ошибка",
+        description: "Некорректный ID пользователя",
+        variant: "destructive",
       }),
     );
   });
 
-  it('blocks save with non-numeric id in initData and shows toast', async () => {
-    const { resolveTelegramId: actualResolveTelegramId } = await vi.importActual<
-      typeof import('../src/pages/resolveTelegramId')
-    >('../src/pages/resolveTelegramId');
-    (resolveTelegramId as vi.Mock).mockImplementation(
-      actualResolveTelegramId,
-    );
+  it("blocks save with non-numeric id in initData and shows toast", async () => {
+    const { resolveTelegramId: actualResolveTelegramId } =
+      await vi.importActual<typeof import("../src/pages/resolveTelegramId")>(
+        "../src/pages/resolveTelegramId",
+      );
+    (resolveTelegramId as vi.Mock).mockImplementation(actualResolveTelegramId);
     (useTelegramInitData as vi.Mock).mockReturnValue(
-      'user=%7B%22id%22%3A%22notnumber%22%7D',
+      "user=%7B%22id%22%3A%22notnumber%22%7D",
     );
     const { getByText } = render(<Profile />);
-    fireEvent.click(getByText('Сохранить настройки'));
+    fireEvent.click(getByText("Сохранить настройки"));
     expect(resolveTelegramId).toHaveBeenCalledWith(
       null,
-      expect.stringContaining('notnumber'),
+      expect.stringContaining("notnumber"),
     );
     expect(saveProfile).not.toHaveBeenCalled();
     expect(patchProfile).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Ошибка',
-        description: 'Некорректный ID пользователя',
-        variant: 'destructive',
+        title: "Ошибка",
+        description: "Некорректный ID пользователя",
+        variant: "destructive",
       }),
     );
   });
 
-  it('blocks save with invalid numeric input and shows toast', () => {
+  it("blocks save with invalid numeric input and shows toast", () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
 
     const { getByText, getByPlaceholderText } = render(<Profile />);
-    const icrInput = getByPlaceholderText('12');
-    fireEvent.change(icrInput, { target: { value: '0' } });
+    const icrInput = getByPlaceholderText("12");
+    fireEvent.change(icrInput, { target: { value: "0" } });
 
-    fireEvent.click(getByText('Сохранить настройки'));
+    fireEvent.click(getByText("Сохранить настройки"));
     expect(saveProfile).not.toHaveBeenCalled();
     expect(patchProfile).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Ошибка',
+        title: "Ошибка",
         description:
-          'Проверьте, что все значения положительны, нижний порог меньше' +
-          ' верхнего, а целевой уровень между ними',
-        variant: 'destructive',
+          "Проверьте, что все значения положительны, нижний порог меньше" +
+          " верхнего, а целевой уровень между ними",
+        variant: "destructive",
       }),
     );
   });
 
-  it('blocks save when target is out of range and shows toast', () => {
+  it("blocks save when target is out of range and shows toast", () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
 
     const { getByText, getByPlaceholderText } = render(<Profile />);
-    const targetInput = getByPlaceholderText('6.0');
-    fireEvent.change(targetInput, { target: { value: '12' } });
+    const targetInput = getByPlaceholderText("6.0");
+    fireEvent.change(targetInput, { target: { value: "12" } });
 
-    fireEvent.click(getByText('Сохранить настройки'));
+    fireEvent.click(getByText("Сохранить настройки"));
     expect(saveProfile).not.toHaveBeenCalled();
     expect(patchProfile).not.toHaveBeenCalled();
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Ошибка',
+        title: "Ошибка",
         description:
-          'Проверьте, что все значения положительны, нижний порог меньше' +
-          ' верхнего, а целевой уровень между ними',
-        variant: 'destructive',
+          "Проверьте, что все значения положительны, нижний порог меньше" +
+          " верхнего, а целевой уровень между ними",
+        variant: "destructive",
       }),
     );
   });
 
-  it('saves profile when values with commas are provided', async () => {
+  it("saves profile when values with commas are provided", async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
 
     const { getByText, getByPlaceholderText } = render(<Profile />);
 
     await waitFor(() => {
-      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+      expect((getByPlaceholderText("12") as HTMLInputElement).value).toBe("12");
     });
 
-    const icrInput = getByPlaceholderText('12') as HTMLInputElement;
-    fireEvent.change(icrInput, { target: { value: '1,5' } });
-    expect(icrInput.value).toBe('1,5');
+    const icrInput = getByPlaceholderText("12") as HTMLInputElement;
+    fireEvent.change(icrInput, { target: { value: "1,5" } });
+    expect(icrInput.value).toBe("1,5");
 
-    const cfInput = getByPlaceholderText('2.5') as HTMLInputElement;
-    fireEvent.change(cfInput, { target: { value: '2,5' } });
-    expect(cfInput.value).toBe('2,5');
+    const cfInput = getByPlaceholderText("2.5") as HTMLInputElement;
+    fireEvent.change(cfInput, { target: { value: "2,5" } });
+    expect(cfInput.value).toBe("2,5");
 
-    const targetInput = getByPlaceholderText('6.0') as HTMLInputElement;
-    fireEvent.change(targetInput, { target: { value: '5,5' } });
-    expect(targetInput.value).toBe('5,5');
+    const targetInput = getByPlaceholderText("6.0") as HTMLInputElement;
+    fireEvent.change(targetInput, { target: { value: "5,5" } });
+    expect(targetInput.value).toBe("5,5");
 
-    const lowInput = getByPlaceholderText('4.0') as HTMLInputElement;
-    fireEvent.change(lowInput, { target: { value: '4,0' } });
-    expect(lowInput.value).toBe('4,0');
+    const lowInput = getByPlaceholderText("4.0") as HTMLInputElement;
+    fireEvent.change(lowInput, { target: { value: "4,0" } });
+    expect(lowInput.value).toBe("4,0");
 
-    const highInput = getByPlaceholderText('10.0') as HTMLInputElement;
-    fireEvent.change(highInput, { target: { value: '10,0' } });
-    expect(highInput.value).toBe('10,0');
+    const highInput = getByPlaceholderText("10.0") as HTMLInputElement;
+    fireEvent.change(highInput, { target: { value: "10,0" } });
+    expect(highInput.value).toBe("10,0");
 
-    fireEvent.click(getByText('Сохранить настройки'));
+    fireEvent.click(getByText("Сохранить настройки"));
 
     await waitFor(() => {
       expect(saveProfile).toHaveBeenCalledWith({
@@ -197,16 +199,16 @@ describe('Profile page', () => {
         high: 10,
       });
       expect(patchProfile).toHaveBeenCalledWith({
-        timezone: 'Europe/Moscow',
-        timezone_auto: false,
+        timezone: "Europe/Moscow",
+        auto_detect_timezone: false,
       });
       expect(toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Профиль сохранен' }),
+        expect.objectContaining({ title: "Профиль сохранен" }),
       );
     });
   });
 
-  it('auto updates timezone on mount when timezone_auto is true', async () => {
+  it("auto updates timezone on mount when timezone_auto is true", async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue({
       telegramId: 123,
@@ -215,7 +217,7 @@ describe('Profile page', () => {
       target: 6,
       low: 4,
       high: 10,
-      timezone: 'Europe/Moscow',
+      timezone: "Europe/Moscow",
       timezone_auto: true,
     });
 
@@ -223,13 +225,13 @@ describe('Profile page', () => {
 
     await waitFor(() => {
       expect(patchProfile).toHaveBeenCalledWith({
-        timezone: 'Europe/Berlin',
-        timezone_auto: true,
+        timezone: "Europe/Berlin",
+        auto_detect_timezone: true,
       });
     });
   });
 
-  it('allows manual timezone selection and sends to server on save', async () => {
+  it("allows manual timezone selection and sends to server on save", async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
     (getProfile as vi.Mock).mockResolvedValue({
@@ -239,31 +241,33 @@ describe('Profile page', () => {
       target: 6,
       low: 4,
       high: 10,
-      timezone: 'Europe/Moscow',
+      timezone: "Europe/Moscow",
       timezone_auto: false,
     });
 
-    const { getByLabelText, getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByLabelText, getByText, getByPlaceholderText } = render(
+      <Profile />,
+    );
 
     await waitFor(() => {
-      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('6');
+      expect((getByPlaceholderText("12") as HTMLInputElement).value).toBe("6");
     });
 
-    const tzInput = getByLabelText('Часовой пояс') as HTMLInputElement;
-    fireEvent.change(tzInput, { target: { value: 'Europe/Berlin' } });
+    const tzInput = getByLabelText("Часовой пояс") as HTMLInputElement;
+    fireEvent.change(tzInput, { target: { value: "Europe/Berlin" } });
 
-    fireEvent.click(getByText('Сохранить настройки'));
+    fireEvent.click(getByText("Сохранить настройки"));
 
     await waitFor(() => {
       expect(patchProfile).toHaveBeenCalledWith({
-        timezone: 'Europe/Berlin',
-        timezone_auto: false,
+        timezone: "Europe/Berlin",
+        auto_detect_timezone: false,
       });
       expect(saveProfile).toHaveBeenCalled();
     });
   });
 
-  it('loads profile on mount and updates form', async () => {
+  it("loads profile on mount and updates form", async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue({
       telegramId: 123,
@@ -278,11 +282,11 @@ describe('Profile page', () => {
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
-    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
-    expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('3');
+    expect((getByPlaceholderText("12") as HTMLInputElement).value).toBe("15");
+    expect((getByPlaceholderText("2.5") as HTMLInputElement).value).toBe("3");
   });
 
-  it('shows toast and defaults when profile data is incomplete', async () => {
+  it("shows toast and defaults when profile data is incomplete", async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue({
       telegramId: 123,
@@ -294,21 +298,21 @@ describe('Profile page', () => {
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
-    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
-    expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('3');
-    expect((getByPlaceholderText('6.0') as HTMLInputElement).value).toBe('');
-    expect((getByPlaceholderText('4.0') as HTMLInputElement).value).toBe('');
+    expect((getByPlaceholderText("12") as HTMLInputElement).value).toBe("15");
+    expect((getByPlaceholderText("2.5") as HTMLInputElement).value).toBe("3");
+    expect((getByPlaceholderText("6.0") as HTMLInputElement).value).toBe("");
+    expect((getByPlaceholderText("4.0") as HTMLInputElement).value).toBe("");
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Ошибка',
-        description: 'Профиль заполнен не полностью',
-        variant: 'destructive',
+        title: "Ошибка",
+        description: "Профиль заполнен не полностью",
+        variant: "destructive",
       }),
     );
     expect(patchProfile).not.toHaveBeenCalled();
   });
 
-  it('shows toast and clears zero values from profile data', async () => {
+  it("shows toast and clears zero values from profile data", async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue({
       telegramId: 123,
@@ -324,25 +328,25 @@ describe('Profile page', () => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
 
-    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
-    expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('');
-    expect((getByPlaceholderText('6.0') as HTMLInputElement).value).toBe('5');
-    expect((getByPlaceholderText('4.0') as HTMLInputElement).value).toBe('3');
-    expect((getByPlaceholderText('10.0') as HTMLInputElement).value).toBe('8');
+    expect((getByPlaceholderText("12") as HTMLInputElement).value).toBe("15");
+    expect((getByPlaceholderText("2.5") as HTMLInputElement).value).toBe("");
+    expect((getByPlaceholderText("6.0") as HTMLInputElement).value).toBe("5");
+    expect((getByPlaceholderText("4.0") as HTMLInputElement).value).toBe("3");
+    expect((getByPlaceholderText("10.0") as HTMLInputElement).value).toBe("8");
 
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Ошибка',
-        description: 'Профиль заполнен не полностью',
-        variant: 'destructive',
+        title: "Ошибка",
+        description: "Профиль заполнен не полностью",
+        variant: "destructive",
       }),
     );
     expect(patchProfile).not.toHaveBeenCalled();
   });
 
-  it('shows toast when profile load fails', async () => {
+  it("shows toast when profile load fails", async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    (getProfile as vi.Mock).mockRejectedValue(new Error('load failed'));
+    (getProfile as vi.Mock).mockRejectedValue(new Error("load failed"));
 
     const { getByPlaceholderText } = render(<Profile />);
     await waitFor(() => {
@@ -350,54 +354,54 @@ describe('Profile page', () => {
     });
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: 'Ошибка',
-        description: 'load failed',
-        variant: 'destructive',
+        title: "Ошибка",
+        description: "load failed",
+        variant: "destructive",
       }),
     );
-    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('');
+    expect((getByPlaceholderText("12") as HTMLInputElement).value).toBe("");
     expect(patchProfile).not.toHaveBeenCalled();
   });
 
-  it('shows warning modal and blocks save until confirmation', async () => {
+  it("shows warning modal and blocks save until confirmation", async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     const { getByText, getByPlaceholderText } = render(<Profile />);
 
     await waitFor(() => {
-      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+      expect((getByPlaceholderText("12") as HTMLInputElement).value).toBe("12");
     });
 
-    fireEvent.click(getByText('Сохранить настройки'));
+    fireEvent.click(getByText("Сохранить настройки"));
 
     await waitFor(() => {
       expect(toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Проверьте значения' }),
+        expect.objectContaining({ title: "Проверьте значения" }),
       );
     });
 
     expect(
       getByText(
-        'ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности введенных данных',
+        "ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности введенных данных",
       ),
     ).toBeTruthy();
     expect(saveProfile).not.toHaveBeenCalled();
     expect(patchProfile).not.toHaveBeenCalled();
   });
 
-  it('saves after user confirms warning', async () => {
+  it("saves after user confirms warning", async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
 
     const { getByText, getByPlaceholderText } = render(<Profile />);
 
     await waitFor(() => {
-      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+      expect((getByPlaceholderText("12") as HTMLInputElement).value).toBe("12");
     });
 
-    fireEvent.click(getByText('Сохранить настройки'));
+    fireEvent.click(getByText("Сохранить настройки"));
 
-    await waitFor(() => getByText('Продолжить'));
-    fireEvent.click(getByText('Продолжить'));
+    await waitFor(() => getByText("Продолжить"));
+    fireEvent.click(getByText("Продолжить"));
 
     await waitFor(() => {
       expect(saveProfile).toHaveBeenCalledWith({
@@ -409,41 +413,39 @@ describe('Profile page', () => {
         high: 10,
       });
       expect(patchProfile).toHaveBeenCalledWith({
-        timezone: 'Europe/Moscow',
-        timezone_auto: false,
+        timezone: "Europe/Moscow",
+        auto_detect_timezone: false,
       });
       expect(toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: 'Профиль сохранен' }),
+        expect.objectContaining({ title: "Профиль сохранен" }),
       );
     });
   });
 });
 
-describe('resolveTelegramId', () => {
-  it('returns undefined for NaN user id', async () => {
+describe("resolveTelegramId", () => {
+  it("returns undefined for NaN user id", async () => {
     const { resolveTelegramId } = await vi.importActual<
-      typeof import('../src/pages/resolveTelegramId')
-    >('../src/pages/resolveTelegramId');
+      typeof import("../src/pages/resolveTelegramId")
+    >("../src/pages/resolveTelegramId");
     expect(resolveTelegramId({ id: Number.NaN }, null)).toBeUndefined();
   });
 
-  it('returns undefined for non-numeric id in initData', async () => {
+  it("returns undefined for non-numeric id in initData", async () => {
     const { resolveTelegramId } = await vi.importActual<
-      typeof import('../src/pages/resolveTelegramId')
-    >('../src/pages/resolveTelegramId');
+      typeof import("../src/pages/resolveTelegramId")
+    >("../src/pages/resolveTelegramId");
     const initData = `user=${encodeURIComponent(
-      JSON.stringify({ id: 'abc' }),
+      JSON.stringify({ id: "abc" }),
     )}`;
     expect(resolveTelegramId(null, initData)).toBeUndefined();
   });
 
-  it('treats 0 as valid user id and ignores initData', async () => {
+  it("treats 0 as valid user id and ignores initData", async () => {
     const { resolveTelegramId } = await vi.importActual<
-      typeof import('../src/pages/resolveTelegramId')
-    >('../src/pages/resolveTelegramId');
-    const initData = `user=${encodeURIComponent(
-      JSON.stringify({ id: 123 }),
-    )}`;
+      typeof import("../src/pages/resolveTelegramId")
+    >("../src/pages/resolveTelegramId");
+    const initData = `user=${encodeURIComponent(JSON.stringify({ id: 123 }))}`;
     expect(resolveTelegramId({ id: 0 }, initData)).toBe(0);
   });
 });

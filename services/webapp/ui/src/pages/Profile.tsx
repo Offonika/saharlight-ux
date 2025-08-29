@@ -7,7 +7,8 @@ import MedicalButton from "@/components/MedicalButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Modal from "@/components/Modal";
-import { saveProfile, getProfile, patchProfile } from "@/api/profile";
+import { saveProfile, getProfile } from "@/api/profile";
+import { patchProfile } from "@/features/profile/api";
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
@@ -71,20 +72,21 @@ const Profile = () => {
 
   const [warningOpen, setWarningOpen] = useState(false);
   const [pendingProfile, setPendingProfile] = useState<
-    (
-      ParsedProfile & {
+    | (ParsedProfile & {
         telegramId: number;
         timezone: string;
         timezoneAuto: boolean;
-      }
-    ) | null
+      })
+    | null
   >(null);
 
   useEffect(() => {
     try {
       setTimezones(Intl.supportedValuesOf("timeZone"));
     } catch {
-      getTimezones().then(setTimezones).catch(() => undefined);
+      getTimezones()
+        .then(setTimezones)
+        .catch(() => undefined);
     }
   }, []);
 
@@ -106,9 +108,7 @@ const Profile = () => {
             ? data.icr.toString()
             : "";
         const cf =
-          typeof data.cf === "number" && data.cf > 0
-            ? data.cf.toString()
-            : "";
+          typeof data.cf === "number" && data.cf > 0 ? data.cf.toString() : "";
         const target =
           typeof data.target === "number" && data.target > 0
             ? data.target.toString()
@@ -142,9 +142,25 @@ const Profile = () => {
         });
 
         if (timezoneAuto && timezone !== deviceTz) {
-          patchProfile({ timezone: deviceTz, timezone_auto: true }).catch(
-            () => undefined,
-          );
+          patchProfile({
+            timezone: deviceTz,
+            auto_detect_timezone: true,
+          })
+            .then(() =>
+              toast({
+                title: "Профиль обновлён",
+                description: "Часовой пояс обновлён автоматически",
+              }),
+            )
+            .catch((error) => {
+              const message =
+                error instanceof Error ? error.message : String(error);
+              toast({
+                title: "Ошибка",
+                description: message,
+                variant: "destructive",
+              });
+            });
           setProfile((prev) => ({ ...prev, timezone: deviceTz }));
         }
 
@@ -190,8 +206,8 @@ const Profile = () => {
   ): Promise<void> => {
     try {
       await patchProfile({
-        timezone: data.timezone,
-        timezone_auto: data.timezoneAuto,
+        timezone: data.timezone ?? null,
+        auto_detect_timezone: data.timezoneAuto ?? null,
       });
       await saveProfile({
         telegramId: data.telegramId,
@@ -302,216 +318,225 @@ const Profile = () => {
 
         <main className="container mx-auto px-4 py-6">
           <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <div className="space-y-6">
-            {/* ICR */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                ICR (Инсулино-углеводное соотношение)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.icr}
-                  onChange={(e) => handleInputChange("icr", e.target.value)}
-                  className="medical-input"
-                  placeholder="12"
-                />
-                <span className="absolute right-3 top-3 text-muted-foreground text-sm">
-                  г/ед.
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Сколько граммов углеводов покрывает 1 единица инсулина
-              </p>
-            </div>
-
-            {/* Коэффициент коррекции */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Коэффициент коррекции (КЧ)
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.cf}
-                  onChange={(e) => handleInputChange("cf", e.target.value)}
-                  className="medical-input"
-                  placeholder="2.5"
-                />
-                <span className="absolute right-3 top-3 text-muted-foreground text-sm">
-                  ммоль/л
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                На сколько снижает сахар 1 единица инсулина
-              </p>
-            </div>
-
-            {/* Целевой сахар */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Целевой уровень сахара
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.target}
-                  onChange={(e) => handleInputChange("target", e.target.value)}
-                  className="medical-input"
-                  placeholder="6.0"
-                />
-                <span className="absolute right-3 top-3 text-muted-foreground text-sm">
-                  ммоль/л
-                </span>
-              </div>
-            </div>
-
-            {/* Пороги */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6">
+              {/* ICR */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Нижний порог
+                  ICR (Инсулино-углеводное соотношение)
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     inputMode="decimal"
                     pattern="^\\d*(?:[.,]\\d*)?$"
-                    value={profile.low}
-                    onChange={(e) => handleInputChange("low", e.target.value)}
+                    value={profile.icr}
+                    onChange={(e) => handleInputChange("icr", e.target.value)}
                     className="medical-input"
-                    placeholder="4.0"
+                    placeholder="12"
                   />
-                  <span className="absolute right-3 top-3 text-muted-foreground text-xs">
-                    ммоль/л
+                  <span className="absolute right-3 top-3 text-muted-foreground text-sm">
+                    г/ед.
                   </span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Сколько граммов углеводов покрывает 1 единица инсулина
+                </p>
               </div>
 
+              {/* Коэффициент коррекции */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Верхний порог
+                  Коэффициент коррекции (КЧ)
                 </label>
                 <div className="relative">
                   <input
                     type="text"
                     inputMode="decimal"
                     pattern="^\\d*(?:[.,]\\d*)?$"
-                    value={profile.high}
-                    onChange={(e) => handleInputChange("high", e.target.value)}
+                    value={profile.cf}
+                    onChange={(e) => handleInputChange("cf", e.target.value)}
                     className="medical-input"
-                    placeholder="10.0"
+                    placeholder="2.5"
                   />
-                  <span className="absolute right-3 top-3 text-muted-foreground text-xs">
+                  <span className="absolute right-3 top-3 text-muted-foreground text-sm">
                     ммоль/л
                   </span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  На сколько снижает сахар 1 единица инсулина
+                </p>
               </div>
-            </div>
 
-            {/* Таймзона */}
-            <div>
-              <label
-                htmlFor="timezone"
-                className="block text-sm font-medium text-foreground mb-2"
-              >
-                Часовой пояс
-              </label>
-              <input
-                id="timezone"
-                type="text"
-                list="timezone-list"
-                value={profile.timezone}
-                onChange={(e) => handleInputChange("timezone", e.target.value)}
-                className="medical-input"
-                disabled={profile.timezoneAuto}
-              />
-              <datalist id="timezone-list">
-                {timezones.map((tz) => {
-                  let label = tz;
-                  try {
-                    const parts = new Intl.DateTimeFormat("en-US", {
-                      timeZone: tz,
-                      timeZoneName: "short",
-                    })
-                      .formatToParts(new Date())
-                      .find((p) => p.type === "timeZoneName")?.value;
-                    if (parts) {
-                      const m = parts.match(/GMT([+-]\d{1,2})(?::(\d{2}))?/);
-                      if (m) {
-                        const sign = m[1].startsWith("-") ? "-" : "+";
-                        const hours = Math.abs(parseInt(m[1], 10))
-                          .toString()
-                          .padStart(2, "0");
-                        const minutes = m[2] ?? "00";
-                        label = `UTC${sign}${hours}:${minutes} — ${tz}`;
-                      }
+              {/* Целевой сахар */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Целевой уровень сахара
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="^\\d*(?:[.,]\\d*)?$"
+                    value={profile.target}
+                    onChange={(e) =>
+                      handleInputChange("target", e.target.value)
                     }
-                  } catch {
-                    /* empty */
-                  }
-                  return <option key={tz} value={tz} label={label} />;
-                })}
-              </datalist>
-              <div className="mt-2 flex items-center gap-2">
-                <Checkbox
-                  id="timezone-auto"
-                  checked={profile.timezoneAuto}
-                  onCheckedChange={(checked) => {
-                    const auto = Boolean(checked);
-                    setProfile((prev) => ({
-                      ...prev,
-                      timezoneAuto: auto,
-                      timezone: auto ? deviceTz : prev.timezone,
-                    }));
-                  }}
-                />
-                <label htmlFor="timezone-auto" className="text-sm text-foreground">
-                  Определять автоматически
-                </label>
+                    className="medical-input"
+                    placeholder="6.0"
+                  />
+                  <span className="absolute right-3 top-3 text-muted-foreground text-sm">
+                    ммоль/л
+                  </span>
+                </div>
               </div>
+
+              {/* Пороги */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Нижний порог
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      pattern="^\\d*(?:[.,]\\d*)?$"
+                      value={profile.low}
+                      onChange={(e) => handleInputChange("low", e.target.value)}
+                      className="medical-input"
+                      placeholder="4.0"
+                    />
+                    <span className="absolute right-3 top-3 text-muted-foreground text-xs">
+                      ммоль/л
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Верхний порог
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      pattern="^\\d*(?:[.,]\\d*)?$"
+                      value={profile.high}
+                      onChange={(e) =>
+                        handleInputChange("high", e.target.value)
+                      }
+                      className="medical-input"
+                      placeholder="10.0"
+                    />
+                    <span className="absolute right-3 top-3 text-muted-foreground text-xs">
+                      ммоль/л
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Таймзона */}
+              <div>
+                <label
+                  htmlFor="timezone"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
+                  Часовой пояс
+                </label>
+                <input
+                  id="timezone"
+                  type="text"
+                  list="timezone-list"
+                  value={profile.timezone}
+                  onChange={(e) =>
+                    handleInputChange("timezone", e.target.value)
+                  }
+                  className="medical-input"
+                  disabled={profile.timezoneAuto}
+                />
+                <datalist id="timezone-list">
+                  {timezones.map((tz) => {
+                    let label = tz;
+                    try {
+                      const parts = new Intl.DateTimeFormat("en-US", {
+                        timeZone: tz,
+                        timeZoneName: "short",
+                      })
+                        .formatToParts(new Date())
+                        .find((p) => p.type === "timeZoneName")?.value;
+                      if (parts) {
+                        const m = parts.match(/GMT([+-]\d{1,2})(?::(\d{2}))?/);
+                        if (m) {
+                          const sign = m[1].startsWith("-") ? "-" : "+";
+                          const hours = Math.abs(parseInt(m[1], 10))
+                            .toString()
+                            .padStart(2, "0");
+                          const minutes = m[2] ?? "00";
+                          label = `UTC${sign}${hours}:${minutes} — ${tz}`;
+                        }
+                      }
+                    } catch {
+                      /* empty */
+                    }
+                    return <option key={tz} value={tz} label={label} />;
+                  })}
+                </datalist>
+                <div className="mt-2 flex items-center gap-2">
+                  <Checkbox
+                    id="timezone-auto"
+                    checked={profile.timezoneAuto}
+                    onCheckedChange={(checked) => {
+                      const auto = Boolean(checked);
+                      setProfile((prev) => ({
+                        ...prev,
+                        timezoneAuto: auto,
+                        timezone: auto ? deviceTz : prev.timezone,
+                      }));
+                    }}
+                  />
+                  <label
+                    htmlFor="timezone-auto"
+                    className="text-sm text-foreground"
+                  >
+                    Определять автоматически
+                  </label>
+                </div>
+              </div>
+
+              {/* Кнопка сохранения */}
+              <MedicalButton
+                onClick={handleSave}
+                className="w-full flex items-center justify-center gap-2"
+                variant="medical"
+                size="lg"
+              >
+                <Save className="w-4 h-4" />
+                Сохранить настройки
+              </MedicalButton>
             </div>
-
-            {/* Кнопка сохранения */}
-            <MedicalButton
-              onClick={handleSave}
-              className="w-full flex items-center justify-center gap-2"
-              variant="medical"
-              size="lg"
-            >
-              <Save className="w-4 h-4" />
-              Сохранить настройки
-            </MedicalButton>
           </div>
-        </div>
 
-        {/* Дополнительная информация */}
-        <div className="mt-6 medical-card bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
-          <h3 className="font-semibold text-foreground mb-3">Справка</h3>
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              <strong className="text-foreground">ICR</strong> - показывает,
-              сколько граммов углеводов покрывает 1 единица быстрого инсулина
-            </p>
-            <p>
-              <strong className="text-foreground">КЧ</strong> - показывает, на
-              сколько ммоль/л снижает уровень глюкозы 1 единица быстрого
-              инсулина
-            </p>
-            <p>
-              Эти параметры индивидуальны и должны быть определены совместно с
-              вашим врачом
-            </p>
+          {/* Дополнительная информация */}
+          <div className="mt-6 medical-card bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
+            <h3 className="font-semibold text-foreground mb-3">Справка</h3>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                <strong className="text-foreground">ICR</strong> - показывает,
+                сколько граммов углеводов покрывает 1 единица быстрого инсулина
+              </p>
+              <p>
+                <strong className="text-foreground">КЧ</strong> - показывает, на
+                сколько ммоль/л снижает уровень глюкозы 1 единица быстрого
+                инсулина
+              </p>
+              <p>
+                Эти параметры индивидуальны и должны быть определены совместно с
+                вашим врачом
+              </p>
+            </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
     </>
   );
 };

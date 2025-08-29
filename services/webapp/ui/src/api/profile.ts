@@ -65,38 +65,3 @@ export async function saveProfile({
     throw error;
   }
 }
-
-export async function patchProfile({
-  timezone,
-  timezone_auto,
-}: {
-  timezone: string
-  timezone_auto: boolean
-}) {
-  const headers = {
-    'Content-Type': 'application/json',
-    ...getTelegramAuthHeaders(),
-  } as HeadersInit
-
-  try {
-    const res = await fetch('/api/profile', {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ timezone, timezone_auto }),
-    })
-
-    if (!res.ok) {
-      const errorText = await res.text().catch(() => '')
-      const msg = errorText || 'Request failed'
-      throw new Error(msg)
-    }
-
-    return (await res.json().catch(() => ({}))) as unknown
-  } catch (error) {
-    console.error('Failed to update profile:', error)
-    if (error instanceof Error) {
-      throw new Error(`Не удалось обновить профиль: ${error.message}`)
-    }
-    throw error
-  }
-}
