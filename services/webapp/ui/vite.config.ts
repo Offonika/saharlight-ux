@@ -94,7 +94,10 @@ export default defineConfig(async ({ mode, command }) => {
       sourcemap: true,
       rollupOptions: {
         ...(mode === 'development' ? { treeshake: false } : {}),
-        input: { main: path.resolve(__dirname, 'index.html') }, // ❗ только index.html
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          timezone: path.resolve(__dirname, 'public/timezone.html'),
+        },
         preserveEntrySignatures: 'strict',
         output: {
           entryFileNames: 'assets/[name]-[hash].js',

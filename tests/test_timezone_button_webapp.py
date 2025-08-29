@@ -24,4 +24,4 @@ def test_timezone_button_webapp_enabled(monkeypatch: pytest.MonkeyPatch) -> None
     assert isinstance(button, InlineKeyboardButton)
     web_app = button.web_app
     assert web_app is not None
-    assert web_app.url.endswith("/timezone")
+    assert web_app.url.endswith("/timezone.html")
