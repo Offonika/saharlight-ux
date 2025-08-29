@@ -80,11 +80,23 @@ export interface ProfileSchema {
      */
     sosAlertsEnabled?: boolean;
     /**
-     * 
+     *
      * @type {number}
      * @memberof ProfileSchema
      */
     orgId?: number | null;
+    /**
+     *
+     * @type {string}
+     * @memberof ProfileSchema
+     */
+    timezone?: string;
+    /**
+     *
+     * @type {boolean}
+     * @memberof ProfileSchema
+     */
+    timezoneAuto?: boolean;
 }
 
 /**
@@ -120,6 +132,8 @@ export function ProfileSchemaFromJSONTyped(json: any, ignoreDiscriminator: boole
         'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
         'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
         'orgId': json['orgId'] == null ? undefined : json['orgId'],
+        'timezone': json['timezone'] == null ? undefined : json['timezone'],
+        'timezoneAuto': json['timezoneAuto'] == null ? undefined : json['timezoneAuto'],
     };
 }
 
@@ -145,6 +159,8 @@ export function ProfileSchemaToJSONTyped(value?: ProfileSchema | null, ignoreDis
         'sosContact': value['sosContact'],
         'sosAlertsEnabled': value['sosAlertsEnabled'],
         'orgId': value['orgId'],
+        'timezone': value['timezone'],
+        'timezoneAuto': value['timezoneAuto'],
     };
 }
 

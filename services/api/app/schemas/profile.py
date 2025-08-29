@@ -53,6 +53,16 @@ class ProfileSchema(BaseModel):
         alias="sosAlertsEnabled",
         validation_alias=AliasChoices("sosAlertsEnabled", "sos_alerts_enabled"),
     )
+    timezone: str = Field(
+        default="UTC",
+        alias="timezone",
+        validation_alias=AliasChoices("timezone"),
+    )
+    timezoneAuto: bool = Field(
+        default=True,
+        alias="timezoneAuto",
+        validation_alias=AliasChoices("timezoneAuto", "timezone_auto"),
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 

@@ -33,6 +33,11 @@ export interface ProfilesPostRequest {
     profileSchema: ProfileSchema;
 }
 
+export interface ProfilePatchRequest {
+    profilePatch: { timezone?: string; timezoneAuto?: boolean };
+    deviceTz?: string;
+}
+
 /**
  * 
  */
@@ -122,6 +127,45 @@ export class ProfilesApi extends runtime.BaseAPI {
      */
     async profilesPost(requestParameters: ProfilesPostRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSchema> {
         const response = await this.profilesPostRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Profile Patch
+     */
+    async profilePatchRaw(requestParameters: ProfilePatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any; }>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['deviceTz'] != null) {
+            queryParameters['deviceTz'] = requestParameters['deviceTz'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.apiKey) {
+            headerParameters["X-Telegram-Init-Data"] = await this.configuration.apiKey("X-Telegram-Init-Data"); // telegramInitData authentication
+        }
+
+        let urlPath = `/profile`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: requestParameters['profilePatch'],
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Profile Patch
+     */
+    async profilePatch(requestParameters: ProfilePatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any; }> {
+        const response = await this.profilePatchRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

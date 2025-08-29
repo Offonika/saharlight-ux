@@ -163,6 +163,55 @@ async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserCont
     return user
 
 
+class ProfilePatch(BaseModel):
+    timezone: str | None = None
+    timezoneAuto: bool | None = Field(
+        default=None,
+        alias="timezoneAuto",
+        validation_alias=AliasChoices("timezoneAuto", "timezone_auto"),
+    )
+
+
+@api_router.patch("/profile")
+async def profile_patch(
+    data: ProfilePatch,
+    device_tz: str | None = Query(None, alias="deviceTz"),
+    user: UserContext = Depends(require_tg_user),
+) -> dict[str, str]:
+    if data.timezone:
+        try:
+            ZoneInfo(data.timezone)
+        except ZoneInfoNotFoundError as exc:  # pragma: no cover - validation
+            raise HTTPException(status_code=400, detail="invalid timezone") from exc
+    if device_tz:
+        try:
+            ZoneInfo(device_tz)
+        except ZoneInfoNotFoundError as exc:  # pragma: no cover - validation
+            raise HTTPException(status_code=400, detail="invalid device timezone") from exc
+
+    def _patch(session: Session) -> None:
+        db_user = session.get(UserDB, user["id"])
+        if db_user is None:
+            db_user = UserDB(telegram_id=user["id"], thread_id="api")
+            session.add(db_user)
+
+        if data.timezone is not None:
+            db_user.timezone = data.timezone
+        if data.timezoneAuto is not None:
+            db_user.timezone_auto = data.timezoneAuto
+
+        if db_user.timezone_auto and device_tz and db_user.timezone != device_tz:
+            db_user.timezone = device_tz
+
+        try:
+            commit(session)
+        except CommitError:
+            raise HTTPException(status_code=500, detail="db commit failed")
+
+    await run_db(_patch)
+    return {"status": "ok"}
+
+
 # ────────── static UI files ──────────
 @app.get(f"{get_ui_base_url()}/{{full_path:path}}", include_in_schema=False)
 async def catch_all_ui(full_path: str) -> FileResponse:
