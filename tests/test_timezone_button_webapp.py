@@ -1,4 +1,5 @@
 import pytest
+from pathlib import Path
 from telegram import InlineKeyboardButton
 
 import services.api.app.config as config
@@ -25,3 +26,10 @@ def test_timezone_button_webapp_enabled(monkeypatch: pytest.MonkeyPatch) -> None
     web_app = button.web_app
     assert web_app is not None
     assert web_app.url.endswith("/timezone.html")
+
+
+def test_timezone_page_loads_sdk_and_sends_timezone() -> None:
+    """Timezone webapp should include Telegram SDK and send timezone."""
+    html = Path("services/webapp/ui/public/timezone.html").read_text(encoding="utf-8")
+    assert "https://telegram.org/js/telegram-web-app.js" in html
+    assert "window.Telegram.WebApp.sendData" in html
