@@ -276,7 +276,12 @@ class ReminderLog(Base):
     reminder_id: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("reminders.id")
     )
-    telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger)
+    telegram_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger,
+        ForeignKey("users.telegram_id"),
+        index=True,
+        nullable=True,
+    )
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     action: Mapped[Optional[str]] = mapped_column(String)
     snooze_minutes: Mapped[Optional[int]] = mapped_column(Integer)
