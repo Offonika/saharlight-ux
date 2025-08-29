@@ -1,15 +1,32 @@
-import { Configuration, ProfilesApi, ProfileSchema } from '@sdk';
+import type { ProfileSchema } from '@sdk';
+import { getTelegramAuthHeaders } from '@/lib/telegram-auth';
 
-const api = new ProfilesApi(
-  new Configuration({
-    basePath: '/api',
-    // apiKey: localStorage.getItem('token') ?? undefined,
-  }),
-);
+export async function saveProfile({
+  telegramId,
+  icr,
+  cf,
+  target,
+  low,
+  high,
+}: ProfileSchema) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...getTelegramAuthHeaders(),
+  } as HeadersInit;
 
-export async function saveProfile(profile: ProfileSchema) {
   try {
-    return await api.profilesPost({ profileSchema: profile });
+    const res = await fetch('/api/profiles', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ telegramId, icr, cf, target, low, high }),
+    });
+
+    const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok) {
+      const msg = typeof data.detail === 'string' ? data.detail : 'Request failed';
+      throw new Error(msg);
+    }
+    return data as ProfileSchema;
   } catch (error) {
     console.error('Failed to save profile:', error);
     if (error instanceof Error) {
