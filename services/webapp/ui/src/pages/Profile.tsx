@@ -43,6 +43,8 @@ export const parseProfile = (profile: ProfileForm): ParsedProfile | null => {
   return numbersValid && rangeValid ? parsed : null;
 };
 
+export const shouldWarnProfile = (profile: ParsedProfile): boolean =>
+  profile.icr > 8 && profile.cf < 3;
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -130,6 +132,15 @@ const Profile = () => {
           "Проверьте, что все значения положительны, нижний порог меньше верхнего," +
           " а целевой уровень между ними",
         variant: "destructive",
+      });
+      return;
+    }
+
+    if (shouldWarnProfile(parsed)) {
+      toast({
+        title: "Проверьте значения",
+        description:
+          "ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности введенных данных",
       });
       return;
     }
