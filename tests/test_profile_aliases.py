@@ -18,11 +18,13 @@ def _create_app() -> FastAPI:
 def test_profile_schema_accepts_aliases_and_computes_target() -> None:
     data = ProfileSchema(
         telegramId=1,
-        cf=1.0,
+        icr=1.0,
+        cf=2.0,
         targetLow=4.0,
         targetHigh=6.0,
     )
-    assert data.ratio == 1.0
+    assert data.icr == 1.0
+    assert data.cf == 2.0
     assert data.low == 4.0
     assert data.high == 6.0
     assert data.target == 5.0
@@ -39,6 +41,7 @@ def test_profiles_post_alias_mismatch_returns_422(field: str, value: dict) -> No
     app = _create_app()
     payload = {
         "telegramId": 1,
+        "icr": 1.0,
         "cf": 1.0,
         **value,
     }
