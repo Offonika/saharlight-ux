@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Save } from "lucide-react";
 import { MedicalHeader } from "@/components/MedicalHeader";
 import { useToast } from "@/hooks/use-toast";
 import MedicalButton from "@/components/MedicalButton";
-import { saveProfile } from "@/api/profile";
+import { saveProfile, getProfile } from "@/api/profile";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
 
@@ -55,6 +55,51 @@ const Profile = () => {
     low: "4.0",
     high: "10.0",
   });
+
+  useEffect(() => {
+    let telegramId = user?.id;
+    if (!telegramId) {
+      let userStr: string | null = null;
+      if (initData) {
+        try {
+          userStr = new URLSearchParams(initData).get("user");
+        } catch (e) {
+          console.error("[Profile] failed to parse initData:", e);
+        }
+      }
+      if (userStr) {
+        try {
+          const parsed = JSON.parse(userStr);
+          telegramId = typeof parsed.id === "number" ? parsed.id : undefined;
+        } catch (e) {
+          console.error("[Profile] failed to parse initData user:", e);
+        }
+      }
+    }
+
+    if (typeof telegramId !== "number") {
+      return;
+    }
+
+    getProfile(telegramId)
+      .then((data) => {
+        setProfile({
+          icr: data.icr.toString(),
+          cf: data.cf.toString(),
+          target: data.target.toString(),
+          low: data.low.toString(),
+          high: data.high.toString(),
+        });
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        toast({
+          title: "Ошибка",
+          description: message,
+          variant: "destructive",
+        });
+      });
+  }, []);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
