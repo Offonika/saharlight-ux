@@ -1,45 +1,48 @@
-import { http } from './http';
+import { Configuration } from '@sdk/runtime.ts';
+import { HistoryApi } from '@sdk/apis';
+import type { HistoryRecordSchemaInput, HistoryRecordSchemaOutput } from '@sdk/models';
+import { getTelegramAuthHeaders } from '@/lib/telegram-auth';
 
-export interface HistoryRecord {
-  id: string;
-  date: string;
-  time: string;
-  sugar?: number;
-  carbs?: number;
-  breadUnits?: number;
-  insulin?: number;
-  notes?: string;
-  type: 'measurement' | 'meal' | 'insulin';
+function makeApi(): HistoryApi {
+  const cfg = new Configuration({
+    basePath: '/api',
+    headers: getTelegramAuthHeaders(),
+  });
+  return new HistoryApi(cfg);
 }
 
-export async function getHistory(): Promise<HistoryRecord[]> {
+export async function getHistory(): Promise<(HistoryRecordSchemaOutput & { date: Date })[]> {
   try {
-    const data = await http.get<unknown>('/history');
-    if (!Array.isArray(data)) {
-      throw new Error('Некорректный ответ');
-    }
-    return data as HistoryRecord[];
+    const api = makeApi();
+    const data = await api.historyGet();
+    return data.map(r => ({ ...r, date: new Date(r.date) }));
   } catch (error) {
     console.error('Failed to fetch history:', error);
     throw new Error('Не удалось загрузить историю');
   }
 }
 
-export async function updateRecord(record: HistoryRecord) {
+export async function updateRecord(record: HistoryRecordSchemaInput): Promise<void> {
   try {
-    return await http.post('/history', record);
+    const api = makeApi();
+    await api.historyPost({
+      historyRecordSchemaInput: {
+        ...record,
+        date: record.date instanceof Date ? record.date : new Date(record.date),
+      },
+    });
   } catch (error) {
     console.error('Failed to update history record:', error);
     throw new Error('Не удалось обновить запись');
   }
 }
 
-export async function deleteRecord(id: string) {
+export async function deleteRecord(id: string): Promise<void> {
   try {
-    return await http.delete(`/history/${id}`);
+    const api = makeApi();
+    await api.historyIdDelete({ id });
   } catch (error) {
     console.error('Failed to delete history record:', error);
     throw new Error('Не удалось удалить запись');
   }
 }
-
