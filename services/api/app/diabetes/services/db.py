@@ -23,6 +23,7 @@ from sqlalchemy import (
     Time,
     func,
 )
+import sqlalchemy as sa
 from sqlalchemy.engine import URL, Engine
 from sqlalchemy.exc import UnboundExecutionError
 from sqlalchemy.orm import (
@@ -164,8 +165,16 @@ class Profile(Base):
     sos_contact: Mapped[Optional[str]] = mapped_column(String)
     sos_alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    quiet_start: Mapped[time] = mapped_column(Time, default=time(22, 0))
-    quiet_end: Mapped[time] = mapped_column(Time, default=time(7, 0))
+    quiet_start: Mapped[time] = mapped_column(
+        Time,
+        nullable=False,
+        server_default=sa.text("'23:00:00'"),
+    )
+    quiet_end: Mapped[time] = mapped_column(
+        Time,
+        nullable=False,
+        server_default=sa.text("'07:00:00'"),
+    )
 
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     user: Mapped[User] = relationship("User")
