@@ -13,6 +13,23 @@ describe('parseProfile', () => {
     expect(result).toEqual({ icr: 1, cf: 2, target: 5, low: 4, high: 10 });
   });
 
+  it('handles comma as decimal separator', () => {
+    const result = parseProfile({
+      icr: '1,5',
+      cf: '2,5',
+      target: '5,5',
+      low: '4,4',
+      high: '10,1',
+    });
+    expect(result).toEqual({
+      icr: 1.5,
+      cf: 2.5,
+      target: 5.5,
+      low: 4.4,
+      high: 10.1,
+    });
+  });
+
   it('returns null when any value is non-positive or invalid', () => {
     expect(
       parseProfile({ icr: '0', cf: '2', target: '5', low: '4', high: '10' }),

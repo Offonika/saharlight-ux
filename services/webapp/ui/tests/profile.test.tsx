@@ -28,6 +28,7 @@ vi.mock('react-router-dom', () => ({
 import Profile from '../src/pages/Profile';
 import { saveProfile, getProfile } from '../src/api/profile';
 import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
+import { parseProfile } from '../src/pages/Profile';
 
 describe('Profile page', () => {
   beforeEach(() => {
@@ -123,6 +124,7 @@ describe('Profile page', () => {
     );
   });
 
+
   it('loads profile on mount and updates form', async () => {
     const validInitData = new URLSearchParams({
       user: JSON.stringify({ id: 123 }),
@@ -164,5 +166,19 @@ describe('Profile page', () => {
       }),
     );
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+  });
+});
+
+describe('parseProfile', () => {
+  it('parses values with commas', () => {
+    expect(
+      parseProfile({
+        icr: '1,5',
+        cf: '2,5',
+        target: '5,5',
+        low: '4,4',
+        high: '10,1',
+      }),
+    ).toEqual({ icr: 1.5, cf: 2.5, target: 5.5, low: 4.4, high: 10.1 });
   });
 });
