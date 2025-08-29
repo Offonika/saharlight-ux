@@ -710,7 +710,7 @@ components:
       required:
       - telegramId
       - icr
-      - cf
+      - target
       - low
       - high
       title: ProfileSchema
