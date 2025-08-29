@@ -189,6 +189,16 @@ async def handle_edit_field(
     await message.reply_text(prompt, reply_markup=ForceReply(selective=True))
 
 
+async def profile_timezone_stub(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    query: CallbackQuery,
+    _: str,
+) -> None:
+    """Placeholder handler for profile timezone callbacks."""
+    return None
+
+
 callback_handlers: dict[str, Handler] = {
     "confirm_entry": handle_confirm_entry,
     "edit_entry": handle_edit_entry,
@@ -196,6 +206,7 @@ callback_handlers: dict[str, Handler] = {
     "edit_field:": handle_edit_field,
     "edit:": handle_edit_or_delete,
     "del:": handle_edit_or_delete,
+    "profile_timezone": profile_timezone_stub,
 }
 
 
