@@ -25,6 +25,28 @@ describe("parseProfile", () => {
     ).toBeNull();
   });
 
+  it("parses comma decimal numbers", () => {
+    const result = parseProfile({
+      icr: "1,5",
+      cf: "2,5",
+      target: "5,5",
+      low: "4",
+      high: "10",
+    });
+    expect(result).toEqual({ icr: 1.5, cf: 2.5, target: 5.5, low: 4, high: 10 });
+  });
+
+  it("returns null for multiple commas", () => {
+    const result = parseProfile({
+      icr: "1,2,3",
+      cf: "2",
+      target: "5",
+      low: "4",
+      high: "10",
+    });
+    expect(result).toBeNull();
+  });
+
   it("returns null when low/high bounds are invalid", () => {
     expect(
       parseProfile({ icr: "1", cf: "2", target: "5", low: "8", high: "6" }),
