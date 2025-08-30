@@ -54,7 +54,7 @@ describe('mockApi not used in production', () => {
     remindersGetRaw.mockRejectedValue(new Error('fail'));
     vi.stubEnv('DEV', 'false');
     const { default: RemindersList } = await import('../src/features/reminders/pages/RemindersList');
-    render(<RemindersList planLimit={5} />);
+    render(<RemindersList />);
     await waitFor(() => {
       expect(remindersGetRaw).toHaveBeenCalled();
     });

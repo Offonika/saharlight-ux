@@ -23,7 +23,7 @@ export default function Reminders() {
       </MedicalHeader>
 
       <main className="container mx-auto px-4 py-6">
-        <RemindersList onCountChange={setReminderCount} planLimit={planLimit} onLimitChange={setPlanLimit} />
+        <RemindersList onCountChange={setReminderCount} onLimitChange={setPlanLimit} />
       </main>
     </div>
   )
