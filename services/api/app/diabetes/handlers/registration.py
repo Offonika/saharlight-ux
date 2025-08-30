@@ -16,6 +16,8 @@ from telegram.ext import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 
+from services.api.app import reminder_events
+
 from .onboarding_handlers import onboarding_conv, onboarding_poll_answer
 from .common_handlers import menu_command, help_command, smart_input_help
 from .router import callback_router
@@ -113,6 +115,7 @@ def register_reminder_handlers(
     if job_queue:
         try:
             reminder_handlers.schedule_all(job_queue)
+            reminder_events.set_job_queue(job_queue)
         except SQLAlchemyError:
             logger.exception("Failed to schedule reminders")
 
