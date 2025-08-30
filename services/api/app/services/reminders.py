@@ -10,7 +10,7 @@ from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from ..diabetes.services.db import Reminder, SessionLocal, User, run_db
+from ..diabetes.services.db import Reminder, ReminderLog, SessionLocal, User, run_db
 from ..diabetes.services.reminders_schedule import compute_next
 from ..diabetes.services.repository import CommitError, commit
 from ..schemas.reminders import ReminderSchema
@@ -112,6 +112,9 @@ async def delete_reminder(telegram_id: int, reminder_id: int) -> None:
         rem = cast(Reminder | None, session.get(Reminder, reminder_id))
         if rem is None or rem.telegram_id != telegram_id:
             raise HTTPException(status_code=404, detail="reminder not found")
+        cast(Session, session).query(ReminderLog).filter_by(
+            reminder_id=reminder_id
+        ).update({"reminder_id": None}, synchronize_session=False)
         session.delete(rem)
         try:
             commit(cast(Session, session))
