@@ -7,7 +7,6 @@ from sqlalchemy.pool import StaticPool
 
 from services.api.app.diabetes.services.db import Base
 import services.api.app.diabetes.services.db as db
-from services.api.app.services import profile as profile_service
 from services.api.app.legacy import router
 
 
@@ -31,8 +30,7 @@ def test_profiles_post_creates_user_for_missing_telegram_id(
     )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
-    monkeypatch.setattr(db, "SessionLocal", TestSession, raising=False)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
 
     async def _run_db(fn, *args, **kwargs):
         return await db.run_db(fn, *args, sessionmaker=TestSession, **kwargs)
@@ -67,8 +65,7 @@ def test_profiles_post_invalid_values_returns_422(
     )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
-    monkeypatch.setattr(db, "SessionLocal", TestSession, raising=False)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
 
     async def _run_db(fn, *args, **kwargs):
         return await db.run_db(fn, *args, sessionmaker=TestSession, **kwargs)
@@ -104,8 +101,7 @@ def test_profiles_post_invalid_icr_returns_422(
     )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
-    monkeypatch.setattr(db, "SessionLocal", TestSession, raising=False)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
 
     async def _run_db(fn, *args, **kwargs):
         return await db.run_db(fn, *args, sessionmaker=TestSession, **kwargs)
@@ -140,8 +136,7 @@ def test_profiles_post_invalid_cf_returns_422(
     )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
-    monkeypatch.setattr(db, "SessionLocal", TestSession, raising=False)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
 
     async def _run_db(fn, *args, **kwargs):
         return await db.run_db(fn, *args, sessionmaker=TestSession, **kwargs)
@@ -176,8 +171,7 @@ def test_profiles_post_updates_existing_profile(
     )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
-    monkeypatch.setattr(db, "SessionLocal", TestSession, raising=False)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
 
     async def _run_db(fn, *args, **kwargs):
         return await db.run_db(fn, *args, sessionmaker=TestSession, **kwargs)

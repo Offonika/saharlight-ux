@@ -4,6 +4,7 @@ from datetime import time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+import services.api.app.diabetes.services.db as db
 from services.api.app.diabetes.services.db import Base, User
 from services.api.app.schemas.profile import ProfileSchema
 from services.api.app.services import profile as profile_service
@@ -14,7 +15,7 @@ async def test_save_profile_stores_sos_fields(monkeypatch: pytest.MonkeyPatch) -
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -43,7 +44,7 @@ async def test_save_profile_defaults_sos_fields(
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
     with TestSession() as session:
         session.add(User(telegram_id=2, thread_id="t", timezone="UTC"))
         session.commit()
@@ -70,7 +71,7 @@ async def test_save_profile_persists_quiet_hours(
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
     with TestSession() as session:
         session.add(User(telegram_id=3, thread_id="t", timezone="UTC"))
         session.commit()
@@ -99,7 +100,7 @@ async def test_save_profile_defaults_quiet_hours(
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(profile_service, "SessionLocal", TestSession)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
     with TestSession() as session:
         session.add(User(telegram_id=4, thread_id="t", timezone="UTC"))
         session.commit()
