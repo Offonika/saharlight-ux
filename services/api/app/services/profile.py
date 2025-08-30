@@ -13,13 +13,10 @@ from ..schemas.profile import ProfileSchema
 from ..types import SessionProtocol
 
 
-SessionLocal = db.SessionLocal
-
 __all__ = [
     "set_timezone",
     "save_profile",
     "get_profile",
-    "SessionLocal",
 ]
 
 
@@ -36,7 +33,7 @@ async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
         except CommitError:
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await db.run_db(_save, sessionmaker=SessionLocal)
+    await db.run_db(_save, sessionmaker=db.SessionLocal)
 
 
 def _validate_profile(data: ProfileSchema) -> None:
@@ -87,17 +84,11 @@ async def save_profile(data: ProfileSchema) -> None:
             "quiet_start": data.quietStart,
             "quiet_end": data.quietEnd,
             "sos_contact": data.sosContact or "",
-            "sos_alerts_enabled": (
-                data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
-            ),
+            "sos_alerts_enabled": (data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True),
         }
 
         stmt = insert(Profile).values(**profile_data)
-        update_values = {
-            key: getattr(stmt.excluded, key)
-            for key in profile_data.keys()
-            if key != "telegram_id"
-        }
+        update_values = {key: getattr(stmt.excluded, key) for key in profile_data.keys() if key != "telegram_id"}
         session.execute(
             stmt.on_conflict_do_update(
                 index_elements=[Profile.telegram_id],
@@ -110,11 +101,11 @@ async def save_profile(data: ProfileSchema) -> None:
         except CommitError:  # pragma: no cover
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await db.run_db(_save, sessionmaker=SessionLocal)
+    await db.run_db(_save, sessionmaker=db.SessionLocal)
 
 
 async def get_profile(telegram_id: int) -> Profile | None:  # pragma: no cover
     def _get(session: SessionProtocol) -> Profile | None:
         return cast(Profile | None, session.get(Profile, telegram_id))
 
-    return await db.run_db(_get, sessionmaker=SessionLocal)
+    return await db.run_db(_get, sessionmaker=db.SessionLocal)
