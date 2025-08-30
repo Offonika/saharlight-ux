@@ -5,16 +5,7 @@ import { useRemindersApi } from "../api/reminders";
 import { formatNextAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast } from "@/hooks/use-toast";
-import { Templates } from "../components/Templates";
 import { bulkToggle } from "./RemindersList.bulk";
-
-const checkQuotaLimit = (count: number, limit: number, toast: any) => {
-  if (count >= limit) {
-    toast({ title: "Лимит достигнут", description: `Достигнут лимит ${limit} напоминаний. Обновитесь до Pro для увеличения лимита!`, variant: "destructive" });
-    return false;
-  }
-  return true;
-};
 
 type ReminderDto = {
   id: number;
@@ -55,11 +46,9 @@ function scheduleLine(r: ReminderDto) {
 
 export default function RemindersList({
   onCountChange,
-  planLimit,
   onLimitChange
 }: {
   onCountChange?: (count: number) => void;
-  planLimit?: number;
   onLimitChange?: (limit: number) => void;
 } = {}) {
   const api = useRemindersApi();
@@ -69,7 +58,6 @@ export default function RemindersList({
   const isDev = import.meta.env.DEV;
   const [items, setItems] = useState<ReminderDto[]>([]);
   const [loading, setLoading] = useState(false);
-  const [currentPlanLimit, setCurrentPlanLimit] = useState<number>(planLimit || 5);
   const [filter, setFilter] = useState<"all" | "on" | "off">(() => {
     return (localStorage.getItem('reminderFilter') as "all" | "on" | "off") || "all";
   });
@@ -87,7 +75,6 @@ export default function RemindersList({
       if (limitHeader) {
         const limit = parseInt(limitHeader, 10);
         if (!isNaN(limit)) {
-          setCurrentPlanLimit(limit);
           onLimitChange?.(limit);
         }
       }
@@ -110,13 +97,6 @@ export default function RemindersList({
     onCountChange?.(items.length);
   }, [items.length, onCountChange]);
   
-  // Update limit when prop changes
-  useEffect(() => {
-    if (planLimit) {
-      setCurrentPlanLimit(planLimit);
-    }
-  }, [planLimit]);
-
   const groups = useMemo(() => {
     // Filter items based on current filter
     const filteredItems = items.filter(r => 
@@ -234,16 +214,6 @@ export default function RemindersList({
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {user?.id && (
-        <Templates 
-          telegramId={user.id} 
-          onCreated={() => {
-            if (checkQuotaLimit(items.length, currentPlanLimit, toast)) {
-              load();
-            }
-          }} 
-        />
-      )}
 
       {/* Filter Chips */}
       {items.length > 0 && (
