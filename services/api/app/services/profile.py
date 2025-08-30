@@ -13,6 +13,16 @@ from ..schemas.profile import ProfileSchema
 from ..types import SessionProtocol
 
 
+SessionLocal = db.SessionLocal
+
+__all__ = [
+    "set_timezone",
+    "save_profile",
+    "get_profile",
+    "SessionLocal",
+]
+
+
 async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
     def _save(session: SessionProtocol) -> None:
         user = cast(User | None, session.get(User, telegram_id))
@@ -26,7 +36,7 @@ async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
         except CommitError:
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await db.run_db(_save, sessionmaker=db.SessionLocal)
+    await db.run_db(_save, sessionmaker=SessionLocal)
 
 
 def _validate_profile(data: ProfileSchema) -> None:
@@ -100,11 +110,11 @@ async def save_profile(data: ProfileSchema) -> None:
         except CommitError:  # pragma: no cover
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await db.run_db(_save, sessionmaker=db.SessionLocal)
+    await db.run_db(_save, sessionmaker=SessionLocal)
 
 
 async def get_profile(telegram_id: int) -> Profile | None:  # pragma: no cover
     def _get(session: SessionProtocol) -> Profile | None:
         return cast(Profile | None, session.get(Profile, telegram_id))
 
-    return await db.run_db(_get, sessionmaker=db.SessionLocal)
+    return await db.run_db(_get, sessionmaker=SessionLocal)
