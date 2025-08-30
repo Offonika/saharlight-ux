@@ -255,7 +255,6 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     rows = [
         [InlineKeyboardButton("✏️ Изменить", callback_data="profile_edit")],
         [InlineKeyboardButton("🔔 Безопасность", callback_data="profile_security")],
-        [InlineKeyboardButton("🌐 Часовой пояс", callback_data="profile_timezone")],
         [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
     ]
     if webapp_button is not None:
