@@ -81,7 +81,7 @@ describe('profile api', () => {
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(
-      patchProfile({ timezone: 'Europe/Moscow', auto_detect_timezone: true }),
+      patchProfile({ timezone: 'Europe/Moscow', timezoneAuto: true }),
     ).rejects.toThrow('Не удалось обновить профиль: fail');
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profile',

@@ -44,7 +44,7 @@ export async function saveProfile({
 
 export type PatchProfileDto = {
   timezone?: string | null;
-  auto_detect_timezone?: boolean | null;
+  timezoneAuto?: boolean | null;
 };
 
 export async function patchProfile(payload: PatchProfileDto) {

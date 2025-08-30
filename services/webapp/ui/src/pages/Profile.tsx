@@ -126,7 +126,7 @@ const Profile = () => {
           typeof data.timezone === "string" && data.timezone
             ? data.timezone
             : deviceTz;
-        const timezoneAuto = data.timezone_auto === true;
+        const timezoneAuto = data.timezoneAuto === true;
 
         const isComplete = [icr, cf, target, low, high].every(
           (v) => Number(v) > 0,
@@ -145,7 +145,7 @@ const Profile = () => {
         if (timezoneAuto && timezone !== deviceTz) {
           patchProfile({
             timezone: deviceTz ?? null,
-            auto_detect_timezone: true,
+            timezoneAuto: true,
           })
             .then(() =>
               toast({
@@ -208,7 +208,7 @@ const Profile = () => {
     try {
       await patchProfile({
         timezone: data.timezone ?? null,
-        auto_detect_timezone: data.timezoneAuto ?? null,
+        timezoneAuto: data.timezoneAuto ?? null,
       });
       await saveProfile({
         telegramId: data.telegramId,
