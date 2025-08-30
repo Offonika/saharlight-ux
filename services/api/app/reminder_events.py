@@ -30,6 +30,8 @@ def notify_reminder_saved(reminder_id: int) -> None:
         return
     with SessionLocal() as session:
         rem = session.get(Reminder, reminder_id)
+        if rem is not None:
+            _ = getattr(rem, "user", None)
     if rem is None:
         logger.warning("Reminder %s not found for scheduling", reminder_id)
         return

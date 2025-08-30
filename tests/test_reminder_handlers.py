@@ -285,6 +285,44 @@ async def test_reminder_webapp_save_snooze(
         assert log.reminder_id == 1
 
 
+@pytest.mark.asyncio
+async def test_reminder_webapp_save_assigns_user(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    reminder_handlers.SessionLocal = TestSession
+    reminder_handlers.commit = commit
+    reminder_handlers.run_db = None
+    monkeypatch.setattr(reminder_handlers, "_limit_for", lambda u: 5)
+    monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+
+    called = False
+
+    def fake_schedule(rem: Reminder, job_queue: Any) -> None:
+        nonlocal called
+        called = True
+        assert rem.user is not None
+        assert rem.user.timezone == "UTC"
+
+    monkeypatch.setattr(reminder_handlers, "schedule_reminder", fake_schedule)
+
+    class _JobQueue:
+        def get_jobs_by_name(self, name: str) -> list[Any]:
+            return []
+
+    message = DummyWebAppMessage(json.dumps({"type": "custom", "value": "10:00"}))
+    update = make_update(effective_message=message, effective_user=make_user(1))
+    context = make_context(job_queue=_JobQueue())
+
+    await reminder_handlers.reminder_webapp_save(update, context)
+
+    assert called is True
+
+
 @pytest.mark.parametrize(
     "origin, ui_base, path",
     [

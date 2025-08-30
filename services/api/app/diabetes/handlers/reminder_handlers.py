@@ -445,6 +445,12 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         except CommitError:
             logger.error("Failed to commit new reminder for user %s", user_id)
             return "error", db_user, limit, count
+        if hasattr(session, "refresh"):
+            session.refresh(reminder)
+            if db_user is not None:
+                session.refresh(db_user)
+        if db_user is not None:
+            reminder.user = db_user
         return "ok", db_user, limit, reminder.id
 
     if run_db is None:
@@ -569,10 +575,12 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         | tuple[Literal["error"], None, None, None]
         | tuple[Literal["ok"], Reminder, None, None]
     ):
+        user: User | None = None
         if rid:
             rem = session.get(Reminder, int(rid))
             if not rem or rem.telegram_id != user_id:
                 return "not_found", None, None, None
+            user = cast(User | None, getattr(rem, "user", None))
         else:
             count = session.query(Reminder).filter_by(telegram_id=user_id, is_enabled=True).count()
             user = session.get(User, user_id)
@@ -582,6 +590,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
                 return "limit", None, plan, limit
             rem = Reminder(telegram_id=user_id, type=rtype, is_enabled=True)
             session.add(rem)
+            rem.user = user
         if rtype == "after_meal":
             rem.minutes_after = minutes
             rem.time = None
@@ -601,7 +610,12 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         except CommitError:
             logger.error("Failed to commit reminder via webapp for user %s", user_id)
             return "error", None, None, None
-        session.refresh(rem)
+        if hasattr(session, "refresh"):
+            session.refresh(rem)
+            if user is not None:
+                session.refresh(user)
+        if user is not None:
+            rem.user = user
         return "ok", rem, None, None
 
     if run_db is None:

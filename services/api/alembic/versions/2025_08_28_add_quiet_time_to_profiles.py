@@ -1,8 +1,10 @@
 """add quiet_start and quiet_end to profiles"""
 
+from typing import Any
+
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import inspect
+from sqlalchemy import Connection, inspect
 
 
 # ID предыдущей и текущей миграции
@@ -12,12 +14,12 @@ branch_labels = None
 depends_on = None
 
 
-def column_exists(conn, table_name, column_name):
+def column_exists(conn: Connection, table_name: str, column_name: str) -> bool:
     insp = inspect(conn)
     return column_name in [col["name"] for col in insp.get_columns(table_name)]
 
 
-def upgrade():
+def upgrade() -> None:
     bind = op.get_bind()
     
     if not column_exists(bind, "profiles", "quiet_start"):
@@ -33,6 +35,6 @@ def upgrade():
         )
 
 
-def downgrade():
+def downgrade() -> None:
     op.drop_column("profiles", "quiet_end")
     op.drop_column("profiles", "quiet_start")

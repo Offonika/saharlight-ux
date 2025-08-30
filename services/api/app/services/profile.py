@@ -6,10 +6,21 @@ from typing import cast
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from ..diabetes.services.db import Profile, SessionLocal, User, run_db
+from typing import Callable
+
+from ..diabetes.services import db
+from ..diabetes.services.db import Profile, User, run_db
 from ..diabetes.services.repository import CommitError, commit
 from ..schemas.profile import ProfileSchema
 from ..types import SessionProtocol
+
+
+class _SessionLocalProxy:
+    def __call__(self) -> Session:
+        return db.SessionLocal()
+
+
+SessionLocal: Callable[[], Session] = _SessionLocalProxy()
 
 
 async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
