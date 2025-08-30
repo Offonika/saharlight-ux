@@ -6,7 +6,8 @@ from typing import cast
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from ..diabetes.services.db import Profile, SessionLocal, User, run_db
+from ..diabetes.services.db import Profile, User
+from ..diabetes.services import db
 from ..diabetes.services.repository import CommitError, commit
 from ..schemas.profile import ProfileSchema
 from ..types import SessionProtocol
@@ -25,7 +26,7 @@ async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
         except CommitError:
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await run_db(_save, sessionmaker=SessionLocal)
+    await db.run_db(_save, sessionmaker=db.SessionLocal)
 
 
 def _validate_profile(data: ProfileSchema) -> None:
@@ -99,11 +100,11 @@ async def save_profile(data: ProfileSchema) -> None:
         except CommitError:  # pragma: no cover
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await run_db(_save, sessionmaker=SessionLocal)
+    await db.run_db(_save, sessionmaker=db.SessionLocal)
 
 
 async def get_profile(telegram_id: int) -> Profile | None:  # pragma: no cover
     def _get(session: SessionProtocol) -> Profile | None:
         return cast(Profile | None, session.get(Profile, telegram_id))
 
-    return await run_db(_get, sessionmaker=SessionLocal)
+    return await db.run_db(_get, sessionmaker=db.SessionLocal)
