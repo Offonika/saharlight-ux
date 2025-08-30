@@ -250,6 +250,25 @@ async def test_delete_reminder(
 
 
 @pytest.mark.asyncio
+async def test_delete_reminder_with_logs(
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    with cast(ContextManager[SASession], session_factory()) as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar"))
+        session.add(ReminderLog(reminder_id=1, telegram_id=1))
+        session.commit()
+
+    await reminders.delete_reminder(1, 1)
+    with cast(ContextManager[SASession], session_factory()) as session:
+        assert cast(Any, session).get(Reminder, 1) is None
+        logs = session.query(ReminderLog).all()
+        assert len(logs) == 1
+        assert logs[0].reminder_id is None
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("rid, tid", [(999, 1), (1, 2)])
 async def test_delete_reminder_not_found_or_wrong_user(
     monkeypatch: pytest.MonkeyPatch,
