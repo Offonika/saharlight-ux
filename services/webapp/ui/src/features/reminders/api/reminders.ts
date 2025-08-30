@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Configuration } from "@sdk/runtime.ts";
 import { RemindersApi } from "@sdk/apis";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
@@ -16,5 +17,5 @@ export function makeRemindersApi(initData: string | null) {
 
 export function useRemindersApi() {
   const initData = useTelegramInitData();
-  return makeRemindersApi(initData);
+  return useMemo(() => makeRemindersApi(initData), [initData]);
 }
