@@ -244,7 +244,7 @@ def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboa
     return text, InlineKeyboardMarkup(buttons)
 
 
-def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
+def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None) -> None:
     if job_queue is None:
         logger.warning("schedule_reminder called without job_queue")
         return
@@ -263,8 +263,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None) -> None:
         return
 
     tz: datetime.tzinfo = timezone.utc
-    user = cast(User | None, getattr(rem, "user", None))
-    if user is None or getattr(user, "timezone", None) is None:
+    if user is None:
         with SessionLocal() as session:
             user = session.get(User, rem.telegram_id)
     tzname = getattr(user, "timezone", None) if user else None
@@ -332,7 +331,7 @@ def schedule_all(job_queue: DefaultJobQueue | None) -> None:
         count = len(reminders)
         logger.debug("Found %d reminders to schedule", count)
         for rem in reminders:
-            schedule_reminder(rem, job_queue)
+            schedule_reminder(rem, job_queue, rem.user)
         logger.debug("Scheduled %d reminders", count)
 
 
@@ -468,7 +467,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if job_queue is not None:
         for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
             job.schedule_removal()
-        schedule_reminder(reminder, job_queue)
+        schedule_reminder(reminder, job_queue, db_user)
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
 
 
@@ -625,7 +624,9 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
 
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None and rem is not None:
-        schedule_reminder(rem, job_queue)
+        with SessionLocal() as session:
+            user_obj = session.get(User, rem.telegram_id)
+        schedule_reminder(rem, job_queue, user_obj)
     render_fn = cast(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
@@ -851,7 +852,9 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if status == "toggle":
         if rem and rem.is_enabled:
-            schedule_reminder(rem, job_queue)
+            with SessionLocal() as session:
+                user_obj = session.get(User, rem.telegram_id)
+            schedule_reminder(rem, job_queue, user_obj)
         elif job_queue is not None:
             for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()
