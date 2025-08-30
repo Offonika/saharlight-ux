@@ -47,7 +47,7 @@ describe('Profile page', () => {
       low: 4,
       high: 10,
       timezone: 'Europe/Moscow',
-      timezone_auto: false,
+      timezoneAuto: false,
     });
     const realDTF = Intl.DateTimeFormat;
     const realResolved = realDTF.prototype.resolvedOptions;
@@ -198,7 +198,7 @@ describe('Profile page', () => {
       });
       expect(patchProfile).toHaveBeenCalledWith({
         timezone: 'Europe/Moscow',
-        auto_detect_timezone: false,
+        timezoneAuto: false,
       });
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Профиль сохранен' }),
@@ -206,7 +206,7 @@ describe('Profile page', () => {
     });
   });
 
-  it('auto updates timezone on mount when timezone_auto is true', async () => {
+  it('auto updates timezone on mount when timezoneAuto is true', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue({
       telegramId: 123,
@@ -216,7 +216,7 @@ describe('Profile page', () => {
       low: 4,
       high: 10,
       timezone: 'Europe/Moscow',
-      timezone_auto: true,
+      timezoneAuto: true,
     });
 
     render(<Profile />);
@@ -224,7 +224,7 @@ describe('Profile page', () => {
     await waitFor(() => {
       expect(patchProfile).toHaveBeenCalledWith({
         timezone: 'Europe/Berlin',
-        auto_detect_timezone: true,
+        timezoneAuto: true,
       });
     });
   });
@@ -240,7 +240,7 @@ describe('Profile page', () => {
       low: 4,
       high: 10,
       timezone: 'Europe/Moscow',
-      timezone_auto: false,
+      timezoneAuto: false,
     });
 
     const { getByLabelText, getByText, getByPlaceholderText } = render(<Profile />);
@@ -257,7 +257,7 @@ describe('Profile page', () => {
     await waitFor(() => {
       expect(patchProfile).toHaveBeenCalledWith({
         timezone: 'Europe/Berlin',
-        auto_detect_timezone: false,
+        timezoneAuto: false,
       });
       expect(saveProfile).toHaveBeenCalled();
     });
@@ -410,7 +410,7 @@ describe('Profile page', () => {
       });
       expect(patchProfile).toHaveBeenCalledWith({
         timezone: 'Europe/Moscow',
-        auto_detect_timezone: false,
+        timezoneAuto: false,
       });
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Профиль сохранен' }),
