@@ -1,8 +1,11 @@
 """add quiet_start and quiet_end to profiles"""
 
+from collections.abc import Mapping, Sequence
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
+from sqlalchemy.engine import Connection
 
 
 # ID предыдущей и текущей миграции
@@ -12,13 +15,14 @@ branch_labels = None
 depends_on = None
 
 
-def column_exists(conn, table_name, column_name):
+def column_exists(conn: Connection, table_name: str, column_name: str) -> bool:
     insp = inspect(conn)
-    return column_name in [col["name"] for col in insp.get_columns(table_name)]
+    columns: Sequence[Mapping[str, object]] = insp.get_columns(table_name)
+    return column_name in [col["name"] for col in columns]
 
 
-def upgrade():
-    bind = op.get_bind()
+def upgrade() -> None:
+    bind: Connection = op.get_bind()
     
     if not column_exists(bind, "profiles", "quiet_start"):
         op.add_column(
@@ -33,6 +37,6 @@ def upgrade():
         )
 
 
-def downgrade():
+def downgrade() -> None:
     op.drop_column("profiles", "quiet_end")
     op.drop_column("profiles", "quiet_start")
