@@ -38,8 +38,17 @@ describe('RemindersEdit', () => {
     vi.unstubAllGlobals();
   });
 
-  it('updates time via UI and persists', async () => {
+  it('updates time via TimeInput and persists', async () => {
     vi.resetModules();
+    vi.stubGlobal('Telegram', { WebApp: { platform: 'ios' } });
+    vi.doMock('react-input-mask', () => ({
+      default: ({ children, ...rest }: any) => {
+        if (typeof children === 'function') {
+          return children({ ...rest });
+        }
+        return React.createElement('input', rest, children);
+      },
+    }));
 
     let backendReminder = {
       id: 1,
@@ -76,15 +85,18 @@ describe('RemindersEdit', () => {
       useParams: () => ({ id: '1' }),
     }));
 
-    const { default: RemindersEdit } = await import('../src/features/reminders/pages/RemindersEdit');
+    const { default: RemindersEdit } = await import(
+      '../src/features/reminders/pages/RemindersEdit',
+    );
     const { container, getByText } = render(React.createElement(RemindersEdit));
 
     await waitFor(() => {
-      const input = container.querySelector('input[type="time"]') as HTMLInputElement;
+      const input = container.querySelector('input') as HTMLInputElement;
+      expect(input.getAttribute('type')).toBe('text');
       expect(input.value).toBe('08:00');
     });
 
-    const input = container.querySelector('input[type="time"]') as HTMLInputElement;
+    const input = container.querySelector('input') as HTMLInputElement;
     fireEvent.change(input, { target: { value: '09:30' } });
     fireEvent.click(getByText('Сохранить'));
 
