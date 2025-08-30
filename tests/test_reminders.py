@@ -177,9 +177,10 @@ def test_schedule_reminder_replaces_existing_job() -> None:
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        user = session.get(DbUser, 1)
         assert rem is not None
-        handlers.schedule_reminder(rem, job_queue)
-        handlers.schedule_reminder(rem, job_queue)
+        handlers.schedule_reminder(rem, job_queue, user)
+        handlers.schedule_reminder(rem, job_queue, user)
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
     active_jobs: list[DummyJob] = [j for j in jobs if not j.removed]
     assert len(active_jobs) == 1
@@ -211,7 +212,7 @@ def test_schedule_reminder_without_user_defaults_to_utc() -> None:
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         assert rem is not None
-        handlers.schedule_reminder(rem, job_queue)
+        handlers.schedule_reminder(rem, job_queue, None)
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
@@ -285,9 +286,10 @@ def test_interval_minutes_scheduling_and_rendering(
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        user = session.get(DbUser, 1)
         assert rem is not None
         with patch.object(job_queue, "run_repeating", wraps=job_queue.run_repeating) as mock_repeat:
-            handlers.schedule_reminder(rem, job_queue)
+            handlers.schedule_reminder(rem, job_queue, user)
             mock_repeat.assert_called_once()
             interval = mock_repeat.call_args.kwargs["interval"]
             assert interval == timedelta(minutes=30)
@@ -314,7 +316,7 @@ def test_schedule_reminder_invalid_timezone_logs_warning(
     rem = Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user)
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with caplog.at_level(logging.WARNING):
-        handlers.schedule_reminder(rem, job_queue)
+        handlers.schedule_reminder(rem, job_queue, user)
     dummy_queue = cast(DummyJobQueue, job_queue)
     assert dummy_queue.jobs
     job = dummy_queue.jobs[0]
@@ -617,8 +619,9 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        user = session.get(DbUser, 1)
         assert rem is not None
-        handlers.schedule_reminder(rem, job_queue)
+        handlers.schedule_reminder(rem, job_queue, user)
 
     query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
@@ -661,8 +664,9 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        user = session.get(DbUser, 1)
         assert rem is not None
-        handlers.schedule_reminder(rem, job_queue)
+        handlers.schedule_reminder(rem, job_queue, user)
 
     query = DummyCallbackQuery("rem_del:1", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
@@ -696,8 +700,9 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem = session.get(Reminder, 1)
+        user = session.get(DbUser, 1)
         assert rem is not None
-        handlers.schedule_reminder(rem, job_queue)
+        handlers.schedule_reminder(rem, job_queue, user)
 
     msg = DummyMessage()
     web_app_data = MagicMock()
@@ -742,7 +747,9 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
             type=rem_db.type,
             time=rem_db.time,
         )
-    handlers.schedule_reminder(rem, job_queue)
+    with TestSession() as session:
+        user = session.get(DbUser, 1)
+    handlers.schedule_reminder(rem, job_queue, user)
     bot = DummyBot()
     job = MagicMock(spec=Job)
     job.data = {"reminder_id": 1, "chat_id": 1}
