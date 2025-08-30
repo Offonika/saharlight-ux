@@ -706,6 +706,7 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             ]
         ]
     )
+    logger.info("Sending reminder %s to chat %s", rid, chat_id)
     try:
         await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
     except TelegramError:
