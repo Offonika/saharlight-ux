@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import TimeInput from '../src/components/TimeInput';
 
 describe('TimeInput', () => {
@@ -9,20 +9,20 @@ describe('TimeInput', () => {
     expect(container.querySelector('input[type="time"]')).not.toBeNull();
   });
 
-  it('renders masked text input on iOS', async () => {
-    const originalUA = navigator.userAgent;
-    Object.defineProperty(navigator, 'userAgent', {
-      value: 'iPhone',
-      configurable: true,
-    });
-    vi.resetModules();
-    const TimeInputIOS = (await import('../src/components/TimeInput')).default;
-    const { container } = render(<TimeInputIOS value="" onChange={() => {}} />);
+  it('renders masked text input when platform switches to iOS', () => {
+    const originalTelegram = window.Telegram;
+    const { container, rerender } = render(
+      <TimeInput value="" onChange={() => {}} />,
+    );
+
+    expect(container.querySelector('input[type="time"]')).not.toBeNull();
+
+    (window as any).Telegram = { WebApp: { platform: 'ios' } };
+    rerender(<TimeInput value="" onChange={() => {}} />);
+
     const input = container.querySelector('input');
     expect(input?.getAttribute('type')).toBe('text');
-    Object.defineProperty(navigator, 'userAgent', {
-      value: originalUA,
-      configurable: true,
-    });
+
+    window.Telegram = originalTelegram;
   });
 });
