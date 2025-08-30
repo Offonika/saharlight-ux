@@ -8,20 +8,18 @@ interface TimeInputProps {
 }
 
 const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, className }) => {
-  const platform =
-    typeof window !== "undefined" ? window.Telegram?.WebApp?.platform : undefined;
-  const userAgent =
-    typeof navigator !== "undefined" ? navigator.userAgent : undefined;
+  const isTelegram = React.useMemo(() => {
+    return typeof window !== "undefined" && Boolean(window.Telegram?.WebApp);
+  }, []);
 
   const isIOS = React.useMemo(() => {
-    if (!userAgent && !platform) {
-      return false;
-    }
+    return (
+      typeof navigator !== "undefined" &&
+      /iPad|iPhone|iPod/.test(navigator.userAgent)
+    );
+  }, []);
 
-    return /iPad|iPhone|iPod/.test(userAgent ?? "") || platform === "ios";
-  }, [platform, userAgent]);
-
-  if (isIOS) {
+  if (isTelegram || isIOS) {
     return (
       <InputMask
         mask="99:99"
