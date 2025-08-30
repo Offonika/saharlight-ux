@@ -7,11 +7,20 @@ interface TimeInputProps {
   className?: string;
 }
 
-const isIOS =
-  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  window.Telegram?.WebApp?.platform === "ios";
-
 const TimeInput: React.FC<TimeInputProps> = ({ value, onChange, className }) => {
+  const platform =
+    typeof window !== "undefined" ? window.Telegram?.WebApp?.platform : undefined;
+  const userAgent =
+    typeof navigator !== "undefined" ? navigator.userAgent : undefined;
+
+  const isIOS = React.useMemo(() => {
+    if (!userAgent && !platform) {
+      return false;
+    }
+
+    return /iPad|iPhone|iPod/.test(userAgent ?? "") || platform === "ios";
+  }, [platform, userAgent]);
+
   if (isIOS) {
     return (
       <InputMask
