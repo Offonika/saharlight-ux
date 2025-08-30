@@ -28,7 +28,7 @@ from telegram.ext import (
 )
 from telegram.error import BadRequest, TelegramError
 
-from services.api.app import config
+from services.api.app import config, reminder_events
 from services.api.app.diabetes.services.db import (
     Reminder,
     ReminderLog,
@@ -462,12 +462,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await message.reply_text("⚠️ Не удалось сохранить напоминание.")
         return
 
-    rid = rid_or_count
-    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
-    if job_queue is not None:
-        for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
-            job.schedule_removal()
-        schedule_reminder(reminder, job_queue, db_user)
+    reminder_events.notify_reminder_saved(reminder.id)
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
 
 
@@ -622,11 +617,8 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         await msg.reply_text("⚠️ Не удалось сохранить напоминание.")
         return
 
-    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
-    if job_queue is not None and rem is not None:
-        with SessionLocal() as session:
-            user_obj = session.get(User, rem.telegram_id)
-        schedule_reminder(rem, job_queue, user_obj)
+    if rem is not None:
+        reminder_events.notify_reminder_saved(rem.id)
     render_fn = cast(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
