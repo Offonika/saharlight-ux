@@ -120,7 +120,7 @@ def main() -> None:  # pragma: no cover
 
     from services.api.app import reminder_events
 
-    reminder_events.set_job_queue(job_queue)
+    reminder_events.register_job_queue(application.job_queue)
 
     from services.api.app.diabetes.handlers.registration import register_handlers
 
