@@ -1,0 +1,2 @@
+# Placeholder requirements for optional Python SDK.
+# Actual dependencies will be generated alongside the SDK.
