@@ -94,7 +94,7 @@ def main() -> None:  # pragma: no cover
     if hasattr(builder, "timezone"):
         builder = builder.timezone(timezone)
     elif hasattr(builder, "job_queue"):
-        builder = builder.job_queue(DefaultJobQueue(timezone=timezone))  # type: ignore[call-arg]
+        builder = builder.job_queue(DefaultJobQueue())
     application: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
@@ -106,7 +106,10 @@ def main() -> None:  # pragma: no cover
     job_queue = application.job_queue
     if job_queue is None:
         raise RuntimeError("JobQueue not initialized")
-    logger.info("✅ JobQueue initialized with timezone %s", getattr(application, "timezone", None))
+    logger.info(
+        "✅ JobQueue initialized with timezone %s",
+        getattr(application, "timezone", None),
+    )
     application.add_error_handler(error_handler)
 
     from services.api.app import reminder_events
@@ -129,7 +132,11 @@ def main() -> None:  # pragma: no cover
         )
 
     if application.job_queue:
-        application.job_queue.run_once(test_job, when=30)
+        application.job_queue.run_once(
+            test_job,
+            when=30,
+            timezone=ZoneInfo("Europe/Moscow"),
+        )  # type: ignore[call-arg]
 
     application.run_polling()
 
