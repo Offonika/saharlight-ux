@@ -99,6 +99,10 @@ def main() -> None:  # pragma: no cover
     )
     application.add_error_handler(error_handler)
 
+    from services.api.app import reminder_events
+
+    reminder_events.set_job_queue(application.job_queue)
+
     from services.api.app.diabetes.handlers.registration import register_handlers
 
     register_handlers(application)
@@ -113,14 +117,13 @@ def main() -> None:  # pragma: no cover
     if application.job_queue:
         application.job_queue.run_once(test_job, when=30)
 
-  
     application.job_queue.run_once(test_job, when=30)
 
     application.run_polling()
+
 
 __all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN"]
 
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-
