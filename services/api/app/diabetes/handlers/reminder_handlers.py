@@ -11,7 +11,7 @@ from typing import Awaitable, Callable, Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import parse_qsl
 
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker, selectinload
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -247,7 +247,11 @@ def schedule_all(job_queue: DefaultJobQueue | None) -> None:
         logger.warning("schedule_all called without job_queue")
         return
     with SessionLocal() as session:
-        reminders = session.query(Reminder).all()
+        reminders = (
+            session.query(Reminder)
+            .options(selectinload(Reminder.user))
+            .all()
+        )
         count = len(reminders)
         logger.debug("Found %d reminders to schedule", count)
         for rem in reminders:
