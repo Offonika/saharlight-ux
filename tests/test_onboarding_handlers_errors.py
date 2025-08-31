@@ -86,3 +86,49 @@ async def test_onboarding_target_missing_data() -> None:
         "⚠️ Не хватает данных для профиля. Пожалуйста, начните заново."
     ]
 
+
+@pytest.mark.asyncio
+async def test_onboarding_demo_next_invalid_message_type() -> None:
+    query = SimpleNamespace(message=object())
+    update = cast(Update, SimpleNamespace(callback_query=query))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, bot_data={}),
+    )
+    state = await onboarding.onboarding_demo_next(update, context)
+    assert state == ConversationHandler.END
+
+
+@pytest.mark.asyncio
+async def test_onboarding_reminders_invalid_message_type() -> None:
+    query = SimpleNamespace(message=object(), data="onb_rem_yes")
+    update = cast(
+        Update,
+        SimpleNamespace(
+            callback_query=query, effective_user=SimpleNamespace(id=1)
+        ),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, bot_data={}, job_queue=None),
+    )
+    state = await onboarding.onboarding_reminders(update, context)
+    assert state == ConversationHandler.END
+
+
+@pytest.mark.asyncio
+async def test_onboarding_skip_invalid_message_type() -> None:
+    query = SimpleNamespace(message=object(), data="onb_skip")
+    update = cast(
+        Update,
+        SimpleNamespace(
+            callback_query=query, effective_user=SimpleNamespace(id=1)
+        ),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, bot_data={}),
+    )
+    state = await onboarding.onboarding_skip(update, context)
+    assert state == ConversationHandler.END
+
