@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 import sqlite3
 import subprocess
-from typing import Any, Callable
+from typing import Any, Callable, cast
 import warnings
 
 import pytest
@@ -40,6 +40,69 @@ def _tracking_create_engine(*args: Any, **kwargs: Any) -> sqlalchemy.engine.Engi
 
 
 setattr(sqlalchemy, "create_engine", _tracking_create_engine)
+
+
+class _DummyJob:
+    def __init__(
+        self, name: str = "", data: dict[str, Any] | None = None, when: object | None = None
+    ) -> None:
+        self.name = name
+        self.data = data
+        self.time = when
+
+    def schedule_removal(self) -> None:
+        return None
+
+
+class _DummyJobQueue:
+    def __init__(self) -> None:
+        self.jobs: list[_DummyJob] = []
+
+    def run_once(
+        self,
+        callback: Callable[..., object],
+        when: object,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> _DummyJob:
+        job = _DummyJob(name or "", data, when)
+        self.jobs.append(job)
+        return job
+
+    def run_daily(
+        self,
+        callback: Callable[..., object],
+        time: object,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> _DummyJob:
+        job = _DummyJob(name or "", data, time)
+        self.jobs.append(job)
+        return job
+
+    def run_repeating(
+        self,
+        callback: Callable[..., object],
+        interval: object,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> _DummyJob:
+        job = _DummyJob(name or "", data)
+        self.jobs.append(job)
+        return job
+
+    def get_jobs_by_name(self, name: str) -> list[_DummyJob]:
+        return [j for j in self.jobs if j.name == name]
+
+
+@pytest.fixture(autouse=True)
+def _dummy_job_queue() -> Iterator[None]:
+    from services.api.app import reminder_events
+
+    jq = _DummyJobQueue()
+    reminder_events.set_job_queue(cast(Any, jq))
+    yield
+    reminder_events.set_job_queue(None)
 
 # Avoid real database initialization during tests
 db_module.init_db = lambda: None

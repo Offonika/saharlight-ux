@@ -28,13 +28,26 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
     # Stub external interactions
     monkeypatch.setattr(bot, "init_db", lambda: None)
 
+    class DummyJobQueue:
+        def run_once(self, *args: object, **kwargs: object) -> None:
+            return None
+
+        def get_jobs_by_name(self, name: str) -> list[object]:
+            return []
+
+        def run_repeating(self, *args: object, **kwargs: object) -> None:
+            return None
+
+        def jobs(self) -> list[object]:
+            return []
+
     class DummyBot:
         def set_my_commands(self, commands: list[tuple[str, str]]) -> None:
             return None
 
     class DummyApp:
         bot = DummyBot()
-        job_queue = None
+        job_queue = DummyJobQueue()
 
         def add_error_handler(
             self,

@@ -16,6 +16,7 @@ import services.api.app.main as server
 from services.api.app.config import settings
 from services.api.app.diabetes.services.db import Base, User
 from services.api.app.services import reminders
+from services.api.app.routers import reminders as reminders_router
 
 TOKEN = "test-token"
 
@@ -44,6 +45,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     monkeypatch.setattr(reminders, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminders_router, "notify_reminder_saved", lambda rid: None)
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
