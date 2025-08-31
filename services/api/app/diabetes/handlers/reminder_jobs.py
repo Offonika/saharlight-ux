@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import inspect
 import logging
 from datetime import timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -78,12 +79,23 @@ def schedule_reminder(
                 rem.interval_hours or rem.interval_minutes,
                 minutes_after,
             )
-            job_queue.run_once(
-                reminder_job,
-                when=timedelta(minutes=float(minutes_after)),
-                data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
-                name=name,
-            )
+            when_td = timedelta(minutes=float(minutes_after))
+            data = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
+            if "timezone" in inspect.signature(job_queue.run_once).parameters:
+                job_queue.run_once(  # type: ignore[call-arg]
+                    reminder_job,
+                    when=when_td,
+                    data=data,
+                    name=name,
+                    timezone=ZoneInfo("Europe/Moscow"),
+                )
+            else:
+                job_queue.run_once(
+                    reminder_job,
+                    when=when_td,
+                    data=data,
+                    name=name,
+                )
     else:
         if rem.time:
             logger.debug(
@@ -100,12 +112,22 @@ def schedule_reminder(
                 tzinfo=tz,
             )
             job_time = dt.astimezone(job_tz).time().replace(tzinfo=None)
-            job_queue.run_daily(
-                reminder_job,
-                time=job_time,
-                data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
-                name=name,
-            )
+            data = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
+            if "timezone" in inspect.signature(job_queue.run_daily).parameters:
+                job_queue.run_daily(  # type: ignore[call-arg]
+                    reminder_job,
+                    time=job_time,
+                    data=data,
+                    name=name,
+                    timezone=ZoneInfo("Europe/Moscow"),
+                )
+            else:
+                job_queue.run_daily(
+                    reminder_job,
+                    time=job_time,
+                    data=data,
+                    name=name,
+                )
         elif rem.interval_hours or rem.interval_minutes:
             logger.debug(
                 "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
