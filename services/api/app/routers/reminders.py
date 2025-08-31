@@ -29,9 +29,16 @@ async def _post_job_queue_event(action: Literal["saved", "deleted"], rid: int) -
     url = f"{base.rstrip('/')}/internal/reminders/{action}"
     async with httpx.AsyncClient() as client:
         try:
-            await client.post(url, json={"id": rid})
+            resp = await client.post(url, json={"id": rid})
         except httpx.HTTPError:  # pragma: no cover - network errors
             logger.exception("failed to notify job queue")
+            return
+        if not 200 <= resp.status_code < 300:
+            logger.error(
+                "failed to notify job queue: status=%s body=%s",
+                resp.status_code,
+                resp.text,
+            )
 
 
 async def _reschedule_job(action: Literal["saved", "deleted"], rid: int) -> None:
