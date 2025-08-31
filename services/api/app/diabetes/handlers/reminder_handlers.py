@@ -698,7 +698,20 @@ async def reminder_webapp_save(
         return
 
     if rem is not None:
-        reminder_events.notify_reminder_saved(rem.id)
+        job_queue: DefaultJobQueue | None = cast(
+            DefaultJobQueue | None, context.job_queue
+        )
+        if job_queue is not None:
+            with SessionLocal() as session:
+                user_obj = session.get(User, user_id)
+            if user_obj is None:
+                logger.warning(
+                    "User %s not found for rescheduling reminder %s", user_id, rem.id
+                )
+            else:
+                _reschedule_job(job_queue, rem, user_obj)
+        else:
+            reminder_events.notify_reminder_saved(rem.id)
 
     render_fn = cast(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],

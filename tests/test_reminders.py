@@ -807,7 +807,9 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
     assert len(jobs) == 2
     assert jobs[0].removed is True
-    assert jobs[1].removed is False
+    active_job = jobs[1]
+    assert active_job.removed is False
+    assert active_job.time == time(9, 0)
 
 
 @pytest.mark.asyncio
