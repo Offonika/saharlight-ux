@@ -339,11 +339,13 @@ async def onboarding_demo_next(
 ) -> int:
     """Proceed from demo to reminder suggestion."""
     query = update.callback_query
-    if query is None or query.message is None:
+    if query is None:
+        return ConversationHandler.END
+    msg = query.message
+    if not isinstance(msg, Message):
         return ConversationHandler.END
     await query.answer()
-    message = cast(Message, query.message)
-    await message.delete()
+    await msg.delete()
 
     keyboard = InlineKeyboardMarkup(
         [
@@ -353,7 +355,7 @@ async def onboarding_demo_next(
             ]
         ]
     )
-    await message.reply_text(
+    await msg.reply_text(
         "3/3. Включить напоминания о замерах сахара?",
         reply_markup=keyboard,
     )
@@ -366,10 +368,12 @@ async def onboarding_reminders(
     """Handle reminder choice and finish onboarding."""
     query = update.callback_query
     user = update.effective_user
-    if query is None or query.message is None or user is None:
+    if query is None or user is None:
+        return ConversationHandler.END
+    msg = query.message
+    if not isinstance(msg, Message):
         return ConversationHandler.END
     await query.answer()
-    message = cast(Message, query.message)
     enable = query.data == "onb_rem_yes"
     user_id = user.id
     reminders: list[Reminder] = []
@@ -406,7 +410,7 @@ async def onboarding_reminders(
             try:
                 commit(session)
             except CommitError:
-                await message.reply_text("⚠️ Не удалось сохранить настройки.")
+                await msg.reply_text("⚠️ Не удалось сохранить настройки.")
                 return ConversationHandler.END
 
     job_queue = getattr(context, "job_queue", None)
@@ -425,7 +429,7 @@ async def onboarding_reminders(
 
     logger.info("User %s reminder choice: %s", user_id, enable)
 
-    poll_msg = await message.reply_poll(
+    poll_msg = await msg.reply_poll(
         "Как вам онбординг?",
         ["👍", "🙂", "👎"],
         is_anonymous=False,
@@ -436,7 +440,7 @@ async def onboarding_reminders(
     else:
         logger.warning("Poll message missing poll object for user %s", user_id)
 
-    await message.reply_text(
+    await msg.reply_text(
         "Готово! Спасибо за настройку.", reply_markup=menu_keyboard()
     )
     return ConversationHandler.END
@@ -446,10 +450,12 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     """Skip the onboarding entirely."""
     query = update.callback_query
     user = update.effective_user
-    if query is None or query.message is None or user is None:
+    if query is None or user is None:
+        return ConversationHandler.END
+    msg = query.message
+    if not isinstance(msg, Message):
         return ConversationHandler.END
     await query.answer()
-    message = cast(Message, query.message)
 
     user_id = user.id
     with SessionLocal() as session:
@@ -459,13 +465,13 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             try:
                 commit(session)
             except CommitError:
-                await message.reply_text(
+                await msg.reply_text(
                     "⚠️ Не удалось сохранить настройки.",
                     reply_markup=menu_keyboard(),
                 )
                 return ConversationHandler.END
 
-    poll_msg = await message.reply_poll(
+    poll_msg = await msg.reply_poll(
         "Как вам онбординг?",
         ["👍", "🙂", "👎"],
         is_anonymous=False,
@@ -476,7 +482,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     else:
         logger.warning("Poll message missing poll object for user %s", user_id)
 
-    await message.reply_text("Пропущено.", reply_markup=menu_keyboard())
+    await msg.reply_text("Пропущено.", reply_markup=menu_keyboard())
     return ConversationHandler.END
 
 
