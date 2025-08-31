@@ -6,7 +6,8 @@ WORKDIR /app
 # Copy dependency definitions
 COPY requirements.txt ./
 COPY services/api/app/requirements.txt services/api/app/
-COPY libs/py-sdk/ libs/py-sdk/
+# Optional local Python SDK (generate if needed)
+# COPY libs/py-sdk/ libs/py-sdk/
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
