@@ -117,9 +117,7 @@ async def test_send_alert_message_sos_errors(
 ) -> None:
     """Failures sending to SOS contact are logged."""
 
-    bot = SimpleNamespace(
-        send_message=AsyncMock(side_effect=[None, exc_cls("boom")])
-    )
+    bot = SimpleNamespace(send_message=AsyncMock(side_effect=[None, exc_cls("boom")]))
     context = cast(AlertContext, ContextStub(bot=bot))
     monkeypatch.setattr(handlers, "get_coords_and_link", fake_get_coords_and_link)
 
@@ -165,3 +163,34 @@ def test_schedule_alert_schedules_job() -> None:
         "profile": profile,
         "first_name": "Ivan",
     }
+
+
+class DummyJobQueueNoTZ:
+    """JobQueue stub without timezone parameter."""
+
+    def __init__(self) -> None:
+        self.jobs: list[DummyJob] = []
+
+    def run_once(
+        self,
+        callback: Callable[..., object],
+        when: datetime.timedelta,
+        *,
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+    ) -> None:
+        self.jobs.append(DummyJob(callback, when, data, name))
+
+
+def test_schedule_alert_without_timezone_kwarg() -> None:
+    """schedule_alert works when JobQueue.run_once lacks timezone param."""
+
+    job_queue = DummyJobQueueNoTZ()
+    profile: dict[str, object] = {"sos_contact": "@alice"}
+    handlers.schedule_alert(
+        1,
+        cast(JobQueue[Any], job_queue),
+        sugar=10.0,
+        profile=profile,
+    )
+    assert len(job_queue.jobs) == 1

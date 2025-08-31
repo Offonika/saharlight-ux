@@ -200,3 +200,44 @@ def test_schedule_after_meal_no_enabled_reminders() -> None:
     dummy_queue = DummyJobQueue()
     handlers.schedule_after_meal(1, cast(handlers.DefaultJobQueue, dummy_queue))
     assert not dummy_queue.jobs
+
+
+class DummyJobQueueNoTZ:
+    def __init__(self) -> None:
+        self.jobs: list[DummyJob] = []
+
+    def run_once(
+        self,
+        callback: Callable[..., Any],
+        when: timedelta,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> DummyJob:
+        job = DummyJob(callback, when, data or {}, name or "")
+        self.jobs.append(job)
+        return job
+
+    def get_jobs_by_name(self, name: str) -> list[DummyJob]:
+        return [job for job in self.jobs if job.name == name]
+
+
+def test_schedule_after_meal_no_timezone_kwarg() -> None:
+    TestSession = make_session()
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        user = DbUser(telegram_id=1, thread_id="t")
+        session.add(user)
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="after_meal",
+                minutes_after=30,
+                is_enabled=True,
+                user=user,
+            )
+        )
+        session.commit()
+    dummy_queue = DummyJobQueueNoTZ()
+    handlers.schedule_after_meal(1, cast(handlers.DefaultJobQueue, dummy_queue))
+    assert len(dummy_queue.jobs) == 1
