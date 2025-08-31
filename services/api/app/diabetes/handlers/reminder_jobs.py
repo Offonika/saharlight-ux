@@ -4,15 +4,17 @@ import datetime
 import inspect
 import logging
 from datetime import timedelta
+from typing import TypeAlias
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
+from services.api.app.diabetes.utils.jobs import schedule_once
 
 logger = logging.getLogger(__name__)
 
-DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
+DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
 
 
 def schedule_reminder(
@@ -81,21 +83,13 @@ def schedule_reminder(
             )
             when_td = timedelta(minutes=float(minutes_after))
             data = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
-            if "timezone" in inspect.signature(job_queue.run_once).parameters:
-                job_queue.run_once(  # type: ignore[call-arg]
-                    reminder_job,
-                    when=when_td,
-                    data=data,
-                    name=name,
-                    timezone=ZoneInfo("Europe/Moscow"),
-                )
-            else:
-                job_queue.run_once(
-                    reminder_job,
-                    when=when_td,
-                    data=data,
-                    name=name,
-                )
+            schedule_once(
+                job_queue,
+                reminder_job,
+                when=when_td,
+                data=data,
+                name=name,
+            )
     else:
         if rem.time:
             logger.debug(
