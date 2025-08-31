@@ -13,7 +13,7 @@ from ..services.reminders import (
 )
 from ..services.audit import log_patient_access
 from ..telegram_auth import require_tg_user
-from ..reminder_events import notify_reminder_saved
+from ..reminder_events import notify_reminder_deleted, notify_reminder_saved
 
 logger = logging.getLogger(__name__)
 
@@ -169,4 +169,5 @@ async def delete_reminder(
         raise HTTPException(status_code=404, detail="reminder not found")
     log_patient_access(getattr(request.state, "user_id", None), tid)
     await remove_reminder(tid, id)
+    notify_reminder_deleted(id)
     return {"status": "ok"}

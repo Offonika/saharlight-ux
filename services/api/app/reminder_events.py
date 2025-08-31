@@ -43,4 +43,17 @@ def notify_reminder_saved(reminder_id: int) -> None:
     schedule_reminder(rem, jq, user)
 
 
-__all__ = ["set_job_queue", "notify_reminder_saved"]
+def notify_reminder_deleted(reminder_id: int) -> None:
+    """Remove reminder jobs from the job queue.
+
+    Raises RuntimeError if the job queue is not configured.
+    """
+    jq = _job_queue
+    if jq is None:
+        msg = "notify_reminder_deleted called without job_queue"
+        raise RuntimeError(msg)
+    for job in jq.get_jobs_by_name(f"reminder_{reminder_id}"):
+        job.schedule_removal()
+
+
+__all__ = ["set_job_queue", "notify_reminder_saved", "notify_reminder_deleted"]
