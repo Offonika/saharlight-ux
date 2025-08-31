@@ -175,6 +175,7 @@ async def test_add_reminder_commit_failure(
     update = make_update(message=message, effective_user=make_user(1))
     job_queue = MagicMock(spec=JobQueue)
     job_queue.get_jobs_by_name.return_value = []
+    job_queue.run_once = MagicMock()
     context = make_context(args=["sugar", "23:00"], job_queue=job_queue)
 
     with caplog.at_level(logging.ERROR):
@@ -216,7 +217,9 @@ async def test_reminder_webapp_save_commit_failure(
         json.dumps({"type": "sugar", "value": "23:00", "id": 1})
     )
     update = make_update(effective_message=message, effective_user=make_user(1))
-    context = make_context(job_queue=MagicMock(spec=JobQueue))
+    job_queue = MagicMock(spec=JobQueue)
+    job_queue.run_once = MagicMock()
+    context = make_context(job_queue=job_queue)
 
     with caplog.at_level(logging.ERROR):
         await reminder_handlers.reminder_webapp_save(update, context)
@@ -245,6 +248,7 @@ async def test_delete_reminder_commit_failure(
 
     job_queue = MagicMock(spec=JobQueue)
     job_queue.get_jobs_by_name = MagicMock()
+    job_queue.run_once = MagicMock()
     message = DummyMessage()
     update = make_update(message=message)
     context = make_context(args=["1"], job_queue=job_queue)
@@ -347,6 +351,7 @@ async def test_reminder_action_cb_commit_failure(
 
     job_queue = MagicMock(spec=JobQueue)
     job_queue.get_jobs_by_name = MagicMock()
+    job_queue.run_once = MagicMock()
     query = DummyQuery(DummyMessage(), "rem_toggle:1")
     update = make_update(callback_query=query, effective_user=make_user(1))
     context = make_context(job_queue=job_queue)

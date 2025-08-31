@@ -133,6 +133,7 @@ class DummyJobQueue:
         when: Any,
         data: dict[str, Any] | None = None,
         name: str | None = None,
+        timezone: object | None = None,
     ) -> DummyJob:
         job = DummyJob(callback, data, name)
         self.jobs.append(job)
@@ -878,6 +879,7 @@ async def test_snooze_callback_custom_delay(
     query = DummyCallbackQuery("remind_snooze:1:15", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
     job_queue = MagicMock(spec=JobQueue)
+    job_queue.run_once = MagicMock()
     context = make_context(job_queue=job_queue, bot=DummyBot())
     await handlers.reminder_callback(update, context)
     job_queue.run_once.assert_called_once()

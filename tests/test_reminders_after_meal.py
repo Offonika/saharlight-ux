@@ -37,6 +37,7 @@ class DummyJobQueue:
         when: timedelta,
         data: dict[str, Any] | None = None,
         name: str | None = None,
+        timezone: object | None = None,
     ) -> DummyJob:
         job = DummyJob(callback, when, data or {}, name or "")
         self.jobs.append(job)
