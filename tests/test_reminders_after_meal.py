@@ -50,9 +50,7 @@ class DummyJobQueue:
 def make_session() -> sessionmaker[Session]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    return sessionmaker(
-        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
-    )
+    return sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 
 
 def test_schedule_reminder_after_meal() -> None:
@@ -65,6 +63,7 @@ def test_schedule_reminder_after_meal() -> None:
             id=1,
             telegram_id=1,
             type="after_meal",
+            kind="after_event",
             minutes_after=30,
             is_enabled=True,
             user=user,
@@ -97,6 +96,7 @@ def test_schedule_after_meal_single_reminder() -> None:
                 id=1,
                 telegram_id=1,
                 type="after_meal",
+                kind="after_event",
                 minutes_after=30,
                 is_enabled=True,
                 user=user,
@@ -125,6 +125,7 @@ def test_schedule_after_meal_no_duplicate_jobs() -> None:
                 id=1,
                 telegram_id=1,
                 type="after_meal",
+                kind="after_event",
                 minutes_after=30,
                 is_enabled=True,
                 user=user,
@@ -153,6 +154,7 @@ def test_schedule_after_meal_multiple_reminders() -> None:
                     id=1,
                     telegram_id=1,
                     type="after_meal",
+                    kind="after_event",
                     minutes_after=15,
                     is_enabled=True,
                     user=user,
@@ -161,6 +163,7 @@ def test_schedule_after_meal_multiple_reminders() -> None:
                     id=2,
                     telegram_id=1,
                     type="after_meal",
+                    kind="after_event",
                     minutes_after=45,
                     is_enabled=True,
                     user=user,
@@ -191,6 +194,7 @@ def test_schedule_after_meal_no_enabled_reminders() -> None:
                 id=1,
                 telegram_id=1,
                 type="after_meal",
+                kind="after_event",
                 minutes_after=30,
                 is_enabled=False,
                 user=user,
@@ -232,6 +236,7 @@ def test_schedule_after_meal_no_timezone_kwarg() -> None:
                 id=1,
                 telegram_id=1,
                 type="after_meal",
+                kind="after_event",
                 minutes_after=30,
                 is_enabled=True,
                 user=user,
