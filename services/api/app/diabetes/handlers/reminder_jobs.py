@@ -24,7 +24,7 @@ def schedule_reminder(
 
     # Import lazily to avoid circular imports.
     from services.api.app import reminder_events
-    from services.api.app.diabetes.handlers import reminder_handlers
+    from . import reminder_handlers
 
     reminder_events.set_job_queue(job_queue)
     reminder_job = reminder_handlers.reminder_job
