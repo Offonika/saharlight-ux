@@ -109,15 +109,17 @@ def main() -> None:  # pragma: no cover
 
     # 🟢 Тестовая задача (через 30 секунд после запуска)
     async def test_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+        admin_id = settings.admin_id
+        if admin_id is None:  # pragma: no cover - misconfiguration
+            logger.warning("Admin ID not configured; skipping test reminder")
+            return
         await context.bot.send_message(
-            chat_id=settings.admin_id,
+            chat_id=admin_id,
             text="🔔 Test reminder fired! JobQueue работает ✅",
         )
 
     if application.job_queue:
         application.job_queue.run_once(test_job, when=30)
-
-    application.job_queue.run_once(test_job, when=30)
 
     application.run_polling()
 
