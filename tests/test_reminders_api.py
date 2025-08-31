@@ -269,16 +269,22 @@ def test_patch_updates_reminder(
 
 
 def test_delete_reminder(
-    client: TestClient, session_factory: sessionmaker[Session]
+    client_with_job_queue: tuple[TestClient, DummyJobQueue],
+    session_factory: sessionmaker[Session],
 ) -> None:
+    client, job_queue = client_with_job_queue
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
+    job_queue.run_daily(lambda: None, time(8, 0), name="reminder_1")
     resp = client.delete("/api/reminders", params={"telegramId": 1, "id": 1})
     assert resp.status_code == 200
     with session_factory() as session:
         assert session.get(Reminder, 1) is None
+    jobs = job_queue.get_jobs_by_name("reminder_1")
+    assert jobs
+    assert jobs[0].removed
 
 
 def test_post_reminder_schedules_job(
