@@ -198,6 +198,46 @@ async def test_add_reminder_valid_type(reminder_handlers: Any, monkeypatch: pyte
 
 
 @pytest.mark.asyncio
+async def test_add_reminder_saves_time_and_description(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import datetime as dt
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(reminder_handlers, "reminder_events", MagicMock())
+
+    class FixedDT(dt.datetime):
+        @classmethod
+        def now(cls, tz: dt.tzinfo | None = None) -> "FixedDT":
+            return cls(2024, 1, 1, 8, 0, 0, tzinfo=tz)
+
+    monkeypatch.setattr(reminder_handlers.datetime, "datetime", FixedDT)
+
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["sugar", "09:00"])
+
+    await reminder_handlers.add_reminder(update, context)
+
+    assert message.texts == ["Сохранено: 🔔 Замерить сахар ⏰ 09:00 (next 09:00)"]
+
+    with TestSession() as session:
+        rem_db = session.query(Reminder).one()
+        assert rem_db.time == time(9, 0)
+
+
+@pytest.mark.asyncio
 async def test_add_reminder_ignores_disabled(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)

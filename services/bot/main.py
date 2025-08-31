@@ -98,16 +98,18 @@ def main() -> None:  # pragma: no cover
         .post_init(post_init)  # registers post-init handler
         .build()
     )
-    application.job_queue.timezone = ZoneInfo("Europe/Moscow")
+    job_queue = application.job_queue
+    if job_queue is None:
+        raise RuntimeError("JobQueue not initialized")
+    job_queue.timezone = ZoneInfo("Europe/Moscow")  # type: ignore[attr-defined]
     logger.info(
-        "✅ JobQueue initialized with timezone %s",
-        application.job_queue.timezone,
+        "✅ JobQueue initialized with timezone %s", job_queue.timezone  # type: ignore[attr-defined]
     )
     application.add_error_handler(error_handler)
 
     from services.api.app import reminder_events
 
-    reminder_events.set_job_queue(application.job_queue)
+    reminder_events.set_job_queue(job_queue)
 
     from services.api.app.diabetes.handlers.registration import register_handlers
 
