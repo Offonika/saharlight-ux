@@ -19,6 +19,7 @@ from telegram import (
     InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
+    Message,
     Update,
     WebAppInfo,
 )
@@ -142,9 +143,7 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             return (
                 session.query(HistoryRecord)
                 .filter(HistoryRecord.telegram_id == user_id)
-                .order_by(
-                    HistoryRecord.date.desc(), HistoryRecord.time.desc()
-                )
+                .order_by(HistoryRecord.date.desc(), HistoryRecord.time.desc())
                 .limit(limit)
                 .all()
             )
@@ -198,7 +197,7 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
     await query.answer()
     message = query.message
     if query.data == "report_back":
-        if message is not None:
+        if isinstance(message, Message):
             await message.delete()
             await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
         return
@@ -222,7 +221,7 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
         user_data = cast(UserData, user_data_raw)
         user_data["awaiting_report_date"] = True
         await query.edit_message_text("Введите дату начала отчёта в формате YYYY-MM-DD\nОтправьте «назад» для отмены.")
-        if message is not None:
+        if isinstance(message, Message):
             await message.reply_text(
                 "Ожидаю дату…",
                 reply_markup=ReplyKeyboardMarkup(
@@ -379,6 +378,7 @@ async def send_report(
         q_message = query.message
         if q_message is None:
             return
+        q_message = cast(Message, q_message)
         await q_message.reply_photo(
             plot_buf,
             caption="График сахара за период",
@@ -389,7 +389,7 @@ async def send_report(
             caption="PDF-отчёт для врача",
         )
     elif message is not None:
-        msg = message
+        msg = cast(Message, message)
         await msg.reply_text(report_msg, parse_mode="HTML")
         await msg.reply_photo(
             plot_buf,

@@ -25,8 +25,8 @@ class DummyMessage:
 
 
 def _get_menu_handler(
-    fallbacks: Sequence[CommandHandler[Any]],
-) -> CommandHandler[Any]:
+    fallbacks: Sequence[CommandHandler[Any, Any]],
+) -> CommandHandler[Any, Any]:
     return next(h for h in fallbacks if "menu" in getattr(h, "commands", []))
 
 
@@ -34,18 +34,12 @@ def _get_menu_handler(
 async def test_sugar_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(
         cast(
-            Sequence[CommandHandler[Any]],
-            [
-                h
-                for h in dose_calc.sugar_conv.fallbacks
-                if isinstance(h, CommandHandler)
-            ],
+            Sequence[CommandHandler[Any, Any]],
+            [h for h in dose_calc.sugar_conv.fallbacks if isinstance(h, CommandHandler)],
         )
     )
     message = DummyMessage("/menu")
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),
@@ -70,14 +64,12 @@ async def test_sugar_conv_menu_then_photo() -> None:
 async def test_dose_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(
         cast(
-            Sequence[CommandHandler[Any]],
+            Sequence[CommandHandler[Any, Any]],
             [h for h in dose_calc.dose_conv.fallbacks if isinstance(h, CommandHandler)],
         )
     )
     message = DummyMessage("/menu")
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={"pending_entry": {"foo": "bar"}}),

@@ -2,15 +2,14 @@ import re
 from typing import Callable, Coroutine, Optional
 
 from telegram import CallbackQuery, Update
-from telegram.ext import ContextTypes
-from telegram.ext._basehandler import BaseHandler
+from telegram.ext import BaseHandler, ContextTypes
 
-CallbackQueryHandlerCallback = Callable[
-    [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, int | None]
-]
+CallbackQueryHandlerCallback = Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, int | None]]
 
 
-class CallbackQueryNoWarnHandler(BaseHandler[Update, ContextTypes.DEFAULT_TYPE]):
+class CallbackQueryNoWarnHandler(
+    BaseHandler[Update, ContextTypes.DEFAULT_TYPE, int | None]  # type: ignore[misc]
+):
     """Handle callback queries without triggering ConversationHandler warnings."""
 
     def __init__(
@@ -19,6 +18,7 @@ class CallbackQueryNoWarnHandler(BaseHandler[Update, ContextTypes.DEFAULT_TYPE])
         pattern: str | None = None,
     ) -> None:
         super().__init__(callback)
+        self.callback = callback
         self.pattern: Optional[re.Pattern[str]] = re.compile(pattern) if pattern else None
 
     def check_update(self, update: object) -> Optional[CallbackQuery]:

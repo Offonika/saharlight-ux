@@ -7,6 +7,7 @@ from telegram import (
     InlineKeyboardMarkup,
     ForceReply,
     CallbackQuery,
+    Message,
 )
 from telegram.ext import ContextTypes
 from typing import Awaitable, Callable, cast
@@ -20,9 +21,7 @@ from . import EntryData, UserData
 logger = logging.getLogger(__name__)
 
 
-Handler = Callable[
-    [Update, ContextTypes.DEFAULT_TYPE, CallbackQuery, str], Awaitable[None]
-]
+Handler = Callable[[Update, ContextTypes.DEFAULT_TYPE, CallbackQuery, str], Awaitable[None]]
 
 
 async def handle_confirm_entry(
@@ -62,9 +61,7 @@ async def handle_confirm_entry(
         reminder_handlers.schedule_after_meal(user.id, job_queue)
 
 
-async def handle_edit_entry(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str
-) -> None:
+async def handle_edit_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str) -> None:
     """Prompt user to resend data to update the pending entry."""
     user_data_raw = context.user_data
     if user_data_raw is None:
@@ -83,9 +80,7 @@ async def handle_edit_entry(
     )
 
 
-async def handle_cancel_entry(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str
-) -> None:
+async def handle_cancel_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str) -> None:
     """Discard pending entry and show main menu keyboard."""
     user_data_raw = context.user_data
     if user_data_raw is None:
@@ -96,6 +91,7 @@ async def handle_cancel_entry(
     message = query.message
     if message is None:
         return
+    message = cast(Message, message)
     await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
 
 
@@ -119,9 +115,7 @@ async def handle_edit_or_delete(
         if user is None:
             return
         if existing_entry.telegram_id != user.id:
-            await query.edit_message_text(
-                "⚠️ Эта запись принадлежит другому пользователю."
-            )
+            await query.edit_message_text("⚠️ Эта запись принадлежит другому пользователю.")
             return
         if action == "del":
             session.delete(existing_entry)
@@ -141,6 +135,7 @@ async def handle_edit_or_delete(
     message = query.message
     if message is None:
         return
+    message = cast(Message, message)
     user_data["edit_entry"] = {
         "id": entry_id,
         "chat_id": message.chat_id,
@@ -148,11 +143,7 @@ async def handle_edit_or_delete(
     }
     keyboard = InlineKeyboardMarkup(
         [
-            [
-                InlineKeyboardButton(
-                    "сахар", callback_data=f"edit_field:{entry_id}:sugar"
-                )
-            ],
+            [InlineKeyboardButton("сахар", callback_data=f"edit_field:{entry_id}:sugar")],
             [InlineKeyboardButton("xe", callback_data=f"edit_field:{entry_id}:xe")],
             [InlineKeyboardButton("dose", callback_data=f"edit_field:{entry_id}:dose")],
         ]
@@ -186,6 +177,7 @@ async def handle_edit_field(
     message = query.message
     if message is None:
         return
+    message = cast(Message, message)
     await message.reply_text(prompt, reply_markup=ForceReply(selective=True))
 
 

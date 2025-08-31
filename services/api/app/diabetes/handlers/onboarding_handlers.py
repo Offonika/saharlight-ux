@@ -20,6 +20,7 @@ from typing import cast
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    Message,
     Update,
 )
 from telegram.ext import (
@@ -61,6 +62,8 @@ DEMO_PHOTO_PATH = Path(__file__).resolve().parents[5] / "docs" / "assets" / "dem
     ONB_REMINDERS,
 ) = range(6)
 
+END = cast(int, ConversationHandler.END)
+
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Entry point for ``/start``.
@@ -72,7 +75,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     user = update.effective_user
     message = update.message
     if user is None or message is None:
-        return ConversationHandler.END
+        return END
 
     user_id = user.id
     first_name = user.first_name or ""
@@ -87,20 +90,20 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             except OpenAIError as exc:  # pragma: no cover - network errors
                 logger.exception("Failed to create thread for user %s: %s", user_id, exc)
                 await message.reply_text("⚠️ Не удалось инициализировать профиль. Попробуйте позже.")
-                return ConversationHandler.END
+                return END
             user_obj = User(telegram_id=user_id, thread_id=thread_id)
             session.add(user_obj)
             try:
                 commit(session)
             except CommitError:
                 await message.reply_text("⚠️ Не удалось сохранить профиль пользователя.")
-                return ConversationHandler.END
+                return END
 
         if user_obj.onboarding_complete:
             greeting = f"👋 Привет, {first_name}!" if first_name else "👋 Привет!"
             greeting += " Рада видеть тебя. Надеюсь, у тебя сегодня всё отлично."
             await message.reply_text(f"{greeting}\n\n📋 Выберите действие:", reply_markup=menu_keyboard())
-            return ConversationHandler.END
+            return END
 
     await message.reply_text(
         "👋 Привет! Давай начнём.\n1/3. Введите коэффициент ИКХ (г/ед.):",
@@ -119,7 +122,7 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """Handle ICR input."""
     message = update.message
     if message is None or message.text is None:
-        return ConversationHandler.END
+        return END
     user_data_raw = context.user_data
     if user_data_raw is None:
         context.user_data = {}
@@ -146,7 +149,7 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     """Handle CF input."""
     message = update.message
     if message is None or message.text is None:
-        return ConversationHandler.END
+        return END
     user_data_raw = context.user_data
     if user_data_raw is None:
         context.user_data = {}
@@ -180,7 +183,7 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     assert user_data_raw is not None
     user_data = cast(UserData, user_data_raw)
     if message is None or message.text is None or user is None:
-        return ConversationHandler.END
+        return END
     try:
         target = float(message.text.replace(",", "."))
     except ValueError:
@@ -194,7 +197,7 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     cf = user_data.pop("profile_cf", None)
     if icr is None or cf is None:
         await message.reply_text("⚠️ Не хватает данных для профиля. Пожалуйста, начните заново.")
-        return ConversationHandler.END
+        return END
     user_id = user.id
 
     with SessionLocal() as session:
@@ -209,7 +212,7 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             commit(session)
         except CommitError:
             await message.reply_text("⚠️ Не удалось сохранить профиль.")
-            return ConversationHandler.END
+            return END
 
     tz_button = build_timezone_webapp_button()
     keyboard_buttons: list[InlineKeyboardButton] = []
@@ -235,14 +238,14 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
     message = update.message
     user = update.effective_user
     if message is None or user is None:
-        return ConversationHandler.END
+        return END
     web_app = getattr(message, "web_app_data", None)
     if web_app is not None:
         tz_name = web_app.data
     elif message.text is not None:
         tz_name = message.text.strip()
     else:
-        return ConversationHandler.END
+        return END
     try:
         ZoneInfo(tz_name)
     except ZoneInfoNotFoundError:
@@ -290,7 +293,7 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
                 commit(session)
             except CommitError:
                 await message.reply_text("⚠️ Не удалось сохранить часовой пояс.")
-                return ConversationHandler.END
+                return END
 
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Далее", callback_data="onb_next")]])
     try:
@@ -313,9 +316,10 @@ async def onboarding_demo_next(update: Update, context: ContextTypes.DEFAULT_TYP
     """Proceed from demo to reminder suggestion."""
     query = update.callback_query
     if query is None or query.message is None:
-        return ConversationHandler.END
+        return END
+    message = cast(Message, query.message)
     await query.answer()
-    await query.message.delete()
+    await message.delete()
 
     keyboard = InlineKeyboardMarkup(
         [
@@ -325,7 +329,7 @@ async def onboarding_demo_next(update: Update, context: ContextTypes.DEFAULT_TYP
             ]
         ]
     )
-    await query.message.reply_text(
+    await message.reply_text(
         "3/3. Включить напоминания о замерах сахара?",
         reply_markup=keyboard,
     )
@@ -337,7 +341,8 @@ async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     user = update.effective_user
     if query is None or query.message is None or user is None:
-        return ConversationHandler.END
+        return END
+    message = cast(Message, query.message)
     await query.answer()
     enable = query.data == "onb_rem_yes"
     user_id = user.id
@@ -367,8 +372,8 @@ async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYP
             try:
                 commit(session)
             except CommitError:
-                await query.message.reply_text("⚠️ Не удалось сохранить настройки.")
-                return ConversationHandler.END
+                await message.reply_text("⚠️ Не удалось сохранить настройки.")
+                return END
 
     job_queue = getattr(context, "job_queue", None)
     if job_queue is not None:
@@ -386,7 +391,7 @@ async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYP
 
     logger.info("User %s reminder choice: %s", user_id, enable)
 
-    poll_msg = await query.message.reply_poll(
+    poll_msg = await message.reply_poll(
         "Как вам онбординг?",
         ["👍", "🙂", "👎"],
         is_anonymous=False,
@@ -397,8 +402,8 @@ async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         logger.warning("Poll message missing poll object for user %s", user_id)
 
-    await query.message.reply_text("Готово! Спасибо за настройку.", reply_markup=menu_keyboard())
-    return ConversationHandler.END
+    await message.reply_text("Готово! Спасибо за настройку.", reply_markup=menu_keyboard())
+    return END
 
 
 async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -406,7 +411,8 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     query = update.callback_query
     user = update.effective_user
     if query is None or query.message is None or user is None:
-        return ConversationHandler.END
+        return END
+    message = cast(Message, query.message)
     await query.answer()
 
     user_id = user.id
@@ -417,13 +423,13 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             try:
                 commit(session)
             except CommitError:
-                await query.message.reply_text(
+                await message.reply_text(
                     "⚠️ Не удалось сохранить настройки.",
                     reply_markup=menu_keyboard(),
                 )
-                return ConversationHandler.END
+                return END
 
-    poll_msg = await query.message.reply_poll(
+    poll_msg = await message.reply_poll(
         "Как вам онбординг?",
         ["👍", "🙂", "👎"],
         is_anonymous=False,
@@ -434,8 +440,8 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     else:
         logger.warning("Poll message missing poll object for user %s", user_id)
 
-    await query.message.reply_text("Пропущено.", reply_markup=menu_keyboard())
-    return ConversationHandler.END
+    await message.reply_text("Пропущено.", reply_markup=menu_keyboard())
+    return END
 
 
 async def onboarding_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -460,11 +466,11 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if context.user_data is None:
         context.user_data = {}
     if message is None:
-        return ConversationHandler.END
+        return END
 
     handler = _cancel_then(photo_prompt)
     await handler(update, context)
-    return ConversationHandler.END
+    return END
 
 
 onboarding_conv = ConversationHandler(

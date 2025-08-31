@@ -49,21 +49,9 @@ def register_profile_handlers(
 
     app.add_handler(profile.profile_conv)
     app.add_handler(profile.profile_webapp_handler)
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex(re.escape(PROFILE_BUTTON_TEXT)), profile.profile_view
-        )
-    )
-    app.add_handler(
-        CallbackQueryHandler[ContextTypes.DEFAULT_TYPE](
-            profile.profile_security, pattern="^profile_security"
-        )
-    )
-    app.add_handler(
-        CallbackQueryHandler[ContextTypes.DEFAULT_TYPE](
-            profile.profile_back, pattern="^profile_back$"
-        )
-    )
+    app.add_handler(MessageHandler(filters.Regex(re.escape(PROFILE_BUTTON_TEXT)), profile.profile_view))
+    app.add_handler(CallbackQueryHandler(profile.profile_security, pattern="^profile_security"))
+    app.add_handler(CallbackQueryHandler(profile.profile_back, pattern="^profile_back$"))
 
 
 def register_reminder_handlers(
@@ -80,34 +68,18 @@ def register_reminder_handlers(
 
     from . import reminder_handlers
 
-    app.add_handler(
-        CommandHandler[ContextTypes.DEFAULT_TYPE](
-            "reminders", reminder_handlers.reminders_list
-        )
-    )
-    app.add_handler(
-        CommandHandler[ContextTypes.DEFAULT_TYPE](
-            "addreminder", reminder_handlers.add_reminder
-        )
-    )
+    app.add_handler(CommandHandler("reminders", reminder_handlers.reminders_list))
+    app.add_handler(CommandHandler("addreminder", reminder_handlers.add_reminder))
     app.add_handler(reminder_handlers.reminder_action_handler)
     app.add_handler(reminder_handlers.reminder_webapp_handler)
+    app.add_handler(CommandHandler("delreminder", reminder_handlers.delete_reminder))
     app.add_handler(
-        CommandHandler[ContextTypes.DEFAULT_TYPE](
-            "delreminder", reminder_handlers.delete_reminder
-        )
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
+        MessageHandler(
             filters.Regex(re.escape(REMINDERS_BUTTON_TEXT)),
             reminder_handlers.reminders_list,
         )
     )
-    app.add_handler(
-        CallbackQueryHandler[ContextTypes.DEFAULT_TYPE](
-            reminder_handlers.reminder_callback, pattern="^remind_"
-        )
-    )
+    app.add_handler(CallbackQueryHandler(reminder_handlers.reminder_callback, pattern="^remind_"))
 
     job_queue = app.job_queue
     if job_queue:
@@ -143,100 +115,46 @@ def register_handlers(
     )
 
     app.add_handler(onboarding_conv)
-    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("menu", menu_command))
-    app.add_handler(
-        CommandHandler[ContextTypes.DEFAULT_TYPE](
-            "report", reporting_handlers.report_request
-        )
-    )
-    app.add_handler(
-        CommandHandler[ContextTypes.DEFAULT_TYPE](
-            "history", reporting_handlers.history_view
-        )
-    )
+    app.add_handler(CommandHandler("menu", menu_command))
+    app.add_handler(CommandHandler("report", reporting_handlers.report_request))
+    app.add_handler(CommandHandler("history", reporting_handlers.history_view))
     app.add_handler(dose_calc.dose_conv)
     # Register profile conversation before sugar conversation so that numeric
     # inputs for profile aren't captured by sugar logging
     register_profile_handlers(app)
     app.add_handler(sugar_handlers.sugar_conv)
     app.add_handler(sos_handlers.sos_contact_conv)
-    app.add_handler(
-        CommandHandler[ContextTypes.DEFAULT_TYPE]("cancel", dose_calc.dose_cancel)
-    )
-    app.add_handler(CommandHandler[ContextTypes.DEFAULT_TYPE]("help", help_command))
-    app.add_handler(
-        CommandHandler[ContextTypes.DEFAULT_TYPE]("gpt", gpt_handlers.chat_with_gpt)
-    )
+    app.add_handler(CommandHandler("cancel", dose_calc.dose_cancel))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("gpt", gpt_handlers.chat_with_gpt))
     register_reminder_handlers(app)
+    app.add_handler(CommandHandler("alertstats", alert_handlers.alert_stats))
+    app.add_handler(CommandHandler("hypoalert", security_handlers.hypo_alert_faq))
+    app.add_handler(PollAnswerHandler(onboarding_poll_answer))
     app.add_handler(
-        CommandHandler[ContextTypes.DEFAULT_TYPE](
-            "alertstats", alert_handlers.alert_stats
-        )
-    )
-    app.add_handler(
-        CommandHandler[ContextTypes.DEFAULT_TYPE](
-            "hypoalert", security_handlers.hypo_alert_faq
-        )
-    )
-    app.add_handler(
-        PollAnswerHandler[ContextTypes.DEFAULT_TYPE](onboarding_poll_answer)
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
+        MessageHandler(
             filters.Regex(re.escape(REPORT_BUTTON_TEXT)),
             reporting_handlers.report_request,
         )
     )
     app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
+        MessageHandler(
             filters.Regex(re.escape(HISTORY_BUTTON_TEXT)),
             reporting_handlers.history_view,
         )
     )
+    app.add_handler(MessageHandler(filters.Regex(re.escape(PHOTO_BUTTON_TEXT)), photo_handlers.photo_prompt))
+    app.add_handler(MessageHandler(filters.Regex(re.escape(QUICK_INPUT_BUTTON_TEXT)), smart_input_help))
+    app.add_handler(MessageHandler(filters.Regex(re.escape(HELP_BUTTON_TEXT)), help_command))
     app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex(re.escape(PHOTO_BUTTON_TEXT)), photo_handlers.photo_prompt
-        )
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex(re.escape(QUICK_INPUT_BUTTON_TEXT)), smart_input_help
-        )
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Regex(re.escape(HELP_BUTTON_TEXT)), help_command
-        )
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
+        MessageHandler(
             filters.Regex(re.escape(SOS_BUTTON_TEXT)),
             sos_handlers.sos_contact_start,
         )
     )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.TEXT & ~filters.COMMAND, gpt_handlers.freeform_handler
-        )
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.PHOTO, photo_handlers.photo_handler
-        )
-    )
-    app.add_handler(
-        MessageHandler[ContextTypes.DEFAULT_TYPE](
-            filters.Document.IMAGE, photo_handlers.doc_handler
-        )
-    )
-    app.add_handler(
-        CallbackQueryHandler[ContextTypes.DEFAULT_TYPE](
-            reporting_handlers.report_period_callback, pattern="^report_back$"
-        )
-    )
-    app.add_handler(
-        CallbackQueryHandler[ContextTypes.DEFAULT_TYPE](
-            reporting_handlers.report_period_callback, pattern="^report_period:"
-        )
-    )
-    app.add_handler(CallbackQueryHandler[ContextTypes.DEFAULT_TYPE](callback_router))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, gpt_handlers.freeform_handler))
+    app.add_handler(MessageHandler(filters.PHOTO, photo_handlers.photo_handler))
+    app.add_handler(MessageHandler(filters.Document.IMAGE, photo_handlers.doc_handler))
+    app.add_handler(CallbackQueryHandler(reporting_handlers.report_period_callback, pattern="^report_back$"))
+    app.add_handler(CallbackQueryHandler(reporting_handlers.report_period_callback, pattern="^report_period:"))
+    app.add_handler(CallbackQueryHandler(callback_router))
