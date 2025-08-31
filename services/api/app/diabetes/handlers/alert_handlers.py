@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 from collections.abc import Awaitable, Callable
-from typing import TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 
 from sqlalchemy.orm import Session, sessionmaker
 from telegram import Update
@@ -36,7 +36,11 @@ SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], None] = _commit
 
 CustomContext = ContextTypes.DEFAULT_TYPE
-DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
+
+if TYPE_CHECKING:
+    DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
+else:
+    DefaultJobQueue = JobQueue
 
 
 class AlertJobData(TypedDict, total=False):

@@ -10,8 +10,12 @@ from __future__ import annotations
 from telegram import MenuButtonDefault
 
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
+from typing import TYPE_CHECKING, TypeAlias
 
-DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
+if TYPE_CHECKING:
+    DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
+else:
+    DefaultJobQueue = JobQueue
 
 
 async def post_init(

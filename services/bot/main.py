@@ -10,12 +10,16 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.exc import SQLAlchemyError
 from telegram import BotCommand
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
+from typing import TYPE_CHECKING, TypeAlias
 
 from services.api.app.config import settings
 from services.api.app.diabetes.services.db import init_db
 from services.api.app.menu_button import post_init as menu_button_post_init
 
-DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
+if TYPE_CHECKING:
+    DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
+else:
+    DefaultJobQueue = JobQueue
 logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = settings.telegram_token

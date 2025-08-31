@@ -3,13 +3,16 @@ from __future__ import annotations
 import inspect
 from collections.abc import Callable, Coroutine
 from datetime import datetime, timedelta, timezone as dt_timezone, tzinfo
-from typing import Any
+from typing import Any, TYPE_CHECKING, TypeAlias
 
 from telegram.ext import ContextTypes, Job, JobQueue
-from typing import TypeAlias
 
 CustomContext: TypeAlias = ContextTypes.DEFAULT_TYPE
-DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
+
+if TYPE_CHECKING:
+    DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
+else:
+    DefaultJobQueue = JobQueue
 
 JobCallback = Callable[[CustomContext], Coroutine[Any, Any, object]]
 
