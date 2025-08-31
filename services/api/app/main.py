@@ -23,7 +23,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 # ────────── local ──────────
-from . import config
+from . import config, reminder_events
 from .diabetes.services.db import (
     HistoryRecord as HistoryRecordDB,
     Timezone as TimezoneDB,
@@ -40,13 +40,14 @@ from .schemas.user import UserContext
 from .services.user_roles import get_user_role, set_user_role
 from .telegram_auth import require_tg_user
 from services.api.app.diabetes.utils.openai_utils import dispose_http_client
+from .diabetes.handlers.reminder_jobs import DefaultJobQueue
 
 # ────────── init ──────────
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         init_db()  # создаёт/инициализирует БД
     except (ValueError, SQLAlchemyError) as exc:
@@ -54,8 +55,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         raise RuntimeError(
             "Database initialization failed. Please check your configuration and try again."
         ) from exc
-    yield
-    dispose_http_client()
+    jq = cast(DefaultJobQueue | None, getattr(app.state, "job_queue", None))
+    reminder_events.register_job_queue(jq)
+    try:
+        yield
+    finally:
+        reminder_events.register_job_queue(None)
+        dispose_http_client()
 
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0", lifespan=lifespan)

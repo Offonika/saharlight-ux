@@ -45,7 +45,10 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     monkeypatch.setattr(reminders, "SessionLocal", TestSession)
-    monkeypatch.setattr(reminders_router, "notify_reminder_saved", lambda rid: None)
+    async def _noop(action: str, rid: int) -> None:  # pragma: no cover - simple stub
+        return None
+
+    monkeypatch.setattr(reminders_router, "_reschedule_job", _noop)
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()

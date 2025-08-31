@@ -91,6 +91,7 @@ def make_context(
     **kwargs: Any,
 ) -> CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
     context = MagicMock(spec=CallbackContext)
+    context.job_queue = None
     for key, value in kwargs.items():
         setattr(context, key, value)
     return cast(

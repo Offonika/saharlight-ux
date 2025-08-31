@@ -700,14 +700,6 @@ async def reminder_webapp_save(
     if rem is not None:
         reminder_events.notify_reminder_saved(rem.id)
 
-        # 🆕 пересоздаём джобу в планировщике
-        job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
-        if job_queue is not None:
-            with SessionLocal() as session:
-                user_obj = session.get(User, rem.telegram_id)
-            if user_obj:
-                _reschedule_job(job_queue, rem, user_obj)
-
     render_fn = cast(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
