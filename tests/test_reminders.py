@@ -211,7 +211,7 @@ def test_schedule_reminder_requires_job_queue() -> None:
         handlers.schedule_reminder(rem, None, user)
 
 
-def test_schedule_reminder_without_user_defaults_to_utc() -> None:
+def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -237,7 +237,7 @@ def test_schedule_reminder_without_user_defaults_to_utc() -> None:
     job = jobs[0]
     assert job.time is not None
     job_time = cast(time, job.time)
-    assert job_time.tzinfo == timezone.utc
+    assert job_time.tzinfo == ZoneInfo("Europe/Moscow")
 
 
 def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -342,7 +342,7 @@ def test_schedule_reminder_invalid_timezone_logs_warning(
     assert job.time is not None
     job_time = cast(datetime, job.time)
     assert job_time.tzinfo is not None
-    assert job_time.tzinfo == timezone.utc
+    assert job_time.tzinfo == ZoneInfo("Europe/Moscow")
     assert any("Invalid timezone" in r.message for r in caplog.records)
 
 
