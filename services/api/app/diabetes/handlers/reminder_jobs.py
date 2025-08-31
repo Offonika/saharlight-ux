@@ -87,7 +87,7 @@ def schedule_reminder(
                     when=when_td,
                     data=data,
                     name=name,
-                    timezone=ZoneInfo("Europe/Moscow"),
+                    timezone=job_tz,
                 )
             else:
                 job_queue.run_once(
@@ -119,7 +119,7 @@ def schedule_reminder(
                     time=job_time,
                     data=data,
                     name=name,
-                    timezone=ZoneInfo("Europe/Moscow"),
+                    timezone=job_tz,
                 )
             else:
                 job_queue.run_daily(
