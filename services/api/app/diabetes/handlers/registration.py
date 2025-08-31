@@ -34,7 +34,7 @@ from ..utils.ui import (
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    CommandHandlerT: TypeAlias = CommandHandler[ContextTypes.DEFAULT_TYPE, object]
+    CommandHandlerT: TypeAlias = CommandHandler[ContextTypes.DEFAULT_TYPE]  # type: ignore[type-arg]
     MessageHandlerT: TypeAlias = MessageHandler[ContextTypes.DEFAULT_TYPE, object]
     CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[ContextTypes.DEFAULT_TYPE, object]
     PollAnswerHandlerT: TypeAlias = PollAnswerHandler[ContextTypes.DEFAULT_TYPE, object]

@@ -1,10 +1,17 @@
 import os
 from types import SimpleNamespace
-from typing import Any, Sequence, cast
+from typing import TYPE_CHECKING, Any, Sequence, cast
 
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler
+
+if TYPE_CHECKING:
+    CommandHandlerSeq = Sequence[CommandHandler[Any]]
+    CommandHandlerType = CommandHandler[Any]
+else:  # pragma: no cover - runtime types
+    CommandHandlerSeq = Sequence[CommandHandler]
+    CommandHandlerType = CommandHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -25,8 +32,8 @@ class DummyMessage:
 
 
 def _get_menu_handler(
-    fallbacks: Sequence[CommandHandler[Any, Any]],
-) -> CommandHandler[Any, Any]:
+    fallbacks: CommandHandlerSeq,
+) -> CommandHandlerType:
     return next(h for h in fallbacks if "menu" in getattr(h, "commands", []))
 
 
@@ -34,7 +41,7 @@ def _get_menu_handler(
 async def test_sugar_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(
         cast(
-            Sequence[CommandHandler[Any, Any]],
+            CommandHandlerSeq,
             [
                 h
                 for h in dose_calc.sugar_conv.fallbacks
@@ -70,7 +77,7 @@ async def test_sugar_conv_menu_then_photo() -> None:
 async def test_dose_conv_menu_then_photo() -> None:
     handler = _get_menu_handler(
         cast(
-            Sequence[CommandHandler[Any, Any]],
+            CommandHandlerSeq,
             [h for h in dose_calc.dose_conv.fallbacks if isinstance(h, CommandHandler)],
         )
     )

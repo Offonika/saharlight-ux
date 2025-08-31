@@ -1,17 +1,20 @@
 import re
-from typing import Callable, Coroutine, Optional
+from typing import Callable, Coroutine, Optional, TYPE_CHECKING
 
 from telegram import CallbackQuery, Update
 from telegram.ext import BaseHandler, ContextTypes
+
+if TYPE_CHECKING:
+    BaseCBHandler = BaseHandler[CallbackQuery, ContextTypes.DEFAULT_TYPE]  # type: ignore[type-arg]
+else:  # pragma: no cover - runtime uses unsubscripted class
+    BaseCBHandler = BaseHandler
 
 CallbackQueryHandlerCallback = Callable[
     [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, int | None]
 ]
 
 
-class CallbackQueryNoWarnHandler(
-    BaseHandler[CallbackQuery, ContextTypes.DEFAULT_TYPE, int | None]
-):
+class CallbackQueryNoWarnHandler(BaseCBHandler):
     """Handle callback queries without triggering ConversationHandler warnings."""
 
     def __init__(
