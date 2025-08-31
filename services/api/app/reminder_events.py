@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes, JobQueue
 from sqlalchemy.orm import Session, sessionmaker
 
 from .diabetes.services.db import Reminder, User
-from .reminders.common import DefaultJobQueue, schedule_reminder
+from .diabetes.handlers.reminder_jobs import DefaultJobQueue, schedule_reminder
 
 logger = logging.getLogger(__name__)
 

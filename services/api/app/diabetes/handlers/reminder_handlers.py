@@ -40,7 +40,7 @@ from services.api.app.diabetes.utils.helpers import (
     parse_time_interval,
 )
 from services.api.app.diabetes.utils.ui import menu_keyboard
-from services.api.app.reminders.common import DefaultJobQueue, schedule_reminder
+from .reminder_jobs import DefaultJobQueue, schedule_reminder
 from . import UserData
 
 run_db: Callable[..., Awaitable[object]] | None
