@@ -157,3 +157,9 @@ def test_schedule_daily_converts_time(queue_cls: type[object]) -> None:
     t = dt_time(12, 0, tzinfo=tokyo)
     schedule_daily(queue, dummy_cb, time=t)
     assert queue.args.time == dt_time(6, 0)
+
+
+def test_schedule_daily_forwards_days() -> None:
+    jq = QueueWithTimezone()
+    schedule_daily(jq, dummy_cb, time=dt_time(1, 0), days=(0, 2, 4))
+    assert jq.args.days == (0, 2, 4)

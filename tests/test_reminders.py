@@ -143,6 +143,26 @@ class DummyJobQueue:
         return [j for j in self.jobs if j.name == name]
 
 
+class DummyJobQueueWithDays(DummyJobQueue):
+    last_days: tuple[int, ...] | None
+
+    def run_daily(
+        self,
+        callback: Callable[..., Any],
+        time: Any,
+        *,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        timezone: tzinfo | None = None,
+    ) -> DummyJob:
+        job = DummyJob(callback, data, name, time)
+        self.jobs.append(job)
+        self.last_days = days
+        self.timezone = timezone
+        return job
+
+
 def make_user(user_id: int) -> MagicMock:
     user = MagicMock(spec=User)
     user.id = user_id
@@ -202,9 +222,7 @@ def test_schedule_reminder_requires_job_queue() -> None:
     handlers.SessionLocal = TestSession
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(
-            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
         session.commit()
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
@@ -272,6 +290,35 @@ def test_schedule_reminder_uses_application_timezone() -> None:
     job_time = cast(time, job.time)
     assert job_time == time(5, 0)
     assert job_time.tzinfo is None
+
+
+def test_schedule_reminder_respects_days_mask() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                is_enabled=True,
+                days_mask=(1 << 0) | (1 << 2),
+            )
+        )
+        session.commit()
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueueWithDays())
+    job_queue.application = SimpleNamespace(timezone=ZoneInfo("UTC"))
+    with TestSession() as session:
+        rem = session.get(Reminder, 1)
+        user = session.get(DbUser, 1)
+        assert rem is not None
+        assert user is not None
+        handlers.schedule_reminder(rem, job_queue, user)
+    assert job_queue.last_days == (0, 2)
 
 
 def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -749,9 +796,7 @@ async def test_toggle_reminder_without_job_queue(monkeypatch: pytest.MonkeyPatch
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(
-            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=False)
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=False))
         session.commit()
 
     schedule_mock = MagicMock()

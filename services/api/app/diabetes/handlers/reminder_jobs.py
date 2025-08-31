@@ -19,9 +19,7 @@ else:
     DefaultJobQueue = JobQueue
 
 
-def schedule_reminder(
-    rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None
-) -> None:
+def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None) -> None:
     """Schedule a reminder in the provided job queue."""
     if job_queue is None:
         msg = "schedule_reminder called without job_queue"
@@ -113,6 +111,10 @@ def schedule_reminder(
                 rem.minutes_after,
             )
             job_time = rem.time.replace(tzinfo=tz)
+            days: tuple[int, ...] | None = None
+            mask = getattr(rem, "days_mask", 0) or 0
+            if mask:
+                days = tuple(i for i in range(7) if mask & (1 << i))
             schedule_daily(
                 job_queue,
                 reminder_job,
@@ -120,6 +122,7 @@ def schedule_reminder(
                 data=data,
                 name=name,
                 timezone=job_tz,
+                days=days,
             )
         elif rem.interval_hours or rem.interval_minutes:
             logger.debug(
@@ -130,11 +133,7 @@ def schedule_reminder(
                 rem.interval_hours or rem.interval_minutes,
                 rem.minutes_after,
             )
-            minutes = (
-                rem.interval_hours * 60
-                if rem.interval_hours is not None
-                else rem.interval_minutes or 0
-            )
+            minutes = rem.interval_hours * 60 if rem.interval_hours is not None else rem.interval_minutes or 0
             job_queue.run_repeating(
                 reminder_job,
                 interval=timedelta(minutes=minutes),
