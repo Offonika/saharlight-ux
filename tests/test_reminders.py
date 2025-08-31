@@ -221,6 +221,12 @@ def test_schedule_reminder_without_user_defaults_to_utc() -> None:
     assert job_time.tzinfo == timezone.utc
 
 
+def test_schedule_reminder_without_job_queue() -> None:
+    rem = Reminder(telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
+    with pytest.raises(ValueError, match="job_queue is required"):
+        handlers.schedule_reminder(rem, None, None)
+
+
 def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
     now = datetime(2024, 1, 1, 10, 0)
 
@@ -646,6 +652,47 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     assert context.user_data is not None
     user_data = context.user_data
     assert "pending_entry" in user_data
+
+
+@pytest.mark.asyncio
+async def test_toggle_reminder_cb_no_job_queue(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit = commit
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                is_enabled=False,
+            )
+        )
+        session.commit()
+
+    query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        make_context(job_queue=None, user_data={}),
+    )
+    await handlers.reminder_action_cb(update, context)
+
+    with TestSession() as session:
+        rem_db = session.get(Reminder, 1)
+        assert rem_db is not None
+        assert rem_db.is_enabled
+
+    assert query.answers
+    answer = query.answers[0]
+    assert answer == "Готово ✅"
 
 
 @pytest.mark.asyncio

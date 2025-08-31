@@ -80,6 +80,7 @@ def client(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> Generator[TestClient, None, None]:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    reminder_events.set_job_queue(None)
     monkeypatch.setattr(
         reminders,
         "compute_next",

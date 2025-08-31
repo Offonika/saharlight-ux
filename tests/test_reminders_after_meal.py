@@ -49,7 +49,9 @@ class DummyJobQueue:
 def make_session() -> sessionmaker[Session]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    return sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    return sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
 
 
 def test_schedule_reminder_after_meal() -> None:

@@ -829,9 +829,15 @@ async def reminder_action_cb(
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if status == "toggle":
         if rem and rem.is_enabled:
-            with SessionLocal() as session:
-                user_obj = session.get(User, rem.telegram_id)
-            schedule_reminder(rem, job_queue, user_obj)
+            if job_queue is None:
+                logger.warning(
+                    "Job queue not available, skipping scheduling for reminder %s",
+                    rid,
+                )
+            else:
+                with SessionLocal() as session:
+                    user_obj = session.get(User, rem.telegram_id)
+                schedule_reminder(rem, job_queue, user_obj)
         elif job_queue is not None:
             for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()

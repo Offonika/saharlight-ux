@@ -45,7 +45,8 @@ async def post_init(
     await menu_button_post_init(app)
 
     # 🟢 Проверка, что JobQueue инициализирован
-    if app.job_queue:
+    job_queue = getattr(app, "job_queue", None)
+    if job_queue:
         logger.info("✅ JobQueue initialized and ready")
     else:
         logger.error("❌ JobQueue is NOT available!")
@@ -112,9 +113,6 @@ def main() -> None:  # pragma: no cover
 
     if application.job_queue:
         application.job_queue.run_once(test_job, when=30)
-
-  
-    application.job_queue.run_once(test_job, when=30)
 
     application.run_polling()
 
