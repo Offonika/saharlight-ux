@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, tzinfo
 from typing import Any
 
 from telegram.ext import ContextTypes, Job, JobQueue
@@ -21,7 +21,7 @@ def schedule_once(
     when: datetime | timedelta | float,
     data: dict[str, object] | None = None,
     name: str | None = None,
-    timezone: datetime.tzinfo | None = None,
+    timezone: tzinfo | None = None,
 ) -> Job[CustomContext]:
     """Schedule ``callback`` to run once at ``when``.
 
