@@ -1,21 +1,23 @@
-import pytest
+import logging
 from collections.abc import Generator
 from datetime import datetime, time, timezone
+from typing import Any, cast
 
+import httpx
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-from typing import Any, cast
 
+from services.api.app import config, reminder_events
+from services.api.app.diabetes.handlers import reminder_handlers
 from services.api.app.diabetes.services.db import Base, Reminder, User
-from services.api.app.routers.reminders import router
 from services.api.app.routers import reminders as reminders_router
+from services.api.app.routers.reminders import router
 from services.api.app.services import reminders
 from services.api.app.telegram_auth import require_tg_user
-from services.api.app import reminder_events
-from services.api.app.diabetes.handlers import reminder_handlers
 
 
 class DummyJob:
@@ -401,3 +403,35 @@ def test_delete_reminder_sends_event_without_job_queue(
     resp = client.delete("/api/reminders", params={"telegramId": 1, "id": 1})
     assert resp.status_code == 200
     assert events == [("deleted", 1)]
+
+
+@pytest.mark.asyncio
+async def test_post_job_queue_event_logs_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("API_URL", "http://example.com")
+    config.reload_settings()
+
+    class DummyClient:
+        async def __aenter__(self) -> "DummyClient":
+            return self
+
+        async def __aexit__(
+            self, exc_type: object, exc: object, tb: object
+        ) -> None:
+            pass
+
+        async def post(
+            self, url: str, json: dict[str, int]
+        ) -> httpx.Response:
+            req = httpx.Request("POST", url)
+            return httpx.Response(500, request=req, text="fail")
+
+    monkeypatch.setattr(reminders_router.httpx, "AsyncClient", lambda: DummyClient())
+
+    with caplog.at_level(logging.ERROR):
+        await reminders_router._post_job_queue_event("saved", 1)
+
+    assert "failed to notify job queue" in caplog.text
+    monkeypatch.delenv("API_URL")
+    config.reload_settings()
