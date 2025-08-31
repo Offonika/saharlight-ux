@@ -1,10 +1,10 @@
+# file: services/bot/main.py
 """Bot entry point and configuration."""
 
-import asyncio
-import inspect
 import logging
+import os
 import sys
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import TYPE_CHECKING, TypeAlias
 from zoneinfo import ZoneInfo
 
@@ -15,13 +15,14 @@ from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
 from services.api.app.config import settings
 from services.api.app.diabetes.services.db import init_db
 from services.api.app.menu_button import post_init as menu_button_post_init
+from services.bot.ptb_patches import apply_jobqueue_stop_workaround  # 👈 добавили
 
 if TYPE_CHECKING:
     DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
 else:
     DefaultJobQueue = JobQueue
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = settings.telegram_token
 
 commands = [
@@ -49,8 +50,6 @@ async def post_init(
 ) -> None:
     await app.bot.set_my_commands(commands)
     await menu_button_post_init(app)
-
-    # 🟢 Проверка, что JobQueue инициализирован
     if app.job_queue:
         logger.info("✅ JobQueue initialized and ready")
     else:
@@ -58,19 +57,16 @@ async def post_init(
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Log errors that occur while processing updates."""
-    logger.exception(
-        "Exception while handling update %s", update, exc_info=context.error
-    )
+    logger.exception("Exception while handling update %s", update, exc_info=context.error)
 
 
 def main() -> None:  # pragma: no cover
-    """Configure and run the bot."""
-    logging.basicConfig(
-        level=settings.log_level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    level = getattr(logging, str(settings.log_level).upper(), logging.INFO)
+    logging.basicConfig(level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     logger.info("=== Bot started ===")
+
+    # применяем воркараунд к PTB JobQueue.stop
+    apply_jobqueue_stop_workaround()
 
     try:
         init_db()
@@ -79,27 +75,14 @@ def main() -> None:  # pragma: no cover
         sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
         logger.error("Failed to initialize the database", exc_info=exc)
-        sys.exit(
-            "Database initialization failed. Please check your configuration and try again."
-        )
+        sys.exit("Database initialization failed. Please check your configuration and try again.")
 
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:
-        logger.error(
-            "BOT_TOKEN is not set. Please provide the environment variable.",
-        )
+        logger.error("BOT_TOKEN is not set. Please provide the environment variable.")
         sys.exit(1)
 
-    builder = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .post_init(post_init)  # registers post-init handler
-    )
-    timezone = ZoneInfo("Europe/Moscow")
-    if hasattr(builder, "timezone"):
-        builder = builder.timezone(timezone)
-    elif hasattr(builder, "job_queue"):
-        builder = builder.job_queue(DefaultJobQueue())
+    # ---- Build application
     application: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
@@ -107,68 +90,43 @@ def main() -> None:  # pragma: no cover
         dict[str, object],
         dict[str, object],
         DefaultJobQueue,
-    ] = builder.build()
+    ] = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+
+    # ---- Configure APScheduler timezone BEFORE any scheduling
+    tz_msk = ZoneInfo("Europe/Moscow")
     job_queue = application.job_queue
     if job_queue is None:
         raise RuntimeError("JobQueue not initialized")
-    job_queue.scheduler.configure(timezone=timezone)
-    logger.info(
-        "✅ JobQueue initialized with timezone %s",
-        job_queue.scheduler.timezone,
-    )
+    job_queue.scheduler.configure(timezone=tz_msk)
+    logger.info("✅ JobQueue timezone set to %s", job_queue.scheduler.timezone)
+
     application.add_error_handler(error_handler)
 
+    # ---- Wire job_queue to API layer
     from services.api.app import reminder_events
-
     reminder_events.register_job_queue(application.job_queue)
 
+    # ---- Register handlers (they may schedule reminders)
     from services.api.app.diabetes.handlers.registration import register_handlers
-
     register_handlers(application)
 
-    # 🟢 Тестовая задача (через 30 секунд после запуска)
+    # ---- Optional test job (enable via ENV: ENABLE_TEST_JOB=1)
     async def test_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         admin_id = settings.admin_id
-        if admin_id is None:  # pragma: no cover - misconfiguration
+        if admin_id is None:
             logger.warning("Admin ID not configured; skipping test reminder")
             return
-        await context.bot.send_message(
-            chat_id=admin_id,
-            text="🔔 Test reminder fired! JobQueue работает ✅",
-        )
+        await context.bot.send_message(chat_id=admin_id, text="🔔 Test reminder fired! JobQueue работает ✅")
 
-    if job_queue:
-        tzinfo = (
-            job_queue.scheduler.timezone
-            if job_queue.scheduler.timezone
-            else ZoneInfo("UTC")
-        )
-        when = datetime.now(tz=tzinfo) + timedelta(seconds=30)
-        job_queue.run_once(
-            test_job,
-            when=when,
-        )
+    if os.environ.get("ENABLE_TEST_JOB", "0") == "1":
+        job_queue.run_once(test_job, when=timedelta(seconds=30), name="test_job")
+        logger.info("🧪 Scheduled test_job in +30s")
 
-    try:
-        application.run_polling()
-    finally:
-        async def shutdown_scheduler() -> None:
-            shutdown = getattr(job_queue.scheduler, "shutdown", None)
-            if shutdown is not None:
-                result = shutdown(wait=False)
-                if inspect.isawaitable(result):
-                    await result
-
-        asyncio.run(shutdown_scheduler())
-        executor = getattr(job_queue, "executor", None)
-        if executor is None:
-            executor = getattr(job_queue, "_executor", None)
-        if executor is not None:
-            executor.shutdown(wait=False)
+    # ---- Run (без дополнительного ручного shutdown — PTB сделает сам)
+    application.run_polling()
 
 
 __all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN"]
-
 
 if __name__ == "__main__":  # pragma: no cover
     main()

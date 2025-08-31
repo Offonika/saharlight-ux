@@ -121,12 +121,23 @@ def register_reminder_handlers(
         )
     )
 
+    # --- DEBUG HANDLERS ---
+    try:
+        from services.api.app.diabetes.handlers.reminder_debug import (
+            register_debug_reminder_handlers,
+        )
+        register_debug_reminder_handlers(app)
+    except Exception as e:
+        logger.warning("⚠️ Could not load debug reminder handlers: %s", e)
+
+    # --- Schedule reminders ---
     job_queue = app.job_queue
     if job_queue:
         try:
             reminder_handlers.schedule_all(job_queue)
         except SQLAlchemyError:
             logger.exception("Failed to schedule reminders")
+
 
 
 def register_handlers(

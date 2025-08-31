@@ -258,6 +258,18 @@ def _render_reminders(
     text = header + "\n" + "\n".join(lines)
     return text, InlineKeyboardMarkup(buttons)
 
+def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) -> None:
+    """Удаляет старую задачу и создаёт новую с обновлённым временем."""
+    job_name = f"reminder_{reminder.id}"
+
+    # удалить старые задачи с таким именем
+    for job in job_queue.get_jobs_by_name(job_name):
+        job.schedule_removal()
+        logger.info("♻️ Removed old job %s", job_name)
+
+    # пересоздать
+    schedule_reminder(reminder, job_queue, user)
+    logger.info("✅ Rescheduled job %s -> %s", job_name, reminder.time or reminder.minutes_after or reminder.interval_minutes)
 
 def schedule_all(job_queue: DefaultJobQueue | None) -> None:
     if job_queue is None:
@@ -687,6 +699,15 @@ async def reminder_webapp_save(
 
     if rem is not None:
         reminder_events.notify_reminder_saved(rem.id)
+
+        # 🆕 пересоздаём джобу в планировщике
+        job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
+        if job_queue is not None:
+            with SessionLocal() as session:
+                user_obj = session.get(User, rem.telegram_id)
+            if user_obj:
+                _reschedule_job(job_queue, rem, user_obj)
+
     render_fn = cast(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
