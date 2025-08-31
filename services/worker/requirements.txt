@@ -1,4 +1,4 @@
 diabetes_sdk
 
 # Optional: use local SDK for development
--e ../../libs/py-sdk
+# -e ../../libs/py-sdk

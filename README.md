@@ -18,7 +18,8 @@
   - `webapp/` — React‑SPA (`services/webapp/ui` — исходники, сборка в `services/webapp/ui/dist/`)
 - `libs/` — общие библиотеки и SDK
   - `contracts/openapi.yaml` — OpenAPI‑спецификация API
-  - `py-sdk/`, `ts-sdk/` — сгенерированные клиентские SDK
+  - `ts-sdk/` — сгенерированный TypeScript SDK
+  - `py-sdk/` — опциональный Python SDK, генерируется локально при необходимости
 - `infra/` — инфраструктура и конфигурации
   - `docker/` — Dockerfile и `docker-compose.yml`
   - `env/.env.example` — пример файла переменных окружения
@@ -79,9 +80,10 @@ sudo apt install python3.12 python3.12-venv
     # или
     npm install -g pnpm
     ```
-    Локальный Python SDK подключается из каталога `libs/py-sdk`, поэтому он будет
-    установлен вместе с зависимостями. Проект использует pnpm workspaces: команды
-    каждого пакета запускайте из корня репозитория через `pnpm --filter <путь>`:
+    При необходимости можно сгенерировать локальный Python SDK в каталоге
+    `libs/py-sdk` и установить его отдельно. Проект использует pnpm workspaces:
+    команды каждого пакета запускайте из корня репозитория через
+    `pnpm --filter <путь>`:
     ```bash
     pip install -r requirements.txt
     # зависимости для тестов и линтеров
