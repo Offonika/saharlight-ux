@@ -4,12 +4,15 @@ import logging
 
 from telegram.ext import ContextTypes, JobQueue
 
-from .diabetes.handlers.reminder_handlers import DefaultJobQueue, schedule_reminder
-from .diabetes.services.db import Reminder, SessionLocal, User
+from sqlalchemy.orm import Session, sessionmaker
+
+from .diabetes.services.db import Reminder, User
+from .reminders.common import DefaultJobQueue, schedule_reminder
 
 logger = logging.getLogger(__name__)
 
 _job_queue: DefaultJobQueue | None = None
+SessionLocal: sessionmaker[Session] | None = None
 
 
 def set_job_queue(job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None) -> None:
@@ -28,7 +31,11 @@ def notify_reminder_saved(reminder_id: int) -> None:
     if jq is None:
         logger.warning("notify_reminder_saved called without job_queue")
         return
-    with SessionLocal() as session:
+
+    from .diabetes.handlers import reminder_handlers
+
+    session_factory = SessionLocal or reminder_handlers.SessionLocal
+    with session_factory() as session:
         rem = session.get(Reminder, reminder_id)
         user = session.get(User, rem.telegram_id) if rem is not None else None
     if rem is None:
