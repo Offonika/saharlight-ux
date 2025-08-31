@@ -6,6 +6,7 @@ import importlib
 import sys
 
 import pytest
+from zoneinfo import ZoneInfo
 
 
 def test_single_test_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -22,8 +23,16 @@ def test_single_test_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bot, "init_db", lambda: None)
 
     class DummyJobQueue:
+        class _Scheduler:
+            def __init__(self) -> None:
+                self.timezone: object | None = None
+
+            def configure(self, *, timezone: object) -> None:
+                self.timezone = timezone
+
         def __init__(self) -> None:
             self.calls = 0
+            self.scheduler = self._Scheduler()
 
         def run_once(self, *args: object, **kwargs: object) -> None:
             self.calls += 1
@@ -51,6 +60,7 @@ def test_single_test_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
         def __init__(self) -> None:
             self.bot = DummyBot()
             self.job_queue = DummyJobQueue()
+            self.timezone = ZoneInfo("UTC")
 
         def add_error_handler(
             self, handler: object
