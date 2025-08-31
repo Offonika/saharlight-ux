@@ -1,16 +1,16 @@
 import re
 from typing import Callable, Coroutine, Optional
 
-from telegram import CallbackQuery, Update
+from telegram import Update
 from telegram.ext import BaseHandler, ContextTypes
 
 CallbackQueryHandlerCallback = Callable[
-    [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, int | None]
+    [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, object]
 ]
 
 
 class CallbackQueryNoWarnHandler(
-    BaseHandler[CallbackQuery, ContextTypes.DEFAULT_TYPE, int | None]
+    BaseHandler[Update, ContextTypes.DEFAULT_TYPE, object]
 ):
     """Handle callback queries without triggering ConversationHandler warnings."""
 
@@ -25,9 +25,9 @@ class CallbackQueryNoWarnHandler(
             re.compile(pattern) if pattern else None
         )
 
-    def check_update(self, update: object) -> Optional[CallbackQuery]:
+    def check_update(self, update: object) -> Optional[Update]:
         if isinstance(update, Update) and update.callback_query:
             data = update.callback_query.data or ""
             if self.pattern is None or self.pattern.match(data):
-                return update.callback_query
+                return update
         return None

@@ -339,10 +339,10 @@ async def onboarding_demo_next(
 ) -> int:
     """Proceed from demo to reminder suggestion."""
     query = update.callback_query
-    if query is None:
+    if query is None or not hasattr(query, "answer"):
         return ConversationHandler.END
     msg = query.message
-    if not isinstance(msg, Message):
+    if msg is None or not hasattr(msg, "delete") or not hasattr(msg, "reply_text"):
         return ConversationHandler.END
     await query.answer()
     await msg.delete()
@@ -368,10 +368,10 @@ async def onboarding_reminders(
     """Handle reminder choice and finish onboarding."""
     query = update.callback_query
     user = update.effective_user
-    if query is None or user is None:
+    if query is None or user is None or not hasattr(query, "answer"):
         return ConversationHandler.END
     msg = query.message
-    if not isinstance(msg, Message):
+    if msg is None or not hasattr(msg, "reply_poll") or not hasattr(msg, "reply_text"):
         return ConversationHandler.END
     await query.answer()
     enable = query.data == "onb_rem_yes"
