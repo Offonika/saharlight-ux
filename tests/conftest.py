@@ -117,9 +117,9 @@ def _dummy_job_queue() -> Iterator[None]:
     from services.api.app import reminder_events
 
     jq = _DummyJobQueue()
-    reminder_events.set_job_queue(cast(Any, jq))
+    reminder_events.register_job_queue(cast(Any, jq))
     yield
-    reminder_events.set_job_queue(None)
+    reminder_events.register_job_queue(None)
 
 # Avoid real database initialization during tests
 db_module.init_db = lambda: None

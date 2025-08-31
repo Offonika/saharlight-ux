@@ -105,13 +105,13 @@ def client_with_job_queue(
         lambda rem, tz: datetime(2023, 1, 1, tzinfo=timezone.utc),
     )
     job_queue = DummyJobQueue()
-    reminder_events.set_job_queue(cast(Any, job_queue))
+    reminder_events.register_job_queue(cast(Any, job_queue))
     app = FastAPI()
     app.include_router(router, prefix="/api")
     app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
     with TestClient(app) as test_client:
         yield test_client, job_queue
-    reminder_events.set_job_queue(None)
+    reminder_events.register_job_queue(None)
 
 
 def test_empty_returns_200(

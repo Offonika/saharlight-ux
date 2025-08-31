@@ -32,7 +32,7 @@ def schedule_reminder(
     from services.api.app import reminder_events
     from . import reminder_handlers
 
-    reminder_events.set_job_queue(job_queue)
+    reminder_events.register_job_queue(job_queue)
     reminder_job = reminder_handlers.reminder_job
     SessionLocal = reminder_handlers.SessionLocal
 

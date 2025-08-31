@@ -9,14 +9,16 @@ from .diabetes.handlers.reminder_jobs import DefaultJobQueue, schedule_reminder
 
 logger = logging.getLogger(__name__)
 
-_job_queue: DefaultJobQueue | None = None
+# Shared job queue used across the application. It is configured during
+# application startup via :func:`register_job_queue`.
+job_queue: DefaultJobQueue | None = None
 SessionLocal: sessionmaker[Session] | None = None
 
 
-def set_job_queue(job_queue: DefaultJobQueue | None) -> None:
+def register_job_queue(jq: DefaultJobQueue | None) -> None:
     """Register a shared JobQueue used to schedule reminders."""
-    global _job_queue
-    _job_queue = job_queue
+    global job_queue
+    job_queue = jq
 
 
 def notify_reminder_saved(reminder_id: int) -> None:
@@ -24,7 +26,7 @@ def notify_reminder_saved(reminder_id: int) -> None:
 
     Raises RuntimeError if the job queue is not configured.
     """
-    jq = _job_queue
+    jq = job_queue
     if jq is None:
         msg = "notify_reminder_saved called without job_queue"
         raise RuntimeError(msg)
@@ -46,7 +48,7 @@ def notify_reminder_deleted(reminder_id: int) -> None:
 
     Raises RuntimeError if the job queue is not configured.
     """
-    jq = _job_queue
+    jq = job_queue
     if jq is None:
         msg = "notify_reminder_deleted called without job_queue"
         raise RuntimeError(msg)
@@ -54,4 +56,4 @@ def notify_reminder_deleted(reminder_id: int) -> None:
         job.schedule_removal()
 
 
-__all__ = ["set_job_queue", "notify_reminder_saved", "notify_reminder_deleted"]
+__all__ = ["register_job_queue", "notify_reminder_saved", "notify_reminder_deleted"]
