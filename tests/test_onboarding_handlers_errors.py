@@ -100,8 +100,12 @@ async def test_onboarding_demo_next_invalid_message_type() -> None:
 
 
 @pytest.mark.asyncio
-async def test_onboarding_reminders_invalid_message_type() -> None:
-    query = SimpleNamespace(message=object(), data="onb_rem_yes")
+async def test_onboarding_reminders_missing_message() -> None:
+    class DummyQuery(SimpleNamespace):
+        async def answer(self) -> None:
+            pass
+
+    query = DummyQuery(message=None, data="onb_rem_yes")
     update = cast(
         Update,
         SimpleNamespace(
@@ -117,8 +121,12 @@ async def test_onboarding_reminders_invalid_message_type() -> None:
 
 
 @pytest.mark.asyncio
-async def test_onboarding_skip_invalid_message_type() -> None:
-    query = SimpleNamespace(message=object(), data="onb_skip")
+async def test_onboarding_skip_missing_message() -> None:
+    class DummyQuery(SimpleNamespace):
+        async def answer(self) -> None:
+            pass
+
+    query = DummyQuery(message=None, data="onb_skip")
     update = cast(
         Update,
         SimpleNamespace(

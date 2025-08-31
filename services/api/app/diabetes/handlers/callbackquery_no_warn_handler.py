@@ -10,7 +10,7 @@ CallbackQueryHandlerCallback = Callable[
 
 
 class CallbackQueryNoWarnHandler(
-    BaseHandler[CallbackQuery, ContextTypes.DEFAULT_TYPE, int | None]
+    BaseHandler[Update, ContextTypes.DEFAULT_TYPE, int | None]
 ):
     """Handle callback queries without triggering ConversationHandler warnings."""
 

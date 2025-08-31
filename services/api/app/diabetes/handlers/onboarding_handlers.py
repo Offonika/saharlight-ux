@@ -24,6 +24,7 @@ from telegram import (
     Update,
 )
 from telegram.ext import (
+    BaseHandler,
     CommandHandler,
     ContextTypes,
     ConversationHandler,
@@ -371,8 +372,9 @@ async def onboarding_reminders(
     if query is None or user is None:
         return ConversationHandler.END
     msg = query.message
-    if not isinstance(msg, Message):
+    if msg is None:
         return ConversationHandler.END
+    msg = cast(Message, msg)
     await query.answer()
     enable = query.data == "onb_rem_yes"
     user_id = user.id
@@ -453,8 +455,9 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if query is None or user is None:
         return ConversationHandler.END
     msg = query.message
-    if not isinstance(msg, Message):
+    if msg is None:
         return ConversationHandler.END
+    msg = cast(Message, msg)
     await query.answer()
 
     user_id = user.id
@@ -522,32 +525,56 @@ onboarding_conv = ConversationHandler(
     states={
         ONB_PROFILE_ICR: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_icr),
-            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            cast(
+                BaseHandler[Update, ContextTypes.DEFAULT_TYPE, object],
+                CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            ),
         ],
         ONB_PROFILE_CF: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_cf),
-            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            cast(
+                BaseHandler[Update, ContextTypes.DEFAULT_TYPE, object],
+                CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            ),
         ],
         ONB_PROFILE_TARGET: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_target),
-            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            cast(
+                BaseHandler[Update, ContextTypes.DEFAULT_TYPE, object],
+                CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            ),
         ],
         ONB_PROFILE_TZ: [
             MessageHandler(
                 (filters.TEXT & ~filters.COMMAND) | filters.StatusUpdate.WEB_APP_DATA,
                 onboarding_timezone,
             ),
-            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            cast(
+                BaseHandler[Update, ContextTypes.DEFAULT_TYPE, object],
+                CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            ),
         ],
         ONB_DEMO: [
-            CallbackQueryNoWarnHandler(onboarding_demo_next, pattern="^onb_next$"),
-            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            cast(
+                BaseHandler[Update, ContextTypes.DEFAULT_TYPE, object],
+                CallbackQueryNoWarnHandler(onboarding_demo_next, pattern="^onb_next$"),
+            ),
+            cast(
+                BaseHandler[Update, ContextTypes.DEFAULT_TYPE, object],
+                CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            ),
         ],
         ONB_REMINDERS: [
-            CallbackQueryNoWarnHandler(
-                onboarding_reminders, pattern="^onb_rem_(yes|no)$"
+            cast(
+                BaseHandler[Update, ContextTypes.DEFAULT_TYPE, object],
+                CallbackQueryNoWarnHandler(
+                    onboarding_reminders, pattern="^onb_rem_(yes|no)$"
+                ),
             ),
-            CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            cast(
+                BaseHandler[Update, ContextTypes.DEFAULT_TYPE, object],
+                CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
+            ),
         ],
     },
     fallbacks=[

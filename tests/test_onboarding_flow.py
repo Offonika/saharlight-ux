@@ -66,6 +66,8 @@ async def test_onboarding_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(gpt_client, "create_thread", fake_create_thread)
 
+    monkeypatch.setattr(onboarding, "Message", DummyMessage)
+
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
