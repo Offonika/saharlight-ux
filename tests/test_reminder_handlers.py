@@ -2,13 +2,14 @@ import json
 import importlib
 import sys
 from datetime import time, timedelta
-from types import TracebackType
+from types import SimpleNamespace, TracebackType
 from typing import Any, cast
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from telegram import Update, User
 from telegram.ext import CallbackContext
 
@@ -112,7 +113,9 @@ async def test_add_reminder_fewer_args(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_invalid_time(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_add_reminder_sugar_invalid_time(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "ab:cd"])
@@ -127,7 +130,9 @@ async def test_add_reminder_sugar_invalid_time(reminder_handlers: Any, monkeypat
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_non_numeric_interval(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_add_reminder_sugar_non_numeric_interval(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "abc"])
@@ -153,7 +158,9 @@ async def test_add_reminder_unknown_type(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_valid_type(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_add_reminder_valid_type(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "2"], job_queue=None)
@@ -217,7 +224,11 @@ async def test_add_reminder_saves_time_and_description(
     monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(reminder_handlers, "commit", commit)
     monkeypatch.setattr(reminder_handlers, "run_db", None)
-    monkeypatch.setattr(reminder_handlers, "reminder_events", MagicMock())
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=AsyncMock()),
+    )
 
     class FixedDT(dt.datetime):
         @classmethod
@@ -240,8 +251,14 @@ async def test_add_reminder_saves_time_and_description(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_ignores_disabled(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = create_engine("sqlite:///:memory:")
+async def test_add_reminder_ignores_disabled(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False)
     with TestSession() as session:
@@ -289,7 +306,9 @@ async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None
     "payload",
     [json.dumps({"id": 1, "snooze": 7}), "snooze=7&id=1"],
 )
-async def test_reminder_webapp_save_snooze(reminder_handlers: Any, payload: str) -> None:
+async def test_reminder_webapp_save_snooze(
+    reminder_handlers: Any, payload: str
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -339,8 +358,14 @@ async def test_reminder_webapp_save_clears_interval_params(
     monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(reminder_handlers, "commit", commit)
     monkeypatch.setattr(reminder_handlers, "run_db", None)
-    monkeypatch.setattr(reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None))
-    monkeypatch.setattr(reminder_handlers, "reminder_events", MagicMock())
+    monkeypatch.setattr(
+        reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None)
+    )
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=AsyncMock()),
+    )
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
@@ -395,7 +420,11 @@ async def test_reminder_webapp_save_interval_minutes(
     monkeypatch.setattr(
         reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None)
     )
-    monkeypatch.setattr(reminder_handlers, "reminder_events", MagicMock())
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=AsyncMock()),
+    )
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
@@ -431,16 +460,18 @@ async def test_reminder_webapp_save_minutes_after(
     monkeypatch.setattr(
         reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None)
     )
-    monkeypatch.setattr(reminder_handlers, "reminder_events", MagicMock())
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=AsyncMock()),
+    )
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
 
     message = DummyWebAppMessage(
-        json.dumps(
-            {"type": "after_meal", "kind": "after_event", "minutesAfter": 20}
-        )
+        json.dumps({"type": "after_meal", "kind": "after_event", "minutesAfter": 20})
     )
     update = make_update(effective_message=message, effective_user=make_user(1))
     context = make_context()
@@ -463,7 +494,9 @@ async def test_reminder_webapp_save_minutes_after(
         ("https://example.com/", "ui/", "reminders/new"),
     ],
 )
-def test_build_ui_url(monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str, path: str) -> None:
+def test_build_ui_url(
+    monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str, path: str
+) -> None:
     expected = "https://example.com/ui/reminders/new"
     monkeypatch.setenv("PUBLIC_ORIGIN", origin)
     monkeypatch.setenv("UI_BASE_URL", ui_base)
