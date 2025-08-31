@@ -137,9 +137,14 @@ def main() -> None:  # pragma: no cover
             text="🔔 Test reminder fired! JobQueue работает ✅",
         )
 
-    if application.job_queue:
-        when = datetime.now(tz=application.timezone) + timedelta(seconds=30)
-        application.job_queue.run_once(
+    if job_queue:
+        tzinfo = (
+            job_queue.scheduler.timezone
+            if job_queue.scheduler.timezone
+            else ZoneInfo("UTC")
+        )
+        when = datetime.now(tz=tzinfo) + timedelta(seconds=30)
+        job_queue.run_once(
             test_job,
             when=when,
         )
