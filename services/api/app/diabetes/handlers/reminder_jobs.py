@@ -66,6 +66,11 @@ def schedule_reminder(
 
     job_tz = (
         getattr(getattr(job_queue, "application", None), "timezone", None)
+        or getattr(
+            getattr(getattr(job_queue, "application", None), "scheduler", None),
+            "timezone",
+            None,
+        )
         or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
         or tz
     )
@@ -89,6 +94,7 @@ def schedule_reminder(
                 when=when_td,
                 data=data,
                 name=name,
+                timezone=job_tz,
             )
     else:
         if rem.time:
@@ -113,7 +119,7 @@ def schedule_reminder(
                     time=job_time,
                     data=data,
                     name=name,
-                    timezone=ZoneInfo("Europe/Moscow"),
+                    timezone=job_tz,
                 )
             else:
                 job_queue.run_daily(
