@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import logging
 
-from telegram.ext import ContextTypes, JobQueue
-
 from sqlalchemy.orm import Session, sessionmaker
 
 from .diabetes.services.db import Reminder, User
@@ -15,7 +13,7 @@ _job_queue: DefaultJobQueue | None = None
 SessionLocal: sessionmaker[Session] | None = None
 
 
-def set_job_queue(job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None) -> None:
+def set_job_queue(job_queue: DefaultJobQueue | None) -> None:
     """Register a shared JobQueue used to schedule reminders."""
     global _job_queue
     _job_queue = job_queue

@@ -4,7 +4,7 @@ import datetime
 import inspect
 import logging
 from datetime import timedelta
-from typing import TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from telegram.ext import ContextTypes, JobQueue
@@ -14,7 +14,10 @@ from services.api.app.diabetes.utils.jobs import schedule_once
 
 logger = logging.getLogger(__name__)
 
-DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
+if TYPE_CHECKING:
+    DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
+else:
+    DefaultJobQueue = JobQueue
 
 
 def schedule_reminder(
