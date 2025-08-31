@@ -95,9 +95,8 @@ async def handle_cancel_entry(
     user_data.pop("pending_entry", None)
     await query.edit_message_text("❌ Запись отменена.")
     message = query.message
-    if message is None:
+    if not isinstance(message, Message):
         return
-    message = cast(Message, message)
     await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
 
 
@@ -141,9 +140,8 @@ async def handle_edit_or_delete(
         return
     user_data = cast(UserData, user_data_raw)
     message = query.message
-    if message is None:
+    if not isinstance(message, Message):
         return
-    message = cast(Message, message)
     user_data["edit_entry"] = {
         "id": entry_id,
         "chat_id": message.chat_id,
@@ -187,9 +185,8 @@ async def handle_edit_field(
         "dose": "Введите дозу инсулина (ед.).",
     }.get(field, "Введите значение")
     message = query.message
-    if message is None:
+    if not isinstance(message, Message):
         return
-    message = cast(Message, message)
     await message.reply_text(prompt, reply_markup=ForceReply(selective=True))
 
 

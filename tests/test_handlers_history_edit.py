@@ -4,7 +4,13 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
+from telegram import (
+    Chat,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    Update,
+)
 from telegram.ext import CallbackContext, ContextTypes
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
@@ -16,13 +22,18 @@ from services.api.app.diabetes.handlers import UserData
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
 
-class DummyMessage:
+class DummyMessage(Message):
+    __slots__ = ("replies", "kwargs")
+
     def __init__(self, text: str = "", chat_id: int = 1, message_id: int = 1) -> None:
-        self.text: str = text
-        self.chat_id: int = chat_id
-        self.message_id: int = message_id
-        self.replies: list[str] = []
-        self.kwargs: list[dict[str, Any]] = []
+        super().__init__(
+            message_id=message_id,
+            date=datetime.datetime.now(),
+            chat=Chat(id=chat_id, type="private"),
+            text=text,
+        )
+        object.__setattr__(self, "replies", [])
+        object.__setattr__(self, "kwargs", [])
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append(text)
