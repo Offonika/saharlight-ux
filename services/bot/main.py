@@ -1,16 +1,16 @@
-"""
-Bot entry point and configuration.
-"""
+"""Bot entry point and configuration."""
 
+import asyncio
+import inspect
 import logging
 import sys
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, TypeAlias
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import SQLAlchemyError
 from telegram import BotCommand
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
-from typing import TYPE_CHECKING, TypeAlias
 
 from services.api.app.config import settings
 from services.api.app.diabetes.services.db import init_db
@@ -152,8 +152,19 @@ def main() -> None:  # pragma: no cover
     try:
         application.run_polling()
     finally:
-        if getattr(job_queue.scheduler, "running", False):
-            job_queue.scheduler.shutdown()
+        async def shutdown_scheduler() -> None:
+            shutdown = getattr(job_queue.scheduler, "shutdown", None)
+            if shutdown is not None:
+                result = shutdown(wait=False)
+                if inspect.isawaitable(result):
+                    await result
+
+        asyncio.run(shutdown_scheduler())
+        executor = getattr(job_queue, "executor", None)
+        if executor is None:
+            executor = getattr(job_queue, "_executor", None)
+        if executor is not None:
+            executor.shutdown(wait=False)
 
 
 __all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN"]
