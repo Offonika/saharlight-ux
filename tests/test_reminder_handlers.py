@@ -271,7 +271,9 @@ async def test_add_reminder_ignores_disabled(reminder_handlers: Any, monkeypatch
 
 @pytest.mark.asyncio
 async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None:
-    message = DummyWebAppMessage(json.dumps({"type": "bad", "value": "10:00"}))
+    message = DummyWebAppMessage(
+        json.dumps({"type": "bad", "kind": "at_time", "time": "10:00"})
+    )
     update = make_update(effective_message=message, effective_user=make_user(1))
     context = make_context()
 
@@ -351,7 +353,11 @@ async def test_reminder_webapp_save_clears_interval_params(
         )
         session.commit()
 
-    message = DummyWebAppMessage(json.dumps({"id": 1, "type": rtype, "value": value}))
+    if rtype == "after_meal":
+        payload = {"id": 1, "type": rtype, "kind": "after_event", "minutesAfter": value}
+    else:
+        payload = {"id": 1, "type": rtype, "kind": "at_time", "time": value}
+    message = DummyWebAppMessage(json.dumps(payload))
     update = make_update(effective_message=message, effective_user=make_user(1))
     context = make_context()
 
@@ -363,13 +369,89 @@ async def test_reminder_webapp_save_clears_interval_params(
         assert rem_db.interval_hours is None
         assert rem_db.interval_minutes is None
         if rtype == "after_meal":
+            assert rem_db.kind == "after_event"
             assert rem_db.minutes_after == int(value)
             assert rem_db.time is None
         else:
+            assert rem_db.kind == "at_time"
             assert rem_db.minutes_after is None
             parsed = parse_time_interval(value)
             assert isinstance(parsed, time)
             assert rem_db.time == parsed
+
+
+@pytest.mark.asyncio
+async def test_reminder_webapp_save_interval_minutes(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(
+        reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None)
+    )
+    monkeypatch.setattr(reminder_handlers, "reminder_events", MagicMock())
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    message = DummyWebAppMessage(
+        json.dumps({"type": "sugar", "kind": "every", "intervalMinutes": 90})
+    )
+    update = make_update(effective_message=message, effective_user=make_user(1))
+    context = make_context()
+
+    await reminder_handlers.reminder_webapp_save(update, context)
+
+    with TestSession() as session:
+        rem_db = session.query(Reminder).one()
+        assert rem_db.kind == "every"
+        assert rem_db.interval_minutes == 90
+        assert rem_db.interval_hours is None
+        assert rem_db.time is None
+        assert rem_db.minutes_after is None
+
+
+@pytest.mark.asyncio
+async def test_reminder_webapp_save_minutes_after(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(
+        reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None)
+    )
+    monkeypatch.setattr(reminder_handlers, "reminder_events", MagicMock())
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    message = DummyWebAppMessage(
+        json.dumps(
+            {"type": "after_meal", "kind": "after_event", "minutesAfter": 20}
+        )
+    )
+    update = make_update(effective_message=message, effective_user=make_user(1))
+    context = make_context()
+
+    await reminder_handlers.reminder_webapp_save(update, context)
+
+    with TestSession() as session:
+        rem_db = session.query(Reminder).one()
+        assert rem_db.kind == "after_event"
+        assert rem_db.minutes_after == 20
+        assert rem_db.time is None
+        assert rem_db.interval_minutes is None
+        assert rem_db.interval_hours is None
 
 
 @pytest.mark.parametrize(
