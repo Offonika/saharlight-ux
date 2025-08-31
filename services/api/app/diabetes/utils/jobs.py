@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from typing import Any
 
 from telegram.ext import ContextTypes, Job, JobQueue
@@ -30,18 +30,23 @@ def schedule_once(
     explicitly; otherwise the timezone is derived from the job queue's
     application or scheduler.
     """
+    tz = (
+        timezone
+        or getattr(getattr(job_queue, "application", None), "timezone", None)
+        or getattr(job_queue, "timezone", None)
+        or getattr(
+            getattr(getattr(job_queue, "application", None), "scheduler", None),
+            "timezone",
+            None,
+        )
+        or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
+        or dt_timezone.utc
+    )
+
+    if isinstance(when, datetime) and when.tzinfo is None:
+        when = when.replace(tzinfo=tz)
+
     params: dict[str, Any] = {"when": when, "data": data, "name": name}
     if "timezone" in inspect.signature(job_queue.run_once).parameters:
-        tz = (
-            timezone
-            or getattr(getattr(job_queue, "application", None), "timezone", None)
-            or getattr(job_queue, "timezone", None)
-            or getattr(
-                getattr(getattr(job_queue, "application", None), "scheduler", None),
-                "timezone",
-                None,
-            )
-            or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
-        )
         params["timezone"] = tz
     return job_queue.run_once(callback, **params)
