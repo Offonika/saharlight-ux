@@ -1,16 +1,24 @@
 import re
-from typing import Callable, Coroutine, Optional
+from typing import Callable, Coroutine, Optional, TYPE_CHECKING, Protocol, TypeVar, Generic
 
 from telegram import CallbackQuery, Update
 from telegram.ext import ContextTypes
-from telegram.ext._basehandler import BaseHandler
 
-CallbackQueryHandlerCallback = Callable[
-    [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, int | None]
-]
+CallbackQueryHandlerCallback = Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, int | None]]
+
+if TYPE_CHECKING:
+    U = TypeVar("U")
+    C = TypeVar("C")
+
+    class BaseHandler(Protocol, Generic[U, C]):
+        def __init__(self, callback: CallbackQueryHandlerCallback, /, **kwargs: object) -> None: ...
+
+        def check_update(self, update: object, /) -> Optional[U]: ...
+else:
+    from telegram.ext._basehandler import BaseHandler
 
 
-class CallbackQueryNoWarnHandler(BaseHandler[Update, ContextTypes.DEFAULT_TYPE]):
+class CallbackQueryNoWarnHandler(BaseHandler[CallbackQuery, ContextTypes.DEFAULT_TYPE]):
     """Handle callback queries without triggering ConversationHandler warnings."""
 
     def __init__(
@@ -19,6 +27,7 @@ class CallbackQueryNoWarnHandler(BaseHandler[Update, ContextTypes.DEFAULT_TYPE])
         pattern: str | None = None,
     ) -> None:
         super().__init__(callback)
+        self.callback = callback
         self.pattern: Optional[re.Pattern[str]] = re.compile(pattern) if pattern else None
 
     def check_update(self, update: object) -> Optional[CallbackQuery]:
