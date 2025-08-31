@@ -61,7 +61,24 @@ def schedule_reminder(
         except (OSError, ValueError) as exc:
             logger.exception("Unexpected error loading timezone %s: %s", tzname, exc)
 
-    if rem.type != "after_meal":
+    if rem.type == "after_meal":
+        minutes_after = rem.minutes_after
+        if minutes_after is not None:
+            logger.debug(
+                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+                rem.id,
+                rem.type,
+                rem.time,
+                rem.interval_hours or rem.interval_minutes,
+                minutes_after,
+            )
+            job_queue.run_once(
+                reminder_job,
+                when=timedelta(minutes=float(minutes_after)),
+                data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
+                name=name,
+            )
+    else:
         if rem.time:
             logger.debug(
                 "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",

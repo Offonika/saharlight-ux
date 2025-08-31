@@ -21,6 +21,10 @@ class DummyJob:
         self.when = when
         self.data = data
         self.name = name
+        self.removed = False
+
+    def schedule_removal(self) -> None:
+        self.removed = True
 
 
 class DummyJobQueue:
@@ -38,11 +42,45 @@ class DummyJobQueue:
         self.jobs.append(job)
         return job
 
+    def get_jobs_by_name(self, name: str) -> list[DummyJob]:
+        return [job for job in self.jobs if job.name == name]
+
 
 def make_session() -> sessionmaker[Session]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+
+def test_schedule_reminder_after_meal() -> None:
+    TestSession = make_session()
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        user = DbUser(telegram_id=1, thread_id="t")
+        session.add(user)
+        rem = Reminder(
+            id=1,
+            telegram_id=1,
+            type="after_meal",
+            minutes_after=30,
+            is_enabled=True,
+            user=user,
+        )
+        session.add(rem)
+        session.commit()
+    dummy_queue = DummyJobQueue()
+    job_queue = cast(handlers.DefaultJobQueue, dummy_queue)
+    handlers.schedule_reminder(rem, job_queue, user)
+    assert len(dummy_queue.jobs) == 1
+    job = dummy_queue.jobs[0]
+    assert job.callback is handlers.reminder_job
+    assert job.when == timedelta(minutes=30)
+    assert job.data == {"reminder_id": 1, "chat_id": 1}
+    assert job.name == "reminder_1"
+    with TestSession() as session:
+        rem_db = session.get(Reminder, 1)
+        assert rem_db is not None
+        assert rem_db.minutes_after == 30
 
 
 def test_schedule_after_meal_single_reminder() -> None:
