@@ -135,8 +135,7 @@ def main() -> None:  # pragma: no cover
         application.job_queue.run_once(
             test_job,
             when=30,
-            timezone=ZoneInfo("Europe/Moscow"),
-        )  # type: ignore[call-arg]
+        )
 
     application.run_polling()
 
