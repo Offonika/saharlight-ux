@@ -149,7 +149,11 @@ def main() -> None:  # pragma: no cover
             when=when,
         )
 
-    application.run_polling()
+    try:
+        application.run_polling()
+    finally:
+        if getattr(job_queue.scheduler, "running", False):
+            job_queue.scheduler.shutdown()
 
 
 __all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN"]
