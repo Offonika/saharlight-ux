@@ -7,6 +7,9 @@ set -a
 source ./.env
 set +a
 
+# Конфигурация для Matplotlib
+export MPLCONFIGDIR="${MPLCONFIGDIR:-/var/cache/matplotlib}"
+
 # Запускаем API с авто-reload (1 процесс)
 uvicorn services.api.app.main:app \
         --reload --host 0.0.0.0 --port 8000 &
