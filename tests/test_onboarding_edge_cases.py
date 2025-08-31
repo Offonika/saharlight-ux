@@ -159,7 +159,6 @@ async def test_onboarding_reminders_repeated(monkeypatch: pytest.MonkeyPatch) ->
         SimpleNamespace(user_data={}, bot_data={}, job_queue=None),
     )
 
-    monkeypatch.setattr(onboarding, "Message", DummyMessage)
     query_yes = DummyQuery(message, "onb_rem_yes")
     update_yes = cast(
         Update,
@@ -203,7 +202,6 @@ async def test_onboarding_reminders_poll_missing(
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
     monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
-    monkeypatch.setattr(onboarding, "Message", DummyMessage)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -234,12 +232,12 @@ async def test_onboarding_skip_commit_failure(monkeypatch: pytest.MonkeyPatch) -
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
+
     def fail_commit(session: object) -> None:
         raise onboarding.CommitError
 
     monkeypatch.setattr(onboarding, "commit", fail_commit)
     monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
-    monkeypatch.setattr(onboarding, "Message", DummyMessage)
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))

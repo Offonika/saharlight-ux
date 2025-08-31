@@ -85,7 +85,6 @@ async def test_onboarding_skip_cancels(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
     monkeypatch.setattr(onboarding, "commit", lambda s: None)
     monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
-    monkeypatch.setattr(onboarding, "Message", DummyMessage)
 
     message = DummyMessage()
     query = DummyQuery(message, "onb_skip")

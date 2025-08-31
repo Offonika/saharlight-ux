@@ -17,12 +17,7 @@ import logging
 from pathlib import Path
 from typing import cast
 
-from telegram import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    Message,
-    Update,
-)
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import (
     CommandHandler,
     ContextTypes,
@@ -371,8 +366,9 @@ async def onboarding_reminders(
     if query is None or user is None or not hasattr(query, "answer"):
         return ConversationHandler.END
     msg = query.message
-    if msg is None or not hasattr(msg, "reply_poll") or not hasattr(msg, "reply_text"):
+    if msg is None:
         return ConversationHandler.END
+    msg = cast(Message, msg)
     await query.answer()
     enable = query.data == "onb_rem_yes"
     user_id = user.id
@@ -440,9 +436,7 @@ async def onboarding_reminders(
     else:
         logger.warning("Poll message missing poll object for user %s", user_id)
 
-    await msg.reply_text(
-        "Готово! Спасибо за настройку.", reply_markup=menu_keyboard()
-    )
+    await msg.reply_text("Готово! Спасибо за настройку.", reply_markup=menu_keyboard())
     return ConversationHandler.END
 
 
@@ -450,11 +444,12 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     """Skip the onboarding entirely."""
     query = update.callback_query
     user = update.effective_user
-    if query is None or user is None:
+    if query is None or user is None or not hasattr(query, "answer"):
         return ConversationHandler.END
     msg = query.message
-    if not isinstance(msg, Message):
+    if msg is None:
         return ConversationHandler.END
+    msg = cast(Message, msg)
     await query.answer()
 
     user_id = user.id
