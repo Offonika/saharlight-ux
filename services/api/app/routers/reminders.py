@@ -37,7 +37,7 @@ async def _post_job_queue_event(action: Literal["saved", "deleted"], rid: int) -
 async def _reschedule_job(action: Literal["saved", "deleted"], rid: int) -> None:
     if reminder_events.job_queue is not None:
         if action == "saved":
-            reminder_events.notify_reminder_saved(rid)
+            await reminder_events.notify_reminder_saved(rid)
         else:
             reminder_events.notify_reminder_deleted(rid)
     else:

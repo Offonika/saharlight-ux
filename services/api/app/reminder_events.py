@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+import asyncio
+
 from sqlalchemy.orm import Session, sessionmaker
 
 from .diabetes.services.db import Reminder, User
@@ -21,10 +23,12 @@ def register_job_queue(jq: DefaultJobQueue | None) -> None:
     job_queue = jq
 
 
-def notify_reminder_saved(reminder_id: int) -> None:
+async def notify_reminder_saved(reminder_id: int) -> None:
     """Send reminder to the job queue for scheduling.
 
-    Raises RuntimeError if the job queue is not configured.
+    Performs database access in a thread pool to avoid blocking the
+    event loop. Raises :class:`RuntimeError` if the job queue is not
+    configured.
     """
     jq = job_queue
     if jq is None:
@@ -34,9 +38,14 @@ def notify_reminder_saved(reminder_id: int) -> None:
     from .diabetes.handlers import reminder_handlers
 
     session_factory = SessionLocal or reminder_handlers.SessionLocal
-    with session_factory() as session:
-        rem = session.get(Reminder, reminder_id)
-        user = session.get(User, rem.telegram_id) if rem is not None else None
+
+    def load_objects() -> tuple[Reminder | None, User | None]:
+        with session_factory() as session:
+            rem = session.get(Reminder, reminder_id)
+            user = session.get(User, rem.telegram_id) if rem is not None else None
+            return rem, user
+
+    rem, user = await asyncio.to_thread(load_objects)
     if rem is None:
         logger.warning("Reminder %s not found for scheduling", reminder_id)
         return

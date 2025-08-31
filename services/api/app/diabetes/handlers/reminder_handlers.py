@@ -258,6 +258,7 @@ def _render_reminders(
     text = header + "\n" + "\n".join(lines)
     return text, InlineKeyboardMarkup(buttons)
 
+
 def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) -> None:
     """Удаляет старую задачу и создаёт новую с обновлённым временем."""
     job_name = f"reminder_{reminder.id}"
@@ -269,7 +270,12 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
 
     # пересоздать
     schedule_reminder(reminder, job_queue, user)
-    logger.info("✅ Rescheduled job %s -> %s", job_name, reminder.time or reminder.minutes_after or reminder.interval_minutes)
+    logger.info(
+        "✅ Rescheduled job %s -> %s",
+        job_name,
+        reminder.time or reminder.minutes_after or reminder.interval_minutes,
+    )
+
 
 def schedule_all(job_queue: DefaultJobQueue | None) -> None:
     if job_queue is None:
@@ -430,7 +436,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await message.reply_text("⚠️ Не удалось сохранить напоминание.")
         return
 
-    reminder_events.notify_reminder_saved(reminder.id)
+    await reminder_events.notify_reminder_saved(reminder.id)
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
 
 
@@ -711,7 +717,7 @@ async def reminder_webapp_save(
             else:
                 _reschedule_job(job_queue, rem, user_obj)
         else:
-            reminder_events.notify_reminder_saved(rem.id)
+            await reminder_events.notify_reminder_saved(rem.id)
 
     render_fn = cast(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
