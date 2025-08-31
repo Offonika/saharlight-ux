@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime
-import inspect
 import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING, TypeAlias
@@ -10,7 +9,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
-from services.api.app.diabetes.utils.jobs import schedule_once
+from services.api.app.diabetes.utils.jobs import schedule_daily, schedule_once
 
 logger = logging.getLogger(__name__)
 
@@ -113,27 +112,15 @@ def schedule_reminder(
                 rem.interval_hours or rem.interval_minutes,
                 rem.minutes_after,
             )
-            dt = datetime.datetime.combine(
-                datetime.datetime.now(tz).date(),
-                rem.time,
-                tzinfo=tz,
+            job_time = rem.time.replace(tzinfo=tz)
+            schedule_daily(
+                job_queue,
+                reminder_job,
+                time=job_time,
+                data=data,
+                name=name,
+                timezone=job_tz,
             )
-            job_time = dt.astimezone(job_tz).time().replace(tzinfo=None)
-            if "timezone" in inspect.signature(job_queue.run_daily).parameters:
-                job_queue.run_daily(  # type: ignore[call-arg]
-                    reminder_job,
-                    time=job_time,
-                    data=data,
-                    name=name,
-                    timezone=job_tz,
-                )
-            else:
-                job_queue.run_daily(
-                    reminder_job,
-                    time=job_time,
-                    data=data,
-                    name=name,
-                )
         elif rem.interval_hours or rem.interval_minutes:
             logger.debug(
                 "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
