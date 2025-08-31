@@ -61,7 +61,11 @@ def schedule_reminder(
         except Exception as exc:
             logger.warning("Unexpected error loading timezone %s: %s", tzname, exc)
 
-    job_tz = getattr(job_queue, "timezone", None) or tz
+    job_tz = (
+        getattr(getattr(job_queue, "application", None), "timezone", None)
+        or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
+        or tz
+    )
 
     if rem.type == "after_meal":
         minutes_after = rem.minutes_after
