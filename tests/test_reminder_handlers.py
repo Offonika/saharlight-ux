@@ -1,7 +1,7 @@
 import json
 import importlib
 import sys
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta, tzinfo
 from types import TracebackType
 from typing import Any, cast
 from unittest.mock import MagicMock
@@ -198,6 +198,46 @@ async def test_add_reminder_valid_type(
     await reminder_handlers.add_reminder(update, context)
 
     assert message.texts == ["Сохранено: desc"]
+
+
+@pytest.mark.asyncio
+async def test_add_reminder_time_saved_and_described(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    reminder_handlers.run_db = None
+    reminder_handlers.SessionLocal = TestSession
+    reminder_handlers.commit = commit
+
+    now = datetime(2024, 1, 1, 9, 0)
+
+    class DummyDatetime(datetime):
+        @classmethod
+        def now(cls, tz: tzinfo | None = None) -> "DummyDatetime":
+            result = now
+            if tz is not None:
+                result = result.replace(tzinfo=tz)
+            return cast("DummyDatetime", result)
+
+    monkeypatch.setattr(reminder_handlers, "datetime", DummyDatetime)
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        commit(session)
+
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["sugar", "10:00"], job_queue=None)
+
+    await reminder_handlers.add_reminder(update, context)
+
+    assert message.texts == ["Сохранено: 🔔 Замерить сахар ⏰ 10:00 (next 10:00)"]
+
+    with TestSession() as session:
+        rem = session.query(Reminder).one()
+        assert rem.time == time(10, 0)
 
 
 @pytest.mark.asyncio

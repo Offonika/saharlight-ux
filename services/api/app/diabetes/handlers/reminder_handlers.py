@@ -343,7 +343,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 await message.reply_text(INVALID_TIME_MSG)
                 return
             if isinstance(parsed, time):
-                reminder.time = parsed.strftime("%H:%M")
+                reminder.time = parsed
             else:
                 await message.reply_text(INVALID_TIME_MSG)
                 return
@@ -367,7 +367,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await message.reply_text(INVALID_TIME_MSG)
             return
         if isinstance(parsed, time):
-            reminder.time = parsed.strftime("%H:%M")
+            reminder.time = parsed
         else:
             await message.reply_text(INVALID_TIME_MSG)
             return
