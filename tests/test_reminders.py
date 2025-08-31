@@ -245,6 +245,20 @@ def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
     assert job_time.tzinfo is None
 
 
+def test_schedule_reminder_uses_user_timezone_when_queue_has_none() -> None:
+    user = DbUser(telegram_id=1, thread_id="t", timezone="UTC")
+    rem = Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user)
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    handlers.schedule_reminder(rem, job_queue, user)
+    jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
+    assert jobs
+    job = jobs[0]
+    assert job.time is not None
+    job_time = cast(time, job.time)
+    assert job_time == time(8, 0)
+    assert job_time.tzinfo is None
+
+
 def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
     now = datetime(2024, 1, 1, 10, 0)
 

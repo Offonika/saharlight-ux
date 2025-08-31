@@ -58,10 +58,10 @@ def schedule_reminder(
                 getattr(user, "telegram_id", None),
                 tzname,
             )
-        except (OSError, ValueError) as exc:
-            logger.exception("Unexpected error loading timezone %s: %s", tzname, exc)
+        except Exception as exc:
+            logger.warning("Unexpected error loading timezone %s: %s", tzname, exc)
 
-    job_tz = getattr(job_queue, "timezone", None) or ZoneInfo("Europe/Moscow")
+    job_tz = getattr(job_queue, "timezone", None) or tz
 
     if rem.type == "after_meal":
         minutes_after = rem.minutes_after
