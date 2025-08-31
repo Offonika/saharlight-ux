@@ -30,9 +30,7 @@ class _BaseQueue:
     def get_jobs_by_name(self, name: str) -> list[_FakeJob]:
         return self.jobs.get(name, [])
 
-    def _schedule(
-        self, callback, delay: float, data: dict[str, object] | None, name: str | None
-    ) -> _FakeJob:
+    def _schedule(self, callback, delay: float, data: dict[str, object] | None, name: str | None) -> _FakeJob:
         job = _FakeJob(name or "")
         self.jobs.setdefault(name or "", []).append(job)
         asyncio.get_event_loop().create_task(self._run(callback, delay, data))
@@ -135,6 +133,7 @@ async def test_daily_reminder_respects_timezone(queue_cls: QueueType) -> None:
             interval_hours=None,
             interval_minutes=None,
             minutes_after=None,
+            kind="at_time",
             is_enabled=True,
         )
         user = SimpleNamespace(timezone="Asia/Tokyo")
@@ -181,6 +180,7 @@ async def test_after_meal_reminder_respects_timezone(queue_cls: QueueType) -> No
                 interval_minutes=None,
                 minutes_after=0.01,
                 is_enabled=True,
+                kind="after_event",
             )
             return [rem]
 

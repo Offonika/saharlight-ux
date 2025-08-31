@@ -195,7 +195,16 @@ def test_schedule_reminder_replaces_existing_job() -> None:
     handlers.SessionLocal = TestSession
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                kind="at_time",
+                is_enabled=True,
+            )
+        )
         session.commit()
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     job_queue.application = SimpleNamespace(timezone=ZoneInfo("UTC"))
@@ -222,7 +231,16 @@ def test_schedule_reminder_requires_job_queue() -> None:
     handlers.SessionLocal = TestSession
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                kind="at_time",
+                is_enabled=True,
+            )
+        )
         session.commit()
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
@@ -244,6 +262,7 @@ def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
                 telegram_id=1,
                 type="sugar",
                 time=time(8, 0),
+                kind="at_time",
                 is_enabled=True,
             )
         )
@@ -265,7 +284,15 @@ def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
 
 def test_schedule_reminder_uses_user_timezone_when_queue_has_none() -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="UTC")
-    rem = Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user)
+    rem = Reminder(
+        id=1,
+        telegram_id=1,
+        type="sugar",
+        time=time(8, 0),
+        kind="at_time",
+        is_enabled=True,
+        user=user,
+    )
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     handlers.schedule_reminder(rem, job_queue, user)
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
@@ -279,7 +306,15 @@ def test_schedule_reminder_uses_user_timezone_when_queue_has_none() -> None:
 
 def test_schedule_reminder_uses_application_timezone() -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
-    rem = Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user)
+    rem = Reminder(
+        id=1,
+        telegram_id=1,
+        type="sugar",
+        time=time(8, 0),
+        kind="at_time",
+        is_enabled=True,
+        user=user,
+    )
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     job_queue.application = SimpleNamespace(timezone=ZoneInfo("UTC"))
     handlers.schedule_reminder(rem, job_queue, user)
@@ -305,6 +340,7 @@ def test_schedule_reminder_respects_days_mask() -> None:
                 telegram_id=1,
                 type="sugar",
                 time=time(8, 0),
+                kind="at_time",
                 is_enabled=True,
                 days_mask=(1 << 0) | (1 << 2),
             )
@@ -378,6 +414,7 @@ def test_interval_minutes_scheduling_and_rendering(
                 telegram_id=1,
                 type="sugar",
                 interval_minutes=30,
+                kind="every",
                 is_enabled=True,
             )
         )
@@ -403,7 +440,14 @@ def test_schedule_with_next_invalid_timezone_logs_warning(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Invalid/Zone")
-    rem = Reminder(telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user)
+    rem = Reminder(
+        telegram_id=1,
+        type="sugar",
+        time=time(8, 0),
+        kind="at_time",
+        is_enabled=True,
+        user=user,
+    )
     with caplog.at_level(logging.WARNING):
         icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏰"
@@ -452,12 +496,20 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add_all(
             [
-                Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True),
+                Reminder(
+                    id=1,
+                    telegram_id=1,
+                    type="sugar",
+                    time=time(8, 0),
+                    kind="at_time",
+                    is_enabled=True,
+                ),
                 Reminder(
                     id=2,
                     telegram_id=1,
                     type="sugar",
                     interval_hours=3,
+                    kind="every",
                     is_enabled=False,
                 ),
                 Reminder(
@@ -465,6 +517,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
                     telegram_id=1,
                     type="after_meal",
                     minutes_after=15,
+                    kind="after_event",
                     is_enabled=True,
                 ),
             ]
@@ -507,7 +560,16 @@ def test_render_reminders_no_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "public_origin", "")
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                kind="at_time",
+                is_enabled=True,
+            )
+        )
         session.commit()
     with TestSession() as session:
         text, markup = handlers._render_reminders(session, 1)
@@ -587,7 +649,16 @@ def test_render_reminders_runtime_public_origin(monkeypatch: pytest.MonkeyPatch)
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                kind="at_time",
+                is_enabled=True,
+            )
+        )
         session.commit()
 
     settings = config.get_settings()
@@ -760,7 +831,15 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                kind="at_time",
+            )
+        )
         session.commit()
 
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
@@ -825,7 +904,15 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="custom", time=time(8, 0)))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="custom",
+                time=time(8, 0),
+                kind="at_time",
+            )
+        )
         session.commit()
 
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
@@ -867,7 +954,15 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(23, 0)))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(23, 0),
+                kind="at_time",
+            )
+        )
         session.commit()
 
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
@@ -879,6 +974,7 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
             telegram_id=rem_db.telegram_id,
             type=rem_db.type,
             time=rem_db.time,
+            kind=rem_db.kind,
         )
     with TestSession() as session:
         user = session.get(DbUser, 1)

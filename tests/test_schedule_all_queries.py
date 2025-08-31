@@ -92,6 +92,7 @@ def test_schedule_all_uses_constant_queries() -> None:
                     telegram_id=1,
                     type="sugar",
                     time=time(8, 0),
+                    kind="at_time",
                     is_enabled=True,
                 )
             )

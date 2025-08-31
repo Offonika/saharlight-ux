@@ -80,7 +80,16 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
         or tz
     )
 
-    if rem.type == "after_meal":
+    kind = rem.kind
+    if kind is None:
+        if rem.minutes_after is not None:
+            kind = "after_event"
+        elif rem.interval_hours or rem.interval_minutes:
+            kind = "every"
+        else:
+            kind = "at_time"
+
+    if kind == "after_event":
         minutes_after = rem.minutes_after
         if minutes_after is not None:
             logger.debug(
@@ -100,8 +109,32 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
                 name=name,
                 timezone=job_tz,
             )
-    else:
-        if rem.time:
+    elif kind == "at_time" and rem.time:
+        logger.debug(
+            "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+            rem.id,
+            rem.type,
+            rem.time,
+            rem.interval_hours or rem.interval_minutes,
+            rem.minutes_after,
+        )
+        job_time = rem.time.replace(tzinfo=tz)
+        days: tuple[int, ...] | None = None
+        mask = getattr(rem, "days_mask", 0) or 0
+        if mask:
+            days = tuple(i for i in range(7) if mask & (1 << i))
+        schedule_daily(
+            job_queue,
+            reminder_job,
+            time=job_time,
+            data=data,
+            name=name,
+            timezone=job_tz,
+            days=days,
+        )
+    elif kind == "every":
+        minutes = rem.interval_minutes if rem.interval_minutes is not None else (rem.interval_hours or 0) * 60
+        if minutes:
             logger.debug(
                 "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
                 rem.id,
@@ -110,30 +143,6 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
                 rem.interval_hours or rem.interval_minutes,
                 rem.minutes_after,
             )
-            job_time = rem.time.replace(tzinfo=tz)
-            days: tuple[int, ...] | None = None
-            mask = getattr(rem, "days_mask", 0) or 0
-            if mask:
-                days = tuple(i for i in range(7) if mask & (1 << i))
-            schedule_daily(
-                job_queue,
-                reminder_job,
-                time=job_time,
-                data=data,
-                name=name,
-                timezone=job_tz,
-                days=days,
-            )
-        elif rem.interval_hours or rem.interval_minutes:
-            logger.debug(
-                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
-                rem.id,
-                rem.type,
-                rem.time,
-                rem.interval_hours or rem.interval_minutes,
-                rem.minutes_after,
-            )
-            minutes = rem.interval_hours * 60 if rem.interval_hours is not None else rem.interval_minutes or 0
             job_queue.run_repeating(
                 reminder_job,
                 interval=timedelta(minutes=minutes),
