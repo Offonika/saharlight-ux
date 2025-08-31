@@ -12,7 +12,10 @@ from sqlalchemy.orm import sessionmaker
 from telegram import Update, User
 from telegram.ext import CallbackContext
 
-from services.api.app.diabetes.utils.helpers import INVALID_TIME_MSG
+from services.api.app.diabetes.utils.helpers import (
+    INVALID_TIME_MSG,
+    parse_time_interval,
+)
 from services.api.app.diabetes.services.db import (
     Base,
     Reminder,
@@ -107,9 +110,7 @@ async def test_add_reminder_fewer_args(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_invalid_time(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_sugar_invalid_time(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "ab:cd"])
@@ -124,9 +125,7 @@ async def test_add_reminder_sugar_invalid_time(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_non_numeric_interval(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_sugar_non_numeric_interval(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "abc"])
@@ -152,9 +151,7 @@ async def test_add_reminder_unknown_type(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_valid_type(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_valid_type(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "2"], job_queue=None)
@@ -201,9 +198,7 @@ async def test_add_reminder_valid_type(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_ignores_disabled(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_ignores_disabled(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False)
@@ -250,9 +245,7 @@ async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None
     "payload",
     [json.dumps({"id": 1, "snooze": 7}), "snooze=7&id=1"],
 )
-async def test_reminder_webapp_save_snooze(
-    reminder_handlers: Any, payload: str
-) -> None:
+async def test_reminder_webapp_save_snooze(reminder_handlers: Any, payload: str) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -285,6 +278,60 @@ async def test_reminder_webapp_save_snooze(
         assert log.reminder_id == 1
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "rtype,value",
+    [("after_meal", "15"), ("custom", "09:00")],
+)
+async def test_reminder_webapp_save_clears_interval_params(
+    reminder_handlers: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    rtype: str,
+    value: str,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None))
+    monkeypatch.setattr(reminder_handlers, "reminder_events", MagicMock())
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                interval_minutes=30,
+                interval_hours=2,
+            )
+        )
+        session.commit()
+
+    message = DummyWebAppMessage(json.dumps({"id": 1, "type": rtype, "value": value}))
+    update = make_update(effective_message=message, effective_user=make_user(1))
+    context = make_context()
+
+    await reminder_handlers.reminder_webapp_save(update, context)
+
+    with TestSession() as session:
+        rem_db = session.get(Reminder, 1)
+        assert rem_db is not None
+        assert rem_db.interval_hours is None
+        assert rem_db.interval_minutes is None
+        if rtype == "after_meal":
+            assert rem_db.minutes_after == int(value)
+            assert rem_db.time is None
+        else:
+            assert rem_db.minutes_after is None
+            parsed = parse_time_interval(value)
+            assert isinstance(parsed, time)
+            assert rem_db.time == parsed
+
+
 @pytest.mark.parametrize(
     "origin, ui_base, path",
     [
@@ -292,9 +339,7 @@ async def test_reminder_webapp_save_snooze(
         ("https://example.com/", "ui/", "reminders/new"),
     ],
 )
-def test_build_ui_url(
-    monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str, path: str
-) -> None:
+def test_build_ui_url(monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str, path: str) -> None:
     expected = "https://example.com/ui/reminders/new"
     monkeypatch.setenv("PUBLIC_ORIGIN", origin)
     monkeypatch.setenv("UI_BASE_URL", ui_base)
