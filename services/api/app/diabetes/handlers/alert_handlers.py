@@ -4,6 +4,7 @@ import datetime
 import logging
 from collections.abc import Awaitable, Callable
 from typing import TypedDict, cast
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session, sessionmaker
 from telegram import Update
@@ -87,6 +88,7 @@ def schedule_alert(
         when=ALERT_REPEAT_DELAY,
         data=data,
         name=f"alert_{user_id}",
+        timezone=ZoneInfo("Europe/Moscow"),
     )
 
 
