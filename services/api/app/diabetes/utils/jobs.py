@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Iterable
 from datetime import (
     datetime,
     time as dt_time,
@@ -72,6 +72,7 @@ def schedule_daily(
     data: dict[str, object] | None = None,
     name: str | None = None,
     timezone: tzinfo | None = None,
+    days: Iterable[int] | None = None,
 ) -> Job[CustomContext]:
     """Schedule ``callback`` to run daily at ``time``.
 
@@ -106,6 +107,9 @@ def schedule_daily(
         "data": data,
         "name": name,
     }
-    if "timezone" in inspect.signature(job_queue.run_daily).parameters:
+    sig = inspect.signature(job_queue.run_daily)
+    if "timezone" in sig.parameters:
         params["timezone"] = tz
+    if days is not None and "days" in sig.parameters:
+        params["days"] = tuple(days)
     return job_queue.run_daily(callback, **params)
