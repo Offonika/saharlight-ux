@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
     telegram_token: Optional[str] = Field(default=None, alias="TELEGRAM_TOKEN")
+    admin_id: Optional[int] = Field(default=None, alias="ADMIN_ID")
 
     @field_validator("log_level", mode="before")
     @classmethod

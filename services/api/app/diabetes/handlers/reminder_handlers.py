@@ -267,6 +267,17 @@ def schedule_all(job_queue: DefaultJobQueue | None) -> None:
         logger.debug("Found %d reminders to schedule", count)
         for rem in reminders:
             schedule_reminder(rem, job_queue, rem.user)
+
+        # 🔎 Отладка: просто логируем список активных джобов
+        jobs = job_queue.jobs()
+        logger.info("📋 Total scheduled jobs: %d", len(jobs))
+        for job in jobs:
+            logger.info(
+                "📅 Scheduled job: name=%s data=%s",
+                getattr(job, "name", None),
+                getattr(job, "data", None),
+            )
+
         logger.debug("Scheduled %d reminders", count)
 
 

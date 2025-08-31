@@ -1,4 +1,3 @@
-# main.py
 """
 Bot entry point and configuration.
 """
@@ -16,7 +15,6 @@ from services.api.app.menu_button import post_init as menu_button_post_init
 
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 logger = logging.getLogger(__name__)
-
 
 TELEGRAM_TOKEN = settings.telegram_token
 
@@ -45,6 +43,12 @@ async def post_init(
 ) -> None:
     await app.bot.set_my_commands(commands)
     await menu_button_post_init(app)
+
+    # 🟢 Проверка, что JobQueue инициализирован
+    if app.job_queue:
+        logger.info("✅ JobQueue initialized and ready")
+    else:
+        logger.error("❌ JobQueue is NOT available!")
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -98,11 +102,25 @@ def main() -> None:  # pragma: no cover
     from services.api.app.diabetes.handlers.registration import register_handlers
 
     register_handlers(application)
-    application.run_polling()
 
+    # 🟢 Тестовая задача (через 30 секунд после запуска)
+    async def test_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+        await context.bot.send_message(
+            chat_id=settings.admin_id,
+            text="🔔 Test reminder fired! JobQueue работает ✅",
+        )
+
+    if application.job_queue:
+        application.job_queue.run_once(test_job, when=30)
+
+  
+    application.job_queue.run_once(test_job, when=30)
+
+    application.run_polling()
 
 __all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN"]
 
 
 if __name__ == "__main__":  # pragma: no cover
     main()
+

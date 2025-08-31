@@ -56,3 +56,15 @@ services/webapp/ui/dist/
 .env
 .coverage
 log/
+# системные env-файлы
+.env.systemd
+.env.systemd.bak
+
+# debug и временные скрипты
+debug_reminders.py
+
+# случайно созданные команды в виде файлов
+-bot.service -n 100 -f | grep job_queue
+ql -h localhost -U diabetes_user -d diabetes_bot -c SELECT id, time, pg_typeof(time) FROM reminders WHERE id=3;
+services/webapp/ui/udo systemctl status diabetes-bot
+services/webapp/ui/udo systemctl status diabetes-bot --no-pager -l
