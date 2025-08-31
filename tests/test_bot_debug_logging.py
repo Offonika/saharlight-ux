@@ -6,6 +6,7 @@ import importlib
 import logging
 import sys
 from typing import Awaitable, Callable
+from zoneinfo import ZoneInfo
 
 import pytest
 from telegram.ext import ContextTypes
@@ -29,6 +30,15 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bot, "init_db", lambda: None)
 
     class DummyJobQueue:
+        class _Scheduler:
+            def __init__(self) -> None:
+                self.timezone: object | None = None
+
+            def configure(self, *, timezone: object) -> None:
+                self.timezone = timezone
+
+        scheduler = _Scheduler()
+
         def run_once(self, *args: object, **kwargs: object) -> None:
             return None
 
@@ -48,12 +58,11 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
     class DummyApp:
         bot = DummyBot()
         job_queue = DummyJobQueue()
+        timezone = ZoneInfo("UTC")
 
         def add_error_handler(
             self,
-            handler: Callable[
-                [object, ContextTypes.DEFAULT_TYPE], Awaitable[None]
-            ],
+            handler: Callable[[object, ContextTypes.DEFAULT_TYPE], Awaitable[None]],
         ) -> None:
             return None
 

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
+from typing import Any
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
@@ -10,7 +11,7 @@ import pytest
 
 from services.api.app.diabetes.utils.jobs import schedule_once
 
-JobCallback = Callable[[object], Awaitable[object] | object]
+JobCallback = Callable[[object], Coroutine[Any, Any, object]]
 
 
 class _Queue:

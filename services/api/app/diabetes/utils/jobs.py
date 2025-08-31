@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from datetime import datetime, timedelta, timezone as dt_timezone, tzinfo
 from typing import Any
 
@@ -11,7 +11,7 @@ from typing import TypeAlias
 CustomContext: TypeAlias = ContextTypes.DEFAULT_TYPE
 DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
 
-JobCallback = Callable[[CustomContext], Awaitable[object] | object]
+JobCallback = Callable[[CustomContext], Coroutine[Any, Any, object]]
 
 
 def schedule_once(
@@ -30,6 +30,9 @@ def schedule_once(
     explicitly; otherwise the timezone is derived from the job queue's
     application or scheduler.
     """
+    if not inspect.iscoroutinefunction(callback):
+        msg = "Job callback must be async"
+        raise TypeError(msg)
     tz = (
         timezone
         or getattr(getattr(job_queue, "application", None), "timezone", None)

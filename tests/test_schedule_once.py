@@ -4,10 +4,12 @@ from datetime import timedelta
 from types import SimpleNamespace
 from typing import Callable
 
+import pytest
+
 from services.api.app.diabetes.utils.jobs import schedule_once
 
 
-def dummy_cb(context: object) -> None:  # pragma: no cover - simple callback
+async def dummy_cb(context: object) -> None:  # pragma: no cover - simple callback
     return None
 
 
@@ -66,7 +68,9 @@ class QueueSchedulerTimezone:
 
 
 class QueueApplicationTimezone:
-    application = SimpleNamespace(timezone="APP", scheduler=SimpleNamespace(timezone="APP_SCH"))
+    application = SimpleNamespace(
+        timezone="APP", scheduler=SimpleNamespace(timezone="APP_SCH")
+    )
 
     def run_once(
         self,
@@ -105,3 +109,13 @@ def test_schedule_once_application_timezone() -> None:
     jq = QueueApplicationTimezone()
     schedule_once(jq, dummy_cb, when=timedelta(seconds=1))
     assert jq.args.timezone == jq.application.timezone
+
+
+def test_schedule_once_requires_async_callback() -> None:
+    jq = QueueWithTimezone()
+
+    def sync_cb(context: object) -> None:  # pragma: no cover - test helper
+        return None
+
+    with pytest.raises(TypeError):
+        schedule_once(jq, sync_cb, when=timedelta(seconds=1))
