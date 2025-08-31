@@ -2,7 +2,6 @@
 """Bot entry point and configuration."""
 
 import logging
-import os
 import sys
 from datetime import timedelta
 from typing import TYPE_CHECKING, TypeAlias
@@ -16,6 +15,7 @@ from services.api.app.config import settings
 from services.api.app.diabetes.services.db import init_db
 from services.api.app.menu_button import post_init as menu_button_post_init
 from services.bot.ptb_patches import apply_jobqueue_stop_workaround  # 👈 добавили
+from services.api.app.diabetes.handlers.registration import register_handlers
 
 if TYPE_CHECKING:
     DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
@@ -61,7 +61,9 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 def main() -> None:  # pragma: no cover
-    level = getattr(logging, str(settings.log_level).upper(), logging.INFO)
+    level = settings.log_level
+    if isinstance(level, str):  # pragma: no cover - runtime config
+        level = getattr(logging, level.upper(), logging.INFO)
     logging.basicConfig(level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     logger.info("=== Bot started ===")
 
@@ -107,10 +109,9 @@ def main() -> None:  # pragma: no cover
     reminder_events.register_job_queue(application.job_queue)
 
     # ---- Register handlers (they may schedule reminders)
-    from services.api.app.diabetes.handlers.registration import register_handlers
     register_handlers(application)
 
-    # ---- Optional test job (enable via ENV: ENABLE_TEST_JOB=1)
+    # ---- Schedule test job on startup
     async def test_job(context: ContextTypes.DEFAULT_TYPE) -> None:
         admin_id = settings.admin_id
         if admin_id is None:
@@ -118,9 +119,8 @@ def main() -> None:  # pragma: no cover
             return
         await context.bot.send_message(chat_id=admin_id, text="🔔 Test reminder fired! JobQueue работает ✅")
 
-    if os.environ.get("ENABLE_TEST_JOB", "0") == "1":
-        job_queue.run_once(test_job, when=timedelta(seconds=30), name="test_job")
-        logger.info("🧪 Scheduled test_job in +30s")
+    job_queue.run_once(test_job, when=timedelta(seconds=30), name="test_job")
+    logger.info("🧪 Scheduled test_job in +30s")
 
     # ---- Run (без дополнительного ручного shutdown — PTB сделает сам)
     application.run_polling()

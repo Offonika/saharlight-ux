@@ -11,6 +11,7 @@ from typing import Any, cast
 
 from services.api.app.diabetes.services.db import Base, Reminder, User
 from services.api.app.routers.reminders import router
+from services.api.app.routers import reminders as reminders_router
 from services.api.app.services import reminders
 from services.api.app.telegram_auth import require_tg_user
 from services.api.app import reminder_events
@@ -325,3 +326,78 @@ def test_patch_reminder_schedules_job(
     )
     assert resp.status_code == 200
     assert job_queue.get_jobs_by_name("reminder_1")
+
+
+def test_post_reminder_sends_event_without_job_queue(
+    client: TestClient,
+    session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reminder_events.register_job_queue(None)
+    events: list[tuple[str, int]] = []
+
+    async def fake_post(action: str, rid: int) -> None:
+        events.append((action, rid))
+
+    monkeypatch.setattr(reminders_router, "_post_job_queue_event", fake_post)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+    resp = client.post(
+        "/api/reminders",
+        json={"telegramId": 1, "type": "sugar", "time": "08:00", "isEnabled": True},
+    )
+    assert resp.status_code == 200
+    rid = resp.json()["id"]
+    assert events == [("saved", rid)]
+
+
+def test_patch_reminder_sends_event_without_job_queue(
+    client: TestClient,
+    session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reminder_events.register_job_queue(None)
+    events: list[tuple[str, int]] = []
+
+    async def fake_post(action: str, rid: int) -> None:
+        events.append((action, rid))
+
+    monkeypatch.setattr(reminders_router, "_post_job_queue_event", fake_post)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar"))
+        session.commit()
+    resp = client.patch(
+        "/api/reminders",
+        json={
+            "telegramId": 1,
+            "id": 1,
+            "type": "sugar",
+            "time": "09:00",
+            "isEnabled": True,
+        },
+    )
+    assert resp.status_code == 200
+    assert events == [("saved", 1)]
+
+
+def test_delete_reminder_sends_event_without_job_queue(
+    client: TestClient,
+    session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reminder_events.register_job_queue(None)
+    events: list[tuple[str, int]] = []
+
+    async def fake_post(action: str, rid: int) -> None:
+        events.append((action, rid))
+
+    monkeypatch.setattr(reminders_router, "_post_job_queue_event", fake_post)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar"))
+        session.commit()
+    resp = client.delete("/api/reminders", params={"telegramId": 1, "id": 1})
+    assert resp.status_code == 200
+    assert events == [("deleted", 1)]

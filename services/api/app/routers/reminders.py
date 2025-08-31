@@ -1,9 +1,11 @@
 import logging
 from datetime import datetime
-from typing import Optional, cast
+from typing import Literal, Optional, cast
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
+from .. import config, reminder_events
 from ..schemas.reminders import ReminderSchema
 from ..schemas.user import UserContext
 from ..services.reminders import (
@@ -13,11 +15,33 @@ from ..services.reminders import (
 )
 from ..services.audit import log_patient_access
 from ..telegram_auth import require_tg_user
-from ..reminder_events import notify_reminder_deleted, notify_reminder_saved
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _post_job_queue_event(action: Literal["saved", "deleted"], rid: int) -> None:
+    base = config.get_settings().api_url
+    if not base:
+        logger.warning("api_url not configured; skipping job queue notification")
+        return
+    url = f"{base.rstrip('/')}/internal/reminders/{action}"
+    async with httpx.AsyncClient() as client:
+        try:
+            await client.post(url, json={"id": rid})
+        except httpx.HTTPError:  # pragma: no cover - network errors
+            logger.exception("failed to notify job queue")
+
+
+async def _reschedule_job(action: Literal["saved", "deleted"], rid: int) -> None:
+    if reminder_events.job_queue is not None:
+        if action == "saved":
+            reminder_events.notify_reminder_saved(rid)
+        else:
+            reminder_events.notify_reminder_deleted(rid)
+    else:
+        await _post_job_queue_event(action, rid)
 
 
 @router.get("/reminders")
@@ -127,7 +151,7 @@ async def post_reminder(
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="forbidden")
     rid = await save_reminder(data)
-    notify_reminder_saved(rid)
+    await _reschedule_job("saved", rid)
     return {"status": "ok", "id": rid}
 
 
@@ -141,7 +165,7 @@ async def patch_reminder(
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="forbidden")
     rid = await save_reminder(data)
-    notify_reminder_saved(rid)
+    await _reschedule_job("saved", rid)
     return {"status": "ok", "id": rid}
 
 
@@ -169,5 +193,5 @@ async def delete_reminder(
         raise HTTPException(status_code=404, detail="reminder not found")
     log_patient_access(getattr(request.state, "user_id", None), tid)
     await remove_reminder(tid, id)
-    notify_reminder_deleted(id)
+    await _reschedule_job("deleted", id)
     return {"status": "ok"}
