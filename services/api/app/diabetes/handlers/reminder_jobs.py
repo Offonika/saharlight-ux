@@ -47,6 +47,11 @@ def schedule_reminder(
         )
         return
 
+    data: dict[str, object] = {
+        "reminder_id": rem.id,
+        "chat_id": rem.telegram_id,
+    }
+
     tz: datetime.tzinfo = ZoneInfo("Europe/Moscow")
     if user is None:
         with SessionLocal() as session:
@@ -87,7 +92,6 @@ def schedule_reminder(
                 minutes_after,
             )
             when_td = timedelta(minutes=float(minutes_after))
-            data = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
             schedule_once(
                 job_queue,
                 reminder_job,
@@ -112,7 +116,6 @@ def schedule_reminder(
                 tzinfo=tz,
             )
             job_time = dt.astimezone(job_tz).time().replace(tzinfo=None)
-            data = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
             if "timezone" in inspect.signature(job_queue.run_daily).parameters:
                 job_queue.run_daily(  # type: ignore[call-arg]
                     reminder_job,
@@ -145,7 +148,7 @@ def schedule_reminder(
             job_queue.run_repeating(
                 reminder_job,
                 interval=timedelta(minutes=minutes),
-                data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
+                data=data,
                 name=name,
             )
     logger.debug(
