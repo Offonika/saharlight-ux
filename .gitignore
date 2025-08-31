@@ -47,7 +47,8 @@ venv*/
 services/api/app/*.bak.*
 .env
 # Generated SDKs
-libs/py-sdk/
+libs/py-sdk/*
+!libs/py-sdk/requirements.txt
 
 # Webapp build output
 services/webapp/ui/dist/
