@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import inspect
 import logging
 from collections.abc import Awaitable, Callable
 from typing import TypedDict, cast
@@ -83,13 +84,21 @@ def schedule_alert(
         "profile": profile,
         "first_name": first_name,
     }
-    job_queue.run_once(
-        alert_job,
-        when=ALERT_REPEAT_DELAY,
-        data=data,
-        name=f"alert_{user_id}",
-        timezone=ZoneInfo("Europe/Moscow"),
-    )
+    if "timezone" in inspect.signature(job_queue.run_once).parameters:
+        job_queue.run_once(  # type: ignore[call-arg]
+            alert_job,
+            when=ALERT_REPEAT_DELAY,
+            data=data,
+            name=f"alert_{user_id}",
+            timezone=ZoneInfo("Europe/Moscow"),
+        )
+    else:
+        job_queue.run_once(
+            alert_job,
+            when=ALERT_REPEAT_DELAY,
+            data=data,
+            name=f"alert_{user_id}",
+        )
 
 
 async def _send_alert_message(

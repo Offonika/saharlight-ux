@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import json
 import logging
+import inspect
 import re
 from datetime import time, timedelta, timezone
 from typing import Awaitable, Callable, Literal, cast
@@ -449,13 +450,21 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         if status == "ok":
             job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
             if job_queue is not None:
-                job_queue.run_once(
-                    reminder_job,
-                    when=timedelta(minutes=minutes),
-                    data={"reminder_id": int(rid), "chat_id": user_id},
-                    name=f"reminder_{rid}",
-                    timezone=ZoneInfo("Europe/Moscow"),
-                )
+                if "timezone" in inspect.signature(job_queue.run_once).parameters:
+                    job_queue.run_once(  # type: ignore[call-arg]
+                        reminder_job,
+                        when=timedelta(minutes=minutes),
+                        data={"reminder_id": int(rid), "chat_id": user_id},
+                        name=f"reminder_{rid}",
+                        timezone=ZoneInfo("Europe/Moscow"),
+                    )
+                else:
+                    job_queue.run_once(
+                        reminder_job,
+                        when=timedelta(minutes=minutes),
+                        data={"reminder_id": int(rid), "chat_id": user_id},
+                        name=f"reminder_{rid}",
+                    )
             await msg.reply_text(f"⏰ Отложено на {minutes} минут")
         return
 
@@ -790,13 +799,21 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         mins = minutes or 10
         job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
         if job_queue is not None:
-            job_queue.run_once(
-                reminder_job,
-                when=timedelta(minutes=mins),
-                data={"reminder_id": rid, "chat_id": chat_id},
-                name=f"reminder_{rid}",
-                timezone=ZoneInfo("Europe/Moscow"),
-            )
+            if "timezone" in inspect.signature(job_queue.run_once).parameters:
+                job_queue.run_once(  # type: ignore[call-arg]
+                    reminder_job,
+                    when=timedelta(minutes=mins),
+                    data={"reminder_id": rid, "chat_id": chat_id},
+                    name=f"reminder_{rid}",
+                    timezone=ZoneInfo("Europe/Moscow"),
+                )
+            else:
+                job_queue.run_once(
+                    reminder_job,
+                    when=timedelta(minutes=mins),
+                    data={"reminder_id": rid, "chat_id": chat_id},
+                    name=f"reminder_{rid}",
+                )
         try:
             await query.edit_message_text(f"⏰ Отложено на {mins} минут")
 
@@ -935,13 +952,21 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
             continue
         for job in job_queue.get_jobs_by_name(f"reminder_{rem.id}"):
             job.schedule_removal()
-        job_queue.run_once(
-            reminder_job,
-            when=timedelta(minutes=float(minutes_after)),
-            data={"reminder_id": rem.id, "chat_id": user_id},
-            name=f"reminder_{rem.id}",
-            timezone=ZoneInfo("Europe/Moscow"),
-        )
+        if "timezone" in inspect.signature(job_queue.run_once).parameters:
+            job_queue.run_once(  # type: ignore[call-arg]
+                reminder_job,
+                when=timedelta(minutes=float(minutes_after)),
+                data={"reminder_id": rem.id, "chat_id": user_id},
+                name=f"reminder_{rem.id}",
+                timezone=ZoneInfo("Europe/Moscow"),
+            )
+        else:
+            job_queue.run_once(
+                reminder_job,
+                when=timedelta(minutes=float(minutes_after)),
+                data={"reminder_id": rem.id, "chat_id": user_id},
+                name=f"reminder_{rem.id}",
+            )
 
 
 reminder_action_handler = CallbackQueryHandler(reminder_action_cb, pattern="^rem_(del|toggle):")
