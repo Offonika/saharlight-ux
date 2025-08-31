@@ -1,16 +1,24 @@
+import datetime
 import logging
 from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from telegram import Update
+from telegram import Chat, Message, Update
 from telegram.ext import CallbackContext
 
 
-class DummyMessage:
+class DummyMessage(Message):
+    __slots__ = ("replies", "kwargs")
+
     def __init__(self) -> None:
-        self.replies: list[str] = []
-        self.kwargs: list[dict[str, Any]] = []
+        super().__init__(
+            message_id=1,
+            date=datetime.datetime.now(),
+            chat=Chat(id=1, type="private"),
+        )
+        object.__setattr__(self, "replies", [])
+        object.__setattr__(self, "kwargs", [])
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append(text)
