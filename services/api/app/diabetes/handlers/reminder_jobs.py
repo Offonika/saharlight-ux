@@ -24,6 +24,9 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
     if job_queue is None:
         msg = "schedule_reminder called without job_queue"
         raise RuntimeError(msg)
+    if rem.telegram_id is None:
+        msg = "schedule_reminder called without telegram_id"
+        raise ValueError(msg)
 
     # Import lazily to avoid circular imports.
     from services.api.app import reminder_events

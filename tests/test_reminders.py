@@ -232,6 +232,19 @@ def test_schedule_reminder_requires_job_queue() -> None:
         handlers.schedule_reminder(rem, None, user)
 
 
+def test_schedule_reminder_requires_telegram_id() -> None:
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    rem = Reminder(
+        id=1,
+        telegram_id=None,
+        type="sugar",
+        time=time(8, 0),
+        is_enabled=True,
+    )
+    with pytest.raises(ValueError):
+        handlers.schedule_reminder(rem, job_queue, None)
+
+
 def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
