@@ -31,7 +31,8 @@ def _find_handler(
     ],
     regex: str,
 ) -> MessageHandler[
-    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
+    CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+    Any,
 ]:
     for h in fallbacks:
         if isinstance(h, MessageHandler):
@@ -55,7 +56,8 @@ class DummyMessage:
 
 async def _exercise(
     handler: MessageHandler[
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        Any,
     ],
 ) -> None:
     message = DummyMessage(PHOTO_BUTTON_TEXT)
