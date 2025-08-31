@@ -703,9 +703,10 @@ async def reminder_webapp_save(
 
 
 async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message: Message | None = update.message or (
-        update.callback_query.message if update.callback_query else None
-    )
+    query = update.callback_query
+    message: Message | None = update.message
+    if message is None and query is not None and query.message is not None:
+        message = cast(Message, query.message)
     args = getattr(context, "args", [])
     if not args:
         if message:

@@ -6,6 +6,7 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ForceReply,
+    Message,
     CallbackQuery,
 )
 from telegram.ext import ContextTypes
@@ -96,6 +97,7 @@ async def handle_cancel_entry(
     message = query.message
     if message is None:
         return
+    message = cast(Message, message)
     await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
 
 
@@ -141,6 +143,7 @@ async def handle_edit_or_delete(
     message = query.message
     if message is None:
         return
+    message = cast(Message, message)
     user_data["edit_entry"] = {
         "id": entry_id,
         "chat_id": message.chat_id,
@@ -186,6 +189,7 @@ async def handle_edit_field(
     message = query.message
     if message is None:
         return
+    message = cast(Message, message)
     await message.reply_text(prompt, reply_markup=ForceReply(selective=True))
 
 
