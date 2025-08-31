@@ -192,6 +192,25 @@ def test_schedule_reminder_replaces_existing_job() -> None:
     assert job_time.tzinfo.key == "Europe/Moscow"
 
 
+def test_schedule_reminder_requires_job_queue() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
+        )
+        session.commit()
+        rem = session.get(Reminder, 1)
+        user = session.get(DbUser, 1)
+        assert rem is not None
+        assert user is not None
+    with pytest.raises(RuntimeError):
+        handlers.schedule_reminder(rem, None, user)
+
+
 def test_schedule_reminder_without_user_defaults_to_utc() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -682,6 +701,37 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     assert query.answers
     answer = query.answers[-1]
     assert answer == "Готово ✅"
+
+
+@pytest.mark.asyncio
+async def test_toggle_reminder_without_job_queue(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit = commit
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=False)
+        )
+        session.commit()
+
+    schedule_mock = MagicMock()
+    monkeypatch.setattr(handlers, "schedule_reminder", schedule_mock)
+
+    query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=None, user_data={})
+    await handlers.reminder_action_cb(update, context)
+
+    with TestSession() as session:
+        rem_db = session.get(Reminder, 1)
+        assert rem_db is not None
+        assert rem_db.is_enabled
+
+    assert not schedule_mock.called
 
 
 @pytest.mark.asyncio
