@@ -4,6 +4,7 @@ Bot entry point and configuration.
 
 import logging
 import sys
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import SQLAlchemyError
 from telegram import BotCommand
@@ -96,6 +97,11 @@ def main() -> None:  # pragma: no cover
         .token(BOT_TOKEN)
         .post_init(post_init)  # registers post-init handler
         .build()
+    )
+    application.job_queue.timezone = ZoneInfo("Europe/Moscow")
+    logger.info(
+        "✅ JobQueue initialized with timezone %s",
+        application.job_queue.timezone,
     )
     application.add_error_handler(error_handler)
 
