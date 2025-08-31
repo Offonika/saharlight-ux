@@ -69,6 +69,7 @@ class DummyJobQueue:
         when: Any,
         data: dict[str, Any] | None = None,
         name: str | None = None,
+        timezone: object | None = None,
     ) -> None:
         self.calls.append((callback, when, data, name))
 

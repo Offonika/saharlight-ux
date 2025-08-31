@@ -57,6 +57,7 @@ class DummyJobQueue:
         when: object,
         data: dict[str, object] | None = None,
         name: str | None = None,
+        timezone: object | None = None,
     ) -> DummyJob:
         job = DummyJob(name, data)
         self._jobs.append(job)

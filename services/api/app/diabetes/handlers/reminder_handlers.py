@@ -454,6 +454,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
                     when=timedelta(minutes=minutes),
                     data={"reminder_id": int(rid), "chat_id": user_id},
                     name=f"reminder_{rid}",
+                    timezone=ZoneInfo("Europe/Moscow"),
                 )
             await msg.reply_text(f"⏰ Отложено на {minutes} минут")
         return
@@ -794,6 +795,7 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 when=timedelta(minutes=mins),
                 data={"reminder_id": rid, "chat_id": chat_id},
                 name=f"reminder_{rid}",
+                timezone=ZoneInfo("Europe/Moscow"),
             )
         try:
             await query.edit_message_text(f"⏰ Отложено на {mins} минут")
@@ -938,6 +940,7 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
             when=timedelta(minutes=float(minutes_after)),
             data={"reminder_id": rem.id, "chat_id": user_id},
             name=f"reminder_{rem.id}",
+            timezone=ZoneInfo("Europe/Moscow"),
         )
 
 
