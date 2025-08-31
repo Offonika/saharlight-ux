@@ -82,13 +82,23 @@ def schedule_reminder(
         or tz
     )
 
-    if rem.type == "after_meal":
+    kind = rem.kind
+    if kind is None:
+        if rem.minutes_after is not None:
+            kind = "after_event"
+        elif rem.interval_hours or rem.interval_minutes:
+            kind = "every"
+        else:
+            kind = "at_time"
+
+    if kind == "after_event":
         minutes_after = rem.minutes_after
         if minutes_after is not None:
             logger.debug(
-                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+                "Adding job for reminder %s (type=%s, kind=%s, time=%s, interval=%s, minutes_after=%s)",
                 rem.id,
                 rem.type,
+                kind,
                 rem.time,
                 rem.interval_hours or rem.interval_minutes,
                 minutes_after,
@@ -102,49 +112,51 @@ def schedule_reminder(
                 name=name,
                 timezone=job_tz,
             )
-    else:
-        if rem.time:
-            logger.debug(
-                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
-                rem.id,
-                rem.type,
-                rem.time,
-                rem.interval_hours or rem.interval_minutes,
-                rem.minutes_after,
-            )
-            job_time = rem.time.replace(tzinfo=tz)
-            schedule_daily(
-                job_queue,
-                reminder_job,
-                time=job_time,
-                data=data,
-                name=name,
-                timezone=job_tz,
-            )
-        elif rem.interval_hours or rem.interval_minutes:
-            logger.debug(
-                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
-                rem.id,
-                rem.type,
-                rem.time,
-                rem.interval_hours or rem.interval_minutes,
-                rem.minutes_after,
-            )
-            minutes = (
-                rem.interval_hours * 60
-                if rem.interval_hours is not None
-                else rem.interval_minutes or 0
-            )
-            job_queue.run_repeating(
-                reminder_job,
-                interval=timedelta(minutes=minutes),
-                data=data,
-                name=name,
-            )
+    elif kind == "every":
+        minutes = (
+            rem.interval_minutes
+            if rem.interval_minutes is not None
+            else (rem.interval_hours or 0) * 60
+        )
+        logger.debug(
+            "Adding job for reminder %s (type=%s, kind=%s, time=%s, interval=%s, minutes_after=%s)",
+            rem.id,
+            rem.type,
+            kind,
+            rem.time,
+            minutes,
+            rem.minutes_after,
+        )
+        job_queue.run_repeating(
+            reminder_job,
+            interval=timedelta(minutes=minutes),
+            data=data,
+            name=name,
+        )
+    elif rem.time is not None:
+        logger.debug(
+            "Adding job for reminder %s (type=%s, kind=%s, time=%s, interval=%s, minutes_after=%s)",
+            rem.id,
+            rem.type,
+            kind,
+            rem.time,
+            rem.interval_hours or rem.interval_minutes,
+            rem.minutes_after,
+        )
+        job_time = rem.time.replace(tzinfo=tz)
+        schedule_daily(
+            job_queue,
+            reminder_job,
+            time=job_time,
+            data=data,
+            name=name,
+            timezone=job_tz,
+        )
     logger.debug(
-        "Finished scheduling reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+        "Finished scheduling reminder %s (type=%s, kind=%s, time=%s, interval=%s, minutes_after=%s)",
         rem.id,
         rem.type,
+        kind,
         rem.time,
         rem.interval_hours or rem.interval_minutes,
         rem.minutes_after,
