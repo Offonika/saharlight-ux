@@ -229,8 +229,10 @@ def test_get_single_reminder_not_found(
 
 
 def test_patch_updates_reminder(
-    client: TestClient, session_factory: sessionmaker[Session]
+    client_with_job_queue: tuple[TestClient, DummyJobQueue],
+    session_factory: sessionmaker[Session],
 ) -> None:
+    client, _ = client_with_job_queue
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(

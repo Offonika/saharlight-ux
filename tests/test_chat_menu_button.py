@@ -35,7 +35,7 @@ async def test_post_init_sets_chat_menu_button(
         set_my_commands=AsyncMock(),
         set_chat_menu_button=AsyncMock(),
     )
-    app = SimpleNamespace(bot=bot)
+    app = SimpleNamespace(bot=bot, job_queue=None)
     await main.post_init(app)
     bot.set_my_commands.assert_awaited_once_with(main.commands)
     bot.set_chat_menu_button.assert_awaited_once()
@@ -57,7 +57,7 @@ async def test_post_init_skips_chat_menu_button_without_url(
         set_my_commands=AsyncMock(),
         set_chat_menu_button=AsyncMock(),
     )
-    app = SimpleNamespace(bot=bot)
+    app = SimpleNamespace(bot=bot, job_queue=None)
     await main.post_init(app)
     bot.set_my_commands.assert_awaited_once_with(main.commands)
     bot.set_chat_menu_button.assert_awaited_once()
