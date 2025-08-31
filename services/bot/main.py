@@ -85,6 +85,16 @@ def main() -> None:  # pragma: no cover
         )
         sys.exit(1)
 
+    builder = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .post_init(post_init)  # registers post-init handler
+    )
+    timezone = ZoneInfo("Europe/Moscow")
+    if hasattr(builder, "timezone"):
+        builder = builder.timezone(timezone)
+    elif hasattr(builder, "job_queue"):
+        builder = builder.job_queue(DefaultJobQueue(timezone=timezone))  # type: ignore[call-arg]
     application: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
@@ -92,19 +102,12 @@ def main() -> None:  # pragma: no cover
         dict[str, object],
         dict[str, object],
         DefaultJobQueue,
-    ] = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .post_init(post_init)  # registers post-init handler
-        .build()
-    )
+    ] = builder.build()
     job_queue = application.job_queue
     if job_queue is None:
         raise RuntimeError("JobQueue not initialized")
-    job_queue.timezone = ZoneInfo("Europe/Moscow")  # type: ignore[attr-defined]
-    logger.info(
-        "✅ JobQueue initialized with timezone %s", job_queue.timezone  # type: ignore[attr-defined]
-    )
+    tzinfo = getattr(application, "timezone", getattr(job_queue, "timezone", None))
+    logger.info("✅ JobQueue initialized with timezone %s", tzinfo)
     application.add_error_handler(error_handler)
 
     from services.api.app import reminder_events
