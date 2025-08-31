@@ -475,12 +475,24 @@ async def reminder_webapp_save(
                 DefaultJobQueue | None, context.job_queue
             )
             if job_queue is not None:
+                job_tz = (
+                    getattr(getattr(job_queue, "application", None), "timezone", None)
+                    or getattr(
+                        getattr(
+                            getattr(job_queue, "application", None), "scheduler", None
+                        ),
+                        "timezone",
+                        None,
+                    )
+                    or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
+                )
                 schedule_once(
                     job_queue,
                     reminder_job,
                     when=timedelta(minutes=minutes),
                     data={"reminder_id": int(rid), "chat_id": user_id},
                     name=f"reminder_{rid}",
+                    timezone=job_tz,
                 )
             await msg.reply_text(f"⏰ Отложено на {minutes} минут")
         return
@@ -834,12 +846,22 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             DefaultJobQueue | None, context.job_queue
         )
         if job_queue is not None:
+            job_tz = (
+                getattr(getattr(job_queue, "application", None), "timezone", None)
+                or getattr(
+                    getattr(getattr(job_queue, "application", None), "scheduler", None),
+                    "timezone",
+                    None,
+                )
+                or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
+            )
             schedule_once(
                 job_queue,
                 reminder_job,
                 when=timedelta(minutes=mins),
                 data={"reminder_id": rid, "chat_id": chat_id},
                 name=f"reminder_{rid}",
+                timezone=job_tz,
             )
         try:
             await query.edit_message_text(f"⏰ Отложено на {mins} минут")
@@ -989,12 +1011,22 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
             continue
         for job in job_queue.get_jobs_by_name(f"reminder_{rem.id}"):
             job.schedule_removal()
+        job_tz = (
+            getattr(getattr(job_queue, "application", None), "timezone", None)
+            or getattr(
+                getattr(getattr(job_queue, "application", None), "scheduler", None),
+                "timezone",
+                None,
+            )
+            or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
+        )
         schedule_once(
             job_queue,
             reminder_job,
             when=timedelta(minutes=float(minutes_after)),
             data={"reminder_id": rem.id, "chat_id": user_id},
             name=f"reminder_{rem.id}",
+            timezone=job_tz,
         )
 
 

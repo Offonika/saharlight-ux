@@ -21,17 +21,27 @@ def schedule_once(
     when: datetime | timedelta | float,
     data: dict[str, object] | None = None,
     name: str | None = None,
+    timezone: datetime.tzinfo | None = None,
 ) -> Job[CustomContext]:
     """Schedule ``callback`` to run once at ``when``.
 
     If ``job_queue.run_once`` supports a ``timezone`` argument, the job queue's
-    timezone is forwarded automatically.
+    timezone is forwarded automatically.  ``timezone`` can be provided
+    explicitly; otherwise the timezone is derived from the job queue's
+    application or scheduler.
     """
     params: dict[str, Any] = {"when": when, "data": data, "name": name}
     if "timezone" in inspect.signature(job_queue.run_once).parameters:
-        tz = getattr(job_queue, "timezone", None) or getattr(
-            getattr(job_queue, "scheduler", None), "timezone", None
+        tz = (
+            timezone
+            or getattr(getattr(job_queue, "application", None), "timezone", None)
+            or getattr(job_queue, "timezone", None)
+            or getattr(
+                getattr(getattr(job_queue, "application", None), "scheduler", None),
+                "timezone",
+                None,
+            )
+            or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
         )
         params["timezone"] = tz
-        return job_queue.run_once(callback, **params)
     return job_queue.run_once(callback, **params)

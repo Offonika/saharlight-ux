@@ -5,10 +5,26 @@ import sqlite3
 import subprocess
 from typing import Any, Callable, cast
 import warnings
+import sys
+from types import ModuleType
 
 import pytest
 import sqlalchemy
 from services.api.app.diabetes.services import db as db_module
+
+dummy = ModuleType("telegram.ext._basehandler")
+
+
+class _DummyBaseHandler:  # pragma: no cover - minimal stub
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        return None
+
+    def __class_getitem__(cls, item: object) -> type[_DummyBaseHandler]:
+        return cls
+
+
+dummy.BaseHandler = _DummyBaseHandler
+sys.modules.setdefault("telegram.ext._basehandler", dummy)
 
 warnings.filterwarnings(
     "ignore", category=ResourceWarning, module=r"anyio\.streams\.memory"
