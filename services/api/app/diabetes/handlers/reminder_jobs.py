@@ -19,8 +19,8 @@ def schedule_reminder(
 ) -> None:
     """Schedule a reminder in the provided job queue."""
     if job_queue is None:
-        logger.warning("schedule_reminder called without job_queue")
-        return
+        msg = "schedule_reminder called without job_queue"
+        raise RuntimeError(msg)
 
     # Import lazily to avoid circular imports.
     from services.api.app import reminder_events
