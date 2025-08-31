@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    Message,
     ReplyKeyboardMarkup,
     Update,
     WebAppInfo,
@@ -377,7 +378,7 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     query = update.callback_query
     if query is None or query.message is None:
         return
-    message = query.message
+    message = cast(Message, query.message)
     await query.answer()
     await message.delete()
     await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
@@ -388,7 +389,7 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     query = update.callback_query
     if query is None or query.message is None:
         return END
-    message = query.message
+    message = cast(Message, query.message)
     await query.answer()
     await message.reply_text(
         "Введите ваш часовой пояс (например Europe/Moscow):",
@@ -546,6 +547,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     q_message = query.message
     if q_message is None:
         return
+    message = cast(Message, q_message)
     user = update.effective_user
     if user is None:
         return
@@ -568,7 +570,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 web_app=WebAppInfo(app_config.build_ui_url("/reminders")),
             )
             keyboard = InlineKeyboardMarkup([[button]])
-            await q_message.reply_text("Создать напоминание:", reply_markup=keyboard)
+            await message.reply_text("Создать напоминание:", reply_markup=keyboard)
     elif action == "del":
         await reminder_handlers.delete_reminder(update, context)
 
@@ -584,7 +586,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await query.edit_message_text("Профиль не найден.")
         return
     if not result.get("commit_ok", True):
-        await q_message.reply_text(
+        await message.reply_text(
             "⚠️ Не удалось сохранить настройки.",
             reply_markup=menu_keyboard(),
         )
@@ -651,7 +653,7 @@ async def profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     query = update.callback_query
     if query is None or query.message is None:
         return END
-    message = query.message
+    message = cast(Message, query.message)
     await query.answer()
     await message.delete()
     await message.reply_text(

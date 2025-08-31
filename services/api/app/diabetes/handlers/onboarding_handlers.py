@@ -20,6 +20,7 @@ from typing import cast
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    Message,
     Update,
 )
 from telegram.ext import (
@@ -85,8 +86,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             try:
                 thread_id = await create_thread()
             except OpenAIError as exc:  # pragma: no cover - network errors
-                logger.exception("Failed to create thread for user %s: %s", user_id, exc)
-                await message.reply_text("⚠️ Не удалось инициализировать профиль. Попробуйте позже.")
+                logger.exception(
+                    "Failed to create thread for user %s: %s", user_id, exc
+                )
+                await message.reply_text(
+                    "⚠️ Не удалось инициализировать профиль. Попробуйте позже."
+                )
                 return ConversationHandler.END
             user_obj = User(telegram_id=user_id, thread_id=thread_id)
             session.add(user_obj)
@@ -99,7 +104,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         if user_obj.onboarding_complete:
             greeting = f"👋 Привет, {first_name}!" if first_name else "👋 Привет!"
             greeting += " Рада видеть тебя. Надеюсь, у тебя сегодня всё отлично."
-            await message.reply_text(f"{greeting}\n\n📋 Выберите действие:", reply_markup=menu_keyboard())
+            await message.reply_text(
+                f"{greeting}\n\n📋 Выберите действие:", reply_markup=menu_keyboard()
+            )
             return ConversationHandler.END
 
     await message.reply_text(
@@ -112,7 +119,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 def _skip_markup() -> InlineKeyboardMarkup:
     """Markup containing a single *skip* button."""
 
-    return InlineKeyboardMarkup([[InlineKeyboardButton("Пропустить", callback_data="onb_skip")]])
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("Пропустить", callback_data="onb_skip")]]
+    )
 
 
 async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -132,7 +141,9 @@ async def onboarding_icr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await message.reply_text("Введите ИКХ числом.", reply_markup=_skip_markup())
         return ONB_PROFILE_ICR
     if icr <= 0:
-        await message.reply_text("ИКХ должен быть больше 0.", reply_markup=_skip_markup())
+        await message.reply_text(
+            "ИКХ должен быть больше 0.", reply_markup=_skip_markup()
+        )
         return ONB_PROFILE_ICR
     user_data["profile_icr"] = icr
     await message.reply_text(
@@ -159,7 +170,9 @@ async def onboarding_cf(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         await message.reply_text("Введите КЧ числом.", reply_markup=_skip_markup())
         return ONB_PROFILE_CF
     if cf <= 0:
-        await message.reply_text("КЧ должен быть больше 0.", reply_markup=_skip_markup())
+        await message.reply_text(
+            "КЧ должен быть больше 0.", reply_markup=_skip_markup()
+        )
         return ONB_PROFILE_CF
     user_data["profile_cf"] = cf
     await message.reply_text(
@@ -184,16 +197,22 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     try:
         target = float(message.text.replace(",", "."))
     except ValueError:
-        await message.reply_text("Введите целевой сахар числом.", reply_markup=_skip_markup())
+        await message.reply_text(
+            "Введите целевой сахар числом.", reply_markup=_skip_markup()
+        )
         return ONB_PROFILE_TARGET
     if target <= 0:
-        await message.reply_text("Целевой сахар должен быть больше 0.", reply_markup=_skip_markup())
+        await message.reply_text(
+            "Целевой сахар должен быть больше 0.", reply_markup=_skip_markup()
+        )
         return ONB_PROFILE_TARGET
 
     icr = user_data.pop("profile_icr", None)
     cf = user_data.pop("profile_cf", None)
     if icr is None or cf is None:
-        await message.reply_text("⚠️ Не хватает данных для профиля. Пожалуйста, начните заново.")
+        await message.reply_text(
+            "⚠️ Не хватает данных для профиля. Пожалуйста, начните заново."
+        )
         return ConversationHandler.END
     user_id = user.id
 
@@ -221,7 +240,9 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             "Введите ваш часовой пояс (например Europe/Moscow). "
             "Автоматическое определение недоступно, укажите его вручную."
         )
-    keyboard_buttons.append(InlineKeyboardButton("Пропустить", callback_data="onb_skip"))
+    keyboard_buttons.append(
+        InlineKeyboardButton("Пропустить", callback_data="onb_skip")
+    )
     await message.reply_text(
         prompt,
         reply_markup=InlineKeyboardMarkup([keyboard_buttons]),
@@ -229,7 +250,9 @@ async def onboarding_target(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     return ONB_PROFILE_TZ
 
 
-async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def onboarding_timezone(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     """Handle user timezone (text or WebApp) and proceed to demo."""
 
     message = update.message
@@ -292,7 +315,9 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
                 await message.reply_text("⚠️ Не удалось сохранить часовой пояс.")
                 return ConversationHandler.END
 
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Далее", callback_data="onb_next")]])
+    keyboard = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("Далее", callback_data="onb_next")]]
+    )
     try:
         with DEMO_PHOTO_PATH.open("rb") as photo:
             await message.reply_photo(
@@ -309,13 +334,16 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
     return ONB_DEMO
 
 
-async def onboarding_demo_next(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def onboarding_demo_next(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     """Proceed from demo to reminder suggestion."""
     query = update.callback_query
     if query is None or query.message is None:
         return ConversationHandler.END
     await query.answer()
-    await query.message.delete()
+    message = cast(Message, query.message)
+    await message.delete()
 
     keyboard = InlineKeyboardMarkup(
         [
@@ -325,20 +353,23 @@ async def onboarding_demo_next(update: Update, context: ContextTypes.DEFAULT_TYP
             ]
         ]
     )
-    await query.message.reply_text(
+    await message.reply_text(
         "3/3. Включить напоминания о замерах сахара?",
         reply_markup=keyboard,
     )
     return ONB_REMINDERS
 
 
-async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def onboarding_reminders(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     """Handle reminder choice and finish onboarding."""
     query = update.callback_query
     user = update.effective_user
     if query is None or query.message is None or user is None:
         return ConversationHandler.END
     await query.answer()
+    message = cast(Message, query.message)
     enable = query.data == "onb_rem_yes"
     user_id = user.id
     reminders: list[Reminder] = []
@@ -347,7 +378,11 @@ async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYP
         if user_obj:
             user_obj.onboarding_complete = True
             if enable:
-                reminders = session.query(Reminder).filter_by(telegram_id=user_id, type="sugar").all()
+                reminders = (
+                    session.query(Reminder)
+                    .filter_by(telegram_id=user_id, type="sugar")
+                    .all()
+                )
                 if not reminders:
                     reminders = [
                         Reminder(
@@ -361,13 +396,17 @@ async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYP
                     for rem in reminders:
                         rem.is_enabled = True
             else:
-                reminders = session.query(Reminder).filter_by(telegram_id=user_id, type="sugar").all()
+                reminders = (
+                    session.query(Reminder)
+                    .filter_by(telegram_id=user_id, type="sugar")
+                    .all()
+                )
                 for rem in reminders:
                     rem.is_enabled = False
             try:
                 commit(session)
             except CommitError:
-                await query.message.reply_text("⚠️ Не удалось сохранить настройки.")
+                await message.reply_text("⚠️ Не удалось сохранить настройки.")
                 return ConversationHandler.END
 
     job_queue = getattr(context, "job_queue", None)
@@ -386,7 +425,7 @@ async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYP
 
     logger.info("User %s reminder choice: %s", user_id, enable)
 
-    poll_msg = await query.message.reply_poll(
+    poll_msg = await message.reply_poll(
         "Как вам онбординг?",
         ["👍", "🙂", "👎"],
         is_anonymous=False,
@@ -397,7 +436,9 @@ async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         logger.warning("Poll message missing poll object for user %s", user_id)
 
-    await query.message.reply_text("Готово! Спасибо за настройку.", reply_markup=menu_keyboard())
+    await message.reply_text(
+        "Готово! Спасибо за настройку.", reply_markup=menu_keyboard()
+    )
     return ConversationHandler.END
 
 
@@ -408,6 +449,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if query is None or query.message is None or user is None:
         return ConversationHandler.END
     await query.answer()
+    message = cast(Message, query.message)
 
     user_id = user.id
     with SessionLocal() as session:
@@ -417,13 +459,13 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             try:
                 commit(session)
             except CommitError:
-                await query.message.reply_text(
+                await message.reply_text(
                     "⚠️ Не удалось сохранить настройки.",
                     reply_markup=menu_keyboard(),
                 )
                 return ConversationHandler.END
 
-    poll_msg = await query.message.reply_poll(
+    poll_msg = await message.reply_poll(
         "Как вам онбординг?",
         ["👍", "🙂", "👎"],
         is_anonymous=False,
@@ -434,11 +476,13 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     else:
         logger.warning("Poll message missing poll object for user %s", user_id)
 
-    await query.message.reply_text("Пропущено.", reply_markup=menu_keyboard())
+    await message.reply_text("Пропущено.", reply_markup=menu_keyboard())
     return ConversationHandler.END
 
 
-async def onboarding_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def onboarding_poll_answer(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Log poll answers from onboarding feedback."""
     poll_answer = update.poll_answer
     if poll_answer is None:
@@ -494,7 +538,9 @@ onboarding_conv = ConversationHandler(
             CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
         ONB_REMINDERS: [
-            CallbackQueryNoWarnHandler(onboarding_reminders, pattern="^onb_rem_(yes|no)$"),
+            CallbackQueryNoWarnHandler(
+                onboarding_reminders, pattern="^onb_rem_(yes|no)$"
+            ),
             CallbackQueryNoWarnHandler(onboarding_skip, pattern="^onb_skip$"),
         ],
     },
