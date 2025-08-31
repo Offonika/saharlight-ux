@@ -4,6 +4,7 @@ Bot entry point and configuration.
 
 import logging
 import sys
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -132,9 +133,10 @@ def main() -> None:  # pragma: no cover
         )
 
     if application.job_queue:
+        when = datetime.now(tz=application.timezone) + timedelta(seconds=30)
         application.job_queue.run_once(
             test_job,
-            when=30,
+            when=when,
         )
 
     application.run_polling()
