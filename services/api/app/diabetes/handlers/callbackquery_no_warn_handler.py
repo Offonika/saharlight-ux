@@ -1,5 +1,5 @@
 import re
-from typing import Callable, Coroutine, Optional
+from typing import Callable, Coroutine, Optional, cast
 
 from telegram import Update
 from telegram.ext import BaseHandler, ContextTypes
@@ -29,5 +29,5 @@ class CallbackQueryNoWarnHandler(
         if isinstance(update, Update) and update.callback_query:
             data = update.callback_query.data or ""
             if self.pattern is None or self.pattern.match(data):
-                return update
+                return cast(Update, update.callback_query)
         return None
