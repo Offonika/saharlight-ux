@@ -888,6 +888,8 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
         minutes_after = rem.minutes_after
         if minutes_after is None:
             continue
+        for job in job_queue.get_jobs_by_name(f"reminder_{rem.id}"):
+            job.schedule_removal()
         job_queue.run_once(
             reminder_job,
             when=timedelta(minutes=float(minutes_after)),
