@@ -40,6 +40,7 @@ from services.api.app.diabetes.utils.helpers import (
     parse_time_interval,
 )
 from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.schemas.reminders import ScheduleKind
 from .reminder_jobs import DefaultJobQueue, schedule_reminder
 from . import UserData
 
@@ -454,37 +455,128 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     rtype = data.get("type")
-    raw_value = data.get("value")
     rid = data.get("id")
-    if not rtype or raw_value is None:
+    kind_raw = data.get("kind")
+    time_raw = data.get("time")
+    interval_minutes_raw = data.get("intervalMinutes")
+    minutes_after_raw = data.get("minutesAfter")
+    legacy_value = data.get("value")
+
+    if not rtype:
         return
     if rtype not in REMINDER_NAMES:
         await msg.reply_text("Неизвестный тип напоминания.")
         return
-    value = str(raw_value).strip()
-    if not value:
-        return
-    logger.debug("Received raw reminder value: %r", value)
+
     user_id = user.id
-    if rtype == "after_meal":
+
+    provided_fields = [
+        time_raw is not None,
+        interval_minutes_raw is not None,
+        minutes_after_raw is not None,
+    ]
+
+    minutes: int | None = None
+    parsed_time: time | None = None
+    interval_minutes: int | None = None
+
+    kind: ScheduleKind | None
+    if legacy_value is not None and not any(provided_fields):
+        value = str(legacy_value).strip()
+        if not value:
+            return
+        logger.debug("Received raw reminder value: %r", value)
+        if rtype == "after_meal":
+            try:
+                minutes = int(value)
+            except ValueError:
+                await msg.reply_text("Неверный формат")
+                return
+            kind = ScheduleKind.after_event
+        else:
+            if not re.fullmatch(r"\d{1,2}:\d{2}|\d+h", value):
+                logger.warning("Invalid reminder value format: %s", value)
+                await msg.reply_text(
+                    "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h.",
+                )
+                return
+            try:
+                parsed = parse_time_interval(value)
+            except ValueError:
+                logger.warning("Failed to parse reminder value: %s", value)
+                await msg.reply_text(
+                    "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h.",
+                )
+                return
+            if isinstance(parsed, time):
+                parsed_time = parsed
+                kind = ScheduleKind.at_time
+            else:
+                interval_minutes = int(parsed.total_seconds() // 60)
+                kind = ScheduleKind.every
+        interval_minutes_raw = interval_minutes
+        minutes_after_raw = minutes
+        time_raw = parsed_time.strftime("%H:%M") if parsed_time else None
+        provided_fields = [
+            time_raw is not None,
+            interval_minutes_raw is not None,
+            minutes_after_raw is not None,
+        ]
+    else:
+        if sum(provided_fields) != 1:
+            await msg.reply_text("Неверный формат")
+            return
         try:
-            minutes = int(value)
+            kind = ScheduleKind(kind_raw) if kind_raw is not None else None
         except ValueError:
             await msg.reply_text("Неверный формат")
             return
-        parsed = None
-    else:
-        if not re.fullmatch(r"\d{1,2}:\d{2}|\d+h", value):
-            logger.warning("Invalid reminder value format: %s", value)
-            await msg.reply_text("❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h.")
+
+        if kind is None:
+            if time_raw is not None:
+                kind = ScheduleKind.at_time
+            elif interval_minutes_raw is not None:
+                kind = ScheduleKind.every
+            else:
+                kind = ScheduleKind.after_event
+
+        if kind is ScheduleKind.at_time and time_raw is None:
+            await msg.reply_text("Неверный формат")
             return
+        if kind is ScheduleKind.every and interval_minutes_raw is None:
+            await msg.reply_text("Неверный формат")
+            return
+        if kind is ScheduleKind.after_event and minutes_after_raw is None:
+            await msg.reply_text("Неверный формат")
+            return
+
+    if time_raw is not None and parsed_time is None:
         try:
-            parsed = parse_time_interval(value)
+            parsed = parse_time_interval(str(time_raw))
         except ValueError:
-            logger.warning("Failed to parse reminder value: %s", value)
-            await msg.reply_text("❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h.")
+            logger.warning("Failed to parse reminder value: %s", time_raw)
+            await msg.reply_text(
+                "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h.",
+            )
             return
-        minutes = None
+        if not isinstance(parsed, time):
+            await msg.reply_text(
+                "❌ Неверный формат. Используйте HH:MM или число часов с суффиксом h.",
+            )
+            return
+        parsed_time = parsed
+    elif interval_minutes_raw is not None:
+        try:
+            interval_minutes = int(interval_minutes_raw)
+        except (TypeError, ValueError):
+            await msg.reply_text("Неверный формат")
+            return
+    elif minutes_after_raw is not None:
+        try:
+            minutes = int(minutes_after_raw)
+        except (TypeError, ValueError):
+            await msg.reply_text("Неверный формат")
+            return
 
     def db_save(
         session: Session,
@@ -507,22 +599,26 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
                 return "limit", None, plan, limit
             rem = Reminder(telegram_id=user_id, type=rtype, is_enabled=True)
             session.add(rem)
-        if rtype == "after_meal":
+
+        rem.kind = kind.value
+
+        if kind is ScheduleKind.after_event:
             rem.minutes_after = minutes
             rem.time = None
             rem.interval_hours = None
             rem.interval_minutes = None
-        else:
+        elif kind is ScheduleKind.every:
             rem.minutes_after = None
-            if isinstance(parsed, time):
-                rem.time = parsed
-                rem.interval_hours = None
-                rem.interval_minutes = None
-            else:
-                rem.time = None
-                if parsed is None:
-                    return "error", None, None, None
-                rem.interval_hours = int(parsed.total_seconds() // 3600)
+            rem.time = None
+            rem.interval_minutes = interval_minutes
+            rem.interval_hours = (
+                interval_minutes // 60 if interval_minutes is not None and interval_minutes % 60 == 0 else None
+            )
+        else:  # at_time
+            rem.minutes_after = None
+            rem.interval_hours = None
+            rem.interval_minutes = None
+            rem.time = parsed_time
         try:
             commit(session)
         except CommitError:
