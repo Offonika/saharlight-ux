@@ -90,7 +90,11 @@ def schedule_reminder(
                 rem.interval_hours or rem.interval_minutes,
                 rem.minutes_after,
             )
-            dt = datetime.datetime.combine(datetime.date.today(), rem.time, tzinfo=tz)
+            dt = datetime.datetime.combine(
+                datetime.datetime.now(tz).date(),
+                rem.time,
+                tzinfo=tz,
+            )
             job_time = dt.astimezone(job_tz).time().replace(tzinfo=None)
             job_queue.run_daily(
                 reminder_job,

@@ -13,10 +13,12 @@ from ..schemas.stats import DayStats
 
 
 async def get_day_stats(
-    telegram_id: int, date: datetime.date | None = None
+    telegram_id: int,
+    date: datetime.date | None = None,
+    tz: datetime.tzinfo | None = None,
 ) -> DayStats | None:
     """Return aggregated stats for a given user's day."""
-    day = date or datetime.date.today()
+    day = date or datetime.datetime.now(tz or datetime.timezone.utc).date()
 
     def _query(session: Session) -> DayStats | None:
         avg_sugar, sum_bu, sum_insulin = (
