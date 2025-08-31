@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import datetime
-import inspect
 import logging
 from collections.abc import Awaitable, Callable
 from typing import TypedDict, cast
-from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session, sessionmaker
 from telegram import Update
@@ -19,6 +17,7 @@ from services.api.app.diabetes.services.db import (
 )
 from services.api.app.diabetes.services.repository import CommitError, commit as _commit
 from services.api.app.diabetes.utils.helpers import get_coords_and_link
+from services.api.app.diabetes.utils.jobs import schedule_once
 
 run_db: Callable[..., Awaitable[object]] | None
 try:
@@ -84,21 +83,13 @@ def schedule_alert(
         "profile": profile,
         "first_name": first_name,
     }
-    if "timezone" in inspect.signature(job_queue.run_once).parameters:
-        job_queue.run_once(  # type: ignore[call-arg]
-            alert_job,
-            when=ALERT_REPEAT_DELAY,
-            data=data,
-            name=f"alert_{user_id}",
-            timezone=ZoneInfo("Europe/Moscow"),
-        )
-    else:
-        job_queue.run_once(
-            alert_job,
-            when=ALERT_REPEAT_DELAY,
-            data=data,
-            name=f"alert_{user_id}",
-        )
+    schedule_once(
+        job_queue,
+        alert_job,
+        when=ALERT_REPEAT_DELAY,
+        data=data,
+        name=f"alert_{user_id}",
+    )
 
 
 async def _send_alert_message(
