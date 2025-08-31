@@ -106,8 +106,7 @@ def main() -> None:  # pragma: no cover
     job_queue = application.job_queue
     if job_queue is None:
         raise RuntimeError("JobQueue not initialized")
-    tzinfo = getattr(application, "timezone", getattr(job_queue, "timezone", None))
-    logger.info("✅ JobQueue initialized with timezone %s", tzinfo)
+    logger.info("✅ JobQueue initialized with timezone %s", getattr(application, "timezone", None))
     application.add_error_handler(error_handler)
 
     from services.api.app import reminder_events
