@@ -377,6 +377,9 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         except ValueError:
             await message.reply_text("Значение должно быть числом.")
             return
+        reminder.time = None
+        reminder.interval_hours = None
+        reminder.interval_minutes = None
 
     def db_add(session: Session) -> tuple[str, User | None, int, int]:
         count = (
@@ -548,6 +551,7 @@ async def reminder_webapp_save(
             rem.minutes_after = minutes
             rem.time = None
             rem.interval_hours = None
+            rem.interval_minutes = None
         else:
             rem.minutes_after = None
             if isinstance(parsed, time):

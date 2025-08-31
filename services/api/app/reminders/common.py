@@ -61,42 +61,59 @@ def schedule_reminder(
         except (OSError, ValueError) as exc:
             logger.exception("Unexpected error loading timezone %s: %s", tzname, exc)
 
-    if rem.type != "after_meal":
-        if rem.time:
-            logger.debug(
-                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
-                rem.id,
-                rem.type,
-                rem.time,
-                rem.interval_hours or rem.interval_minutes,
-                rem.minutes_after,
-            )
-            job_queue.run_daily(
-                reminder_job,
-                time=rem.time.replace(tzinfo=tz),
-                data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
-                name=name,
-            )
-        elif rem.interval_hours or rem.interval_minutes:
-            logger.debug(
-                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
-                rem.id,
-                rem.type,
-                rem.time,
-                rem.interval_hours or rem.interval_minutes,
-                rem.minutes_after,
-            )
-            minutes = (
-                rem.interval_hours * 60
-                if rem.interval_hours is not None
-                else rem.interval_minutes or 0
-            )
-            job_queue.run_repeating(
-                reminder_job,
-                interval=timedelta(minutes=minutes),
-                data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
-                name=name,
-            )
+    if rem.type == "after_meal":
+        if rem.minutes_after is None:
+            logger.debug("Reminder %s has no minutes_after, skipping", rem.id)
+            return
+        logger.debug(
+            "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+            rem.id,
+            rem.type,
+            rem.time,
+            rem.interval_hours or rem.interval_minutes,
+            rem.minutes_after,
+        )
+        job_queue.run_once(
+            reminder_job,
+            when=timedelta(minutes=float(rem.minutes_after)),
+            data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
+            name=name,
+        )
+    elif rem.time:
+        logger.debug(
+            "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+            rem.id,
+            rem.type,
+            rem.time,
+            rem.interval_hours or rem.interval_minutes,
+            rem.minutes_after,
+        )
+        job_queue.run_daily(
+            reminder_job,
+            time=rem.time.replace(tzinfo=tz),
+            data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
+            name=name,
+        )
+    elif rem.interval_hours or rem.interval_minutes:
+        logger.debug(
+            "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
+            rem.id,
+            rem.type,
+            rem.time,
+            rem.interval_hours or rem.interval_minutes,
+            rem.minutes_after,
+        )
+        minutes = (
+            rem.interval_hours * 60
+            if rem.interval_hours is not None
+            else rem.interval_minutes or 0
+        )
+        job_queue.run_repeating(
+            reminder_job,
+            interval=timedelta(minutes=minutes),
+            data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
+            name=name,
+        )
     logger.debug(
         "Finished scheduling reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
         rem.id,
