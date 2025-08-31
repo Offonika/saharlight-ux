@@ -24,13 +24,12 @@ def set_job_queue(job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None) -> None
 def notify_reminder_saved(reminder_id: int) -> None:
     """Send reminder to the job queue for scheduling.
 
-    If the job queue is not configured, this function logs a warning and
-    returns without scheduling.
+    Raises ``RuntimeError`` if the shared job queue has not been initialized
+    via :func:`set_job_queue`.
     """
     jq = _job_queue
     if jq is None:
-        logger.warning("notify_reminder_saved called without job_queue")
-        return
+        raise RuntimeError("JobQueue is not initialized")
 
     from .diabetes.handlers import reminder_handlers
 

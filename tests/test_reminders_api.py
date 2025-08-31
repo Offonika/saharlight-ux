@@ -18,9 +18,7 @@ from services.api.app.diabetes.handlers import reminder_handlers
 
 
 class DummyJob:
-    def __init__(
-        self, name: str, data: dict[str, Any] | None = None, when: Any = None
-    ) -> None:
+    def __init__(self, name: str, data: dict[str, Any] | None = None, when: Any = None) -> None:
         self.name = name
         self.data = data
         self.time = when
@@ -114,9 +112,7 @@ def client_with_job_queue(
     reminder_events.set_job_queue(None)
 
 
-def test_empty_returns_200(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -125,9 +121,7 @@ def test_empty_returns_200(
     assert resp.json() == []
 
 
-def test_nonempty_returns_list(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -165,9 +159,7 @@ def test_nonempty_returns_list(
     ]
 
 
-def test_get_single_reminder(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_get_single_reminder(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -217,9 +209,7 @@ def test_mismatched_telegram_id_returns_404(client: TestClient) -> None:
     assert resp.json() == {"detail": "reminder not found"}
 
 
-def test_get_single_reminder_not_found(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_get_single_reminder_not_found(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -229,8 +219,9 @@ def test_get_single_reminder_not_found(
 
 
 def test_patch_updates_reminder(
-    client: TestClient, session_factory: sessionmaker[Session]
+    client_with_job_queue: tuple[TestClient, DummyJobQueue], session_factory: sessionmaker[Session]
 ) -> None:
+    client, _ = client_with_job_queue
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -266,9 +257,7 @@ def test_patch_updates_reminder(
         assert rem.interval_hours is None
 
 
-def test_delete_reminder(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_delete_reminder(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))

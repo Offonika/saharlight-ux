@@ -14,13 +14,10 @@ logger = logging.getLogger(__name__)
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 
 
-def schedule_reminder(
-    rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None
-) -> None:
+def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None) -> None:
     """Schedule a reminder in the provided job queue."""
     if job_queue is None:
-        logger.warning("schedule_reminder called without job_queue")
-        return
+        raise RuntimeError("JobQueue is not initialized")
 
     # Import lazily to avoid circular imports.
     from services.api.app import reminder_events
@@ -86,11 +83,7 @@ def schedule_reminder(
                 rem.interval_hours or rem.interval_minutes,
                 rem.minutes_after,
             )
-            minutes = (
-                rem.interval_hours * 60
-                if rem.interval_hours is not None
-                else rem.interval_minutes or 0
-            )
+            minutes = rem.interval_hours * 60 if rem.interval_hours is not None else rem.interval_minutes or 0
             job_queue.run_repeating(
                 reminder_job,
                 interval=timedelta(minutes=minutes),

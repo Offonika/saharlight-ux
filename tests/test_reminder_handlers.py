@@ -20,6 +20,8 @@ from services.api.app.diabetes.services.db import (
     User as DbUser,
 )
 from services.api.app.diabetes.services.repository import commit
+from services.api.app.reminder_events import set_job_queue
+from services.api.app.reminders.common import DefaultJobQueue
 
 
 @pytest.fixture
@@ -69,6 +71,27 @@ class DummyJobQueue:
     ) -> None:
         self.calls.append((callback, when, data, name))
 
+    def get_jobs_by_name(self, name: str) -> list[Any]:
+        return []
+
+    def run_daily(
+        self,
+        callback: Any,
+        time: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> None:
+        self.calls.append((callback, time, data, name))
+
+    def run_repeating(
+        self,
+        callback: Any,
+        interval: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+    ) -> None:
+        self.calls.append((callback, interval, data, name))
+
 
 def make_user(user_id: int) -> MagicMock:
     user = MagicMock(spec=User)
@@ -107,9 +130,7 @@ async def test_add_reminder_fewer_args(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_invalid_time(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_sugar_invalid_time(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "ab:cd"])
@@ -124,9 +145,7 @@ async def test_add_reminder_sugar_invalid_time(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_non_numeric_interval(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_sugar_non_numeric_interval(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "abc"])
@@ -152,12 +171,12 @@ async def test_add_reminder_unknown_type(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_valid_type(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_valid_type(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
-    context = make_context(args=["sugar", "2"], job_queue=None)
+    job_queue = DummyJobQueue()
+    set_job_queue(cast(DefaultJobQueue, job_queue))
+    context = make_context(args=["sugar", "2"], job_queue=job_queue)
 
     class DummyQuery:
         def filter_by(self, **kwargs: Any) -> "DummyQuery":
@@ -198,12 +217,11 @@ async def test_add_reminder_valid_type(
     await reminder_handlers.add_reminder(update, context)
 
     assert message.texts == ["Сохранено: desc"]
+    set_job_queue(None)
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_ignores_disabled(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_ignores_disabled(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False)
@@ -221,7 +239,9 @@ async def test_add_reminder_ignores_disabled(
 
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
-    context = make_context(args=["sugar", "2"], job_queue=None)
+    job_queue = DummyJobQueue()
+    set_job_queue(cast(DefaultJobQueue, job_queue))
+    context = make_context(args=["sugar", "2"], job_queue=job_queue)
 
     monkeypatch.setattr(reminder_handlers, "run_db", None)
     monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
@@ -232,6 +252,7 @@ async def test_add_reminder_ignores_disabled(
     await reminder_handlers.add_reminder(update, context)
 
     assert message.texts == ["Сохранено: desc"]
+    set_job_queue(None)
 
 
 @pytest.mark.asyncio
@@ -250,9 +271,7 @@ async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None
     "payload",
     [json.dumps({"id": 1, "snooze": 7}), "snooze=7&id=1"],
 )
-async def test_reminder_webapp_save_snooze(
-    reminder_handlers: Any, payload: str
-) -> None:
+async def test_reminder_webapp_save_snooze(reminder_handlers: Any, payload: str) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -292,9 +311,7 @@ async def test_reminder_webapp_save_snooze(
         ("https://example.com/", "ui/", "reminders/new"),
     ],
 )
-def test_build_ui_url(
-    monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str, path: str
-) -> None:
+def test_build_ui_url(monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str, path: str) -> None:
     expected = "https://example.com/ui/reminders/new"
     monkeypatch.setenv("PUBLIC_ORIGIN", origin)
     monkeypatch.setenv("UI_BASE_URL", ui_base)

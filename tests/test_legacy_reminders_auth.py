@@ -5,6 +5,7 @@ import logging
 import time
 import urllib.parse
 from collections.abc import Generator
+from typing import Any, cast
 
 import pytest
 from fastapi.testclient import TestClient
@@ -16,8 +17,21 @@ import services.api.app.main as server
 from services.api.app.config import settings
 from services.api.app.diabetes.services.db import Base, User
 from services.api.app.services import reminders
+from services.api.app import reminder_events
+from services.api.app.reminders.common import DefaultJobQueue
 
 TOKEN = "test-token"
+
+
+class DummyJobQueue:
+    def run_daily(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def run_repeating(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
+    def get_jobs_by_name(self, name: str) -> list[Any]:
+        return []
 
 
 def build_init_data(token: str = TOKEN, user_id: int = 1) -> str:
@@ -44,6 +58,9 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     monkeypatch.setattr(reminders, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_events, "SessionLocal", TestSession)
+    job_queue = DummyJobQueue()
+    reminder_events.set_job_queue(cast(DefaultJobQueue, job_queue))
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -51,6 +68,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
         with TestClient(server.app) as test_client:
             yield test_client
     finally:
+        reminder_events.set_job_queue(None)
         engine.dispose()
 
 
@@ -89,14 +107,10 @@ def test_reminders_matching_id(client: TestClient) -> None:
     assert resp.json() == []
 
 
-def test_reminders_mismatched_id(
-    client: TestClient, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_reminders_mismatched_id(client: TestClient, caplog: pytest.LogCaptureFixture) -> None:
     init_data = build_init_data()
     request_id = "req-1"
-    with caplog.at_level(
-        logging.WARNING, logger="services.api.app.routers.reminders"
-    ):
+    with caplog.at_level(logging.WARNING, logger="services.api.app.routers.reminders"):
         resp = client.get(
             "/api/reminders",
             params={"telegramId": 2},
@@ -107,9 +121,7 @@ def test_reminders_mismatched_id(
         )
     assert resp.status_code == 404
     assert resp.json() == {"detail": "reminder not found"}
-    assert (
-        f"request_id={request_id} telegramId=2 does not match user_id=1" in caplog.text
-    )
+    assert f"request_id={request_id} telegramId=2 does not match user_id=1" in caplog.text
 
 
 def test_reminders_invalid_telegram_id(client: TestClient) -> None:

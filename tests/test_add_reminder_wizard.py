@@ -15,6 +15,8 @@ from telegram.ext import ContextTypes
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.services.db import Base, Reminder, User
+from services.api.app.reminder_events import set_job_queue
+from services.api.app.reminders.common import DefaultJobQueue
 
 
 @dataclass
@@ -90,13 +92,12 @@ async def test_webapp_save_creates_reminder(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "08:00"}))
-    update = cast(
-        Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
-    )
-    context = cast(
-        ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
-    )
+    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
+    job_queue = DummyJobQueue()
+    set_job_queue(cast(DefaultJobQueue, job_queue))
+    context = cast(ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=job_queue))
     await handlers.reminder_webapp_save(update, context)
+    set_job_queue(None)
 
     with TestSession() as session:
         rem = session.query(Reminder).first()
@@ -118,13 +119,12 @@ async def test_webapp_save_creates_interval(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "2h"}))
-    update = cast(
-        Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
-    )
-    context = cast(
-        ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
-    )
+    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
+    job_queue = DummyJobQueue()
+    set_job_queue(cast(DefaultJobQueue, job_queue))
+    context = cast(ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=job_queue))
     await handlers.reminder_webapp_save(update, context)
+    set_job_queue(None)
 
     with TestSession() as session:
         rem = session.query(Reminder).first()

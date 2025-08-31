@@ -12,6 +12,7 @@ from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
 from services.api.app.config import settings
 from services.api.app.diabetes.services.db import init_db
 from services.api.app.menu_button import post_init as menu_button_post_init
+from services.api.app.reminder_events import set_job_queue
 
 DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ async def post_init(
     await menu_button_post_init(app)
 
     # 🟢 Проверка, что JobQueue инициализирован
-    if app.job_queue:
+    if getattr(app, "job_queue", None):
         logger.info("✅ JobQueue initialized and ready")
     else:
         logger.error("❌ JobQueue is NOT available!")
@@ -53,9 +54,7 @@ async def post_init(
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log errors that occur while processing updates."""
-    logger.exception(
-        "Exception while handling update %s", update, exc_info=context.error
-    )
+    logger.exception("Exception while handling update %s", update, exc_info=context.error)
 
 
 def main() -> None:  # pragma: no cover
@@ -73,9 +72,7 @@ def main() -> None:  # pragma: no cover
         sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
         logger.error("Failed to initialize the database", exc_info=exc)
-        sys.exit(
-            "Database initialization failed. Please check your configuration and try again."
-        )
+        sys.exit("Database initialization failed. Please check your configuration and try again.")
 
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:
@@ -97,6 +94,8 @@ def main() -> None:  # pragma: no cover
         .post_init(post_init)  # registers post-init handler
         .build()
     )
+    if application.job_queue is not None:
+        set_job_queue(application.job_queue)
     application.add_error_handler(error_handler)
 
     from services.api.app.diabetes.handlers.registration import register_handlers
@@ -113,14 +112,11 @@ def main() -> None:  # pragma: no cover
     if application.job_queue:
         application.job_queue.run_once(test_job, when=30)
 
-  
-    application.job_queue.run_once(test_job, when=30)
-
     application.run_polling()
+
 
 __all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN"]
 
 
 if __name__ == "__main__":  # pragma: no cover
     main()
-
