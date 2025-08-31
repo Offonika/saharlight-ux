@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
-from datetime import timedelta, timezone
+from datetime import timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from telegram.ext import ContextTypes, JobQueue
@@ -44,7 +44,7 @@ def schedule_reminder(
         )
         return
 
-    tz: datetime.tzinfo = timezone.utc
+    tz: datetime.tzinfo = ZoneInfo("Europe/Moscow")
     if user is None:
         with SessionLocal() as session:
             user = session.get(User, rem.telegram_id)
@@ -60,6 +60,8 @@ def schedule_reminder(
             )
         except (OSError, ValueError) as exc:
             logger.exception("Unexpected error loading timezone %s: %s", tzname, exc)
+
+    job_tz = getattr(job_queue, "timezone", None) or ZoneInfo("Europe/Moscow")
 
     if rem.type == "after_meal":
         minutes_after = rem.minutes_after
@@ -88,9 +90,11 @@ def schedule_reminder(
                 rem.interval_hours or rem.interval_minutes,
                 rem.minutes_after,
             )
+            dt = datetime.datetime.combine(datetime.date.today(), rem.time, tzinfo=tz)
+            job_time = dt.astimezone(job_tz).time().replace(tzinfo=None)
             job_queue.run_daily(
                 reminder_job,
-                time=rem.time.replace(tzinfo=tz),
+                time=job_time,
                 data={"reminder_id": rem.id, "chat_id": rem.telegram_id},
                 name=name,
             )

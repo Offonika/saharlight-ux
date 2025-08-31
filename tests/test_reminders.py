@@ -100,8 +100,9 @@ class DummyJob:
 
 
 class DummyJobQueue:
-    def __init__(self) -> None:
+    def __init__(self, timezone: tzinfo | None = None) -> None:
         self.jobs: list[DummyJob] = []
+        self.timezone = timezone
 
     def run_daily(
         self,
@@ -174,7 +175,9 @@ def test_schedule_reminder_replaces_existing_job() -> None:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
         session.commit()
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = cast(
+        handlers.DefaultJobQueue, DummyJobQueue(timezone=ZoneInfo("UTC"))
+    )
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
@@ -186,10 +189,9 @@ def test_schedule_reminder_replaces_existing_job() -> None:
     assert len(active_jobs) == 1
     job = active_jobs[0]
     assert job.time is not None
-    job_time = cast(datetime, job.time)
-    assert job_time.tzinfo is not None
-    assert isinstance(job_time.tzinfo, ZoneInfo)
-    assert job_time.tzinfo.key == "Europe/Moscow"
+    job_time = cast(time, job.time)
+    assert job_time == time(5, 0)
+    assert job_time.tzinfo is None
 
 
 def test_schedule_reminder_requires_job_queue() -> None:
@@ -211,7 +213,7 @@ def test_schedule_reminder_requires_job_queue() -> None:
         handlers.schedule_reminder(rem, None, user)
 
 
-def test_schedule_reminder_without_user_defaults_to_utc() -> None:
+def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -227,7 +229,9 @@ def test_schedule_reminder_without_user_defaults_to_utc() -> None:
             )
         )
         session.commit()
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = cast(
+        handlers.DefaultJobQueue, DummyJobQueue(timezone=ZoneInfo("UTC"))
+    )
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         assert rem is not None
@@ -237,7 +241,8 @@ def test_schedule_reminder_without_user_defaults_to_utc() -> None:
     job = jobs[0]
     assert job.time is not None
     job_time = cast(time, job.time)
-    assert job_time.tzinfo == timezone.utc
+    assert job_time == time(5, 0)
+    assert job_time.tzinfo is None
 
 
 def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -302,7 +307,9 @@ def test_interval_minutes_scheduling_and_rendering(
         )
         session.commit()
 
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = cast(
+        handlers.DefaultJobQueue, DummyJobQueue(timezone=ZoneInfo("UTC"))
+    )
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
@@ -333,16 +340,18 @@ def test_schedule_reminder_invalid_timezone_logs_warning(
 ) -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Bad/Zone")
     rem = Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user)
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue = cast(
+        handlers.DefaultJobQueue, DummyJobQueue(timezone=ZoneInfo("UTC"))
+    )
     with caplog.at_level(logging.WARNING):
         handlers.schedule_reminder(rem, job_queue, user)
     dummy_queue = cast(DummyJobQueue, job_queue)
     assert dummy_queue.jobs
     job = dummy_queue.jobs[0]
     assert job.time is not None
-    job_time = cast(datetime, job.time)
-    assert job_time.tzinfo is not None
-    assert job_time.tzinfo == timezone.utc
+    job_time = cast(time, job.time)
+    assert job_time == time(5, 0)
+    assert job_time.tzinfo is None
     assert any("Invalid timezone" in r.message for r in caplog.records)
 
 
