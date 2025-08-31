@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
     telegram_token: Optional[str] = Field(default=None, alias="TELEGRAM_TOKEN")
     admin_id: Optional[int] = Field(default=None, alias="ADMIN_ID")
+    bot_timezone: str = Field(default="UTC", alias="BOT_TZ")
 
     @field_validator("log_level", mode="before")
     @classmethod

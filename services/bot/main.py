@@ -3,6 +3,7 @@ Bot entry point and configuration.
 """
 
 import logging
+import os
 import sys
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -95,7 +96,8 @@ def main() -> None:  # pragma: no cover
         .token(BOT_TOKEN)
         .post_init(post_init)  # registers post-init handler
     )
-    timezone = ZoneInfo("Europe/Moscow")
+    tz_name = os.getenv("BOT_TZ", settings.bot_timezone)
+    timezone = ZoneInfo(tz_name)
     if hasattr(builder, "timezone"):
         builder = builder.timezone(timezone)
     elif hasattr(builder, "job_queue"):
