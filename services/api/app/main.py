@@ -17,6 +17,7 @@ if __name__ == "__main__" and __package__ is None:  # pragma: no cover
 
 # ────────── std / 3-rd party ──────────
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import AliasChoices, BaseModel, Field, ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -43,6 +44,7 @@ from services.api.app.diabetes.utils.openai_utils import dispose_http_client
 
 # ────────── init ──────────
 logger = logging.getLogger(__name__)
+settings = config.get_settings()
 
 
 @asynccontextmanager
@@ -59,6 +61,14 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.public_origin] if settings.public_origin else [],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.exception_handler(ValidationError)
@@ -194,7 +204,9 @@ async def profile_patch(
         try:
             ZoneInfo(device_tz)
         except ZoneInfoNotFoundError as exc:  # pragma: no cover - validation
-            raise HTTPException(status_code=400, detail="invalid device timezone") from exc
+            raise HTTPException(
+                status_code=400, detail="invalid device timezone"
+            ) from exc
 
     def _patch(session: Session) -> None:
         db_user = session.get(UserDB, user["id"])
