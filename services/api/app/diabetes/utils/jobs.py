@@ -59,13 +59,33 @@ def schedule_once(
     if isinstance(when, datetime) and when.tzinfo is None:
         when = when.replace(tzinfo=tz)
 
-    params: dict[str, Any] = {"when": when, "data": data, "name": name}
     sig = inspect.signature(job_queue.run_once)
-    if "timezone" in sig.parameters:
-        params["timezone"] = tz
-    if job_kwargs is not None and "job_kwargs" in sig.parameters:
-        params["job_kwargs"] = job_kwargs
-    return job_queue.run_once(callback, **params)
+    supports_job_kwargs = "job_kwargs" in sig.parameters
+    supports_name = "name" in sig.parameters
+
+    call_kwargs: dict[str, Any] = {"when": when, "data": data}
+    jk: dict[str, object] = dict(job_kwargs or {})
+
+    if name is not None:
+        if supports_job_kwargs:
+            if "name" in jk or not supports_name:
+                jk.setdefault("id", name)
+                jk.setdefault("name", name)
+            else:
+                call_kwargs["name"] = name
+                jk.setdefault("id", name)
+        elif supports_name:
+            call_kwargs["name"] = name
+
+    if jk and supports_job_kwargs:
+        call_kwargs["job_kwargs"] = jk
+
+    run_once = cast(Any, job_queue.run_once)
+    try:
+        result = run_once(callback, timezone=tz, **call_kwargs)
+    except TypeError:
+        result = run_once(callback, **call_kwargs)
+    return cast(Job[CustomContext], result)
 
 
 def schedule_daily(
@@ -107,19 +127,37 @@ def schedule_daily(
         dt = datetime.combine(now.date(), time, tzinfo=time.tzinfo)
         time = dt.astimezone(tz).time().replace(tzinfo=None)
 
-    params: dict[str, Any] = {
-        "time": time,
-        "data": data,
-        "name": name,
-    }
     sig = inspect.signature(job_queue.run_daily)
-    if "timezone" in sig.parameters:
-        params["timezone"] = tz
-    if days is not None and "days" in sig.parameters:
-        params["days"] = tuple(days)
-    if job_kwargs is not None and "job_kwargs" in sig.parameters:
-        params["job_kwargs"] = job_kwargs
-    return job_queue.run_daily(callback, **params)
+    supports_job_kwargs = "job_kwargs" in sig.parameters
+    supports_name = "name" in sig.parameters
+    supports_days = "days" in sig.parameters
+
+    call_kwargs: dict[str, Any] = {"time": time, "data": data}
+    jk: dict[str, object] = dict(job_kwargs or {})
+
+    if days is not None and supports_days:
+        call_kwargs["days"] = tuple(days)
+
+    if name is not None:
+        if supports_job_kwargs:
+            if "name" in jk or not supports_name:
+                jk.setdefault("id", name)
+                jk.setdefault("name", name)
+            else:
+                call_kwargs["name"] = name
+                jk.setdefault("id", name)
+        elif supports_name:
+            call_kwargs["name"] = name
+
+    if jk and supports_job_kwargs:
+        call_kwargs["job_kwargs"] = jk
+
+    run_daily = cast(Any, job_queue.run_daily)
+    try:
+        result = run_daily(callback, timezone=tz, **call_kwargs)
+    except TypeError:
+        result = run_daily(callback, **call_kwargs)
+    return cast(Job[CustomContext], result)
 
 
 def _remove_jobs(job_queue: DefaultJobQueue, name: str) -> int:

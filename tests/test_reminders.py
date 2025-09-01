@@ -24,7 +24,7 @@ from telegram import (
     Update,
     User,
 )
-from telegram.ext import CallbackContext, Job, JobQueue
+from telegram.ext import CallbackContext, Job
 
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 import services.api.app.diabetes.handlers.router as router
@@ -1339,15 +1339,36 @@ async def test_snooze_callback_custom_delay(
 
     query = DummyCallbackQuery("remind_snooze:1:15", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
-    job_queue = MagicMock(spec=JobQueue)
-    job_queue.run_once = MagicMock()
+    class Recorder:
+        def __init__(self) -> None:
+            self.kwargs: dict[str, object] | None = None
+
+        def run_once(
+            self,
+            callback: Callable[..., object],
+            *,
+            when: timedelta,
+            data: dict[str, object] | None = None,
+            name: str | None = None,
+            timezone: object | None = None,
+            job_kwargs: dict[str, object] | None = None,
+        ) -> object:
+            self.kwargs = {
+                "when": when,
+                "data": data,
+                "name": name,
+                "job_kwargs": job_kwargs,
+            }
+            return object()
+
+    job_queue = Recorder()
     context = make_context(job_queue=job_queue, bot=DummyBot())
     await handlers.reminder_callback(update, context)
-    job_queue.run_once.assert_called_once()
-    _, kwargs = job_queue.run_once.call_args
-    assert kwargs["when"] == timedelta(minutes=15)
-    assert kwargs["data"] == {"reminder_id": 1, "chat_id": 1}
-    assert kwargs["name"] == "reminder_1_snooze"
+    assert job_queue.kwargs is not None
+    assert job_queue.kwargs["when"] == timedelta(minutes=15)
+    assert job_queue.kwargs["data"] == {"reminder_id": 1, "chat_id": 1}
+    assert job_queue.kwargs["job_kwargs"]["name"] == "reminder_1_snooze"
+    assert job_queue.kwargs["name"] is None
     assert query.edited is not None
     edited_text, _ = query.edited
     assert edited_text == "⏰ Отложено на 15 минут"
@@ -1436,16 +1457,38 @@ async def test_snooze_callback_logs_action(
         session.commit()
 
     query = DummyCallbackQuery("remind_snooze:1:15", DummyMessage())
-    job_queue = MagicMock(spec=DummyJobQueue)
+    class Recorder:
+        def __init__(self) -> None:
+            self.kwargs: dict[str, object] | None = None
+
+        def run_once(
+            self,
+            callback: Callable[..., object],
+            *,
+            when: timedelta,
+            data: dict[str, object] | None = None,
+            name: str | None = None,
+            timezone: object | None = None,
+            job_kwargs: dict[str, object] | None = None,
+        ) -> object:
+            self.kwargs = {
+                "when": when,
+                "data": data,
+                "name": name,
+                "job_kwargs": job_kwargs,
+            }
+            return object()
+
+    job_queue = Recorder()
     context = make_context(job_queue=job_queue)
     update = make_update(callback_query=query, effective_user=make_user(1))
     await handlers.reminder_callback(update, context)
 
-    job_queue.run_once.assert_called_once()
-    _, kwargs = job_queue.run_once.call_args
-    assert kwargs["when"] == timedelta(minutes=15)
-    assert kwargs["data"] == {"reminder_id": 1, "chat_id": 1}
-    assert kwargs["name"] == "reminder_1_snooze"
+    assert job_queue.kwargs is not None
+    assert job_queue.kwargs["when"] == timedelta(minutes=15)
+    assert job_queue.kwargs["data"] == {"reminder_id": 1, "chat_id": 1}
+    assert job_queue.kwargs["job_kwargs"]["name"] == "reminder_1_snooze"
+    assert job_queue.kwargs["name"] is None
     assert query.edited is not None
     edited_text, _ = query.edited
     assert edited_text == "⏰ Отложено на 15 минут"
@@ -1472,22 +1515,42 @@ async def test_snooze_callback_schedules_job_and_logs(
         session.commit()
 
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
-    run_once_mock = MagicMock(wraps=job_queue.run_once)
-    job_queue.run_once = run_once_mock  # type: ignore[assignment]
+    orig_run_once = job_queue.run_once
+    recorded: dict[str, object] = {}
+
+    def run_once_hook(
+        callback: Callable[..., object],
+        *,
+        when: timedelta,
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+        timezone: object | None = None,
+        job_kwargs: dict[str, object] | None = None,
+    ) -> DummyJob:
+        recorded["when"] = when
+        recorded["data"] = data
+        recorded["name"] = name
+        recorded["job_kwargs"] = job_kwargs
+        return orig_run_once(
+            callback,
+            when=when,
+            data=data,
+            name=name,
+            timezone=timezone,
+            job_kwargs=job_kwargs,
+        )
+
+    job_queue.run_once = run_once_hook  # type: ignore[assignment]
 
     query = DummyCallbackQuery("remind_snooze:1", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
     context = make_context(job_queue=job_queue, bot=DummyBot())
     await handlers.reminder_callback(update, context)
 
-    run_once_mock.assert_called_once()
-    when = run_once_mock.call_args.kwargs["when"]
-    assert when == timedelta(minutes=10)
-    assert run_once_mock.call_args.kwargs["data"] == {
-        "reminder_id": 1,
-        "chat_id": 1,
-    }
-    assert run_once_mock.call_args.kwargs["name"] == "reminder_1_snooze"
+    assert recorded["when"] == timedelta(minutes=10)
+    assert recorded["data"] == {"reminder_id": 1, "chat_id": 1}
+    assert recorded["job_kwargs"]["name"] == "reminder_1_snooze"
+    assert recorded["name"] is None
     assert query.edited is not None
     edited_text, _ = query.edited
     assert edited_text == "⏰ Отложено на 10 минут"
