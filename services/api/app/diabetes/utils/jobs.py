@@ -1,3 +1,9 @@
+"""Utilities to schedule, remove and debug job queue tasks.
+
+This module offers helpers to schedule jobs and a ``dbg_jobs_dump`` diagnostic
+function that returns the ids and names of all jobs in a queue.
+"""
+
 from __future__ import annotations
 
 import inspect
@@ -21,6 +27,15 @@ else:
     DefaultJobQueue = JobQueue
 
 JobCallback = Callable[[CustomContext], Coroutine[Any, Any, object]]
+
+
+def dbg_jobs_dump(job_queue: DefaultJobQueue) -> list[tuple[str | None, str | None]]:
+    """Return ``(id, name)`` tuples for all jobs in ``job_queue``."""
+
+    result: list[tuple[str | None, str | None]] = []
+    for job in job_queue.jobs():
+        result.append((getattr(job, "id", None), getattr(job, "name", None)))
+    return result
 
 
 def schedule_once(
@@ -177,7 +192,9 @@ def _safe_remove(job: object) -> bool:
 
     queue = getattr(job, "queue", None)
     scheduler = getattr(queue, "scheduler", None)
-    remove_job = cast(Callable[[object], None] | None, getattr(scheduler, "remove_job", None))
+    remove_job = cast(
+        Callable[[object], None] | None, getattr(scheduler, "remove_job", None)
+    )
     job_id = getattr(job, "id", None)
     if remove_job is not None and job_id is not None:
         try:
@@ -186,7 +203,9 @@ def _safe_remove(job: object) -> bool:
         except Exception:  # pragma: no cover - defensive
             pass
 
-    schedule_removal = cast(Callable[[], None] | None, getattr(job, "schedule_removal", None))
+    schedule_removal = cast(
+        Callable[[], None] | None, getattr(job, "schedule_removal", None)
+    )
     if schedule_removal is not None:
         try:
             schedule_removal()
@@ -232,15 +251,18 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
                 except Exception:  # pragma: no cover - defensive
                     pass
 
-    jobs_method = cast(Callable[[], Iterable[object]] | None, getattr(job_queue, "jobs", None))
+    jobs_attr = getattr(job_queue, "jobs", None)
+    jobs_method = (
+        cast(Callable[[], Iterable[object]] | None, jobs_attr)
+        if callable(jobs_attr)
+        else None
+    )
     all_jobs = list(jobs_method()) if jobs_method is not None else []
     for any_job in all_jobs:
         jname = getattr(any_job, "name", None)
         jid = getattr(any_job, "id", None)
         for n in names:
-            if (
-                isinstance(jname, str) and (jname == n or jname.startswith(n))
-            ) or (
+            if (isinstance(jname, str) and (jname == n or jname.startswith(n))) or (
                 isinstance(jid, str) and (jid == n or jid.startswith(n))
             ):
                 if _safe_remove(any_job):

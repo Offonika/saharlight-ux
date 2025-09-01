@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from services.api.app.config import settings
 import services.api.app.diabetes.handlers.reminder_debug as reminder_debug
+from services.api.app.diabetes.utils.jobs import DefaultJobQueue
 
 
 def test_fmt_jobs_no_jobs() -> None:
@@ -106,14 +107,23 @@ async def test_dbg_jobs_admin(monkeypatch: pytest.MonkeyPatch) -> None:
             effective_chat=SimpleNamespace(send_message=send),
         ),
     )
-    context_app = SimpleNamespace()
+    jq = SimpleNamespace()
+    context_app = SimpleNamespace(job_queue=jq)
     context = cast(
         ContextTypes.DEFAULT_TYPE,
         SimpleNamespace(application=context_app),
     )
     monkeypatch.setattr(reminder_debug, "_fmt_jobs", lambda app: "jobs")
+    called: list[DefaultJobQueue] = []
+
+    def fake_dump(job_queue: DefaultJobQueue) -> list[tuple[str | None, str | None]]:
+        called.append(job_queue)
+        return []
+
+    monkeypatch.setattr(reminder_debug, "dbg_jobs_dump", fake_dump)
     await reminder_debug.dbg_jobs(update, context)
     send.assert_awaited_once_with("jobs")
+    assert called == [jq]
 
 
 @pytest.mark.asyncio

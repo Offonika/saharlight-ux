@@ -1,6 +1,7 @@
 # services/api/app/diabetes/handlers/reminder_debug.py
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -8,6 +9,10 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 from services.api.app.config import settings
+from services.api.app.diabetes.utils.jobs import dbg_jobs_dump
+
+
+logger = logging.getLogger(__name__)
 
 
 def _is_admin(update: Update) -> bool:
@@ -58,6 +63,9 @@ async def dbg_tz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def dbg_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not _is_admin(update):
         return
+    job_queue = getattr(context.application, "job_queue", None)
+    if job_queue is not None:
+        logger.debug("JobQueue dump: %s", dbg_jobs_dump(job_queue))
     text = _fmt_jobs(context.application)
     await update.effective_chat.send_message(text)
 
