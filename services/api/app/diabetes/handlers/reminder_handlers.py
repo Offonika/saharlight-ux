@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from datetime import time, timedelta, timezone
-from typing import Awaitable, Callable, Literal, cast
+from typing import TYPE_CHECKING, Awaitable, Callable, Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import parse_qsl
 
@@ -43,7 +43,9 @@ from services.api.app.diabetes.utils.jobs import schedule_once
 from services.api.app.diabetes.utils.ui import menu_keyboard
 from services.api.app.diabetes.schemas.reminders import ScheduleKind
 from .reminder_jobs import DefaultJobQueue, schedule_reminder
-from . import UserData
+
+if TYPE_CHECKING:
+    from . import UserData
 
 run_db: Callable[..., Awaitable[object]] | None
 try:
@@ -785,7 +787,7 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     job = context.job
     if job is None or job.data is None:
         return
-    data = cast(UserData, job.data)
+    data = cast("UserData", job.data)
     rid = data.get("reminder_id")
     chat_id = data.get("chat_id")
     if rid is None or chat_id is None:
