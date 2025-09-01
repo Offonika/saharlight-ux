@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import datetime
-import inspect
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, TypeAlias
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from typing import TYPE_CHECKING, TypeAlias
+from zoneinfo import ZoneInfo
 
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
-from services.api.app.diabetes.utils.jobs import _remove_jobs, schedule_daily, schedule_once
+from services.api.app.diabetes.utils.jobs import schedule_once
 
 logger = logging.getLogger(__name__)
 
@@ -37,140 +35,77 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
     reminder_job = reminder_handlers.reminder_job
     SessionLocal = reminder_handlers.SessionLocal
 
-    name = f"reminder_{rem.id}"
-    _remove_jobs(job_queue, name)
     if not rem.is_enabled:
-        logger.debug(
-            "Reminder %s disabled, skipping (type=%s, time=%s, interval=%s, minutes_after=%s)",
-            rem.id,
-            rem.type,
-            rem.time,
-            rem.interval_hours or rem.interval_minutes,
-            rem.minutes_after,
-        )
         return
 
-    data: dict[str, object] = {
-        "reminder_id": rem.id,
-        "chat_id": rem.telegram_id,
-    }
-
-    tz: datetime.tzinfo = ZoneInfo("Europe/Moscow")
     if user is None:
         with SessionLocal() as session:
             user = session.get(User, rem.telegram_id)
-    tzname = getattr(user, "timezone", None) if user else None
-    if tzname:
-        try:
-            tz = ZoneInfo(tzname)
-        except ZoneInfoNotFoundError:
-            logger.warning(
-                "Invalid timezone for user %s: %s",
-                getattr(user, "telegram_id", None),
-                tzname,
-            )
-        except Exception as exc:
-            logger.warning("Unexpected error loading timezone %s: %s", tzname, exc)
+    tz = ZoneInfo(getattr(user, "timezone", None) or "UTC")
 
-    job_tz = (
-        getattr(getattr(job_queue, "application", None), "timezone", None)
-        or getattr(
-            getattr(getattr(job_queue, "application", None), "scheduler", None),
-            "timezone",
-            None,
-        )
-        or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
-        or tz
-    )
-
+    name = f"reminder_{rem.id}"
     kind = rem.kind
     if kind is None:
         if rem.minutes_after is not None:
             kind = "after_event"
-        elif rem.interval_hours or rem.interval_minutes:
+        elif rem.interval_minutes:
             kind = "every"
         else:
             kind = "at_time"
 
-    job_kwargs = {"id": name, "replace_existing": True}
+    logger.info(
+        "PLAN %s kind=%s time=%s interval_min=%s after_min=%s tz=%s",
+        name,
+        kind,
+        rem.time,
+        rem.interval_minutes,
+        rem.minutes_after,
+        tz,
+    )
 
-    if kind == "after_event":
-        minutes_after = rem.minutes_after
-        if minutes_after is not None:
-            logger.debug(
-                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
-                rem.id,
-                rem.type,
-                rem.time,
-                rem.interval_hours or rem.interval_minutes,
-                minutes_after,
-            )
-            when_td = timedelta(minutes=float(minutes_after))
-            schedule_once(
-                job_queue,
-                reminder_job,
-                when=when_td,
-                data=data,
-                name=name,
-                timezone=job_tz,
-                job_kwargs=job_kwargs,
-            )
-    elif kind == "at_time" and rem.time:
-        logger.debug(
-            "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
-            rem.id,
-            rem.type,
-            rem.time,
-            rem.interval_hours or rem.interval_minutes,
-            rem.minutes_after,
-        )
-        job_time = rem.time.replace(tzinfo=tz)
-        days: tuple[int, ...] | None = None
-        mask = getattr(rem, "days_mask", 0) or 0
-        if mask:
-            days = tuple(i for i in range(7) if mask & (1 << i))
-        schedule_daily(
+    context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
+
+    if kind == "after_event" and rem.minutes_after is not None:
+        when_td = timedelta(minutes=float(rem.minutes_after))
+        schedule_once(
             job_queue,
             reminder_job,
-            time=job_time,
-            data=data,
+            when=when_td,
+            data=context,
             name=name,
-            timezone=job_tz,
-            days=days,
-            job_kwargs=job_kwargs,
+            timezone=tz,
+            job_kwargs={"id": name, "name": name, "replace_existing": True},
         )
-    elif kind == "every":
-        minutes = (
-            rem.interval_minutes if rem.interval_minutes is not None else (rem.interval_hours or 0) * 60
+    elif kind == "at_time" and rem.time is not None:
+        params: dict[str, object] = {
+            "hour": rem.time.hour,
+            "minute": rem.time.minute,
+        }
+        mask = getattr(rem, "days_mask", 0) or 0
+        if mask:
+            days = ",".join(str(i) for i in range(7) if mask & (1 << i))
+            params["day_of_week"] = days
+        job_queue.scheduler.add_job(
+            reminder_job,
+            trigger="cron",
+            id=name,
+            name=name,
+            replace_existing=True,
+            timezone=tz,
+            kwargs={"context": context},
+            **params,
         )
-        if minutes:
-            logger.debug(
-                "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
-                rem.id,
-                rem.type,
-                rem.time,
-                rem.interval_hours or rem.interval_minutes,
-                rem.minutes_after,
-            )
-            kwargs: dict[str, Any] = {}
-            sig = inspect.signature(job_queue.run_repeating)
-            if "job_kwargs" in sig.parameters:
-                kwargs["job_kwargs"] = job_kwargs
-            job_queue.run_repeating(
-                reminder_job,
-                interval=timedelta(minutes=minutes),
-                data=data,
-                name=name,
-                **kwargs,
-            )
-    logger.debug(
-        "Finished scheduling reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
-        rem.id,
-        rem.type,
-        rem.time,
-        rem.interval_hours or rem.interval_minutes,
-        rem.minutes_after,
-    )
+    elif kind == "every" and rem.interval_minutes is not None:
+        job_queue.scheduler.add_job(
+            reminder_job,
+            trigger="interval",
+            id=name,
+            name=name,
+            replace_existing=True,
+            minutes=int(rem.interval_minutes),
+            timezone=tz,
+            kwargs={"context": context},
+        )
 
 
 __all__ = ["DefaultJobQueue", "schedule_reminder"]

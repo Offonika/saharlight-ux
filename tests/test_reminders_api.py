@@ -21,46 +21,44 @@ from services.api.app.telegram_auth import require_tg_user
 
 
 class DummyJob:
-    def __init__(
-        self, name: str, data: dict[str, Any] | None = None, when: Any = None
-    ) -> None:
+    def __init__(self, name: str, data: dict[str, Any] | None = None) -> None:
         self.name = name
         self.data = data
-        self.time = when
         self.removed = False
 
     def schedule_removal(self) -> None:  # pragma: no cover - simple flag setter
         self.removed = True
 
 
-class DummyJobQueue:
+class DummyScheduler:
     def __init__(self) -> None:
         self.jobs: list[DummyJob] = []
 
-    def run_daily(
+    def add_job(
         self,
-        callback: Any,
-        time: Any,
-        data: dict[str, Any] | None = None,
-        name: str | None = None,
+        func: Any,
+        *,
+        trigger: str,
+        id: str,
+        name: str,
+        replace_existing: bool,
+        timezone: object,
+        kwargs: dict[str, Any] | None = None,
+        **params: Any,
     ) -> DummyJob:
-        job = DummyJob(name or "", data, time)
+        if replace_existing:
+            self.jobs = [j for j in self.jobs if j.name != name]
+        job = DummyJob(name, kwargs.get("context") if kwargs else None)
         self.jobs.append(job)
         return job
 
-    def run_repeating(
-        self,
-        callback: Any,
-        interval: Any,
-        data: dict[str, Any] | None = None,
-        name: str | None = None,
-    ) -> DummyJob:
-        job = DummyJob(name or "", data)
-        self.jobs.append(job)
-        return job
+
+class DummyJobQueue:
+    def __init__(self) -> None:
+        self.scheduler = DummyScheduler()
 
     def get_jobs_by_name(self, name: str) -> list[DummyJob]:
-        return [j for j in self.jobs if j.name == name]
+        return [j for j in self.scheduler.jobs if j.name == name]
 
 
 @pytest.fixture()
@@ -117,9 +115,7 @@ def client_with_job_queue(
     reminder_events.register_job_queue(None)
 
 
-def test_empty_returns_200(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -128,9 +124,7 @@ def test_empty_returns_200(
     assert resp.json() == []
 
 
-def test_nonempty_returns_list(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -168,9 +162,7 @@ def test_nonempty_returns_list(
     ]
 
 
-def test_get_single_reminder(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_get_single_reminder(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -220,9 +212,7 @@ def test_mismatched_telegram_id_returns_404(client: TestClient) -> None:
     assert resp.json() == {"detail": "reminder not found"}
 
 
-def test_get_single_reminder_not_found(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_get_single_reminder_not_found(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -416,14 +406,10 @@ async def test_post_job_queue_event_logs_error(
         async def __aenter__(self) -> "DummyClient":
             return self
 
-        async def __aexit__(
-            self, exc_type: object, exc: object, tb: object
-        ) -> None:
+        async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
             pass
 
-        async def post(
-            self, url: str, json: dict[str, int]
-        ) -> httpx.Response:
+        async def post(self, url: str, json: dict[str, int]) -> httpx.Response:
             req = httpx.Request("POST", url)
             return httpx.Response(500, request=req, text="fail")
 

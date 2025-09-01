@@ -5,7 +5,7 @@ import logging
 from collections.abc import Generator
 from datetime import datetime, time, timedelta, timezone, tzinfo
 from types import SimpleNamespace
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Any, Callable, cast
 
@@ -87,54 +87,62 @@ class DummyBot:
 class DummyJob:
     def __init__(
         self,
-        callback: Callable[..., Any],
-        data: dict[str, Any] | None,
-        name: str | None,
-        time: Any | None = None,
-        queue: "DummyJobQueue" | None = None,
+        scheduler: "DummyScheduler",
+        *,
+        id: str,
+        name: str,
+        trigger: str,
+        timezone: tzinfo,
+        params: dict[str, Any],
     ) -> None:
-        self.callback: Callable[..., Any] = callback
-        self.data: dict[str, Any] | None = data
-        self.name: str | None = name
-        self.time: Any | None = time
-        self.removed: bool = False
-        self._queue = queue
+        self._scheduler = scheduler
+        self.id = id
+        self.name = name
+        self.trigger = trigger
+        self.timezone = timezone
+        self.params = params
+        self.removed = False
+        if trigger == "cron":
+            self.time = time(int(params.get("hour", 0)), int(params.get("minute", 0)))
 
     def remove(self) -> None:
         self.removed = True
-        if self._queue is not None:
-            self._queue.jobs.remove(self)
+        self._scheduler.jobs = [j for j in self._scheduler.jobs if j.id != self.id]
 
     def schedule_removal(self) -> None:
         self.remove()
 
 
+class DummyScheduler:
+    def __init__(self) -> None:
+        self.jobs: list[DummyJob] = []
+
+    def add_job(
+        self,
+        func: Callable[..., Any],
+        *,
+        trigger: str,
+        id: str,
+        name: str,
+        replace_existing: bool,
+        timezone: tzinfo,
+        kwargs: dict[str, Any],
+        **params: Any,
+    ) -> DummyJob:  # noqa: D401 - simplified
+        if replace_existing:
+            self.jobs = [j for j in self.jobs if j.id != id]
+        job = DummyJob(self, id=id, name=name, trigger=trigger, timezone=timezone, params=params)
+        self.jobs.append(job)
+        return job
+
+    def remove_job(self, job_id: str) -> None:
+        self.jobs = [j for j in self.jobs if j.id != job_id]
+
+
 class DummyJobQueue:
     def __init__(self, timezone: tzinfo | None = None) -> None:
-        self.jobs: list[DummyJob] = []
+        self.scheduler = DummyScheduler()
         self.timezone = timezone
-
-    def run_daily(
-        self,
-        callback: Callable[..., Any],
-        time: Any,
-        data: dict[str, Any] | None = None,
-        name: str | None = None,
-    ) -> DummyJob:
-        job = DummyJob(callback, data, name, time, self)
-        self.jobs.append(job)
-        return job
-
-    def run_repeating(
-        self,
-        callback: Callable[..., Any],
-        interval: Any,
-        data: dict[str, Any] | None = None,
-        name: str | None = None,
-    ) -> DummyJob:
-        job = DummyJob(callback, data, name, None, self)
-        self.jobs.append(job)
-        return job
 
     def run_once(
         self,
@@ -143,33 +151,22 @@ class DummyJobQueue:
         data: dict[str, Any] | None = None,
         name: str | None = None,
         timezone: object | None = None,
+        job_kwargs: dict[str, Any] | None = None,
     ) -> DummyJob:
-        job = DummyJob(callback, data, name, None, self)
-        self.jobs.append(job)
+        params: dict[str, Any] = {"when": when}
+        job_id = job_kwargs["id"] if job_kwargs else name or ""  # type: ignore[assignment]
+        job = DummyJob(
+            id=job_id, name=name or job_id, trigger="once", timezone=timezone or ZoneInfo("UTC"), params=params
+        )
+        self.scheduler.jobs.append(job)
         return job
 
     def get_jobs_by_name(self, name: str) -> list[DummyJob]:
-        return [j for j in self.jobs if j.name == name]
+        return [j for j in self.scheduler.jobs if j.name == name]
 
-
-class DummyJobQueueWithDays(DummyJobQueue):
-    last_days: tuple[int, ...] | None
-
-    def run_daily(
-        self,
-        callback: Callable[..., Any],
-        time: Any,
-        *,
-        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
-        data: dict[str, Any] | None = None,
-        name: str | None = None,
-        timezone: tzinfo | None = None,
-    ) -> DummyJob:
-        job = DummyJob(callback, data, name, time)
-        self.jobs.append(job)
-        self.last_days = days
-        self.timezone = timezone
-        return job
+    @property
+    def jobs(self) -> list[DummyJob]:
+        return self.scheduler.jobs
 
 
 def make_user(user_id: int) -> MagicMock:
@@ -216,7 +213,6 @@ def test_schedule_reminder_replaces_existing_job() -> None:
         )
         session.commit()
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
-    job_queue.application = SimpleNamespace(timezone=ZoneInfo("UTC"))
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
@@ -224,13 +220,12 @@ def test_schedule_reminder_replaces_existing_job() -> None:
         handlers.schedule_reminder(rem, job_queue, user)
         handlers.schedule_reminder(rem, job_queue, user)
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
-    active_jobs: list[DummyJob] = [j for j in jobs if not j.removed]
-    assert len(active_jobs) == 1
-    job = active_jobs[0]
-    assert job.time is not None
-    job_time = cast(time, job.time)
-    assert job_time == time(5, 0)
-    assert job_time.tzinfo is None
+    assert len(jobs) == 1
+    job = jobs[0]
+    assert job.trigger == "cron"
+    assert job.params["hour"] == 8
+    assert job.params["minute"] == 0
+    assert job.timezone == ZoneInfo("Europe/Moscow")
 
 
 def test_schedule_reminder_requires_job_queue() -> None:
@@ -272,7 +267,7 @@ def test_schedule_reminder_requires_telegram_id() -> None:
         handlers.schedule_reminder(rem, job_queue, None)
 
 
-def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
+def test_schedule_reminder_without_user_defaults_to_utc() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -290,7 +285,6 @@ def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
         )
         session.commit()
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
-    job_queue.application = SimpleNamespace(timezone=ZoneInfo("UTC"))
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         assert rem is not None
@@ -298,10 +292,8 @@ def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
-    assert job.time is not None
-    job_time = cast(time, job.time)
-    assert job_time == time(5, 0)
-    assert job_time.tzinfo is None
+    assert job.timezone == ZoneInfo("UTC")
+    assert job.params["hour"] == 8
 
 
 def test_schedule_reminder_uses_user_timezone_when_queue_has_none() -> None:
@@ -320,13 +312,12 @@ def test_schedule_reminder_uses_user_timezone_when_queue_has_none() -> None:
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
-    assert job.time is not None
-    job_time = cast(time, job.time)
-    assert job_time == time(8, 0)
-    assert job_time.tzinfo is None
+    assert job.timezone == ZoneInfo("UTC")
+    assert job.params["hour"] == 8
+    assert job.params["minute"] == 0
 
 
-def test_schedule_reminder_uses_application_timezone() -> None:
+def test_schedule_reminder_ignores_application_timezone() -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
     rem = Reminder(
         id=1,
@@ -343,10 +334,8 @@ def test_schedule_reminder_uses_application_timezone() -> None:
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
     assert jobs
     job = jobs[0]
-    assert job.time is not None
-    job_time = cast(time, job.time)
-    assert job_time == time(5, 0)
-    assert job_time.tzinfo is None
+    assert job.timezone == ZoneInfo("Europe/Moscow")
+    assert job.params["hour"] == 8
 
 
 def test_schedule_reminder_respects_days_mask() -> None:
@@ -368,15 +357,15 @@ def test_schedule_reminder_respects_days_mask() -> None:
             )
         )
         session.commit()
-    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueueWithDays())
-    job_queue.application = SimpleNamespace(timezone=ZoneInfo("UTC"))
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
         assert rem is not None
         assert user is not None
         handlers.schedule_reminder(rem, job_queue, user)
-    assert job_queue.last_days == (0, 2)
+    job = job_queue.get_jobs_by_name("reminder_1")[0]
+    assert job.params.get("day_of_week") == "0,2"
 
 
 def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -448,11 +437,11 @@ def test_interval_minutes_scheduling_and_rendering(
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
         assert rem is not None
-        with patch.object(job_queue, "run_repeating", wraps=job_queue.run_repeating) as mock_repeat:
+        with patch.object(job_queue.scheduler, "add_job", wraps=job_queue.scheduler.add_job) as mock_add:
             handlers.schedule_reminder(rem, job_queue, user)
-            mock_repeat.assert_called_once()
-            interval = mock_repeat.call_args.kwargs["interval"]
-            assert interval == timedelta(minutes=30)
+            mock_add.assert_called_once()
+            assert mock_add.call_args.kwargs["trigger"] == "interval"
+            assert mock_add.call_args.kwargs["minutes"] == 30
         text, _ = handlers._render_reminders(session, 1)
     assert "⏱ Интервал" in text
     assert "каждые 30 мин" in text
@@ -476,23 +465,12 @@ def test_schedule_with_next_invalid_timezone_logs_warning(
     assert any("Invalid timezone" in r.message for r in caplog.records)
 
 
-def test_schedule_reminder_invalid_timezone_logs_warning(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
+def test_schedule_reminder_invalid_timezone_raises() -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Bad/Zone")
     rem = Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user)
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
-    job_queue.application = SimpleNamespace(timezone=ZoneInfo("UTC"))
-    with caplog.at_level(logging.WARNING):
+    with pytest.raises(ZoneInfoNotFoundError):
         handlers.schedule_reminder(rem, job_queue, user)
-    dummy_queue = cast(DummyJobQueue, job_queue)
-    assert dummy_queue.jobs
-    job = dummy_queue.jobs[0]
-    assert job.time is not None
-    job_time = cast(time, job.time)
-    assert job_time == time(5, 0)
-    assert job_time.tzinfo is None
-    assert any("Invalid timezone" in r.message for r in caplog.records)
 
 
 def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -874,9 +852,7 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         assert rem is not None
         handlers.schedule_reminder(rem, job_queue, user)
     notify_mock = AsyncMock()
-    monkeypatch.setattr(
-        handlers.reminder_events, "notify_reminder_saved", notify_mock
-    )
+    monkeypatch.setattr(handlers.reminder_events, "notify_reminder_saved", notify_mock)
 
     query = DummyCallbackQuery("rem_del:1", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
@@ -930,9 +906,7 @@ async def test_toggle_reminder_without_job_queue(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
-async def test_toggle_reminder_missing_user(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_toggle_reminder_missing_user(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -940,17 +914,13 @@ async def test_toggle_reminder_missing_user(
     handlers.commit = commit
 
     with TestSession() as session:
-        session.add(
-            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=False)
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=False))
         session.commit()
 
     reschedule_mock = MagicMock()
     monkeypatch.setattr(handlers, "_reschedule_job", reschedule_mock)
     notify_mock = AsyncMock()
-    monkeypatch.setattr(
-        handlers.reminder_events, "notify_reminder_saved", notify_mock
-    )
+    monkeypatch.setattr(handlers.reminder_events, "notify_reminder_saved", notify_mock)
 
     query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
@@ -960,9 +930,7 @@ async def test_toggle_reminder_missing_user(
         await handlers.reminder_action_cb(update, context)
 
     reschedule_mock.assert_not_called()
-    assert (
-        "User 1 not found for rescheduling reminder 1" in caplog.text
-    )
+    assert "User 1 not found for rescheduling reminder 1" in caplog.text
     notify_mock.assert_not_awaited()
 
 

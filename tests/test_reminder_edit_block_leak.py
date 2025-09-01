@@ -71,11 +71,7 @@ def _setup_db() -> tuple[sessionmaker[Session], Any]:
     handlers.commit = commit
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
-        session.add(
-            Reminder(
-                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
-            )
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
         session.commit()
     return TestSession, engine
 
@@ -121,6 +117,7 @@ async def test_good_input_updates_and_ends(
         "notify_reminder_saved",
         AsyncMock(),
     )
+    monkeypatch.setattr(handlers, "schedule_reminder", lambda *a, **k: None)
     with no_warnings():
         await handlers.reminder_webapp_save(update, context)
     with TestSession() as session:
