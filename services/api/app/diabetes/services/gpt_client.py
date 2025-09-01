@@ -51,6 +51,24 @@ def _get_async_client() -> AsyncOpenAI:
     return _async_client
 
 
+def dispose_openai_clients() -> None:
+    """Close and reset cached OpenAI clients."""
+    global _client, _async_client
+    with _client_lock:
+        if _client is not None:
+            _client.close()
+            _client = None
+    with _async_client_lock:
+        if _async_client is not None:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                asyncio.run(_async_client.close())
+            else:
+                loop.create_task(_async_client.close())
+            _async_client = None
+
+
 async def create_chat_completion(
     *,
     model: str,

@@ -5,6 +5,7 @@ import threading
 import time
 from types import SimpleNamespace
 from typing import Any
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from openai import OpenAIError
@@ -83,6 +84,22 @@ async def test_create_thread_openaierror(
             await gpt_client.create_thread()
 
     assert any("Failed to create thread" in r.message for r in caplog.records)
+
+
+def test_dispose_openai_clients_resets_all(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_client = Mock()
+    fake_async_client = Mock()
+    fake_async_client.close = AsyncMock()
+
+    monkeypatch.setattr(gpt_client, "_client", fake_client)
+    monkeypatch.setattr(gpt_client, "_async_client", fake_async_client)
+
+    gpt_client.dispose_openai_clients()
+
+    fake_client.close.assert_called_once()
+    fake_async_client.close.assert_awaited_once()
+    assert gpt_client._client is None
+    assert gpt_client._async_client is None
 
 
 @pytest.mark.asyncio
