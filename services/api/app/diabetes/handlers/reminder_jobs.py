@@ -46,11 +46,15 @@ def schedule_reminder(
     tz = ZoneInfo(getattr(user, "timezone", None) or "UTC")
 
     name = f"reminder_{rem.id}"
+    interval_minutes: int | None = rem.interval_minutes
     kind = rem.kind
+    if kind is None and interval_minutes is None and rem.interval_hours is not None:
+        interval_minutes = rem.interval_hours * 60
+        kind = "every"
     if kind is None:
         if rem.minutes_after is not None:
             kind = "after_event"
-        elif rem.interval_minutes:
+        elif interval_minutes:
             kind = "every"
         else:
             kind = "at_time"
@@ -60,13 +64,12 @@ def schedule_reminder(
         name,
         kind,
         rem.time,
-        rem.interval_minutes,
+        interval_minutes,
         rem.minutes_after,
         tz,
     )
 
     context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
-
 
     job_kwargs: dict[str, object] = {
         "id": name,
@@ -121,10 +124,10 @@ def schedule_reminder(
                     name=name,
                     job_kwargs=job_kwargs_cast,
                 )
-    elif kind == "every" and rem.interval_minutes is not None:
+    elif kind == "every" and interval_minutes is not None:
         job_queue.run_repeating(
             reminder_job,
-            interval=timedelta(minutes=int(rem.interval_minutes)),
+            interval=timedelta(minutes=int(interval_minutes)),
             data=context,
             name=name,
             job_kwargs=job_kwargs,
