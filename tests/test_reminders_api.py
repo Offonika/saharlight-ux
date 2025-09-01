@@ -58,6 +58,28 @@ class DummyJobQueue:
     def __init__(self) -> None:
         self.scheduler = DummyScheduler()
 
+    def run_once(
+        self,
+        callback: Callable[..., Any],
+        when: Any,
+        *,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        timezone: object | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> DummyJob:
+        params: dict[str, Any] = {"when": when}
+        return self.scheduler.add_job(
+            callback,
+            trigger="once",
+            id=name or "",
+            name=name or "",
+            replace_existing=bool(job_kwargs and job_kwargs.get("replace_existing")),
+            timezone=timezone or ZoneInfo("UTC"),
+            kwargs={"context": data},
+            **params,
+        )
+
     def run_daily(
         self,
         callback: Callable[..., Any],
@@ -161,7 +183,9 @@ def client_with_job_queue(
     reminder_events.register_job_queue(None)
 
 
-def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_empty_returns_200(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -170,7 +194,9 @@ def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Ses
     assert resp.json() == []
 
 
-def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_nonempty_returns_list(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -208,7 +234,9 @@ def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker
     ]
 
 
-def test_get_single_reminder(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_get_single_reminder(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -258,7 +286,9 @@ def test_mismatched_telegram_id_returns_404(client: TestClient) -> None:
     assert resp.json() == {"detail": "reminder not found"}
 
 
-def test_get_single_reminder_not_found(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_get_single_reminder_not_found(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()

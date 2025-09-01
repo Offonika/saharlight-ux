@@ -105,6 +105,28 @@ class DummyJobQueue:
             minutes=minutes,
         )
 
+    def run_once(
+        self,
+        callback: Callable[..., Any],
+        when: Any,
+        *,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        timezone: object | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> Any:
+        params = {"when": when}
+        return self.scheduler.add_job(
+            callback,
+            trigger="once",
+            id=name or "",
+            name=name or "",
+            replace_existing=bool(job_kwargs and job_kwargs.get("replace_existing")),
+            timezone=timezone or ZoneInfo("UTC"),
+            kwargs={"context": data},
+            **params,
+        )
+
     def get_jobs_by_name(self, name: str) -> list[Any]:
         return [j for j in self.scheduler.jobs if j["name"] == name]
 
@@ -140,8 +162,12 @@ async def test_webapp_save_creates_reminder(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "08:00"}))
-    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
-    context = cast(ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue()))
+    update = cast(
+        Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
+    )
+    context = cast(
+        ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
+    )
     monkeypatch.setattr(
         handlers.reminder_events,
         "notify_reminder_saved",
@@ -169,8 +195,12 @@ async def test_webapp_save_creates_interval(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "2h"}))
-    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
-    context = cast(ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue()))
+    update = cast(
+        Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
+    )
+    context = cast(
+        ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
+    )
     monkeypatch.setattr(
         handlers.reminder_events,
         "notify_reminder_saved",

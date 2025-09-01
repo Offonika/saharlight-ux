@@ -55,6 +55,7 @@ async def test_reminder_limit_free_vs_pro(
     context: Any = SimpleNamespace(
         job_queue=SimpleNamespace(
             run_daily=lambda *a, **k: None,
+            run_once=lambda *a, **k: None,
             run_repeating=lambda *a, **k: None,
             get_jobs_by_name=lambda name: [],
         )

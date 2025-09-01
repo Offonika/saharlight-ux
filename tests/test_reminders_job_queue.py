@@ -57,6 +57,18 @@ class DummyJobQueue:
         self.jobs.append(job)
         return job
 
+    def run_once(
+        self,
+        callback: Any,
+        when: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        **kwargs: Any,
+    ) -> DummyJob:
+        job = DummyJob(name or "")
+        self.jobs.append(job)
+        return job
+
     def get_jobs_by_name(self, name: str) -> list[DummyJob]:
         return [job for job in self.jobs if job.name == name]
 
@@ -120,4 +132,3 @@ def test_post_reminder_uses_job_queue(
     assert fake_queue.get_jobs_by_name(f"reminder_{rid}")
 
     reminder_events.job_queue = None
-
