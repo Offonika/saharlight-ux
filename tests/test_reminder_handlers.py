@@ -251,6 +251,44 @@ async def test_add_reminder_saves_time_and_description(
 
 
 @pytest.mark.asyncio
+async def test_add_reminder_skips_notification_when_scheduled(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    schedule_mock = MagicMock()
+    monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
+    notify_mock = AsyncMock()
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=notify_mock),
+    )
+    monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
+
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    job_queue = DummyJobQueue()
+    context = make_context(args=["sugar", "09:00"], job_queue=job_queue)
+
+    await reminder_handlers.add_reminder(update, context)
+
+    schedule_mock.assert_called_once()
+    notify_mock.assert_not_awaited()
+    assert message.texts == ["Сохранено: desc"]
+
+
+@pytest.mark.asyncio
 async def test_add_reminder_ignores_disabled(
     reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
