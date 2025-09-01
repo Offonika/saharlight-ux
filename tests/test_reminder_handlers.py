@@ -200,10 +200,75 @@ async def test_add_reminder_valid_type(
     monkeypatch.setattr(reminder_handlers, "SessionLocal", session_factory)
     monkeypatch.setattr(reminder_handlers, "commit", lambda s: None)
     monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
+    notifier = AsyncMock()
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=notifier),
+    )
 
     await reminder_handlers.add_reminder(update, context)
 
     assert message.texts == ["Сохранено: desc"]
+    notifier.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_add_reminder_skips_event_when_scheduled(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["sugar", "2"], job_queue=object())
+
+    class DummyQuery:
+        def filter_by(self, **kwargs: Any) -> "DummyQuery":
+            return self
+
+        def count(self) -> int:
+            return 0
+
+    user_obj = SimpleNamespace(plan="free")
+
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc: BaseException | None,
+            tb: TracebackType | None,
+        ) -> None:
+            pass
+
+        def query(self, *args: Any, **kwargs: Any) -> DummyQuery:
+            return DummyQuery()
+
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return user_obj
+
+        def add(self, obj: Any) -> None:
+            pass
+
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: DummySession())
+    monkeypatch.setattr(reminder_handlers, "commit", lambda s: None)
+    monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
+    reschedule = MagicMock()
+    monkeypatch.setattr(reminder_handlers, "_reschedule_job", reschedule)
+    notifier = AsyncMock()
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=notifier),
+    )
+
+    await reminder_handlers.add_reminder(update, context)
+
+    assert message.texts == ["Сохранено: desc"]
+    reschedule.assert_called_once()
+    notifier.assert_not_awaited()
 
 
 @pytest.mark.asyncio
