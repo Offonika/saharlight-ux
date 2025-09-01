@@ -29,6 +29,28 @@ class DummyJobQueue:
         self._jobs: list[DummyJob] = []
         self.timezone = ZoneInfo("UTC")
 
+        class _Scheduler:
+            def __init__(self, jobs: list[DummyJob]) -> None:
+                self.jobs = jobs
+
+            def add_job(
+                self,
+                func: Callable[..., object],
+                *,
+                trigger: str,
+                id: str,
+                name: str,
+                replace_existing: bool,
+                timezone: ZoneInfo,
+                kwargs: dict[str, object] | None = None,
+                **params: object,
+            ) -> DummyJob:
+                job = DummyJob(name, kwargs.get("context") if kwargs else None)
+                self.jobs.append(job)
+                return job
+
+        self.scheduler = _Scheduler(self._jobs)
+
     def run_daily(
         self,
         callback: Callable[..., object],
@@ -36,9 +58,17 @@ class DummyJobQueue:
         data: dict[str, object] | None = None,
         name: str | None = None,
     ) -> DummyJob:
-        job = DummyJob(name, data)
-        self._jobs.append(job)
-        return job
+        return self.scheduler.add_job(
+            callback,
+            trigger="cron",
+            id=name or "",
+            name=name or "",
+            replace_existing=False,
+            timezone=self.timezone,
+            kwargs={"context": data},
+            hour=getattr(time, "hour", 0),
+            minute=getattr(time, "minute", 0),
+        )
 
     def run_repeating(
         self,
@@ -47,9 +77,21 @@ class DummyJobQueue:
         data: dict[str, object] | None = None,
         name: str | None = None,
     ) -> DummyJob:
-        job = DummyJob(name, data)
-        self._jobs.append(job)
-        return job
+        seconds = (
+            int(interval.total_seconds())
+            if hasattr(interval, "total_seconds")
+            else int(interval)
+        )
+        return self.scheduler.add_job(
+            callback,
+            trigger="interval",
+            id=name or "",
+            name=name or "",
+            replace_existing=False,
+            timezone=self.timezone,
+            kwargs={"context": data},
+            seconds=seconds,
+        )
 
     def run_once(
         self,
@@ -59,9 +101,16 @@ class DummyJobQueue:
         name: str | None = None,
         timezone: object | None = None,
     ) -> DummyJob:
-        job = DummyJob(name, data)
-        self._jobs.append(job)
-        return job
+        return self.scheduler.add_job(
+            callback,
+            trigger="date",
+            id=name or "",
+            name=name or "",
+            replace_existing=False,
+            timezone=self.timezone,
+            kwargs={"context": data},
+            run_date=when,
+        )
 
     def get_jobs_by_name(self, name: str) -> list[DummyJob]:
         return [j for j in self._jobs if j.name == name]

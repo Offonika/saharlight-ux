@@ -53,7 +53,9 @@ class DummyJobQueue:
 def make_session() -> sessionmaker[Session]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    return sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+    return sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
 
 
 def test_schedule_reminder_after_meal() -> None:
@@ -138,11 +140,16 @@ def test_schedule_after_meal_no_duplicate_jobs() -> None:
     dummy_queue = DummyJobQueue()
     job_queue = cast(handlers.DefaultJobQueue, dummy_queue)
     handlers.schedule_after_meal(1, job_queue)
+    dummy_queue.jobs.append(
+        DummyJob(handlers.reminder_job, timedelta(minutes=5), {}, "reminder_1_snooze")
+    )
     handlers.schedule_after_meal(1, job_queue)
     jobs = list(job_queue.get_jobs_by_name("reminder_1"))
+    snoozes = list(job_queue.get_jobs_by_name("reminder_1_snooze"))
     assert len(jobs) == 2
     assert jobs[0].removed is True
     assert jobs[1].removed is False
+    assert snoozes and snoozes[0].removed is True
 
 
 def test_schedule_after_meal_multiple_reminders() -> None:

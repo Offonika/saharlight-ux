@@ -60,6 +60,48 @@ class DummyJobQueue:
     def get_jobs_by_name(self, name: str) -> list[DummyJob]:
         return [j for j in self.scheduler.jobs if j.name == name]
 
+    def run_daily(
+        self,
+        callback: Any,
+        time: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        **kwargs: Any,
+    ) -> DummyJob:
+        job = self.scheduler.add_job(
+            callback,
+            trigger="cron",
+            id=name or "",
+            name=name or "",
+            replace_existing=False,
+            timezone=timezone.utc,
+            kwargs={"context": data},
+            hour=time.hour,
+            minute=time.minute,
+        )
+        return job
+
+    def run_repeating(
+        self,
+        callback: Any,
+        interval: Any,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        **kwargs: Any,
+    ) -> DummyJob:
+        seconds = getattr(interval, "total_seconds", lambda: interval)()
+        job = self.scheduler.add_job(
+            callback,
+            trigger="interval",
+            id=name or "",
+            name=name or "",
+            replace_existing=False,
+            timezone=timezone.utc,
+            kwargs={"context": data},
+            seconds=seconds,
+        )
+        return job
+
 
 @pytest.fixture()
 def session_factory() -> Generator[sessionmaker[Session], None, None]:
@@ -115,7 +157,9 @@ def client_with_job_queue(
     reminder_events.register_job_queue(None)
 
 
-def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_empty_returns_200(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -124,7 +168,9 @@ def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Ses
     assert resp.json() == []
 
 
-def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_nonempty_returns_list(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -162,7 +208,9 @@ def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker
     ]
 
 
-def test_get_single_reminder(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_get_single_reminder(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -212,7 +260,9 @@ def test_mismatched_telegram_id_returns_404(client: TestClient) -> None:
     assert resp.json() == {"detail": "reminder not found"}
 
 
-def test_get_single_reminder_not_found(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_get_single_reminder_not_found(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()

@@ -261,13 +261,26 @@ def _render_reminders(
     return text, InlineKeyboardMarkup(buttons)
 
 
+def _remove_reminder_jobs(job_queue: DefaultJobQueue, rid: int) -> tuple[int, int]:
+    """Remove main and snooze jobs for reminder ``rid`` from ``job_queue``."""
+
+    removed_main = _remove_jobs(job_queue, f"reminder_{rid}")
+    removed_snooze = _remove_jobs(job_queue, f"reminder_{rid}_snooze")
+    logger.info(
+        "Removed %d main and %d snooze job(s) for reminder %s",
+        removed_main,
+        removed_snooze,
+        rid,
+    )
+    return removed_main, removed_snooze
+
+
 def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) -> None:
     """Пересоздаёт задачу с обновлённым временем."""
-    name = f"reminder_{reminder.id}"
-    removed = _remove_jobs(job_queue, name)
-    logger.info("🗑 removed %d jobs named %s", removed, name)
-
+    rid = reminder.id
+    _remove_reminder_jobs(job_queue, rid)
     schedule_reminder(reminder, job_queue, user)
+    name = f"reminder_{rid}"
     next_run: datetime.datetime | None
     next_run = None
     job = next(iter(job_queue.get_jobs_by_name(name)), None)
@@ -439,9 +452,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if status == "error":
         await message.reply_text("⚠️ Не удалось сохранить напоминание.")
         return
-    job_queue: DefaultJobQueue | None = cast(
-        DefaultJobQueue | None, context.job_queue
-    )
+    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None and db_user is not None:
         schedule_reminder(reminder, job_queue, db_user)
         logger.debug(
@@ -450,9 +461,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
     else:
         await reminder_events.notify_reminder_saved(reminder.id)
-        logger.debug(
-            "Sent reminder_saved event for %s", reminder.id
-        )
+        logger.debug("Sent reminder_saved event for %s", reminder.id)
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
 
 
@@ -786,17 +795,14 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             return
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None:
-        removed = _remove_jobs(job_queue, f"reminder_{rid}")
-        logger.info("Removed %d job(s) for reminder %s", removed, rid)
+        _remove_reminder_jobs(job_queue, rid)
     if message:
         await message.reply_text("Удалено")
     if job_queue is None:
         await reminder_events.notify_reminder_saved(rid)
         logger.debug("Sent reminder_saved event for %s", rid)
     else:
-        logger.debug(
-            "Job queue present; suppressed reminder_saved event for %s", rid
-        )
+        logger.debug("Job queue present; suppressed reminder_saved event for %s", rid)
 
 
 async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1007,8 +1013,7 @@ async def reminder_action_cb(
                     rid,
                 )
         elif job_queue is not None:
-            removed = _remove_jobs(job_queue, f"reminder_{rid}")
-            logger.info("Removed %d job(s) for reminder %s", removed, rid)
+            _remove_reminder_jobs(job_queue, rid)
             logger.debug(
                 "Job queue present; suppressed reminder_saved event for %s",
                 rid,
@@ -1018,8 +1023,7 @@ async def reminder_action_cb(
             logger.debug("Sent reminder_saved event for %s", rid)
     else:  # del
         if job_queue is not None:
-            removed = _remove_jobs(job_queue, f"reminder_{rid}")
-            logger.info("Removed %d job(s) for reminder %s", removed, rid)
+            _remove_reminder_jobs(job_queue, rid)
             logger.debug(
                 "Job queue present; suppressed reminder_saved event for %s",
                 rid,
@@ -1070,11 +1074,7 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
         minutes_after = rem.minutes_after
         if minutes_after is None:
             continue
-        removed = _remove_jobs(job_queue, f"reminder_{rem.id}")
-        if removed:
-            logger.info(
-                "Removed %d job(s) for reminder %s", removed, rem.id
-            )
+        _remove_reminder_jobs(job_queue, rem.id)
         schedule_once(
             job_queue,
             reminder_job,
