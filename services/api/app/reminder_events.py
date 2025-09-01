@@ -3,12 +3,12 @@ from __future__ import annotations
 import logging
 
 import asyncio
-from typing import Callable, cast
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from .diabetes.services.db import Reminder, User
 from .diabetes.handlers.reminder_jobs import DefaultJobQueue, schedule_reminder
+from services.api.app.diabetes.utils.jobs import _remove_jobs
 
 logger = logging.getLogger(__name__)
 
@@ -57,42 +57,14 @@ async def notify_reminder_saved(reminder_id: int) -> None:
 def notify_reminder_deleted(reminder_id: int) -> None:
     """Remove reminder jobs from the job queue.
 
-    Raises RuntimeError if the job queue is not configured.
+    Removes the base reminder job and associated ``_after`` and ``_snooze``
+    variants. Raises :class:`RuntimeError` if the job queue is not configured.
     """
     jq = job_queue
     if jq is None:
         msg = "notify_reminder_deleted called without job_queue"
         raise RuntimeError(msg)
-    removed = 0
-    for job in jq.get_jobs_by_name(f"reminder_{reminder_id}"):
-        remover = cast(Callable[[], None] | None, getattr(job, "remove", None))
-        if remover is not None:
-            try:
-                remover()
-                removed += 1
-                continue
-            except Exception:  # pragma: no cover - defensive
-                pass
-        scheduler = getattr(jq, "scheduler", None)
-        remove_job = (
-            cast(Callable[[object], None] | None, getattr(scheduler, "remove_job", None))
-            if scheduler is not None
-            else None
-        )
-        job_id = getattr(job, "id", None)
-        if remove_job is not None and job_id is not None:
-            try:
-                remove_job(job_id)
-                removed += 1
-                continue
-            except Exception:  # pragma: no cover - defensive
-                pass
-        schedule_removal = cast(
-            Callable[[], None] | None, getattr(job, "schedule_removal", None)
-        )
-        if schedule_removal is not None:
-            schedule_removal()
-            removed += 1
+    removed = _remove_jobs(jq, f"reminder_{reminder_id}")
     logger.info("Removed %d job(s) for reminder %s", removed, reminder_id)
 
 
