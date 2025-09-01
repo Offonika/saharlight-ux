@@ -49,6 +49,18 @@ export interface ProfileSettingsOut {
      * @memberof ProfileSettingsOut
      */
     carbUnits: ProfileSettingsOutCarbUnitsEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfileSettingsOut
+     */
+    sosContact?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ProfileSettingsOut
+     */
+    sosAlertsEnabled: boolean;
 }
 
 
@@ -71,6 +83,7 @@ export function instanceOfProfileSettingsOut(value: object): value is ProfileSet
     if (!('dia' in value) || value['dia'] === undefined) return false;
     if (!('roundStep' in value) || value['roundStep'] === undefined) return false;
     if (!('carbUnits' in value) || value['carbUnits'] === undefined) return false;
+    if (!('sosAlertsEnabled' in value) || value['sosAlertsEnabled'] === undefined) return false;
     return true;
 }
 
@@ -89,6 +102,8 @@ export function ProfileSettingsOutFromJSONTyped(json: any, ignoreDiscriminator: 
         'dia': json['dia'],
         'roundStep': json['roundStep'],
         'carbUnits': json['carbUnits'],
+        'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
+        'sosAlertsEnabled': json['sosAlertsEnabled'],
     };
 }
 
@@ -108,6 +123,8 @@ export function ProfileSettingsOutToJSONTyped(value?: ProfileSettingsOut | null,
         'dia': value['dia'],
         'roundStep': value['roundStep'],
         'carbUnits': value['carbUnits'],
+        'sosContact': value['sosContact'],
+        'sosAlertsEnabled': value['sosAlertsEnabled'],
     };
 }
 

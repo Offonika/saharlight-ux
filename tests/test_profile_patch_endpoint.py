@@ -75,6 +75,8 @@ def test_profile_patch_returns_settings(
     assert data["dia"] == 6
     assert data["roundStep"] == 1
     assert data["carbUnits"] == "xe"
+    assert data["sosAlertsEnabled"] is True
+    assert data["sosContact"] is None
 
     with SessionLocal() as session:
         user = session.get(db.User, 1)
@@ -84,6 +86,10 @@ def test_profile_patch_returns_settings(
         assert user.dia == 6
         assert user.round_step == 1
         assert user.carb_units == "xe"
+        prof = session.get(db.Profile, 1)
+        assert prof is not None
+        assert prof.sos_alerts_enabled is True
+        assert prof.sos_contact is None
 
 
 def test_profile_patch_partial_update(
@@ -99,6 +105,8 @@ def test_profile_patch_partial_update(
         assert data["dia"] == 5
         assert data["roundStep"] == 0.5
         assert data["carbUnits"] == "g"
+        assert data["sosAlertsEnabled"] is True
+        assert data["sosContact"] is None
 
     with SessionLocal() as session:
         user = session.get(db.User, 1)
@@ -106,3 +114,7 @@ def test_profile_patch_partial_update(
         assert user.dia == 5
         assert user.round_step == 0.5
         assert user.carb_units == "g"
+        prof = session.get(db.Profile, 1)
+        assert prof is not None
+        assert prof.sos_alerts_enabled is True
+        assert prof.sos_contact is None

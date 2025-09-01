@@ -185,6 +185,10 @@ def patch_user_settings(
     user = session.get(User, user_id)
     if not user:
         return False, False
+    profile = session.get(Profile, user_id)
+    if profile is None:
+        profile = Profile(telegram_id=user_id)
+        session.add(profile)
     if data.timezone is not None:
         user.timezone = data.timezone
     if data.timezoneAuto is not None:
@@ -195,6 +199,10 @@ def patch_user_settings(
         user.round_step = data.roundStep
     if data.carbUnits is not None:
         user.carb_units = data.carbUnits
+    if data.sosContact is not None:
+        profile.sos_contact = data.sosContact
+    if data.sosAlertsEnabled is not None:
+        profile.sos_alerts_enabled = data.sosAlertsEnabled
     if user.timezone_auto and device_tz and user.timezone != device_tz:
         user.timezone = device_tz
     try:

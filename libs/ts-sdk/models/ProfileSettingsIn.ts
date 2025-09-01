@@ -49,6 +49,18 @@ export interface ProfileSettingsIn {
      * @memberof ProfileSettingsIn
      */
     carbUnits?: ProfileSettingsInCarbUnitsEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfileSettingsIn
+     */
+    sosContact?: string | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ProfileSettingsIn
+     */
+    sosAlertsEnabled?: boolean;
 }
 
 
@@ -84,6 +96,8 @@ export function ProfileSettingsInFromJSONTyped(json: any, ignoreDiscriminator: b
         'dia': json['dia'] == null ? undefined : json['dia'],
         'roundStep': json['roundStep'] == null ? undefined : json['roundStep'],
         'carbUnits': json['carbUnits'] == null ? undefined : json['carbUnits'],
+        'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
+        'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
     };
 }
 
@@ -103,6 +117,8 @@ export function ProfileSettingsInToJSONTyped(value?: ProfileSettingsIn | null, i
         'dia': value['dia'],
         'roundStep': value['roundStep'],
         'carbUnits': value['carbUnits'],
+        'sosContact': value['sosContact'],
+        'sosAlertsEnabled': value['sosAlertsEnabled'],
     };
 }
 

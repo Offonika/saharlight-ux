@@ -60,6 +60,11 @@ async def patch_user_settings(
             user = User(telegram_id=telegram_id, thread_id="api")
             cast(Session, session).add(user)
 
+        profile = cast(Profile | None, session.get(Profile, telegram_id))
+        if profile is None:
+            profile = Profile(telegram_id=telegram_id)
+            cast(Session, session).add(profile)
+
         if data.timezone is not None:
             user.timezone = data.timezone
         if data.timezoneAuto is not None:
@@ -70,6 +75,10 @@ async def patch_user_settings(
             user.round_step = data.roundStep
         if data.carbUnits is not None:
             user.carb_units = data.carbUnits
+        if data.sosContact is not None:
+            profile.sos_contact = data.sosContact
+        if data.sosAlertsEnabled is not None:
+            profile.sos_alerts_enabled = data.sosAlertsEnabled
 
         if user.timezone_auto and device_tz and user.timezone != device_tz:
             user.timezone = device_tz
@@ -85,6 +94,8 @@ async def patch_user_settings(
             dia=user.dia,
             roundStep=user.round_step,
             carbUnits=CarbUnits(user.carb_units),
+            sosContact=profile.sos_contact,
+            sosAlertsEnabled=profile.sos_alerts_enabled,
         )
 
     return await db.run_db(_patch, sessionmaker=db.SessionLocal)

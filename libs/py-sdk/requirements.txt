@@ -1,2 +1,4 @@
-# Placeholder requirements for optional Python SDK.
-# Actual dependencies will be generated alongside the SDK.
+urllib3 >= 2.1.0, < 3.0.0
+python_dateutil >= 2.8.2
+pydantic >= 2
+typing-extensions >= 4.7.1

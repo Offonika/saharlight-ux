@@ -29,6 +29,16 @@ class ProfileSettingsIn(BaseModel):
         alias="carbUnits",
         validation_alias=AliasChoices("carbUnits", "carb_units"),
     )
+    sosContact: str | None = Field(
+        default=None,
+        alias="sosContact",
+        validation_alias=AliasChoices("sosContact", "sos_contact"),
+    )
+    sosAlertsEnabled: bool | None = Field(
+        default=None,
+        alias="sosAlertsEnabled",
+        validation_alias=AliasChoices("sosAlertsEnabled", "sos_alerts_enabled"),
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -49,3 +59,5 @@ class ProfileSettingsOut(ProfileSettingsIn):
     dia: float
     roundStep: float = Field(alias="roundStep")
     carbUnits: CarbUnits = Field(alias="carbUnits")
+    sosContact: str | None = Field(default=None, alias="sosContact")
+    sosAlertsEnabled: bool = Field(alias="sosAlertsEnabled")

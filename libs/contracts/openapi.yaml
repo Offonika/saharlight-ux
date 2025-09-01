@@ -733,6 +733,15 @@ components:
           - g
           - xe
           title: Carb Units
+        sosContact:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sos Contact
+        sosAlertsEnabled:
+          type: boolean
+          title: Sos Alerts Enabled
+          default: true
       type: object
       title: ProfileSettingsIn
     ProfileSettingsOut:
@@ -744,6 +753,7 @@ components:
       - dia
       - roundStep
       - carbUnits
+      - sosAlertsEnabled
       title: ProfileSettingsOut
     ProfileSchema:
       properties:

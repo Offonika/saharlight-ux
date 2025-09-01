@@ -270,6 +270,8 @@ def test_profile_patch_updates_timezone(
         data = resp.json()
         assert data["timezone"] == "Europe/Moscow"
         assert data["timezoneAuto"] is False
+        assert data["sosAlertsEnabled"] is True
+        assert data["sosContact"] is None
     with session_factory() as session:
         user = session.get(User, 1)
         assert user is not None
@@ -294,6 +296,8 @@ def test_profile_patch_auto_device_timezone(
         data = resp.json()
         assert data["timezone"] == "Europe/Moscow"
         assert data["timezoneAuto"] is True
+        assert data["sosAlertsEnabled"] is True
+        assert data["sosContact"] is None
     with session_factory() as session:
         user = session.get(User, 1)
         assert user is not None
