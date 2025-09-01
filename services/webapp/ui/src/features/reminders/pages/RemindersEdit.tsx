@@ -4,6 +4,7 @@ import type { ReminderSchema } from "@sdk";
 import { useRemindersApi } from "../api/reminders";
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
 import { DaysPresets } from "../components/DaysPresets";
+import AfterEventDelay from "../components/AfterEventDelay";
 import {
   buildReminderPayload,
   ReminderFormValues,
@@ -17,7 +18,6 @@ import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
 import { useTelegram } from "@/hooks/useTelegram";
 import TimeInput from "@/components/TimeInput";
-import { useDefaultAfterMealMinutes } from "../../profile/hooks";
 
 const TYPE_OPTIONS: { value: ReminderType; label: string }[] = [
   { value: "sugar", label: "Измерение сахара" },
@@ -72,19 +72,11 @@ export default function RemindersEdit() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const toast = useToast();
-  const defaultAfterMeal = useDefaultAfterMealMinutes(telegramId);
   const [form, setForm] = useState<ReminderFormValues | null>(null);
   const [saving, setSaving] = useState(false);
 
   const presetsTime = ["07:30", "12:30", "22:00"];
   const presetsEvery = [60, 120, 180, 1440];
-  const presetsAfter = useMemo(() => {
-    const base = [90, 120, 150];
-    if (defaultAfterMeal && !base.includes(defaultAfterMeal)) {
-      return [defaultAfterMeal, ...base];
-    }
-    return base;
-  }, [defaultAfterMeal]);
 
   useEffect(() => {
     async function load() {
@@ -172,7 +164,7 @@ export default function RemindersEdit() {
       if (k === "at_time") base.time = "07:30";
       if (k === "every") base.intervalMinutes = 60;
       if (k === "after_event") {
-        base.minutesAfter = defaultAfterMeal ?? 120;
+        base.minutesAfter = 120;
         base.type = "after_meal";
       }
       return base;
@@ -309,38 +301,11 @@ export default function RemindersEdit() {
           )}
 
           {form.kind === "after_event" && (
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-foreground">
-                Через сколько минут после еды
-              </label>
-              <input
-                type="number"
-                className={`medical-input ${
-                  errors.minutesAfter
-                    ? "border-destructive focus:border-destructive"
-                    : ""
-                }`}
-                value={form.minutesAfter?.toString() || ""}
-                onChange={(e) => onChange("minutesAfter", Number(e.target.value))}
-              />
-              {errors.minutesAfter && (
-                <p className="text-xs text-destructive mt-1">
-                  {errors.minutesAfter}
-                </p>
-              )}
-              <div className="flex gap-2 flex-wrap">
-                {presetsAfter.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-colors"
-                    onClick={() => onChange("minutesAfter", t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <AfterEventDelay
+              value={form.minutesAfter}
+              onChange={(v) => onChange("minutesAfter", v)}
+              error={errors.minutesAfter}
+            />
           )}
 
           {/* Дни недели */}

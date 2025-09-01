@@ -2,44 +2,62 @@ import React from "react";
 
 interface Props {
   value?: number;
-  onChange: (minutes: number) => void;
-  presets?: number[];
+  onChange: (v?: number) => void;
+  error?: string;
 }
 
-const DEFAULT_PRESETS = [60, 90, 120];
+const PRESETS = [60, 90, 120, 150, 180, 240];
 
-export default function AfterEventDelay({
-  value,
-  onChange,
-  presets = DEFAULT_PRESETS,
-}: Props) {
+export default function AfterEventDelay({ value, onChange, error }: Props) {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value === "" ? undefined : Number(e.target.value);
+    onChange(val);
+  };
+
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-foreground">
-        Задержка после события (мин)
-      </label>
+      <div className="flex items-center gap-2">
+        <label className="block text-sm font-medium text-foreground">
+          Задержка после еды (мин)
+        </label>
+        <span className="text-xs text-muted-foreground">
+          Сработает после записи приёма пищи в «Истории»
+        </span>
+      </div>
       <input
         type="number"
-        min={1}
-        className="medical-input"
+        min={5}
+        max={480}
+        step={5}
+        aria-label="Задержка после еды (мин)"
+        className={`medical-input rounded-xl ${error ? "border-destructive focus:border-destructive" : ""}`}
         value={value ?? ""}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={handleChange}
       />
+      {error && (
+        <p className="text-xs text-destructive mt-1">{error}</p>
+      )}
       <div className="flex gap-2 flex-wrap">
-        {presets.map((m) => (
+        {PRESETS.map((m) => (
           <button
             key={m}
             type="button"
             aria-pressed={value === m}
-            className={`px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-colors ${
-              value === m ? "bg-secondary" : ""
-            }`}
             onClick={() => onChange(m)}
+            className={`px-3 py-2 rounded-xl border text-sm font-medium transition-all duration-200 ${
+              value === m
+                ? "bg-primary text-primary-foreground border-primary shadow-soft"
+                : "border-border bg-background text-foreground hover:bg-secondary hover:border-primary/20"
+            }`}
           >
-            {m} мин
+            {m}
           </button>
         ))}
       </div>
+      <p className="text-xs text-muted-foreground">
+        Рекомендации: 60–90 — промежуточная; 120 — основная; 180–240 — поздняя
+      </p>
     </div>
   );
 }
+
