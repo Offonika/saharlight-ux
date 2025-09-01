@@ -49,7 +49,9 @@ export function buildReminderPayload(v: ReminderFormValues): ReminderSchema {
     kind: values.kind,
     isEnabled: values.isEnabled ?? true,
     title: generateTitle(values),
-    ...(values.daysOfWeek ? { daysOfWeek: new Set(values.daysOfWeek) } : {}),
+    ...(values.kind !== "after_event" && values.daysOfWeek
+      ? { daysOfWeek: new Set(values.daysOfWeek) }
+      : {}),
   };
 
   // Backend only supports one of: time, intervalMinutes, minutesAfter
