@@ -6,7 +6,7 @@ from collections.abc import Generator
 from datetime import datetime, time, timedelta, timezone, tzinfo
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Any, Callable, cast
 
 import pytest
@@ -812,6 +812,11 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         session.commit()
 
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    monkeypatch.setattr(
+        handlers.reminder_events,
+        "notify_reminder_saved",
+        AsyncMock(),
+    )
     with TestSession() as session:
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
@@ -898,6 +903,11 @@ async def test_toggle_reminder_without_job_queue(monkeypatch: pytest.MonkeyPatch
 
     schedule_mock = MagicMock()
     monkeypatch.setattr(handlers, "schedule_reminder", schedule_mock)
+    monkeypatch.setattr(
+        handlers.reminder_events,
+        "notify_reminder_saved",
+        AsyncMock(),
+    )
 
     query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
@@ -939,6 +949,11 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
         user = session.get(DbUser, 1)
         assert rem is not None
         handlers.schedule_reminder(rem, job_queue, user)
+    monkeypatch.setattr(
+        handlers.reminder_events,
+        "notify_reminder_saved",
+        AsyncMock(),
+    )
 
     msg = DummyMessage()
     web_app_data = MagicMock()

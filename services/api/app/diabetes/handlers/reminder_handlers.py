@@ -263,12 +263,26 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
     """Пересоздаёт задачу с обновлённым временем."""
     job_name = f"reminder_{reminder.id}"
 
+    for job in job_queue.get_jobs_by_name(job_name):
+        remover = getattr(job, "remove", None)
+        if callable(remover):
+            remover()
+        else:
+            job.schedule_removal()  # type: ignore[no-untyped-call]
+
     schedule_reminder(reminder, job_queue, user)
-    logger.info(
-        "♻️ Rescheduled job %s -> %s",
-        job_name,
-        reminder.time or reminder.minutes_after or reminder.interval_minutes,
-    )
+
+    next_run = None
+    job = next(iter(job_queue.get_jobs_by_name(job_name)), None)
+    if job is not None:
+        next_run = (
+            getattr(job, "next_run_time", None)
+            or getattr(job, "next_t", None)
+            or getattr(job, "when", None)
+            or getattr(job, "run_time", None)
+        )
+
+    logger.info("♻️ Rescheduled job %s -> next_run=%s", job_name, next_run)
 
 
 def schedule_all(job_queue: DefaultJobQueue | None) -> None:
@@ -429,6 +443,11 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if status == "error":
         await message.reply_text("⚠️ Не удалось сохранить напоминание.")
         return
+    job_queue: DefaultJobQueue | None = cast(
+        DefaultJobQueue | None, context.job_queue
+    )
+    if job_queue is not None and db_user is not None:
+        _reschedule_job(job_queue, reminder, db_user)
 
     await reminder_events.notify_reminder_saved(reminder.id)
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
@@ -710,8 +729,8 @@ async def reminder_webapp_save(
                 )
             else:
                 _reschedule_job(job_queue, rem, user_obj)
-        else:
-            await reminder_events.notify_reminder_saved(rem.id)
+
+        await reminder_events.notify_reminder_saved(rem.id)
 
     render_fn = cast(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
@@ -963,10 +982,11 @@ async def reminder_action_cb(
             else:
                 with SessionLocal() as session:
                     user_obj = session.get(User, rem.telegram_id)
-                schedule_reminder(rem, job_queue, user_obj)
+                _reschedule_job(job_queue, rem, user_obj)
         elif job_queue is not None:
             for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()
+        await reminder_events.notify_reminder_saved(rid)
     else:  # del
         if job_queue is not None:
             for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):

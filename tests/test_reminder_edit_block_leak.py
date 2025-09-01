@@ -9,6 +9,7 @@ from datetime import time
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from unittest.mock import AsyncMock
 
 import services.api.app.diabetes.handlers.reminder_handlers as handlers
 from services.api.app.diabetes.services.repository import commit
@@ -80,7 +81,9 @@ def _setup_db() -> tuple[sessionmaker[Session], Any]:
 
 
 @pytest.mark.asyncio
-async def test_bad_input_does_not_create_entry() -> None:
+async def test_bad_input_does_not_create_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     TestSession, engine = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "bad"}))
     update = cast(
@@ -88,6 +91,11 @@ async def test_bad_input_does_not_create_entry() -> None:
         SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(Any, SimpleNamespace(job_queue=DummyJobQueue()))
+    monkeypatch.setattr(
+        handlers.reminder_events,
+        "notify_reminder_saved",
+        AsyncMock(),
+    )
     with no_warnings():
         await handlers.reminder_webapp_save(update, context)
     assert msg.replies and "Неверный формат" in msg.replies[0]
@@ -98,7 +106,9 @@ async def test_bad_input_does_not_create_entry() -> None:
 
 
 @pytest.mark.asyncio
-async def test_good_input_updates_and_ends() -> None:
+async def test_good_input_updates_and_ends(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     TestSession, engine = _setup_db()
     msg = DummyMessage(json.dumps({"id": 1, "type": "sugar", "value": "09:30"}))
     update = cast(
@@ -106,6 +116,11 @@ async def test_good_input_updates_and_ends() -> None:
         SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
     )
     context = cast(Any, SimpleNamespace(job_queue=DummyJobQueue()))
+    monkeypatch.setattr(
+        handlers.reminder_events,
+        "notify_reminder_saved",
+        AsyncMock(),
+    )
     with no_warnings():
         await handlers.reminder_webapp_save(update, context)
     with TestSession() as session:
