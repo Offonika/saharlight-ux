@@ -176,14 +176,14 @@ def _render_reminders(
     user = session.query(User).filter_by(telegram_id=user_id).first()
     limit = _limit_for(user)
     active_count = sum(1 for r in rems if r.is_enabled)
-    header = f"Ваши напоминания  ({active_count} / {limit} 🔔)"
+    header = f"Ваши напоминания ({active_count} / {limit} 🔔)"
     if active_count > limit:
         header += " ⚠️"
 
-    webapp_enabled: bool = bool(config.get_settings().public_origin)
+    webapp_enabled: bool = bool(settings.public_origin)
 
-    origin = settings.public_origin.rstrip("/")
-    base_url = settings.ui_base_url.strip("/")
+    origin = (settings.public_origin or "").rstrip("/")
+    base_url = (getattr(settings, "ui_base_url", "") or "").strip("/")
 
     def build_url(path: str) -> str:
         rel = path.lstrip("/")
@@ -1134,7 +1134,7 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
             when=timedelta(minutes=float(minutes_after)),
             data={"reminder_id": rem.id, "chat_id": user_id},
             name=name,
-            job_kwargs={"id": name, "replace_existing": True},
+            job_kwargs={"id": name, "name": name, "replace_existing": True},
         )
 
 

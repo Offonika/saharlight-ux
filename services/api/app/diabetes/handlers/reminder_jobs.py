@@ -9,7 +9,6 @@ from zoneinfo import ZoneInfo
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
-from services.api.app.diabetes.utils.jobs import schedule_once
 
 logger = logging.getLogger(__name__)
 
@@ -22,15 +21,11 @@ else:
 def schedule_reminder(
     rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None
 ) -> None:
-    """Schedule a reminder in the provided job queue."""
     if job_queue is None:
-        msg = "schedule_reminder called without job_queue"
-        raise RuntimeError(msg)
+        raise RuntimeError("schedule_reminder called without job_queue")
     if rem.telegram_id is None:
-        msg = "schedule_reminder called without telegram_id"
-        raise ValueError(msg)
+        raise ValueError("schedule_reminder called without telegram_id")
 
-    # Import lazily to avoid circular imports.
     from services.api.app import reminder_events
     from . import reminder_handlers
 
@@ -47,108 +42,97 @@ def schedule_reminder(
     tz = ZoneInfo(getattr(user, "timezone", None) or "UTC")
 
     name = f"reminder_{rem.id}"
+
+    # ---- kind detection + back-compat ----
     kind = rem.kind
-    interval_minutes = rem.interval_minutes
     if kind is None:
-        if interval_minutes is None and rem.interval_hours is not None:
-            interval_minutes = rem.interval_hours * 60
-            kind = "every"
-        elif rem.minutes_after is not None:
+        if rem.minutes_after is not None:
             kind = "after_event"
-        elif interval_minutes:
+        elif (rem.interval_minutes is not None) or (rem.interval_hours is not None):
             kind = "every"
         else:
             kind = "at_time"
+
+    # расчёт интервала с back-compat
+    interval_min = rem.interval_minutes
+    if interval_min is None and rem.interval_hours is not None:
+        interval_min = int(rem.interval_hours) * 60
 
     logger.info(
         "PLAN %s kind=%s time=%s interval_min=%s after_min=%s tz=%s",
         name,
         kind,
         rem.time,
-        interval_minutes,
+        interval_min,
         rem.minutes_after,
         tz,
     )
 
     context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
+    job_kwargs: dict[str, object] = {"id": name, "name": name, "replace_existing": True}
 
-    job_kwargs: dict[str, object] = {"id": name, "replace_existing": True}
+    if kind == "after_event":
+        # ВАЖНО: не планируем заранее. Ставится только при триггере (schedule_after_meal / snooze).
+        logger.info("Skip scheduling %s: 'after_event' is scheduled on trigger.", name)
+        next_run = None
 
-    if kind == "after_event" and rem.minutes_after is not None:
-        schedule_once(
-            job_queue,
-            reminder_job,
-            when=timedelta(minutes=float(rem.minutes_after)),
-            data=context,
-            name=name,
-            job_kwargs=job_kwargs,
-        )
     elif kind == "at_time" and rem.time is not None:
         mask = getattr(rem, "days_mask", 0) or 0
         days = tuple(i for i in range(7) if mask & (1 << i)) if mask else None
+
         run_daily = job_queue.run_daily
         sig = inspect.signature(run_daily)
-        job_kwargs_cast = cast(dict[str, Any], job_kwargs)
+        t = rem.time
+        if "timezone" not in sig.parameters:
+            # PTB без параметра timezone — делаем time tz-aware
+            t = rem.time.replace(tzinfo=tz)
+
         if days is not None and "days" in sig.parameters:
-            if "timezone" in sig.parameters:
-                cast(Any, run_daily)(
-                    reminder_job,
-                    time=rem.time,
-                    days=days,
-                    data=context,
-                    name=name,
-                    job_kwargs=job_kwargs_cast,
-                    timezone=tz,
-                )
-            else:
-                run_daily(
-                    reminder_job,
-                    time=rem.time,
-                    days=days,
-                    data=context,
-                    name=name,
-                    job_kwargs=job_kwargs_cast,
-                )
-        else:
-            if "timezone" in sig.parameters:
-                cast(Any, run_daily)(
-                    reminder_job,
-                    time=rem.time,
-                    data=context,
-                    name=name,
-                    job_kwargs=job_kwargs_cast,
-                    timezone=tz,
-                )
-            else:
-                run_daily(
-                    reminder_job,
-                    time=rem.time,
-                    data=context,
-                    name=name,
-                    job_kwargs=job_kwargs_cast,
-                )
-    elif kind == "every" and interval_minutes is not None:
-        run_repeating = getattr(job_queue, "run_repeating", None)
-        if run_repeating is not None:
-            cast(Any, run_repeating)(
+            cast(Any, run_daily)(
                 reminder_job,
-                interval=timedelta(minutes=int(interval_minutes)),
+                time=t,
+                days=days,
                 data=context,
                 name=name,
                 job_kwargs=job_kwargs,
+                timezone=tz if "timezone" in sig.parameters else None,
             )
         else:
-            logger.warning("Job queue lacks run_repeating; skipping %s", name)
+            cast(Any, run_daily)(
+                reminder_job,
+                time=t,
+                data=context,
+                name=name,
+                job_kwargs=job_kwargs,
+                timezone=tz if "timezone" in sig.parameters else None,
+            )
 
-    job = next(iter(job_queue.get_jobs_by_name(name)), None)
-    next_run = None
-    if job is not None:
+        job = next(iter(job_queue.get_jobs_by_name(name)), None)
         next_run = (
             getattr(job, "next_run_time", None)
             or getattr(job, "next_t", None)
             or getattr(job, "when", None)
             or getattr(job, "run_time", None)
         )
+
+    elif kind == "every" and interval_min and interval_min > 0:
+        job_queue.run_repeating(
+            reminder_job,
+            interval=timedelta(minutes=int(interval_min)),
+            data=context,
+            name=name,
+            job_kwargs=job_kwargs,
+        )
+        job = next(iter(job_queue.get_jobs_by_name(name)), None)
+        next_run = (
+            getattr(job, "next_run_time", None)
+            or getattr(job, "next_t", None)
+            or getattr(job, "when", None)
+            or getattr(job, "run_time", None)
+        )
+    else:
+        next_run = None
+
     logger.info("SET %s kind=%s next_run=%s", name, kind, next_run)
 
 

@@ -627,7 +627,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         text, markup = handlers._render_reminders(session, 1)
     assert markup is not None
     header, *rest = text.splitlines()
-    assert header == "Ваши напоминания  (2 / 1 🔔) ⚠️"
+    assert header == "Ваши напоминания (2 / 1 🔔) ⚠️"
     assert "⏰ По времени" in text
     assert "⏱ Интервал" in text
     assert "📸 Триггер-фото" in text

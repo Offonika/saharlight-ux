@@ -53,7 +53,9 @@ class DummyJobQueue:
 def make_session() -> sessionmaker[Session]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    return sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+    return sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
 
 
 def test_schedule_reminder_after_meal() -> None:
@@ -76,12 +78,7 @@ def test_schedule_reminder_after_meal() -> None:
     dummy_queue = DummyJobQueue()
     job_queue = cast(handlers.DefaultJobQueue, dummy_queue)
     handlers.schedule_reminder(rem, job_queue, user)
-    assert len(dummy_queue.jobs) == 1
-    job = dummy_queue.jobs[0]
-    assert job.callback is handlers.reminder_job
-    assert job.when == timedelta(minutes=30)
-    assert job.data == {"reminder_id": 1, "chat_id": 1}
-    assert job.name == "reminder_1"
+    assert not dummy_queue.jobs
     with TestSession() as session:
         rem_db = session.get(Reminder, 1)
         assert rem_db is not None
@@ -110,7 +107,7 @@ def test_schedule_reminder_after_meal_no_duplicate_jobs() -> None:
     handlers.schedule_reminder(rem, job_queue, user)
     handlers.schedule_reminder(rem, job_queue, user)
     jobs = list(dummy_queue.get_jobs_by_name("reminder_1"))
-    assert len(jobs) == 1
+    assert len(jobs) == 0
 
 
 def test_schedule_after_meal_single_reminder() -> None:
