@@ -106,7 +106,8 @@ def main() -> None:  # pragma: no cover
 
     # ---- Wire job_queue to API layer
     from services.api.app import reminder_events
-    reminder_events.register_job_queue(application.job_queue)
+    reminder_events.register_job_queue(job_queue)
+    reminder_events.schedule_reminders_gc(job_queue)
 
     # ---- Register handlers (they may schedule reminders)
     register_handlers(application)
