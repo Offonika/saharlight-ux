@@ -26,9 +26,10 @@ def register_job_queue(jq: DefaultJobQueue | None) -> None:
 async def notify_reminder_saved(reminder_id: int) -> None:
     """Send reminder to the job queue for scheduling.
 
-    Performs database access in a thread pool to avoid blocking the
-    event loop. Raises :class:`RuntimeError` if the job queue is not
-    configured.
+    Performs database access in a thread pool to avoid blocking the event loop.
+    This coroutine must be awaited or scheduled via ``asyncio.create_task`` so
+    that the reminder is actually enqueued. Raises :class:`RuntimeError` if the
+    job queue is not configured.
     """
     jq = job_queue
     if jq is None:
