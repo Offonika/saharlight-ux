@@ -65,6 +65,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
 
     context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
 
+    job_kwargs = {"id": name, "name": name, "replace_existing": True}
     if kind == "after_event" and rem.minutes_after is not None:
         when_td = timedelta(minutes=float(rem.minutes_after))
         schedule_once(
@@ -74,38 +75,47 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
             data=context,
             name=name,
             timezone=tz,
-            job_kwargs={"id": name, "name": name, "replace_existing": True},
+            job_kwargs=job_kwargs,
         )
     elif kind == "at_time" and rem.time is not None:
-        params: dict[str, object] = {
-            "hour": rem.time.hour,
-            "minute": rem.time.minute,
-        }
         mask = getattr(rem, "days_mask", 0) or 0
-        if mask:
-            days = ",".join(str(i) for i in range(7) if mask & (1 << i))
-            params["day_of_week"] = days
-        job_queue.scheduler.add_job(
-            reminder_job,
-            trigger="cron",
-            id=name,
-            name=name,
-            replace_existing=True,
-            timezone=tz,
-            kwargs={"context": context},
-            **params,
-        )
+        days = tuple(i for i in range(7) if mask & (1 << i)) if mask else None
+        if days is None:
+            job_queue.run_daily(
+                reminder_job,
+                time=rem.time.replace(tzinfo=tz),
+                data=context,
+                name=name,
+                job_kwargs=job_kwargs,
+            )
+        else:
+            job_queue.run_daily(
+                reminder_job,
+                time=rem.time.replace(tzinfo=tz),
+                days=days,
+                data=context,
+                name=name,
+                job_kwargs=job_kwargs,
+            )
     elif kind == "every" and rem.interval_minutes is not None:
-        job_queue.scheduler.add_job(
+        job_queue.run_repeating(
             reminder_job,
-            trigger="interval",
-            id=name,
+            interval=timedelta(minutes=int(rem.interval_minutes)),
+            data=context,
             name=name,
-            replace_existing=True,
-            minutes=int(rem.interval_minutes),
-            timezone=tz,
-            kwargs={"context": context},
+            job_kwargs=job_kwargs,
         )
+
+    job = next(iter(job_queue.get_jobs_by_name(name)), None)
+    next_run = None
+    if job is not None:
+        next_run = (
+            getattr(job, "next_run_time", None)
+            or getattr(job, "next_t", None)
+            or getattr(job, "when", None)
+            or getattr(job, "run_time", None)
+        )
+    logger.info("SET %s kind=%s next_run=%s", name, kind, next_run)
 
 
 __all__ = ["DefaultJobQueue", "schedule_reminder"]

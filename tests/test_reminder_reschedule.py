@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import time as dt_time
+from datetime import time as dt_time, timedelta
 from types import SimpleNamespace
 from typing import Callable
 from zoneinfo import ZoneInfo
@@ -55,6 +55,51 @@ class DummyJobQueue:
         tz = ZoneInfo("UTC")
         self.scheduler = DummyScheduler(tz)
         self.application = SimpleNamespace(timezone=tz, scheduler=self.scheduler)
+
+    def run_daily(
+        self,
+        callback: Callable[..., object],
+        time: dt_time,
+        *,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+        job_kwargs: dict[str, object] | None = None,
+    ) -> DummyJob:
+        params: dict[str, object] = {"hour": time.hour, "minute": time.minute}
+        if days != (0, 1, 2, 3, 4, 5, 6):
+            params["day_of_week"] = ",".join(str(d) for d in days)
+        return self.scheduler.add_job(
+            callback,
+            trigger="cron",
+            id=name or "",
+            name=name or "",
+            replace_existing=bool(job_kwargs and job_kwargs.get("replace_existing")),
+            timezone=time.tzinfo or ZoneInfo("UTC"),
+            kwargs={"context": data},
+            **params,
+        )
+
+    def run_repeating(
+        self,
+        callback: Callable[..., object],
+        interval: timedelta,
+        *,
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+        job_kwargs: dict[str, object] | None = None,
+    ) -> DummyJob:
+        minutes = int(interval.total_seconds() / 60)
+        return self.scheduler.add_job(
+            callback,
+            trigger="interval",
+            id=name or "",
+            name=name or "",
+            replace_existing=bool(job_kwargs and job_kwargs.get("replace_existing")),
+            timezone=ZoneInfo("UTC"),
+            kwargs={"context": data},
+            minutes=minutes,
+        )
 
     def get_jobs_by_name(self, name: str) -> list[DummyJob]:
         return [j for j in self.scheduler.jobs if j.name == name]

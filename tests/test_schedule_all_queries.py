@@ -33,8 +33,11 @@ class DummyJobQueue:
         self,
         callback: Callable[..., object],
         time: object,
+        *,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
         data: dict[str, object] | None = None,
         name: str | None = None,
+        job_kwargs: dict[str, object] | None = None,
     ) -> DummyJob:
         job = DummyJob(name, data)
         self._jobs.append(job)
@@ -46,6 +49,7 @@ class DummyJobQueue:
         interval: object,
         data: dict[str, object] | None = None,
         name: str | None = None,
+        job_kwargs: dict[str, object] | None = None,
     ) -> DummyJob:
         job = DummyJob(name, data)
         self._jobs.append(job)
@@ -58,6 +62,7 @@ class DummyJobQueue:
         data: dict[str, object] | None = None,
         name: str | None = None,
         timezone: object | None = None,
+        job_kwargs: dict[str, object] | None = None,
     ) -> DummyJob:
         job = DummyJob(name, data)
         self._jobs.append(job)

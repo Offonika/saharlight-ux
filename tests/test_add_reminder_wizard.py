@@ -6,6 +6,7 @@ from typing import Any, Callable, cast
 
 import pytest
 from datetime import time
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -58,6 +59,51 @@ class DummyScheduler:
 class DummyJobQueue:
     def __init__(self) -> None:
         self.scheduler = DummyScheduler()
+
+    def run_daily(
+        self,
+        callback: Callable[..., Any],
+        time: Any,
+        *,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> Any:
+        params = {"hour": time.hour, "minute": time.minute}
+        if days != (0, 1, 2, 3, 4, 5, 6):
+            params["day_of_week"] = ",".join(str(d) for d in days)
+        return self.scheduler.add_job(
+            callback,
+            trigger="cron",
+            id=name or "",
+            name=name or "",
+            replace_existing=bool(job_kwargs and job_kwargs.get("replace_existing")),
+            timezone=getattr(time, "tzinfo", None) or ZoneInfo("UTC"),
+            kwargs={"context": data},
+            **params,
+        )
+
+    def run_repeating(
+        self,
+        callback: Callable[..., Any],
+        interval: Any,
+        *,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> Any:
+        minutes = int(interval.total_seconds() / 60)
+        return self.scheduler.add_job(
+            callback,
+            trigger="interval",
+            id=name or "",
+            name=name or "",
+            replace_existing=bool(job_kwargs and job_kwargs.get("replace_existing")),
+            timezone=ZoneInfo("UTC"),
+            kwargs={"context": data},
+            minutes=minutes,
+        )
 
     def get_jobs_by_name(self, name: str) -> list[Any]:
         return [j for j in self.scheduler.jobs if j["name"] == name]

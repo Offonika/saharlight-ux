@@ -45,8 +45,11 @@ class DummyJobQueue:
         self,
         callback: Callable[..., Any],
         time: Any,
+        *,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
         data: dict[str, Any] | None = None,
         name: str | None = None,
+        job_kwargs: dict[str, Any] | None = None,
     ) -> None:
         pass
 
@@ -54,8 +57,10 @@ class DummyJobQueue:
         self,
         callback: Callable[..., Any],
         interval: Any,
+        *,
         data: dict[str, Any] | None = None,
         name: str | None = None,
+        job_kwargs: dict[str, Any] | None = None,
     ) -> None:
         pass
 
