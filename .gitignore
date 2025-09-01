@@ -69,3 +69,4 @@ debug_reminders.py
 ql -h localhost -U diabetes_user -d diabetes_bot -c SELECT id, time, pg_typeof(time) FROM reminders WHERE id=3;
 services/webapp/ui/udo systemctl status diabetes-bot
 services/webapp/ui/udo systemctl status diabetes-bot --no-pager -l
+-ef | grep python | grep -v 3.12
