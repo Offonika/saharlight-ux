@@ -1,4 +1,4 @@
-import { Clock, User, BookOpen, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
@@ -8,30 +8,6 @@ import { StatCard } from '@/components/StatCard';
 import { fetchDayStats, fallbackDayStats } from '@/api/stats';
 
 const menuItems = [
-  {
-    id: 'reminders',
-    title: 'Напоминания',
-    icon: Clock,
-    description: 'Настройка уведомлений',
-    route: '/reminders',
-    color: 'medical-blue'
-  },
-  {
-    id: 'profile', 
-    title: 'Мой профиль',
-    icon: User,
-    description: 'Личные настройки',
-    route: '/profile',
-    color: 'medical-teal'
-  },
-  {
-    id: 'history',
-    title: 'История',
-    icon: BookOpen,
-    description: 'Записи о сахаре',
-    route: '/history',
-    color: 'medical-success'
-  },
   {
     id: 'subscription',
     title: 'Подписка',
@@ -75,7 +51,11 @@ const Home = () => {
         </div>
 
         {/* Главное меню */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div
+          className={`grid gap-4 mb-8 ${
+            menuItems.length === 1 ? 'grid-cols-1 justify-items-center' : 'grid-cols-2'
+          }`}
+        >
           {menuItems.map((item, index) => {
             const Icon = item.icon;
             return (
