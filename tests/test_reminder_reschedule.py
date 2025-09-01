@@ -17,6 +17,9 @@ class DummyJob:
     def remove(self) -> None:
         self._queue._jobs.remove(self)
 
+    def schedule_removal(self) -> None:
+        self.remove()
+
 
 class DummyJobQueue:
     def __init__(self) -> None:

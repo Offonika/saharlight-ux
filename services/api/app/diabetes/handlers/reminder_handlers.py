@@ -264,11 +264,7 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
     job_name = f"reminder_{reminder.id}"
 
     for job in job_queue.get_jobs_by_name(job_name):
-        remover = getattr(job, "remove", None)
-        if callable(remover):
-            remover()
-        else:
-            job.schedule_removal()  # type: ignore[no-untyped-call]
+        job.schedule_removal()
 
     schedule_reminder(reminder, job_queue, user)
 
