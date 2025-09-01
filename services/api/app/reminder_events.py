@@ -51,6 +51,9 @@ async def notify_reminder_saved(reminder_id: int) -> None:
     if rem is None:
         logger.warning("Reminder %s not found for scheduling", reminder_id)
         return
+    if not rem.is_enabled or rem.kind == "after_event":
+        notify_reminder_deleted(reminder_id)
+        return
     schedule_reminder(rem, jq, user)
 
 
