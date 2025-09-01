@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
+from services.api.app.diabetes.utils.jobs import schedule_once
 
 logger = logging.getLogger(__name__)
 
@@ -70,9 +71,15 @@ def schedule_reminder(
 
     job_kwargs: dict[str, object] = {"id": name, "replace_existing": True}
 
-    if kind == "after_event":
-        logger.info("Skip scheduling %s: 'after_event' is scheduled on trigger.", name)
-        return
+    if kind == "after_event" and rem.minutes_after is not None:
+        schedule_once(
+            job_queue,
+            reminder_job,
+            when=timedelta(minutes=float(rem.minutes_after)),
+            data=context,
+            name=name,
+            job_kwargs=job_kwargs,
+        )
     elif kind == "at_time" and rem.time is not None:
         mask = getattr(rem, "days_mask", 0) or 0
         days = tuple(i for i in range(7) if mask & (1 << i)) if mask else None
@@ -118,13 +125,17 @@ def schedule_reminder(
                     job_kwargs=job_kwargs_cast,
                 )
     elif kind == "every" and rem.interval_minutes is not None:
-        job_queue.run_repeating(
-            reminder_job,
-            interval=timedelta(minutes=int(rem.interval_minutes)),
-            data=context,
-            name=name,
-            job_kwargs=job_kwargs,
-        )
+        run_repeating = getattr(job_queue, "run_repeating", None)
+        if run_repeating is not None:
+            cast(Any, run_repeating)(
+                reminder_job,
+                interval=timedelta(minutes=int(rem.interval_minutes)),
+                data=context,
+                name=name,
+                job_kwargs=job_kwargs,
+            )
+        else:
+            logger.warning("Job queue lacks run_repeating; skipping %s", name)
 
     job = next(iter(job_queue.get_jobs_by_name(name)), None)
     next_run = None
