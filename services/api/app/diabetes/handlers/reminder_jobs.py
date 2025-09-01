@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
-from services.api.app.diabetes.utils.jobs import schedule_daily, schedule_once
+from services.api.app.diabetes.utils.jobs import _remove_jobs, schedule_daily, schedule_once
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +37,10 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
     SessionLocal = reminder_handlers.SessionLocal
 
     name = f"reminder_{rem.id}"
-    for job in job_queue.get_jobs_by_name(name):
-        remover = getattr(job, "remove", None)
-        if callable(remover):
-            remover()
-        else:
-            job_queue.scheduler.remove_job(job.id)
+    _remove_jobs(job_queue, name)
+
+    scheduler = getattr(job_queue, "scheduler", None)
+    add_job = getattr(scheduler, "add_job", None)
     if not rem.is_enabled:
         logger.debug(
             "Reminder %s disabled, skipping (type=%s, time=%s, interval=%s, minutes_after=%s)",
@@ -108,14 +106,27 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
                 minutes_after,
             )
             when_td = timedelta(minutes=float(minutes_after))
-            schedule_once(
-                job_queue,
-                reminder_job,
-                when=when_td,
-                data=data,
-                name=name,
-                timezone=job_tz,
-            )
+            if callable(add_job):
+                run_date = datetime.datetime.now(job_tz) + when_td
+                add_job(
+                    reminder_job,
+                    trigger="date",
+                    run_date=run_date,
+                    kwargs={"data": data},
+                    id=name,
+                    name=name,
+                    replace_existing=True,
+                    timezone=job_tz,
+                )
+            else:
+                schedule_once(
+                    job_queue,
+                    reminder_job,
+                    when=when_td,
+                    data=data,
+                    name=name,
+                    timezone=job_tz,
+                )
     elif kind == "at_time" and rem.time:
         logger.debug(
             "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
@@ -130,15 +141,34 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
         mask = getattr(rem, "days_mask", 0) or 0
         if mask:
             days = tuple(i for i in range(7) if mask & (1 << i))
-        schedule_daily(
-            job_queue,
-            reminder_job,
-            time=job_time,
-            data=data,
-            name=name,
-            timezone=job_tz,
-            days=days,
-        )
+        if callable(add_job):
+            cron_kwargs = {
+                "hour": job_time.hour,
+                "minute": job_time.minute,
+                "second": job_time.second,
+            }
+            if days is not None:
+                cron_kwargs["day_of_week"] = ",".join(str(d) for d in days)
+            add_job(
+                reminder_job,
+                trigger="cron",
+                kwargs={"data": data},
+                id=name,
+                name=name,
+                replace_existing=True,
+                timezone=job_tz,
+                **cron_kwargs,
+            )
+        else:
+            schedule_daily(
+                job_queue,
+                reminder_job,
+                time=job_time,
+                data=data,
+                name=name,
+                timezone=job_tz,
+                days=days,
+            )
     elif kind == "every":
         minutes = rem.interval_minutes if rem.interval_minutes is not None else (rem.interval_hours or 0) * 60
         if minutes:
@@ -150,12 +180,23 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
                 rem.interval_hours or rem.interval_minutes,
                 rem.minutes_after,
             )
-            job_queue.run_repeating(
-                reminder_job,
-                interval=timedelta(minutes=minutes),
-                data=data,
-                name=name,
-            )
+            if callable(add_job):
+                add_job(
+                    reminder_job,
+                    trigger="interval",
+                    minutes=float(minutes),
+                    kwargs={"data": data},
+                    id=name,
+                    name=name,
+                    replace_existing=True,
+                )
+            else:
+                job_queue.run_repeating(
+                    reminder_job,
+                    interval=timedelta(minutes=minutes),
+                    data=data,
+                    name=name,
+                )
     logger.debug(
         "Finished scheduling reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
         rem.id,
