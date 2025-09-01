@@ -445,6 +445,7 @@ def test_delete_reminder_sends_event_without_job_queue(
 async def test_post_job_queue_event_logs_error(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
+    reminder_events.register_job_queue(None)
     monkeypatch.setenv("API_URL", "http://example.com")
     config.reload_settings()
 

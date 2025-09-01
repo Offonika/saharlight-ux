@@ -48,7 +48,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
     async def _noop(action: str, rid: int) -> None:  # pragma: no cover - simple stub
         return None
 
-    monkeypatch.setattr(reminders_router, "_reschedule_job", _noop)
+    monkeypatch.setattr(reminders_router, "_post_job_queue_event", _noop)
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()

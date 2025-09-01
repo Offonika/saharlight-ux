@@ -22,6 +22,15 @@ router = APIRouter()
 
 
 async def _post_job_queue_event(action: Literal["saved", "deleted"], rid: int) -> None:
+    if reminder_events.job_queue is not None:
+        try:
+            if action == "saved":
+                await reminder_events.notify_reminder_saved(rid)
+            else:
+                reminder_events.notify_reminder_deleted(rid)
+        except Exception:  # pragma: no cover - safety net
+            logger.exception("failed to notify job queue")
+        return
     base = config.get_settings().api_url
     if not base:
         logger.warning("api_url not configured; skipping job queue notification")
@@ -39,19 +48,6 @@ async def _post_job_queue_event(action: Literal["saved", "deleted"], rid: int) -
                 resp.status_code,
                 resp.text,
             )
-
-
-async def _reschedule_job(action: Literal["saved", "deleted"], rid: int) -> None:
-    if reminder_events.job_queue is not None:
-        try:
-            if action == "saved":
-                await reminder_events.notify_reminder_saved(rid)
-            else:
-                reminder_events.notify_reminder_deleted(rid)
-        except Exception:  # pragma: no cover - safety net
-            logger.exception("failed to notify job queue")
-        return
-    await _post_job_queue_event(action, rid)
 
 
 @router.get("/reminders")
@@ -161,7 +157,7 @@ async def post_reminder(
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="forbidden")
     rid = await save_reminder(data)
-    await _reschedule_job("saved", rid)
+    await _post_job_queue_event("saved", rid)
     return {"status": "ok", "id": rid}
 
 
@@ -175,7 +171,7 @@ async def patch_reminder(
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="forbidden")
     rid = await save_reminder(data)
-    await _reschedule_job("saved", rid)
+    await _post_job_queue_event("saved", rid)
     return {"status": "ok", "id": rid}
 
 
@@ -203,5 +199,5 @@ async def delete_reminder(
         raise HTTPException(status_code=404, detail="reminder not found")
     log_patient_access(getattr(request.state, "user_id", None), tid)
     await remove_reminder(tid, id)
-    await _reschedule_job("deleted", id)
+    await _post_job_queue_event("deleted", id)
     return {"status": "ok"}
