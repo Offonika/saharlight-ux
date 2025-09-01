@@ -368,15 +368,19 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 return
             if isinstance(parsed, time):
                 reminder.time = parsed
+                reminder.kind = ScheduleKind.at_time.value
             else:
                 await message.reply_text(INVALID_TIME_MSG)
                 return
         else:
             try:
-                reminder.interval_hours = int(value)
+                hours = int(value)
             except ValueError:
                 await message.reply_text("Интервал должен быть числом.")
                 return
+            reminder.interval_hours = hours
+            reminder.interval_minutes = hours * 60
+            reminder.kind = ScheduleKind.every.value
     elif rtype in {
         "insulin_short",
         "insulin_long",
@@ -392,6 +396,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             return
         if isinstance(parsed, time):
             reminder.time = parsed
+            reminder.kind = ScheduleKind.at_time.value
         else:
             await message.reply_text(INVALID_TIME_MSG)
             return
@@ -401,6 +406,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         except ValueError:
             await message.reply_text("Значение должно быть числом.")
             return
+        reminder.kind = ScheduleKind.after_event.value
 
     def db_add(session: Session) -> tuple[str, User | None, int, int]:
         count = (
@@ -413,6 +419,16 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if count >= limit:
             return "limit", db_user, limit, count
         session.add(reminder)
+        logger.debug(
+            "Saving reminder for user %s: type=%s kind=%s time=%s interval_hours=%s interval_minutes=%s minutes_after=%s",
+            user_id,
+            reminder.type,
+            reminder.kind,
+            reminder.time,
+            reminder.interval_hours,
+            reminder.interval_minutes,
+            reminder.minutes_after,
+        )
         try:
             commit(session)
         except CommitError:
@@ -691,6 +707,16 @@ async def reminder_webapp_save(
             rem.interval_hours = None
             rem.interval_minutes = None
             rem.time = parsed_time
+        logger.debug(
+            "Saving reminder via webapp for user %s: type=%s kind=%s time=%s interval_hours=%s interval_minutes=%s minutes_after=%s",
+            user_id,
+            rem.type,
+            rem.kind,
+            rem.time,
+            rem.interval_hours,
+            rem.interval_minutes,
+            rem.minutes_after,
+        )
         try:
             commit(session)
         except CommitError:
