@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import time as dt_time
 from typing import Callable
 from types import SimpleNamespace
@@ -159,5 +160,59 @@ async def test_gc_replaces_outdated_job(
     await reminder_events._reminders_gc(None)
     job = jq.get_jobs_by_name("reminder_1")[0]
     assert job.run_time == dt_time(9, 0)
+    reminder_events.register_job_queue(None)
+
+
+@pytest.mark.asyncio
+async def test_gc_continues_after_schedule_failure(
+    session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setattr(reminder_events, "SessionLocal", session_factory)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", session_factory)
+
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=dt_time(8, 0),
+                is_enabled=True,
+            )
+        )
+        session.add(
+            Reminder(
+                id=2,
+                telegram_id=1,
+                type="sugar",
+                time=dt_time(9, 0),
+                is_enabled=True,
+            )
+        )
+        session.commit()
+
+    jq = DummyJobQueue()
+    reminder_events.register_job_queue(jq)
+    calls: list[int] = []
+
+    def schedule_mock(rem: Reminder, job_queue: DummyJobQueue, user: object) -> None:
+        calls.append(rem.id)
+        if rem.id == 1:
+            raise RuntimeError("boom")
+        job_queue.run_daily(lambda ctx: None, time=rem.time, name=f"reminder_{rem.id}")
+
+    monkeypatch.setattr(reminder_events, "schedule_reminder", schedule_mock)
+
+    with caplog.at_level(logging.ERROR):
+        await reminder_events._reminders_gc(None)
+
+    assert calls == [1, 2]
+    assert jq.get_jobs_by_name("reminder_2")
+    assert any(
+        "Failed to schedule reminder 1" in record.message for record in caplog.records
+    )
     reminder_events.register_job_queue(None)
 
