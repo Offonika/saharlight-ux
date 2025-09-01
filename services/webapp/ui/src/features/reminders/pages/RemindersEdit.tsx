@@ -4,6 +4,7 @@ import type { ReminderSchema } from "@sdk";
 import { useRemindersApi } from "../api/reminders";
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
 import { DaysPresets } from "../components/DaysPresets";
+import AfterEventDelay from "../components/AfterEventDelay";
 import {
   buildReminderPayload,
   ReminderFormValues,
@@ -78,13 +79,6 @@ export default function RemindersEdit() {
 
   const presetsTime = ["07:30", "12:30", "22:00"];
   const presetsEvery = [60, 120, 180, 1440];
-  const presetsAfter = useMemo(() => {
-    const base = [90, 120, 150];
-    if (defaultAfterMeal && !base.includes(defaultAfterMeal)) {
-      return [defaultAfterMeal, ...base];
-    }
-    return base;
-  }, [defaultAfterMeal]);
 
   useEffect(() => {
     async function load() {
@@ -309,38 +303,11 @@ export default function RemindersEdit() {
           )}
 
           {form.kind === "after_event" && (
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-foreground">
-                Через сколько минут после еды
-              </label>
-              <input
-                type="number"
-                className={`medical-input ${
-                  errors.minutesAfter
-                    ? "border-destructive focus:border-destructive"
-                    : ""
-                }`}
-                value={form.minutesAfter?.toString() || ""}
-                onChange={(e) => onChange("minutesAfter", Number(e.target.value))}
-              />
-              {errors.minutesAfter && (
-                <p className="text-xs text-destructive mt-1">
-                  {errors.minutesAfter}
-                </p>
-              )}
-              <div className="flex gap-2 flex-wrap">
-                {presetsAfter.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-colors"
-                    onClick={() => onChange("minutesAfter", t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <AfterEventDelay
+              value={form.minutesAfter}
+              onChange={(v) => onChange("minutesAfter", v)}
+              error={errors.minutesAfter}
+            />
           )}
 
           {/* Дни недели */}
