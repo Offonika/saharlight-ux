@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRemindersApi } from "../api/reminders"; // ваш хук, возвращающий DefaultApi
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
@@ -55,6 +55,7 @@ export default function RemindersCreate() {
     isEnabled: true,
   });
   const [loading, setLoading] = useState(false);
+  const savedDaysRef = useRef<number[] | undefined>();
 
   const errors = validate(form);
   const formHasErrors = hasErrors(errors);
@@ -141,8 +142,12 @@ export default function RemindersCreate() {
       if (k === "at_time") base.time = "07:30";
       if (k === "every") base.intervalMinutes = 60;
       if (k === "after_event") {
+        savedDaysRef.current = s.daysOfWeek;
         base.minutesAfter = 120;
         base.type = "after_meal";
+        base.daysOfWeek = undefined;
+      } else {
+        base.daysOfWeek = s.kind === "after_event" ? savedDaysRef.current : s.daysOfWeek;
       }
       return base;
     });
@@ -306,22 +311,23 @@ export default function RemindersCreate() {
             </div>
           )}
 
-          {/* Дни недели */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Дни недели (опционально)
-            </label>
-            <div className="space-y-3">
-              <DaysPresets
-                value={form.daysOfWeek}
-                onChange={(v) => onChange("daysOfWeek", v)}
-              />
-              <DayOfWeekPicker
-                value={form.daysOfWeek}
-                onChange={(v) => onChange("daysOfWeek", v)}
-              />
+          {form.kind !== "after_event" && (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Дни недели (опционально)
+              </label>
+              <div className="space-y-3">
+                <DaysPresets
+                  value={form.daysOfWeek}
+                  onChange={(v) => onChange("daysOfWeek", v)}
+                />
+                <DayOfWeekPicker
+                  value={form.daysOfWeek}
+                  onChange={(v) => onChange("daysOfWeek", v)}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Название (необяз.) */}
           <div>
