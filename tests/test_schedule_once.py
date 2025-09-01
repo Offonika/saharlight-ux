@@ -87,6 +87,53 @@ class QueueApplicationTimezone:
         return Job(timezone)
 
 
+class QueueWithTimezoneJobKwargs:
+    timezone = "TZ"
+
+    def run_once(
+        self,
+        callback: Callable[..., object],
+        *,
+        when: timedelta,
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+        timezone: object | None = None,
+        job_kwargs: dict[str, object] | None = None,
+    ) -> Job:
+        self.args = SimpleNamespace(
+            callback=callback,
+            when=when,
+            data=data,
+            name=name,
+            timezone=timezone,
+            job_kwargs=job_kwargs,
+        )
+        return Job(timezone)
+
+
+class QueueNoTimezoneJobKwargs:
+    timezone = "TZ"
+
+    def run_once(
+        self,
+        callback: Callable[..., object],
+        *,
+        when: timedelta,
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+        job_kwargs: dict[str, object] | None = None,
+    ) -> Job:
+        self.args = SimpleNamespace(
+            callback=callback,
+            when=when,
+            data=data,
+            name=name,
+            timezone=None,
+            job_kwargs=job_kwargs,
+        )
+        return Job(None)
+
+
 def test_schedule_once_uses_queue_timezone() -> None:
     jq = QueueWithTimezone()
     schedule_once(jq, dummy_cb, when=timedelta(seconds=1), data={"a": 1}, name="j1")
@@ -119,3 +166,45 @@ def test_schedule_once_requires_async_callback() -> None:
 
     with pytest.raises(TypeError):
         schedule_once(jq, sync_cb, when=timedelta(seconds=1))
+
+
+@pytest.mark.parametrize(
+    "queue_cls", [QueueWithTimezoneJobKwargs, QueueNoTimezoneJobKwargs]
+)
+def test_schedule_once_name_only_in_job_kwargs(queue_cls: type[object]) -> None:
+    jq = queue_cls()
+    schedule_once(
+        jq,
+        dummy_cb,
+        when=timedelta(seconds=1),
+        name="j1",
+        job_kwargs={"id": "j1", "name": "j1"},
+    )
+    assert jq.args.name is None
+    assert jq.args.job_kwargs["id"] == "j1"
+    assert jq.args.job_kwargs["name"] == "j1"
+    if queue_cls is QueueWithTimezoneJobKwargs:
+        assert jq.args.timezone == jq.timezone
+    else:
+        assert jq.args.timezone is None
+
+
+@pytest.mark.parametrize(
+    "queue_cls", [QueueWithTimezoneJobKwargs, QueueNoTimezoneJobKwargs]
+)
+def test_schedule_once_adds_id_to_job_kwargs(queue_cls: type[object]) -> None:
+    jq = queue_cls()
+    schedule_once(
+        jq,
+        dummy_cb,
+        when=timedelta(seconds=1),
+        name="j1",
+        job_kwargs={"foo": "bar"},
+    )
+    assert jq.args.name == "j1"
+    assert jq.args.job_kwargs["id"] == "j1"
+    assert "name" not in jq.args.job_kwargs
+    if queue_cls is QueueWithTimezoneJobKwargs:
+        assert jq.args.timezone == jq.timezone
+    else:
+        assert jq.args.timezone is None

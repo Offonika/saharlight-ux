@@ -116,6 +116,57 @@ class QueueApplicationTimezone:
         return Job(timezone)
 
 
+class QueueDailyWithTimezoneJobKwargs:
+    timezone = ZoneInfo("Europe/Moscow")
+
+    def run_daily(
+        self,
+        callback: Callable[..., object],
+        *,
+        time: dt_time,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+        timezone: ZoneInfo | None = None,
+        job_kwargs: dict[str, object] | None = None,
+    ) -> Job:
+        self.args = SimpleNamespace(
+            callback=callback,
+            time=time,
+            days=days,
+            data=data,
+            name=name,
+            timezone=timezone,
+            job_kwargs=job_kwargs,
+        )
+        return Job(timezone)
+
+
+class QueueDailyNoTimezoneJobKwargs:
+    timezone = ZoneInfo("Europe/Moscow")
+
+    def run_daily(
+        self,
+        callback: Callable[..., object],
+        *,
+        time: dt_time,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+        job_kwargs: dict[str, object] | None = None,
+    ) -> Job:
+        self.args = SimpleNamespace(
+            callback=callback,
+            time=time,
+            days=days,
+            data=data,
+            name=name,
+            timezone=None,
+            job_kwargs=job_kwargs,
+        )
+        return Job(None)
+
+
 def test_schedule_daily_uses_queue_timezone() -> None:
     jq = QueueWithTimezone()
     schedule_daily(jq, dummy_cb, time=dt_time(1, 0), data={"a": 1}, name="j1")
@@ -163,3 +214,45 @@ def test_schedule_daily_forwards_days() -> None:
     jq = QueueWithTimezone()
     schedule_daily(jq, dummy_cb, time=dt_time(1, 0), days=(0, 2, 4))
     assert jq.args.days == (0, 2, 4)
+
+
+@pytest.mark.parametrize(
+    "queue_cls", [QueueDailyWithTimezoneJobKwargs, QueueDailyNoTimezoneJobKwargs]
+)
+def test_schedule_daily_name_only_in_job_kwargs(queue_cls: type[object]) -> None:
+    jq = queue_cls()
+    schedule_daily(
+        jq,
+        dummy_cb,
+        time=dt_time(1, 0),
+        name="j1",
+        job_kwargs={"id": "j1", "name": "j1"},
+    )
+    assert jq.args.name is None
+    assert jq.args.job_kwargs["id"] == "j1"
+    assert jq.args.job_kwargs["name"] == "j1"
+    if queue_cls is QueueDailyWithTimezoneJobKwargs:
+        assert jq.args.timezone == jq.timezone
+    else:
+        assert jq.args.timezone is None
+
+
+@pytest.mark.parametrize(
+    "queue_cls", [QueueDailyWithTimezoneJobKwargs, QueueDailyNoTimezoneJobKwargs]
+)
+def test_schedule_daily_adds_id_to_job_kwargs(queue_cls: type[object]) -> None:
+    jq = queue_cls()
+    schedule_daily(
+        jq,
+        dummy_cb,
+        time=dt_time(1, 0),
+        name="j1",
+        job_kwargs={"foo": "bar"},
+    )
+    assert jq.args.name == "j1"
+    assert jq.args.job_kwargs["id"] == "j1"
+    assert "name" not in jq.args.job_kwargs
+    if queue_cls is QueueDailyWithTimezoneJobKwargs:
+        assert jq.args.timezone == jq.timezone
+    else:
+        assert jq.args.timezone is None
