@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import time as dt_time, timedelta
+from datetime import datetime, time as dt_time, timedelta
 from types import SimpleNamespace
 from typing import Callable
 from zoneinfo import ZoneInfo
@@ -14,6 +14,9 @@ class DummyJob:
         self.id = id
         self.name = name
         self.run_time = run_time
+        self.next_run_time = datetime.combine(
+            datetime.now(scheduler.timezone).date(), run_time, tzinfo=scheduler.timezone
+        )
 
     def remove(self) -> None:
         self._scheduler.jobs = [j for j in self._scheduler.jobs if j.id != self.id]
@@ -38,7 +41,7 @@ class DummyScheduler:
         timezone: ZoneInfo,
         kwargs: dict[str, object],
         **params: object,
-    ) -> DummyJob:
+        ) -> DummyJob:
         if replace_existing:
             self.jobs = [j for j in self.jobs if j.id != id]
         run_time = dt_time(int(params["hour"]), int(params["minute"]))
@@ -48,6 +51,9 @@ class DummyScheduler:
 
     def remove_job(self, job_id: str) -> None:
         self.jobs = [j for j in self.jobs if j.id != job_id]
+
+    def get_jobs(self) -> list[DummyJob]:
+        return list(self.jobs)
 
 
 class DummyJobQueue:
@@ -123,13 +129,17 @@ def test_editing_reminder_replaces_job() -> None:
     user = SimpleNamespace(timezone="UTC")
 
     reminder_jobs.schedule_reminder(rem, job_queue, user)
-    assert [j.run_time for j in job_queue.get_jobs_by_name("reminder_1")] == [dt_time(8, 0)]
+    assert [
+        (j.id, j.name, j.next_run_time.time())
+        for j in job_queue.scheduler.get_jobs()
+    ] == [("reminder_1", "reminder_1", dt_time(8, 0))]
 
     rem.time = dt_time(9, 0)
     reminder_jobs.schedule_reminder(rem, job_queue, user)
-    jobs = job_queue.get_jobs_by_name("reminder_1")
-    assert len(jobs) == 1
-    assert jobs[0].run_time == dt_time(9, 0)
+    jobs = job_queue.scheduler.get_jobs()
+    assert [
+        (j.id, j.name, j.next_run_time.time()) for j in jobs
+    ] == [("reminder_1", "reminder_1", dt_time(9, 0))]
 
 
 def test_reschedule_job_helper_recreates_job() -> None:
@@ -153,9 +163,10 @@ def test_reschedule_job_helper_recreates_job() -> None:
 
     rem.time = dt_time(9, 30)
     reminder_handlers._reschedule_job(job_queue, rem, user)
-    jobs = job_queue.get_jobs_by_name("reminder_1")
-    assert len(jobs) == 1
-    assert jobs[0].run_time == dt_time(9, 30)
+    jobs = job_queue.scheduler.get_jobs()
+    assert [
+        (j.id, j.name, j.next_run_time.time()) for j in jobs
+    ] == [("reminder_1", "reminder_1", dt_time(9, 30))]
 
 
 def test_reschedule_job_helper_handles_jobs_without_remove() -> None:
@@ -180,6 +191,7 @@ def test_reschedule_job_helper_handles_jobs_without_remove() -> None:
 
     rem.time = dt_time(9, 45)
     reminder_handlers._reschedule_job(job_queue, rem, user)
-    jobs = job_queue.get_jobs_by_name("reminder_1")
-    assert len(jobs) == 1
-    assert jobs[0].run_time == dt_time(9, 45)
+    jobs = job_queue.scheduler.get_jobs()
+    assert [
+        (j.id, j.name, j.next_run_time.time()) for j in jobs
+    ] == [("reminder_1", "reminder_1", dt_time(9, 45))]
