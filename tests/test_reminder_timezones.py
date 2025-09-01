@@ -86,6 +86,7 @@ class JobQueueV20(_BaseQueue):
         data: dict[str, object] | None = None,
         name: str | None = None,
         timezone: ZoneInfo | None = None,
+        job_kwargs: dict[str, object] | None = None,
     ) -> _FakeJob:
         delay = when.total_seconds()
         return self._schedule(callback, delay, data, name)
@@ -98,6 +99,8 @@ class JobQueueV20(_BaseQueue):
         data: dict[str, object] | None = None,
         name: str | None = None,
         timezone: ZoneInfo,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+        job_kwargs: dict[str, object] | None = None,
     ) -> _FakeJob:
         now = dt.datetime.now(timezone)
         target = dt.datetime.combine(now.date(), time, tzinfo=timezone)
@@ -115,6 +118,7 @@ class JobQueueV21(_BaseQueue):
         when: dt.timedelta,
         data: dict[str, object] | None = None,
         name: str | None = None,
+        job_kwargs: dict[str, object] | None = None,
     ) -> _FakeJob:
         delay = when.total_seconds()
         return self._schedule(callback, delay, data, name)
@@ -126,6 +130,8 @@ class JobQueueV21(_BaseQueue):
         time: dt.time,
         data: dict[str, object] | None = None,
         name: str | None = None,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+        job_kwargs: dict[str, object] | None = None,
     ) -> _FakeJob:
         tz = self.application.timezone
         now = dt.datetime.now(tz)
