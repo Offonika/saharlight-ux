@@ -4,6 +4,7 @@ from datetime import time as dt_time
 from typing import Callable
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
+import logging
 
 import pytest
 from sqlalchemy import create_engine, event
@@ -220,3 +221,66 @@ async def test_gc_preloads_users(
     assert {job.name for job in jq.scheduler.jobs} == {"reminder_1", "reminder_2"}
     user_queries = [s for s in statements if "FROM users" in s]
     assert len(user_queries) == 1
+
+
+@pytest.mark.asyncio
+async def test_gc_continues_after_schedule_error(
+    session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setattr(reminder_events, "SessionLocal", session_factory)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", session_factory)
+
+    with session_factory() as session:
+        session.add_all(
+            [
+                User(telegram_id=1, thread_id="t1", timezone="UTC"),
+                User(telegram_id=2, thread_id="t2", timezone="UTC"),
+            ]
+        )
+        session.add_all(
+            [
+                Reminder(
+                    id=1,
+                    telegram_id=1,
+                    type="sugar",
+                    time=dt_time(8, 0),
+                    is_enabled=True,
+                ),
+                Reminder(
+                    id=2,
+                    telegram_id=2,
+                    type="sugar",
+                    time=dt_time(9, 0),
+                    is_enabled=True,
+                ),
+            ]
+        )
+        session.commit()
+
+    jq = DummyJobQueue()
+    reminder_events.register_job_queue(jq)
+
+    orig_schedule = reminder_events.schedule_reminder
+
+    def faulty_schedule(
+        rem: Reminder,
+        job_queue: reminder_jobs.DefaultJobQueue,
+        user: User | None,
+    ) -> None:
+        if rem.id == 1:
+            raise RuntimeError("boom")
+        orig_schedule(rem, job_queue, user)
+
+    monkeypatch.setattr(reminder_events, "schedule_reminder", faulty_schedule)
+
+    with caplog.at_level(logging.ERROR):
+        await reminder_events._reminders_gc(None)
+
+    reminder_events.register_job_queue(None)
+
+    assert {job.name for job in jq.scheduler.jobs} == {"reminder_2"}
+    assert any(
+        "Failed to schedule reminder 1" in rec.getMessage() for rec in caplog.records
+    )
