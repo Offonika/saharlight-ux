@@ -34,6 +34,7 @@ from .diabetes.services.db import (
 )
 from .diabetes.services.repository import CommitError, commit
 from .legacy import router as legacy_router
+from .routers.internal_reminders import router as internal_reminders_router
 from .routers.stats import router as stats_router
 from .schemas.history import ALLOWED_HISTORY_TYPES, HistoryRecordSchema, HistoryType
 from .schemas.role import RoleSchema
@@ -379,6 +380,7 @@ async def delete_history(
 
 
 # ────────── include router ──────────
+app.include_router(internal_reminders_router)
 app.include_router(api_router, prefix="/api")
 
 # ────────── run (for local testing) ──────────
