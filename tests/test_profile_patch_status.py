@@ -30,5 +30,7 @@ def test_patch_profile_returns_status_ok(monkeypatch: pytest.MonkeyPatch) -> Non
         data = resp.json()
         assert data["timezone"] == "UTC"
         assert data["timezoneAuto"] is False
+        assert data["sosAlertsEnabled"] is True
+        assert data["sosContact"] is None
 
     server.app.dependency_overrides.clear()
