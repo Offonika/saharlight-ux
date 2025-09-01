@@ -1,5 +1,3 @@
-from urllib.parse import urlparse
-
 import pytest
 
 import services.api.app.config as config
@@ -15,50 +13,39 @@ import services.api.app.diabetes.utils.ui as ui
         ("https://example.com/", "/ui/"),
     ],
 )
-def test_menu_keyboard_webapp_urls(
+def test_menu_keyboard_contains_expected_buttons(
     monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str
 ) -> None:
-    """Menu buttons should open webapp paths for profile, reminders and history."""
+    """Menu should provide a consistent set of buttons without WebApps."""
     monkeypatch.setenv("PUBLIC_ORIGIN", origin)
     monkeypatch.setenv("UI_BASE_URL", ui_base)
     config.reload_settings()
 
     buttons = [btn for row in ui.menu_keyboard().keyboard for btn in row]
-    profile_btn = next(b for b in buttons if b.text == ui.PROFILE_BUTTON_TEXT)
-    reminders_btn = next(b for b in buttons if b.text == ui.REMINDERS_BUTTON_TEXT)
-    history_btn = next(b for b in buttons if b.text == ui.HISTORY_BUTTON_TEXT)
-
-    assert profile_btn.web_app is not None
-    assert urlparse(profile_btn.web_app.url).path.endswith("/profile")
-    assert reminders_btn.web_app is not None
-    assert urlparse(reminders_btn.web_app.url).path.endswith("/reminders")
-    assert history_btn.web_app is not None
-    assert urlparse(history_btn.web_app.url).path.endswith("/history")
+    texts = {btn.text for btn in buttons}
+    expected = {
+        ui.PHOTO_BUTTON_TEXT,
+        ui.SUGAR_BUTTON_TEXT,
+        ui.DOSE_BUTTON_TEXT,
+        ui.REPORT_BUTTON_TEXT,
+        ui.QUICK_INPUT_BUTTON_TEXT,
+        ui.HELP_BUTTON_TEXT,
+        ui.SOS_BUTTON_TEXT,
+    }
+    assert texts == expected
+    assert all(btn.web_app is None for btn in buttons)
 
 
 def test_menu_keyboard_webapp_reloads_settings(monkeypatch: pytest.MonkeyPatch) -> None:
-    """``menu_keyboard`` should reflect environment changes at runtime."""
+    """``menu_keyboard`` should remain without WebApps after config changes."""
     monkeypatch.setenv("PUBLIC_ORIGIN", "")
     monkeypatch.setenv("UI_BASE_URL", "")
     config.reload_settings()
     buttons = [btn for row in ui.menu_keyboard().keyboard for btn in row]
-    profile_btn = next(b for b in buttons if b.text == ui.PROFILE_BUTTON_TEXT)
-    reminders_btn = next(b for b in buttons if b.text == ui.REMINDERS_BUTTON_TEXT)
-    history_btn = next(b for b in buttons if b.text == ui.HISTORY_BUTTON_TEXT)
-    assert profile_btn.web_app is None
-    assert reminders_btn.web_app is None
-    assert history_btn.web_app is None
+    assert all(btn.web_app is None for btn in buttons)
 
     monkeypatch.setenv("PUBLIC_ORIGIN", "https://example.com")
     monkeypatch.setenv("UI_BASE_URL", "")
     config.reload_settings()
     buttons = [btn for row in ui.menu_keyboard().keyboard for btn in row]
-    profile_btn = next(b for b in buttons if b.text == ui.PROFILE_BUTTON_TEXT)
-    reminders_btn = next(b for b in buttons if b.text == ui.REMINDERS_BUTTON_TEXT)
-    history_btn = next(b for b in buttons if b.text == ui.HISTORY_BUTTON_TEXT)
-    assert profile_btn.web_app is not None
-    assert reminders_btn.web_app is not None
-    assert history_btn.web_app is not None
-    assert urlparse(profile_btn.web_app.url).path.endswith("/profile")
-    assert urlparse(reminders_btn.web_app.url).path.endswith("/reminders")
-    assert urlparse(history_btn.web_app.url).path.endswith("/history")
+    assert all(btn.web_app is None for btn in buttons)
