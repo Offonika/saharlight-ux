@@ -53,46 +53,13 @@ __all__ = (
 
 
 def menu_keyboard() -> ReplyKeyboardMarkup:
-    """Build the main menu keyboard.
-
-    WebApp buttons are used only when ``PUBLIC_ORIGIN`` is configured.
-    """
-    from services.api.app import config
-
-    config.reload_settings()
-    settings = config.get_settings()
-    webapp_enabled = bool(settings.public_origin)
-    profile_button = (
-        KeyboardButton(
-            PROFILE_BUTTON_TEXT,
-            web_app=WebAppInfo(config.build_ui_url("/profile")),
-        )
-        if webapp_enabled
-        else KeyboardButton(PROFILE_BUTTON_TEXT)
-    )
-    reminders_button = (
-        KeyboardButton(
-            REMINDERS_BUTTON_TEXT,
-            web_app=WebAppInfo(config.build_ui_url("/reminders")),
-        )
-        if webapp_enabled
-        else KeyboardButton(REMINDERS_BUTTON_TEXT)
-    )
-    history_button = (
-        KeyboardButton(
-            HISTORY_BUTTON_TEXT,
-            web_app=WebAppInfo(config.build_ui_url("/history")),
-        )
-        if webapp_enabled
-        else KeyboardButton(HISTORY_BUTTON_TEXT)
-    )
+    """Build the main menu keyboard."""
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(PHOTO_BUTTON_TEXT), KeyboardButton(SUGAR_BUTTON_TEXT)],
-            [KeyboardButton(DOSE_BUTTON_TEXT), history_button],
-            [KeyboardButton(REPORT_BUTTON_TEXT), profile_button],
+            [KeyboardButton(DOSE_BUTTON_TEXT), KeyboardButton(REPORT_BUTTON_TEXT)],
             [KeyboardButton(QUICK_INPUT_BUTTON_TEXT), KeyboardButton(HELP_BUTTON_TEXT)],
-            [reminders_button, KeyboardButton(SOS_BUTTON_TEXT)],
+            [KeyboardButton(SOS_BUTTON_TEXT)],
         ],
         resize_keyboard=True,
         one_time_keyboard=False,
