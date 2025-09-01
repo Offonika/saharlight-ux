@@ -29,6 +29,11 @@ class ProfileSettingsIn(BaseModel):
         alias="carbUnits",
         validation_alias=AliasChoices("carbUnits", "carb_units"),
     )
+    gramsPerXe: float | None = Field(
+        default=None,
+        alias="gramsPerXe",
+        validation_alias=AliasChoices("gramsPerXe", "grams_per_xe"),
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -36,8 +41,10 @@ class ProfileSettingsIn(BaseModel):
     def _validate_values(self) -> "ProfileSettingsIn":
         if self.dia is not None and not (1 <= self.dia <= 24):
             raise ValueError("dia must be between 1 and 24 hours")
-        if self.roundStep is not None and self.roundStep <= 0:
-            raise ValueError("roundStep must be positive")
+        if self.roundStep is not None and self.roundStep not in (0.5, 1.0):
+            raise ValueError("roundStep must be one of 0.5 or 1.0")
+        if self.gramsPerXe is not None and self.gramsPerXe not in (10, 12):
+            raise ValueError("gramsPerXe must be 10 or 12")
         return self
 
 
@@ -49,3 +56,4 @@ class ProfileSettingsOut(ProfileSettingsIn):
     dia: float
     roundStep: float = Field(alias="roundStep")
     carbUnits: CarbUnits = Field(alias="carbUnits")
+    gramsPerXe: float = Field(alias="gramsPerXe")
