@@ -372,7 +372,8 @@ async def test_delete_reminder_no_broadcast_with_job_queue(
 
 @pytest.mark.asyncio
 async def test_delete_reminder_broadcasts_without_job_queue(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch,
+    reminder_handlers: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -452,7 +453,7 @@ async def test_reminder_webapp_save_snooze(
     callback, when, data, name = job_queue.calls[0]
     assert callback is reminder_handlers.reminder_job
     assert data == {"reminder_id": 1, "chat_id": 1}
-    assert name == "reminder_1"
+    assert name == "reminder_1_snooze"
     assert when == timedelta(minutes=7)
 
     with TestSession() as session:
