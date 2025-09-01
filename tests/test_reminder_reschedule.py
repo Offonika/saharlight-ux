@@ -9,11 +9,19 @@ from services.api.app.diabetes.handlers import reminder_handlers, reminder_jobs
 
 
 class DummyJob:
-    def __init__(self, scheduler: "DummyScheduler", *, id: str, name: str, run_time: dt_time) -> None:
+    def __init__(
+        self,
+        scheduler: "DummyScheduler",
+        *,
+        id: str,
+        name: str,
+        run_time: dt_time,
+    ) -> None:
         self._scheduler = scheduler
         self.id = id
         self.name = name
         self.run_time = run_time
+        self.next_run_time = run_time
 
     def remove(self) -> None:
         self._scheduler.jobs = [j for j in self._scheduler.jobs if j.id != self.id]
@@ -54,6 +62,9 @@ class DummyScheduler:
             if job.id == job_id:
                 return job
         return None
+
+    def get_jobs(self) -> list[DummyJob]:
+        return list(self.jobs)
 
 
 class DummyJobQueue:
@@ -129,13 +140,14 @@ def test_editing_reminder_replaces_job() -> None:
     user = SimpleNamespace(timezone="UTC")
 
     reminder_jobs.schedule_reminder(rem, job_queue, user)
-    assert [j.run_time for j in job_queue.get_jobs_by_name("reminder_1")] == [dt_time(8, 0)]
+    assert [(j.id, j.next_run_time) for j in job_queue.scheduler.get_jobs()] == [
+        ("reminder_1", dt_time(8, 0))
+    ]
 
     rem.time = dt_time(9, 0)
     reminder_jobs.schedule_reminder(rem, job_queue, user)
-    jobs = job_queue.get_jobs_by_name("reminder_1")
-    assert len(jobs) == 1
-    assert jobs[0].run_time == dt_time(9, 0)
+    jobs = job_queue.scheduler.get_jobs()
+    assert [(j.id, j.next_run_time) for j in jobs] == [("reminder_1", dt_time(9, 0))]
 
 
 def test_reschedule_job_helper_recreates_job() -> None:
@@ -155,13 +167,16 @@ def test_reschedule_job_helper_recreates_job() -> None:
     user = SimpleNamespace(timezone="UTC")
 
     reminder_jobs.schedule_reminder(rem, job_queue, user)
-    assert [j.run_time for j in job_queue.get_jobs_by_name("reminder_1")] == [dt_time(8, 0)]
+    assert [(j.id, j.next_run_time) for j in job_queue.scheduler.get_jobs()] == [
+        ("reminder_1", dt_time(8, 0))
+    ]
 
     rem.time = dt_time(9, 30)
     reminder_handlers._reschedule_job(job_queue, rem, user)
-    jobs = job_queue.get_jobs_by_name("reminder_1")
-    assert len(jobs) == 1
-    assert jobs[0].run_time == dt_time(9, 30)
+    jobs = job_queue.scheduler.get_jobs()
+    assert [(j.id, j.next_run_time) for j in jobs] == [
+        ("reminder_1", dt_time(9, 30))
+    ]
 
 
 def test_reschedule_job_helper_handles_jobs_without_remove() -> None:
@@ -181,11 +196,12 @@ def test_reschedule_job_helper_handles_jobs_without_remove() -> None:
     user = SimpleNamespace(timezone="UTC")
 
     reminder_jobs.schedule_reminder(rem, job_queue, user)
-    job = job_queue.get_jobs_by_name("reminder_1")[0]
+    job = job_queue.scheduler.get_jobs()[0]
     setattr(job, "remove", None)
 
     rem.time = dt_time(9, 45)
     reminder_handlers._reschedule_job(job_queue, rem, user)
-    jobs = job_queue.get_jobs_by_name("reminder_1")
-    assert len(jobs) == 1
-    assert jobs[0].run_time == dt_time(9, 45)
+    jobs = job_queue.scheduler.get_jobs()
+    assert [(j.id, j.next_run_time) for j in jobs] == [
+        ("reminder_1", dt_time(9, 45))
+    ]

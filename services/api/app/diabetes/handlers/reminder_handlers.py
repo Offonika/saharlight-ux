@@ -270,11 +270,16 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
     schedule_reminder(reminder, job_queue, user)
     next_run: datetime.datetime | None = None
     scheduler = getattr(job_queue, "scheduler", None)
-    job = (
-        job_queue.scheduler.get_job(job_id=base)  # type: ignore[attr-defined]
-        if scheduler is not None
-        else None
-    )
+    get_job = getattr(scheduler, "get_job", None)
+    job = None
+    if callable(get_job):
+        try:
+            job = get_job(job_id=base)
+        except TypeError:  # pragma: no cover - APScheduler compatibility
+            try:
+                job = get_job(base)
+            except Exception:  # pragma: no cover - defensive
+                job = None
     if job is not None:
         next_run = (
             getattr(job, "next_run_time", None)
