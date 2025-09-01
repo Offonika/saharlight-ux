@@ -496,13 +496,12 @@ def test_interval_minutes_scheduling_and_rendering(
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
         assert rem is not None
-        with patch.object(
-            job_queue.scheduler, "add_job", wraps=job_queue.scheduler.add_job
-        ) as mock_add:
+        with patch.object(job_queue, "run_once", wraps=job_queue.run_once) as mock_once:
             handlers.schedule_reminder(rem, job_queue, user)
-            mock_add.assert_called_once()
-            assert mock_add.call_args.kwargs["trigger"] == "interval"
-            assert mock_add.call_args.kwargs["minutes"] == 30
+            mock_once.assert_called_once()
+            when = mock_once.call_args.kwargs["when"]
+            assert isinstance(when, timedelta)
+            assert when == timedelta(minutes=30)
         text, _ = handlers._render_reminders(session, 1)
     assert "⏱ Интервал" in text
     assert "каждые 30 мин" in text
