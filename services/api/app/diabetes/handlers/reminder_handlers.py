@@ -271,8 +271,8 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
     next_run: datetime.datetime | None = None
     scheduler = getattr(job_queue, "scheduler", None)
     job = (
-        job_queue.scheduler.get_job(job_id=base)  # type: ignore[attr-defined]
-        if scheduler is not None
+        scheduler.get_job(job_id=base)  # type: ignore[attr-defined]
+        if getattr(scheduler, "get_job", None) is not None
         else None
     )
     if job is not None:
