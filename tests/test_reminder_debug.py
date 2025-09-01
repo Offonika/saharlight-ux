@@ -106,7 +106,7 @@ async def test_dbg_jobs_admin(monkeypatch: pytest.MonkeyPatch) -> None:
             effective_chat=SimpleNamespace(send_message=send),
         ),
     )
-    context_app = SimpleNamespace()
+    context_app = SimpleNamespace(job_queue=SimpleNamespace(jobs=lambda: []))
     context = cast(
         ContextTypes.DEFAULT_TYPE,
         SimpleNamespace(application=context_app),

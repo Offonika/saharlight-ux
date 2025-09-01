@@ -85,6 +85,7 @@ def test_remove_jobs() -> None:
 
     before = dbg_jobs_dump(jq)
     assert len(before) == 6
+    assert ("reminder_1", None) in before
 
     removed = _remove_jobs(jq, "reminder_1")
 

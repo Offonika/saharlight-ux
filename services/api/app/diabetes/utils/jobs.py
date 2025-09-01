@@ -1,3 +1,9 @@
+"""Job queue helpers and diagnostics.
+
+This module provides utilities for scheduling jobs and :func:`dbg_jobs_dump`,
+which exposes job IDs and names for debug purposes.
+"""
+
 from __future__ import annotations
 
 import inspect
@@ -259,31 +265,14 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
 
 
 def dbg_jobs_dump(job_queue: DefaultJobQueue) -> list[tuple[str | None, str | None]]:
-    """Return a dump of job names and ids for debugging purposes."""
-
-    jobs_attr = getattr(job_queue, "jobs", None)
-    scheduler = getattr(job_queue, "scheduler", None)
-    get_jobs_sched = cast(
-        Callable[[], Iterable[object]] | None, getattr(scheduler, "get_jobs", None)
-    )
+    """Collect ``(id, name)`` pairs for jobs in ``job_queue``."""
 
     dump: list[tuple[str | None, str | None]] = []
-    if jobs_attr is not None:
-        for job in jobs_attr() if callable(jobs_attr) else jobs_attr:
-            dump.append(
-                (
-                    cast(str | None, getattr(job, "name", None)),
-                    cast(str | None, getattr(job, "id", None)),
-                )
-            )
-    if get_jobs_sched is not None:
-        for job in get_jobs_sched():
-            info = (
-                cast(str | None, getattr(job, "name", None)),
+    for job in job_queue.jobs():
+        dump.append(
+            (
                 cast(str | None, getattr(job, "id", None)),
+                cast(str | None, getattr(job, "name", None)),
             )
-            if info not in dump:
-                dump.append(info)
-
-    logger.debug("Job queue dump: %s", dump)
+        )
     return dump
