@@ -19,11 +19,11 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile
 from services.api.app.diabetes.services.repository import CommitError, commit as _commit
-from services.api.app.diabetes.utils.functions import (
+from services.api.app.diabetes.utils.calc_bolus import (
     PatientProfile,
     calc_bolus,
-    smart_input,
 )
+from services.api.app.diabetes.utils.functions import smart_input
 from services.api.app.diabetes.gpt_command_parser import (
     ParserTimeoutError,
     parse_command,
@@ -31,7 +31,7 @@ from services.api.app.diabetes.gpt_command_parser import (
 from services.api.app.diabetes.utils.constants import XE_GRAMS
 from services.api.app.diabetes.utils.ui import (
     confirm_keyboard,
-    menu_keyboard,
+    menu_keyboard as menu_keyboard_fn,
 )
 
 from .alert_handlers import check_alert as _check_alert
@@ -605,7 +605,7 @@ async def freeform_handler(
     SessionLocal = SessionLocal or globals()["SessionLocal"]
     commit = commit or globals()["commit"]
     check_alert = check_alert or globals()["check_alert"]
-    menu_keyboard_markup = menu_keyboard_markup or globals()["menu_keyboard"]()
+    menu_keyboard_markup = menu_keyboard_markup or menu_keyboard_fn()
     assert SessionLocal is not None
     assert commit is not None
     assert check_alert is not None
