@@ -395,6 +395,54 @@ def test_schedule_reminder_ignores_application_timezone() -> None:
     assert job.params["hour"] == 8
 
 
+class DummyJobQueueNoTZ:
+    def __init__(self) -> None:
+        self.jobs: list[DummyJob] = []
+
+    def run_daily(
+        self,
+        callback: Callable[..., Any],
+        time: time,
+        *,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> DummyJob:
+        job = DummyJob(
+            self,
+            id=job_kwargs.get("id") if job_kwargs else name or "",
+            name=name or "",
+            trigger="cron",
+            timezone=ZoneInfo("UTC"),
+            params={},
+        )
+        job.time = time
+        self.jobs.append(job)
+        return job
+
+    def get_jobs_by_name(self, name: str) -> list[DummyJob]:
+        return [job for job in self.jobs if job.name == name]
+
+
+def test_schedule_reminder_no_timezone_kwarg() -> None:
+    user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
+    rem = Reminder(
+        id=1,
+        telegram_id=1,
+        type="sugar",
+        time=time(8, 0),
+        kind="at_time",
+        is_enabled=True,
+        user=user,
+    )
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueueNoTZ())
+    handlers.schedule_reminder(rem, job_queue, user)
+    jobs = job_queue.get_jobs_by_name("reminder_1")
+    assert jobs
+    called_time = jobs[0].time
+    assert called_time.tzinfo == ZoneInfo("Europe/Moscow")
+    assert jobs[0].id == "reminder_1"
 def test_schedule_reminder_respects_days_mask() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -497,12 +545,12 @@ def test_interval_minutes_scheduling_and_rendering(
         user = session.get(DbUser, 1)
         assert rem is not None
         with patch.object(
-            job_queue.scheduler, "add_job", wraps=job_queue.scheduler.add_job
-        ) as mock_add:
+            job_queue, "run_repeating", wraps=job_queue.run_repeating
+        ) as mock_run:
             handlers.schedule_reminder(rem, job_queue, user)
-            mock_add.assert_called_once()
-            assert mock_add.call_args.kwargs["trigger"] == "date"
-            assert mock_add.call_args.kwargs["when"] == timedelta(minutes=30)
+            mock_run.assert_called_once()
+            assert mock_run.call_args.kwargs["interval"] == timedelta(minutes=30)
+            assert mock_run.call_args.kwargs["job_kwargs"]["id"] == "reminder_1"
         text, _ = handlers._render_reminders(session, 1)
     assert "⏱ Интервал" in text
     assert "каждые 30 мин" in text
@@ -535,14 +583,13 @@ def test_interval_hours_scheduling(
         user = session.get(DbUser, 1)
         assert rem is not None
         with patch.object(
-            job_queue.scheduler, "add_job", wraps=job_queue.scheduler.add_job
-        ) as mock_add, caplog.at_level(logging.INFO):
+            job_queue, "run_repeating", wraps=job_queue.run_repeating
+        ) as mock_run, caplog.at_level(logging.INFO):
             handlers.schedule_reminder(rem, job_queue, user)
-            mock_add.assert_called_once()
-            assert mock_add.call_args.kwargs["trigger"] == "date"
-            assert mock_add.call_args.kwargs["when"] == timedelta(minutes=120)
-    assert "interval_min=120" in caplog.text
-    assert "kind=every" in caplog.text
+            mock_run.assert_called_once()
+            assert mock_run.call_args.kwargs["interval"] == timedelta(minutes=120)
+    assert "PLAN reminder_1 kind=every" in caplog.text
+    assert "SET reminder_1 kind=every" in caplog.text
 
 
 def test_schedule_with_next_invalid_timezone_logs_warning(

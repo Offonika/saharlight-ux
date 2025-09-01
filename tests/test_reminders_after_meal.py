@@ -1,6 +1,9 @@
 from collections.abc import Callable
 from datetime import timedelta
+import logging
 from typing import Any, cast
+
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -56,7 +59,36 @@ def make_session() -> sessionmaker[Session]:
     return sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 
 
-def test_schedule_reminder_after_meal() -> None:
+def test_schedule_reminder_after_meal_skips(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    TestSession = make_session()
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        user = DbUser(telegram_id=1, thread_id="t")
+        session.add(user)
+        rem = Reminder(
+            id=1,
+            telegram_id=1,
+            type="after_meal",
+            kind="after_event",
+            minutes_after=30,
+            is_enabled=True,
+            user=user,
+        )
+        session.add(rem)
+        session.commit()
+    dummy_queue = DummyJobQueue()
+    job_queue = cast(handlers.DefaultJobQueue, dummy_queue)
+    with caplog.at_level(logging.INFO):
+        handlers.schedule_reminder(rem, job_queue, user)
+    assert not dummy_queue.jobs
+    assert any(
+        r.message.startswith("SKIP reminder_1_after") for r in caplog.records
+    )
+
+
+def test_schedule_reminder_after_meal_no_jobs() -> None:
     TestSession = make_session()
     handlers.SessionLocal = TestSession
     with TestSession() as session:
@@ -76,41 +108,8 @@ def test_schedule_reminder_after_meal() -> None:
     dummy_queue = DummyJobQueue()
     job_queue = cast(handlers.DefaultJobQueue, dummy_queue)
     handlers.schedule_reminder(rem, job_queue, user)
-    assert len(dummy_queue.jobs) == 1
-    job = dummy_queue.jobs[0]
-    assert job.callback is handlers.reminder_job
-    assert job.when == timedelta(minutes=30)
-    assert job.data == {"reminder_id": 1, "chat_id": 1}
-    assert job.name == "reminder_1"
-    with TestSession() as session:
-        rem_db = session.get(Reminder, 1)
-        assert rem_db is not None
-        assert rem_db.minutes_after == 30
-
-
-def test_schedule_reminder_after_meal_no_duplicate_jobs() -> None:
-    TestSession = make_session()
-    handlers.SessionLocal = TestSession
-    with TestSession() as session:
-        user = DbUser(telegram_id=1, thread_id="t")
-        session.add(user)
-        rem = Reminder(
-            id=1,
-            telegram_id=1,
-            type="after_meal",
-            kind="after_event",
-            minutes_after=30,
-            is_enabled=True,
-            user=user,
-        )
-        session.add(rem)
-        session.commit()
-    dummy_queue = DummyJobQueue()
-    job_queue = cast(handlers.DefaultJobQueue, dummy_queue)
     handlers.schedule_reminder(rem, job_queue, user)
-    handlers.schedule_reminder(rem, job_queue, user)
-    jobs = list(dummy_queue.get_jobs_by_name("reminder_1"))
-    assert len(jobs) == 1
+    assert not dummy_queue.get_jobs_by_name("reminder_1_after")
 
 
 def test_schedule_after_meal_single_reminder() -> None:
