@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 from zoneinfo import ZoneInfo
 
 from telegram.ext import ContextTypes, JobQueue
@@ -67,25 +67,60 @@ def schedule_reminder(
 
     context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
 
-    job_kwargs = {"id": name, "replace_existing": True, "misfire_grace_time": 60}
+
+    job_kwargs: dict[str, object] = {
+        "id": name,
+        "name": name,
+        "replace_existing": True,
+    }
+
     if kind == "after_event":
         logger.info("Skip scheduling %s: 'after_event' is scheduled on trigger.", name)
         return
     elif kind == "at_time" and rem.time is not None:
         mask = getattr(rem, "days_mask", 0) or 0
         days = tuple(i for i in range(7) if mask & (1 << i)) if mask else None
-        params = {
-            "time": rem.time,
-            "data": context,
-            "name": name,
-            "job_kwargs": job_kwargs,
-        }
-        sig = inspect.signature(job_queue.run_daily)
-        if "timezone" in sig.parameters:
-            params["timezone"] = tz
+        run_daily = job_queue.run_daily
+        sig = inspect.signature(run_daily)
+        job_kwargs_cast = cast(dict[str, Any], job_kwargs)
         if days is not None and "days" in sig.parameters:
-            params["days"] = days
-        job_queue.run_daily(reminder_job, **params)
+            if "timezone" in sig.parameters:
+                cast(Any, run_daily)(
+                    reminder_job,
+                    time=rem.time,
+                    days=days,
+                    data=context,
+                    name=name,
+                    job_kwargs=job_kwargs_cast,
+                    timezone=tz,
+                )
+            else:
+                run_daily(
+                    reminder_job,
+                    time=rem.time,
+                    days=days,
+                    data=context,
+                    name=name,
+                    job_kwargs=job_kwargs_cast,
+                )
+        else:
+            if "timezone" in sig.parameters:
+                cast(Any, run_daily)(
+                    reminder_job,
+                    time=rem.time,
+                    data=context,
+                    name=name,
+                    job_kwargs=job_kwargs_cast,
+                    timezone=tz,
+                )
+            else:
+                run_daily(
+                    reminder_job,
+                    time=rem.time,
+                    data=context,
+                    name=name,
+                    job_kwargs=job_kwargs_cast,
+                )
     elif kind == "every" and rem.interval_minutes is not None:
         job_queue.run_repeating(
             reminder_job,
