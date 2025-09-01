@@ -70,6 +70,8 @@ async def patch_user_settings(
             user.round_step = data.roundStep
         if data.carbUnits is not None:
             user.carb_units = data.carbUnits
+        if data.gramsPerXe is not None:
+            user.grams_per_xe = data.gramsPerXe
 
         if user.timezone_auto and device_tz and user.timezone != device_tz:
             user.timezone = device_tz
@@ -85,6 +87,7 @@ async def patch_user_settings(
             dia=user.dia,
             roundStep=user.round_step,
             carbUnits=CarbUnits(user.carb_units),
+            gramsPerXe=user.grams_per_xe,
         )
 
     return await db.run_db(_patch, sessionmaker=db.SessionLocal)

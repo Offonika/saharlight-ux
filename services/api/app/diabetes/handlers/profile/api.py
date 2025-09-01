@@ -42,6 +42,7 @@ class LocalUserSettings:
     dia: float = 4.0
     round_step: float = 0.5
     carb_units: str = "g"
+    grams_per_xe: float = 12.0
 
 
 class LocalProfileAPI:
@@ -175,6 +176,7 @@ def get_user_settings(session: Session, user_id: int) -> LocalUserSettings | Non
         dia=user.dia,
         round_step=user.round_step,
         carb_units=user.carb_units,
+        grams_per_xe=user.grams_per_xe,
     )
 
 
@@ -195,6 +197,8 @@ def patch_user_settings(
         user.round_step = data.roundStep
     if data.carbUnits is not None:
         user.carb_units = data.carbUnits
+    if data.gramsPerXe is not None:
+        user.grams_per_xe = data.gramsPerXe
     if user.timezone_auto and device_tz and user.timezone != device_tz:
         user.timezone = device_tz
     try:

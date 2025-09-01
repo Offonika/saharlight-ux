@@ -160,6 +160,7 @@ class User(Base):
     dia: Mapped[float] = mapped_column(Float, default=4.0)
     round_step: Mapped[float] = mapped_column(Float, default=0.5)
     carb_units: Mapped[str] = mapped_column(String, default="g")
+    grams_per_xe: Mapped[float] = mapped_column(Float, default=12.0)
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
