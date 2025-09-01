@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useRemindersApi } from "../api/reminders"; // ваш хук, возвращающий DefaultApi
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
 import { DaysPresets } from "../components/DaysPresets";
+import AfterEventDelay from "../components/AfterEventDelay";
 import {
   buildReminderPayload,
   ReminderFormValues,
@@ -16,7 +17,6 @@ import { getTelegramUserId } from "../../../shared/telegram";
 import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
 import TimeInput from "@/components/TimeInput";
-import { useDefaultAfterMealMinutes } from "../../profile/hooks";
 
 const TYPE_OPTIONS: { value: ReminderType; label: string }[] = [
   { value: "sugar", label: "Измерение сахара" },
@@ -47,7 +47,6 @@ export default function RemindersCreate() {
   const nav = useNavigate();
   const toast = useToast();
   const isDev = process.env.NODE_ENV === "development";
-  const defaultAfterMeal = useDefaultAfterMealMinutes(telegramId);
 
   const [form, setForm] = useState<ReminderFormValues>({
     telegramId,
@@ -68,13 +67,6 @@ export default function RemindersCreate() {
 
   const presetsTime = ["07:30", "12:30", "22:00"];
   const presetsEvery = [60, 120, 180, 1440];
-  const presetsAfter = useMemo(() => {
-    const base = [90, 120, 150];
-    if (defaultAfterMeal && !base.includes(defaultAfterMeal)) {
-      return [defaultAfterMeal, ...base];
-    }
-    return base;
-  }, [defaultAfterMeal]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -149,7 +141,7 @@ export default function RemindersCreate() {
       if (k === "at_time") base.time = "07:30";
       if (k === "every") base.intervalMinutes = 60;
       if (k === "after_event") {
-        base.minutesAfter = defaultAfterMeal ?? 120;
+        base.minutesAfter = 120;
         base.type = "after_meal";
       }
       return base;
@@ -281,37 +273,11 @@ export default function RemindersCreate() {
           )}
 
           {form.kind === "after_event" && (
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-foreground">
-                Задержка после еды (мин)
-              </label>
-              <input
-                type="number"
-                min={1}
-                className={`medical-input ${errors.minutesAfter ? "border-destructive focus:border-destructive" : ""}`}
-                value={form.minutesAfter ?? ""}
-                onChange={(e) =>
-                  onChange("minutesAfter", Number(e.target.value || 0))
-                }
-              />
-              {errors.minutesAfter && (
-                <p className="text-xs text-destructive mt-1">
-                  {errors.minutesAfter}
-                </p>
-              )}
-              <div className="flex gap-2 flex-wrap">
-                {presetsAfter.map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    className="px-3 py-1 rounded-lg border border-border bg-background text-foreground hover:bg-secondary transition-colors"
-                    onClick={() => onChange("minutesAfter", m)}
-                  >
-                    {m} мин
-                  </button>
-                ))}
-              </div>
-            </div>
+            <AfterEventDelay
+              value={form.minutesAfter}
+              onChange={(v) => onChange("minutesAfter", v)}
+              error={errors.minutesAfter}
+            />
           )}
 
           {/* Дни недели */}
