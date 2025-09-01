@@ -5,7 +5,7 @@ import logging
 import re
 from datetime import timedelta
 
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, sessionmaker, selectinload
 from telegram.ext import ContextTypes
 
 from .diabetes.services.db import Reminder, User
@@ -36,6 +36,7 @@ async def _reminders_gc(_context: ContextTypes.DEFAULT_TYPE) -> None:
         with session_factory() as session:
             return (
                 session.query(Reminder)
+                .options(selectinload(Reminder.user))
                 .filter(Reminder.is_enabled == True)  # noqa: E712
                 .all()
             )
@@ -44,7 +45,7 @@ async def _reminders_gc(_context: ContextTypes.DEFAULT_TYPE) -> None:
     active_ids = {rem.id for rem in reminders}
 
     for rem in reminders:
-        schedule_reminder(rem, jq, None)
+        schedule_reminder(rem, jq, rem.user)
 
     for job_id, name in dbg_jobs_dump(jq):
         nm = name or job_id

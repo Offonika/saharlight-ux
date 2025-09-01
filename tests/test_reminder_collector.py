@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -16,7 +16,9 @@ from services.api.app.diabetes.services.db import Base, Reminder, User
 
 
 class DummyJob:
-    def __init__(self, scheduler: "DummyScheduler", *, id: str, name: str, run_time: dt_time) -> None:
+    def __init__(
+        self, scheduler: "DummyScheduler", *, id: str, name: str, run_time: dt_time
+    ) -> None:
         self._scheduler = scheduler
         self.id = id
         self.name = name
@@ -161,3 +163,60 @@ async def test_gc_replaces_outdated_job(
     assert job.run_time == dt_time(9, 0)
     reminder_events.register_job_queue(None)
 
+
+@pytest.mark.asyncio
+async def test_gc_preloads_users(
+    session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(reminder_events, "SessionLocal", session_factory)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", session_factory)
+
+    with session_factory() as session:
+        session.add_all(
+            [
+                User(telegram_id=1, thread_id="t1", timezone="UTC"),
+                User(telegram_id=2, thread_id="t2", timezone="UTC"),
+            ]
+        )
+        session.add_all(
+            [
+                Reminder(
+                    id=1,
+                    telegram_id=1,
+                    type="sugar",
+                    time=dt_time(8, 0),
+                    is_enabled=True,
+                ),
+                Reminder(
+                    id=2,
+                    telegram_id=2,
+                    type="sugar",
+                    time=dt_time(9, 0),
+                    is_enabled=True,
+                ),
+            ]
+        )
+        session.commit()
+
+    jq = DummyJobQueue()
+    reminder_events.register_job_queue(jq)
+
+    engine = session_factory.kw["bind"]
+    statements: list[str] = []
+
+    def before_cursor_execute(
+        conn, cursor, statement, parameters, context, executemany
+    ) -> None:
+        if statement.startswith("SELECT"):
+            statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", before_cursor_execute)
+    try:
+        await reminder_events._reminders_gc(None)
+    finally:
+        event.remove(engine, "before_cursor_execute", before_cursor_execute)
+        reminder_events.register_job_queue(None)
+
+    assert {job.name for job in jq.scheduler.jobs} == {"reminder_1", "reminder_2"}
+    user_queries = [s for s in statements if "FROM users" in s]
+    assert len(user_queries) == 1
