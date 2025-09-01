@@ -844,10 +844,11 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     assert context.user_data is not None
     user_data = context.user_data
     assert "pending_entry" in user_data
+    handlers.reminder_events.notify_reminder_saved.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_delete_reminder_cb_no_notify(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -882,7 +883,7 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     update = make_update(callback_query=query, effective_user=make_user(1))
     context = make_context(job_queue=job_queue, user_data={})
     await handlers.reminder_action_cb(update, context)
-    notify_mock.assert_awaited_once_with(1)
+    notify_mock.assert_not_awaited()
 
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
@@ -925,6 +926,7 @@ async def test_toggle_reminder_without_job_queue(monkeypatch: pytest.MonkeyPatch
         assert rem_db.is_enabled
 
     assert not schedule_mock.called
+    handlers.reminder_events.notify_reminder_saved.assert_awaited_once_with(1)
 
 
 @pytest.mark.asyncio
@@ -961,7 +963,7 @@ async def test_toggle_reminder_missing_user(
     assert (
         "User 1 not found for rescheduling reminder 1" in caplog.text
     )
-    notify_mock.assert_awaited_once_with(1)
+    notify_mock.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -1004,6 +1006,7 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     update = make_update(effective_message=msg, effective_user=make_user(1))
     context = make_context(job_queue=job_queue)
     await handlers.reminder_webapp_save(update, context)
+    handlers.reminder_events.notify_reminder_saved.assert_not_awaited()
 
     with TestSession() as session:
         parsed = parse_time_interval("09:00")
