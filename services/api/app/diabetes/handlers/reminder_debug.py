@@ -4,10 +4,15 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
+import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 from services.api.app.config import settings
+from services.api.app.diabetes.utils.jobs import dbg_jobs_dump
+
+
+logger = logging.getLogger(__name__)
 
 
 def _is_admin(update: Update) -> bool:
@@ -58,6 +63,8 @@ async def dbg_tz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def dbg_jobs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not _is_admin(update):
         return
+    dump = dbg_jobs_dump(context.application.job_queue)
+    logger.debug("dbg_jobs_dump: %s", dump)
     text = _fmt_jobs(context.application)
     await update.effective_chat.send_message(text)
 
