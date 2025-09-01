@@ -33,8 +33,7 @@ async def _post_job_queue_event(action: Literal["saved", "deleted"], rid: int) -
         return
     base = config.get_settings().api_url
     if not base:
-        logger.warning("api_url not configured; skipping job queue notification")
-        return
+        raise RuntimeError("API_URL not configured")
     url = f"{base.rstrip('/')}/internal/reminders/{action}"
     async with httpx.AsyncClient() as client:
         try:
