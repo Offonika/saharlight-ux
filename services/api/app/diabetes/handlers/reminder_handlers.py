@@ -439,9 +439,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if status == "error":
         await message.reply_text("⚠️ Не удалось сохранить напоминание.")
         return
-    job_queue: DefaultJobQueue | None = cast(
-        DefaultJobQueue | None, context.job_queue
-    )
+    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None and db_user is not None:
         schedule_reminder(reminder, job_queue, db_user)
         logger.debug(
@@ -450,9 +448,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
     else:
         await reminder_events.notify_reminder_saved(reminder.id)
-        logger.debug(
-            "Sent reminder_saved event for %s", reminder.id
-        )
+        logger.debug("Sent reminder_saved event for %s", reminder.id)
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
 
 
@@ -514,7 +510,12 @@ async def reminder_webapp_save(
                     reminder_job,
                     when=timedelta(minutes=minutes),
                     data={"reminder_id": int(rid), "chat_id": user_id},
-                    name=f"reminder_{rid}",
+                    name=f"reminder_{rid}_snooze",
+                    job_kwargs={
+                        "id": f"reminder_{rid}_snooze",
+                        "name": f"reminder_{rid}_snooze",
+                        "replace_existing": True,
+                    },
                 )
             await msg.reply_text(f"⏰ Отложено на {minutes} минут")
         return
@@ -794,9 +795,7 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await reminder_events.notify_reminder_saved(rid)
         logger.debug("Sent reminder_saved event for %s", rid)
     else:
-        logger.debug(
-            "Job queue present; suppressed reminder_saved event for %s", rid
-        )
+        logger.debug("Job queue present; suppressed reminder_saved event for %s", rid)
 
 
 async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -899,7 +898,12 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 reminder_job,
                 when=timedelta(minutes=mins),
                 data={"reminder_id": rid, "chat_id": chat_id},
-                name=f"reminder_{rid}",
+                name=f"reminder_{rid}_snooze",
+                job_kwargs={
+                    "id": f"reminder_{rid}_snooze",
+                    "name": f"reminder_{rid}_snooze",
+                    "replace_existing": True,
+                },
             )
         try:
             await query.edit_message_text(f"⏰ Отложено на {mins} минут")
@@ -1072,9 +1076,7 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
             continue
         removed = _remove_jobs(job_queue, f"reminder_{rem.id}")
         if removed:
-            logger.info(
-                "Removed %d job(s) for reminder %s", removed, rem.id
-            )
+            logger.info("Removed %d job(s) for reminder %s", removed, rem.id)
         schedule_once(
             job_queue,
             reminder_job,
