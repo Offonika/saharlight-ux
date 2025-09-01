@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-import logging
-
 import asyncio
+import logging
+import re
+from datetime import timedelta
 
 from sqlalchemy.orm import Session, sessionmaker
+from telegram.ext import ContextTypes
 
 from .diabetes.services.db import Reminder, User
 from .diabetes.handlers.reminder_jobs import DefaultJobQueue, schedule_reminder
-from services.api.app.diabetes.utils.jobs import _remove_jobs
+from services.api.app.diabetes.utils.jobs import _remove_jobs, dbg_jobs_dump
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +19,62 @@ logger = logging.getLogger(__name__)
 job_queue: DefaultJobQueue | None = None
 SessionLocal: sessionmaker[Session] | None = None
 
+_GC_JOB_NAME = "reminders_gc"
+
+
+async def _reminders_gc(_context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Synchronize reminder jobs with the database."""
+    jq = job_queue
+    if jq is None:
+        return
+
+    from .diabetes.handlers import reminder_handlers
+
+    session_factory = SessionLocal or reminder_handlers.SessionLocal
+
+    def load_active() -> list[Reminder]:
+        with session_factory() as session:
+            return (
+                session.query(Reminder)
+                .filter(Reminder.is_enabled == True)  # noqa: E712
+                .all()
+            )
+
+    reminders = await asyncio.to_thread(load_active)
+    active_ids = {rem.id for rem in reminders}
+
+    for rem in reminders:
+        schedule_reminder(rem, jq, None)
+
+    for job_id, name in dbg_jobs_dump(jq):
+        nm = name or job_id
+        if not nm:
+            continue
+        match = re.match(r"^reminder_(\d+)", nm)
+        if match and int(match.group(1)) not in active_ids:
+            _remove_jobs(jq, f"reminder_{match.group(1)}")
+
 
 def register_job_queue(jq: DefaultJobQueue | None) -> None:
     """Register a shared JobQueue used to schedule reminders."""
     global job_queue
     job_queue = jq
+
+
+def schedule_reminders_gc(jq: DefaultJobQueue) -> None:
+    """Schedule the reminder garbage collector."""
+    run_rep = getattr(jq, "run_repeating", None)
+    if not callable(run_rep):
+        return
+    job_kwargs = {"id": _GC_JOB_NAME, "name": _GC_JOB_NAME, "replace_existing": True}
+    call_job_kwargs = dict(job_kwargs)
+    call_job_kwargs.pop("name", None)
+    run_rep(
+        _reminders_gc,
+        interval=timedelta(seconds=90),
+        name=_GC_JOB_NAME,
+        job_kwargs=call_job_kwargs,
+    )
 
 
 async def notify_reminder_saved(reminder_id: int) -> None:
@@ -71,4 +124,9 @@ def notify_reminder_deleted(reminder_id: int) -> None:
     logger.info("Removed %d job(s) for reminder %s", removed, reminder_id)
 
 
-__all__ = ["register_job_queue", "notify_reminder_saved", "notify_reminder_deleted"]
+__all__ = [
+    "register_job_queue",
+    "schedule_reminders_gc",
+    "notify_reminder_saved",
+    "notify_reminder_deleted",
+]
