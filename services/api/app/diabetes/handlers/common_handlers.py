@@ -5,7 +5,7 @@ from __future__ import annotations
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.diabetes.utils.ui import REMINDERS_BUTTON_TEXT, menu_keyboard
 
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -54,6 +54,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "🩸 Уровень сахара\n"
         "💉 Доза инсулина\n"
         "📈 Отчёт\n"
+        f"{REMINDERS_BUTTON_TEXT}\n"
         "ℹ️ Помощь"
     )
     message = update.message
