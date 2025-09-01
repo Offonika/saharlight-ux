@@ -88,6 +88,31 @@ def test_schedule_reminder_after_meal() -> None:
         assert rem_db.minutes_after == 30
 
 
+def test_schedule_reminder_after_meal_no_duplicate_jobs() -> None:
+    TestSession = make_session()
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        user = DbUser(telegram_id=1, thread_id="t")
+        session.add(user)
+        rem = Reminder(
+            id=1,
+            telegram_id=1,
+            type="after_meal",
+            kind="after_event",
+            minutes_after=30,
+            is_enabled=True,
+            user=user,
+        )
+        session.add(rem)
+        session.commit()
+    dummy_queue = DummyJobQueue()
+    job_queue = cast(handlers.DefaultJobQueue, dummy_queue)
+    handlers.schedule_reminder(rem, job_queue, user)
+    handlers.schedule_reminder(rem, job_queue, user)
+    jobs = list(dummy_queue.get_jobs_by_name("reminder_1"))
+    assert len(jobs) == 1
+
+
 def test_schedule_after_meal_single_reminder() -> None:
     TestSession = make_session()
     handlers.SessionLocal = TestSession
