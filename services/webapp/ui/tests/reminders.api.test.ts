@@ -74,6 +74,9 @@ describe('RemindersEdit', () => {
     vi.doMock('../src/shared/toast', () => ({
       useToast: () => ({ success: vi.fn(), error: vi.fn() }),
     }));
+    vi.doMock('../src/features/profile/hooks', () => ({
+      useDefaultAfterMealMinutes: () => 120,
+    }));
     vi.doMock('../src/hooks/useTelegram', () => ({
       useTelegram: () => ({ user: { id: 1 }, sendData: vi.fn() }),
     }));

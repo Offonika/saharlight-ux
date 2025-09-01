@@ -1,41 +1,57 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useRemindersApi } from "../api/reminders";
 import { buildReminderPayload } from "../api/buildPayload";
 import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
+import { useDefaultAfterMealMinutes } from "../../profile/hooks";
 
-export function Templates({ 
-  telegramId, 
-  onCreated 
-}: { 
-  telegramId: number; 
-  onCreated: () => void 
+export function Templates({
+  telegramId,
+  onCreated
+}: {
+  telegramId: number;
+  onCreated: () => void
 }) {
   const api = useRemindersApi();
   const toast = useToast();
-  
-  const templates = [
-    {
-      title: "Сахар утром 07:30",
-      emoji: "🩸",
-      dto: { telegramId, type: "sugar", kind: "at_time", time: "07:30", isEnabled: true }
-    },
-    {
-      title: "После еды 120 мин", 
-      emoji: "🍽️",
-      dto: { telegramId, type: "after_meal", kind: "after_event", minutesAfter: 120, isEnabled: true }
-    },
-    {
-      title: "Длинный инсулин 22:00",
-      emoji: "💉", 
-      dto: { telegramId, type: "insulin_long", kind: "at_time", time: "22:00", isEnabled: true }
-    },
-    {
-      title: "Короткий инсулин",
-      emoji: "💊",
-      dto: { telegramId, type: "insulin_short", kind: "every", intervalMinutes: 180, isEnabled: true }
-    }
-  ] as const;
+  const defaultAfterMeal = useDefaultAfterMealMinutes(telegramId);
+  const templates = useMemo(
+    () => [
+      {
+        title: "Сахар утром 07:30",
+        emoji: "🩸",
+        dto: { telegramId, type: "sugar", kind: "at_time", time: "07:30", isEnabled: true },
+      },
+      {
+        title: `После еды ${defaultAfterMeal ?? 120} мин`,
+        emoji: "🍽️",
+        dto: {
+          telegramId,
+          type: "after_meal",
+          kind: "after_event",
+          minutesAfter: defaultAfterMeal ?? 120,
+          isEnabled: true,
+        },
+      },
+      {
+        title: "Длинный инсулин 22:00",
+        emoji: "💉",
+        dto: { telegramId, type: "insulin_long", kind: "at_time", time: "22:00", isEnabled: true },
+      },
+      {
+        title: "Короткий инсулин",
+        emoji: "💊",
+        dto: {
+          telegramId,
+          type: "insulin_short",
+          kind: "every",
+          intervalMinutes: 180,
+          isEnabled: true,
+        },
+      },
+    ] as const,
+    [telegramId, defaultAfterMeal],
+  );
   
   const create = async (dto: any) => {
     try {
