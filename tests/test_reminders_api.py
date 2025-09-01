@@ -435,3 +435,28 @@ async def test_post_job_queue_event_logs_error(
     assert "failed to notify job queue" in caplog.text
     monkeypatch.delenv("API_URL")
     config.reload_settings()
+
+
+def test_post_reminder_handles_notify_error(
+    client_with_job_queue: tuple[TestClient, DummyJobQueue],
+    session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client, _ = client_with_job_queue
+
+    async def boom(_: int) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(reminder_events, "notify_reminder_saved", boom)
+
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+
+    resp = client.post(
+        "/api/reminders",
+        json={"telegramId": 1, "type": "sugar", "time": "08:00"},
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "ok"
