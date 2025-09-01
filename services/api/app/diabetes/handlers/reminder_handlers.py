@@ -1098,7 +1098,8 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
         minutes_after = rem.minutes_after
         if minutes_after is None:
             continue
-        removed = _remove_jobs(job_queue, f"reminder_{rem.id}")
+        name = f"reminder_{rem.id}_after"
+        removed = _remove_jobs(job_queue, name)
         if removed:
             logger.info("Removed %d job(s) for reminder %s", removed, rem.id)
         schedule_once(
@@ -1106,7 +1107,8 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
             reminder_job,
             when=timedelta(minutes=float(minutes_after)),
             data={"reminder_id": rem.id, "chat_id": user_id},
-            name=f"reminder_{rem.id}",
+            name=name,
+            job_kwargs={"id": name, "name": name, "replace_existing": True},
         )
 
 
