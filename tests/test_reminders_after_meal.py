@@ -114,7 +114,7 @@ def test_schedule_after_meal_single_reminder() -> None:
     assert job.callback is handlers.reminder_job
     assert job.when == timedelta(minutes=30)
     assert job.data == {"reminder_id": 1, "chat_id": 1}
-    assert job.name == "reminder_1"
+    assert job.name == "reminder_1_after"
 
 
 def test_schedule_after_meal_no_duplicate_jobs() -> None:
@@ -139,10 +139,9 @@ def test_schedule_after_meal_no_duplicate_jobs() -> None:
     job_queue = cast(handlers.DefaultJobQueue, dummy_queue)
     handlers.schedule_after_meal(1, job_queue)
     handlers.schedule_after_meal(1, job_queue)
-    jobs = list(job_queue.get_jobs_by_name("reminder_1"))
-    assert len(jobs) == 2
-    assert jobs[0].removed is True
-    assert jobs[1].removed is False
+    jobs = list(job_queue.get_jobs_by_name("reminder_1_after"))
+    assert len(jobs) == 1
+    assert jobs[0].removed is False
 
 
 def test_schedule_after_meal_multiple_reminders() -> None:
@@ -178,10 +177,10 @@ def test_schedule_after_meal_multiple_reminders() -> None:
     handlers.schedule_after_meal(1, cast(handlers.DefaultJobQueue, dummy_queue))
     assert len(dummy_queue.jobs) == 2
     jobs = {job.name: job for job in dummy_queue.jobs}
-    job1 = jobs["reminder_1"]
+    job1 = jobs["reminder_1_after"]
     assert job1.when == timedelta(minutes=15)
     assert job1.data == {"reminder_id": 1, "chat_id": 1}
-    job2 = jobs["reminder_2"]
+    job2 = jobs["reminder_2_after"]
     assert job2.when == timedelta(minutes=45)
     assert job2.data == {"reminder_id": 2, "chat_id": 1}
 
