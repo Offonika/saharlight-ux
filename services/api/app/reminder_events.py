@@ -67,14 +67,11 @@ def schedule_reminders_gc(jq: DefaultJobQueue) -> None:
     run_rep = getattr(jq, "run_repeating", None)
     if not callable(run_rep):
         return
-    job_kwargs = {"id": _GC_JOB_NAME, "name": _GC_JOB_NAME, "replace_existing": True}
-    call_job_kwargs = dict(job_kwargs)
-    call_job_kwargs.pop("name", None)
     run_rep(
         _reminders_gc,
         interval=timedelta(seconds=90),
         name=_GC_JOB_NAME,
-        job_kwargs=call_job_kwargs,
+        job_kwargs={"id": _GC_JOB_NAME, "replace_existing": True},
     )
 
 
