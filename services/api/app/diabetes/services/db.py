@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sqlite3
 import threading
 from datetime import date, datetime, time
 from typing import Callable, Iterable, Optional, Protocol, TypeVar
@@ -39,6 +40,23 @@ from sqlalchemy.orm import (
 from services.api.app.config import get_db_password, settings
 
 logger = logging.getLogger(__name__)
+
+
+def _register_sqlite_adapters() -> None:
+    """Register adapters and converters for SQLite datetime handling."""
+
+    sqlite3.register_adapter(datetime, lambda val: val.isoformat(sep=" "))
+    sqlite3.register_adapter(date, lambda val: val.isoformat())
+    sqlite3.register_adapter(time, lambda val: val.isoformat())
+
+    sqlite3.register_converter(
+        "timestamp", lambda b: datetime.fromisoformat(b.decode())
+    )
+    sqlite3.register_converter("date", lambda b: date.fromisoformat(b.decode()))
+    sqlite3.register_converter("time", lambda b: time.fromisoformat(b.decode()))
+
+
+_register_sqlite_adapters()
 
 
 # ────────────────── подключение к Postgres ──────────────────
