@@ -64,6 +64,7 @@ class DummyJobQueue:
         days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
         data: dict[str, object] | None = None,
         name: str | None = None,
+        timezone: ZoneInfo | None = None,
         job_kwargs: dict[str, object] | None = None,
     ) -> DummyJob:
         params: dict[str, object] = {"hour": time.hour, "minute": time.minute}
@@ -75,7 +76,7 @@ class DummyJobQueue:
             id=name or "",
             name=name or "",
             replace_existing=bool(job_kwargs and job_kwargs.get("replace_existing")),
-            timezone=time.tzinfo or ZoneInfo("UTC"),
+            timezone=timezone or ZoneInfo("UTC"),
             kwargs={"context": data},
             **params,
         )
