@@ -48,10 +48,14 @@ def schedule_reminder(
 
     name = f"reminder_{rem.id}"
     kind = rem.kind
+    interval_minutes = rem.interval_minutes
     if kind is None:
-        if rem.minutes_after is not None:
+        if interval_minutes is None and rem.interval_hours is not None:
+            interval_minutes = rem.interval_hours * 60
+            kind = "every"
+        elif rem.minutes_after is not None:
             kind = "after_event"
-        elif rem.interval_minutes:
+        elif interval_minutes:
             kind = "every"
         else:
             kind = "at_time"
@@ -61,13 +65,12 @@ def schedule_reminder(
         name,
         kind,
         rem.time,
-        rem.interval_minutes,
+        interval_minutes,
         rem.minutes_after,
         tz,
     )
 
     context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
-
 
     job_kwargs: dict[str, object] = {"id": name, "replace_existing": True}
 
@@ -124,12 +127,12 @@ def schedule_reminder(
                     name=name,
                     job_kwargs=job_kwargs_cast,
                 )
-    elif kind == "every" and rem.interval_minutes is not None:
+    elif kind == "every" and interval_minutes is not None:
         run_repeating = getattr(job_queue, "run_repeating", None)
         if run_repeating is not None:
             cast(Any, run_repeating)(
                 reminder_job,
-                interval=timedelta(minutes=int(rem.interval_minutes)),
+                interval=timedelta(minutes=int(interval_minutes)),
                 data=context,
                 name=name,
                 job_kwargs=job_kwargs,
