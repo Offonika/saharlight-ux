@@ -7,7 +7,7 @@ import json
 import logging
 import re
 from datetime import time, timedelta, timezone
-from typing import Awaitable, Callable, Literal, cast
+from typing import Any, Awaitable, Callable, Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import parse_qsl
 
@@ -45,7 +45,7 @@ from services.api.app.diabetes.schemas.reminders import ScheduleKind
 from .reminder_jobs import DefaultJobQueue, schedule_reminder
 from . import UserData
 
-run_db: Callable[..., Awaitable[object]] | None
+run_db: Callable[..., Awaitable[Any]] | None  # noqa: ANN401
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
@@ -54,7 +54,7 @@ except ImportError:  # pragma: no cover - optional db runner
     )
     run_db = None
 else:
-    run_db = cast(Callable[..., Awaitable[object]], _run_db)
+    run_db = cast(Callable[..., Awaitable[Any]], _run_db)  # noqa: ANN401
 
 logger = logging.getLogger(__name__)
 
@@ -272,6 +272,7 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
 
     schedule_reminder(reminder, job_queue, user)
 
+    next_run: datetime.datetime | None
     next_run = None
     job = next(iter(job_queue.get_jobs_by_name(job_name)), None)
     if job is not None:
