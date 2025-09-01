@@ -9,6 +9,7 @@ from datetime import time
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from unittest.mock import AsyncMock
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -96,6 +97,11 @@ async def test_webapp_save_creates_reminder(
     context = cast(
         ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
     )
+    monkeypatch.setattr(
+        handlers.reminder_events,
+        "notify_reminder_saved",
+        AsyncMock(),
+    )
     await handlers.reminder_webapp_save(update, context)
 
     with TestSession() as session:
@@ -123,6 +129,11 @@ async def test_webapp_save_creates_interval(
     )
     context = cast(
         ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
+    )
+    monkeypatch.setattr(
+        handlers.reminder_events,
+        "notify_reminder_saved",
+        AsyncMock(),
     )
     await handlers.reminder_webapp_save(update, context)
 
