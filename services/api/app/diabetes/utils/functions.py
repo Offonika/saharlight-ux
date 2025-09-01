@@ -1,9 +1,7 @@
 """Утилиты для расчёта болюса и разбора пищевой информации."""
 
-from dataclasses import dataclass
 import math
 import re
-from decimal import Decimal, localcontext
 
 # ---------------------------------------------------------------------------
 # Regex helpers
@@ -102,61 +100,6 @@ def _safe_float(value: object) -> float | None:
     except ValueError:
         return None
     return result if math.isfinite(result) else None
-
-
-@dataclass
-class PatientProfile:
-    """Профиль пациента для расчёта болюса.
-
-    Attributes:
-        icr: Коэффициент чувствительности к углеводам.
-        cf: Коррекционный фактор для сахара крови.
-        target_bg: Целевой уровень сахара.
-    """
-
-    icr: float
-    cf: float
-    target_bg: float
-
-
-def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> float:
-    """Рассчитывает дозу инсулина по углеводам и сахару.
-
-    Args:
-        carbs_g: Количество углеводов в граммах.
-        current_bg: Текущий уровень сахара в крови.
-        profile: Настройки пациента с коэффициентами.
-
-    Returns:
-        Округлённый болюс в единицах инсулина.
-
-    Examples:
-        >>> profile = PatientProfile(icr=10, cf=50, target_bg=5.5)
-        >>> calc_bolus(60, 7.0, profile)
-        6.0
-    """
-    if profile.icr <= 0:
-        raise ValueError("Profile icr must be greater than 0")
-    if profile.cf <= 0:
-        raise ValueError("Profile cf must be greater than 0")
-    if profile.target_bg <= 0:
-        raise ValueError("Profile target_bg must be greater than 0")
-    if carbs_g < 0:
-        raise ValueError("carbs_g must be non-negative")
-    if current_bg < 0:
-        raise ValueError("current_bg must be non-negative")
-    with localcontext() as ctx:
-        ctx.prec = 6
-        carbs = Decimal(str(carbs_g))
-        icr = Decimal(str(profile.icr))
-        cf = Decimal(str(profile.cf))
-        target_bg = Decimal(str(profile.target_bg))
-        current = Decimal(str(current_bg))
-        meal = carbs / icr
-        correction = (current - target_bg) / cf
-        if correction < 0:
-            correction = Decimal("0")
-        return float(round(meal + correction, 1))
 
 
 def extract_nutrition_info(text: object) -> tuple[float | None, float | None]:

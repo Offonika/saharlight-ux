@@ -1,13 +1,9 @@
 # test_functions.py
 
-from decimal import getcontext
-
 import pytest
 
 from services.api.app.diabetes.utils.functions import (
-    PatientProfile,
     _safe_float,
-    calc_bolus,
     extract_nutrition_info,
     smart_input,
 )
@@ -24,66 +20,6 @@ def test_safe_float_none() -> None:
 @pytest.mark.parametrize("value", ["NaN", "inf", "-inf"])
 def test_safe_float_non_finite(value: str) -> None:
     assert _safe_float(value) is None
-
-
-def test_calc_bolus_basic() -> None:
-    profile = PatientProfile(icr=12, cf=2, target_bg=6)
-    result = calc_bolus(carbs_g=60, current_bg=8, profile=profile)
-    # meal=60/12=5, correction=(8-6)/2=1, total=6.0
-    assert result == 6.0
-
-
-def test_calc_bolus_no_correction() -> None:
-    profile = PatientProfile(icr=10, cf=2, target_bg=6)
-    result = calc_bolus(carbs_g=30, current_bg=5, profile=profile)
-    # meal=3, correction=max(0, (5-6)/2)=0, total=3.0
-    assert result == 3.0
-
-
-def test_calc_bolus_decimal_precision() -> None:
-    profile = PatientProfile(icr=3, cf=1, target_bg=5)
-    result = calc_bolus(carbs_g=1, current_bg=5, profile=profile)
-    assert result == 0.3
-
-
-def test_calc_bolus_no_precision_leak() -> None:
-    ctx = getcontext()
-    original = ctx.prec
-    ctx.prec = 10
-    profile = PatientProfile(icr=12, cf=2, target_bg=6)
-    calc_bolus(carbs_g=60, current_bg=8, profile=profile)
-    assert ctx.prec == 10
-    ctx.prec = original
-
-
-def test_calc_bolus_invalid_icr() -> None:
-    profile = PatientProfile(icr=0, cf=2, target_bg=6)
-    with pytest.raises(ValueError, match="icr"):
-        calc_bolus(carbs_g=30, current_bg=5, profile=profile)
-
-
-def test_calc_bolus_invalid_cf() -> None:
-    profile = PatientProfile(icr=10, cf=-1, target_bg=6)
-    with pytest.raises(ValueError, match="cf"):
-        calc_bolus(carbs_g=30, current_bg=5, profile=profile)
-
-
-def test_calc_bolus_invalid_target_bg() -> None:
-    profile = PatientProfile(icr=10, cf=2, target_bg=-1)
-    with pytest.raises(ValueError, match="target_bg"):
-        calc_bolus(carbs_g=30, current_bg=5, profile=profile)
-
-
-def test_calc_bolus_negative_carbs() -> None:
-    profile = PatientProfile(icr=10, cf=2, target_bg=6)
-    with pytest.raises(ValueError, match="carbs_g"):
-        calc_bolus(carbs_g=-5, current_bg=5, profile=profile)
-
-
-def test_calc_bolus_negative_current_bg() -> None:
-    profile = PatientProfile(icr=10, cf=2, target_bg=6)
-    with pytest.raises(ValueError, match="current_bg"):
-        calc_bolus(carbs_g=30, current_bg=-1, profile=profile)
 
 
 def test_extract_nutrition_info_simple() -> None:

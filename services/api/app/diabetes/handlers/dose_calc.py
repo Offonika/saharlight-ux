@@ -19,10 +19,12 @@ from services.api.app.diabetes.services.db import (
 )
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.constants import XE_GRAMS
-from services.api.app.diabetes.utils.functions import (
+from services.api.app.diabetes.utils.calc_bolus import (
     PatientProfile,
-    _safe_float,
     calc_bolus,
+)
+from services.api.app.diabetes.utils.functions import (
+    _safe_float,
     smart_input,
 )
 from services.api.app.diabetes.utils.ui import (
@@ -346,20 +348,24 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
         MessageHandler(
-            filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), cast(object, _cancel_then(photo_prompt))
+            filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"),
+            cast(object, _cancel_then(photo_prompt)),
         ),
         MessageHandler(
             filters.Regex(f"^{SUGAR_BUTTON_TEXT}$"),
             cast(object, _cancel_then(sugar_start)),
         ),
         MessageHandler(
-            filters.Regex(f"^{HISTORY_BUTTON_TEXT}$"), cast(object, _cancel_then(history_view))
+            filters.Regex(f"^{HISTORY_BUTTON_TEXT}$"),
+            cast(object, _cancel_then(history_view)),
         ),
         MessageHandler(
-            filters.Regex(f"^{REPORT_BUTTON_TEXT}$"), cast(object, _cancel_then(report_request))
+            filters.Regex(f"^{REPORT_BUTTON_TEXT}$"),
+            cast(object, _cancel_then(report_request)),
         ),
         MessageHandler(
-            filters.Regex(f"^{PROFILE_BUTTON_TEXT}$"), cast(object, _cancel_then(profile_view))
+            filters.Regex(f"^{PROFILE_BUTTON_TEXT}$"),
+            cast(object, _cancel_then(profile_view)),
         ),
     ],
 )
