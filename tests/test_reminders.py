@@ -508,6 +508,43 @@ def test_interval_minutes_scheduling_and_rendering(
     assert "каждые 30 мин" in text
 
 
+def test_interval_hours_scheduling(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                interval_hours=2,
+                is_enabled=True,
+            )
+        )
+        session.commit()
+
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue.application = SimpleNamespace(timezone=ZoneInfo("UTC"))
+    with TestSession() as session:
+        rem = session.get(Reminder, 1)
+        user = session.get(DbUser, 1)
+        assert rem is not None
+        with patch.object(
+            job_queue.scheduler, "add_job", wraps=job_queue.scheduler.add_job
+        ) as mock_add, caplog.at_level(logging.INFO):
+            handlers.schedule_reminder(rem, job_queue, user)
+            mock_add.assert_called_once()
+            assert mock_add.call_args.kwargs["trigger"] == "interval"
+            assert mock_add.call_args.kwargs["minutes"] == 120
+    assert "interval_min=120" in caplog.text
+    assert "kind=every" in caplog.text
+
+
 def test_schedule_with_next_invalid_timezone_logs_warning(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
