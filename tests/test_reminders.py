@@ -873,11 +873,16 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         user = session.get(DbUser, 1)
         assert rem is not None
         handlers.schedule_reminder(rem, job_queue, user)
+    notify_mock = AsyncMock()
+    monkeypatch.setattr(
+        handlers.reminder_events, "notify_reminder_saved", notify_mock
+    )
 
     query = DummyCallbackQuery("rem_del:1", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
     context = make_context(job_queue=job_queue, user_data={})
     await handlers.reminder_action_cb(update, context)
+    notify_mock.assert_awaited_once_with(1)
 
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
@@ -920,6 +925,43 @@ async def test_toggle_reminder_without_job_queue(monkeypatch: pytest.MonkeyPatch
         assert rem_db.is_enabled
 
     assert not schedule_mock.called
+
+
+@pytest.mark.asyncio
+async def test_toggle_reminder_missing_user(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit = commit
+
+    with TestSession() as session:
+        session.add(
+            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=False)
+        )
+        session.commit()
+
+    reschedule_mock = MagicMock()
+    monkeypatch.setattr(handlers, "_reschedule_job", reschedule_mock)
+    notify_mock = AsyncMock()
+    monkeypatch.setattr(
+        handlers.reminder_events, "notify_reminder_saved", notify_mock
+    )
+
+    query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    context = make_context(job_queue=job_queue, user_data={})
+    with caplog.at_level(logging.WARNING):
+        await handlers.reminder_action_cb(update, context)
+
+    reschedule_mock.assert_not_called()
+    assert (
+        "User 1 not found for rescheduling reminder 1" in caplog.text
+    )
+    notify_mock.assert_awaited_once_with(1)
 
 
 @pytest.mark.asyncio
