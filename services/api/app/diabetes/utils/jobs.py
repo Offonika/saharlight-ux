@@ -187,7 +187,9 @@ def _safe_remove(job: object) -> bool:
 
     queue = getattr(job, "queue", None)
     scheduler = getattr(queue, "scheduler", None)
-    remove_job = cast(Callable[[object], None] | None, getattr(scheduler, "remove_job", None))
+    remove_job = cast(
+        Callable[[object], None] | None, getattr(scheduler, "remove_job", None)
+    )
     job_id = getattr(job, "id", None)
     if remove_job is not None and job_id is not None:
         try:
@@ -196,7 +198,9 @@ def _safe_remove(job: object) -> bool:
         except Exception:  # pragma: no cover - defensive
             pass
 
-    schedule_removal = cast(Callable[[], None] | None, getattr(job, "schedule_removal", None))
+    schedule_removal = cast(
+        Callable[[], None] | None, getattr(job, "schedule_removal", None)
+    )
     if schedule_removal is not None:
         try:
             schedule_removal()
@@ -254,9 +258,7 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
                 jid = getattr(any_job, "id", None)
                 if (
                     isinstance(jname, str) and (jname == name or jname.startswith(name))
-                ) or (
-                    isinstance(jid, str) and (jid == name or jid.startswith(name))
-                ):
+                ) or (isinstance(jid, str) and (jid == name or jid.startswith(name))):
                     if _safe_remove(any_job):
                         removed += 1
 
@@ -267,8 +269,17 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
 def dbg_jobs_dump(job_queue: DefaultJobQueue) -> list[tuple[str | None, str | None]]:
     """Collect ``(id, name)`` pairs for jobs in ``job_queue``."""
 
+    jobs_attr = getattr(job_queue, "jobs", [])
+    jobs_obj = jobs_attr() if callable(jobs_attr) else jobs_attr
+    if isinstance(jobs_obj, dict):
+        jobs_iter: Iterable[object] = (
+            job for jobs in jobs_obj.values() for job in jobs
+        )
+    else:
+        jobs_iter = cast(Iterable[object], jobs_obj)
+
     dump: list[tuple[str | None, str | None]] = []
-    for job in job_queue.jobs():
+    for job in jobs_iter:
         dump.append(
             (
                 cast(str | None, getattr(job, "id", None)),
