@@ -68,11 +68,7 @@ def schedule_reminder(
     context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
 
 
-    job_kwargs: dict[str, object] = {
-        "id": name,
-        "name": name,
-        "replace_existing": True,
-    }
+    job_kwargs: dict[str, object] = {"id": name, "replace_existing": True}
 
     if kind == "after_event":
         logger.info("Skip scheduling %s: 'after_event' is scheduled on trigger.", name)
