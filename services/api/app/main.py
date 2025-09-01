@@ -39,6 +39,8 @@ from .routers.stats import router as stats_router
 from .schemas.history import ALLOWED_HISTORY_TYPES, HistoryRecordSchema, HistoryType
 from .schemas.role import RoleSchema
 from .schemas.user import UserContext
+from .schemas.profile_settings import ProfileSettings, ProfileSettingsPatch
+from .diabetes.utils.constants import XE_GRAMS
 from .services.user_roles import get_user_role, set_user_role
 from .telegram_auth import require_tg_user
 from services.api.app.diabetes.utils.openai_utils import dispose_http_client
@@ -47,6 +49,13 @@ from .diabetes.handlers.reminder_jobs import DefaultJobQueue
 # ────────── init ──────────
 logger = logging.getLogger(__name__)
 settings = config.get_settings()
+
+DEFAULT_PROFILE_SETTINGS = ProfileSettings(
+    gramsPerXe=XE_GRAMS,
+    roundStep=1.0,
+    maxBolus=25.0,
+)
+_profile_settings_store: dict[int, ProfileSettings] = {}
 
 
 @asynccontextmanager
@@ -232,6 +241,23 @@ async def profile_patch(
             raise HTTPException(status_code=500, detail="db commit failed")
 
     await run_db(_patch)
+    return {"status": "ok"}
+
+
+@api_router.get("/profile/settings")
+async def profile_settings_get(
+    user: UserContext = Depends(require_tg_user),
+) -> ProfileSettings:
+    return _profile_settings_store.get(user["id"], DEFAULT_PROFILE_SETTINGS)
+
+
+@api_router.patch("/profile/settings")
+async def profile_settings_patch(
+    data: ProfileSettingsPatch, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
+    current = _profile_settings_store.get(user["id"], DEFAULT_PROFILE_SETTINGS)
+    updated = current.model_copy(update=data.model_dump(exclude_unset=True))
+    _profile_settings_store[user["id"]] = updated
     return {"status": "ok"}
 
 

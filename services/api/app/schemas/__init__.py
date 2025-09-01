@@ -3,6 +3,7 @@ from .history import HistoryRecordSchema
 from .profile import ProfileSchema
 from .reminders import ReminderSchema
 from .timezone import TimezoneSchema
+from .profile_settings import ProfileSettings, ProfileSettingsPatch
 
 __all__ = [
     "CommandSchema",
@@ -10,4 +11,6 @@ __all__ = [
     "ProfileSchema",
     "ReminderSchema",
     "TimezoneSchema",
+    "ProfileSettings",
+    "ProfileSettingsPatch",
 ]

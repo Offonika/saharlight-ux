@@ -4,6 +4,9 @@ from dataclasses import dataclass
 import math
 import re
 from decimal import Decimal, localcontext
+from typing import Literal
+
+from .constants import XE_GRAMS
 
 # ---------------------------------------------------------------------------
 # Regex helpers
@@ -37,7 +40,9 @@ XE_COLON_RANGE_RE = re.compile(
     rf"\b{XE_WORD_RE.pattern}\s*:\s*{DASH_RANGE_RE.pattern}",
     re.IGNORECASE,
 )
-XE_COLON_SINGLE_RE = re.compile(rf"\b{XE_WORD_RE.pattern}\s*:\s*([\d.,]+)", re.IGNORECASE)
+XE_COLON_SINGLE_RE = re.compile(
+    rf"\b{XE_WORD_RE.pattern}\s*:\s*([\d.,]+)", re.IGNORECASE
+)
 XE_PM_RE = re.compile(
     rf"{PLUS_MINUS_RANGE_RE.pattern}\s*{XE_WORD_RE.pattern}",
     re.IGNORECASE,
@@ -46,11 +51,15 @@ XE_RANGE_RE = re.compile(
     rf"{DASH_RANGE_RE.pattern}\s*{XE_WORD_RE.pattern}",
     re.IGNORECASE,
 )
-CARBS_PM_RE = re.compile(rf"({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г", re.IGNORECASE)
+CARBS_PM_RE = re.compile(
+    rf"({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г", re.IGNORECASE
+)
 CARBS_RANGE_RE = re.compile(rf"{DASH_RANGE_RE.pattern}\s*г", re.IGNORECASE)
 
 # Patterns for ``smart_input``.
-BAD_SUGAR_UNIT_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:xe|хе|ед)\b(?!\s*[\d=:])")
+BAD_SUGAR_UNIT_RE = re.compile(
+    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:xe|хе|ед)\b(?!\s*[\d=:])"
+)
 BAD_XE_UNIT_RE = re.compile(
     rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:ммоль(?:/л)?|mmol(?:/l)?|ед)\b(?![=:])"
 )
@@ -58,14 +67,18 @@ BAD_DOSE_UNIT_RE = re.compile(
     rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:ммоль(?:/л)?|mmol(?:/l)?|xe|хе)\b(?![=:])"
 )
 
-SUGAR_VALUE_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)")
+SUGAR_VALUE_RE = re.compile(
+    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)"
+)
 SUGAR_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(ммоль/?л|mmol/?l)\b")
 XE_VALUE_RE = re.compile(rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*({NUMBER_RE})\b")
 XE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:xe|хе)\b")
 # ``dose`` may be followed immediately by another token (e.g. ``"carbs=30"``).
 # ``\b`` would fail in such cases, so we use a lookahead that ensures the
 # number is terminated by a non-numeric character or end of string.
-DOSE_VALUE_RE = re.compile(rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=$|\s|[^0-9a-zA-Z.,])")
+DOSE_VALUE_RE = re.compile(
+    rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=$|\s|[^0-9a-zA-Z.,])"
+)
 DOSE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:ед\.?|units?|u)\b")
 ONLY_NUMBER_RE = re.compile(rf"\s*({NUMBER_RE})\s*")
 
@@ -157,6 +170,44 @@ def calc_bolus(carbs_g: float, current_bg: float, profile: PatientProfile) -> fl
         if correction < 0:
             correction = Decimal("0")
         return float(round(meal + correction, 1))
+
+
+def calc_bolus_extended(
+    amount: float,
+    current_bg: float,
+    profile: PatientProfile,
+    *,
+    unit: Literal["g", "xe"] = "g",
+    grams_per_xe: int = XE_GRAMS,
+    round_step: float = 1.0,
+    max_bolus: float = 25.0,
+) -> float:
+    """Calculate bolus with extra options.
+
+    Args:
+        amount: Carbohydrates value either in grams or XE.
+        current_bg: Current blood glucose level.
+        profile: Patient profile parameters.
+        unit: Measurement unit of ``amount`` – ``"g"`` or ``"xe"``.
+        grams_per_xe: Grams of carbohydrates in one XE (``10`` or ``12``).
+        round_step: Rounding step for the result (``0.5`` or ``1.0``).
+        max_bolus: Upper limit for the bolus value.
+
+    Returns:
+        Calculated bolus rounded to ``round_step`` and not exceeding ``max_bolus``.
+    """
+
+    if grams_per_xe not in (10, 12):
+        raise ValueError("grams_per_xe must be 10 or 12")
+    if round_step not in (0.5, 1.0):
+        raise ValueError("round_step must be 0.5 or 1.0")
+    if max_bolus <= 0:
+        raise ValueError("max_bolus must be positive")
+
+    carbs_g = amount if unit == "g" else amount * grams_per_xe
+    dose = calc_bolus(carbs_g, current_bg, profile)
+    rounded = round(dose / round_step) * round_step
+    return min(rounded, max_bolus)
 
 
 def extract_nutrition_info(text: object) -> tuple[float | None, float | None]:
