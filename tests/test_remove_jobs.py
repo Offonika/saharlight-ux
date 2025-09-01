@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from services.api.app.diabetes.utils.jobs import _remove_jobs
+from services.api.app.diabetes.utils.jobs import _remove_jobs, dbg_jobs_dump
 
 
 class _Job:
@@ -83,8 +83,12 @@ def test_remove_jobs() -> None:
         ]
     )
 
+    before = dbg_jobs_dump(jq)
+    assert len(before) == 6
+
     removed = _remove_jobs(jq, "reminder_1")
 
     assert removed == 6
+    assert dbg_jobs_dump(jq) == []
     assert jq.get_jobs_by_name("reminder_1") == []
     assert jq.jobs() == []
