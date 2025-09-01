@@ -15,11 +15,13 @@ class DummyJob:
         when: timedelta,
         data: dict[str, Any],
         name: str,
+        job_kwargs: dict[str, Any],
     ) -> None:
         self.callback = callback
         self.when = when
         self.data = data
         self.name = name
+        self.job_kwargs = job_kwargs
         self.removed = False
 
     def schedule_removal(self) -> None:
@@ -40,9 +42,10 @@ class DummyJobQueue:
         job_kwargs: dict[str, Any] | None = None,
     ) -> DummyJob:
         job_id = job_kwargs.get("id") if job_kwargs else name or ""
+        job_name = job_kwargs.get("name", job_id) if job_kwargs else job_id
         if job_kwargs and job_kwargs.get("replace_existing"):
-            self.jobs = [j for j in self.jobs if j.name != job_id]
-        job = DummyJob(callback, when, data or {}, job_id)
+            self.jobs = [j for j in self.jobs if j.name != job_name]
+        job = DummyJob(callback, when, data or {}, job_name, job_kwargs or {})
         self.jobs.append(job)
         return job
 
@@ -140,6 +143,7 @@ def test_schedule_after_meal_single_reminder() -> None:
     assert job.when == timedelta(minutes=30)
     assert job.data == {"reminder_id": 1, "chat_id": 1}
     assert job.name == "reminder_1_after"
+    assert job.job_kwargs["name"] == "reminder_1_after"
 
 
 def test_schedule_after_meal_no_duplicate_jobs() -> None:
@@ -205,9 +209,11 @@ def test_schedule_after_meal_multiple_reminders() -> None:
     job1 = jobs["reminder_1_after"]
     assert job1.when == timedelta(minutes=15)
     assert job1.data == {"reminder_id": 1, "chat_id": 1}
+    assert job1.job_kwargs["name"] == "reminder_1_after"
     job2 = jobs["reminder_2_after"]
     assert job2.when == timedelta(minutes=45)
     assert job2.data == {"reminder_id": 2, "chat_id": 1}
+    assert job2.job_kwargs["name"] == "reminder_2_after"
 
 
 def test_schedule_after_meal_no_enabled_reminders() -> None:
@@ -244,7 +250,7 @@ class DummyJobQueueNoTZ:
         data: dict[str, Any] | None = None,
         name: str | None = None,
     ) -> DummyJob:
-        job = DummyJob(callback, when, data or {}, name or "")
+        job = DummyJob(callback, when, data or {}, name or "", {})
         self.jobs.append(job)
         return job
 

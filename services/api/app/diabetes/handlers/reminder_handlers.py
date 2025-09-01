@@ -1134,7 +1134,7 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
             when=timedelta(minutes=float(minutes_after)),
             data={"reminder_id": rem.id, "chat_id": user_id},
             name=name,
-            job_kwargs={"id": name, "replace_existing": True},
+            job_kwargs={"id": name, "name": name, "replace_existing": True},
         )
 
 
