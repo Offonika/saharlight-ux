@@ -446,8 +446,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
     if job_queue is not None and db_user is not None:
         schedule_reminder(reminder, job_queue, db_user)
-    else:
-        await reminder_events.notify_reminder_saved(reminder.id)
+    await reminder_events.notify_reminder_saved(reminder.id)
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
 
 
@@ -781,6 +780,7 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             job.schedule_removal()
     if message:
         await message.reply_text("Удалено")
+    await reminder_events.notify_reminder_saved(rid)
 
 
 async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -980,7 +980,14 @@ async def reminder_action_cb(
             else:
                 with SessionLocal() as session:
                     user_obj = session.get(User, rem.telegram_id)
-                _reschedule_job(job_queue, rem, user_obj)
+                if user_obj is None:
+                    logger.warning(
+                        "User %s not found for rescheduling reminder %s",
+                        user_id,
+                        rid,
+                    )
+                else:
+                    _reschedule_job(job_queue, rem, user_obj)
         elif job_queue is not None:
             for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()
@@ -989,6 +996,7 @@ async def reminder_action_cb(
         if job_queue is not None:
             for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()
+        await reminder_events.notify_reminder_saved(rid)
 
     render_fn = cast(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
