@@ -260,18 +260,12 @@ def _render_reminders(
 
 
 def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) -> None:
-    """Удаляет старую задачу и создаёт новую с обновлённым временем."""
+    """Пересоздаёт задачу с обновлённым временем."""
     job_name = f"reminder_{reminder.id}"
 
-    # удалить старые задачи с таким именем
-    for job in job_queue.get_jobs_by_name(job_name):
-        job.schedule_removal()
-        logger.info("♻️ Removed old job %s", job_name)
-
-    # пересоздать
     schedule_reminder(reminder, job_queue, user)
     logger.info(
-        "✅ Rescheduled job %s -> %s",
+        "♻️ Rescheduled job %s -> %s",
         job_name,
         reminder.time or reminder.minutes_after or reminder.interval_minutes,
     )
