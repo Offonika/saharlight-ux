@@ -49,6 +49,12 @@ class DummyScheduler:
     def remove_job(self, job_id: str) -> None:
         self.jobs = [j for j in self.jobs if j.id != job_id]
 
+    def get_job(self, job_id: str) -> DummyJob | None:
+        for job in self.jobs:
+            if job.id == job_id:
+                return job
+        return None
+
 
 class DummyJobQueue:
     def __init__(self) -> None:

@@ -265,12 +265,16 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
     """Пересоздаёт задачу с обновлённым временем."""
     base = f"reminder_{reminder.id}"
     removed = _remove_jobs(job_queue, base)
-    logger.info("Removed %d jobs for %s", removed, base)
+    logger.info("🗑 removed %d jobs for %s", removed, base)
 
     schedule_reminder(reminder, job_queue, user)
-    next_run: datetime.datetime | None
-    next_run = None
-    job = next(iter(job_queue.get_jobs_by_name(base)), None)
+    next_run: datetime.datetime | None = None
+    scheduler = getattr(job_queue, "scheduler", None)
+    job = (
+        job_queue.scheduler.get_job(job_id=base)  # type: ignore[attr-defined]
+        if scheduler is not None
+        else None
+    )
     if job is not None:
         next_run = (
             getattr(job, "next_run_time", None)
@@ -278,7 +282,7 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
             or getattr(job, "when", None)
             or getattr(job, "run_time", None)
         )
-    logger.info("♻️ Rescheduled job %s -> next_run=%s", base, next_run)
+    logger.info("♻️ rescheduled %s -> next_run=%s", base, next_run)
 
 
 def schedule_all(job_queue: DefaultJobQueue | None) -> None:
