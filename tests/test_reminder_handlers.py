@@ -23,6 +23,7 @@ from services.api.app.diabetes.services.db import (
     Reminder,
     ReminderLog,
     User as DbUser,
+    UserSettings,
 )
 from services.api.app.diabetes.services.repository import commit
 
@@ -352,6 +353,49 @@ async def test_add_reminder_after_meal_sets_kind(
         rem_db = session.query(Reminder).one()
         assert rem_db.kind == "after_event"
         assert rem_db.minutes_after == 15
+        assert rem_db.time is None
+        assert rem_db.interval_minutes is None
+        assert rem_db.interval_hours is None
+
+
+@pytest.mark.asyncio
+async def test_add_reminder_after_meal_uses_default(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(UserSettings(telegram_id=1, default_after_meal_minutes=25))
+        session.commit()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    notify_mock = AsyncMock()
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=notify_mock),
+    )
+    monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
+
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["after_meal"])
+
+    await reminder_handlers.add_reminder(update, context)
+
+    notify_mock.assert_awaited_once_with(1)
+    assert message.texts == ["Сохранено: desc"]
+
+    with TestSession() as session:
+        rem_db = session.query(Reminder).one()
+        assert rem_db.kind == "after_event"
+        assert rem_db.minutes_after == 25
         assert rem_db.time is None
         assert rem_db.interval_minutes is None
         assert rem_db.interval_hours is None
@@ -756,6 +800,45 @@ async def test_reminder_webapp_save_minutes_after(
         rem_db = session.query(Reminder).one()
         assert rem_db.kind == "after_event"
         assert rem_db.minutes_after == 20
+        assert rem_db.time is None
+        assert rem_db.interval_minutes is None
+        assert rem_db.interval_hours is None
+
+
+@pytest.mark.asyncio
+async def test_reminder_webapp_save_minutes_after_default(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(
+        reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None)
+    )
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=AsyncMock()),
+    )
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(UserSettings(telegram_id=1, default_after_meal_minutes=30))
+        session.commit()
+
+    message = DummyWebAppMessage(json.dumps({"type": "after_meal"}))
+    update = make_update(effective_message=message, effective_user=make_user(1))
+    context = make_context()
+
+    await reminder_handlers.reminder_webapp_save(update, context)
+
+    with TestSession() as session:
+        rem_db = session.query(Reminder).one()
+        assert rem_db.kind == "after_event"
+        assert rem_db.minutes_after == 30
         assert rem_db.time is None
         assert rem_db.interval_minutes is None
         assert rem_db.interval_hours is None

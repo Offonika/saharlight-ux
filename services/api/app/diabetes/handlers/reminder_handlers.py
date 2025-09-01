@@ -33,6 +33,7 @@ from services.api.app.diabetes.services.db import (
     ReminderLog,
     SessionLocal as _SessionLocal,
     User,
+    UserSettings,
 )
 from services.api.app.diabetes.services.repository import CommitError, commit as _commit
 from services.api.app.diabetes.utils.helpers import (
@@ -366,12 +367,35 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     user_id = user.id
     args = getattr(context, "args", [])
-    if len(args) < 2:
+    if not args:
         await message.reply_text(
             "Использование: /addreminder <type> <value>"  # noqa: RUF001
         )
         return
-    rtype, value = args[0], args[1]
+    rtype = args[0]
+    value = args[1] if len(args) > 1 else None
+    if rtype == "after_meal" and value is None:
+        def load_default(session: Session) -> int | None:
+            settings = session.get(UserSettings, user_id)
+            return getattr(settings, "default_after_meal_minutes", None)
+
+        if run_db is None:
+            with SessionLocal() as session:
+                default_minutes = load_default(session)
+        else:
+            default_minutes = await run_db(load_default, sessionmaker=SessionLocal)
+        if default_minutes is None:
+            await message.reply_text(
+                "Использование: /addreminder <type> <value>"  # noqa: RUF001
+            )
+            return
+        value = str(default_minutes)
+    elif value is None:
+        await message.reply_text(
+            "Использование: /addreminder <type> <value>"  # noqa: RUF001
+        )
+        return
+    assert value is not None
     if rtype not in REMINDER_NAMES:
         await message.reply_text("Неизвестный тип напоминания.")
         return
@@ -568,6 +592,18 @@ async def reminder_webapp_save(
         return
 
     user_id = user.id
+    if rtype == "after_meal" and minutes_after_raw is None:
+        def load_default(session: Session) -> int | None:
+            settings = session.get(UserSettings, user_id)
+            return getattr(settings, "default_after_meal_minutes", None)
+
+        if run_db is None:
+            with SessionLocal() as session:
+                default_minutes = load_default(session)
+        else:
+            default_minutes = await run_db(load_default, sessionmaker=SessionLocal)
+        if default_minutes is not None:
+            minutes_after_raw = default_minutes
 
     provided_fields = [
         time_raw is not None,
