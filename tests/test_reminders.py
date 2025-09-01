@@ -592,6 +592,42 @@ def test_interval_hours_scheduling(
     assert "SET reminder_1 kind=every" in caplog.text
 
 
+def test_interval_minutes_non_positive_skips(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                interval_minutes=0,
+                kind="every",
+                is_enabled=True,
+            )
+        )
+        session.commit()
+
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue.application = SimpleNamespace(timezone=ZoneInfo("UTC"))
+    with TestSession() as session:
+        rem = session.get(Reminder, 1)
+        user = session.get(DbUser, 1)
+        assert rem is not None
+        with patch.object(
+            job_queue, "run_repeating", wraps=job_queue.run_repeating
+        ) as mock_run, caplog.at_level(logging.WARNING):
+            handlers.schedule_reminder(rem, job_queue, user)
+            mock_run.assert_not_called()
+    assert not job_queue.get_jobs_by_name("reminder_1")
+    assert "SKIP reminder_1 kind=every interval_min=0" in caplog.text
+
+
 def test_schedule_with_next_invalid_timezone_logs_warning(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
