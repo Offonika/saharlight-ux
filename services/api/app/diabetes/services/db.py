@@ -202,15 +202,6 @@ class Profile(Base):
     user: Mapped[User] = relationship("User")
 
 
-class UserSettings(Base):
-    __tablename__ = "user_settings"
-    telegram_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.telegram_id"), primary_key=True
-    )
-    default_after_meal_minutes: Mapped[Optional[int]] = mapped_column(Integer)
-    user: Mapped[User] = relationship("User")
-
-
 class Entry(Base):
     __tablename__ = "entries"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)

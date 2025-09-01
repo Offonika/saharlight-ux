@@ -23,7 +23,6 @@ from services.api.app.diabetes.services.db import (
     Reminder,
     ReminderLog,
     User as DbUser,
-    UserSettings,
 )
 from services.api.app.diabetes.services.repository import commit
 
@@ -359,7 +358,7 @@ async def test_add_reminder_after_meal_sets_kind(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_after_meal_uses_default(
+async def test_add_reminder_after_meal_requires_value(
     reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
@@ -369,19 +368,11 @@ async def test_add_reminder_after_meal_uses_default(
     )
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(UserSettings(telegram_id=1, default_after_meal_minutes=25))
         session.commit()
 
     monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(reminder_handlers, "commit", commit)
     monkeypatch.setattr(reminder_handlers, "run_db", None)
-    notify_mock = AsyncMock()
-    monkeypatch.setattr(
-        reminder_handlers,
-        "reminder_events",
-        SimpleNamespace(notify_reminder_saved=notify_mock),
-    )
-    monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
 
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
@@ -389,16 +380,7 @@ async def test_add_reminder_after_meal_uses_default(
 
     await reminder_handlers.add_reminder(update, context)
 
-    notify_mock.assert_awaited_once_with(1)
-    assert message.texts == ["Сохранено: desc"]
-
-    with TestSession() as session:
-        rem_db = session.query(Reminder).one()
-        assert rem_db.kind == "after_event"
-        assert rem_db.minutes_after == 25
-        assert rem_db.time is None
-        assert rem_db.interval_minutes is None
-        assert rem_db.interval_hours is None
+    assert message.texts == ["Использование: /addreminder <type> <value>"]
 
 
 @pytest.mark.asyncio
@@ -806,7 +788,7 @@ async def test_reminder_webapp_save_minutes_after(
 
 
 @pytest.mark.asyncio
-async def test_reminder_webapp_save_minutes_after_default(
+async def test_reminder_webapp_save_minutes_after_required(
     reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
@@ -826,7 +808,6 @@ async def test_reminder_webapp_save_minutes_after_default(
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(UserSettings(telegram_id=1, default_after_meal_minutes=30))
         session.commit()
 
     message = DummyWebAppMessage(json.dumps({"type": "after_meal"}))
@@ -835,13 +816,9 @@ async def test_reminder_webapp_save_minutes_after_default(
 
     await reminder_handlers.reminder_webapp_save(update, context)
 
+    assert message.texts == ["Неверный формат"]
     with TestSession() as session:
-        rem_db = session.query(Reminder).one()
-        assert rem_db.kind == "after_event"
-        assert rem_db.minutes_after == 30
-        assert rem_db.time is None
-        assert rem_db.interval_minutes is None
-        assert rem_db.interval_hours is None
+        assert session.query(Reminder).count() == 0
 
 
 @pytest.mark.parametrize(
