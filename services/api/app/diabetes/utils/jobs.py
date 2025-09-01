@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import logging
 from collections.abc import Callable, Coroutine, Iterable
 from datetime import (
     datetime,
@@ -12,6 +13,9 @@ from datetime import (
 from typing import Any, TYPE_CHECKING, TypeAlias, cast
 
 from telegram.ext import ContextTypes, Job, JobQueue
+
+
+logger = logging.getLogger(__name__)
 
 CustomContext: TypeAlias = ContextTypes.DEFAULT_TYPE
 
@@ -208,43 +212,78 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
     removed = 0
 
     scheduler = getattr(job_queue, "scheduler", None)
-    get_job = cast(
+    remove_job_direct = cast(
+        Callable[..., None] | None, getattr(scheduler, "remove_job", None)
+    )
+    get_job_direct = cast(
         Callable[[str], object | None] | None, getattr(scheduler, "get_job", None)
     )
-    remove_job_direct = cast(
-        Callable[[str], None] | None, getattr(scheduler, "remove_job", None)
-    )
+    jobs_attr = getattr(job_queue, "jobs", None)
 
     for name in names:
-        for q_job in job_queue.get_jobs_by_name(name):
-            if _safe_remove(q_job):
-                removed += 1
-
-    if get_job is not None:
-        for name in names:
-            s_job = get_job(name)
-            if s_job is not None:
-                if _safe_remove(s_job):
-                    removed += 1
-            elif remove_job_direct is not None:
+        if remove_job_direct is not None:
+            existed = False
+            if get_job_direct is not None and get_job_direct(name) is not None:
+                existed = True
+            try:
+                remove_job_direct(job_id=name)
+            except TypeError:  # pragma: no cover - compatible fallback
                 try:
                     remove_job_direct(name)
                 except Exception:  # pragma: no cover - defensive
                     pass
+            except Exception:  # pragma: no cover - defensive
+                pass
+            if existed:
+                removed += 1
 
-    jobs_method = cast(Callable[[], Iterable[object]] | None, getattr(job_queue, "jobs", None))
-    all_jobs = list(jobs_method()) if jobs_method is not None else []
-    for any_job in all_jobs:
-        jname = getattr(any_job, "name", None)
-        jid = getattr(any_job, "id", None)
-        for n in names:
-            if (
-                isinstance(jname, str) and (jname == n or jname.startswith(n))
-            ) or (
-                isinstance(jid, str) and (jid == n or jid.startswith(n))
-            ):
-                if _safe_remove(any_job):
-                    removed += 1
-                break
+        for q_job in job_queue.get_jobs_by_name(name):
+            if _safe_remove(q_job):
+                removed += 1
 
+        if jobs_attr is not None:
+            jobs_iter = list(jobs_attr() if callable(jobs_attr) else jobs_attr)
+            for any_job in jobs_iter:
+                jname = getattr(any_job, "name", None)
+                jid = getattr(any_job, "id", None)
+                if (
+                    isinstance(jname, str) and (jname == name or jname.startswith(name))
+                ) or (
+                    isinstance(jid, str) and (jid == name or jid.startswith(name))
+                ):
+                    if _safe_remove(any_job):
+                        removed += 1
+
+    logger.debug("Removed %d jobs for base '%s'", removed, base_name)
     return removed
+
+
+def dbg_jobs_dump(job_queue: DefaultJobQueue) -> list[tuple[str | None, str | None]]:
+    """Return a dump of job names and ids for debugging purposes."""
+
+    jobs_attr = getattr(job_queue, "jobs", None)
+    scheduler = getattr(job_queue, "scheduler", None)
+    get_jobs_sched = cast(
+        Callable[[], Iterable[object]] | None, getattr(scheduler, "get_jobs", None)
+    )
+
+    dump: list[tuple[str | None, str | None]] = []
+    if jobs_attr is not None:
+        for job in jobs_attr() if callable(jobs_attr) else jobs_attr:
+            dump.append(
+                (
+                    cast(str | None, getattr(job, "name", None)),
+                    cast(str | None, getattr(job, "id", None)),
+                )
+            )
+    if get_jobs_sched is not None:
+        for job in get_jobs_sched():
+            info = (
+                cast(str | None, getattr(job, "name", None)),
+                cast(str | None, getattr(job, "id", None)),
+            )
+            if info not in dump:
+                dump.append(info)
+
+    logger.debug("Job queue dump: %s", dump)
+    return dump
