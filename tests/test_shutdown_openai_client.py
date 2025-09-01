@@ -6,7 +6,10 @@ from services.api.app.main import app
 
 
 def test_shutdown_openai_client_disposes() -> None:
-    with patch("services.api.app.main.dispose_http_client") as dispose:
+    with patch("services.api.app.main.dispose_http_client") as dispose_http, patch(
+        "services.api.app.main.dispose_openai_clients"
+    ) as dispose_clients:
         with TestClient(app):
             pass
-        dispose.assert_called_once()
+        dispose_http.assert_called_once()
+        dispose_clients.assert_called_once()

@@ -43,6 +43,7 @@ from .diabetes.schemas.profile import ProfileSettingsIn, ProfileSettingsOut
 from .schemas.user import UserContext
 from .services.user_roles import get_user_role, set_user_role
 from .telegram_auth import require_tg_user
+from services.api.app.diabetes.services.gpt_client import dispose_openai_clients
 from services.api.app.diabetes.utils.openai_utils import dispose_http_client
 from .diabetes.handlers.reminder_jobs import DefaultJobQueue
 
@@ -67,6 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     finally:
         reminder_events.register_job_queue(None)
         dispose_http_client()
+        dispose_openai_clients()
 
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0", lifespan=lifespan)

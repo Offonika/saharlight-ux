@@ -10,7 +10,6 @@ from types import ModuleType
 
 import pytest
 import sqlalchemy
-from services.api.app.diabetes.services import db as db_module
 
 dummy = ModuleType("telegram.ext._basehandler")
 
@@ -26,9 +25,20 @@ class _DummyBaseHandler:  # pragma: no cover - minimal stub
 dummy.BaseHandler = _DummyBaseHandler
 sys.modules.setdefault("telegram.ext._basehandler", dummy)
 
+dummy_db_models = ModuleType("services.api.app.diabetes.services.db_models")
+class _DummyUserSettings:  # pragma: no cover - minimal stub
+    pass
+
+dummy_db_models.UserSettings = _DummyUserSettings
+sys.modules.setdefault(
+    "services.api.app.diabetes.services.db_models", dummy_db_models
+)
+
 warnings.filterwarnings(
     "ignore", category=ResourceWarning, module=r"anyio\.streams\.memory"
 )
+
+from services.api.app.diabetes.services import db as db_module  # noqa: E402
 
 _sqlite_connections: list[sqlite3.Connection] = []
 _original_sqlite_connect: Callable[..., sqlite3.Connection] = sqlite3.connect
@@ -221,3 +231,12 @@ def _dispose_engine_per_module() -> Iterator[None]:
 
     yield
     dispose_engine()
+
+
+@pytest.fixture(autouse=True)
+def _dispose_openai_clients_after_test() -> Iterator[None]:
+    """Dispose OpenAI clients after each test."""
+    yield
+    from services.api.app.diabetes.services.gpt_client import dispose_openai_clients
+
+    dispose_openai_clients()
