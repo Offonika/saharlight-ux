@@ -114,12 +114,52 @@ class DummyJobQueue:
         self.jobs: list[DummyJob] = []
         self.timezone = timezone
 
+        def add_job(
+            callback: Callable[..., Any],
+            *,
+            trigger: str,
+            id: str,
+            name: str,
+            replace_existing: bool,
+            hour: int | None = None,
+            minute: int | None = None,
+            minutes: int | None = None,
+            timezone: tzinfo | None = None,
+            kwargs: dict[str, Any] | None = None,
+            day_of_week: str | None = None,
+            **_: Any,
+        ) -> DummyJob:
+            if replace_existing:
+                for job in list(self.get_jobs_by_name(name)):
+                    job.remove()
+            data = None
+            if kwargs and "context" in kwargs:
+                data = getattr(kwargs["context"].job, "data", None)
+            if trigger == "cron" and hour is not None and minute is not None:
+                run_time = time(hour, minute)
+                if day_of_week is not None:
+                    days = tuple(int(d) for d in day_of_week.split(",") if d)
+                    return self.run_daily(callback, run_time, data=data, name=name, days=days)
+                return self.run_daily(callback, run_time, data=data, name=name)
+            if trigger == "interval" and minutes is not None:
+                return self.run_repeating(
+                    callback,
+                    interval=timedelta(minutes=minutes),
+                    data=data,
+                    name=name,
+                )
+            raise ValueError("Unsupported trigger")
+
+        self.scheduler = SimpleNamespace(timezone=timezone, add_job=add_job)
+        self.application = SimpleNamespace(timezone=timezone, scheduler=self.scheduler)
+
     def run_daily(
         self,
         callback: Callable[..., Any],
         time: Any,
         data: dict[str, Any] | None = None,
         name: str | None = None,
+        days: tuple[int, ...] | None = None,
     ) -> DummyJob:
         job = DummyJob(callback, data, name, time, self)
         self.jobs.append(job)
@@ -229,7 +269,7 @@ def test_schedule_reminder_replaces_existing_job() -> None:
     job = active_jobs[0]
     assert job.time is not None
     job_time = cast(time, job.time)
-    assert job_time == time(5, 0)
+    assert job_time == time(8, 0)
     assert job_time.tzinfo is None
 
 
@@ -272,7 +312,7 @@ def test_schedule_reminder_requires_telegram_id() -> None:
         handlers.schedule_reminder(rem, job_queue, None)
 
 
-def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
+def test_schedule_reminder_without_user_defaults_to_utc() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -300,7 +340,7 @@ def test_schedule_reminder_without_user_defaults_to_moscow() -> None:
     job = jobs[0]
     assert job.time is not None
     job_time = cast(time, job.time)
-    assert job_time == time(5, 0)
+    assert job_time == time(8, 0)
     assert job_time.tzinfo is None
 
 
@@ -326,7 +366,7 @@ def test_schedule_reminder_uses_user_timezone_when_queue_has_none() -> None:
     assert job_time.tzinfo is None
 
 
-def test_schedule_reminder_uses_application_timezone() -> None:
+def test_schedule_reminder_ignores_application_timezone() -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
     rem = Reminder(
         id=1,
@@ -345,7 +385,7 @@ def test_schedule_reminder_uses_application_timezone() -> None:
     job = jobs[0]
     assert job.time is not None
     job_time = cast(time, job.time)
-    assert job_time == time(5, 0)
+    assert job_time == time(8, 0)
     assert job_time.tzinfo is None
 
 

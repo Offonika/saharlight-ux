@@ -22,7 +22,39 @@ class _FakeJob:
 
 class _BaseQueue:
     def __init__(self, tz: ZoneInfo) -> None:
-        scheduler = SimpleNamespace(timezone=tz)
+        def add_job(
+            callback,
+            *,
+            trigger: str,
+            id: str,
+            name: str,
+            replace_existing: bool,
+            hour: int | None = None,
+            minute: int | None = None,
+            minutes: int | None = None,
+            timezone: ZoneInfo | None = None,
+            kwargs: dict[str, object] | None = None,
+            **_: object,
+        ) -> _FakeJob:
+            if replace_existing:
+                self.jobs.pop(name, None)
+            data = None
+            if kwargs and "context" in kwargs:
+                data = getattr(kwargs["context"].job, "data", None)
+            tzinfo = timezone or tz
+            if trigger == "cron" and hour is not None and minute is not None:
+                now = dt.datetime.now(tzinfo)
+                target = dt.datetime.combine(now.date(), dt.time(hour, minute), tzinfo)
+                if target <= now:
+                    target += dt.timedelta(days=1)
+                delay = (target - now).total_seconds()
+            elif trigger == "interval" and minutes is not None:
+                delay = minutes * 60
+            else:
+                delay = 0
+            return self._schedule(callback, delay, data, name)
+
+        scheduler = SimpleNamespace(timezone=tz, add_job=add_job)
         self.application = SimpleNamespace(timezone=tz, scheduler=scheduler)
         self.scheduler = scheduler
         self.jobs: dict[str, list[_FakeJob]] = {}

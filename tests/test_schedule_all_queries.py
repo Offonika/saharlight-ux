@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import time
 from typing import Callable, cast
+from types import SimpleNamespace
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
@@ -27,7 +28,34 @@ class DummyJob:
 class DummyJobQueue:
     def __init__(self) -> None:
         self._jobs: list[DummyJob] = []
-        self.timezone = ZoneInfo("UTC")
+        tz = ZoneInfo("UTC")
+
+        def add_job(
+            callback: Callable[..., object],
+            *,
+            trigger: str,
+            id: str,
+            name: str,
+            replace_existing: bool,
+            hour: int | None = None,
+            minute: int | None = None,
+            minutes: int | None = None,
+            timezone: ZoneInfo | None = None,
+            kwargs: dict[str, object] | None = None,
+            **_: object,
+        ) -> DummyJob:
+            if replace_existing:
+                self._jobs = [j for j in self._jobs if j.name != name]
+            data = None
+            if kwargs and "context" in kwargs:
+                data = getattr(kwargs["context"].job, "data", None)
+            job = DummyJob(name, data)
+            self._jobs.append(job)
+            return job
+
+        self.timezone = tz
+        self.scheduler = SimpleNamespace(timezone=tz, add_job=add_job)
+        self.application = SimpleNamespace(timezone=tz, scheduler=self.scheduler)
 
     def run_daily(
         self,
@@ -35,6 +63,7 @@ class DummyJobQueue:
         time: object,
         data: dict[str, object] | None = None,
         name: str | None = None,
+        days: tuple[int, ...] | None = None,
     ) -> DummyJob:
         job = DummyJob(name, data)
         self._jobs.append(job)

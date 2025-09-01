@@ -32,7 +32,36 @@ class DummyJobQueue:
                 if getattr(job, "id", None) == job_id:
                     self._jobs.remove(job)
 
-        scheduler = SimpleNamespace(timezone=tz, remove_job=remove_job)
+        def add_job(
+            callback: Callable[..., object],
+            *,
+            trigger: str,
+            id: str,
+            name: str,
+            replace_existing: bool,
+            hour: int,
+            minute: int,
+            timezone: ZoneInfo,
+            kwargs: dict[str, object] | None = None,
+            **_: object,
+        ) -> DummyJob:
+            if replace_existing:
+                for job in list(self._jobs):
+                    if job.name == name:
+                        self._jobs.remove(job)
+            run_time = dt_time(hour, minute)
+            data = None
+            if kwargs and "context" in kwargs:
+                data = getattr(kwargs["context"].job, "data", None)
+            return self.run_daily(
+                callback,
+                time=run_time,
+                data=data,
+                name=name,
+                timezone=timezone,
+            )
+
+        scheduler = SimpleNamespace(timezone=tz, remove_job=remove_job, add_job=add_job)
         self.application = SimpleNamespace(timezone=tz, scheduler=scheduler)
         self.scheduler = scheduler
 
