@@ -95,11 +95,8 @@ api_router.include_router(legacy_router)
 
 # ────────── статические файлы UI ──────────
 BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
-UI_DIR = (
-    (BASE_DIR / "ui" / "dist")
-    if (BASE_DIR / "ui" / "dist").exists()
-    else (BASE_DIR / "ui")
-)
+DIST_DIR = BASE_DIR / "ui" / "dist"
+UI_DIR = DIST_DIR if (DIST_DIR / "index.html").exists() else BASE_DIR / "ui"
 UI_DIR = UI_DIR.resolve()
 
 
