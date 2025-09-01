@@ -48,24 +48,61 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
         return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
+    monkeypatch.setattr(db, "SessionLocal", SessionLocal, raising=False)
     return SessionLocal
 
 
-def test_profile_patch_returns_status_ok(
+def test_profile_patch_returns_settings(
     monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
 ) -> None:
     SessionLocal = setup_db(monkeypatch)
     with TestClient(server.app) as client:
         resp = client.patch(
             "/api/profile",
-            json={"timezone": "Europe/Moscow", "timezoneAuto": True},
+            json={
+                "timezone": "Europe/Moscow",
+                "timezoneAuto": True,
+                "dia": 6,
+                "roundStep": 1,
+                "carbUnits": "xe",
+            },
             headers=auth_headers,
         )
     assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+    data = resp.json()
+    assert data["timezone"] == "Europe/Moscow"
+    assert data["timezoneAuto"] is True
+    assert data["dia"] == 6
+    assert data["roundStep"] == 1
+    assert data["carbUnits"] == "xe"
 
     with SessionLocal() as session:
         user = session.get(db.User, 1)
         assert user is not None
         assert user.timezone == "Europe/Moscow"
         assert user.timezone_auto is True
+        assert user.dia == 6
+        assert user.round_step == 1
+        assert user.carb_units == "xe"
+
+
+def test_profile_patch_partial_update(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    SessionLocal = setup_db(monkeypatch)
+    with TestClient(server.app) as client:
+        resp = client.patch(
+            "/api/profile", json={"dia": 5}, headers=auth_headers
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["dia"] == 5
+        assert data["roundStep"] == 0.5
+        assert data["carbUnits"] == "g"
+
+    with SessionLocal() as session:
+        user = session.get(db.User, 1)
+        assert user is not None
+        assert user.dia == 5
+        assert user.round_step == 0.5
+        assert user.carb_units == "g"

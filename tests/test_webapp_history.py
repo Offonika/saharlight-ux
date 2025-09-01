@@ -45,6 +45,7 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> SessionMaker[SASession]:
         return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
+    monkeypatch.setattr(db, "SessionLocal", SessionLocal, raising=False)
     return SessionLocal
 
 

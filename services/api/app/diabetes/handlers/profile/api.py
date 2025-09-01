@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy.orm import Session
 
 from services.api.app import config
+from services.api.app.diabetes.schemas.profile import ProfileSettingsIn
 from services.api.app.diabetes.services.db import Profile, User, SessionLocal
 from services.api.app.diabetes.services.repository import CommitError, commit
 
@@ -29,6 +30,18 @@ class LocalProfile:
     high: float | None = None
     sos_contact: str | None = None
     sos_alerts_enabled: bool = True
+
+
+@dataclass
+class LocalUserSettings:
+    """Local representation of user settings when SDK is unavailable."""
+
+    telegram_id: int
+    timezone: str = "UTC"
+    timezone_auto: bool = True
+    dia: float = 4.0
+    round_step: float = 0.5
+    carb_units: str = "g"
 
 
 class LocalProfileAPI:
@@ -147,10 +160,43 @@ def save_profile(
 
 def set_timezone(session: Session, user_id: int, tz: str) -> tuple[bool, bool]:
     """Update user timezone in the database."""
+    return patch_user_settings(session, user_id, ProfileSettingsIn(timezone=tz))
+
+
+def get_user_settings(session: Session, user_id: int) -> LocalUserSettings | None:
+    """Fetch user settings from the database."""
+    user = session.get(User, user_id)
+    if not user:
+        return None
+    return LocalUserSettings(
+        telegram_id=user.telegram_id,
+        timezone=user.timezone,
+        timezone_auto=user.timezone_auto,
+        dia=user.dia,
+        round_step=user.round_step,
+        carb_units=user.carb_units,
+    )
+
+
+def patch_user_settings(
+    session: Session, user_id: int, data: ProfileSettingsIn, device_tz: str | None = None
+) -> tuple[bool, bool]:
+    """Persist user settings updating only provided values."""
     user = session.get(User, user_id)
     if not user:
         return False, False
-    user.timezone = tz
+    if data.timezone is not None:
+        user.timezone = data.timezone
+    if data.timezoneAuto is not None:
+        user.timezone_auto = data.timezoneAuto
+    if data.dia is not None:
+        user.dia = data.dia
+    if data.roundStep is not None:
+        user.round_step = data.roundStep
+    if data.carbUnits is not None:
+        user.carb_units = data.carbUnits
+    if user.timezone_auto and device_tz and user.timezone != device_tz:
+        user.timezone = device_tz
     try:
         commit(session)
     except CommitError:

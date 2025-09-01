@@ -267,6 +267,9 @@ def test_profile_patch_updates_timezone(
             json={"timezone": "Europe/Moscow", "timezoneAuto": False},
         )
         assert resp.status_code == 200
+        data = resp.json()
+        assert data["timezone"] == "Europe/Moscow"
+        assert data["timezoneAuto"] is False
     with session_factory() as session:
         user = session.get(User, 1)
         assert user is not None
@@ -288,6 +291,9 @@ def test_profile_patch_auto_device_timezone(
             json={"timezoneAuto": True},
         )
         assert resp.status_code == 200
+        data = resp.json()
+        assert data["timezone"] == "Europe/Moscow"
+        assert data["timezoneAuto"] is True
     with session_factory() as session:
         user = session.get(User, 1)
         assert user is not None
