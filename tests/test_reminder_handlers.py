@@ -227,10 +227,11 @@ async def test_add_reminder_saves_time_and_description(
     monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(reminder_handlers, "commit", commit)
     monkeypatch.setattr(reminder_handlers, "run_db", None)
+    notify_mock = AsyncMock()
     monkeypatch.setattr(
         reminder_handlers,
         "reminder_events",
-        SimpleNamespace(notify_reminder_saved=AsyncMock()),
+        SimpleNamespace(notify_reminder_saved=notify_mock),
     )
 
     class FixedDT(dt.datetime):
@@ -246,6 +247,7 @@ async def test_add_reminder_saves_time_and_description(
 
     await reminder_handlers.add_reminder(update, context)
 
+    notify_mock.assert_awaited_once_with(1)
     assert message.texts == ["Сохранено: 🔔 Замерить сахар ⏰ 09:00 (next 09:00)"]
 
     with TestSession() as session:
@@ -254,7 +256,7 @@ async def test_add_reminder_saves_time_and_description(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_notifies_when_scheduled(
+async def test_add_reminder_no_broadcast_with_job_queue(
     reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
@@ -287,7 +289,7 @@ async def test_add_reminder_notifies_when_scheduled(
     await reminder_handlers.add_reminder(update, context)
 
     schedule_mock.assert_called_once()
-    notify_mock.assert_awaited_once_with(1)
+    notify_mock.assert_not_awaited()
     assert message.texts == ["Сохранено: desc"]
 
 
@@ -330,7 +332,7 @@ async def test_add_reminder_ignores_disabled(
 
 
 @pytest.mark.asyncio
-async def test_delete_reminder_notifies(
+async def test_delete_reminder_no_broadcast_with_job_queue(
     reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
@@ -361,6 +363,44 @@ async def test_delete_reminder_notifies(
     update = make_update(message=message, effective_user=make_user(1))
     job_queue = DummyJobQueue()
     context = make_context(args=["1"], job_queue=job_queue)
+
+    await reminder_handlers.delete_reminder(update, context)
+
+    assert message.texts == ["Удалено"]
+    notify_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_delete_reminder_broadcasts_without_job_queue(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                kind="at_time",
+            )
+        )
+        session.commit()
+
+    notify_mock = AsyncMock()
+    monkeypatch.setattr(
+        reminder_handlers.reminder_events, "notify_reminder_saved", notify_mock
+    )
+
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["1"], job_queue=None)
 
     await reminder_handlers.delete_reminder(update, context)
 

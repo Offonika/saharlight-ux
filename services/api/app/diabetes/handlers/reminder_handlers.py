@@ -494,7 +494,15 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
     if job_queue is not None and db_user is not None:
         schedule_reminder(reminder, job_queue, db_user)
-    await reminder_events.notify_reminder_saved(reminder.id)
+        logger.debug(
+            "Job queue present; suppressed reminder_saved event for %s",
+            reminder.id,
+        )
+    else:
+        await reminder_events.notify_reminder_saved(reminder.id)
+        logger.debug(
+            "Sent reminder_saved event for %s", reminder.id
+        )
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
 
 
@@ -774,8 +782,12 @@ async def reminder_webapp_save(
                 )
             else:
                 _reschedule_job(job_queue, rem, user_obj)
-
-        await reminder_events.notify_reminder_saved(rem.id)
+            logger.debug(
+                "Job queue present; suppressed reminder_saved event for %s", rem.id
+            )
+        else:
+            await reminder_events.notify_reminder_saved(rem.id)
+            logger.debug("Sent reminder_saved event for %s", rem.id)
 
     render_fn = cast(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
@@ -828,7 +840,13 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         logger.info("Removed %d job(s) for reminder %s", removed, rid)
     if message:
         await message.reply_text("Удалено")
-    await reminder_events.notify_reminder_saved(rid)
+    if job_queue is None:
+        await reminder_events.notify_reminder_saved(rid)
+        logger.debug("Sent reminder_saved event for %s", rid)
+    else:
+        logger.debug(
+            "Job queue present; suppressed reminder_saved event for %s", rid
+        )
 
 
 async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1021,10 +1039,8 @@ async def reminder_action_cb(
     if status == "toggle":
         if rem and rem.is_enabled:
             if job_queue is None:
-                logger.warning(
-                    "Job queue not available, skipping scheduling for reminder %s",
-                    rid,
-                )
+                await reminder_events.notify_reminder_saved(rid)
+                logger.debug("Sent reminder_saved event for %s", rid)
             else:
                 with SessionLocal() as session:
                     user_obj = session.get(User, rem.telegram_id)
@@ -1036,15 +1052,31 @@ async def reminder_action_cb(
                     )
                 else:
                     _reschedule_job(job_queue, rem, user_obj)
+                logger.debug(
+                    "Job queue present; suppressed reminder_saved event for %s",
+                    rid,
+                )
         elif job_queue is not None:
             removed = _remove_jobs(job_queue, f"reminder_{rid}")
             logger.info("Removed %d job(s) for reminder %s", removed, rid)
-        await reminder_events.notify_reminder_saved(rid)
+            logger.debug(
+                "Job queue present; suppressed reminder_saved event for %s",
+                rid,
+            )
+        else:
+            await reminder_events.notify_reminder_saved(rid)
+            logger.debug("Sent reminder_saved event for %s", rid)
     else:  # del
         if job_queue is not None:
             removed = _remove_jobs(job_queue, f"reminder_{rid}")
             logger.info("Removed %d job(s) for reminder %s", removed, rid)
-        await reminder_events.notify_reminder_saved(rid)
+            logger.debug(
+                "Job queue present; suppressed reminder_saved event for %s",
+                rid,
+            )
+        else:
+            await reminder_events.notify_reminder_saved(rid)
+            logger.debug("Sent reminder_saved event for %s", rid)
 
     render_fn = cast(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],

@@ -882,7 +882,7 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     update = make_update(callback_query=query, effective_user=make_user(1))
     context = make_context(job_queue=job_queue, user_data={})
     await handlers.reminder_action_cb(update, context)
-    notify_mock.assert_awaited_once_with(1)
+    notify_mock.assert_not_awaited()
 
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
@@ -908,10 +908,11 @@ async def test_toggle_reminder_without_job_queue(monkeypatch: pytest.MonkeyPatch
 
     schedule_mock = MagicMock()
     monkeypatch.setattr(handlers, "schedule_reminder", schedule_mock)
+    notify_mock2 = AsyncMock()
     monkeypatch.setattr(
         handlers.reminder_events,
         "notify_reminder_saved",
-        AsyncMock(),
+        notify_mock2,
     )
 
     query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
@@ -921,10 +922,11 @@ async def test_toggle_reminder_without_job_queue(monkeypatch: pytest.MonkeyPatch
 
     with TestSession() as session:
         rem_db = session.get(Reminder, 1)
-        assert rem_db is not None
-        assert rem_db.is_enabled
+    assert rem_db is not None
+    assert rem_db.is_enabled
 
     assert not schedule_mock.called
+    notify_mock2.assert_awaited_once_with(1)
 
 
 @pytest.mark.asyncio
@@ -961,7 +963,7 @@ async def test_toggle_reminder_missing_user(
     assert (
         "User 1 not found for rescheduling reminder 1" in caplog.text
     )
-    notify_mock.assert_awaited_once_with(1)
+    notify_mock.assert_not_awaited()
 
 
 @pytest.mark.asyncio
