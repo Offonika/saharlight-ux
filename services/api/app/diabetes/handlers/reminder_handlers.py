@@ -447,7 +447,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         DefaultJobQueue | None, context.job_queue
     )
     if job_queue is not None and db_user is not None:
-        _reschedule_job(job_queue, reminder, db_user)
+        schedule_reminder(reminder, job_queue, db_user)
 
     await reminder_events.notify_reminder_saved(reminder.id)
     await message.reply_text(f"Сохранено: {_describe(reminder, db_user)}")
