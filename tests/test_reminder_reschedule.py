@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import time as dt_time, timedelta
+from datetime import datetime, time as dt_time, timedelta
 from types import SimpleNamespace
 from typing import Callable
 from zoneinfo import ZoneInfo
@@ -14,6 +14,10 @@ class DummyJob:
         self.id = id
         self.name = name
         self.run_time = run_time
+        now = datetime.now(scheduler.timezone)
+        self.next_run_time = now.replace(
+            hour=run_time.hour, minute=run_time.minute, second=0, microsecond=0
+        )
 
     def remove(self) -> None:
         self._scheduler.jobs = [j for j in self._scheduler.jobs if j.id != self.id]
@@ -189,3 +193,29 @@ def test_reschedule_job_helper_handles_jobs_without_remove() -> None:
     jobs = job_queue.get_jobs_by_name("reminder_1")
     assert len(jobs) == 1
     assert jobs[0].run_time == dt_time(9, 45)
+
+
+def test_reschedule_job_updates_next_run_time() -> None:
+    job_queue = DummyJobQueue()
+    rem = SimpleNamespace(
+        id=1,
+        telegram_id=1,
+        type="sugar",
+        time=dt_time(8, 0),
+        interval_hours=None,
+        interval_minutes=None,
+        minutes_after=None,
+        kind="at_time",
+        is_enabled=True,
+        days_mask=0,
+    )
+    user = SimpleNamespace(timezone="UTC")
+
+    reminder_jobs.schedule_reminder(rem, job_queue, user)
+    rem.time = dt_time(10, 15)
+    reminder_handlers._reschedule_job(job_queue, rem, user)
+    jobs = job_queue.get_jobs_by_name("reminder_1")
+    assert len(jobs) == 1
+    job = job_queue.scheduler.get_job("reminder_1")
+    assert job is not None
+    assert job.next_run_time.time() == dt_time(10, 15)
