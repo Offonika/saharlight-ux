@@ -26,7 +26,9 @@ class _DummyBaseHandler:  # pragma: no cover - minimal stub
 dummy.BaseHandler = _DummyBaseHandler
 sys.modules.setdefault("telegram.ext._basehandler", dummy)
 
-warnings.filterwarnings("ignore", category=ResourceWarning, module=r"anyio\.streams\.memory")
+warnings.filterwarnings(
+    "ignore", category=ResourceWarning, module=r"anyio\.streams\.memory"
+)
 
 _sqlite_connections: list[sqlite3.Connection] = []
 _original_sqlite_connect: Callable[..., sqlite3.Connection] = sqlite3.connect
@@ -42,7 +44,9 @@ setattr(sqlite3, "connect", _tracking_sqlite_connect)
 
 
 _engines: list[sqlalchemy.engine.Engine] = []
-_original_create_engine: Callable[..., sqlalchemy.engine.Engine] = sqlalchemy.create_engine
+_original_create_engine: Callable[..., sqlalchemy.engine.Engine] = (
+    sqlalchemy.create_engine
+)
 
 
 def _tracking_create_engine(*args: Any, **kwargs: Any) -> sqlalchemy.engine.Engine:
@@ -117,14 +121,21 @@ class _DummyJobQueue:
         *,
         data: dict[str, Any] | None = None,
         name: str | None = None,
+        timezone: object | None = None,
         job_kwargs: dict[str, Any] | None = None,
     ) -> _DummyJob:
         job_id = job_kwargs.get("id") if job_kwargs else name or ""
-        if job_kwargs and job_kwargs.get("replace_existing"):
-            self.scheduler.jobs = [j for j in self.scheduler.jobs if j.name != job_id]
-        job = _DummyJob(job_id, data)
-        self.scheduler.jobs.append(job)
-        return job
+        replace_existing = bool(job_kwargs and job_kwargs.get("replace_existing"))
+        return self.scheduler.add_job(
+            callback,
+            trigger="interval",
+            id=job_id,
+            name=job_id,
+            replace_existing=replace_existing,
+            timezone=timezone,
+            kwargs={"context": data} if data is not None else None,
+            seconds=interval,
+        )
 
     def get_jobs_by_name(self, name: str) -> list[_DummyJob]:
         return [j for j in self.scheduler.jobs if j.name == name]
