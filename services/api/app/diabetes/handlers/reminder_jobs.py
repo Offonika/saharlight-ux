@@ -8,7 +8,6 @@ from zoneinfo import ZoneInfo
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
-from services.api.app.diabetes.utils.jobs import schedule_once
 
 logger = logging.getLogger(__name__)
 
@@ -66,17 +65,9 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
     context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
 
     job_kwargs = {"id": name, "name": name, "replace_existing": True}
-    if kind == "after_event" and rem.minutes_after is not None:
-        when_td = timedelta(minutes=float(rem.minutes_after))
-        schedule_once(
-            job_queue,
-            reminder_job,
-            when=when_td,
-            data=context,
-            name=name,
-            timezone=tz,
-            job_kwargs=job_kwargs,
-        )
+    if kind == "after_event":
+        logger.info("Skip scheduling %s: 'after_event' is scheduled on trigger.", name)
+        return
     elif kind == "at_time" and rem.time is not None:
         mask = getattr(rem, "days_mask", 0) or 0
         days = tuple(i for i in range(7) if mask & (1 << i)) if mask else None
