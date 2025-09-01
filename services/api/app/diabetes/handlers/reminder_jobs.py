@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING, TypeAlias
@@ -71,23 +72,18 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
     elif kind == "at_time" and rem.time is not None:
         mask = getattr(rem, "days_mask", 0) or 0
         days = tuple(i for i in range(7) if mask & (1 << i)) if mask else None
-        if days is None:
-            job_queue.run_daily(
-                reminder_job,
-                time=rem.time.replace(tzinfo=tz),
-                data=context,
-                name=name,
-                job_kwargs=job_kwargs,
-            )
-        else:
-            job_queue.run_daily(
-                reminder_job,
-                time=rem.time.replace(tzinfo=tz),
-                days=days,
-                data=context,
-                name=name,
-                job_kwargs=job_kwargs,
-            )
+        params = {
+            "time": rem.time,
+            "data": context,
+            "name": name,
+            "job_kwargs": job_kwargs,
+        }
+        sig = inspect.signature(job_queue.run_daily)
+        if "timezone" in sig.parameters:
+            params["timezone"] = tz
+        if days is not None and "days" in sig.parameters:
+            params["days"] = days
+        job_queue.run_daily(reminder_job, **params)
     elif kind == "every" and rem.interval_minutes is not None:
         job_queue.run_repeating(
             reminder_job,
