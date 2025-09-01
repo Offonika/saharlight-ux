@@ -359,10 +359,6 @@ class HistoryRecord(Base):
     type: Mapped[str] = mapped_column(String, nullable=False)
 
 
-# Import additional models so ``Base.metadata`` is aware of them.
-from .db_models import UserSettings  # noqa: F401, E402
-
-
 # ────────────────────── инициализация ────────────────────────
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
