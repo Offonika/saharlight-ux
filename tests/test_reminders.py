@@ -923,6 +923,54 @@ async def test_toggle_reminder_without_job_queue(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
+async def test_toggle_reminder_missing_user(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit = commit
+
+    with TestSession() as session:
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                is_enabled=False,
+            )
+        )
+        session.commit()
+
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    reschedule_mock = MagicMock()
+    monkeypatch.setattr(handlers, "_reschedule_job", reschedule_mock)
+    monkeypatch.setattr(
+        handlers.reminder_events,
+        "notify_reminder_saved",
+        AsyncMock(),
+    )
+
+    query = DummyCallbackQuery("rem_toggle:1", DummyMessage())
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=job_queue, user_data={})
+    with caplog.at_level(logging.WARNING):
+        await handlers.reminder_action_cb(update, context)
+
+    with TestSession() as session:
+        rem_db = session.get(Reminder, 1)
+        assert rem_db is not None
+        assert rem_db.is_enabled
+
+    assert not reschedule_mock.called
+    assert any(
+        "User 1 not found for reminder 1" in r.message for r in caplog.records
+    )
+
+
+@pytest.mark.asyncio
 async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
