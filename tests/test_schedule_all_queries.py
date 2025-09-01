@@ -121,3 +121,29 @@ def test_schedule_all_uses_constant_queries() -> None:
     event.remove(engine, "before_cursor_execute", _count)
     assert len(queries) == 2
     assert len(job_queue.jobs()) == 50
+
+
+def test_schedule_all_removes_existing_jobs() -> None:
+    TestSession, _ = _setup_session()
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        rem = Reminder(
+            telegram_id=1,
+            type="sugar",
+            time=time(8, 0),
+            kind="at_time",
+            is_enabled=True,
+        )
+        session.add(rem)
+        session.commit()
+        rem_id = rem.id
+
+    base = f"reminder_{rem_id}"
+    job_queue = cast(DefaultJobQueue, DummyJobQueue())
+    old_job = job_queue.run_daily(lambda *a, **k: None, time(8, 0), name=base)
+    handlers.schedule_all(job_queue)
+
+    jobs = job_queue.get_jobs_by_name(base)
+    assert old_job.removed is True
+    assert any(not j.removed for j in jobs)

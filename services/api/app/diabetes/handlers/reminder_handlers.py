@@ -290,7 +290,20 @@ def schedule_all(job_queue: DefaultJobQueue | None) -> None:
         count = len(reminders)
         logger.debug("Found %d reminders to schedule", count)
         for rem in reminders:
+            base = f"reminder_{rem.id}"
+            removed = _remove_jobs(job_queue, base)
+            logger.info("🗑 removed %d jobs named %s", removed, base)
             schedule_reminder(rem, job_queue, rem.user)
+            job = next(iter(job_queue.get_jobs_by_name(base)), None)
+            next_run = (
+                getattr(job, "next_run_time", None)
+                or getattr(job, "next_t", None)
+                or getattr(job, "when", None)
+                or getattr(job, "run_time", None)
+                if job is not None
+                else None
+            )
+            logger.info("⏰ Scheduled job %s -> next_run=%s", base, next_run)
 
         # 🔎 Отладка: просто логируем список активных джобов
         jobs = job_queue.jobs()
