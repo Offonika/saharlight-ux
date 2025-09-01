@@ -108,6 +108,14 @@ def schedule_reminder(
 
         run_daily_fn(reminder_job, **run_daily_kwargs)
     elif kind == "every" and interval_minutes is not None:
+        if interval_minutes <= 0:
+            logger.warning(
+                "SKIP %s kind=%s interval_min=%s",
+                name,
+                kind,
+                interval_minutes,
+            )
+            return
         job_queue.run_repeating(
             reminder_job,
             interval=timedelta(minutes=float(interval_minutes)),
