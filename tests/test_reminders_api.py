@@ -161,7 +161,9 @@ def client_with_job_queue(
     reminder_events.register_job_queue(None)
 
 
-def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_empty_returns_200(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -170,7 +172,9 @@ def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Ses
     assert resp.json() == []
 
 
-def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_nonempty_returns_list(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -208,7 +212,9 @@ def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker
     ]
 
 
-def test_get_single_reminder(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_get_single_reminder(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -258,7 +264,9 @@ def test_mismatched_telegram_id_returns_404(client: TestClient) -> None:
     assert resp.json() == {"detail": "reminder not found"}
 
 
-def test_get_single_reminder_not_found(client: TestClient, session_factory: sessionmaker[Session]) -> None:
+def test_get_single_reminder_not_found(
+    client: TestClient, session_factory: sessionmaker[Session]
+) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -466,6 +474,21 @@ async def test_post_job_queue_event_logs_error(
         await reminders_router._post_job_queue_event("saved", 1)
 
     assert "failed to notify job queue" in caplog.text
+    monkeypatch.delenv("API_URL")
+    config.reload_settings()
+
+
+@pytest.mark.asyncio
+async def test_post_job_queue_event_requires_api_url(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reminder_events.register_job_queue(None)
+    monkeypatch.setenv("API_URL", "")
+    config.reload_settings()
+
+    with pytest.raises(RuntimeError, match="API_URL not configured"):
+        await reminders_router._post_job_queue_event("saved", 1)
+
     monkeypatch.delenv("API_URL")
     config.reload_settings()
 
