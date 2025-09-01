@@ -34,6 +34,9 @@ vi.mock('../src/features/reminders/logic/validate', () => ({
   validate: () => ({}),
   hasErrors: () => false
 }));
+vi.mock('../src/features/profile/hooks', () => ({
+  useDefaultAfterMealMinutes: () => 120
+}));
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn()
 }));

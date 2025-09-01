@@ -17,6 +17,7 @@ import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
 import { useTelegram } from "@/hooks/useTelegram";
 import TimeInput from "@/components/TimeInput";
+import { useDefaultAfterMealMinutes } from "../../profile/hooks";
 
 const TYPE_OPTIONS: { value: ReminderType; label: string }[] = [
   { value: "sugar", label: "Измерение сахара" },
@@ -71,9 +72,19 @@ export default function RemindersEdit() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const toast = useToast();
-
+  const defaultAfterMeal = useDefaultAfterMealMinutes(telegramId);
   const [form, setForm] = useState<ReminderFormValues | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const presetsTime = ["07:30", "12:30", "22:00"];
+  const presetsEvery = [60, 120, 180, 1440];
+  const presetsAfter = useMemo(() => {
+    const base = [90, 120, 150];
+    if (defaultAfterMeal && !base.includes(defaultAfterMeal)) {
+      return [defaultAfterMeal, ...base];
+    }
+    return base;
+  }, [defaultAfterMeal]);
 
   useEffect(() => {
     async function load() {
@@ -110,10 +121,6 @@ export default function RemindersEdit() {
     k: K,
     v: ReminderFormValues[K],
   ) => setForm((s) => (s ? { ...s, [k]: v } : s));
-
-  const presetsTime = ["07:30", "12:30", "22:00"];
-  const presetsEvery = [60, 120, 180, 1440];
-  const presetsAfter = [90, 120, 150];
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -165,7 +172,7 @@ export default function RemindersEdit() {
       if (k === "at_time") base.time = "07:30";
       if (k === "every") base.intervalMinutes = 60;
       if (k === "after_event") {
-        base.minutesAfter = 120;
+        base.minutesAfter = defaultAfterMeal ?? 120;
         base.type = "after_meal";
       }
       return base;
