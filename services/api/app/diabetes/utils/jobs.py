@@ -160,41 +160,87 @@ def schedule_daily(
     return cast(Job[CustomContext], result)
 
 
-def _remove_jobs(job_queue: DefaultJobQueue, name: str) -> int:
-    """Best-effort removal of jobs from the queue.
+def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
+    """Forcefully remove jobs matching ``base_name`` and its variants.
 
-    Tries ``job.remove()`` first, then falls back to direct scheduler
-    removal, and finally schedules the job for removal. Returns the number of
-    jobs processed.
+    ``JobQueue``/APScheduler sometimes keep dangling jobs even after normal
+    removal. To avoid duplicate executions we aggressively try several
+    strategies: direct ``job.remove()``, scheduler-level ``remove_job`` and
+    finally ``schedule_removal``. All jobs named ``base_name`` along with
+    ``*_after`` and ``*_snooze`` suffixes (and their prefixed variants) are
+    targeted. Returns the number of jobs affected.
     """
-    removed = 0
-    for job in job_queue.get_jobs_by_name(name):
+
+    names = {base_name, f"{base_name}_after", f"{base_name}_snooze"}
+    scheduler = getattr(job_queue, "scheduler", None)
+    get_job = cast(Callable[[str], object] | None, getattr(scheduler, "get_job", None))
+    remove_job_fn = cast(
+        Callable[[str], None] | None, getattr(scheduler, "remove_job", None)
+    )
+
+    def _safe_remove(job: object) -> bool:
+        """Best-effort single job removal."""
+
         remover = cast(Callable[[], None] | None, getattr(job, "remove", None))
         if remover is not None:
             try:
                 remover()
-                removed += 1
-                continue
+                return True
             except Exception:  # pragma: no cover - defensive
                 pass
-        scheduler = getattr(job_queue, "scheduler", None)
-        remove_job = (
-            cast(Callable[[object], None] | None, getattr(scheduler, "remove_job", None))
-            if scheduler is not None
-            else None
-        )
-        job_id = getattr(job, "id", None)
-        if remove_job is not None and job_id is not None:
-            try:
-                remove_job(job_id)
-                removed += 1
-                continue
-            except Exception:  # pragma: no cover - defensive
-                pass
+        if scheduler is not None:
+            job_id = getattr(job, "id", None)
+            if job_id is not None:
+                try:
+                    scheduler.remove_job(job_id)
+                    return True
+                except Exception:  # pragma: no cover - defensive
+                    pass
         schedule_removal = cast(
             Callable[[], None] | None, getattr(job, "schedule_removal", None)
         )
         if schedule_removal is not None:
             schedule_removal()
-            removed += 1
+            return True
+        return False
+
+    removed = 0
+    seen: set[int] = set()
+    for name in names:
+        name_removed = False
+        for job in job_queue.get_jobs_by_name(name):
+            if id(job) in seen:
+                continue
+            seen.add(id(job))
+            if _safe_remove(job):
+                removed += 1
+                name_removed = True
+        if scheduler is not None:
+            sched_job = get_job(name) if get_job is not None else None
+            if sched_job is not None and id(sched_job) not in seen:
+                seen.add(id(sched_job))
+                if _safe_remove(sched_job):
+                    removed += 1
+                    name_removed = True
+            if not name_removed and remove_job_fn is not None:
+                try:
+                    remove_job_fn(name)
+                    removed += 1
+                except Exception:  # pragma: no cover - defensive
+                    pass
+    jobs_obj = getattr(job_queue, "jobs", [])
+    jobs_iter = jobs_obj() if callable(jobs_obj) else jobs_obj
+    for job in jobs_iter:
+        if id(job) in seen:
+            continue
+        job_id = getattr(job, "id", "")
+        job_name = getattr(job, "name", "")
+        if any(
+            (isinstance(job_id, str) and (job_id == n or job_id.startswith(n)))
+            or (isinstance(job_name, str) and (job_name == n or job_name.startswith(n)))
+            for n in names
+        ):
+            seen.add(id(job))
+            if _safe_remove(job):
+                removed += 1
     return removed
