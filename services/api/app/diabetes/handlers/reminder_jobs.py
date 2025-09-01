@@ -85,29 +85,28 @@ def schedule_reminder(
         logger.info("SKIP %s kind=%s", name, kind)
         return
     if kind == "at_time" and rem.time is not None:
-        mask = getattr(rem, "days_mask", 0) or 0
-        days = tuple(i for i in range(7) if mask & (1 << i)) if mask else tuple(range(7))
         run_daily_sig = inspect.signature(job_queue.run_daily)
         run_daily_fn = cast(Any, job_queue.run_daily)
+        run_daily_kwargs: dict[str, object] = {
+            "time": rem.time,
+            "data": context,
+            "name": name,
+            "job_kwargs": call_job_kwargs,
+        }
+
+        if "days" in run_daily_sig.parameters:
+            mask = getattr(rem, "days_mask", 0) or 0
+            days = (
+                tuple(i for i in range(7) if mask & (1 << i)) if mask else tuple(range(7))
+            )
+            run_daily_kwargs["days"] = days
+
         if "timezone" in run_daily_sig.parameters:
-            run_daily_fn(
-                reminder_job,
-                time=rem.time,
-                days=days,
-                data=context,
-                name=name,
-                timezone=tz,
-                job_kwargs=call_job_kwargs,
-            )
+            run_daily_kwargs["timezone"] = tz
         else:
-            run_daily_fn(
-                reminder_job,
-                time=rem.time.replace(tzinfo=tz),
-                days=days,
-                data=context,
-                name=name,
-                job_kwargs=call_job_kwargs,
-            )
+            run_daily_kwargs["time"] = rem.time.replace(tzinfo=tz)
+
+        run_daily_fn(reminder_job, **run_daily_kwargs)
     elif kind == "every" and interval_minutes is not None:
         job_queue.run_repeating(
             reminder_job,
