@@ -283,6 +283,46 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
     logger.info("♻️ Rescheduled job %s -> next_run=%s", job_name, next_run)
 
 
+def _remove_jobs(job_queue: DefaultJobQueue, job_name: str) -> int:
+    """Best-effort removal of jobs from the queue.
+
+    Tries ``job.remove()`` first, then falls back to direct scheduler removal,
+    and finally schedules the job for removal. Returns the number of jobs
+    processed.
+    """
+    removed = 0
+    for job in job_queue.get_jobs_by_name(job_name):
+        remover = cast(Callable[[], None] | None, getattr(job, "remove", None))
+        if remover is not None:
+            try:
+                remover()
+                removed += 1
+                continue
+            except Exception:  # pragma: no cover - defensive
+                pass
+        scheduler = getattr(job_queue, "scheduler", None)
+        remove_job = (
+            cast(Callable[[object], None] | None, getattr(scheduler, "remove_job", None))
+            if scheduler is not None
+            else None
+        )
+        job_id = getattr(job, "id", None)
+        if remove_job is not None and job_id is not None:
+            try:
+                remove_job(job_id)
+                removed += 1
+                continue
+            except Exception:  # pragma: no cover - defensive
+                pass
+        schedule_removal = cast(
+            Callable[[], None] | None, getattr(job, "schedule_removal", None)
+        )
+        if schedule_removal is not None:
+            schedule_removal()
+            removed += 1
+    return removed
+
+
 def schedule_all(job_queue: DefaultJobQueue | None) -> None:
     if job_queue is None:
         logger.warning("schedule_all called without job_queue")
@@ -776,8 +816,8 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             return
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None:
-        for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
-            job.schedule_removal()
+        removed = _remove_jobs(job_queue, f"reminder_{rid}")
+        logger.info("Removed %d job(s) for reminder %s", removed, rid)
     if message:
         await message.reply_text("Удалено")
     await reminder_events.notify_reminder_saved(rid)
@@ -989,13 +1029,13 @@ async def reminder_action_cb(
                 else:
                     _reschedule_job(job_queue, rem, user_obj)
         elif job_queue is not None:
-            for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
-                job.schedule_removal()
+            removed = _remove_jobs(job_queue, f"reminder_{rid}")
+            logger.info("Removed %d job(s) for reminder %s", removed, rid)
         await reminder_events.notify_reminder_saved(rid)
     else:  # del
         if job_queue is not None:
-            for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
-                job.schedule_removal()
+            removed = _remove_jobs(job_queue, f"reminder_{rid}")
+            logger.info("Removed %d job(s) for reminder %s", removed, rid)
         await reminder_events.notify_reminder_saved(rid)
 
     render_fn = cast(
@@ -1040,8 +1080,11 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
         minutes_after = rem.minutes_after
         if minutes_after is None:
             continue
-        for job in job_queue.get_jobs_by_name(f"reminder_{rem.id}"):
-            job.schedule_removal()
+        removed = _remove_jobs(job_queue, f"reminder_{rem.id}")
+        if removed:
+            logger.info(
+                "Removed %d job(s) for reminder %s", removed, rem.id
+            )
         schedule_once(
             job_queue,
             reminder_job,
