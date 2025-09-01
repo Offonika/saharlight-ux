@@ -110,6 +110,22 @@ class _DummyJobQueue:
         self.scheduler.jobs.append(job)
         return job
 
+    def run_repeating(
+        self,
+        callback: Callable[..., object],
+        interval: object,
+        *,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> _DummyJob:
+        job_id = job_kwargs.get("id") if job_kwargs else name or ""
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.scheduler.jobs = [j for j in self.scheduler.jobs if j.name != job_id]
+        job = _DummyJob(job_id, data)
+        self.scheduler.jobs.append(job)
+        return job
+
     def get_jobs_by_name(self, name: str) -> list[_DummyJob]:
         return [j for j in self.scheduler.jobs if j.name == name]
 

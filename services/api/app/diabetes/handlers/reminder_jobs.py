@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import inspect
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias, Any, cast
 from zoneinfo import ZoneInfo
 
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
-from services.api.app.diabetes.utils.jobs import schedule_daily, schedule_once
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def schedule_reminder(
             user = session.get(User, rem.telegram_id)
     tz = ZoneInfo(getattr(user, "timezone", None) or "UTC")
 
-    name = f"reminder_{rem.id}"
+    base_name = f"reminder_{rem.id}"
     kind = rem.kind
     interval_minutes = rem.interval_minutes
     if kind is None:
@@ -59,6 +59,8 @@ def schedule_reminder(
         else:
             kind = "at_time"
 
+    name = f"{base_name}_after" if kind == "after_event" else base_name
+
     logger.info(
         "PLAN %s kind=%s time=%s interval_min=%s after_min=%s tz=%s",
         name,
@@ -71,38 +73,48 @@ def schedule_reminder(
 
     context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
 
-    job_kwargs: dict[str, object] = {"id": name, "replace_existing": True}
+    job_kwargs: dict[str, object] = {
+        "id": name,
+        "name": name,
+        "replace_existing": True,
+    }
+    call_job_kwargs = dict(job_kwargs)
+    call_job_kwargs.pop("name", None)
 
-    if kind == "after_event" and rem.minutes_after is not None:
-        schedule_once(
-            job_queue,
-            reminder_job,
-            when=timedelta(minutes=float(rem.minutes_after)),
-            data=context,
-            name=name,
-            job_kwargs=job_kwargs,
-        )
-    elif kind == "at_time" and rem.time is not None:
+    if kind == "after_event":
+        logger.info("SKIP %s kind=%s", name, kind)
+        return
+    if kind == "at_time" and rem.time is not None:
         mask = getattr(rem, "days_mask", 0) or 0
-        days = tuple(i for i in range(7) if mask & (1 << i)) if mask else None
-        schedule_daily(
-            job_queue,
-            reminder_job,
-            time=rem.time,
-            days=days,
-            data=context,
-            name=name,
-            timezone=tz,
-            job_kwargs=job_kwargs,
-        )
+        days = tuple(i for i in range(7) if mask & (1 << i)) if mask else tuple(range(7))
+        run_daily_sig = inspect.signature(job_queue.run_daily)
+        run_daily_fn = cast(Any, job_queue.run_daily)
+        if "timezone" in run_daily_sig.parameters:
+            run_daily_fn(
+                reminder_job,
+                time=rem.time,
+                days=days,
+                data=context,
+                name=name,
+                timezone=tz,
+                job_kwargs=call_job_kwargs,
+            )
+        else:
+            run_daily_fn(
+                reminder_job,
+                time=rem.time.replace(tzinfo=tz),
+                days=days,
+                data=context,
+                name=name,
+                job_kwargs=call_job_kwargs,
+            )
     elif kind == "every" and interval_minutes is not None:
-        schedule_once(
-            job_queue,
+        job_queue.run_repeating(
             reminder_job,
-            when=timedelta(minutes=int(interval_minutes)),
+            interval=timedelta(minutes=float(interval_minutes)),
             data=context,
             name=name,
-            job_kwargs=job_kwargs,
+            job_kwargs=call_job_kwargs,
         )
 
     job = next(iter(job_queue.get_jobs_by_name(name)), None)
