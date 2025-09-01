@@ -264,9 +264,17 @@ def _render_reminders(
 def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) -> None:
     """Пересоздаёт задачу с обновлённым временем."""
     job_name = f"reminder_{reminder.id}"
-
+    count = 0
     for job in job_queue.get_jobs_by_name(job_name):
-        job.schedule_removal()
+        try:
+            job.remove()
+        except Exception:  # pragma: no cover - fallback paths
+            try:
+                job_queue.scheduler.remove_job(job.id)
+            except Exception:  # pragma: no cover - fallback paths
+                job.schedule_removal()
+        count += 1
+    logger.info("🗑 removed %d jobs named %s", count, job_name)
 
     schedule_reminder(reminder, job_queue, user)
     next_run: datetime.datetime | None
