@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from typing import Iterable
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -30,7 +29,9 @@ def _fmt_jobs(app: Application) -> str:
             when_msk = when_utc = "—"
         else:
             when_utc = nrt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-            when_msk = nrt.astimezone(tz).strftime(f"%Y-%m-%d %H:%M:%S {tz.key if hasattr(tz,'key') else 'TZ'}")
+            when_msk = nrt.astimezone(tz).strftime(
+                f"%Y-%m-%d %H:%M:%S {tz.key if hasattr(tz,'key') else 'TZ'}"
+            )
         lines.append(
             f"• {j.name}  (id={j.id})\n"
             f"  next_run: {when_msk} | {when_utc}\n"
@@ -44,7 +45,9 @@ async def dbg_tz(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     tz = context.application.job_queue.scheduler.timezone
     now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-    now_msk = datetime.now(ZoneInfo("Europe/Moscow")).strftime("%Y-%m-%d %H:%M:%S Europe/Moscow")
+    now_msk = datetime.now(ZoneInfo("Europe/Moscow")).strftime(
+        "%Y-%m-%d %H:%M:%S Europe/Moscow"
+    )
     await update.effective_chat.send_message(
         f"🧭 TZ в планировщике: {tz}\n"
         f"⏱️ now(UTC): {now_utc}\n"
@@ -92,6 +95,7 @@ def register_debug_reminder_handlers(app: Application) -> None:
     Регистрируем только для админа и только если включены DEBUG-команды.
     """
     from os import getenv
+
     if getenv("ENABLE_DEBUG_COMMANDS", "0") != "1":
         return
 
