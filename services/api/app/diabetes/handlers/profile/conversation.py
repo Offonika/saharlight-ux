@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -467,6 +467,36 @@ async def profile_timezone_save(
             reply_markup=menu_keyboard(),
         )
         return END
+
+    job_queue = getattr(context, "job_queue", None)
+    if job_queue is None:
+        logger.warning("profile_timezone_save called without job_queue")
+    else:
+        def db_get_reminders(session: Session) -> list[Reminder]:
+            return (
+                session.query(Reminder)
+                .options(selectinload(Reminder.user))
+                .filter_by(telegram_id=user_id, is_enabled=True)
+                .filter(Reminder.time.is_not(None))
+                .all()
+            )
+
+        if run_db is None:
+            with SessionLocal() as session:
+                reminders = db_get_reminders(session)
+        else:
+            reminders = cast(
+                list[Reminder],
+                await run_db(db_get_reminders, sessionmaker=SessionLocal),
+            )
+        for rem in reminders:
+            reminder_handlers._reschedule_job(job_queue, rem, rem.user)
+        logger.info(
+            "Rescheduled %d reminders for user %s due to timezone change",
+            len(reminders),
+            user_id,
+        )
+
     await message.reply_text("✅ Часовой пояс обновлён.", reply_markup=menu_keyboard())
     return END
 

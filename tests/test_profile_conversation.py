@@ -105,8 +105,24 @@ async def test_profile_timezone_save_db_error(monkeypatch: pytest.MonkeyPatch) -
 
 @pytest.mark.asyncio
 async def test_profile_timezone_save_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    run_db_mock = AsyncMock(return_value=(True, True))
+    reminder_user = SimpleNamespace(id=1)
+    reminder = SimpleNamespace(id=5, user=reminder_user)
+
+    async def run_db_mock(fn, *, sessionmaker):  # type: ignore[override]
+        run_db_mock.calls += 1
+        return (True, True) if run_db_mock.calls == 1 else [reminder]
+
+    run_db_mock.calls = 0
     monkeypatch.setattr(handlers, "run_db", run_db_mock)
+
+    calls: list[tuple[Any, Any, Any]] = []
+
+    def reschedule(job_queue: Any, rem: Any, user: Any) -> None:
+        calls.append((job_queue, rem, user))
+
+    monkeypatch.setattr(handlers.reminder_handlers, "_reschedule_job", reschedule)
+
+    job_queue = object()
     message = DummyMessage("Europe/Moscow")
     update = cast(
         Update,
@@ -114,12 +130,13 @@ async def test_profile_timezone_save_success(monkeypatch: pytest.MonkeyPatch) ->
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(job_queue=job_queue),
     )
     state = await handlers.profile_timezone_save(update, context)
     assert state == handlers.END
     assert any("Часовой пояс обновлён" in r for r in message.replies)
-    run_db_mock.assert_awaited_once()
+    assert calls == [(job_queue, reminder, reminder_user)]
+    assert run_db_mock.calls == 2
 
 
 @pytest.mark.parametrize(
