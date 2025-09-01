@@ -787,8 +787,16 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             return
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None:
-        removed = _remove_jobs(job_queue, f"reminder_{rid}")
-        logger.info("Removed %d job(s) for reminder %s", removed, rid)
+        removed_main = _remove_jobs(job_queue, f"reminder_{rid}")
+        removed_snooze = _remove_jobs(job_queue, f"reminder_{rid}_snooze")
+        removed_after = _remove_jobs(job_queue, f"reminder_{rid}_after")
+        logger.info(
+            "Removed jobs for %s: main=%d, snooze=%d, after=%d",
+            rid,
+            removed_main,
+            removed_snooze,
+            removed_after,
+        )
     if message:
         await message.reply_text("Удалено")
     if job_queue is None:
@@ -1011,8 +1019,16 @@ async def reminder_action_cb(
                     rid,
                 )
         elif job_queue is not None:
-            removed = _remove_jobs(job_queue, f"reminder_{rid}")
-            logger.info("Removed %d job(s) for reminder %s", removed, rid)
+            removed_main = _remove_jobs(job_queue, f"reminder_{rid}")
+            removed_snooze = _remove_jobs(job_queue, f"reminder_{rid}_snooze")
+            removed_after = _remove_jobs(job_queue, f"reminder_{rid}_after")
+            logger.info(
+                "Removed jobs for %s: main=%d, snooze=%d, after=%d",
+                rid,
+                removed_main,
+                removed_snooze,
+                removed_after,
+            )
             logger.debug(
                 "Job queue present; suppressed reminder_saved event for %s",
                 rid,
@@ -1022,8 +1038,16 @@ async def reminder_action_cb(
             logger.debug("Sent reminder_saved event for %s", rid)
     else:  # del
         if job_queue is not None:
-            removed = _remove_jobs(job_queue, f"reminder_{rid}")
-            logger.info("Removed %d job(s) for reminder %s", removed, rid)
+            removed_main = _remove_jobs(job_queue, f"reminder_{rid}")
+            removed_snooze = _remove_jobs(job_queue, f"reminder_{rid}_snooze")
+            removed_after = _remove_jobs(job_queue, f"reminder_{rid}_after")
+            logger.info(
+                "Removed jobs for %s: main=%d, snooze=%d, after=%d",
+                rid,
+                removed_main,
+                removed_snooze,
+                removed_after,
+            )
             logger.debug(
                 "Job queue present; suppressed reminder_saved event for %s",
                 rid,
