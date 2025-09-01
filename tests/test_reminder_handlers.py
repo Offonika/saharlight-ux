@@ -1,5 +1,6 @@
 import json
 import importlib
+import logging
 import sys
 from datetime import time, timedelta
 from types import SimpleNamespace, TracebackType
@@ -253,6 +254,158 @@ async def test_add_reminder_saves_time_and_description(
     with TestSession() as session:
         rem_db = session.query(Reminder).one()
         assert rem_db.time == time(9, 0)
+        assert rem_db.kind == "at_time"
+        assert rem_db.interval_hours is None
+        assert rem_db.interval_minutes is None
+        assert rem_db.minutes_after is None
+
+
+@pytest.mark.asyncio
+async def test_add_reminder_interval_sets_every_and_logs(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    import datetime as dt
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    notify_mock = AsyncMock()
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=notify_mock),
+    )
+
+    class FixedDT(dt.datetime):
+        @classmethod
+        def now(cls, tz: dt.tzinfo | None = None) -> "FixedDT":
+            return cls(2024, 1, 1, 8, 0, 0, tzinfo=tz)
+
+    monkeypatch.setattr(reminder_handlers.datetime, "datetime", FixedDT)
+
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["sugar", "3"])
+
+    with caplog.at_level(logging.DEBUG):
+        await reminder_handlers.add_reminder(update, context)
+
+    notify_mock.assert_awaited_once_with(1)
+    assert message.texts == [
+        "Сохранено: 🔔 Замерить сахар ⏱ каждые 3 ч (next 11:00)"
+    ]
+    assert any(
+        "kind=every" in rec.message and "interval_minutes=180" in rec.message
+        for rec in caplog.records
+    )
+
+    with TestSession() as session:
+        rem_db = session.query(Reminder).one()
+        assert rem_db.kind == "every"
+        assert rem_db.interval_hours == 3
+        assert rem_db.interval_minutes == 180
+        assert rem_db.time is None
+        assert rem_db.minutes_after is None
+
+
+@pytest.mark.asyncio
+async def test_add_reminder_after_meal_sets_kind(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    notify_mock = AsyncMock()
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=notify_mock),
+    )
+
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["after_meal", "15"])
+
+    await reminder_handlers.add_reminder(update, context)
+
+    notify_mock.assert_awaited_once_with(1)
+
+    with TestSession() as session:
+        rem_db = session.query(Reminder).one()
+        assert rem_db.kind == "after_event"
+        assert rem_db.minutes_after == 15
+        assert rem_db.time is None
+        assert rem_db.interval_minutes is None
+        assert rem_db.interval_hours is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "rtype",
+    [
+        "insulin_short",
+        "insulin_long",
+        "meal",
+        "sensor_change",
+        "injection_site",
+        "custom",
+    ],
+)
+async def test_add_reminder_other_types_at_time(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch, rtype: str
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    notify_mock = AsyncMock()
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=notify_mock),
+    )
+
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=[rtype, "09:00"])
+
+    await reminder_handlers.add_reminder(update, context)
+
+    notify_mock.assert_awaited_once_with(1)
+
+    with TestSession() as session:
+        rem_db = session.query(Reminder).one()
+        assert rem_db.kind == "at_time"
+        assert rem_db.time == time(9, 0)
+        assert rem_db.interval_minutes is None
+        assert rem_db.interval_hours is None
+        assert rem_db.minutes_after is None
 
 
 @pytest.mark.asyncio
