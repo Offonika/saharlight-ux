@@ -159,16 +159,16 @@ class DummyJobQueue:
     ) -> DummyJob:
         params: dict[str, Any] = {"when": when}
         job_id = job_kwargs["id"] if job_kwargs else name or ""  # type: ignore[assignment]
-        job = DummyJob(
-            self.scheduler,
+        return self.scheduler.add_job(
+            callback,
+            trigger="date",
             id=job_id,
             name=name or job_id,
-            trigger="once",
+            replace_existing=bool(job_kwargs and job_kwargs.get("replace_existing")),
             timezone=timezone or ZoneInfo("UTC"),
-            params=params,
+            kwargs={"context": data},
+            **params,
         )
-        self.scheduler.jobs.append(job)
-        return job
 
     def run_daily(
         self,
@@ -501,8 +501,8 @@ def test_interval_minutes_scheduling_and_rendering(
         ) as mock_add:
             handlers.schedule_reminder(rem, job_queue, user)
             mock_add.assert_called_once()
-            assert mock_add.call_args.kwargs["trigger"] == "interval"
-            assert mock_add.call_args.kwargs["minutes"] == 30
+            assert mock_add.call_args.kwargs["trigger"] == "date"
+            assert mock_add.call_args.kwargs["when"] == timedelta(minutes=30)
         text, _ = handlers._render_reminders(session, 1)
     assert "⏱ Интервал" in text
     assert "каждые 30 мин" in text
@@ -539,8 +539,8 @@ def test_interval_hours_scheduling(
         ) as mock_add, caplog.at_level(logging.INFO):
             handlers.schedule_reminder(rem, job_queue, user)
             mock_add.assert_called_once()
-            assert mock_add.call_args.kwargs["trigger"] == "interval"
-            assert mock_add.call_args.kwargs["minutes"] == 120
+            assert mock_add.call_args.kwargs["trigger"] == "date"
+            assert mock_add.call_args.kwargs["when"] == timedelta(minutes=120)
     assert "interval_min=120" in caplog.text
     assert "kind=every" in caplog.text
 

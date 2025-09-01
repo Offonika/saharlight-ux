@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import inspect
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, TypeAlias, cast
+from typing import TYPE_CHECKING, TypeAlias
 from zoneinfo import ZoneInfo
 
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
-from services.api.app.diabetes.utils.jobs import schedule_once
+from services.api.app.diabetes.utils.jobs import schedule_daily, schedule_once
 
 logger = logging.getLogger(__name__)
 
@@ -86,59 +85,25 @@ def schedule_reminder(
     elif kind == "at_time" and rem.time is not None:
         mask = getattr(rem, "days_mask", 0) or 0
         days = tuple(i for i in range(7) if mask & (1 << i)) if mask else None
-        run_daily = job_queue.run_daily
-        sig = inspect.signature(run_daily)
-        job_kwargs_cast = cast(dict[str, Any], job_kwargs)
-        if days is not None and "days" in sig.parameters:
-            if "timezone" in sig.parameters:
-                cast(Any, run_daily)(
-                    reminder_job,
-                    time=rem.time,
-                    days=days,
-                    data=context,
-                    name=name,
-                    job_kwargs=job_kwargs_cast,
-                    timezone=tz,
-                )
-            else:
-                run_daily(
-                    reminder_job,
-                    time=rem.time,
-                    days=days,
-                    data=context,
-                    name=name,
-                    job_kwargs=job_kwargs_cast,
-                )
-        else:
-            if "timezone" in sig.parameters:
-                cast(Any, run_daily)(
-                    reminder_job,
-                    time=rem.time,
-                    data=context,
-                    name=name,
-                    job_kwargs=job_kwargs_cast,
-                    timezone=tz,
-                )
-            else:
-                run_daily(
-                    reminder_job,
-                    time=rem.time,
-                    data=context,
-                    name=name,
-                    job_kwargs=job_kwargs_cast,
-                )
+        schedule_daily(
+            job_queue,
+            reminder_job,
+            time=rem.time,
+            days=days,
+            data=context,
+            name=name,
+            timezone=tz,
+            job_kwargs=job_kwargs,
+        )
     elif kind == "every" and interval_minutes is not None:
-        run_repeating = getattr(job_queue, "run_repeating", None)
-        if run_repeating is not None:
-            cast(Any, run_repeating)(
-                reminder_job,
-                interval=timedelta(minutes=int(interval_minutes)),
-                data=context,
-                name=name,
-                job_kwargs=job_kwargs,
-            )
-        else:
-            logger.warning("Job queue lacks run_repeating; skipping %s", name)
+        schedule_once(
+            job_queue,
+            reminder_job,
+            when=timedelta(minutes=int(interval_minutes)),
+            data=context,
+            name=name,
+            job_kwargs=job_kwargs,
+        )
 
     job = next(iter(job_queue.get_jobs_by_name(name)), None)
     next_run = None
