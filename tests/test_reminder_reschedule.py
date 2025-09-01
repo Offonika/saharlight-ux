@@ -56,6 +56,23 @@ class DummyJobQueue:
         self.scheduler = DummyScheduler(tz)
         self.application = SimpleNamespace(timezone=tz, scheduler=self.scheduler)
 
+    def run_daily(
+        self,
+        callback: Callable[..., object],
+        time: dt_time,
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+        timezone: object | None = None,
+        days: tuple[int, ...] | None = None,
+        job_kwargs: dict[str, object] | None = None,
+    ) -> DummyJob:
+        job_id = job_kwargs["id"] if job_kwargs else name or ""
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.scheduler.jobs = [j for j in self.scheduler.jobs if j.id != job_id]
+        job = DummyJob(self.scheduler, id=job_id, name=name or job_id, run_time=time)
+        self.scheduler.jobs.append(job)
+        return job
+
     def get_jobs_by_name(self, name: str) -> list[DummyJob]:
         return [j for j in self.scheduler.jobs if j.name == name]
 

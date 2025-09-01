@@ -102,8 +102,11 @@ class DummyJob:
         self.timezone = timezone
         self.params = params
         self.removed = False
-        if trigger == "cron":
+        if "hour" in params and "minute" in params:
             self.time = time(int(params.get("hour", 0)), int(params.get("minute", 0)))
+        else:
+            self.time = None
+        self.days = params.get("days")
 
     def remove(self) -> None:
         self.removed = True
@@ -156,7 +159,65 @@ class DummyJobQueue:
         params: dict[str, Any] = {"when": when}
         job_id = job_kwargs["id"] if job_kwargs else name or ""  # type: ignore[assignment]
         job = DummyJob(
-            id=job_id, name=name or job_id, trigger="once", timezone=timezone or ZoneInfo("UTC"), params=params
+            self.scheduler,
+            id=job_id,
+            name=name or job_id,
+            trigger="once",
+            timezone=timezone or ZoneInfo("UTC"),
+            params=params,
+        )
+        self.scheduler.jobs.append(job)
+        return job
+
+    def run_daily(
+        self,
+        callback: Callable[..., Any],
+        time: time,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        timezone: object | None = None,
+        days: tuple[int, ...] | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> DummyJob:
+        params: dict[str, Any] = {
+            "hour": time.hour,
+            "minute": time.minute,
+            "days": days,
+        }
+        job_id = job_kwargs["id"] if job_kwargs else name or ""
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.scheduler.jobs = [j for j in self.scheduler.jobs if j.id != job_id]
+        job = DummyJob(
+            self.scheduler,
+            id=job_id,
+            name=name or job_id,
+            trigger="daily",
+            timezone=timezone or ZoneInfo("UTC"),
+            params=params,
+        )
+        self.scheduler.jobs.append(job)
+        return job
+
+    def run_repeating(
+        self,
+        callback: Callable[..., Any],
+        interval: timedelta,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        first: object | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> DummyJob:
+        params: dict[str, Any] = {"interval": interval}
+        job_id = job_kwargs["id"] if job_kwargs else name or ""
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.scheduler.jobs = [j for j in self.scheduler.jobs if j.id != job_id]
+        job = DummyJob(
+            self.scheduler,
+            id=job_id,
+            name=name or job_id,
+            trigger="interval",
+            timezone=ZoneInfo("UTC"),
+            params=params,
         )
         self.scheduler.jobs.append(job)
         return job
@@ -222,7 +283,7 @@ def test_schedule_reminder_replaces_existing_job() -> None:
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
     assert len(jobs) == 1
     job = jobs[0]
-    assert job.trigger == "cron"
+    assert job.trigger == "daily"
     assert job.params["hour"] == 8
     assert job.params["minute"] == 0
     assert job.timezone == ZoneInfo("Europe/Moscow")
@@ -365,7 +426,7 @@ def test_schedule_reminder_respects_days_mask() -> None:
         assert user is not None
         handlers.schedule_reminder(rem, job_queue, user)
     job = job_queue.get_jobs_by_name("reminder_1")[0]
-    assert job.params.get("day_of_week") == "0,2"
+    assert job.params.get("days") == (0, 2)
 
 
 def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -437,11 +498,10 @@ def test_interval_minutes_scheduling_and_rendering(
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
         assert rem is not None
-        with patch.object(job_queue.scheduler, "add_job", wraps=job_queue.scheduler.add_job) as mock_add:
+        with patch.object(job_queue, "run_repeating", wraps=job_queue.run_repeating) as mock_rep:
             handlers.schedule_reminder(rem, job_queue, user)
-            mock_add.assert_called_once()
-            assert mock_add.call_args.kwargs["trigger"] == "interval"
-            assert mock_add.call_args.kwargs["minutes"] == 30
+            mock_rep.assert_called_once()
+            assert mock_rep.call_args.kwargs["interval"] == timedelta(minutes=30)
         text, _ = handlers._render_reminders(session, 1)
     assert "⏱ Интервал" in text
     assert "каждые 30 мин" in text

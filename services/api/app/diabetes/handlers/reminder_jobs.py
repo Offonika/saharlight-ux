@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
-from services.api.app.diabetes.utils.jobs import schedule_once
+from services.api.app.diabetes.utils.jobs import schedule_once, schedule_daily
 
 logger = logging.getLogger(__name__)
 
@@ -74,37 +74,28 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
             data=context,
             name=name,
             timezone=tz,
-            job_kwargs={"id": name, "name": name, "replace_existing": True},
+            job_kwargs={"id": name, "replace_existing": True},
         )
     elif kind == "at_time" and rem.time is not None:
-        params: dict[str, object] = {
-            "hour": rem.time.hour,
-            "minute": rem.time.minute,
-        }
         mask = getattr(rem, "days_mask", 0) or 0
-        if mask:
-            days = ",".join(str(i) for i in range(7) if mask & (1 << i))
-            params["day_of_week"] = days
-        job_queue.scheduler.add_job(
+        days = tuple(i for i in range(7) if mask & (1 << i)) or None
+        schedule_daily(
+            job_queue,
             reminder_job,
-            trigger="cron",
-            id=name,
+            time=rem.time,
+            data=context,
             name=name,
-            replace_existing=True,
             timezone=tz,
-            kwargs={"context": context},
-            **params,
+            days=days,
+            job_kwargs={"id": name, "replace_existing": True},
         )
     elif kind == "every" and rem.interval_minutes is not None:
-        job_queue.scheduler.add_job(
+        job_queue.run_repeating(
             reminder_job,
-            trigger="interval",
-            id=name,
+            interval=timedelta(minutes=float(rem.interval_minutes)),
+            data=context,
             name=name,
-            replace_existing=True,
-            minutes=int(rem.interval_minutes),
-            timezone=tz,
-            kwargs={"context": context},
+            job_kwargs={"id": name, "replace_existing": True},
         )
 
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, cast
 
 import pytest
-from datetime import time
+from datetime import time, timedelta
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -58,6 +58,35 @@ class DummyScheduler:
 class DummyJobQueue:
     def __init__(self) -> None:
         self.scheduler = DummyScheduler()
+
+    def run_daily(
+        self,
+        callback: Callable[..., Any],
+        time: time,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        timezone: object | None = None,
+        days: tuple[int, ...] | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> None:
+        job_id = job_kwargs.get("id") if job_kwargs else name
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.scheduler.jobs = [j for j in self.scheduler.jobs if j["name"] != job_id]
+        self.scheduler.jobs.append({"name": job_id, "kwargs": {"context": data}, "params": {"hour": time.hour, "minute": time.minute, "days": days}})
+
+    def run_repeating(
+        self,
+        callback: Callable[..., Any],
+        interval: timedelta,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        first: object | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> None:
+        job_id = job_kwargs.get("id") if job_kwargs else name
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.scheduler.jobs = [j for j in self.scheduler.jobs if j["name"] != job_id]
+        self.scheduler.jobs.append({"name": job_id, "kwargs": {"context": data}, "params": {"interval": interval}})
 
     def get_jobs_by_name(self, name: str) -> list[Any]:
         return [j for j in self.scheduler.jobs if j["name"] == name]

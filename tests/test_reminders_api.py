@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Generator
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timezone, timedelta
 from typing import Any, cast
 
 import httpx
@@ -56,6 +56,39 @@ class DummyScheduler:
 class DummyJobQueue:
     def __init__(self) -> None:
         self.scheduler = DummyScheduler()
+
+    def run_daily(
+        self,
+        callback: Any,
+        time: time,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        timezone: object | None = None,
+        days: tuple[int, ...] | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> DummyJob:
+        job_id = job_kwargs["id"] if job_kwargs else name or ""
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.scheduler.jobs = [j for j in self.scheduler.jobs if j.name != job_id]
+        job = DummyJob(job_id, data)
+        self.scheduler.jobs.append(job)
+        return job
+
+    def run_repeating(
+        self,
+        callback: Any,
+        interval: timedelta,
+        data: dict[str, Any] | None = None,
+        name: str | None = None,
+        first: object | None = None,
+        job_kwargs: dict[str, Any] | None = None,
+    ) -> DummyJob:
+        job_id = job_kwargs["id"] if job_kwargs else name or ""
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.scheduler.jobs = [j for j in self.scheduler.jobs if j.name != job_id]
+        job = DummyJob(job_id, data)
+        self.scheduler.jobs.append(job)
+        return job
 
     def get_jobs_by_name(self, name: str) -> list[DummyJob]:
         return [j for j in self.scheduler.jobs if j.name == name]
