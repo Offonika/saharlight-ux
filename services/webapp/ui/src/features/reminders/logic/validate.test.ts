@@ -20,4 +20,32 @@ describe("validate", () => {
     const errors = validate({ ...base, time: "7:30" });
     expect(errors.time).toBe("Формат HH:MM");
   });
+
+  const afterBase: ReminderFormValues = {
+    telegramId: 1,
+    type: "after_meal",
+    kind: "after_event",
+    minutesAfter: 60,
+    isEnabled: true,
+  };
+
+  it("accepts valid minutesAfter", () => {
+    const errors = validate(afterBase);
+    expect(errors.minutesAfter).toBeUndefined();
+  });
+
+  it("rejects minutesAfter below minimum", () => {
+    const errors = validate({ ...afterBase, minutesAfter: 3 });
+    expect(errors.minutesAfter).toBe("Минуты 5..480");
+  });
+
+  it("rejects minutesAfter above maximum", () => {
+    const errors = validate({ ...afterBase, minutesAfter: 500 });
+    expect(errors.minutesAfter).toBe("Минуты 5..480");
+  });
+
+  it("rejects minutesAfter not divisible by 5", () => {
+    const errors = validate({ ...afterBase, minutesAfter: 7 });
+    expect(errors.minutesAfter).toBe("Кратно 5");
+  });
 });

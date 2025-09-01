@@ -13,8 +13,15 @@ export function validate(v: ReminderFormValues): FormErrors {
     e.intervalMinutes = "Минуты ≥ 1";
   }
   
-  if (v.kind === "after_event" && (!v.minutesAfter || v.minutesAfter < 1)) {
-    e.minutesAfter = "Минуты ≥ 1";
+  if (v.kind === "after_event") {
+    const m = v.minutesAfter;
+    if (m === undefined) {
+      e.minutesAfter = "Укажите минуты";
+    } else if (m < 5 || m > 480) {
+      e.minutesAfter = "Минуты 5..480";
+    } else if (m % 5 !== 0) {
+      e.minutesAfter = "Кратно 5";
+    }
   }
   
   return e;
