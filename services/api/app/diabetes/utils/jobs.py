@@ -171,11 +171,11 @@ def schedule_daily(
 
 
 def _safe_remove(job: object) -> bool:
-    """Remove ``job`` using all available strategies.
+    """Remove ``job`` using best-effort strategies.
 
-    Tries ``job.remove()``, falling back to ``scheduler.remove_job`` and
-    finally ``job.schedule_removal``. Returns ``True`` if any strategy
-    succeeds.
+    The function sequentially tries ``job.remove()``,
+    ``scheduler.remove_job(job_id=job.id)`` and ``job.schedule_removal()``.
+    It returns ``True`` as soon as any of the attempts succeeds.
     """
     remover = cast(Callable[[], None] | None, getattr(job, "remove", None))
     if remover is not None:
@@ -188,13 +188,19 @@ def _safe_remove(job: object) -> bool:
     queue = getattr(job, "queue", None)
     scheduler = getattr(queue, "scheduler", None)
     remove_job = cast(
-        Callable[[object], None] | None, getattr(scheduler, "remove_job", None)
+        Callable[..., None] | None, getattr(scheduler, "remove_job", None)
     )
     job_id = getattr(job, "id", None)
     if remove_job is not None and job_id is not None:
         try:
-            remove_job(job_id)
+            remove_job(job_id=job_id)
             return True
+        except TypeError:  # pragma: no cover - APScheduler compatibility
+            try:
+                remove_job(job_id)
+                return True
+            except Exception:  # pragma: no cover - defensive
+                pass
         except Exception:  # pragma: no cover - defensive
             pass
 
@@ -230,14 +236,14 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
     )
     jobs_attr = getattr(job_queue, "jobs", None)
 
-    for name in names:
-        if remove_job_direct is not None:
-            existed = False
-            if get_job_direct is not None and get_job_direct(name) is not None:
-                existed = True
+    if remove_job_direct is not None:
+        for name in names:
+            existed = (
+                get_job_direct is not None and get_job_direct(name) is not None
+            )
             try:
                 remove_job_direct(job_id=name)
-            except TypeError:  # pragma: no cover - compatible fallback
+            except TypeError:  # pragma: no cover - APScheduler compatibility
                 try:
                     remove_job_direct(name)
                 except Exception:  # pragma: no cover - defensive
@@ -247,20 +253,29 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
             if existed:
                 removed += 1
 
-        for q_job in job_queue.get_jobs_by_name(name):
-            if _safe_remove(q_job):
-                removed += 1
+    jobs_to_remove: set[object] = set()
+    for name in names:
+        jobs_to_remove.update(job_queue.get_jobs_by_name(name))
+    for q_job in jobs_to_remove:
+        if _safe_remove(q_job):
+            removed += 1
 
-        if jobs_attr is not None:
-            jobs_iter = list(jobs_attr() if callable(jobs_attr) else jobs_attr)
-            for any_job in jobs_iter:
-                jname = getattr(any_job, "name", None)
-                jid = getattr(any_job, "id", None)
-                if (
-                    isinstance(jname, str) and (jname == name or jname.startswith(name))
-                ) or (isinstance(jid, str) and (jid == name or jid.startswith(name))):
-                    if _safe_remove(any_job):
-                        removed += 1
+    if jobs_attr is not None:
+        jobs_iter = list(jobs_attr() if callable(jobs_attr) else jobs_attr)
+        for any_job in jobs_iter:
+            jname = getattr(any_job, "name", None)
+            jid = getattr(any_job, "id", None)
+            if any(
+                (
+                    isinstance(jname, str) and (jname == n or jname.startswith(n))
+                )
+                or (
+                    isinstance(jid, str) and (jid == n or jid.startswith(n))
+                )
+                for n in names
+            ):
+                if _safe_remove(any_job):
+                    removed += 1
 
     logger.debug("Removed %d jobs for base '%s'", removed, base_name)
     return removed
