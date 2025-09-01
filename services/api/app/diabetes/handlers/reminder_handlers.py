@@ -263,23 +263,14 @@ def _render_reminders(
 
 def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) -> None:
     """Пересоздаёт задачу с обновлённым временем."""
-    job_name = f"reminder_{reminder.id}"
-    count = 0
-    for job in job_queue.get_jobs_by_name(job_name):
-        try:
-            job.remove()
-        except Exception:  # pragma: no cover - fallback paths
-            try:
-                job_queue.scheduler.remove_job(job.id)
-            except Exception:  # pragma: no cover - fallback paths
-                job.schedule_removal()
-        count += 1
-    logger.info("🗑 removed %d jobs named %s", count, job_name)
+    name = f"reminder_{reminder.id}"
+    removed = _remove_jobs(job_queue, name)
+    logger.info("🗑 removed %d jobs named %s", removed, name)
 
     schedule_reminder(reminder, job_queue, user)
     next_run: datetime.datetime | None
     next_run = None
-    job = next(iter(job_queue.get_jobs_by_name(job_name)), None)
+    job = next(iter(job_queue.get_jobs_by_name(name)), None)
     if job is not None:
         next_run = (
             getattr(job, "next_run_time", None)
@@ -288,10 +279,10 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
             or getattr(job, "run_time", None)
         )
 
-    logger.info("♻️ Rescheduled job %s -> next_run=%s", job_name, next_run)
+    logger.info("♻️ Rescheduled job %s -> next_run=%s", name, next_run)
 
 
-def _remove_jobs(job_queue: DefaultJobQueue, job_name: str) -> int:
+def _remove_jobs(job_queue: DefaultJobQueue, name: str) -> int:
     """Best-effort removal of jobs from the queue.
 
     Tries ``job.remove()`` first, then falls back to direct scheduler removal,
@@ -299,7 +290,7 @@ def _remove_jobs(job_queue: DefaultJobQueue, job_name: str) -> int:
     processed.
     """
     removed = 0
-    for job in job_queue.get_jobs_by_name(job_name):
+    for job in job_queue.get_jobs_by_name(name):
         remover = cast(Callable[[], None] | None, getattr(job, "remove", None))
         if remover is not None:
             try:
