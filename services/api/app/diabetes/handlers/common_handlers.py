@@ -38,10 +38,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "🔔 Безопасность:\n"
         "• Пороги низкого и высокого сахара\n"
         "• SOS-уведомления\n"
-        "• ⏰ Напоминания\n"
+        "• Напоминания (команда /reminders)\n"
         "• FAQ по гипогликемии: /hypoalert\n"
         "Настройки: /profile → «🔔 Безопасность»\n\n"
-        "⏰ Напоминания:\n"
+        "Напоминания (команда /reminders):\n"
         "• Сахар — напомнит измерить уровень сахара\n"
         "• Длинный инсулин — напомнит о базальном уколе\n"
         "• Лекарство — принять таблетки\n"
@@ -53,10 +53,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "📷 Фото еды\n"
         "🩸 Уровень сахара\n"
         "💉 Доза инсулина\n"
-        "📊 История\n"
         "📈 Отчёт\n"
-        "📄 Мой профиль\n"
-        "⏰ Напоминания\n"
         "ℹ️ Помощь"
     )
     message = update.message
