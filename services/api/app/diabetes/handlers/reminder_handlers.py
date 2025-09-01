@@ -39,7 +39,7 @@ from services.api.app.diabetes.utils.helpers import (
     INVALID_TIME_MSG,
     parse_time_interval,
 )
-from services.api.app.diabetes.utils.jobs import schedule_once
+from services.api.app.diabetes.utils.jobs import _remove_jobs, schedule_once
 from services.api.app.diabetes.utils.ui import menu_keyboard
 from services.api.app.diabetes.schemas.reminders import ScheduleKind
 from .reminder_jobs import DefaultJobQueue, schedule_reminder
@@ -278,48 +278,7 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
             or getattr(job, "when", None)
             or getattr(job, "run_time", None)
         )
-
     logger.info("♻️ Rescheduled job %s -> next_run=%s", name, next_run)
-
-
-def _remove_jobs(job_queue: DefaultJobQueue, name: str) -> int:
-    """Best-effort removal of jobs from the queue.
-
-    Tries ``job.remove()`` first, then falls back to direct scheduler removal,
-    and finally schedules the job for removal. Returns the number of jobs
-    processed.
-    """
-    removed = 0
-    for job in job_queue.get_jobs_by_name(name):
-        remover = cast(Callable[[], None] | None, getattr(job, "remove", None))
-        if remover is not None:
-            try:
-                remover()
-                removed += 1
-                continue
-            except Exception:  # pragma: no cover - defensive
-                pass
-        scheduler = getattr(job_queue, "scheduler", None)
-        remove_job = (
-            cast(Callable[[object], None] | None, getattr(scheduler, "remove_job", None))
-            if scheduler is not None
-            else None
-        )
-        job_id = getattr(job, "id", None)
-        if remove_job is not None and job_id is not None:
-            try:
-                remove_job(job_id)
-                removed += 1
-                continue
-            except Exception:  # pragma: no cover - defensive
-                pass
-        schedule_removal = cast(
-            Callable[[], None] | None, getattr(job, "schedule_removal", None)
-        )
-        if schedule_removal is not None:
-            schedule_removal()
-            removed += 1
-    return removed
 
 
 def schedule_all(job_queue: DefaultJobQueue | None) -> None:

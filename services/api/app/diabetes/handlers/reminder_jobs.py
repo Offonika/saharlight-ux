@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import datetime
+import inspect
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from telegram.ext import ContextTypes, JobQueue
 
 from services.api.app.diabetes.services.db import Reminder, User
-from services.api.app.diabetes.utils.jobs import schedule_daily, schedule_once
+from services.api.app.diabetes.utils.jobs import _remove_jobs, schedule_daily, schedule_once
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +38,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
     SessionLocal = reminder_handlers.SessionLocal
 
     name = f"reminder_{rem.id}"
-    for job in job_queue.get_jobs_by_name(name):
-        remover = getattr(job, "remove", None)
-        if callable(remover):
-            remover()
-        else:
-            job_queue.scheduler.remove_job(job.id)
+    _remove_jobs(job_queue, name)
     if not rem.is_enabled:
         logger.debug(
             "Reminder %s disabled, skipping (type=%s, time=%s, interval=%s, minutes_after=%s)",
@@ -96,6 +92,8 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
         else:
             kind = "at_time"
 
+    job_kwargs = {"id": name, "replace_existing": True}
+
     if kind == "after_event":
         minutes_after = rem.minutes_after
         if minutes_after is not None:
@@ -115,6 +113,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
                 data=data,
                 name=name,
                 timezone=job_tz,
+                job_kwargs=job_kwargs,
             )
     elif kind == "at_time" and rem.time:
         logger.debug(
@@ -138,9 +137,12 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
             name=name,
             timezone=job_tz,
             days=days,
+            job_kwargs=job_kwargs,
         )
     elif kind == "every":
-        minutes = rem.interval_minutes if rem.interval_minutes is not None else (rem.interval_hours or 0) * 60
+        minutes = (
+            rem.interval_minutes if rem.interval_minutes is not None else (rem.interval_hours or 0) * 60
+        )
         if minutes:
             logger.debug(
                 "Adding job for reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
@@ -150,11 +152,16 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
                 rem.interval_hours or rem.interval_minutes,
                 rem.minutes_after,
             )
+            kwargs: dict[str, Any] = {}
+            sig = inspect.signature(job_queue.run_repeating)
+            if "job_kwargs" in sig.parameters:
+                kwargs["job_kwargs"] = job_kwargs
             job_queue.run_repeating(
                 reminder_job,
                 interval=timedelta(minutes=minutes),
                 data=data,
                 name=name,
+                **kwargs,
             )
     logger.debug(
         "Finished scheduling reminder %s (type=%s, time=%s, interval=%s, minutes_after=%s)",
