@@ -34,30 +34,33 @@ class DummyMessage:
         self.kwargs.append(kwargs)
 
 
-class DummyJobQueue:
+class DummyScheduler:
     def __init__(self) -> None:
         self.jobs: list[Any] = []
 
-    def run_daily(
+    def add_job(
         self,
-        callback: Callable[..., Any],
-        time: Any,
-        data: dict[str, Any] | None = None,
-        name: str | None = None,
+        func: Callable[..., Any],
+        *,
+        trigger: str,
+        id: str,
+        name: str,
+        replace_existing: bool,
+        timezone: object,
+        kwargs: dict[str, Any] | None = None,
+        **params: object,
     ) -> None:
-        pass
+        if replace_existing:
+            self.jobs = [j for j in self.jobs if j["name"] != name]
+        self.jobs.append({"name": name, "kwargs": kwargs, "params": params})
 
-    def run_repeating(
-        self,
-        callback: Callable[..., Any],
-        interval: Any,
-        data: dict[str, Any] | None = None,
-        name: str | None = None,
-    ) -> None:
-        pass
+
+class DummyJobQueue:
+    def __init__(self) -> None:
+        self.scheduler = DummyScheduler()
 
     def get_jobs_by_name(self, name: str) -> list[Any]:
-        return []
+        return [j for j in self.scheduler.jobs if j["name"] == name]
 
 
 @dataclass
@@ -91,12 +94,8 @@ async def test_webapp_save_creates_reminder(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "08:00"}))
-    update = cast(
-        Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
-    )
-    context = cast(
-        ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
-    )
+    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
+    context = cast(ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue()))
     monkeypatch.setattr(
         handlers.reminder_events,
         "notify_reminder_saved",
@@ -124,12 +123,8 @@ async def test_webapp_save_creates_interval(
         session.commit()
 
     msg = DummyMessage(json.dumps({"type": "sugar", "value": "2h"}))
-    update = cast(
-        Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1))
-    )
-    context = cast(
-        ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue())
-    )
+    update = cast(Update, UpdateStub(effective_message=msg, effective_user=DummyUser(id=1)))
+    context = cast(ContextTypes.DEFAULT_TYPE, CallbackContextStub(job_queue=DummyJobQueue()))
     monkeypatch.setattr(
         handlers.reminder_events,
         "notify_reminder_saved",

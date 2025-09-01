@@ -1,7 +1,6 @@
 from collections.abc import Callable
 from datetime import timedelta
 from typing import Any, cast
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -38,8 +37,12 @@ class DummyJobQueue:
         data: dict[str, Any] | None = None,
         name: str | None = None,
         timezone: object | None = None,
+        job_kwargs: dict[str, Any] | None = None,
     ) -> DummyJob:
-        job = DummyJob(callback, when, data or {}, name or "")
+        job_id = job_kwargs.get("id") if job_kwargs else name or ""
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.jobs = [j for j in self.jobs if j.name != job_id]
+        job = DummyJob(callback, when, data or {}, job_id)
         self.jobs.append(job)
         return job
 

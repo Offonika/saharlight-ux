@@ -9,49 +9,55 @@ from services.api.app.diabetes.handlers import reminder_handlers, reminder_jobs
 
 
 class DummyJob:
-    def __init__(self, queue: "DummyJobQueue", name: str | None, run_time: dt_time) -> None:
-        self._queue = queue
+    def __init__(self, scheduler: "DummyScheduler", *, id: str, name: str, run_time: dt_time) -> None:
+        self._scheduler = scheduler
+        self.id = id
         self.name = name
         self.run_time = run_time
-        self.id = name
 
     def remove(self) -> None:
-        self._queue._jobs.remove(self)
+        self._scheduler.jobs = [j for j in self._scheduler.jobs if j.id != self.id]
 
     def schedule_removal(self) -> None:
         self.remove()
 
 
+class DummyScheduler:
+    def __init__(self, tz: ZoneInfo) -> None:
+        self.timezone = tz
+        self.jobs: list[DummyJob] = []
+
+    def add_job(
+        self,
+        func: Callable[..., object],
+        *,
+        trigger: str,
+        id: str,
+        name: str,
+        replace_existing: bool,
+        timezone: ZoneInfo,
+        kwargs: dict[str, object],
+        **params: object,
+    ) -> DummyJob:
+        if replace_existing:
+            self.jobs = [j for j in self.jobs if j.id != id]
+        run_time = dt_time(int(params["hour"]), int(params["minute"]))
+        job = DummyJob(self, id=id, name=name, run_time=run_time)
+        self.jobs.append(job)
+        return job
+
+    def remove_job(self, job_id: str) -> None:
+        self.jobs = [j for j in self.jobs if j.id != job_id]
+
+
 class DummyJobQueue:
     def __init__(self) -> None:
         tz = ZoneInfo("UTC")
-        self._jobs: list[DummyJob] = []
-
-        def remove_job(job_id: str) -> None:
-            for job in list(self._jobs):
-                if getattr(job, "id", None) == job_id:
-                    self._jobs.remove(job)
-
-        scheduler = SimpleNamespace(timezone=tz, remove_job=remove_job)
-        self.application = SimpleNamespace(timezone=tz, scheduler=scheduler)
-        self.scheduler = scheduler
-
-    def run_daily(
-        self,
-        callback: Callable[..., object],
-        *,
-        time: dt_time,
-        data: dict[str, object] | None = None,
-        name: str | None = None,
-        timezone: ZoneInfo | None = None,
-        days: tuple[int, ...] | None = None,
-    ) -> DummyJob:
-        job = DummyJob(self, name, time)
-        self._jobs.append(job)
-        return job
+        self.scheduler = DummyScheduler(tz)
+        self.application = SimpleNamespace(timezone=tz, scheduler=self.scheduler)
 
     def get_jobs_by_name(self, name: str) -> list[DummyJob]:
-        return [j for j in self._jobs if j.name == name]
+        return [j for j in self.scheduler.jobs if j.name == name]
 
 
 def test_editing_reminder_replaces_job() -> None:

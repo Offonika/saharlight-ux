@@ -26,9 +26,7 @@ class _DummyBaseHandler:  # pragma: no cover - minimal stub
 dummy.BaseHandler = _DummyBaseHandler
 sys.modules.setdefault("telegram.ext._basehandler", dummy)
 
-warnings.filterwarnings(
-    "ignore", category=ResourceWarning, module=r"anyio\.streams\.memory"
-)
+warnings.filterwarnings("ignore", category=ResourceWarning, module=r"anyio\.streams\.memory")
 
 _sqlite_connections: list[sqlite3.Connection] = []
 _original_sqlite_connect: Callable[..., sqlite3.Connection] = sqlite3.connect
@@ -44,9 +42,7 @@ setattr(sqlite3, "connect", _tracking_sqlite_connect)
 
 
 _engines: list[sqlalchemy.engine.Engine] = []
-_original_create_engine: Callable[..., sqlalchemy.engine.Engine] = (
-    sqlalchemy.create_engine
-)
+_original_create_engine: Callable[..., sqlalchemy.engine.Engine] = sqlalchemy.create_engine
 
 
 def _tracking_create_engine(*args: Any, **kwargs: Any) -> sqlalchemy.engine.Engine:
@@ -59,20 +55,44 @@ setattr(sqlalchemy, "create_engine", _tracking_create_engine)
 
 
 class _DummyJob:
-    def __init__(
-        self, name: str = "", data: dict[str, Any] | None = None, when: object | None = None
-    ) -> None:
+    def __init__(self, name: str, data: dict[str, Any] | None = None) -> None:
         self.name = name
         self.data = data
-        self.time = when
+        self.removed = False
+
+    def remove(self) -> None:
+        self.removed = True
 
     def schedule_removal(self) -> None:
-        return None
+        self.remove()
+
+
+class _DummyScheduler:
+    def __init__(self) -> None:
+        self.jobs: list[_DummyJob] = []
+
+    def add_job(
+        self,
+        func: Callable[..., object],
+        *,
+        trigger: str,
+        id: str,
+        name: str,
+        replace_existing: bool,
+        timezone: object,
+        kwargs: dict[str, Any] | None = None,
+        **params: object,
+    ) -> _DummyJob:
+        if replace_existing:
+            self.jobs = [j for j in self.jobs if j.name != name]
+        job = _DummyJob(name, kwargs.get("context") if kwargs else None)
+        self.jobs.append(job)
+        return job
 
 
 class _DummyJobQueue:
     def __init__(self) -> None:
-        self.jobs: list[_DummyJob] = []
+        self.scheduler = _DummyScheduler()
 
     def run_once(
         self,
@@ -81,35 +101,21 @@ class _DummyJobQueue:
         data: dict[str, Any] | None = None,
         name: str | None = None,
         timezone: object | None = None,
+        job_kwargs: dict[str, Any] | None = None,
     ) -> _DummyJob:
-        job = _DummyJob(name or "", data, when)
-        self.jobs.append(job)
-        return job
-
-    def run_daily(
-        self,
-        callback: Callable[..., object],
-        time: object,
-        data: dict[str, Any] | None = None,
-        name: str | None = None,
-    ) -> _DummyJob:
-        job = _DummyJob(name or "", data, time)
-        self.jobs.append(job)
-        return job
-
-    def run_repeating(
-        self,
-        callback: Callable[..., object],
-        interval: object,
-        data: dict[str, Any] | None = None,
-        name: str | None = None,
-    ) -> _DummyJob:
-        job = _DummyJob(name or "", data)
-        self.jobs.append(job)
+        job_id = job_kwargs.get("id") if job_kwargs else name or ""
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.scheduler.jobs = [j for j in self.scheduler.jobs if j.name != job_id]
+        job = _DummyJob(job_id, data)
+        self.scheduler.jobs.append(job)
         return job
 
     def get_jobs_by_name(self, name: str) -> list[_DummyJob]:
-        return [j for j in self.jobs if j.name == name]
+        return [j for j in self.scheduler.jobs if j.name == name]
+
+    @property
+    def jobs(self) -> list[_DummyJob]:
+        return self.scheduler.jobs
 
 
 @pytest.fixture(autouse=True)
@@ -121,6 +127,7 @@ def _dummy_job_queue() -> Iterator[None]:
     yield
     reminder_events.register_job_queue(None)
 
+
 # Avoid real database initialization during tests
 db_module.init_db = lambda: None
 
@@ -129,8 +136,10 @@ db_module.init_db = lambda: None
 def _reset_init_db() -> Iterator[None]:
     yield
     from services.api.app.diabetes.services import db as db_module
+
     db_module.init_db = lambda: None
     import sys
+
     main_module = sys.modules.get("services.api.app.main")
     if main_module is not None:
         setattr(main_module, "init_db", db_module.init_db)
