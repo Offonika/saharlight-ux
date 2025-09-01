@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import HTTPException
 from typing import cast
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
@@ -10,30 +11,83 @@ from ..diabetes.services.db import Profile, User
 from ..diabetes.services import db
 from ..diabetes.services.repository import CommitError, commit
 from ..schemas.profile import ProfileSchema
+from ..diabetes.schemas.profile import (
+    CarbUnits,
+    ProfileSettingsIn,
+    ProfileSettingsOut,
+)
 from ..types import SessionProtocol
 
 
 __all__ = [
     "set_timezone",
+    "patch_user_settings",
     "save_profile",
     "get_profile",
 ]
 
 
 async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
-    def _save(session: SessionProtocol) -> None:
+    """Backward-compatible helper to update only timezone."""
+
+    await patch_user_settings(
+        telegram_id,
+        ProfileSettingsIn(timezone=tz),
+    )
+
+
+async def patch_user_settings(
+    telegram_id: int,
+    data: ProfileSettingsIn,
+    device_tz: str | None = None,
+) -> ProfileSettingsOut:
+    """Persist user settings, updating only provided fields."""
+
+    if data.timezone is not None:
+        try:
+            ZoneInfo(data.timezone)
+        except ZoneInfoNotFoundError as exc:  # pragma: no cover - validation
+            raise HTTPException(status_code=400, detail="invalid timezone") from exc
+    if device_tz is not None:
+        try:
+            ZoneInfo(device_tz)
+        except ZoneInfoNotFoundError as exc:  # pragma: no cover - validation
+            raise HTTPException(status_code=400, detail="invalid device timezone") from exc
+
+    def _patch(session: SessionProtocol) -> ProfileSettingsOut:
         user = cast(User | None, session.get(User, telegram_id))
         if user is None:
-            user = User(telegram_id=telegram_id, thread_id="api", timezone=tz)
+            user = User(telegram_id=telegram_id, thread_id="api")
             cast(Session, session).add(user)
-        else:
-            user.timezone = tz
+
+        if data.timezone is not None:
+            user.timezone = data.timezone
+        if data.timezoneAuto is not None:
+            user.timezone_auto = data.timezoneAuto
+        if data.dia is not None:
+            user.dia = data.dia
+        if data.roundStep is not None:
+            user.round_step = data.roundStep
+        if data.carbUnits is not None:
+            user.carb_units = data.carbUnits
+
+        if user.timezone_auto and device_tz and user.timezone != device_tz:
+            user.timezone = device_tz
+
         try:
             commit(cast(Session, session))
-        except CommitError:
+        except CommitError:  # pragma: no cover
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await db.run_db(_save, sessionmaker=db.SessionLocal)
+        return ProfileSettingsOut(
+            timezone=user.timezone,
+            timezoneAuto=user.timezone_auto,
+            dia=user.dia,
+            roundStep=user.round_step,
+            carbUnits=CarbUnits(user.carb_units),
+        )
+
+    return await db.run_db(_patch, sessionmaker=db.SessionLocal)
 
 
 def _validate_profile(data: ProfileSchema) -> None:

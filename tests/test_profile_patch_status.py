@@ -19,6 +19,7 @@ def test_patch_profile_returns_status_ok(monkeypatch: pytest.MonkeyPatch) -> Non
         return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
+    monkeypatch.setattr(db, "SessionLocal", SessionLocal, raising=False)
     server.app.dependency_overrides[server.require_tg_user] = lambda: {"id": 1}
 
     with TestClient(server.app) as client:
@@ -26,6 +27,8 @@ def test_patch_profile_returns_status_ok(monkeypatch: pytest.MonkeyPatch) -> Non
             "/api/profile", json={"timezone": "UTC", "timezoneAuto": False}
         )
         assert resp.status_code == 200
-        assert resp.json() == {"status": "ok"}
+        data = resp.json()
+        assert data["timezone"] == "UTC"
+        assert data["timezoneAuto"] is False
 
     server.app.dependency_overrides.clear()

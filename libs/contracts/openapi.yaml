@@ -96,23 +96,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                timezone:
-                  type: string
-                  title: Timezone
-                timezoneAuto:
-                  type: boolean
-                  title: Timezone Auto
+              $ref: '#/components/schemas/ProfileSettingsIn'
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                title: Response Profile Patch
+                $ref: '#/components/schemas/ProfileSettingsOut'
         '422':
           description: Validation Error
           content:
@@ -722,6 +713,38 @@ components:
       - type
       title: HistoryRecordSchema
       description: Schema for user history records.
+    ProfileSettingsIn:
+      properties:
+        timezone:
+          type: string
+          title: Timezone
+        timezoneAuto:
+          type: boolean
+          title: Timezone Auto
+        dia:
+          type: number
+          title: Dia
+        roundStep:
+          type: number
+          title: Round Step
+        carbUnits:
+          type: string
+          enum:
+          - g
+          - xe
+          title: Carb Units
+      type: object
+      title: ProfileSettingsIn
+    ProfileSettingsOut:
+      allOf:
+      - $ref: '#/components/schemas/ProfileSettingsIn'
+      required:
+      - timezone
+      - timezoneAuto
+      - dia
+      - roundStep
+      - carbUnits
+      title: ProfileSettingsOut
     ProfileSchema:
       properties:
         telegramId:

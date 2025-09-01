@@ -16,20 +16,23 @@
 import * as runtime from '../runtime';
 import type {
   HTTPValidationError,
-  ProfilePatchRequest,
   ProfileSchema,
+  ProfileSettingsIn,
+  ProfileSettingsOut,
 } from '../models/index';
 import {
     HTTPValidationErrorFromJSON,
     HTTPValidationErrorToJSON,
-    ProfilePatchRequestFromJSON,
-    ProfilePatchRequestToJSON,
     ProfileSchemaFromJSON,
     ProfileSchemaToJSON,
+    ProfileSettingsInFromJSON,
+    ProfileSettingsInToJSON,
+    ProfileSettingsOutFromJSON,
+    ProfileSettingsOutToJSON,
 } from '../models/index';
 
-export interface ProfilePatchOperationRequest {
-    profilePatchRequest: ProfilePatchRequest;
+export interface ProfilePatchRequest {
+    profileSettingsIn: ProfileSettingsIn;
     deviceTz?: string;
 }
 
@@ -49,11 +52,11 @@ export class ProfilesApi extends runtime.BaseAPI {
     /**
      * Profile Patch
      */
-    async profilePatchRaw(requestParameters: ProfilePatchOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<{ [key: string]: any; }>> {
-        if (requestParameters['profilePatchRequest'] == null) {
+    async profilePatchRaw(requestParameters: ProfilePatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileSettingsOut>> {
+        if (requestParameters['profileSettingsIn'] == null) {
             throw new runtime.RequiredError(
-                'profilePatchRequest',
-                'Required parameter "profilePatchRequest" was null or undefined when calling profilePatch().'
+                'profileSettingsIn',
+                'Required parameter "profileSettingsIn" was null or undefined when calling profilePatch().'
             );
         }
 
@@ -79,16 +82,16 @@ export class ProfilesApi extends runtime.BaseAPI {
             method: 'PATCH',
             headers: headerParameters,
             query: queryParameters,
-            body: ProfilePatchRequestToJSON(requestParameters['profilePatchRequest']),
+            body: ProfileSettingsInToJSON(requestParameters['profileSettingsIn']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileSettingsOutFromJSON(jsonValue));
     }
 
     /**
      * Profile Patch
      */
-    async profilePatch(requestParameters: ProfilePatchOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<{ [key: string]: any; }> {
+    async profilePatch(requestParameters: ProfilePatchRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSettingsOut> {
         const response = await this.profilePatchRaw(requestParameters, initOverrides);
         return await response.value();
     }
