@@ -18,7 +18,9 @@ else:
     DefaultJobQueue = JobQueue
 
 
-def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None) -> None:
+def schedule_reminder(
+    rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None
+) -> None:
     """Schedule a reminder in the provided job queue."""
     if job_queue is None:
         msg = "schedule_reminder called without job_queue"
@@ -65,7 +67,7 @@ def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: Us
 
     context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
 
-    job_kwargs = {"id": name, "name": name, "replace_existing": True}
+    job_kwargs = {"id": name, "replace_existing": True, "misfire_grace_time": 60}
     if kind == "after_event":
         logger.info("Skip scheduling %s: 'after_event' is scheduled on trigger.", name)
         return
