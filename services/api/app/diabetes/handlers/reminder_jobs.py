@@ -18,9 +18,7 @@ else:
     DefaultJobQueue = JobQueue
 
 
-def schedule_reminder(
-    rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None
-) -> None:
+def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None) -> None:
     """Schedule a reminder in the provided job queue."""
     if job_queue is None:
         msg = "schedule_reminder called without job_queue"
@@ -47,10 +45,15 @@ def schedule_reminder(
 
     name = f"reminder_{rem.id}"
     kind = rem.kind
+    interval_minutes = rem.interval_minutes
+    if kind is None and interval_minutes is None and rem.interval_hours is not None:
+        interval_minutes = rem.interval_hours * 60
+        kind = "every"
+
     if kind is None:
         if rem.minutes_after is not None:
             kind = "after_event"
-        elif rem.interval_minutes:
+        elif interval_minutes:
             kind = "every"
         else:
             kind = "at_time"
@@ -60,18 +63,23 @@ def schedule_reminder(
         name,
         kind,
         rem.time,
-        rem.interval_minutes,
+        interval_minutes,
         rem.minutes_after,
         tz,
     )
 
     context: dict[str, object] = {"reminder_id": rem.id, "chat_id": rem.telegram_id}
 
-
     job_kwargs: dict[str, object] = {"id": name, "replace_existing": True}
 
-    if kind == "after_event":
-        logger.info("Skip scheduling %s: 'after_event' is scheduled on trigger.", name)
+    if kind == "after_event" and rem.minutes_after is not None:
+        job_queue.run_once(
+            reminder_job,
+            when=timedelta(minutes=int(rem.minutes_after)),
+            data=context,
+            name=name,
+            job_kwargs=job_kwargs,
+        )
         return
     elif kind == "at_time" and rem.time is not None:
         mask = getattr(rem, "days_mask", 0) or 0
@@ -117,10 +125,10 @@ def schedule_reminder(
                     name=name,
                     job_kwargs=job_kwargs_cast,
                 )
-    elif kind == "every" and rem.interval_minutes is not None:
+    elif kind == "every" and interval_minutes is not None:
         job_queue.run_repeating(
             reminder_job,
-            interval=timedelta(minutes=int(rem.interval_minutes)),
+            interval=timedelta(minutes=int(interval_minutes)),
             data=context,
             name=name,
             job_kwargs=job_kwargs,

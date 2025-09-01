@@ -117,9 +117,7 @@ async def test_add_reminder_fewer_args(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_invalid_time(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_sugar_invalid_time(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "ab:cd"])
@@ -134,9 +132,7 @@ async def test_add_reminder_sugar_invalid_time(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_sugar_non_numeric_interval(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_sugar_non_numeric_interval(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "abc"])
@@ -162,9 +158,7 @@ async def test_add_reminder_unknown_type(reminder_handlers: Any) -> None:
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_valid_type(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_valid_type(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
     context = make_context(args=["sugar", "2"], job_queue=None)
@@ -211,16 +205,12 @@ async def test_add_reminder_valid_type(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_saves_time_and_description(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_saves_time_and_description(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     import datetime as dt
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    TestSession = sessionmaker(
-        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
-    )
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
@@ -268,9 +258,7 @@ async def test_add_reminder_interval_sets_every_and_logs(
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    TestSession = sessionmaker(
-        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
-    )
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
@@ -300,13 +288,8 @@ async def test_add_reminder_interval_sets_every_and_logs(
         await reminder_handlers.add_reminder(update, context)
 
     notify_mock.assert_awaited_once_with(1)
-    assert message.texts == [
-        "Сохранено: 🔔 Замерить сахар ⏱ каждые 3 ч (next 11:00)"
-    ]
-    assert any(
-        "kind=every" in rec.message and "interval_minutes=180" in rec.message
-        for rec in caplog.records
-    )
+    assert message.texts == ["Сохранено: 🔔 Замерить сахар ⏱ каждые 3 ч (next 11:00)"]
+    assert any("kind=every" in rec.message and "interval_minutes=180" in rec.message for rec in caplog.records)
 
     with TestSession() as session:
         rem_db = session.query(Reminder).one()
@@ -318,14 +301,10 @@ async def test_add_reminder_interval_sets_every_and_logs(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_after_meal_sets_kind(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_after_meal_sets_kind(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    TestSession = sessionmaker(
-        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
-    )
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
@@ -374,9 +353,7 @@ async def test_add_reminder_other_types_at_time(
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    TestSession = sessionmaker(
-        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
-    )
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
@@ -414,9 +391,7 @@ async def test_add_reminder_no_broadcast_with_job_queue(
 ) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    TestSession = sessionmaker(
-        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
-    )
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
@@ -447,9 +422,7 @@ async def test_add_reminder_no_broadcast_with_job_queue(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_ignores_disabled(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_reminder_ignores_disabled(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -478,6 +451,11 @@ async def test_add_reminder_ignores_disabled(
     monkeypatch.setattr(reminder_handlers, "commit", commit)
     monkeypatch.setattr(reminder_handlers, "_describe", lambda *a, **k: "desc")
     monkeypatch.setattr(reminder_handlers, "_limit_for", lambda u: 1)
+    monkeypatch.setattr(
+        reminder_handlers.reminder_events,
+        "notify_reminder_saved",
+        AsyncMock(),
+    )
 
     await reminder_handlers.add_reminder(update, context)
 
@@ -508,9 +486,7 @@ async def test_delete_reminder_no_broadcast_with_job_queue(
         session.commit()
 
     notify_mock = AsyncMock()
-    monkeypatch.setattr(
-        reminder_handlers.reminder_events, "notify_reminder_saved", notify_mock
-    )
+    monkeypatch.setattr(reminder_handlers.reminder_events, "notify_reminder_saved", notify_mock)
 
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
@@ -548,9 +524,7 @@ async def test_delete_reminder_broadcasts_without_job_queue(
         session.commit()
 
     notify_mock = AsyncMock()
-    monkeypatch.setattr(
-        reminder_handlers.reminder_events, "notify_reminder_saved", notify_mock
-    )
+    monkeypatch.setattr(reminder_handlers.reminder_events, "notify_reminder_saved", notify_mock)
 
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
@@ -564,9 +538,7 @@ async def test_delete_reminder_broadcasts_without_job_queue(
 
 @pytest.mark.asyncio
 async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None:
-    message = DummyWebAppMessage(
-        json.dumps({"type": "bad", "kind": "at_time", "time": "10:00"})
-    )
+    message = DummyWebAppMessage(json.dumps({"type": "bad", "kind": "at_time", "time": "10:00"}))
     update = make_update(effective_message=message, effective_user=make_user(1))
     context = make_context()
 
@@ -580,9 +552,7 @@ async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None
     "payload",
     [json.dumps({"id": 1, "snooze": 7}), "snooze=7&id=1"],
 )
-async def test_reminder_webapp_save_snooze(
-    reminder_handlers: Any, payload: str
-) -> None:
+async def test_reminder_webapp_save_snooze(reminder_handlers: Any, payload: str) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -632,9 +602,7 @@ async def test_reminder_webapp_save_clears_interval_params(
     monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(reminder_handlers, "commit", commit)
     monkeypatch.setattr(reminder_handlers, "run_db", None)
-    monkeypatch.setattr(
-        reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None)
-    )
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None))
     monkeypatch.setattr(
         reminder_handlers,
         "reminder_events",
@@ -682,18 +650,14 @@ async def test_reminder_webapp_save_clears_interval_params(
 
 
 @pytest.mark.asyncio
-async def test_reminder_webapp_save_interval_minutes(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_reminder_webapp_save_interval_minutes(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(reminder_handlers, "commit", commit)
     monkeypatch.setattr(reminder_handlers, "run_db", None)
-    monkeypatch.setattr(
-        reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None)
-    )
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None))
     monkeypatch.setattr(
         reminder_handlers,
         "reminder_events",
@@ -704,9 +668,7 @@ async def test_reminder_webapp_save_interval_minutes(
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
 
-    message = DummyWebAppMessage(
-        json.dumps({"type": "sugar", "kind": "every", "intervalMinutes": 90})
-    )
+    message = DummyWebAppMessage(json.dumps({"type": "sugar", "kind": "every", "intervalMinutes": 90}))
     update = make_update(effective_message=message, effective_user=make_user(1))
     context = make_context()
 
@@ -722,18 +684,14 @@ async def test_reminder_webapp_save_interval_minutes(
 
 
 @pytest.mark.asyncio
-async def test_reminder_webapp_save_minutes_after(
-    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_reminder_webapp_save_minutes_after(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(reminder_handlers, "commit", commit)
     monkeypatch.setattr(reminder_handlers, "run_db", None)
-    monkeypatch.setattr(
-        reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None)
-    )
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None))
     monkeypatch.setattr(
         reminder_handlers,
         "reminder_events",
@@ -744,9 +702,7 @@ async def test_reminder_webapp_save_minutes_after(
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
 
-    message = DummyWebAppMessage(
-        json.dumps({"type": "after_meal", "kind": "after_event", "minutesAfter": 20})
-    )
+    message = DummyWebAppMessage(json.dumps({"type": "after_meal", "kind": "after_event", "minutesAfter": 20}))
     update = make_update(effective_message=message, effective_user=make_user(1))
     context = make_context()
 
@@ -768,9 +724,7 @@ async def test_reminder_webapp_save_minutes_after(
         ("https://example.com/", "ui/", "reminders/new"),
     ],
 )
-def test_build_ui_url(
-    monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str, path: str
-) -> None:
+def test_build_ui_url(monkeypatch: pytest.MonkeyPatch, origin: str, ui_base: str, path: str) -> None:
     expected = "https://example.com/ui/reminders/new"
     monkeypatch.setenv("PUBLIC_ORIGIN", origin)
     monkeypatch.setenv("UI_BASE_URL", ui_base)

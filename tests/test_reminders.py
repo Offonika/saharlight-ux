@@ -80,9 +80,7 @@ class DummyBot:
     async def send_message(self, chat_id: int | str, text: str, **kwargs: Any) -> None:
         self.messages.append((chat_id, text, kwargs))
 
-    async def answer_callback_query(
-        self, callback_query_id: str, text: str | None = None, **kwargs: Any
-    ) -> None:
+    async def answer_callback_query(self, callback_query_id: str, text: str | None = None, **kwargs: Any) -> None:
         self.cb_answers.append((callback_query_id, text))
 
 
@@ -133,9 +131,7 @@ class DummyScheduler:
     ) -> DummyJob:  # noqa: D401 - simplified
         if replace_existing:
             self.jobs = [j for j in self.jobs if j.id != id]
-        job = DummyJob(
-            self, id=id, name=name, trigger=trigger, timezone=timezone, params=params
-        )
+        job = DummyJob(self, id=id, name=name, trigger=trigger, timezone=timezone, params=params)
         self.jobs.append(job)
         return job
 
@@ -438,9 +434,7 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(handlers, "datetime", DummyDatetime)
     user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
-    rem = Reminder(
-        telegram_id=1, type="sugar", interval_hours=2, is_enabled=True, user=user
-    )
+    rem = Reminder(telegram_id=1, type="sugar", interval_hours=2, is_enabled=True, user=user)
     icon, schedule = handlers._schedule_with_next(rem)
     assert icon == "⏱"
     assert schedule == "каждые 2 ч (next 12:00)"
@@ -496,9 +490,7 @@ def test_interval_minutes_scheduling_and_rendering(
         rem = session.get(Reminder, 1)
         user = session.get(DbUser, 1)
         assert rem is not None
-        with patch.object(
-            job_queue.scheduler, "add_job", wraps=job_queue.scheduler.add_job
-        ) as mock_add:
+        with patch.object(job_queue.scheduler, "add_job", wraps=job_queue.scheduler.add_job) as mock_add:
             handlers.schedule_reminder(rem, job_queue, user)
             mock_add.assert_called_once()
             assert mock_add.call_args.kwargs["trigger"] == "interval"
@@ -506,6 +498,37 @@ def test_interval_minutes_scheduling_and_rendering(
         text, _ = handlers._render_reminders(session, 1)
     assert "⏱ Интервал" in text
     assert "каждые 30 мин" in text
+
+
+def test_interval_hours_scheduling(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                interval_hours=2,
+                is_enabled=True,
+            )
+        )
+        session.commit()
+
+    job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
+    job_queue.application = SimpleNamespace(timezone=ZoneInfo("UTC"))
+    with TestSession() as session:
+        rem = session.get(Reminder, 1)
+        user = session.get(DbUser, 1)
+        assert rem is not None
+        with patch.object(job_queue.scheduler, "add_job", wraps=job_queue.scheduler.add_job) as mock_add:
+            handlers.schedule_reminder(rem, job_queue, user)
+            mock_add.assert_called_once()
+            assert mock_add.call_args.kwargs["trigger"] == "interval"
+            assert mock_add.call_args.kwargs["minutes"] == 120
 
 
 def test_schedule_with_next_invalid_timezone_logs_warning(
@@ -528,9 +551,7 @@ def test_schedule_with_next_invalid_timezone_logs_warning(
 
 def test_schedule_reminder_invalid_timezone_raises() -> None:
     user = DbUser(telegram_id=1, thread_id="t", timezone="Bad/Zone")
-    rem = Reminder(
-        id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user
-    )
+    rem = Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user)
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
     with pytest.raises(ZoneInfoNotFoundError):
         handlers.schedule_reminder(rem, job_queue, user)
@@ -770,9 +791,7 @@ async def test_reminders_list_renders_output(
 
     monkeypatch.setattr(handlers, "SessionLocal", lambda: DummySessionCtx())
 
-    def fake_render(
-        session: Session, user_id: int
-    ) -> tuple[str, InlineKeyboardMarkup | None]:
+    def fake_render(session: Session, user_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
         assert session is session_obj
         assert user_id == 1
         return "rendered", keyboard
@@ -817,9 +836,7 @@ async def test_reminders_list_shows_menu_keyboard(
 
     monkeypatch.setattr(handlers, "SessionLocal", lambda: DummySessionCtx())
 
-    def fake_render(
-        session: Session, user_id: int
-    ) -> tuple[str, InlineKeyboardMarkup | None]:
+    def fake_render(session: Session, user_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
         return "rendered", None
 
     monkeypatch.setattr(handlers, "_render_reminders", fake_render)
@@ -855,11 +872,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(
-            Reminder(
-                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True
-            )
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True))
         session.commit()
 
     job_queue = cast(handlers.DefaultJobQueue, DummyJobQueue())
@@ -1068,11 +1081,7 @@ async def test_toggle_reminder_without_job_queue(
 
     with TestSession() as session:
         session.add(DbUser(telegram_id=1, thread_id="t"))
-        session.add(
-            Reminder(
-                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=False
-            )
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=False))
         session.commit()
 
     schedule_mock = MagicMock()
@@ -1099,9 +1108,7 @@ async def test_toggle_reminder_without_job_queue(
 
 
 @pytest.mark.asyncio
-async def test_toggle_reminder_missing_user(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_toggle_reminder_missing_user(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -1109,11 +1116,7 @@ async def test_toggle_reminder_missing_user(
     handlers.commit = commit
 
     with TestSession() as session:
-        session.add(
-            Reminder(
-                id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=False
-            )
-        )
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=False))
         session.commit()
 
     reschedule_mock = MagicMock()
@@ -1477,9 +1480,7 @@ def client(
         yield test_client
 
 
-def test_empty_returns_200(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_empty_returns_200(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -1488,9 +1489,7 @@ def test_empty_returns_200(
     assert resp.json() == []
 
 
-def test_nonempty_returns_list(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_nonempty_returns_list(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -1527,9 +1526,7 @@ def test_nonempty_returns_list(
     ]
 
 
-def test_get_single_reminder(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_get_single_reminder(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
@@ -1572,9 +1569,7 @@ def test_real_404(client: TestClient) -> None:
     assert resp.json() == []
 
 
-def test_get_single_reminder_not_found(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_get_single_reminder_not_found(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -1583,9 +1578,7 @@ def test_get_single_reminder_not_found(
     assert resp.json() == {"detail": "reminder not found"}
 
 
-def test_post_reminder_forbidden(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_post_reminder_forbidden(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.commit()
@@ -1600,9 +1593,7 @@ def test_post_reminder_forbidden(
     fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
 
 
-def test_patch_reminder_forbidden(
-    client: TestClient, session_factory: sessionmaker[Session]
-) -> None:
+def test_patch_reminder_forbidden(client: TestClient, session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
         session.add(
