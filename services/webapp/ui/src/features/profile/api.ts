@@ -1,4 +1,4 @@
-import type { ProfileSchema } from '@sdk';
+import type { ProfileSchema, ProfilePatchRequest } from '@sdk';
 import { api } from '@/api';
 
 export async function getProfile(telegramId: number) {
@@ -42,12 +42,7 @@ export async function saveProfile({
   }
 }
 
-export type PatchProfileDto = {
-  timezone?: string | null;
-  timezoneAuto?: boolean | null;
-};
-
-export async function patchProfile(payload: PatchProfileDto) {
+export async function patchProfile(payload: ProfilePatchRequest) {
   try {
     return await api.patch<unknown>('/profile', payload);
   } catch (error) {

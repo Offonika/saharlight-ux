@@ -23,7 +23,12 @@ def test_patch_profile_returns_status_ok(monkeypatch: pytest.MonkeyPatch) -> Non
 
     with TestClient(server.app) as client:
         resp = client.patch(
-            "/api/profile", json={"timezone": "UTC", "timezoneAuto": False}
+            "/api/profile",
+            json={
+                "timezone": "UTC",
+                "timezoneAuto": False,
+                "sosAlertsEnabled": True,
+            },
         )
         assert resp.status_code == 200
         assert resp.json() == {"status": "ok"}

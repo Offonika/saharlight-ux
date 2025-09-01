@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from . import config, reminder_events
 from .diabetes.services.db import (
     HistoryRecord as HistoryRecordDB,
+    Profile as ProfileDB,
     Timezone as TimezoneDB,
     User as UserDB,
     init_db,
@@ -191,6 +192,26 @@ class ProfilePatch(BaseModel):
         alias="timezoneAuto",
         validation_alias=AliasChoices("timezoneAuto", "timezone_auto"),
     )
+    quietStart: dt_time | None = Field(
+        default=None,
+        alias="quietStart",
+        validation_alias=AliasChoices("quietStart", "quiet_start"),
+    )
+    quietEnd: dt_time | None = Field(
+        default=None,
+        alias="quietEnd",
+        validation_alias=AliasChoices("quietEnd", "quiet_end"),
+    )
+    sosContact: str | None = Field(
+        default=None,
+        alias="sosContact",
+        validation_alias=AliasChoices("sosContact", "sos_contact"),
+    )
+    sosAlertsEnabled: bool | None = Field(
+        default=None,
+        alias="sosAlertsEnabled",
+        validation_alias=AliasChoices("sosAlertsEnabled", "sos_alerts_enabled"),
+    )
 
 
 @api_router.patch("/profile")
@@ -218,10 +239,23 @@ async def profile_patch(
             db_user = UserDB(telegram_id=user["id"], thread_id="api")
             session.add(db_user)
 
+        db_profile = session.get(ProfileDB, user["id"])
+        if db_profile is None:
+            db_profile = ProfileDB(telegram_id=user["id"])
+            session.add(db_profile)
+
         if data.timezone is not None:
             db_user.timezone = data.timezone
         if data.timezoneAuto is not None:
             db_user.timezone_auto = data.timezoneAuto
+        if data.quietStart is not None:
+            db_profile.quiet_start = data.quietStart
+        if data.quietEnd is not None:
+            db_profile.quiet_end = data.quietEnd
+        if data.sosContact is not None:
+            db_profile.sos_contact = data.sosContact or ""
+        if data.sosAlertsEnabled is not None:
+            db_profile.sos_alerts_enabled = data.sosAlertsEnabled
 
         if db_user.timezone_auto and device_tz and db_user.timezone != device_tz:
             db_user.timezone = device_tz

@@ -99,11 +99,35 @@ paths:
               type: object
               properties:
                 timezone:
-                  type: string
+                  anyOf:
+                  - type: string
+                  - type: 'null'
                   title: Timezone
                 timezoneAuto:
-                  type: boolean
+                  anyOf:
+                  - type: boolean
+                  - type: 'null'
                   title: Timezone Auto
+                quietStart:
+                  anyOf:
+                  - type: string
+                  - type: 'null'
+                  title: Quiet Start
+                quietEnd:
+                  anyOf:
+                  - type: string
+                  - type: 'null'
+                  title: Quiet End
+                sosContact:
+                  anyOf:
+                  - type: string
+                  - type: 'null'
+                  title: Sos Contact
+                sosAlertsEnabled:
+                  anyOf:
+                  - type: boolean
+                  - type: 'null'
+                  title: Sos Alerts Enabled
       responses:
         '200':
           description: Successful Response

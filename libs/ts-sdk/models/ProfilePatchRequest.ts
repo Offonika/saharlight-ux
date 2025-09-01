@@ -24,13 +24,37 @@ export interface ProfilePatchRequest {
      * @type {string}
      * @memberof ProfilePatchRequest
      */
-    timezone?: string;
+    timezone?: string | null;
     /**
      * 
      * @type {boolean}
      * @memberof ProfilePatchRequest
      */
-    timezoneAuto?: boolean;
+    timezoneAuto?: boolean | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfilePatchRequest
+     */
+    quietStart?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfilePatchRequest
+     */
+    quietEnd?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfilePatchRequest
+     */
+    sosContact?: string | null;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof ProfilePatchRequest
+     */
+    sosAlertsEnabled?: boolean | null;
 }
 
 /**
@@ -52,6 +76,10 @@ export function ProfilePatchRequestFromJSONTyped(json: any, ignoreDiscriminator:
         
         'timezone': json['timezone'] == null ? undefined : json['timezone'],
         'timezoneAuto': json['timezoneAuto'] == null ? undefined : json['timezoneAuto'],
+        'quietStart': json['quietStart'] == null ? undefined : json['quietStart'],
+        'quietEnd': json['quietEnd'] == null ? undefined : json['quietEnd'],
+        'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
+        'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
     };
 }
 
@@ -68,6 +96,10 @@ export function ProfilePatchRequestToJSONTyped(value?: ProfilePatchRequest | nul
         
         'timezone': value['timezone'],
         'timezoneAuto': value['timezoneAuto'],
+        'quietStart': value['quietStart'],
+        'quietEnd': value['quietEnd'],
+        'sosContact': value['sosContact'],
+        'sosAlertsEnabled': value['sosAlertsEnabled'],
     };
 }
 

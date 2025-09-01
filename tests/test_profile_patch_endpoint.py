@@ -58,7 +58,14 @@ def test_profile_patch_returns_status_ok(
     with TestClient(server.app) as client:
         resp = client.patch(
             "/api/profile",
-            json={"timezone": "Europe/Moscow", "timezoneAuto": True},
+            json={
+                "timezone": "Europe/Moscow",
+                "timezoneAuto": True,
+                "quietStart": "22:30",
+                "quietEnd": "06:15",
+                "sosContact": "+123",
+                "sosAlertsEnabled": False,
+            },
             headers=auth_headers,
         )
     assert resp.status_code == 200
@@ -66,6 +73,12 @@ def test_profile_patch_returns_status_ok(
 
     with SessionLocal() as session:
         user = session.get(db.User, 1)
+        profile = session.get(db.Profile, 1)
         assert user is not None
+        assert profile is not None
         assert user.timezone == "Europe/Moscow"
         assert user.timezone_auto is True
+        assert profile.quiet_start.strftime("%H:%M:%S") == "22:30:00"
+        assert profile.quiet_end.strftime("%H:%M:%S") == "06:15:00"
+        assert profile.sos_contact == "+123"
+        assert profile.sos_alerts_enabled is False
