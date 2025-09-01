@@ -980,7 +980,14 @@ async def reminder_action_cb(
             else:
                 with SessionLocal() as session:
                     user_obj = session.get(User, rem.telegram_id)
-                _reschedule_job(job_queue, rem, user_obj)
+                if user_obj is None:
+                    logger.warning(
+                        "User %s not found for reminder %s",
+                        rem.telegram_id,
+                        rem.id,
+                    )
+                else:
+                    _reschedule_job(job_queue, rem, user_obj)
         elif job_queue is not None:
             for job in job_queue.get_jobs_by_name(f"reminder_{rid}"):
                 job.schedule_removal()
