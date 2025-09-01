@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 import asyncio
+from typing import Callable, cast
 
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -62,8 +63,37 @@ def notify_reminder_deleted(reminder_id: int) -> None:
     if jq is None:
         msg = "notify_reminder_deleted called without job_queue"
         raise RuntimeError(msg)
+    removed = 0
     for job in jq.get_jobs_by_name(f"reminder_{reminder_id}"):
-        job.schedule_removal()
+        remover = cast(Callable[[], None] | None, getattr(job, "remove", None))
+        if remover is not None:
+            try:
+                remover()
+                removed += 1
+                continue
+            except Exception:  # pragma: no cover - defensive
+                pass
+        scheduler = getattr(jq, "scheduler", None)
+        remove_job = (
+            cast(Callable[[object], None] | None, getattr(scheduler, "remove_job", None))
+            if scheduler is not None
+            else None
+        )
+        job_id = getattr(job, "id", None)
+        if remove_job is not None and job_id is not None:
+            try:
+                remove_job(job_id)
+                removed += 1
+                continue
+            except Exception:  # pragma: no cover - defensive
+                pass
+        schedule_removal = cast(
+            Callable[[], None] | None, getattr(job, "schedule_removal", None)
+        )
+        if schedule_removal is not None:
+            schedule_removal()
+            removed += 1
+    logger.info("Removed %d job(s) for reminder %s", removed, reminder_id)
 
 
 __all__ = ["register_job_queue", "notify_reminder_saved", "notify_reminder_deleted"]
