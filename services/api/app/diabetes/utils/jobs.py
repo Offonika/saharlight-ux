@@ -160,41 +160,44 @@ def schedule_daily(
     return cast(Job[CustomContext], result)
 
 
-def _remove_jobs(job_queue: DefaultJobQueue, name: str) -> int:
-    """Best-effort removal of jobs from the queue.
+def _remove_jobs(job_queue: DefaultJobQueue, base: str) -> int:
+    """Best-effort removal of jobs with the given base name.
 
-    Tries ``job.remove()`` first, then falls back to direct scheduler
-    removal, and finally schedules the job for removal. Returns the number of
-    jobs processed.
+    Removes jobs named ``base`` as well as related jobs like
+    ``f"{base}_snooze"`` and ``f"{base}_after"``. Tries ``job.remove()``
+    first, then falls back to direct scheduler removal, and finally
+    schedules the job for removal. Returns the number of jobs processed.
     """
     removed = 0
-    for job in job_queue.get_jobs_by_name(name):
-        remover = cast(Callable[[], None] | None, getattr(job, "remove", None))
-        if remover is not None:
-            try:
-                remover()
+    for suffix in ("", "_snooze", "_after"):
+        name = f"{base}{suffix}"
+        for job in job_queue.get_jobs_by_name(name):
+            remover = cast(Callable[[], None] | None, getattr(job, "remove", None))
+            if remover is not None:
+                try:
+                    remover()
+                    removed += 1
+                    continue
+                except Exception:  # pragma: no cover - defensive
+                    pass
+            scheduler = getattr(job_queue, "scheduler", None)
+            remove_job = (
+                cast(Callable[[object], None] | None, getattr(scheduler, "remove_job", None))
+                if scheduler is not None
+                else None
+            )
+            job_id = getattr(job, "id", None)
+            if remove_job is not None and job_id is not None:
+                try:
+                    remove_job(job_id)
+                    removed += 1
+                    continue
+                except Exception:  # pragma: no cover - defensive
+                    pass
+            schedule_removal = cast(
+                Callable[[], None] | None, getattr(job, "schedule_removal", None)
+            )
+            if schedule_removal is not None:
+                schedule_removal()
                 removed += 1
-                continue
-            except Exception:  # pragma: no cover - defensive
-                pass
-        scheduler = getattr(job_queue, "scheduler", None)
-        remove_job = (
-            cast(Callable[[object], None] | None, getattr(scheduler, "remove_job", None))
-            if scheduler is not None
-            else None
-        )
-        job_id = getattr(job, "id", None)
-        if remove_job is not None and job_id is not None:
-            try:
-                remove_job(job_id)
-                removed += 1
-                continue
-            except Exception:  # pragma: no cover - defensive
-                pass
-        schedule_removal = cast(
-            Callable[[], None] | None, getattr(job, "schedule_removal", None)
-        )
-        if schedule_removal is not None:
-            schedule_removal()
-            removed += 1
     return removed

@@ -263,14 +263,14 @@ def _render_reminders(
 
 def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) -> None:
     """Пересоздаёт задачу с обновлённым временем."""
-    name = f"reminder_{reminder.id}"
-    removed = _remove_jobs(job_queue, name)
-    logger.info("🗑 removed %d jobs named %s", removed, name)
+    base = f"reminder_{reminder.id}"
+    removed = _remove_jobs(job_queue, base)
+    logger.info("Removed %d jobs for %s", removed, base)
 
     schedule_reminder(reminder, job_queue, user)
     next_run: datetime.datetime | None
     next_run = None
-    job = next(iter(job_queue.get_jobs_by_name(name)), None)
+    job = next(iter(job_queue.get_jobs_by_name(base)), None)
     if job is not None:
         next_run = (
             getattr(job, "next_run_time", None)
@@ -278,7 +278,7 @@ def _reschedule_job(job_queue: DefaultJobQueue, reminder: Reminder, user: User) 
             or getattr(job, "when", None)
             or getattr(job, "run_time", None)
         )
-    logger.info("♻️ Rescheduled job %s -> next_run=%s", name, next_run)
+    logger.info("♻️ Rescheduled job %s -> next_run=%s", base, next_run)
 
 
 def schedule_all(job_queue: DefaultJobQueue | None) -> None:
@@ -813,16 +813,9 @@ async def delete_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             return
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
     if job_queue is not None:
-        removed_main = _remove_jobs(job_queue, f"reminder_{rid}")
-        removed_snooze = _remove_jobs(job_queue, f"reminder_{rid}_snooze")
-        removed_after = _remove_jobs(job_queue, f"reminder_{rid}_after")
-        logger.info(
-            "Removed jobs for %s: main=%d, snooze=%d, after=%d",
-            rid,
-            removed_main,
-            removed_snooze,
-            removed_after,
-        )
+        base = f"reminder_{rid}"
+        removed = _remove_jobs(job_queue, base)
+        logger.info("Removed %d jobs for %s", removed, base)
     if message:
         await message.reply_text("Удалено")
     if job_queue is None:
@@ -1045,16 +1038,9 @@ async def reminder_action_cb(
                     rid,
                 )
         elif job_queue is not None:
-            removed_main = _remove_jobs(job_queue, f"reminder_{rid}")
-            removed_snooze = _remove_jobs(job_queue, f"reminder_{rid}_snooze")
-            removed_after = _remove_jobs(job_queue, f"reminder_{rid}_after")
-            logger.info(
-                "Removed jobs for %s: main=%d, snooze=%d, after=%d",
-                rid,
-                removed_main,
-                removed_snooze,
-                removed_after,
-            )
+            base = f"reminder_{rid}"
+            removed = _remove_jobs(job_queue, base)
+            logger.info("Removed %d jobs for %s", removed, base)
             logger.debug(
                 "Job queue present; suppressed reminder_saved event for %s",
                 rid,
@@ -1064,16 +1050,9 @@ async def reminder_action_cb(
             logger.debug("Sent reminder_saved event for %s", rid)
     else:  # del
         if job_queue is not None:
-            removed_main = _remove_jobs(job_queue, f"reminder_{rid}")
-            removed_snooze = _remove_jobs(job_queue, f"reminder_{rid}_snooze")
-            removed_after = _remove_jobs(job_queue, f"reminder_{rid}_after")
-            logger.info(
-                "Removed jobs for %s: main=%d, snooze=%d, after=%d",
-                rid,
-                removed_main,
-                removed_snooze,
-                removed_after,
-            )
+            base = f"reminder_{rid}"
+            removed = _remove_jobs(job_queue, base)
+            logger.info("Removed %d jobs for %s", removed, base)
             logger.debug(
                 "Job queue present; suppressed reminder_saved event for %s",
                 rid,
@@ -1124,10 +1103,11 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
         minutes_after = rem.minutes_after
         if minutes_after is None:
             continue
-        name = f"reminder_{rem.id}_after"
-        removed = _remove_jobs(job_queue, name)
+        base = f"reminder_{rem.id}"
+        removed = _remove_jobs(job_queue, base)
         if removed:
-            logger.info("Removed %d job(s) for reminder %s", removed, rem.id)
+            logger.info("Removed %d job(s) for %s", removed, base)
+        name = f"{base}_after"
         schedule_once(
             job_queue,
             reminder_job,
