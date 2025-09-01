@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 from collections.abc import Generator
@@ -89,15 +91,22 @@ class DummyJob:
         data: dict[str, Any] | None,
         name: str | None,
         time: Any | None = None,
+        queue: "DummyJobQueue" | None = None,
     ) -> None:
         self.callback: Callable[..., Any] = callback
         self.data: dict[str, Any] | None = data
         self.name: str | None = name
         self.time: Any | None = time
         self.removed: bool = False
+        self._queue = queue
+
+    def remove(self) -> None:
+        self.removed = True
+        if self._queue is not None:
+            self._queue.jobs.remove(self)
 
     def schedule_removal(self) -> None:
-        self.removed = True
+        self.remove()
 
 
 class DummyJobQueue:
@@ -112,7 +121,7 @@ class DummyJobQueue:
         data: dict[str, Any] | None = None,
         name: str | None = None,
     ) -> DummyJob:
-        job = DummyJob(callback, data, name, time)
+        job = DummyJob(callback, data, name, time, self)
         self.jobs.append(job)
         return job
 
@@ -123,7 +132,7 @@ class DummyJobQueue:
         data: dict[str, Any] | None = None,
         name: str | None = None,
     ) -> DummyJob:
-        job = DummyJob(callback, data, name)
+        job = DummyJob(callback, data, name, None, self)
         self.jobs.append(job)
         return job
 
@@ -135,7 +144,7 @@ class DummyJobQueue:
         name: str | None = None,
         timezone: object | None = None,
     ) -> DummyJob:
-        job = DummyJob(callback, data, name)
+        job = DummyJob(callback, data, name, None, self)
         self.jobs.append(job)
         return job
 
@@ -823,9 +832,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         assert rem_db is not None
         assert not rem_db.is_enabled
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
-    assert jobs
-    job = jobs[0]
-    assert job.removed
+    assert not jobs
     assert query.answers
     answer = query.answers[0]
     assert answer == "Готово ✅"
@@ -870,9 +877,7 @@ async def test_delete_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     with TestSession() as session:
         assert session.query(Reminder).count() == 0
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
-    assert jobs
-    job = jobs[0]
-    assert job.removed
+    assert not jobs
     assert query.answers
     answer = query.answers[-1]
     assert answer == "Готово ✅"
@@ -950,11 +955,9 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
         assert rem_db is not None
         assert rem_db.time == parsed
     jobs: list[DummyJob] = list(job_queue.get_jobs_by_name("reminder_1"))
-    assert len(jobs) == 2
-    assert jobs[0].removed is True
-    active_job = jobs[1]
-    assert active_job.removed is False
-    assert active_job.time == time(9, 0)
+    assert len(jobs) == 1
+    job = jobs[0]
+    assert job.time == time(9, 0)
 
 
 @pytest.mark.asyncio
