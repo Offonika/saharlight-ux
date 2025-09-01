@@ -627,7 +627,7 @@ def test_render_reminders_formatting(monkeypatch: pytest.MonkeyPatch) -> None:
         text, markup = handlers._render_reminders(session, 1)
     assert markup is not None
     header, *rest = text.splitlines()
-    assert header == "Ваши напоминания  (2 / 1 🔔) ⚠️"
+    assert header == "Ваши напоминания (2 / 1 🔔) ⚠️"
     assert "⏰ По времени" in text
     assert "⏱ Интервал" in text
     assert "📸 Триггер-фото" in text
@@ -738,6 +738,45 @@ def test_render_reminders_no_entries_webapp(monkeypatch: pytest.MonkeyPatch) -> 
     add_btn = add_row[0]
     assert add_btn.web_app is not None
     assert add_btn.web_app.url == config.build_ui_url("/reminders/new")
+
+
+def test_render_reminders_public_origin_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.delenv("PUBLIC_ORIGIN", raising=False)
+    monkeypatch.delenv("UI_BASE_URL", raising=False)
+    import services.api.app.config as config
+
+    importlib.reload(config)
+    importlib.reload(handlers)
+    handlers.SessionLocal = TestSession
+    settings = config.get_settings()
+    monkeypatch.setattr(settings, "public_origin", None)
+    monkeypatch.setattr(settings, "ui_base_url", None)
+    monkeypatch.setattr(handlers, "_limit_for", lambda u: 1)
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(
+                id=1,
+                telegram_id=1,
+                type="sugar",
+                time=time(8, 0),
+                kind="at_time",
+                is_enabled=True,
+            )
+        )
+        session.commit()
+    with TestSession() as session:
+        text, markup = handlers._render_reminders(session, 1)
+    assert markup is not None
+    header, *_ = text.splitlines()
+    assert header == "Ваши напоминания (1 / 1 🔔)"
+    first_row = markup.inline_keyboard[0]
+    texts = [btn.text for btn in first_row]
+    assert texts == ["✏️", "🗑️", "🔔"]
+    assert all(btn.web_app is None for btn in first_row)
 
 
 def test_render_reminders_runtime_public_origin(
