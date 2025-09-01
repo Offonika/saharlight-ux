@@ -7,8 +7,12 @@ import MedicalButton from "@/components/MedicalButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Modal from "@/components/Modal";
-import { saveProfile, getProfile } from "@/features/profile/api";
-import { patchProfile } from "@/features/profile/api";
+import {
+  saveProfile,
+  getProfile,
+  patchProfile,
+  type PatchProfileDto,
+} from "@/features/profile/api";
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
@@ -22,6 +26,14 @@ type ProfileForm = {
   high: string;
   timezone: string;
   timezoneAuto: boolean;
+  dia: string;
+  preBolus: string;
+  roundStep: string;
+  carbUnit: 'g' | 'xe';
+  gramsPerXe: string;
+  rapidInsulinType: string;
+  maxBolus: string;
+  afterMealMinutes: string;
 };
 
 type ParsedProfile = {
@@ -30,6 +42,14 @@ type ParsedProfile = {
   target: number;
   low: number;
   high: number;
+  dia: number;
+  preBolus: number;
+  roundStep: number;
+  carbUnit: 'g' | 'xe';
+  gramsPerXe: number;
+  rapidInsulinType: string;
+  maxBolus: number;
+  afterMealMinutes: number;
 };
 
 export const parseProfile = (profile: ProfileForm): ParsedProfile | null => {
@@ -39,15 +59,55 @@ export const parseProfile = (profile: ProfileForm): ParsedProfile | null => {
     target: Number(profile.target.replace(/,/g, ".")),
     low: Number(profile.low.replace(/,/g, ".")),
     high: Number(profile.high.replace(/,/g, ".")),
+    dia: Number(profile.dia.replace(/,/g, ".")),
+    preBolus: Number(profile.preBolus.replace(/,/g, ".")),
+    roundStep: Number(profile.roundStep.replace(/,/g, ".")),
+    carbUnit: profile.carbUnit,
+    gramsPerXe: Number(profile.gramsPerXe.replace(/,/g, ".")),
+    rapidInsulinType: profile.rapidInsulinType,
+    maxBolus: Number(profile.maxBolus.replace(/,/g, ".")),
+    afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, ".")),
   };
-  const numbersValid = Object.values(parsed).every(
-    (v) => Number.isFinite(v) && v > 0,
-  );
+  const numbersValid =
+    [
+      parsed.icr,
+      parsed.cf,
+      parsed.target,
+      parsed.low,
+      parsed.high,
+      parsed.dia,
+      parsed.preBolus,
+      parsed.roundStep,
+      parsed.gramsPerXe,
+      parsed.maxBolus,
+      parsed.afterMealMinutes,
+    ].every((v) => Number.isFinite(v));
+  const positiveValid =
+    parsed.icr > 0 &&
+    parsed.cf > 0 &&
+    parsed.target > 0 &&
+    parsed.low > 0 &&
+    parsed.high > 0 &&
+    parsed.dia >= 1 &&
+    parsed.preBolus >= 0 &&
+    parsed.roundStep > 0 &&
+    parsed.gramsPerXe > 0 &&
+    parsed.maxBolus > 0 &&
+    parsed.afterMealMinutes >= 0;
   const rangeValid =
     parsed.low < parsed.high &&
     parsed.low < parsed.target &&
-    parsed.target < parsed.high;
-  return numbersValid && rangeValid ? parsed : null;
+    parsed.target < parsed.high &&
+    parsed.dia <= 12 &&
+    parsed.preBolus <= 60 &&
+    parsed.roundStep <= 5 &&
+    parsed.gramsPerXe >= 5 &&
+    parsed.gramsPerXe <= 20 &&
+    parsed.maxBolus <= 25 &&
+    parsed.afterMealMinutes <= 180 &&
+    (parsed.carbUnit === 'g' || parsed.carbUnit === 'xe') &&
+    parsed.rapidInsulinType.length > 0;
+  return numbersValid && positiveValid && rangeValid ? parsed : null;
 };
 
 export const shouldWarnProfile = (profile: ParsedProfile): boolean =>
@@ -67,7 +127,16 @@ const Profile = () => {
     high: "",
     timezone: deviceTz,
     timezoneAuto: true,
+    dia: "",
+    preBolus: "",
+    roundStep: "",
+    carbUnit: 'g',
+    gramsPerXe: "",
+    rapidInsulinType: "",
+    maxBolus: "",
+    afterMealMinutes: "",
   });
+  const [original, setOriginal] = useState<ProfileForm | null>(null);
   const [timezones, setTimezones] = useState<string[]>([]);
 
   const [warningOpen, setWarningOpen] = useState(false);
@@ -75,8 +144,7 @@ const Profile = () => {
     (
       ParsedProfile & {
         telegramId: number;
-        timezone: string;
-        timezoneAuto: boolean;
+        patch: PatchProfileDto;
       }
     ) | null
   >(null);
@@ -122,17 +190,57 @@ const Profile = () => {
           typeof data.high === "number" && data.high > 0
             ? data.high.toString()
             : "";
+        const dia =
+          typeof data.dia === "number" && data.dia > 0
+            ? data.dia.toString()
+            : "";
+        const preBolus =
+          typeof data.preBolus === "number" && data.preBolus >= 0
+            ? data.preBolus.toString()
+            : "";
+        const roundStep =
+          typeof data.roundStep === "number" && data.roundStep > 0
+            ? data.roundStep.toString()
+            : "";
+        const carbUnit = data.carbUnit === "xe" ? "xe" : "g";
+        const gramsPerXe =
+          typeof data.gramsPerXe === "number" && data.gramsPerXe > 0
+            ? data.gramsPerXe.toString()
+            : "";
+        const rapidInsulinType =
+          typeof data.rapidInsulinType === "string" && data.rapidInsulinType
+            ? data.rapidInsulinType
+            : "";
+        const maxBolus =
+          typeof data.maxBolus === "number" && data.maxBolus > 0
+            ? data.maxBolus.toString()
+            : "";
+        const afterMealMinutes =
+          typeof data.defaultAfterMealMinutes === "number" &&
+          data.defaultAfterMealMinutes >= 0
+            ? data.defaultAfterMealMinutes.toString()
+            : "";
         const timezone =
           typeof data.timezone === "string" && data.timezone
             ? data.timezone
             : deviceTz;
         const timezoneAuto = data.timezoneAuto === true;
 
-        const isComplete = [icr, cf, target, low, high].every(
-          (v) => Number(v) > 0,
-        );
+        const isComplete = [
+          icr,
+          cf,
+          target,
+          low,
+          high,
+          dia,
+          preBolus,
+          roundStep,
+          gramsPerXe,
+          maxBolus,
+          afterMealMinutes,
+        ].every((v) => Number(v) > 0);
 
-        setProfile({
+        const loaded: ProfileForm = {
           icr,
           cf,
           target,
@@ -140,7 +248,18 @@ const Profile = () => {
           high,
           timezone,
           timezoneAuto,
-        });
+          dia,
+          preBolus,
+          roundStep,
+          carbUnit,
+          gramsPerXe,
+          rapidInsulinType,
+          maxBolus,
+          afterMealMinutes,
+        };
+
+        setProfile(loaded);
+        setOriginal(loaded);
 
         if (timezoneAuto && timezone !== deviceTz) {
           patchProfile({
@@ -193,23 +312,45 @@ const Profile = () => {
       setProfile((prev) => ({ ...prev, timezone: value }));
       return;
     }
+    if (field === "carbUnit" || field === "rapidInsulinType") {
+      setProfile((prev) => ({ ...prev, [field]: value as any }));
+      return;
+    }
     if (/^\d*(?:[.,]\d*)?$/.test(value)) {
       setProfile((prev) => ({ ...prev, [field]: value }));
     }
   };
 
+  const buildPatch = (parsed: ParsedProfile): PatchProfileDto => {
+    if (!original) return {};
+    const patch: PatchProfileDto = {};
+    if (profile.timezone !== original.timezone) patch.timezone = profile.timezone;
+    if (profile.timezoneAuto !== original.timezoneAuto)
+      patch.timezoneAuto = profile.timezoneAuto;
+    if (profile.dia !== original.dia) patch.dia = parsed.dia;
+    if (profile.preBolus !== original.preBolus) patch.preBolus = parsed.preBolus;
+    if (profile.roundStep !== original.roundStep) patch.roundStep = parsed.roundStep;
+    if (profile.carbUnit !== original.carbUnit) patch.carbUnit = parsed.carbUnit;
+    if (profile.gramsPerXe !== original.gramsPerXe)
+      patch.gramsPerXe = parsed.gramsPerXe;
+    if (profile.rapidInsulinType !== original.rapidInsulinType)
+      patch.rapidInsulinType = parsed.rapidInsulinType;
+    if (profile.maxBolus !== original.maxBolus) patch.maxBolus = parsed.maxBolus;
+    if (profile.afterMealMinutes !== original.afterMealMinutes)
+      patch.defaultAfterMealMinutes = parsed.afterMealMinutes;
+    return patch;
+  };
+
   const saveParsedProfile = async (
     data: ParsedProfile & {
       telegramId: number;
-      timezone: string;
-      timezoneAuto: boolean;
+      patch: PatchProfileDto;
     },
   ): Promise<void> => {
     try {
-      await patchProfile({
-        timezone: data.timezone ?? null,
-        timezoneAuto: data.timezoneAuto ?? null,
-      });
+      if (Object.keys(data.patch).length > 0) {
+        await patchProfile(data.patch);
+      }
       await saveProfile({
         telegramId: data.telegramId,
         icr: data.icr,
@@ -218,6 +359,7 @@ const Profile = () => {
         low: data.low,
         high: data.high,
       });
+      setOriginal(profile);
       toast({
         title: "Профиль сохранен",
         description: "Ваши настройки успешно обновлены",
@@ -257,12 +399,7 @@ const Profile = () => {
     }
 
     if (shouldWarnProfile(parsed)) {
-      setPendingProfile({
-        telegramId,
-        ...parsed,
-        timezone: profile.timezone,
-        timezoneAuto: profile.timezoneAuto,
-      });
+      setPendingProfile({ telegramId, ...parsed, patch: buildPatch(parsed) });
       setWarningOpen(true);
       toast({
         title: "Проверьте значения",
@@ -272,12 +409,7 @@ const Profile = () => {
       return;
     }
 
-    await saveParsedProfile({
-      telegramId,
-      ...parsed,
-      timezone: profile.timezone,
-      timezoneAuto: profile.timezoneAuto,
-    });
+    await saveParsedProfile({ telegramId, ...parsed, patch: buildPatch(parsed) });
   };
 
   const handleConfirmSave = async () => {
@@ -429,6 +561,132 @@ const Profile = () => {
                     ммоль/л
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Расширенные настройки болюса */}
+            <div className="space-y-6">
+              <h3 className="font-semibold text-foreground">
+                Расширенные настройки болюса
+              </h3>
+              {/* DIA */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  DIA (часы)
+                </label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  pattern="^\\d*(?:[.,]\\d*)?$"
+                  value={profile.dia}
+                  onChange={(e) => handleInputChange('dia', e.target.value)}
+                  className="medical-input"
+                  placeholder="4"
+                />
+              </div>
+              {/* Pre-bolus */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Пре-болюс (мин)
+                </label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  pattern="^\\d*(?:[.,]\\d*)?$"
+                  value={profile.preBolus}
+                  onChange={(e) => handleInputChange('preBolus', e.target.value)}
+                  className="medical-input"
+                  placeholder="15"
+                />
+              </div>
+              {/* Round step */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Шаг округления
+                </label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  pattern="^\\d*(?:[.,]\\d*)?$"
+                  value={profile.roundStep}
+                  onChange={(e) => handleInputChange('roundStep', e.target.value)}
+                  className="medical-input"
+                  placeholder="0.5"
+                />
+              </div>
+              {/* Carb unit and grams per XE */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Единица углеводов
+                </label>
+                <select
+                  className="medical-input"
+                  value={profile.carbUnit}
+                  onChange={(e) => handleInputChange('carbUnit', e.target.value)}
+                >
+                  <option value="g">г</option>
+                  <option value="xe">ХЕ</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Граммов на 1 ХЕ
+                </label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  pattern="^\\d*(?:[.,]\\d*)?$"
+                  value={profile.gramsPerXe}
+                  onChange={(e) => handleInputChange('gramsPerXe', e.target.value)}
+                  className="medical-input"
+                  placeholder="12"
+                />
+              </div>
+              {/* Rapid insulin type */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Тип быстрого инсулина
+                </label>
+                <select
+                  className="medical-input"
+                  value={profile.rapidInsulinType}
+                  onChange={(e) => handleInputChange('rapidInsulinType', e.target.value)}
+                >
+                  <option value="aspart">Aspart</option>
+                  <option value="lispro">Lispro</option>
+                  <option value="glulisine">Glulisine</option>
+                  <option value="regular">Regular</option>
+                </select>
+              </div>
+              {/* Max bolus */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Максимальный болюс
+                </label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  pattern="^\\d*(?:[.,]\\d*)?$"
+                  value={profile.maxBolus}
+                  onChange={(e) => handleInputChange('maxBolus', e.target.value)}
+                  className="medical-input"
+                  placeholder="10"
+                />
+              </div>
+              {/* Default after-meal minutes */}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Минут после еды по умолчанию
+                </label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  pattern="^\\d*(?:[.,]\\d*)?$"
+                  value={profile.afterMealMinutes}
+                  onChange={(e) => handleInputChange('afterMealMinutes', e.target.value)}
+                  className="medical-input"
+                  placeholder="120"
+                />
               </div>
             </div>
 

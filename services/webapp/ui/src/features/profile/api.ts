@@ -1,9 +1,20 @@
 import type { ProfileSchema } from '@sdk';
 import { api } from '@/api';
 
+export interface ExtendedProfileSchema extends ProfileSchema {
+  dia?: number | null;
+  preBolus?: number | null;
+  roundStep?: number | null;
+  carbUnit?: 'g' | 'xe' | null;
+  gramsPerXe?: number | null;
+  rapidInsulinType?: string | null;
+  maxBolus?: number | null;
+  defaultAfterMealMinutes?: number | null;
+}
+
 export async function getProfile(telegramId: number) {
   try {
-    return await api.get<ProfileSchema>(`/profiles?telegramId=${telegramId}`);
+    return await api.get<ExtendedProfileSchema>(`/profiles?telegramId=${telegramId}`);
   } catch (error) {
     console.error('Failed to load profile:', error);
     if (error instanceof SyntaxError) {
@@ -45,11 +56,25 @@ export async function saveProfile({
 export type PatchProfileDto = {
   timezone?: string | null;
   timezoneAuto?: boolean | null;
+  dia?: number | null;
+  preBolus?: number | null;
+  roundStep?: number | null;
+  carbUnit?: 'g' | 'xe' | null;
+  gramsPerXe?: number | null;
+  rapidInsulinType?: string | null;
+  maxBolus?: number | null;
+  defaultAfterMealMinutes?: number | null;
 };
 
 export async function patchProfile(payload: PatchProfileDto) {
   try {
-    return await api.patch<unknown>('/profile', payload);
+    const body: Record<string, unknown> = {};
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined) {
+        body[key] = value;
+      }
+    });
+    return await api.patch<unknown>('/profile', body);
   } catch (error) {
     console.error('Failed to update profile:', error);
     if (error instanceof Error) {

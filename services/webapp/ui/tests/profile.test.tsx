@@ -46,6 +46,14 @@ describe('Profile page', () => {
       target: 6,
       low: 4,
       high: 10,
+      dia: 4,
+      preBolus: 15,
+      roundStep: 0.5,
+      carbUnit: 'g',
+      gramsPerXe: 12,
+      rapidInsulinType: 'aspart',
+      maxBolus: 10,
+      defaultAfterMealMinutes: 120,
       timezone: 'Europe/Moscow',
       timezoneAuto: false,
     });
@@ -196,13 +204,73 @@ describe('Profile page', () => {
         low: 4,
         high: 10,
       });
-      expect(patchProfile).toHaveBeenCalledWith({
-        timezone: 'Europe/Moscow',
-        timezoneAuto: false,
-      });
+      expect(patchProfile).not.toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Профиль сохранен' }),
       );
+    });
+  });
+
+  it('renders advanced bolus fields', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    const { getByPlaceholderText } = render(<Profile />);
+    await waitFor(() => {
+      expect(getByPlaceholderText('15')).toBeTruthy();
+      expect(getByPlaceholderText('0.5')).toBeTruthy();
+      expect(getByPlaceholderText('120')).toBeTruthy();
+    });
+  });
+
+  it('validates advanced bolus fields', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    const { getByText, getByPlaceholderText } = render(<Profile />);
+    await waitFor(() => {
+      expect((getByPlaceholderText('15') as HTMLInputElement).value).toBe('15');
+    });
+    const preInput = getByPlaceholderText('15');
+    fireEvent.change(preInput, { target: { value: '-1' } });
+    fireEvent.click(getByText('Сохранить настройки'));
+    expect(saveProfile).not.toHaveBeenCalled();
+    expect(patchProfile).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Ошибка' }),
+    );
+  });
+
+  it('submits advanced bolus fields and sends patch only for changes', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (saveProfile as vi.Mock).mockResolvedValue(undefined);
+    const { getByText, getByPlaceholderText, getAllByPlaceholderText, getByDisplayValue } =
+      render(<Profile />);
+    await waitFor(() => {
+      expect((getByPlaceholderText('4') as HTMLInputElement).value).toBe('4');
+    });
+    fireEvent.change(getByPlaceholderText('4'), { target: { value: '5' } });
+    fireEvent.change(getByPlaceholderText('15'), { target: { value: '20' } });
+    fireEvent.change(getByPlaceholderText('0.5'), { target: { value: '1' } });
+    fireEvent.change(getAllByPlaceholderText('12')[1], { target: { value: '15' } });
+    fireEvent.change(getByPlaceholderText('10'), { target: { value: '12' } });
+    fireEvent.change(getByPlaceholderText('120'), { target: { value: '90' } });
+    fireEvent.change(getByDisplayValue('aspart'), {
+      target: { value: 'lispro' },
+    });
+    const carbSelect = getByDisplayValue('г') as HTMLSelectElement;
+    fireEvent.change(carbSelect, { target: { value: 'xe' } });
+
+    fireEvent.click(getByText('Сохранить настройки'));
+
+    await waitFor(() => {
+      expect(patchProfile).toHaveBeenCalledWith({
+        dia: 5,
+        preBolus: 20,
+        roundStep: 1,
+        carbUnit: 'xe',
+        gramsPerXe: 15,
+        rapidInsulinType: 'lispro',
+        maxBolus: 12,
+        defaultAfterMealMinutes: 90,
+      });
+      expect(saveProfile).toHaveBeenCalled();
     });
   });
 
@@ -215,6 +283,14 @@ describe('Profile page', () => {
       target: 6,
       low: 4,
       high: 10,
+      dia: 4,
+      preBolus: 15,
+      roundStep: 0.5,
+      carbUnit: 'g',
+      gramsPerXe: 12,
+      rapidInsulinType: 'aspart',
+      maxBolus: 10,
+      defaultAfterMealMinutes: 120,
       timezone: 'Europe/Moscow',
       timezoneAuto: true,
     });
@@ -239,6 +315,14 @@ describe('Profile page', () => {
       target: 6,
       low: 4,
       high: 10,
+      dia: 4,
+      preBolus: 15,
+      roundStep: 0.5,
+      carbUnit: 'g',
+      gramsPerXe: 12,
+      rapidInsulinType: 'aspart',
+      maxBolus: 10,
+      defaultAfterMealMinutes: 120,
       timezone: 'Europe/Moscow',
       timezoneAuto: false,
     });
@@ -272,6 +356,14 @@ describe('Profile page', () => {
       target: 5,
       low: 3,
       high: 8,
+      dia: 4,
+      preBolus: 15,
+      roundStep: 0.5,
+      carbUnit: 'g',
+      gramsPerXe: 12,
+      rapidInsulinType: 'aspart',
+      maxBolus: 10,
+      defaultAfterMealMinutes: 120,
     });
 
     const { getByPlaceholderText } = render(<Profile />);
@@ -288,6 +380,14 @@ describe('Profile page', () => {
       telegramId: 123,
       icr: 15,
       cf: 3,
+      dia: 4,
+      preBolus: 15,
+      roundStep: 0.5,
+      carbUnit: 'g',
+      gramsPerXe: 12,
+      rapidInsulinType: 'aspart',
+      maxBolus: 10,
+      defaultAfterMealMinutes: 120,
     });
 
     const { getByPlaceholderText } = render(<Profile />);
@@ -317,6 +417,14 @@ describe('Profile page', () => {
       target: 5,
       low: 3,
       high: 8,
+      dia: 4,
+      preBolus: 15,
+      roundStep: 0.5,
+      carbUnit: 'g',
+      gramsPerXe: 12,
+      rapidInsulinType: 'aspart',
+      maxBolus: 10,
+      defaultAfterMealMinutes: 120,
     });
 
     const { getByPlaceholderText } = render(<Profile />);
@@ -408,10 +516,7 @@ describe('Profile page', () => {
         low: 4,
         high: 10,
       });
-      expect(patchProfile).toHaveBeenCalledWith({
-        timezone: 'Europe/Moscow',
-        timezoneAuto: false,
-      });
+      expect(patchProfile).not.toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Профиль сохранен' }),
       );
