@@ -45,7 +45,10 @@ async def _reminders_gc(_context: ContextTypes.DEFAULT_TYPE) -> None:
     active_ids = {rem.id for rem in reminders}
 
     for rem in reminders:
-        schedule_reminder(rem, jq, rem.user)
+        try:
+            schedule_reminder(rem, jq, rem.user)
+        except Exception:  # pragma: no cover - defensive programming
+            logger.exception("Failed to schedule reminder %s", rem.id)
 
     for job_id, name in dbg_jobs_dump(jq):
         nm = name or job_id
