@@ -339,10 +339,8 @@ class HistoryRecord(Base):
     type: Mapped[str] = mapped_column(String, nullable=False)
 
 
-# Import additional models
-# Additional models can be defined in separate modules and imported here so
-# that ``Base.metadata`` is aware of them.  Currently, all models are declared
-# in this file, so no extra imports are required.
+# Import additional models so ``Base.metadata`` is aware of them.
+from .db_models import UserSettings  # noqa: F401, E402
 
 
 # ────────────────────── инициализация ────────────────────────
