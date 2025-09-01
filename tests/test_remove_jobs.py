@@ -37,46 +37,54 @@ class _Scheduler:
     def remove_job(self, job_id: str) -> None:
         self.queue.remove_job_by_id(job_id)
 
+    def get_job(self, job_id: str) -> _Job | None:
+        for job in self.queue._jobs:
+            if getattr(job, "id", None) == job_id:
+                return job
+        return None
+
 
 class _JobQueue:
     def __init__(self) -> None:
-        self.jobs: list[_Job] = []
+        self._jobs: list[_Job] = []
         self.scheduler = _Scheduler(self)
 
     def get_jobs_by_name(self, name: str) -> list[_Job]:
         result: list[_Job] = []
-        for job in self.jobs:
+        for job in self._jobs:
             jname = getattr(job, "name", None)
-            jid = getattr(job, "id", None)
-            if (jname is not None and jname.startswith(name)) or (
-                isinstance(jid, str) and jid.startswith(name)
-            ):
+            if jname is not None and jname.startswith(name):
                 result.append(job)
         return result
 
     def remove_job(self, job: _Job) -> None:
         try:
-            self.jobs.remove(job)
+            self._jobs.remove(job)
         except ValueError:
             pass
 
     def remove_job_by_id(self, job_id: str) -> None:
-        self.jobs = [j for j in self.jobs if getattr(j, "id", None) != job_id]
+        self._jobs = [j for j in self._jobs if getattr(j, "id", None) != job_id]
+
+    def jobs(self) -> list[_Job]:
+        return list(self._jobs)
 
 
 def test_remove_jobs() -> None:
     jq = _JobQueue()
-    jq.jobs.extend(
+    jq._jobs.extend(
         [
             _Job(jq, job_id="reminder_1"),
             _Job(jq, name="reminder_1", has_remove=True),
             _Job(jq, name="reminder_1_after", has_schedule_removal=True),
             _Job(jq, name="reminder_1_snooze", has_schedule_removal=True),
+            _Job(jq, name="reminder_1_extra", job_id="reminder_1_extra"),
+            _Job(jq, job_id="reminder_1_foo"),
         ]
     )
 
     removed = _remove_jobs(jq, "reminder_1")
 
-    assert removed == 4
+    assert removed == 6
     assert jq.get_jobs_by_name("reminder_1") == []
-    assert jq.jobs == []
+    assert jq.jobs() == []
