@@ -191,7 +191,7 @@ describe("parseProfile", () => {
 });
 
 describe("shouldWarnProfile", () => {
-  it("detects suspicious profile values", () => {
+  it("warns when ICR is high and CF is low", () => {
     expect(
       shouldWarnProfile({
         icr: 9,
@@ -209,6 +209,7 @@ describe("shouldWarnProfile", () => {
         afterMealMinutes: 0,
       }),
     ).toBe(true);
+
     expect(
       shouldWarnProfile({
         icr: 8,
@@ -226,6 +227,7 @@ describe("shouldWarnProfile", () => {
         afterMealMinutes: 0,
       }),
     ).toBe(false);
+
     expect(
       shouldWarnProfile({
         icr: 9,
@@ -242,6 +244,70 @@ describe("shouldWarnProfile", () => {
         maxBolus: 1,
         afterMealMinutes: 0,
       }),
+    ).toBe(false);
+  });
+
+  it("warns when DIA exceeds 12", () => {
+    expect(
+      shouldWarnProfile({
+        icr: 1,
+        cf: 2,
+        target: 5,
+        low: 4,
+        high: 10,
+        dia: 13,
+        preBolus: 0,
+        roundStep: 1,
+        carbUnit: "g",
+        gramsPerXe: 10,
+        rapidInsulinType: "aspart" as RapidInsulin,
+        maxBolus: 1,
+        afterMealMinutes: 0,
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldWarnProfile({
+        icr: 1,
+        cf: 2,
+        target: 5,
+        low: 4,
+        high: 10,
+        dia: 12,
+        preBolus: 0,
+        roundStep: 1,
+        carbUnit: "g",
+        gramsPerXe: 10,
+        rapidInsulinType: "aspart" as RapidInsulin,
+        maxBolus: 1,
+        afterMealMinutes: 0,
+      }),
+    ).toBe(false);
+  });
+
+  it("warns when carb unit changes without ICR recalculation", () => {
+    const original = {
+      icr: 10,
+      cf: 2,
+      target: 5,
+      low: 4,
+      high: 10,
+      dia: 1,
+      preBolus: 0,
+      roundStep: 1,
+      carbUnit: "g" as const,
+      gramsPerXe: 12,
+      rapidInsulinType: "aspart" as RapidInsulin,
+      maxBolus: 1,
+      afterMealMinutes: 0,
+    };
+
+    expect(
+      shouldWarnProfile({ ...original, carbUnit: "xe" }, original),
+    ).toBe(true);
+
+    expect(
+      shouldWarnProfile({ ...original, carbUnit: "xe", icr: 0.8 }, original),
     ).toBe(false);
   });
 });
