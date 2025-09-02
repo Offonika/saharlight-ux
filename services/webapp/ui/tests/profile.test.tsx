@@ -162,6 +162,20 @@ describe('Profile page', () => {
     );
   });
 
+  it('toggles grams per XE input with carb unit', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    const { queryByLabelText, getByDisplayValue } = render(<Profile />);
+
+    await waitFor(() => {
+      expect(getProfile).toHaveBeenCalledWith(123);
+    });
+
+    expect(queryByLabelText('Граммов на 1 ХЕ')).toBeNull();
+    const select = getByDisplayValue('г') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'xe' } });
+    expect(queryByLabelText('Граммов на 1 ХЕ')).not.toBeNull();
+  });
+
   it('blocks save when target is out of range and shows toast', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
 
@@ -353,7 +367,7 @@ describe('Profile page', () => {
   it('submits advanced bolus fields and sends patch only for changes', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
-    const { getByText, getByPlaceholderText, getAllByPlaceholderText, getByDisplayValue } =
+    const { getByText, getByPlaceholderText, getByDisplayValue, getByLabelText } =
       render(<Profile />);
     await waitFor(() => {
       expect((getByPlaceholderText('4') as HTMLInputElement).value).toBe('4');
@@ -361,14 +375,16 @@ describe('Profile page', () => {
     fireEvent.change(getByPlaceholderText('4'), { target: { value: '5' } });
     fireEvent.change(getByPlaceholderText('15'), { target: { value: '20' } });
     fireEvent.change(getByPlaceholderText('0.5'), { target: { value: '1' } });
-    fireEvent.change(getAllByPlaceholderText('12')[1], { target: { value: '15' } });
+    const carbSelect = getByDisplayValue('г') as HTMLSelectElement;
+    fireEvent.change(carbSelect, { target: { value: 'xe' } });
+    fireEvent.change(getByLabelText('Граммов на 1 ХЕ'), {
+      target: { value: '15' },
+    });
     fireEvent.change(getByPlaceholderText('10'), { target: { value: '12' } });
     fireEvent.change(getByPlaceholderText('120'), { target: { value: '90' } });
     fireEvent.change(getByDisplayValue('aspart'), {
       target: { value: 'lispro' },
     });
-    const carbSelect = getByDisplayValue('г') as HTMLSelectElement;
-    fireEvent.change(carbSelect, { target: { value: 'xe' } });
 
     fireEvent.click(getByText('Сохранить настройки'));
 
