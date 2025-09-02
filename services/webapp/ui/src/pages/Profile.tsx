@@ -807,10 +807,18 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       value={profile.rapidInsulinType}
                       onChange={(e) => handleInputChange('rapidInsulinType', e.target.value)}
                     >
-                      <option value="aspart">Aspart</option>
-                      <option value="lispro">Lispro</option>
-                      <option value="glulisine">Glulisine</option>
-                      <option value="regular">Regular</option>
+                      <option value="aspart">
+                        {t('profileHelp.rapidInsulinType.options.aspart')}
+                      </option>
+                      <option value="lispro">
+                        {t('profileHelp.rapidInsulinType.options.lispro')}
+                      </option>
+                      <option value="glulisine">
+                        {t('profileHelp.rapidInsulinType.options.glulisine')}
+                      </option>
+                      <option value="regular">
+                        {t('profileHelp.rapidInsulinType.options.regular')}
+                      </option>
                     </select>
                   </div>
                   {/* Max bolus */}
