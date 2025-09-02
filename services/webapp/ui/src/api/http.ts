@@ -1,35 +1,10 @@
-import { getTelegramAuthHeaders } from '@/lib/telegram-auth';
+import { request as baseRequest } from '@/lib/http';
 
 const API_BASE = '/api';
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers);
-
-  if (init.body !== undefined && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  const authHeaders = getTelegramAuthHeaders();
-  Object.entries(authHeaders).forEach(([key, value]) => headers.set(key, value));
-
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      ...init,
-      headers,
-    });
-
-    // Check if response is HTML (backend not available) - do this BEFORE parsing JSON
-    const contentType = res.headers.get('content-type');
-    if (contentType?.includes('text/html')) {
-      throw new Error('Backend returned HTML instead of JSON');
-    }
-
-    const data = (await res.json()) as Record<string, unknown>;
-    if (!res.ok) {
-      const msg = typeof data.detail === 'string' ? data.detail : 'Request failed';
-      throw new Error(msg);
-    }
-    return data as T;
+    return await baseRequest<T>(`${API_BASE}${path}`, init);
   } catch (error) {
     console.warn('[API] Backend request failed:', error);
     throw error;
@@ -39,17 +14,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const http = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body: unknown) =>
-    request<T>(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }),
+    request<T>(path, { method: 'POST', body }),
   patch: <T>(path: string, body: unknown) =>
-    request<T>(path, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }),
+    request<T>(path, { method: 'PATCH', body }),
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
 
