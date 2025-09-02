@@ -96,8 +96,37 @@ describe("parseProfile", () => {
   });
 
   it("validates preBolus upper bound", () => {
-    expect(parseProfile(makeProfile({ preBolus: "121" }))).toBeNull();
-    expect(parseProfile(makeProfile({ preBolus: "120" }))?.preBolus).toBe(120);
+    expect(parseProfile(makeProfile({ preBolus: "61" }))).toBeNull();
+    expect(parseProfile(makeProfile({ preBolus: "60" }))?.preBolus).toBe(60);
+  });
+
+  it("validates DIA upper bound", () => {
+    expect(parseProfile(makeProfile({ dia: "25" }))).toBeNull();
+    expect(parseProfile(makeProfile({ dia: "24" }))?.dia).toBe(24);
+  });
+
+  it("validates afterMealMinutes upper bound", () => {
+    expect(
+      parseProfile(makeProfile({ afterMealMinutes: "241" })),
+    ).toBeNull();
+    expect(
+      parseProfile(makeProfile({ afterMealMinutes: "240" }))?.afterMealMinutes,
+    ).toBe(240);
+  });
+
+  it("allows large roundStep and maxBolus", () => {
+    const result = parseProfile(
+      makeProfile({ roundStep: "10", maxBolus: "50" }),
+    );
+    expect(result?.roundStep).toBe(10);
+    expect(result?.maxBolus).toBe(50);
+  });
+
+  it("allows gramsPerXe above 20", () => {
+    const result = parseProfile(
+      makeProfile({ gramsPerXe: "25", carbUnit: "xe" }),
+    );
+    expect(result?.gramsPerXe).toBe(25);
   });
 
   it("parses tablet therapy profile skipping insulin fields", () => {
