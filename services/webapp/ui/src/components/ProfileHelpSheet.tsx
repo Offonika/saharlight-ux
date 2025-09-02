@@ -5,6 +5,7 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
+  SheetClose,
 } from '@/components/ui/sheet';
 import {
   Accordion,
@@ -13,7 +14,7 @@ import {
   AccordionContent,
 } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTranslation } from '@/i18n';
 
@@ -165,8 +166,17 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
         side={isMobile ? 'bottom' : 'right'}
         className="max-h-screen overflow-y-auto"
       >
-        <SheetHeader>
+        <SheetHeader className="flex-row items-center justify-between">
           <SheetTitle>{t('profileHelp.help')}</SheetTitle>
+          <SheetClose asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Закрыть"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </SheetClose>
         </SheetHeader>
         <Accordion type="single" collapsible className="w-full">
           {filtered.map((section) => (

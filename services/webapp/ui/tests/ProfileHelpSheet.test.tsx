@@ -28,6 +28,16 @@ describe('ProfileHelpSheet', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('renders focusable close button', () => {
+    render(<ProfileHelpSheet />);
+    fireEvent.click(screen.getAllByLabelText('Справка')[0]);
+    const closeBtn = screen.getByLabelText('Закрыть');
+    closeBtn.focus();
+    expect(document.activeElement).toBe(closeBtn);
+    fireEvent.click(closeBtn);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('uses bottom sheet on mobile', () => {
     (mobileHook.useIsMobile as unknown as vi.Mock).mockReturnValue(true);
     render(<ProfileHelpSheet />);
