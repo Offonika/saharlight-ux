@@ -11,13 +11,13 @@ describe('profile api', () => {
     vi.unstubAllGlobals();
   });
 
-  it('throws error when getProfile request fails', async () => {
+  it('throws error when getProfile request fails with 500', async () => {
     const mockFetch = vi
       .fn()
       .mockResolvedValue(
-        new Response(JSON.stringify({ detail: 'boom' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
+        new Response('boom', {
+          status: 500,
+          headers: { 'Content-Type': 'text/plain' },
         }),
       );
     vi.stubGlobal('fetch', mockFetch);
@@ -41,7 +41,7 @@ describe('profile api', () => {
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(getProfile(1)).rejects.toThrow(
-      'Не удалось получить профиль: некорректный ответ сервера',
+      'Не удалось получить профиль: Некорректный ответ сервера',
     );
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profiles?telegramId=1',
@@ -53,9 +53,9 @@ describe('profile api', () => {
     const mockFetch = vi
       .fn()
       .mockResolvedValue(
-        new Response(JSON.stringify({ detail: 'fail' }), {
+        new Response('fail', {
           status: 500,
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
         }),
       );
     vi.stubGlobal('fetch', mockFetch);
@@ -98,9 +98,9 @@ describe('profile api', () => {
     const mockFetch = vi
       .fn()
       .mockResolvedValue(
-        new Response(JSON.stringify({ detail: 'fail' }), {
+        new Response('fail', {
           status: 500,
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
         }),
       );
     vi.stubGlobal('fetch', mockFetch);
