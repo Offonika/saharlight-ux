@@ -53,7 +53,7 @@ def test_profiles_get_missing_profile_returns_404(
     engine.dispose()
 
 
-def test_profiles_get_db_error_returns_500(
+def test_profiles_get_db_error_returns_503(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     app = FastAPI()
@@ -68,8 +68,8 @@ def test_profiles_get_db_error_returns_500(
 
     with TestClient(app) as client:
         resp = client.get("/api/profiles", params={"telegramId": 1})
-    assert resp.status_code == 500
-    assert resp.json() == {"detail": "database connection failed"}
+    assert resp.status_code == 503
+    assert resp.json() == {"detail": "database temporarily unavailable"}
 
 
 def test_profiles_post_creates_user_for_missing_telegram_id(
