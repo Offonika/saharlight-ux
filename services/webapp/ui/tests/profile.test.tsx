@@ -141,11 +141,13 @@ describe('Profile page', () => {
     expect(options).toEqual(['Аспарт', 'Лиспро', 'Глулизин', 'Регуляр']);
   });
 
-  it('blocks save with invalid numeric input and shows toast', () => {
+  it('blocks save with invalid numeric input and shows toast', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
 
-    const { getByText, getByPlaceholderText } = render(<Profile />);
-    const icrInput = getByPlaceholderText('12');
+    const { getByText, findByLabelText } = render(<Profile />);
+    const icrInput = (await findByLabelText(/ICR/i, {
+      selector: 'input',
+    })) as HTMLInputElement;
     fireEvent.change(icrInput, { target: { value: '0' } });
 
     fireEvent.click(getByText('Сохранить настройки'));
@@ -170,10 +172,12 @@ describe('Profile page', () => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
 
-    expect(queryByLabelText('Граммов на 1 ХЕ')).toBeNull();
+    expect(queryByLabelText('Граммов на 1 ХЕ', { selector: 'input' })).toBeNull();
     const select = getByDisplayValue('г') as HTMLSelectElement;
     fireEvent.change(select, { target: { value: 'xe' } });
-    expect(queryByLabelText('Граммов на 1 ХЕ')).not.toBeNull();
+    expect(
+      queryByLabelText('Граммов на 1 ХЕ', { selector: 'input' }),
+    ).not.toBeNull();
   });
 
   it('blocks save when target is out of range and shows toast', () => {
@@ -201,13 +205,15 @@ describe('Profile page', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
 
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getAllByPlaceholderText } = render(<Profile />);
 
     await waitFor(() => {
-      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+      expect(
+        (getAllByPlaceholderText('12')[0] as HTMLInputElement).value,
+      ).toBe('12');
     });
 
-    const icrInput = getByPlaceholderText('12') as HTMLInputElement;
+    const icrInput = getAllByPlaceholderText('12')[0] as HTMLInputElement;
     fireEvent.change(icrInput, { target: { value: '1,5' } });
     expect(icrInput.value).toBe('1,5');
 
@@ -340,7 +346,7 @@ describe('Profile page', () => {
 
   it('renders advanced bolus fields', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getAllByPlaceholderText } = render(<Profile />);
     await waitFor(() => {
       expect(getByPlaceholderText('15')).toBeTruthy();
       expect(getByPlaceholderText('0.5')).toBeTruthy();
@@ -355,7 +361,7 @@ describe('Profile page', () => {
       expect((getByPlaceholderText('15') as HTMLInputElement).value).toBe('15');
     });
     const preInput = getByPlaceholderText('15');
-    fireEvent.change(preInput, { target: { value: '-1' } });
+    fireEvent.change(preInput, { target: { value: '61' } });
     fireEvent.click(getByText('Сохранить настройки'));
     expect(saveProfile).not.toHaveBeenCalled();
     expect(patchProfile).not.toHaveBeenCalled();
@@ -367,8 +373,12 @@ describe('Profile page', () => {
   it('submits advanced bolus fields and sends patch only for changes', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
-    const { getByText, getByPlaceholderText, getByDisplayValue, getByLabelText } =
-      render(<Profile />);
+    const {
+      getByText,
+      getByPlaceholderText,
+      getByDisplayValue,
+      getByLabelText,
+    } = render(<Profile />);
     await waitFor(() => {
       expect((getByPlaceholderText('4') as HTMLInputElement).value).toBe('4');
     });
@@ -377,7 +387,7 @@ describe('Profile page', () => {
     fireEvent.change(getByPlaceholderText('0.5'), { target: { value: '1' } });
     const carbSelect = getByDisplayValue('г') as HTMLSelectElement;
     fireEvent.change(carbSelect, { target: { value: 'xe' } });
-    fireEvent.change(getByLabelText('Граммов на 1 ХЕ'), {
+    fireEvent.change(getByLabelText('Граммов на 1 ХЕ', { selector: 'input' }), {
       target: { value: '15' },
     });
     fireEvent.change(getByPlaceholderText('10'), { target: { value: '12' } });
@@ -458,13 +468,16 @@ describe('Profile page', () => {
       therapyType: 'insulin',
     });
 
-    const { getByLabelText, getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByLabelText, getByText, getAllByPlaceholderText } =
+      render(<Profile />);
 
     await waitFor(() => {
-      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('6');
+      expect((getAllByPlaceholderText('12')[0] as HTMLInputElement).value).toBe(
+        '6',
+      );
     });
 
-    const tzInput = getByLabelText('Часовой пояс') as HTMLInputElement;
+    const tzInput = getByLabelText('Часовой пояс', { selector: 'input' }) as HTMLInputElement;
     fireEvent.change(tzInput, { target: { value: 'Europe/Berlin' } });
 
     fireEvent.click(getByText('Сохранить настройки'));
@@ -498,11 +511,13 @@ describe('Profile page', () => {
       therapyType: 'insulin',
     });
 
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getAllByPlaceholderText, getByPlaceholderText } = render(<Profile />);
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
-    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
+    expect((getAllByPlaceholderText('12')[0] as HTMLInputElement).value).toBe(
+      '15',
+    );
     expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('3');
   });
 
@@ -523,11 +538,13 @@ describe('Profile page', () => {
       therapyType: 'insulin',
     });
 
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getAllByPlaceholderText, getByPlaceholderText } = render(<Profile />);
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
-    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
+    expect((getAllByPlaceholderText('12')[0] as HTMLInputElement).value).toBe(
+      '15',
+    );
     expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('3');
     expect((getByPlaceholderText('6.0') as HTMLInputElement).value).toBe('');
     expect((getByPlaceholderText('4.0') as HTMLInputElement).value).toBe('');
@@ -561,12 +578,14 @@ describe('Profile page', () => {
       therapyType: 'insulin',
     });
 
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getAllByPlaceholderText, getByPlaceholderText } = render(<Profile />);
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
 
-    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
+    expect((getAllByPlaceholderText('12')[0] as HTMLInputElement).value).toBe(
+      '15',
+    );
     expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('');
     expect((getByPlaceholderText('6.0') as HTMLInputElement).value).toBe('5');
     expect((getByPlaceholderText('4.0') as HTMLInputElement).value).toBe('3');
@@ -580,6 +599,36 @@ describe('Profile page', () => {
       }),
     );
     expect(patchProfile).not.toHaveBeenCalled();
+  });
+
+  it('considers 0 preBolus and afterMealMinutes as complete', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (getProfile as vi.Mock).mockResolvedValue({
+      telegramId: 123,
+      icr: 15,
+      cf: 3,
+      target: 5,
+      low: 3,
+      high: 8,
+      dia: 4,
+      preBolus: 0,
+      roundStep: 0.5,
+      carbUnit: 'g',
+      gramsPerXe: 12,
+      rapidInsulinType: 'aspart',
+      maxBolus: 10,
+      defaultAfterMealMinutes: 0,
+      therapyType: 'insulin',
+    });
+
+    const { getByPlaceholderText } = render(<Profile />);
+    await waitFor(() => {
+      expect(getProfile).toHaveBeenCalledWith(123);
+    });
+
+    expect((getByPlaceholderText('15') as HTMLInputElement).value).toBe('0');
+    expect((getByPlaceholderText('120') as HTMLInputElement).value).toBe('0');
+    expect(toast).not.toHaveBeenCalled();
   });
 
   it('shows toast when profile load fails', async () => {
@@ -597,16 +646,18 @@ describe('Profile page', () => {
         variant: 'destructive',
       }),
     );
-    expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('');
+    expect((getAllByPlaceholderText('12')[0] as HTMLInputElement).value).toBe('');
     expect(patchProfile).not.toHaveBeenCalled();
   });
 
   it('shows warning modal and blocks save until confirmation', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getAllByPlaceholderText } = render(<Profile />);
 
     await waitFor(() => {
-      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+      expect((getAllByPlaceholderText('12')[0] as HTMLInputElement).value).toBe(
+        '12',
+      );
     });
 
     fireEvent.click(getByText('Сохранить настройки'));
@@ -617,11 +668,7 @@ describe('Profile page', () => {
       );
     });
 
-    expect(
-      getByText(
-        'ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности введенных данных',
-      ),
-    ).toBeTruthy();
+    expect(getByText(/ICR больше 8 и CF меньше 3/)).toBeTruthy();
     expect(saveProfile).not.toHaveBeenCalled();
     expect(patchProfile).not.toHaveBeenCalled();
   });
@@ -630,10 +677,12 @@ describe('Profile page', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
 
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getAllByPlaceholderText } = render(<Profile />);
 
     await waitFor(() => {
-      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+      expect((getAllByPlaceholderText('12')[0] as HTMLInputElement).value).toBe(
+        '12',
+      );
     });
 
     fireEvent.click(getByText('Сохранить настройки'));
