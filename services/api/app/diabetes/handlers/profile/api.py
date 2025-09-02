@@ -140,8 +140,12 @@ def save_profile(
     sos_alerts_enabled: bool = True,
 ) -> bool:
     """Persist profile values into the local database."""
+    user = session.get(User, user_id)
+    if user is None:
+        session.add(User(telegram_id=user_id, thread_id="api"))
+
     prof = session.get(Profile, user_id)
-    if not prof:
+    if prof is None:
         prof = Profile(telegram_id=user_id)
         session.add(prof)
     prof.icr = icr
@@ -179,7 +183,10 @@ def get_user_settings(session: Session, user_id: int) -> LocalUserSettings | Non
 
 
 def patch_user_settings(
-    session: Session, user_id: int, data: ProfileSettingsIn, device_tz: str | None = None
+    session: Session,
+    user_id: int,
+    data: ProfileSettingsIn,
+    device_tz: str | None = None,
 ) -> tuple[bool, bool]:
     """Persist user settings updating only provided values."""
     user = session.get(User, user_id)

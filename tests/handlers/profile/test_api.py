@@ -23,7 +23,9 @@ def session_factory() -> Generator[sessionmaker[Session], None, None]:
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
-    TestSession: sessionmaker[Session] = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    TestSession: sessionmaker[Session] = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False
+    )
     try:
         yield TestSession
     finally:
@@ -157,6 +159,19 @@ def test_save_profile_commit_failure(
     with session_factory() as session:
         prof = session.get(Profile, 1)
         assert prof is None
+
+
+def test_save_profile_creates_missing_user(
+    session_factory: sessionmaker[Session],
+) -> None:
+    with session_factory() as session:
+        ok = profile_api.save_profile(session, 1, 1.0, 2.0, 3.0, 4.0, 5.0)
+        assert ok is True
+
+    with session_factory() as session:
+        user = session.get(User, 1)
+        profile = session.get(Profile, 1)
+        assert user is not None and profile is not None
 
 
 def test_local_profiles_post_failure(
