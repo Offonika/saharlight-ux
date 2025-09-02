@@ -2,6 +2,7 @@ const profileHelp = {
   help: 'Справка',
   units: 'Единицы',
   range: 'Диапазон',
+  close: 'Закрыть',
   sections: {
     targets: 'Цели сахара',
     insulin: 'Инсулин',
