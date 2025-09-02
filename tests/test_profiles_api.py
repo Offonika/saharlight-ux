@@ -18,6 +18,41 @@ def test_profiles_get_requires_telegram_id() -> None:
     assert resp.status_code == 422
 
 
+def test_profiles_get_invalid_telegram_id_returns_422() -> None:
+    app = FastAPI()
+    app.include_router(router, prefix="/api")
+    with TestClient(app) as client:
+        resp = client.get("/api/profiles", params={"telegramId": -1})
+    assert resp.status_code == 422
+
+
+def test_profiles_get_missing_profile_returns_404(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app = FastAPI()
+    app.include_router(router, prefix="/api")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
+
+    async def _run_db(fn, *args, **kwargs):
+        return await db.run_db(fn, *args, sessionmaker=TestSession, **kwargs)
+
+    from services.api.app import legacy as legacy_module
+
+    monkeypatch.setattr(legacy_module, "run_db", _run_db)
+
+    with TestClient(app) as client:
+        resp = client.get("/api/profiles", params={"telegramId": 1})
+    assert resp.status_code == 404
+    engine.dispose()
+
+
 def test_profiles_post_creates_user_for_missing_telegram_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

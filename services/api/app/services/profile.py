@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from fastapi import HTTPException
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -19,6 +20,8 @@ from ..diabetes.schemas.profile import (
     RapidInsulinType,
 )
 from ..types import SessionProtocol
+
+logger = logging.getLogger(__name__)
 
 
 __all__ = [
@@ -195,8 +198,20 @@ async def save_profile(data: ProfileSchema) -> None:
     await db.run_db(_save, sessionmaker=db.SessionLocal)
 
 
-async def get_profile(telegram_id: int) -> Profile | None:  # pragma: no cover
+async def get_profile(telegram_id: int) -> Profile:
+    if telegram_id <= 0:
+        raise HTTPException(status_code=422, detail="telegramId must be positive")
+
     def _get(session: SessionProtocol) -> Profile | None:
         return cast(Profile | None, session.get(Profile, telegram_id))
 
-    return await db.run_db(_get, sessionmaker=db.SessionLocal)
+    try:
+        profile = await db.run_db(_get, sessionmaker=db.SessionLocal)
+    except Exception as exc:  # pragma: no cover - unexpected DB error
+        logger.exception("failed to fetch profile %s", telegram_id)
+        raise HTTPException(status_code=500, detail="db error") from exc
+
+    if profile is None:
+        raise HTTPException(status_code=404, detail="profile not found")
+
+    return profile

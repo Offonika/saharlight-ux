@@ -48,9 +48,16 @@ async def profiles_get(
     tid = telegramId or telegram_id
     if tid is None:
         raise HTTPException(status_code=422, detail="telegramId is required")
-    profile = await get_profile(tid)
-    if profile is None:
-        raise HTTPException(status_code=404, detail="profile not found")
+    if tid <= 0:
+        raise HTTPException(status_code=422, detail="telegramId must be positive")
+    try:
+        profile = await get_profile(tid)
+    except HTTPException:
+        logger.exception("failed to fetch profile %s", tid)
+        raise
+    except Exception as exc:  # pragma: no cover - unexpected DB error
+        logger.exception("failed to fetch profile %s", tid)
+        raise HTTPException(status_code=500, detail="db error") from exc
 
     tz = profile.timezone if profile.timezone else "UTC"
     tz_auto = profile.timezone_auto if profile.timezone_auto is not None else True
