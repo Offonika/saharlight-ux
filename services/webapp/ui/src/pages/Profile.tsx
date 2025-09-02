@@ -900,25 +900,6 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           </div>
         </div>
 
-        {/* Дополнительная информация */}
-        <div className="mt-6 medical-card bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
-          <h3 className="font-semibold text-foreground mb-3">Справка</h3>
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              <strong className="text-foreground">ICR</strong> - показывает,
-              сколько граммов углеводов покрывает 1 единица быстрого инсулина
-            </p>
-            <p>
-              <strong className="text-foreground">КЧ</strong> - показывает, на
-              сколько ммоль/л снижает уровень глюкозы 1 единица быстрого
-              инсулина
-            </p>
-            <p>
-              Эти параметры индивидуальны и должны быть определены совместно с
-              вашим врачом
-            </p>
-          </div>
-        </div>
       </main>
     </div>
     </TooltipProvider>
