@@ -4,3 +4,4 @@ export { default as MedicalButton } from './MedicalButton';
 export { default as ThemeToggle } from './ThemeToggle';
 export { default as Sheet } from './Sheet';
 export { default as TimeInput } from './TimeInput';
+export { default as HelpHint } from './HelpHint';
