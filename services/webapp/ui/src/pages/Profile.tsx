@@ -67,23 +67,42 @@ export const parseProfile = (
     const parsed = {
       icr: 0,
       cf: 0,
-      target: 0,
-      low: 0,
-      high: 0,
+      target: Number(profile.target.replace(/,/g, '.')),
+      low: Number(profile.low.replace(/,/g, '.')),
+      high: Number(profile.high.replace(/,/g, '.')),
       dia: 0,
       preBolus: 0,
-      roundStep: 0,
+      roundStep: Number(profile.roundStep.replace(/,/g, '.')),
       carbUnit: profile.carbUnit,
       gramsPerXe: Number(profile.gramsPerXe.replace(/,/g, '.')),
       rapidInsulinType: '',
       maxBolus: 0,
-      afterMealMinutes: 0,
+      afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, '.')),
     } satisfies ParsedProfile;
-    const numbersValid = Number.isFinite(parsed.gramsPerXe);
-    const positiveValid = parsed.gramsPerXe > 0;
+    const numbersValid =
+      [
+        parsed.target,
+        parsed.low,
+        parsed.high,
+        parsed.roundStep,
+        parsed.gramsPerXe,
+        parsed.afterMealMinutes,
+      ].every((v) => Number.isFinite(v));
+    const positiveValid =
+      parsed.target > 0 &&
+      parsed.low > 0 &&
+      parsed.high > 0 &&
+      parsed.roundStep > 0 &&
+      parsed.gramsPerXe > 0 &&
+      parsed.afterMealMinutes >= 0;
     const rangeValid =
+      parsed.low < parsed.high &&
+      parsed.low < parsed.target &&
+      parsed.target < parsed.high &&
+      parsed.roundStep <= 5 &&
       parsed.gramsPerXe >= 5 &&
       parsed.gramsPerXe <= 20 &&
+      parsed.afterMealMinutes <= 180 &&
       (parsed.carbUnit === 'g' || parsed.carbUnit === 'xe');
     return numbersValid && positiveValid && rangeValid ? parsed : null;
   }
