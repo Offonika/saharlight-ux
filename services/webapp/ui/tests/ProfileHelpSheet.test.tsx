@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import ru from '../src/locales/ru';
 
 import ProfileHelpSheet from '../src/components/ProfileHelpSheet';
 import * as mobileHook from '@/hooks/use-mobile';
@@ -61,5 +62,33 @@ describe('ProfileHelpSheet', () => {
 
     expect(screen.getByText('Целевой уровень сахара')).toBeTruthy();
     expect(screen.getByText('Шаг округления')).toBeTruthy();
+  });
+
+  it('renders unit without range when range translation is missing', () => {
+    const original = ru.profileHelp.target.range;
+    ru.profileHelp.target.range = '—';
+
+    render(<ProfileHelpSheet />);
+    fireEvent.click(screen.getAllByLabelText('Справка')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Цели сахара' }));
+
+    expect(screen.getByText(/Единицы:\s*ммоль\/л/)).toBeTruthy();
+    expect(screen.queryByText(/Диапазон:\s*4.0–7.0/)).toBeNull();
+
+    ru.profileHelp.target.range = original;
+  });
+
+  it('renders range without unit when unit translation is missing', () => {
+    const original = ru.profileHelp.target.unit;
+    ru.profileHelp.target.unit = '—';
+
+    render(<ProfileHelpSheet />);
+    fireEvent.click(screen.getAllByLabelText('Справка')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Цели сахара' }));
+
+    expect(screen.getByText(/Диапазон:\s*4.0–7.0/)).toBeTruthy();
+    expect(screen.queryByText(/Единицы:\s*ммоль\/л/)).toBeNull();
+
+    ru.profileHelp.target.unit = original;
   });
 });
