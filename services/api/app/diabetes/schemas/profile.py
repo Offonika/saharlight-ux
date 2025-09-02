@@ -38,6 +38,11 @@ class ProfileSettingsIn(BaseModel):
         alias="carbUnits",
         validation_alias=AliasChoices("carbUnits", "carb_units"),
     )
+    gramsPerXe: float | None = Field(
+        default=None,
+        alias="gramsPerXe",
+        validation_alias=AliasChoices("gramsPerXe", "grams_per_xe"),
+    )
     sosContact: str | None = Field(
         default=None,
         alias="sosContact",
@@ -62,6 +67,8 @@ class ProfileSettingsIn(BaseModel):
             raise ValueError("dia must be between 1 and 24 hours")
         if self.roundStep is not None and self.roundStep <= 0:
             raise ValueError("roundStep must be positive")
+        if self.gramsPerXe is not None and self.gramsPerXe <= 0:
+            raise ValueError("gramsPerXe must be positive")
         return self
 
 
@@ -73,6 +80,7 @@ class ProfileSettingsOut(ProfileSettingsIn):
     dia: float
     roundStep: float = Field(alias="roundStep")
     carbUnits: CarbUnits = Field(alias="carbUnits")
+    gramsPerXe: float = Field(alias="gramsPerXe")
     sosContact: str | None = Field(default=None, alias="sosContact")
     sosAlertsEnabled: bool = Field(alias="sosAlertsEnabled")
     therapyType: TherapyType = Field(alias="therapyType")
