@@ -48,7 +48,7 @@ const profileHelp = {
     title: 'Пре-болюс',
     definition: 'За сколько минут до еды вводить инсулин',
     unit: 'мин',
-    range: '0–60',
+    range: '0–120',
   },
   maxBolus: {
     title: 'Максимальный болюс',

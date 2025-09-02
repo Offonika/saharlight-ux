@@ -163,7 +163,7 @@ export const parseProfile = (
     parsed.low < parsed.target &&
     parsed.target < parsed.high &&
     parsed.dia <= 12 &&
-    parsed.preBolus <= 60 &&
+    parsed.preBolus <= 120 &&
     parsed.roundStep <= 5 &&
     parsed.maxBolus <= 25 &&
     parsed.afterMealMinutes <= 180 &&
