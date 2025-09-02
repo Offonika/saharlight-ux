@@ -211,9 +211,13 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
                         <p className="text-sm text-muted-foreground">
                           {t(item.definitionKey)}
                         </p>
-                        {unit !== '—' && range !== '—' && (
+                        {unit !== '—' && (
                           <p className="text-sm text-muted-foreground">
-                            {t('profileHelp.units')}: {unit};{' '}
+                            {t('profileHelp.units')}: {unit}
+                          </p>
+                        )}
+                        {range !== '—' && (
+                          <p className="text-sm text-muted-foreground">
                             {t('profileHelp.range')}: {range}
                           </p>
                         )}
