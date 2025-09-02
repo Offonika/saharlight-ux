@@ -221,8 +221,8 @@ low	low	low	> 0
 high	high	high	> 0
 timezone	timezone	timezone	IANA
 autoTimezone	auto_timezone	auto_timezone	bool
-quietStart	quietStart	quiet_start	HH:mm
-quietEnd	quietEnd	quiet_end	HH:mm
+quietStart	quiet_start	quiet_start	HH:mm
+quietEnd	quiet_end	quiet_end	HH:mm
 sosContact	sos_contact	sos_contact	формат валидируется
 sosEnabled	sos_enabled	sos_enabled	bool
 carbUnits	carb_units	carb_units	grams | xe
