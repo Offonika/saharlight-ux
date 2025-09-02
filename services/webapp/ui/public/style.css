@@ -1,3 +1,46 @@
+/* Theme variables */
+:root {
+  --bg: #fff;
+  --text: #111;
+  --accent: #0b7285;
+  --accent-text: #fff;
+  --sugar-bg: #fdeaea;
+  --sugar-text: #c53030;
+  --insulin-bg: #eaf4ff;
+  --insulin-text: #2b6cb0;
+  --meal-bg: #e8f5e9;
+  --meal-text: #2f855a;
+  --custom-bg: #e6fffa;
+  --custom-text: #0b7285;
+  --rem-sugar-border: #fbb6b6;
+  --rem-insulin-border: #90cdf4;
+  --rem-meal-border: #9ae6b4;
+  --rem-custom-border: #81e6d9;
+  --border-color: rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000;
+    --text: #eee;
+    --accent: #66d9e8;
+    --accent-text: #000;
+    --sugar-bg: #4a0f0f;
+    --sugar-text: #fbb6b6;
+    --insulin-bg: #1a365d;
+    --insulin-text: #90cdf4;
+    --meal-bg: #1c4532;
+    --meal-text: #9ae6b4;
+    --custom-bg: #134e4a;
+    --custom-text: #66d9e8;
+    --rem-sugar-border: #742a2a;
+    --rem-insulin-border: #2c5282;
+    --rem-meal-border: #276749;
+    --rem-custom-border: #285e61;
+    --border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
 /* Global typography */
 html {
   box-sizing: border-box;
@@ -9,16 +52,8 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
-  color: #111;
-  background: #fff;
-}
-
-/* Improve contrast in dark mode */
-@media (prefers-color-scheme: dark) {
-  body {
-    color: #eee;
-    background: #000;
-  }
+  color: var(--text);
+  background: var(--bg);
 }
 
 /* Responsive form grid: stacked by default, two columns from 420px */
@@ -34,7 +69,7 @@ form {
 
 /* Utility classes */
 .sheet {
-  background: #fff;
+  background: var(--bg);
   border-radius: 0.5rem;
   padding: 1rem;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -50,20 +85,20 @@ form {
   line-height: 1;
 }
 .type-chip.sugar {
-  background: #fdeaea;
-  color: #c53030;
+  background: var(--sugar-bg);
+  color: var(--sugar-text);
 }
 .type-chip.insulin {
-  background: #eaf4ff;
-  color: #2b6cb0;
+  background: var(--insulin-bg);
+  color: var(--insulin-text);
 }
 .type-chip.meal {
-  background: #e8f5e9;
-  color: #2f855a;
+  background: var(--meal-bg);
+  color: var(--meal-text);
 }
 .type-chip.custom {
-  background: #e6fffa;
-  color: #0b7285;
+  background: var(--custom-bg);
+  color: var(--custom-text);
 }
 
 .sticky-actions {
@@ -74,7 +109,7 @@ form {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-top: 1px solid var(--border-color);
 }
 
 .reminder-card {
@@ -83,24 +118,24 @@ form {
   gap: 0.75rem;
   padding: 0.75rem;
   border-radius: 0.5rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  background: #fff;
+  border: 1px solid var(--border-color);
+  background: var(--bg);
 }
 .reminder-card.sugar {
-  background: #fdeaea;
-  border-color: #fbb6b6;
+  background: var(--sugar-bg);
+  border-color: var(--rem-sugar-border);
 }
 .reminder-card.insulin {
-  background: #eaf4ff;
-  border-color: #90cdf4;
+  background: var(--insulin-bg);
+  border-color: var(--rem-insulin-border);
 }
 .reminder-card.meal {
-  background: #e8f5e9;
-  border-color: #9ae6b4;
+  background: var(--meal-bg);
+  border-color: var(--rem-meal-border);
 }
 .reminder-card.custom {
-  background: #e6fffa;
-  border-color: #81e6d9;
+  background: var(--custom-bg);
+  border-color: var(--rem-custom-border);
 }
 
 .rem-title {
@@ -111,8 +146,8 @@ form {
 
 /* Buttons */
 .medical-button {
-  background: #0b7285;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-text);
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 0.5rem;
