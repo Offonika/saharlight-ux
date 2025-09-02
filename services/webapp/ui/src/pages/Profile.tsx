@@ -535,22 +535,19 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       <Modal
         open={warningOpen}
         onClose={() => setWarningOpen(false)}
-        title="Проверьте значения"
+        title={t('profile.warning.title')}
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setWarningOpen(false)}>
-              Отмена
+              {t('profile.warning.cancel')}
             </Button>
             <MedicalButton onClick={handleConfirmSave}>
-              Продолжить
+              {t('profile.warning.confirm')}
             </MedicalButton>
           </div>
         }
       >
-        <p>
-          ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности
-          введённых данных
-        </p>
+        <p>{t('profile.warning.message')}</p>
       </Modal>
 
       <TooltipProvider>
