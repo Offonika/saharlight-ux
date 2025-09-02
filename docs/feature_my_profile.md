@@ -43,7 +43,7 @@ CF — коэффициент чувствительности.
 
 DIA — длительность действия быстрого инсулина, 1–24 ч.
 
-insulinType — тип быстрого.
+insulinType — тип быстрого *(не запланировано)*.
 
 prebolusMin — предболюс, мин (0–60).
 
@@ -162,10 +162,11 @@ carb_units TEXT CHECK ('g','xe') DEFAULT 'g' NOT NULL,
 grams_per_xe NUMERIC DEFAULT 12 CHECK (grams_per_xe > 0),
 therapy_type TEXT CHECK ('insulin','tablets','none','mixed') DEFAULT 'insulin' NOT NULL,
 glucose_units TEXT DEFAULT 'mmol/L' NOT NULL,
-insulin_type TEXT NULL,
 prebolus_min SMALLINT DEFAULT 0 CHECK (prebolus_min BETWEEN 0 AND 60),
 max_bolus NUMERIC DEFAULT 10 CHECK (max_bolus > 0),
 postmeal_check_min SMALLINT DEFAULT 0 CHECK (postmeal_check_min BETWEEN 0 AND 240).
+
+// поле insulin_type пока не планируется
 
 Политика NULL для болюсных полей при therapy_type='tablets' или 'none' — через бизнес-валидацию (предпочтительно), без жёстких CHECK.
 
@@ -238,7 +239,7 @@ gramsPerXE      grams_per_xe    grams_per_xe    > 0 (по умолчанию 12)
 ICR     icr     icr     > 0 (только insulin/mixed)
 CF      cf      cf      > 0 (только insulin/mixed)
 DIA     dia            dia            1–24 (только insulin/mixed)
-insulinType     insulin_type    insulin_type    строка (только insulin/mixed)
+insulinType     insulin_type    insulin_type    строка (только insulin/mixed) *(не запланировано)*
 prebolusMin     prebolus_min    prebolus_min    0–60 (только insulin/mixed)
 roundingStep    round_step      round_step      > 0 (только insulin/mixed)
 maxBolus        max_bolus       max_bolus       > 0 (только insulin/mixed)
