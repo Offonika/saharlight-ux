@@ -31,6 +31,7 @@ import services.api.app.diabetes.handlers.reminder_handlers as handlers
 import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.services.db import (
     Base,
+    Entry,
     Reminder,
     ReminderLog,
     User as DbUser,
@@ -1422,6 +1423,35 @@ async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_webapp_save_sugar(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit = commit
+    monkeypatch.setattr(handlers, "check_alert", AsyncMock())
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    msg = DummyMessage()
+    web_app_data = MagicMock()
+    web_app_data.data = json.dumps({"id": 1, "sugar": 5.6})
+    msg.web_app_data = web_app_data
+    update = make_update(effective_message=msg, effective_user=make_user(1))
+    context = make_context(job_queue=DummyJobQueue())
+    await handlers.reminder_webapp_save(update, context)
+
+    assert msg.texts and msg.texts[0] == "Записано 5.6 ммоль/л"
+    with TestSession() as session:
+        log = session.query(ReminderLog).first()
+        assert log is not None and log.action == "value_saved"
+        entry = session.query(Entry).first()
+        assert entry is not None and entry.sugar_before == 5.6
+
+
+@pytest.mark.asyncio
 async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -1470,9 +1500,10 @@ async def test_trigger_job_logs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert reply_markup.inline_keyboard
 
     keyboard = reply_markup.inline_keyboard[0]
-    assert len(keyboard) >= 2
+    assert len(keyboard) == 3
     assert keyboard[0].callback_data == "remind_snooze:1:10"
-    assert keyboard[1].callback_data == "remind_cancel:1"
+    assert keyboard[1].callback_data == "remind_done:1"
+    assert keyboard[2].callback_data == "remind_log:1"
 
     with TestSession() as session:
         log = session.query(ReminderLog).first()
@@ -1567,6 +1598,54 @@ async def test_cancel_callback(monkeypatch: pytest.MonkeyPatch) -> None:
         assert log.action == "remind_cancel"
         assert log.snooze_minutes is None
 
+
+@pytest.mark.asyncio
+async def test_done_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit = commit
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
+        session.commit()
+
+    query = DummyCallbackQuery("remind_done:1", DummyMessage())
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=DummyJobQueue(), bot=DummyBot())
+    await handlers.reminder_callback(update, context)
+    assert query.edited is not None
+    edited_text, _ = query.edited
+    assert edited_text == "Готово ✅"
+    with TestSession() as session:
+        log = session.query(ReminderLog).first()
+        assert log is not None and log.action == "done"
+
+
+@pytest.mark.asyncio
+async def test_log_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    handlers.SessionLocal = TestSession
+    handlers.commit = commit
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
+        session.commit()
+
+    msg = DummyMessage()
+    query = DummyCallbackQuery("remind_log:1", msg)
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=DummyJobQueue(), bot=DummyBot())
+    await handlers.reminder_callback(update, context)
+    assert msg.texts
+    with TestSession() as session:
+        log = session.query(ReminderLog).first()
+        assert log is not None and log.action == "log_opened"
 
 @pytest.mark.asyncio
 async def test_snooze_callback_default_delay(
