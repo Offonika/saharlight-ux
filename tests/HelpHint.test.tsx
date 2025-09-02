@@ -3,7 +3,6 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
 
 import HelpHint from '../services/webapp/ui/src/components/HelpHint';
-import { TooltipProvider } from '../services/webapp/ui/src/components/ui/tooltip';
 
 describe('HelpHint', () => {
   afterEach(() => {
@@ -11,11 +10,7 @@ describe('HelpHint', () => {
   });
 
   const setup = () =>
-    render(
-      <TooltipProvider delayDuration={0}>
-        <HelpHint label="ICR">Example</HelpHint>
-      </TooltipProvider>,
-    );
+    render(<HelpHint label="ICR">Example</HelpHint>);
 
   it('shows tooltip on focus and hides on blur', async () => {
     setup();

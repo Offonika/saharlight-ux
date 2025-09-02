@@ -10,7 +10,6 @@ import Modal from "@/components/Modal";
 import HelpHint from "@/components/HelpHint";
 import ProfileHelpSheet from "@/components/ProfileHelpSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { useTranslation } from "@/i18n";
 import {
   saveProfile,
@@ -553,21 +552,20 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         </p>
       </Modal>
 
-      <TooltipProvider>
-        <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-          <ProfileFormHeader
-            onBack={() => navigate("/")}
-            therapyType={therapyType}
-          />
+      <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
+        <ProfileFormHeader
+          onBack={() => navigate("/")}
+          therapyType={therapyType}
+        />
 
-          <main className="container mx-auto px-4 py-6">
-          <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-          <div className="space-y-6">
-            {isInsulinTherapy && (
-              <>
-                {/* ICR */}
-                <div>
-                  <label
+        <main className="container mx-auto px-4 py-6">
+        <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+        <div className="space-y-6">
+          {isInsulinTherapy && (
+            <>
+              {/* ICR */}
+              <div>
+                <label
                     htmlFor="icr"
                     className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                   >
@@ -987,7 +985,6 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
 
       </main>
     </div>
-    </TooltipProvider>
     </>
   );
 };

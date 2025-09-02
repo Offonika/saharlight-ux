@@ -1,7 +1,12 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import { HelpCircle } from 'lucide-react';
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n';
 
@@ -24,22 +29,24 @@ const HelpHint = ({ label, children, className, side }: HelpHintProps) => {
   };
 
   return (
-    <Tooltip open={open} onOpenChange={setOpen}>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onKeyDown={handleKeyDown}
-          className={cn(
-            'flex h-4 w-4 items-center justify-center text-muted-foreground',
-            className,
-          )}
-          aria-label={t(label ?? 'profileHelp.help')}
-        >
-          <HelpCircle className="h-4 w-4" aria-hidden="true" />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side={side}>{children}</TooltipContent>
-    </Tooltip>
+    <TooltipProvider delayDuration={150}>
+      <Tooltip open={open} onOpenChange={setOpen}>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onKeyDown={handleKeyDown}
+            className={cn(
+              'flex h-4 w-4 items-center justify-center text-muted-foreground',
+              className,
+            )}
+            aria-label={t(label ?? 'profileHelp.help')}
+          >
+            <HelpCircle className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side={side}>{children}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 

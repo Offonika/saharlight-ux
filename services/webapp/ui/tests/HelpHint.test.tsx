@@ -3,19 +3,13 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
 
 import HelpHint from '../src/components/HelpHint';
-import { TooltipProvider } from '../src/components/ui/tooltip';
 
 describe('HelpHint', () => {
   afterEach(() => {
     cleanup();
   });
 
-  const setup = () =>
-    render(
-      <TooltipProvider delayDuration={0}>
-        <HelpHint label="ICR">Example</HelpHint>
-      </TooltipProvider>,
-    );
+  const setup = () => render(<HelpHint label="ICR">Example</HelpHint>);
 
   it('shows tooltip on focus and hides on blur', async () => {
     setup();
