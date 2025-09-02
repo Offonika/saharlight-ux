@@ -184,7 +184,7 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
           className="gap-2"
         >
           <HelpCircle className="h-5 w-5" />
-          Справка
+          {t('profileHelp.help')}
         </Button>
       </SheetTrigger>
       <SheetContent
