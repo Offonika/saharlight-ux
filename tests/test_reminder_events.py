@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 from types import SimpleNamespace
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -80,19 +81,61 @@ def test_schedule_reminders_gc_sets_job_kwargs() -> None:
         callback: object,
         *,
         interval: object,
+        first: object | None = None,
         name: object,
         job_kwargs: dict[str, object] | None,
-    ) -> None:
+    ) -> object:
         called["callback"] = callback
         called["interval"] = interval
+        called["first"] = first
         called["name"] = name
         called["job_kwargs"] = job_kwargs
+        return SimpleNamespace(next_run_time=None)
 
     jq = SimpleNamespace(run_repeating=run_repeating)
     reminder_events.schedule_reminders_gc(cast(Any, jq))
 
     assert called["name"] == "reminders_gc"
+    assert called["first"] == timedelta(seconds=0)
     assert called["job_kwargs"] == {"id": "reminders_gc", "replace_existing": True}
+
+
+def test_schedule_reminders_gc_next_run_updates_every_90_seconds() -> None:
+    start = datetime.now(timezone.utc)
+
+    class DummyJob:
+        def __init__(self, interval: timedelta) -> None:
+            self.interval = interval
+            self.next_run_time = datetime.now(timezone.utc) + interval
+
+        def run(self) -> None:
+            self.next_run_time += self.interval
+
+    class DummyJobQueue:
+        def __init__(self) -> None:
+            self.job: DummyJob | None = None
+
+        def run_repeating(
+            self,
+            callback: object,
+            *,
+            interval: timedelta,
+            first: object | None = None,
+            name: object,
+            job_kwargs: dict[str, object] | None,
+        ) -> DummyJob:
+            job = DummyJob(interval)
+            self.job = job
+            return job
+
+    jq = DummyJobQueue()
+    reminder_events.schedule_reminders_gc(cast(Any, jq))
+    job = jq.job
+    assert job is not None
+    assert job.next_run_time >= start
+    first_next_run = job.next_run_time
+    job.run()
+    assert job.next_run_time == first_next_run + timedelta(seconds=90)
 
 
 @pytest.mark.asyncio
