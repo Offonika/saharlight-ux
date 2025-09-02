@@ -42,6 +42,7 @@ class LocalUserSettings:
     dia: float = 4.0
     round_step: float = 0.5
     carb_units: str = "g"
+    grams_per_xe: float = 12.0
 
 
 class LocalProfileAPI:
@@ -183,6 +184,7 @@ def get_user_settings(session: Session, user_id: int) -> LocalUserSettings | Non
         dia=profile.dia,
         round_step=profile.round_step,
         carb_units=profile.carb_units,
+        grams_per_xe=profile.grams_per_xe,
     )
 
 
@@ -216,6 +218,8 @@ def patch_user_settings(
         profile.round_step = data.roundStep
     if data.carbUnits is not None:
         profile.carb_units = data.carbUnits.value
+    if data.gramsPerXe is not None:
+        profile.grams_per_xe = data.gramsPerXe
     if data.sosContact is not None:
         profile.sos_contact = data.sosContact
     if data.sosAlertsEnabled is not None:
