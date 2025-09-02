@@ -551,7 +551,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       placeholder="12"
                     />
                     <span className="absolute right-3 top-3 text-muted-foreground text-sm">
-                      г/ед.
+                      {t('profileHelp.icr.unit')}
                     </span>
                   </div>
                 </div>
@@ -579,7 +579,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       placeholder="2.5"
                     />
                     <span className="absolute right-3 top-3 text-muted-foreground text-sm">
-                      ммоль/л
+                      {t('profileHelp.cf.unit')}
                     </span>
                   </div>
                 </div>
@@ -609,7 +609,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   placeholder="6.0"
                 />
                 <span className="absolute right-3 top-3 text-muted-foreground text-sm">
-                  ммоль/л
+                  {t('profileHelp.target.unit')}
                 </span>
               </div>
             </div>
@@ -638,7 +638,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                     placeholder="4.0"
                   />
                   <span className="absolute right-3 top-3 text-muted-foreground text-xs">
-                    ммоль/л
+                    {t('profileHelp.low.unit')}
                   </span>
                 </div>
               </div>
@@ -665,7 +665,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                     placeholder="10.0"
                   />
                   <span className="absolute right-3 top-3 text-muted-foreground text-xs">
-                    ммоль/л
+                    {t('profileHelp.high.unit')}
                   </span>
                 </div>
               </div>
@@ -865,9 +865,12 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
             <div>
               <label
                 htmlFor="timezone"
-                className="block text-sm font-medium text-foreground mb-2"
+                className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
               >
-                Часовой пояс
+                {t('profileHelp.timezone.title')}
+                <HelpHint label="profileHelp.timezone.title">
+                  {t('profileHelp.timezone.definition')}
+                </HelpHint>
               </label>
               <input
                 id="timezone"
@@ -919,7 +922,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   }}
                 />
                 <label htmlFor="timezone-auto" className="text-sm text-foreground">
-                  Определять автоматически
+                  {t('profileHelp.timezone.auto')}
                 </label>
               </div>
             </div>

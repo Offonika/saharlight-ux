@@ -90,6 +90,7 @@ const profileHelp = {
     definition: 'Часовой пояс по стандарту IANA',
     unit: 'UTC±ч:м',
     range: 'UTC−12:00 — UTC+14:00',
+    auto: 'Определять автоматически',
   },
 };
 
