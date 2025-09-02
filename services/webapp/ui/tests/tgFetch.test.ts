@@ -12,6 +12,7 @@ describe('tgFetch', () => {
     vi.resetModules();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+    localStorage.clear();
   });
 
   it('prefixes base url and adds telegram header', async () => {
@@ -27,6 +28,26 @@ describe('tgFetch', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/ping', expect.any(Object));
     const headers = fetchMock.mock.calls[0][1]!.headers as Headers;
     expect(headers.get('X-Telegram-Init-Data')).toBe('init');
+  });
+
+  it('uses token from localStorage when WebApp initData missing', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(makeJsonResponse());
+    vi.stubGlobal('fetch', fetchMock);
+    localStorage.setItem('telegramInitData', 'stored');
+    const { tgFetch } = await import('../src/lib/tgFetch');
+    await tgFetch('/ping');
+    const headers = fetchMock.mock.calls[0][1]!.headers as Headers;
+    expect(headers.get('X-Telegram-Init-Data')).toBe('stored');
+  });
+
+  it('uses token from env when no other source available', async () => {
+    vi.stubEnv('VITE_TELEGRAM_INIT_DATA', 'envtoken');
+    const fetchMock = vi.fn().mockResolvedValue(makeJsonResponse());
+    vi.stubGlobal('fetch', fetchMock);
+    const { tgFetch } = await import('../src/lib/tgFetch');
+    await tgFetch('/ping');
+    const headers = fetchMock.mock.calls[0][1]!.headers as Headers;
+    expect(headers.get('X-Telegram-Init-Data')).toBe('envtoken');
   });
 
   it('overrides base url via env', async () => {

@@ -1,10 +1,10 @@
 import type { ProfileSchema } from '@sdk';
-import { api } from '@/api';
+import { tgFetch } from '@/lib/tgFetch';
 import type { Profile, PatchProfileDto, RapidInsulin } from './types';
 
 export async function getProfile(telegramId: number): Promise<Profile> {
   try {
-    return await api.get<Profile>(`/profiles?telegramId=${telegramId}`);
+    return await tgFetch<Profile>(`/profiles?telegramId=${telegramId}`);
   } catch (error) {
     console.error('Failed to load profile:', error);
     if (error instanceof SyntaxError) {
@@ -48,7 +48,10 @@ export async function saveProfile({
       body.cf = cf;
     }
 
-    return await api.post<ProfileSchema>('/profiles', body);
+    return await tgFetch<ProfileSchema>('/profiles', {
+      method: 'POST',
+      body,
+    });
   } catch (error) {
     console.error('Failed to save profile:', error);
     if (error instanceof Error) {
@@ -66,7 +69,7 @@ export async function patchProfile(payload: PatchProfileDto) {
         body[key] = value;
       }
     });
-    return await api.patch<unknown>('/profile', body);
+    return await tgFetch<unknown>('/profile', { method: 'PATCH', body });
   } catch (error) {
     console.error('Failed to update profile:', error);
     if (error instanceof Error) {

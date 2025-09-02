@@ -2,6 +2,27 @@ const API_BASE = (
   import.meta.env.VITE_API_BASE as string | undefined
 ) ?? '/api';
 
+function getInitData(): string | null | undefined {
+  const initData = (
+    window as unknown as { Telegram?: { WebApp?: { initData?: string } } }
+  )?.Telegram?.WebApp?.initData;
+
+  if (initData) {
+    return initData;
+  }
+
+  const lsData =
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem('telegramInitData')
+      : null;
+
+  if (lsData) {
+    return lsData;
+  }
+
+  return import.meta.env.VITE_TELEGRAM_INIT_DATA as string | undefined;
+}
+
 function buildHeaders(init: RequestInit): Headers {
   const headers = new Headers(init.headers);
 
@@ -13,11 +34,9 @@ function buildHeaders(init: RequestInit): Headers {
     headers.set('Content-Type', 'application/json');
   }
 
-  const initData = (
-    window as unknown as { Telegram?: { WebApp?: { initData?: string } } }
-  )?.Telegram?.WebApp?.initData;
+  const initData = getInitData();
 
-  if (initData && !headers.has('X-Telegram-Init-Data')) {
+  if (initData) {
     headers.set('X-Telegram-Init-Data', initData);
   }
 
