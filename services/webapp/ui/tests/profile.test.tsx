@@ -212,7 +212,9 @@ describe('Profile page', () => {
     });
   });
 
-  it.each(['tablets', 'none'] as const)(
+  const nonInsulinTherapies: Array<'none' | 'tablets'> = ['none', 'tablets'];
+
+  it.each(nonInsulinTherapies)(
     'hides insulin fields for %s therapy',
     async (therapy) => {
       (resolveTelegramId as vi.Mock).mockReturnValue(123);
