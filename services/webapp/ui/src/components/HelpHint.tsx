@@ -17,7 +17,12 @@ interface HelpHintProps {
   side?: React.ComponentProps<typeof TooltipContent>['side'];
 }
 
-const HelpHint = ({ label, children, className, side }: HelpHintProps) => {
+const HelpHint = ({
+  label,
+  children,
+  className,
+  side = 'right',
+}: HelpHintProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
