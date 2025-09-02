@@ -603,7 +603,7 @@ describe('Profile page', () => {
     expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('3');
   });
 
-  it('shows toast and defaults when profile data is incomplete', async () => {
+  it('defaults when profile data is incomplete without toast', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue({
       telegramId: 123,
@@ -628,13 +628,7 @@ describe('Profile page', () => {
     expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('3');
     expect((getByPlaceholderText('6.0') as HTMLInputElement).value).toBe('');
     expect((getByPlaceholderText('4.0') as HTMLInputElement).value).toBe('');
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'Ошибка',
-        description: 'Профиль заполнен не полностью',
-        variant: 'destructive',
-      }),
-    );
+    expect(toast).not.toHaveBeenCalled();
     expect(patchProfile).not.toHaveBeenCalled();
   });
 
