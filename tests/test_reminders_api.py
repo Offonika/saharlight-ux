@@ -165,7 +165,7 @@ def test_empty_returns_200(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
     resp = client.get("/api/reminders", params={"telegramId": 1})
     assert resp.status_code == 200
@@ -176,7 +176,7 @@ def test_nonempty_returns_list(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(
             Reminder(
                 id=1,
@@ -216,7 +216,7 @@ def test_get_single_reminder(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(
             Reminder(
                 id=1,
@@ -268,7 +268,7 @@ def test_get_single_reminder_not_found(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
     resp = client.get("/api/reminders/1", params={"telegramId": 1})
     assert resp.status_code == 404
@@ -281,7 +281,7 @@ def test_patch_updates_reminder(
 ) -> None:
     client, _ = client_with_job_queue
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(
             Reminder(
                 id=1,
@@ -321,7 +321,7 @@ def test_delete_reminder(
 ) -> None:
     client, job_queue = client_with_job_queue
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
     job_queue.run_daily(lambda: None, time(8, 0), name="reminder_1")
@@ -340,7 +340,7 @@ def test_post_reminder_schedules_job(
 ) -> None:
     client, job_queue = client_with_job_queue
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
     resp = client.post(
         "/api/reminders",
@@ -357,7 +357,7 @@ def test_patch_reminder_schedules_job(
 ) -> None:
     client, job_queue = client_with_job_queue
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
     resp = client.patch(
@@ -387,7 +387,7 @@ def test_post_reminder_sends_event_without_job_queue(
 
     monkeypatch.setattr(reminders_router, "_post_job_queue_event", fake_post)
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
     resp = client.post(
         "/api/reminders",
@@ -411,7 +411,7 @@ def test_patch_reminder_sends_event_without_job_queue(
 
     monkeypatch.setattr(reminders_router, "_post_job_queue_event", fake_post)
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
     resp = client.patch(
@@ -441,7 +441,7 @@ def test_delete_reminder_sends_event_without_job_queue(
 
     monkeypatch.setattr(reminders_router, "_post_job_queue_event", fake_post)
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
     resp = client.delete("/api/reminders", params={"telegramId": 1, "id": 1})
@@ -506,7 +506,7 @@ def test_post_reminder_handles_notify_error(
     monkeypatch.setattr(reminder_events, "notify_reminder_saved", boom)
 
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
 
     resp = client.post(

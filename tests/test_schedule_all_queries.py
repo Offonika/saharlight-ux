@@ -91,7 +91,7 @@ def test_schedule_all_uses_constant_queries() -> None:
     TestSession, engine = _setup_session()
     handlers.SessionLocal = TestSession
     with TestSession() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         for _ in range(50):
             session.add(
                 Reminder(
@@ -127,7 +127,7 @@ def test_schedule_all_removes_existing_jobs() -> None:
     TestSession, _ = _setup_session()
     handlers.SessionLocal = TestSession
     with TestSession() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         rem = Reminder(
             telegram_id=1,
             type="sugar",

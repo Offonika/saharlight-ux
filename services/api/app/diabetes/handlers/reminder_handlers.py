@@ -13,6 +13,7 @@ from urllib.parse import parse_qsl
 
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker, selectinload
+from sqlalchemy.orm.exc import DetachedInstanceError
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -117,7 +118,15 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
     if user is None:
         user = cast(User | None, getattr(rem, "user", None))
     tz: datetime.tzinfo = timezone.utc
-    tzname = getattr(user, "timezone", None)
+    profile = None
+    if user is not None:
+        try:
+            profile = getattr(user, "profile")
+        except DetachedInstanceError:
+            profile = None
+    tzname = getattr(profile, "timezone", None)
+    if tzname is None and user is not None:
+        tzname = getattr(user, "timezone", None)
     if tzname:
         try:
             tz = ZoneInfo(tzname)
@@ -296,7 +305,11 @@ def schedule_all(job_queue: DefaultJobQueue | None) -> None:
         logger.warning("schedule_all called without job_queue")
         return
     with SessionLocal() as session:
-        reminders = session.query(Reminder).options(selectinload(Reminder.user)).all()
+        reminders = (
+            session.query(Reminder)
+            .options(selectinload(Reminder.user).joinedload(User.profile))
+            .all()
+        )
         count = len(reminders)
         logger.debug("Found %d reminders to schedule", count)
         for rem in reminders:

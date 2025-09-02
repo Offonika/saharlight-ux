@@ -45,7 +45,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     monkeypatch.setattr(reminders, "SessionLocal", TestSession)
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
     try:
         with TestClient(server.app) as test_client:

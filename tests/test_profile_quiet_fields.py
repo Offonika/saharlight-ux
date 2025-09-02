@@ -16,7 +16,7 @@ async def test_save_profile_stores_quiet_fields(monkeypatch: pytest.MonkeyPatch)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(db, "SessionLocal", TestSession)
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
     data = ProfileSchema(
         telegramId=1,
@@ -43,7 +43,7 @@ async def test_save_profile_defaults_quiet_fields(monkeypatch: pytest.MonkeyPatc
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(db, "SessionLocal", TestSession)
     with TestSession() as session:
-        session.add(User(telegram_id=2, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=2, thread_id="t"))
         session.commit()
     data = ProfileSchema(
         telegramId=2,

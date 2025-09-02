@@ -156,10 +156,11 @@ class User(Base):
     onboarding_complete: Mapped[bool] = mapped_column(Boolean, default=False)
     plan: Mapped[str] = mapped_column(String, default="free")
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
-    timezone: Mapped[str] = mapped_column(String, default="UTC")
-    timezone_auto: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
+    )
+    profile: Mapped["Profile"] = relationship(
+        "Profile", back_populates="user", uselist=False
     )
 
 
@@ -208,7 +209,7 @@ class Profile(Base):
     postmeal_check_min: Mapped[int] = mapped_column(Integer, default=0)
 
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
-    user: Mapped[User] = relationship("User")
+    user: Mapped[User] = relationship("User", back_populates="profile")
 
 
 class UserSettings(Base):

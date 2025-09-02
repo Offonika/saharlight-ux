@@ -130,7 +130,7 @@ def test_editing_reminder_replaces_job() -> None:
         is_enabled=True,
         days_mask=0,
     )
-    user = SimpleNamespace(timezone="UTC")
+    user = SimpleNamespace(profile=SimpleNamespace(timezone="UTC"))
 
     reminder_jobs.schedule_reminder(rem, job_queue, user)
     assert [j.run_time for j in job_queue.get_jobs_by_name("reminder_1")] == [dt_time(8, 0)]
@@ -156,7 +156,7 @@ def test_reschedule_job_helper_recreates_job() -> None:
         is_enabled=True,
         days_mask=0,
     )
-    user = SimpleNamespace(timezone="UTC")
+    user = SimpleNamespace(profile=SimpleNamespace(timezone="UTC"))
 
     reminder_jobs.schedule_reminder(rem, job_queue, user)
     assert [j.run_time for j in job_queue.get_jobs_by_name("reminder_1")] == [dt_time(8, 0)]
@@ -182,7 +182,7 @@ def test_reschedule_job_helper_handles_jobs_without_remove() -> None:
         is_enabled=True,
         days_mask=0,
     )
-    user = SimpleNamespace(timezone="UTC")
+    user = SimpleNamespace(profile=SimpleNamespace(timezone="UTC"))
 
     reminder_jobs.schedule_reminder(rem, job_queue, user)
     job = job_queue.get_jobs_by_name("reminder_1")[0]
@@ -209,7 +209,7 @@ def test_reschedule_job_updates_next_run_time() -> None:
         is_enabled=True,
         days_mask=0,
     )
-    user = SimpleNamespace(timezone="UTC")
+    user = SimpleNamespace(profile=SimpleNamespace(timezone="UTC"))
 
     reminder_jobs.schedule_reminder(rem, job_queue, user)
     rem.time = dt_time(10, 15)
