@@ -20,6 +20,7 @@ import {
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
+import { useTranslation } from "@/i18n";
 import { resolveTelegramId } from "./resolveTelegramId";
 
 type TherapyType = 'insulin' | 'tablets' | 'none' | 'mixed';
@@ -153,6 +154,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   const { toast } = useToast();
   const { user } = useTelegram();
   const initData = useTelegramInitData();
+  const { t } = useTranslation();
   const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [profile, setProfile] = useState<ProfileForm>({
     icr: "",
@@ -502,10 +504,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                 htmlFor="icr"
                 className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
               >
-                ICR (Инсулино-углеводное соотношение)
-                <HelpHint label="ICR (Инсулино-углеводное соотношение)">
-                  Показывает, сколько граммов углеводов покрывает 1 единица
-                  быстрого инсулина
+                {t('profileHelp.icr.title')}
+                <HelpHint label="profileHelp.icr.title">
+                  {t('profileHelp.icr.definition')}
                 </HelpHint>
               </label>
               <div className="relative">
@@ -531,10 +532,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                 htmlFor="cf"
                 className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
               >
-                Коэффициент коррекции (КЧ)
-                <HelpHint label="Коэффициент коррекции (КЧ)">
-                  На сколько ммоль/л снижает уровень глюкозы 1 единица
-                  быстрого инсулина
+                {t('profileHelp.cf.title')}
+                <HelpHint label="profileHelp.cf.title">
+                  {t('profileHelp.cf.definition')}
                 </HelpHint>
               </label>
               <div className="relative">
@@ -560,10 +560,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                 htmlFor="target"
                 className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
               >
-                Целевой уровень сахара
-                <HelpHint label="Целевой уровень сахара">
-                  Желаемый уровень глюкозы, к которому стремится приложение
-                  при расчётах
+                {t('profileHelp.target.title')}
+                <HelpHint label="profileHelp.target.title">
+                  {t('profileHelp.target.definition')}
                 </HelpHint>
               </label>
               <div className="relative">
@@ -590,10 +589,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   htmlFor="low"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  Нижний порог
-                  <HelpHint label="Нижний порог">
-                    При достижении этого уровня бот предупредит о
-                    гипогликемии
+                  {t('profileHelp.low.title')}
+                  <HelpHint label="profileHelp.low.title">
+                    {t('profileHelp.low.definition')}
                   </HelpHint>
                 </label>
                 <div className="relative">
@@ -618,10 +616,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   htmlFor="high"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  Верхний порог
-                  <HelpHint label="Верхний порог">
-                    При превышении этого уровня бот предупредит о
-                    гипергликемии
+                  {t('profileHelp.high.title')}
+                  <HelpHint label="profileHelp.high.title">
+                    {t('profileHelp.high.definition')}
                   </HelpHint>
                 </label>
                 <div className="relative">
@@ -653,9 +650,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   htmlFor="dia"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  DIA (часы)
-                  <HelpHint label="DIA (часы)">
-                    Сколько часов действует введённый инсулин
+                  {t('profileHelp.dia.title')}
+                  <HelpHint label="profileHelp.dia.title">
+                    {t('profileHelp.dia.definition')}
                   </HelpHint>
                 </label>
                 <input
@@ -675,9 +672,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   htmlFor="preBolus"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  Пре-болюс (мин)
-                  <HelpHint label="Пре-болюс (мин)">
-                    За сколько минут до еды вводить инсулин
+                  {t('profileHelp.preBolus.title')} (мин)
+                  <HelpHint label="profileHelp.preBolus.title">
+                    {t('profileHelp.preBolus.definition')}
                   </HelpHint>
                 </label>
                 <input
@@ -697,9 +694,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   htmlFor="roundStep"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  Шаг округления
-                  <HelpHint label="Шаг округления">
-                    Шаг округления дозы инсулина
+                  {t('profileHelp.roundStep.title')}
+                  <HelpHint label="profileHelp.roundStep.title">
+                    {t('profileHelp.roundStep.definition')}
                   </HelpHint>
                 </label>
                 <input
@@ -719,9 +716,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   htmlFor="carbUnit"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  Единица углеводов
-                  <HelpHint label="Единица углеводов">
-                    Единица измерения углеводов в расчётах
+                  {t('profileHelp.carbUnit.title')}
+                  <HelpHint label="profileHelp.carbUnit.title">
+                    {t('profileHelp.carbUnit.definition')}
                   </HelpHint>
                 </label>
                 <select
@@ -739,9 +736,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   htmlFor="gramsPerXe"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  Граммов на 1 ХЕ
-                  <HelpHint label="Граммов на 1 ХЕ">
-                    Количество граммов углеводов в одной ХЕ
+                  {t('profileHelp.gramsPerXe.title')}
+                  <HelpHint label="profileHelp.gramsPerXe.title">
+                    {t('profileHelp.gramsPerXe.definition')}
                   </HelpHint>
                 </label>
                 <input
@@ -761,9 +758,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   htmlFor="rapidInsulinType"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  Тип быстрого инсулина
-                  <HelpHint label="Тип быстрого инсулина">
-                    Используемый тип быстродействующего инсулина
+                  {t('profileHelp.rapidInsulinType.title')}
+                  <HelpHint label="profileHelp.rapidInsulinType.title">
+                    {t('profileHelp.rapidInsulinType.definition')}
                   </HelpHint>
                 </label>
                 <select
@@ -784,9 +781,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   htmlFor="maxBolus"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  Максимальный болюс
-                  <HelpHint label="Максимальный болюс">
-                    Максимальная доза болюсного инсулина за один раз.
+                  {t('profileHelp.maxBolus.title')}
+                  <HelpHint label="profileHelp.maxBolus.title">
+                    {t('profileHelp.maxBolus.definition')}
                   </HelpHint>
                 </label>
                 <input
@@ -806,9 +803,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   htmlFor="afterMealMinutes"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  Минут после еды по умолчанию
-                  <HelpHint label="Минут после еды по умолчанию">
-                    Через сколько минут после еды напомнить о замере сахара
+                  {t('profileHelp.afterMealMinutes.title')} по умолчанию
+                  <HelpHint label="profileHelp.afterMealMinutes.title">
+                    {t('profileHelp.afterMealMinutes.definition')}
                   </HelpHint>
                 </label>
                 <input
