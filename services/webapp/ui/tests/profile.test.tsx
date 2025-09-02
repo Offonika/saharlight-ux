@@ -56,6 +56,7 @@ describe('Profile page', () => {
       defaultAfterMealMinutes: 120,
       timezone: 'Europe/Moscow',
       timezoneAuto: false,
+      therapyType: 'insulin',
     });
     const realDTF = Intl.DateTimeFormat;
     const realResolved = realDTF.prototype.resolvedOptions;
@@ -211,38 +212,41 @@ describe('Profile page', () => {
     });
   });
 
-  it('hides insulin fields for tablet therapy', async () => {
-    (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    (getProfile as vi.Mock).mockResolvedValueOnce({
-      telegramId: 123,
-      icr: 12,
-      cf: 2.5,
-      target: 6,
-      low: 4,
-      high: 10,
-      dia: 4,
-      preBolus: 15,
-      roundStep: 0.5,
-      carbUnit: 'g',
-      gramsPerXe: 12,
-      rapidInsulinType: 'aspart',
-      maxBolus: 10,
-      defaultAfterMealMinutes: 120,
-      timezone: 'Europe/Moscow',
-      timezoneAuto: false,
-      therapyType: 'tablets',
-    });
-    const { queryByLabelText } = render(<Profile therapyType="tablets" />);
-    await waitFor(() => {
-      expect(getProfile).toHaveBeenCalled();
-    });
-    expect(queryByLabelText(/ICR/)).toBeNull();
-    expect(queryByLabelText(/Коэффициент коррекции/)).toBeNull();
-    expect(queryByLabelText(/DIA/)).toBeNull();
-    expect(queryByLabelText(/Пре-болюс/)).toBeNull();
-    expect(queryByLabelText(/Тип быстрого инсулина/)).toBeNull();
-    expect(queryByLabelText(/Максимальный болюс/)).toBeNull();
-  });
+  it.each(['tablets', 'none'] as const)(
+    'hides insulin fields for %s therapy',
+    async (therapy) => {
+      (resolveTelegramId as vi.Mock).mockReturnValue(123);
+      (getProfile as vi.Mock).mockResolvedValueOnce({
+        telegramId: 123,
+        icr: 12,
+        cf: 2.5,
+        target: 6,
+        low: 4,
+        high: 10,
+        dia: 4,
+        preBolus: 15,
+        roundStep: 0.5,
+        carbUnit: 'g',
+        gramsPerXe: 12,
+        rapidInsulinType: 'aspart',
+        maxBolus: 10,
+        defaultAfterMealMinutes: 120,
+        timezone: 'Europe/Moscow',
+        timezoneAuto: false,
+        therapyType: therapy,
+      });
+      const { queryByLabelText } = render(<Profile therapyType={therapy} />);
+      await waitFor(() => {
+        expect(getProfile).toHaveBeenCalled();
+      });
+      expect(queryByLabelText(/ICR/)).toBeNull();
+      expect(queryByLabelText(/Коэффициент коррекции/)).toBeNull();
+      expect(queryByLabelText(/DIA/)).toBeNull();
+      expect(queryByLabelText(/Пре-болюс/)).toBeNull();
+      expect(queryByLabelText(/Тип быстрого инсулина/)).toBeNull();
+      expect(queryByLabelText(/Максимальный болюс/)).toBeNull();
+    },
+  );
 
   it('renders advanced bolus fields', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
@@ -326,6 +330,7 @@ describe('Profile page', () => {
       defaultAfterMealMinutes: 120,
       timezone: 'Europe/Moscow',
       timezoneAuto: true,
+      therapyType: 'insulin',
     });
 
     render(<Profile />);
@@ -358,6 +363,7 @@ describe('Profile page', () => {
       defaultAfterMealMinutes: 120,
       timezone: 'Europe/Moscow',
       timezoneAuto: false,
+      therapyType: 'insulin',
     });
 
     const { getByLabelText, getByText, getByPlaceholderText } = render(<Profile />);
@@ -397,6 +403,7 @@ describe('Profile page', () => {
       rapidInsulinType: 'aspart',
       maxBolus: 10,
       defaultAfterMealMinutes: 120,
+      therapyType: 'insulin',
     });
 
     const { getByPlaceholderText } = render(<Profile />);
@@ -421,6 +428,7 @@ describe('Profile page', () => {
       rapidInsulinType: 'aspart',
       maxBolus: 10,
       defaultAfterMealMinutes: 120,
+      therapyType: 'insulin',
     });
 
     const { getByPlaceholderText } = render(<Profile />);
@@ -458,6 +466,7 @@ describe('Profile page', () => {
       rapidInsulinType: 'aspart',
       maxBolus: 10,
       defaultAfterMealMinutes: 120,
+      therapyType: 'insulin',
     });
 
     const { getByPlaceholderText } = render(<Profile />);

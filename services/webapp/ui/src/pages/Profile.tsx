@@ -498,7 +498,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           <main className="container mx-auto px-4 py-6">
           <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <div className="space-y-6">
-            {therapyType !== 'tablets' && (
+            {(therapyType === 'insulin' || therapyType === 'mixed') && (
               <>
                 {/* ICR */}
                 <div>
@@ -648,7 +648,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
               <h3 className="font-semibold text-foreground">
                 Расширенные настройки болюса
               </h3>
-              {therapyType !== 'tablets' && (
+              {(therapyType === 'insulin' || therapyType === 'mixed') && (
                 <>
                   {/* DIA */}
                   <div>
@@ -760,7 +760,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   placeholder="12"
                 />
               </div>
-              {therapyType !== 'tablets' && (
+              {(therapyType === 'insulin' || therapyType === 'mixed') && (
                 <>
                   {/* Rapid insulin type */}
                   <div>
