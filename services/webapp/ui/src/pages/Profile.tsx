@@ -177,10 +177,11 @@ const ProfileFormHeader = ({
   therapyType,
 }: ProfileFormHeaderProps) => {
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
 
   return (
     <>
-      <MedicalHeader title="Мой профиль" showBack onBack={onBack}>
+      <MedicalHeader title={t('profile.title')} showBack onBack={onBack}>
         {!isMobile && <ProfileHelpSheet therapyType={therapyType} />}
       </MedicalHeader>
       {isMobile && (
@@ -979,7 +980,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
               size="lg"
             >
               <Save className="w-4 h-4" />
-              Сохранить настройки
+              {t('profile.save')}
             </MedicalButton>
           </div>
         </div>
