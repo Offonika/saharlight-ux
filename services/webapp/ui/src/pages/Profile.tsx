@@ -59,22 +59,50 @@ type ParsedProfile = {
   afterMealMinutes: number;
 };
 
-export const parseProfile = (profile: ProfileForm): ParsedProfile | null => {
+export const parseProfile = (
+  profile: ProfileForm,
+  therapyType?: TherapyType,
+): ParsedProfile | null => {
+  if (therapyType === 'tablets' || therapyType === 'none') {
+    const parsed = {
+      icr: 0,
+      cf: 0,
+      target: 0,
+      low: 0,
+      high: 0,
+      dia: 0,
+      preBolus: 0,
+      roundStep: 0,
+      carbUnit: profile.carbUnit,
+      gramsPerXe: Number(profile.gramsPerXe.replace(/,/g, '.')),
+      rapidInsulinType: '',
+      maxBolus: 0,
+      afterMealMinutes: 0,
+    } satisfies ParsedProfile;
+    const numbersValid = Number.isFinite(parsed.gramsPerXe);
+    const positiveValid = parsed.gramsPerXe > 0;
+    const rangeValid =
+      parsed.gramsPerXe >= 5 &&
+      parsed.gramsPerXe <= 20 &&
+      (parsed.carbUnit === 'g' || parsed.carbUnit === 'xe');
+    return numbersValid && positiveValid && rangeValid ? parsed : null;
+  }
+
   const parsed = {
-    icr: Number(profile.icr.replace(/,/g, ".")),
-    cf: Number(profile.cf.replace(/,/g, ".")),
-    target: Number(profile.target.replace(/,/g, ".")),
-    low: Number(profile.low.replace(/,/g, ".")),
-    high: Number(profile.high.replace(/,/g, ".")),
-    dia: Number(profile.dia.replace(/,/g, ".")),
-    preBolus: Number(profile.preBolus.replace(/,/g, ".")),
-    roundStep: Number(profile.roundStep.replace(/,/g, ".")),
+    icr: Number(profile.icr.replace(/,/g, '.')),
+    cf: Number(profile.cf.replace(/,/g, '.')),
+    target: Number(profile.target.replace(/,/g, '.')),
+    low: Number(profile.low.replace(/,/g, '.')),
+    high: Number(profile.high.replace(/,/g, '.')),
+    dia: Number(profile.dia.replace(/,/g, '.')),
+    preBolus: Number(profile.preBolus.replace(/,/g, '.')),
+    roundStep: Number(profile.roundStep.replace(/,/g, '.')),
     carbUnit: profile.carbUnit,
-    gramsPerXe: Number(profile.gramsPerXe.replace(/,/g, ".")),
+    gramsPerXe: Number(profile.gramsPerXe.replace(/,/g, '.')),
     rapidInsulinType: profile.rapidInsulinType,
-    maxBolus: Number(profile.maxBolus.replace(/,/g, ".")),
-    afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, ".")),
-  };
+    maxBolus: Number(profile.maxBolus.replace(/,/g, '.')),
+    afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, '.')),
+  } satisfies ParsedProfile;
   const numbersValid =
     [
       parsed.icr,
@@ -432,7 +460,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       return;
     }
 
-    const parsed = parseProfile(profile);
+    const parsed = parseProfile(profile, therapyType);
     if (!parsed) {
       toast({
         title: "Ошибка",
