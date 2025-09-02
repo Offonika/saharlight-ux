@@ -37,16 +37,31 @@ export async function saveProfile({
   target,
   low,
   high,
-}: Pick<ProfileSchema, 'telegramId' | 'icr' | 'cf' | 'target' | 'low' | 'high'>) {
+}: {
+  telegramId: number;
+  target: number;
+  low: number;
+  high: number;
+  icr?: number;
+  cf?: number;
+}) {
   try {
-    return await api.post<ProfileSchema>('/profiles', {
+    const body: Record<string, unknown> = {
       telegramId,
-      icr,
-      cf,
       target,
       low,
       high,
-    });
+    };
+
+    if (icr !== undefined) {
+      body.icr = icr;
+    }
+
+    if (cf !== undefined) {
+      body.cf = cf;
+    }
+
+    return await api.post<ProfileSchema>('/profiles', body);
   } catch (error) {
     console.error('Failed to save profile:', error);
     if (error instanceof Error) {

@@ -69,6 +69,31 @@ describe('profile api', () => {
     );
   });
 
+  it('does not send insulin fields for non-insulin profiles', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ telegramId: 1, target: 5, low: 4, high: 10 }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      );
+    vi.stubGlobal('fetch', mockFetch);
+
+    await saveProfile({ telegramId: 1, target: 5, low: 4, high: 10 });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/profiles',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ telegramId: 1, target: 5, low: 4, high: 10 }),
+      }),
+    );
+  });
+
   it('throws error when patchProfile request fails', async () => {
     const mockFetch = vi
       .fn()
