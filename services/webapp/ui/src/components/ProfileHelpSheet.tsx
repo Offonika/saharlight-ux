@@ -201,17 +201,25 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
               <AccordionTrigger>{t(section.titleKey)}</AccordionTrigger>
               <AccordionContent>
                 <ul className="space-y-3">
-                  {section.items.map((item) => (
-                    <li key={item.key}>
-                      <p className="font-medium">{t(item.titleKey)}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {t(item.definitionKey)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {t('profileHelp.units')}: {t(item.unitKey)}; {t('profileHelp.range')}: {t(item.rangeKey)}
-                      </p>
-                    </li>
-                  ))}
+                  {section.items.map((item) => {
+                    const unit = t(item.unitKey);
+                    const range = t(item.rangeKey);
+
+                    return (
+                      <li key={item.key}>
+                        <p className="font-medium">{t(item.titleKey)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {t(item.definitionKey)}
+                        </p>
+                        {unit !== '—' && range !== '—' && (
+                          <p className="text-sm text-muted-foreground">
+                            {t('profileHelp.units')}: {unit};{' '}
+                            {t('profileHelp.range')}: {range}
+                          </p>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </AccordionContent>
             </AccordionItem>
