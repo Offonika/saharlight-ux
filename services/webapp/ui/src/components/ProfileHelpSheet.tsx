@@ -146,7 +146,7 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
   const { t } = useTranslation();
 
   const filtered =
-    therapyType === 'tablets'
+    therapyType === 'tablets' || therapyType === 'none'
       ? sections.filter((s) => s.key !== 'insulin')
       : sections;
 

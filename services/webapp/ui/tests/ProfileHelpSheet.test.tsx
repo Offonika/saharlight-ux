@@ -17,6 +17,13 @@ describe('ProfileHelpSheet', () => {
     expect(screen.getByText('Цели сахара')).toBeTruthy();
   });
 
+  it('hides insulin section for none therapy', () => {
+    render(<ProfileHelpSheet therapyType="none" />);
+    fireEvent.click(screen.getAllByLabelText('Справка')[0]);
+    expect(screen.queryByText('Инсулин')).toBeNull();
+    expect(screen.getByText('Цели сахара')).toBeTruthy();
+  });
+
   it('closes on Escape key', () => {
     render(<ProfileHelpSheet />);
     fireEvent.click(screen.getAllByLabelText('Справка')[0]);
