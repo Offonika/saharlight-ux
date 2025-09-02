@@ -122,6 +122,25 @@ describe('Profile page', () => {
     );
   });
 
+  it('renders localized rapid insulin type options', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    const { getByLabelText } = render(<Profile />);
+
+    await waitFor(() => {
+      expect(getProfile).toHaveBeenCalledWith(123);
+    });
+
+    const options = Array.from(
+      (
+        getByLabelText('Тип быстрого инсулина', {
+          selector: 'select',
+        }) as HTMLSelectElement
+      ).options,
+    ).map((o) => o.text);
+
+    expect(options).toEqual(['Аспарт', 'Лиспро', 'Глулизин', 'Регуляр']);
+  });
+
   it('blocks save with invalid numeric input and shows toast', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
 

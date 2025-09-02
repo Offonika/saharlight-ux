@@ -78,6 +78,12 @@ const profileHelp = {
     definition: 'Используемый тип быстродействующего инсулина',
     unit: '—',
     range: '—',
+    options: {
+      aspart: 'Аспарт',
+      lispro: 'Лиспро',
+      glulisine: 'Глулизин',
+      regular: 'Регуляр',
+    },
   },
   afterMealMinutes: {
     title: 'Минут после еды',
