@@ -35,7 +35,7 @@ import { saveProfile, getProfile, patchProfile } from '../src/features/profile/a
 import { resolveTelegramId } from '../src/pages/resolveTelegramId';
 import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
 import { useTranslation } from '../src/i18n';
-import type { RapidInsulin } from '../src/features/profile/api';
+import type { RapidInsulin } from '../src/features/profile/types';
 
 const originalSupportedValuesOf = (Intl as any).supportedValuesOf;
 describe('Profile page', () => {

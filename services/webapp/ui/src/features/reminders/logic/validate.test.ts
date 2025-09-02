@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { validate } from "./validate";
-import type { ReminderFormValues } from "../api/buildPayload";
+import type { ReminderDto } from "../types";
 
 describe("validate", () => {
-  const base: ReminderFormValues = {
+  const base: ReminderDto = {
     telegramId: 1,
     type: "sugar",
     kind: "at_time",
@@ -21,7 +21,7 @@ describe("validate", () => {
     expect(errors.time).toBe("Формат HH:MM");
   });
 
-  const afterBase: ReminderFormValues = {
+  const afterBase: ReminderDto = {
     telegramId: 1,
     type: "after_meal",
     kind: "after_event",

@@ -4,6 +4,7 @@ import { buildReminderPayload } from "../api/buildPayload";
 import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
 import { useDefaultAfterMealMinutes } from "../../profile/hooks";
+import type { ReminderDto } from "../types";
 
 export function Templates({
   telegramId,
@@ -53,7 +54,7 @@ export function Templates({
     [telegramId, defaultAfterMeal],
   );
   
-  const create = async (dto: any) => {
+  const create = async (dto: ReminderDto) => {
     try {
       const reminder = buildReminderPayload(dto);
 

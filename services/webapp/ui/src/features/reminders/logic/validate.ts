@@ -1,8 +1,8 @@
-import type { ReminderFormValues } from "../api/buildPayload";
+import type { ReminderDto } from "../types";
 
-export type FormErrors = Partial<Record<keyof ReminderFormValues, string>>;
+export type FormErrors = Partial<Record<keyof ReminderDto, string>>;
 
-export function validate(v: ReminderFormValues): FormErrors {
+export function validate(v: ReminderDto): FormErrors {
   const e: FormErrors = {};
   
   if (v.kind === "at_time" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(v.time || "")) {

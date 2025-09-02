@@ -5,12 +5,8 @@ import { useRemindersApi } from "../api/reminders";
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
 import { DaysPresets } from "../components/DaysPresets";
 import AfterEventDelay from "../components/AfterEventDelay";
-import {
-  buildReminderPayload,
-  ReminderFormValues,
-  ScheduleKind,
-  ReminderType,
-} from "../api/buildPayload";
+import { buildReminderPayload } from "../api/buildPayload";
+import type { ReminderDto, ScheduleKind, ReminderType } from "../types";
 import { validate, hasErrors } from "../logic/validate";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 import { getTelegramUserId } from "../../../shared/telegram";
@@ -36,7 +32,7 @@ const KIND_OPTIONS: { value: ScheduleKind; label: string }[] = [
   { value: "after_event", label: "После события" },
 ];
 
-function mapToForm(reminder: ReminderSchema): ReminderFormValues {
+function mapToForm(reminder: ReminderSchema): ReminderDto {
   const kind: ScheduleKind =
     (reminder.kind as ScheduleKind | undefined) ||
     (reminder.time
@@ -72,7 +68,7 @@ export default function RemindersEdit() {
   const { id } = useParams<{ id: string }>();
   const nav = useNavigate();
   const toast = useToast();
-  const [form, setForm] = useState<ReminderFormValues | null>(null);
+  const [form, setForm] = useState<ReminderDto | null>(null);
   const [saving, setSaving] = useState(false);
 
   const presetsTime = ["07:30", "12:30", "22:00"];
@@ -109,9 +105,9 @@ export default function RemindersEdit() {
   const errors = validate(form);
   const formHasErrors = hasErrors(errors);
 
-  const onChange = <K extends keyof ReminderFormValues>(
+  const onChange = <K extends keyof ReminderDto>(
     k: K,
-    v: ReminderFormValues[K],
+    v: ReminderDto[K],
   ) => setForm((s) => (s ? { ...s, [k]: v } : s));
 
   async function onSubmit(e: React.FormEvent) {

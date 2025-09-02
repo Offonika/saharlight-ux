@@ -1,25 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ReminderSchema } from "@sdk";
+import type { Reminder } from "../types";
 import { useRemindersApi } from "../api/reminders";
 import { formatNextAt } from "../../../shared/datetime";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useToast } from "@/hooks/use-toast";
 import { bulkToggle } from "./RemindersList.bulk";
-
-type ReminderDto = {
-  id: number;
-  telegramId: number;
-  type: string;
-  title?: string | null;
-  kind: "at_time" | "every" | "after_event";
-  time?: string | null;
-  intervalMinutes?: number | null;
-  minutesAfter?: number | null;
-  daysOfWeek?: number[] | null;
-  isEnabled: boolean;
-  nextAt?: string | null;
-};
 
 const TYPE_LABEL: Record<string, string> = {
   sugar: "Измерение сахара",
@@ -32,7 +19,7 @@ const TYPE_LABEL: Record<string, string> = {
   custom: "Другое",
 };
 
-function scheduleLine(r: ReminderDto) {
+function scheduleLine(r: Reminder) {
   // Приоритет определения расписания:
   // 1. Если есть time - это напоминание на время
   if (r.time) return `в ${r.time}`;
@@ -56,7 +43,7 @@ export default function RemindersList({
   const navigate = useNavigate();
   const { toast } = useToast();
   const isDev = import.meta.env.DEV;
-  const [items, setItems] = useState<ReminderDto[]>([]);
+  const [items, setItems] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<"all" | "on" | "off">(() => {
     return (localStorage.getItem('reminderFilter') as "all" | "on" | "off") || "all";
@@ -68,7 +55,20 @@ export default function RemindersList({
     try {
       const res = await api.remindersGetRaw({ telegramId: user.id });
       const data = await res.value();
-      setItems(data as any);
+      const reminders: Reminder[] = data.map((r) => ({
+        id: r.id ?? 0,
+        telegramId: r.telegramId,
+        type: r.type as Reminder["type"],
+        title: r.title ?? undefined,
+        kind: (r.kind as Reminder["kind"]) ?? "at_time",
+        time: r.time ?? undefined,
+        intervalMinutes: r.intervalMinutes ?? undefined,
+        minutesAfter: r.minutesAfter ?? undefined,
+        daysOfWeek: r.daysOfWeek ? Array.from(r.daysOfWeek) : undefined,
+        isEnabled: r.isEnabled ?? false,
+        nextAt: r.nextAt ? r.nextAt.toISOString() : undefined,
+      }));
+      setItems(reminders);
 
       const limitHeader =
         res.raw.headers.get("X-Plan-Limit") ?? res.raw.headers.get("x-plan-limit");
@@ -99,11 +99,11 @@ export default function RemindersList({
   
   const groups = useMemo(() => {
     // Filter items based on current filter
-    const filteredItems = items.filter(r => 
+    const filteredItems = items.filter(r =>
       filter === "all" || (filter === "on" ? r.isEnabled : !r.isEnabled)
     );
-    
-    const map = new Map<string, ReminderDto[]>();
+
+    const map = new Map<string, Reminder[]>();
     for (const r of filteredItems) {
       const k = r.type || "custom";
       if (!map.has(k)) map.set(k, []);
@@ -112,7 +112,7 @@ export default function RemindersList({
     return Array.from(map.entries());
   }, [items, filter]);
 
-  async function toggleEnabled(r: ReminderDto) {
+  async function toggleEnabled(r: Reminder) {
     const optimistic = items.map(x =>
       x.id === r.id ? { ...x, isEnabled: !x.isEnabled } : x
     );
@@ -122,12 +122,12 @@ export default function RemindersList({
         const reminder: ReminderSchema = {
           telegramId: r.telegramId,
           id: r.id,
-          type: r.type as any,
+          type: r.type as ReminderSchema["type"],
           kind: r.kind,
           time: r.time ?? undefined,
           intervalMinutes: r.intervalMinutes ?? undefined,
           minutesAfter: r.minutesAfter ?? undefined,
-          daysOfWeek: r.daysOfWeek ?? undefined,
+          daysOfWeek: r.daysOfWeek ? new Set(r.daysOfWeek) : undefined,
           isEnabled: !r.isEnabled,
         };
         await api.remindersPatch({ reminder });
@@ -190,7 +190,7 @@ export default function RemindersList({
     { value: "off" as const, label: "Выкл", count: items.filter(r => !r.isEnabled).length }
   ];
 
-  async function remove(r: ReminderDto) {
+  async function remove(r: Reminder) {
     if (!confirm("Удалить напоминание?")) return;
     const optimistic = items.filter(x => x.id !== r.id);
     setItems(optimistic);

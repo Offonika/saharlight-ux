@@ -4,12 +4,8 @@ import { useRemindersApi } from "../api/reminders"; // ваш хук, возвр
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
 import { DaysPresets } from "../components/DaysPresets";
 import AfterEventDelay from "../components/AfterEventDelay";
-import {
-  buildReminderPayload,
-  ReminderFormValues,
-  ScheduleKind,
-  ReminderType,
-} from "../api/buildPayload";
+import { buildReminderPayload } from "../api/buildPayload";
+import type { ReminderDto, ScheduleKind, ReminderType } from "../types";
 import { validate, hasErrors } from "../logic/validate";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 import { useTelegram } from "../../../hooks/useTelegram";
@@ -48,7 +44,7 @@ export default function RemindersCreate() {
   const toast = useToast();
   const isDev = process.env.NODE_ENV === "development";
 
-  const [form, setForm] = useState<ReminderFormValues>({
+  const [form, setForm] = useState<ReminderDto>({
     telegramId,
     type: "sugar",
     kind: "at_time",
@@ -60,9 +56,9 @@ export default function RemindersCreate() {
   const errors = validate(form);
   const formHasErrors = hasErrors(errors);
 
-  const onChange = <K extends keyof ReminderFormValues>(
+  const onChange = <K extends keyof ReminderDto>(
     k: K,
-    v: ReminderFormValues[K],
+    v: ReminderDto[K],
   ) => setForm((s) => ({ ...s, [k]: v }));
 
   const presetsTime = ["07:30", "12:30", "22:00"];
