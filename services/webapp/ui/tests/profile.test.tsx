@@ -31,12 +31,11 @@ vi.mock('../src/pages/resolveTelegramId', () => ({
 }));
 
 import Profile from '../src/pages/Profile';
-import {
-  saveProfile,
-  getProfile,
-  patchProfile,
-  type RapidInsulin,
-} from '../src/features/profile/api';
+import { saveProfile, getProfile, patchProfile } from '../src/features/profile/api';
+import type { RapidInsulin } from '../src/features/profile/api';
+
+const ASPART: RapidInsulin = 'aspart';
+const LISPRO: RapidInsulin = 'lispro';
 import { resolveTelegramId } from '../src/pages/resolveTelegramId';
 import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
 
@@ -56,7 +55,7 @@ describe('Profile page', () => {
       roundStep: 0.5,
       carbUnit: 'g',
       gramsPerXe: 12,
-      rapidInsulinType: 'aspart' as RapidInsulin,
+      rapidInsulinType: ASPART,
       maxBolus: 10,
       defaultAfterMealMinutes: 120,
       timezone: 'Europe/Moscow',
@@ -268,7 +267,7 @@ describe('Profile page', () => {
         roundStep: 0.5,
         carbUnit: 'g',
         gramsPerXe: 12,
-        rapidInsulinType: 'aspart' as RapidInsulin,
+        rapidInsulinType: ASPART,
         maxBolus: 10,
         defaultAfterMealMinutes: 120,
         timezone: 'Europe/Moscow',
@@ -400,7 +399,7 @@ describe('Profile page', () => {
         roundStep: 1,
         carbUnit: 'xe',
         gramsPerXe: 15,
-        rapidInsulinType: 'lispro' as RapidInsulin,
+        rapidInsulinType: LISPRO,
         maxBolus: 12,
         defaultAfterMealMinutes: 90,
       });
@@ -422,7 +421,7 @@ describe('Profile page', () => {
       roundStep: 0.5,
       carbUnit: 'g',
       gramsPerXe: 12,
-      rapidInsulinType: 'aspart' as RapidInsulin,
+      rapidInsulinType: ASPART,
       maxBolus: 10,
       defaultAfterMealMinutes: 120,
       timezone: 'Europe/Moscow',
@@ -455,7 +454,7 @@ describe('Profile page', () => {
       roundStep: 0.5,
       carbUnit: 'g',
       gramsPerXe: 12,
-      rapidInsulinType: 'aspart' as RapidInsulin,
+      rapidInsulinType: ASPART,
       maxBolus: 10,
       defaultAfterMealMinutes: 120,
       timezone: 'Europe/Moscow',
@@ -497,7 +496,7 @@ describe('Profile page', () => {
       roundStep: 0.5,
       carbUnit: 'g',
       gramsPerXe: 12,
-      rapidInsulinType: 'aspart' as RapidInsulin,
+      rapidInsulinType: ASPART,
       maxBolus: 10,
       defaultAfterMealMinutes: 120,
       therapyType: 'insulin',
@@ -522,7 +521,7 @@ describe('Profile page', () => {
       roundStep: 0.5,
       carbUnit: 'g',
       gramsPerXe: 12,
-      rapidInsulinType: 'aspart' as RapidInsulin,
+      rapidInsulinType: ASPART,
       maxBolus: 10,
       defaultAfterMealMinutes: 120,
       therapyType: 'insulin',
@@ -560,7 +559,7 @@ describe('Profile page', () => {
       roundStep: 0.5,
       carbUnit: 'g',
       gramsPerXe: 12,
-      rapidInsulinType: 'aspart' as RapidInsulin,
+      rapidInsulinType: ASPART,
       maxBolus: 10,
       defaultAfterMealMinutes: 120,
       therapyType: 'insulin',

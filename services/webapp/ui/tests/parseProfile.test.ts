@@ -2,9 +2,27 @@ import { describe, it, expect } from "vitest";
 import { parseProfile, shouldWarnProfile } from "../src/pages/Profile";
 import type { RapidInsulin } from "../src/features/profile/api";
 
+type TestProfileForm = {
+  icr: string;
+  cf: string;
+  target: string;
+  low: string;
+  high: string;
+  timezone: string;
+  timezoneAuto: boolean;
+  dia: string;
+  preBolus: string;
+  roundStep: string;
+  carbUnit: "g" | "xe";
+  gramsPerXe: string;
+  rapidInsulinType: RapidInsulin;
+  maxBolus: string;
+  afterMealMinutes: string;
+};
+
 const makeProfile = (
-  overrides: Record<string, string | boolean | RapidInsulin> = {},
-) => ({
+  overrides: Partial<TestProfileForm> = {},
+): TestProfileForm => ({
   icr: "1",
   cf: "2",
   target: "5",
@@ -17,7 +35,7 @@ const makeProfile = (
   roundStep: "1",
   carbUnit: "g",
   gramsPerXe: "12",
-  rapidInsulinType: "lispro" as RapidInsulin,
+  rapidInsulinType: "lispro",
   maxBolus: "20",
   afterMealMinutes: "60",
   ...overrides,
