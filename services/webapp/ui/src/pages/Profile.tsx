@@ -328,7 +328,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           dia,
           preBolus,
           roundStep,
-          gramsPerXe,
+          ...(carbUnit === "xe" ? [gramsPerXe] : []),
           maxBolus,
           afterMealMinutes,
         ].every((v) => Number(v) > 0);
@@ -338,7 +338,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           low,
           high,
           roundStep,
-          gramsPerXe,
+          ...(carbUnit === "xe" ? [gramsPerXe] : []),
           afterMealMinutes,
         ].every((v) => Number(v) > 0);
 

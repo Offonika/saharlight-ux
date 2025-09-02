@@ -582,6 +582,58 @@ describe('Profile page', () => {
     expect(patchProfile).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['insulin', 'g', false],
+    ['insulin', 'xe', true],
+    ['tablets', 'g', false],
+    ['tablets', 'xe', true],
+  ])(
+    'handles gramsPerXe requirement for therapyType %s and carbUnit %s',
+    async (
+      therapyType: 'insulin' | 'tablets',
+      unit: 'g' | 'xe',
+      shouldToast: boolean,
+    ) => {
+      (resolveTelegramId as vi.Mock).mockReturnValue(123);
+      (getProfile as vi.Mock).mockResolvedValue({
+        telegramId: 123,
+        icr: 15,
+        cf: 3,
+        target: 6,
+        low: 4,
+        high: 10,
+        dia: 4,
+        preBolus: 15,
+        roundStep: 0.5,
+        carbUnit: unit,
+        gramsPerXe: 0,
+        rapidInsulinType: 'aspart',
+        maxBolus: 10,
+        defaultAfterMealMinutes: 120,
+        timezone: 'Europe/Moscow',
+        timezoneAuto: false,
+        therapyType,
+      });
+
+      render(<Profile />);
+      await waitFor(() => {
+        expect(getProfile).toHaveBeenCalledWith(123);
+      });
+
+      if (shouldToast) {
+        expect(toast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Ошибка',
+            description: 'Профиль заполнен не полностью',
+            variant: 'destructive',
+          }),
+        );
+      } else {
+        expect(toast).not.toHaveBeenCalled();
+      }
+    },
+  );
+
   it('shows toast when profile load fails', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockRejectedValue(new Error('load failed'));
