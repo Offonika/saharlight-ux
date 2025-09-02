@@ -60,6 +60,12 @@ export interface ProfileSettingsIn {
      * @type {string}
      * @memberof ProfileSettingsIn
      */
+    therapyType?: ProfileSettingsInTherapyTypeEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfileSettingsIn
+     */
     sosContact?: string | null;
     /**
      * 
@@ -67,6 +73,30 @@ export interface ProfileSettingsIn {
      * @memberof ProfileSettingsIn
      */
     sosAlertsEnabled?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfileSettingsIn
+     */
+    rapidInsulinType?: ProfileSettingsInRapidInsulinTypeEnum | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProfileSettingsIn
+     */
+    maxBolus?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProfileSettingsIn
+     */
+    preBolus?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProfileSettingsIn
+     */
+    afterMealMinutes?: number;
 }
 
 
@@ -78,6 +108,28 @@ export const ProfileSettingsInCarbUnitsEnum = {
     Xe: 'xe'
 } as const;
 export type ProfileSettingsInCarbUnitsEnum = typeof ProfileSettingsInCarbUnitsEnum[keyof typeof ProfileSettingsInCarbUnitsEnum];
+
+/**
+ * @export
+ */
+export const ProfileSettingsInTherapyTypeEnum = {
+    Insulin: 'insulin',
+    Tablets: 'tablets',
+    None: 'none',
+    Mixed: 'mixed'
+} as const;
+export type ProfileSettingsInTherapyTypeEnum = typeof ProfileSettingsInTherapyTypeEnum[keyof typeof ProfileSettingsInTherapyTypeEnum];
+
+/**
+ * @export
+ */
+export const ProfileSettingsInRapidInsulinTypeEnum = {
+    Aspart: 'aspart',
+    Lispro: 'lispro',
+    Glulisine: 'glulisine',
+    Regular: 'regular'
+} as const;
+export type ProfileSettingsInRapidInsulinTypeEnum = typeof ProfileSettingsInRapidInsulinTypeEnum[keyof typeof ProfileSettingsInRapidInsulinTypeEnum];
 
 
 /**
@@ -103,8 +155,13 @@ export function ProfileSettingsInFromJSONTyped(json: any, ignoreDiscriminator: b
         'roundStep': json['roundStep'] == null ? undefined : json['roundStep'],
         'carbUnits': json['carbUnits'] == null ? undefined : json['carbUnits'],
         'gramsPerXe': json['gramsPerXe'] == null ? undefined : json['gramsPerXe'],
+        'therapyType': json['therapyType'] == null ? undefined : json['therapyType'],
         'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
         'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
+        'rapidInsulinType': json['rapidInsulinType'] == null ? undefined : json['rapidInsulinType'],
+        'maxBolus': json['maxBolus'] == null ? undefined : json['maxBolus'],
+        'preBolus': json['preBolus'] == null ? undefined : json['preBolus'],
+        'afterMealMinutes': json['afterMealMinutes'] == null ? undefined : json['afterMealMinutes'],
     };
 }
 
@@ -125,8 +182,13 @@ export function ProfileSettingsInToJSONTyped(value?: ProfileSettingsIn | null, i
         'roundStep': value['roundStep'],
         'carbUnits': value['carbUnits'],
         'gramsPerXe': value['gramsPerXe'],
+        'therapyType': value['therapyType'],
         'sosContact': value['sosContact'],
         'sosAlertsEnabled': value['sosAlertsEnabled'],
+        'rapidInsulinType': value['rapidInsulinType'],
+        'maxBolus': value['maxBolus'],
+        'preBolus': value['preBolus'],
+        'afterMealMinutes': value['afterMealMinutes'],
     };
 }
 

@@ -204,6 +204,16 @@ def patch_user_settings(
         profile.sos_contact = data.sosContact
     if data.sosAlertsEnabled is not None:
         profile.sos_alerts_enabled = data.sosAlertsEnabled
+    if data.therapyType is not None:
+        profile.therapy_type = data.therapyType.value
+    if data.rapidInsulinType is not None:
+        profile.insulin_type = data.rapidInsulinType.value
+    if data.maxBolus is not None:
+        profile.max_bolus = data.maxBolus
+    if data.preBolus is not None:
+        profile.prebolus_min = data.preBolus
+    if data.afterMealMinutes is not None:
+        profile.postmeal_check_min = data.afterMealMinutes
     if profile.timezone_auto and device_tz and profile.timezone != device_tz:
         profile.timezone = device_tz
     try:

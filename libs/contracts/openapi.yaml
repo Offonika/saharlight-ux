@@ -736,6 +736,14 @@ components:
         gramsPerXe:
           type: number
           title: Grams Per Xe
+        therapyType:
+          type: string
+          enum:
+          - insulin
+          - tablets
+          - none
+          - mixed
+          title: Therapy Type
         sosContact:
           anyOf:
           - type: string
@@ -745,6 +753,25 @@ components:
           type: boolean
           title: Sos Alerts Enabled
           default: true
+        rapidInsulinType:
+          anyOf:
+          - type: string
+            enum:
+            - aspart
+            - lispro
+            - glulisine
+            - regular
+          - type: 'null'
+          title: Rapid Insulin Type
+        maxBolus:
+          type: number
+          title: Max Bolus
+        preBolus:
+          type: integer
+          title: Pre Bolus
+        afterMealMinutes:
+          type: integer
+          title: After Meal Minutes
       type: object
       title: ProfileSettingsIn
     ProfileSettingsOut:
@@ -758,6 +785,10 @@ components:
       - carbUnits
       - gramsPerXe
       - sosAlertsEnabled
+      - therapyType
+      - maxBolus
+      - preBolus
+      - afterMealMinutes
       title: ProfileSettingsOut
     ProfileSchema:
       properties:
