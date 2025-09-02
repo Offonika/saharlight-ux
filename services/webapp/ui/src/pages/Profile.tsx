@@ -170,8 +170,20 @@ export const parseProfile = (
   return numbersValid && positiveValid && rangeValid ? parsed : null;
 };
 
-export const shouldWarnProfile = (profile: ParsedProfile): boolean =>
-  profile.icr > 8 && profile.cf < 3;
+export const shouldWarnProfile = (
+  profile: ParsedProfile,
+  original?: ParsedProfile,
+): boolean => {
+  const icrCfWarn = profile.icr > 8 && profile.cf < 3;
+  const diaWarn = profile.dia > 12;
+  const carbUnitWarn =
+    !!original &&
+    original.carbUnit !== profile.carbUnit &&
+    original.icr === profile.icr &&
+    profile.icr > 0;
+
+  return icrCfWarn || diaWarn || carbUnitWarn;
+};
 
 interface ProfileFormHeaderProps {
   onBack: () => void;
@@ -535,7 +547,11 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       return;
     }
 
-    if (shouldWarnProfile(parsed)) {
+    const originalParsed = original
+      ? parseProfile(original, therapyType) || undefined
+      : undefined;
+
+    if (shouldWarnProfile(parsed, originalParsed)) {
       setPendingProfile({
         telegramId,
         ...parsed,
