@@ -149,19 +149,13 @@ Content-Type: application/json
 
 6. БД и миграции
 
-Таблица profiles (уже есть): добавить поля
-therapy_type TEXT CHECK ('insulin','tablets') DEFAULT 'insulin' NOT NULL,
-carb_units TEXT CHECK ('grams','xe') DEFAULT 'grams' NOT NULL,
-grams_per_xe NUMERIC DEFAULT 12 CHECK (grams_per_xe > 0),
-prebolus_min SMALLINT DEFAULT 0 CHECK (prebolus_min BETWEEN 0 AND 60),
-rounding_step NUMERIC DEFAULT 0.1 CHECK (rounding_step > 0),
-max_bolus NUMERIC DEFAULT 10 CHECK (max_bolus > 0),
-postmeal_check_min SMALLINT DEFAULT 0 CHECK (postmeal_check_min BETWEEN 0 AND 240),
-insulin_type TEXT NULL.
+Параметры распределены между таблицами:
 
-Политика NULL для болюсных полей при therapy_type='tablets' — через бизнес-валидацию (предпочтительно), без жёстких CHECK.
+* `users` — данные аккаунта и настройки терапии: `timezone`, `timezone_auto`,
+  `dia`, `round_step`, `carb_units`.
+* `profiles` — коэффициенты расчётов, пороги сахара, тихие часы и SOS‑параметры.
 
-Backfill: существующим проставить therapy_type='insulin'.
+Дополнительных миграций не требуется: актуальные модели отражают эту схему.
 
 7. SDK и версии
 
