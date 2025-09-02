@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { HelpCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTranslation } from '@/i18n';
 
 interface ProfileHelpSheetProps {
   therapyType?: string;
@@ -59,6 +60,7 @@ const sections = [
 const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
 
   const filtered =
     therapyType === 'tablets'
@@ -69,7 +71,7 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
-          aria-label="Справка"
+          aria-label={t('Справка')}
           variant="ghost"
           size="icon"
         >
@@ -81,13 +83,13 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
         className="max-h-screen overflow-y-auto"
       >
         <SheetHeader>
-          <SheetTitle>Справка</SheetTitle>
+          <SheetTitle>{t('Справка')}</SheetTitle>
         </SheetHeader>
         <Accordion type="single" collapsible className="w-full">
           {filtered.map((section) => (
             <AccordionItem key={section.key} value={section.key}>
-              <AccordionTrigger>{section.title}</AccordionTrigger>
-              <AccordionContent>{section.content}</AccordionContent>
+              <AccordionTrigger>{t(section.title)}</AccordionTrigger>
+              <AccordionContent>{t(section.content)}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
