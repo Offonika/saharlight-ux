@@ -156,10 +156,12 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
       <SheetTrigger asChild>
         <Button
           aria-label={t('profileHelp.help')}
-          variant="ghost"
-          size="icon"
+          variant="outline"
+          size="sm"
+          className="gap-2"
         >
           <HelpCircle className="h-5 w-5" />
+          Справка
         </Button>
       </SheetTrigger>
       <SheetContent
