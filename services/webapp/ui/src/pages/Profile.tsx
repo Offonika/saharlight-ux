@@ -108,10 +108,9 @@ export const parseProfile = (
       parsed.low < parsed.high &&
       parsed.low < parsed.target &&
       parsed.target < parsed.high &&
-      parsed.roundStep <= 5 &&
-      parsed.afterMealMinutes <= 180 &&
+      parsed.afterMealMinutes <= 240 &&
       (parsed.carbUnit === 'g' || parsed.carbUnit === 'xe') &&
-      (!validateGrams || (parsed.gramsPerXe >= 5 && parsed.gramsPerXe <= 20));
+      (!validateGrams || parsed.gramsPerXe > 0);
     return numbersValid && positiveValid && rangeValid ? parsed : null;
   }
 
@@ -162,14 +161,12 @@ export const parseProfile = (
     parsed.low < parsed.high &&
     parsed.low < parsed.target &&
     parsed.target < parsed.high &&
-    parsed.dia <= 12 &&
-    parsed.preBolus <= 120 &&
-    parsed.roundStep <= 5 &&
-    parsed.maxBolus <= 25 &&
-    parsed.afterMealMinutes <= 180 &&
+    parsed.dia <= 24 &&
+    parsed.preBolus <= 60 &&
+    parsed.afterMealMinutes <= 240 &&
     (parsed.carbUnit === 'g' || parsed.carbUnit === 'xe') &&
     parsed.rapidInsulinType.length > 0 &&
-    (!validateGrams || (parsed.gramsPerXe >= 5 && parsed.gramsPerXe <= 20));
+    (!validateGrams || parsed.gramsPerXe > 0);
   return numbersValid && positiveValid && rangeValid ? parsed : null;
 };
 
