@@ -70,12 +70,15 @@ def schedule_reminders_gc(jq: DefaultJobQueue) -> None:
     run_rep = getattr(jq, "run_repeating", None)
     if not callable(run_rep):
         return
-    run_rep(
+    job = run_rep(
         _reminders_gc,
         interval=timedelta(seconds=90),
+        first=timedelta(seconds=0),
         name=_GC_JOB_NAME,
         job_kwargs={"id": _GC_JOB_NAME, "replace_existing": True},
     )
+    next_run = getattr(job, "next_run_time", None)
+    logger.info("🧹 scheduled %s -> next_run=%s", _GC_JOB_NAME, next_run)
 
 
 async def notify_reminder_saved(reminder_id: int) -> None:
