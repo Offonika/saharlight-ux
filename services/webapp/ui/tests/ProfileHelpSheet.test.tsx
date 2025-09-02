@@ -35,4 +35,15 @@ describe('ProfileHelpSheet', () => {
     const content = screen.getByRole('dialog');
     expect(content.className).toContain('bottom-0');
   });
+
+  it('allows multiple sections to be expanded', () => {
+    render(<ProfileHelpSheet />);
+    fireEvent.click(screen.getAllByLabelText('Справка')[0]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Цели сахара' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Прочее' }));
+
+    expect(screen.getByText('Целевой уровень сахара')).toBeTruthy();
+    expect(screen.getByText('Шаг округления')).toBeTruthy();
+  });
 });
