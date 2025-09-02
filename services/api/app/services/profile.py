@@ -13,6 +13,7 @@ from ..diabetes.services.repository import CommitError, commit
 from ..schemas.profile import ProfileSchema
 from ..diabetes.schemas.profile import (
     CarbUnits,
+    RapidInsulinType,
     ProfileSettingsIn,
     ProfileSettingsOut,
     TherapyType,
@@ -82,6 +83,14 @@ async def patch_user_settings(
             profile.sos_alerts_enabled = data.sosAlertsEnabled
         if data.therapyType is not None:
             profile.therapy_type = data.therapyType.value
+        if data.rapidInsulinType is not None:
+            profile.insulin_type = data.rapidInsulinType.value
+        if data.maxBolus is not None:
+            profile.max_bolus = data.maxBolus
+        if data.preBolus is not None:
+            profile.prebolus_min = data.preBolus
+        if data.afterMealMinutes is not None:
+            profile.postmeal_check_min = data.afterMealMinutes
 
         if profile.timezone_auto and device_tz and profile.timezone != device_tz:
             profile.timezone = device_tz
@@ -100,6 +109,10 @@ async def patch_user_settings(
             sosContact=profile.sos_contact,
             sosAlertsEnabled=profile.sos_alerts_enabled,
             therapyType=TherapyType(profile.therapy_type),
+            rapidInsulinType=(RapidInsulinType(profile.insulin_type) if profile.insulin_type is not None else None),
+            maxBolus=profile.max_bolus,
+            preBolus=profile.prebolus_min,
+            afterMealMinutes=profile.postmeal_check_min,
         )
 
     return await db.run_db(_patch, sessionmaker=db.SessionLocal)

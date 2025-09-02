@@ -61,6 +61,30 @@ export interface ProfileSettingsOut {
      * @memberof ProfileSettingsOut
      */
     sosAlertsEnabled: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfileSettingsOut
+     */
+    rapidInsulinType?: ProfileSettingsOutRapidInsulinTypeEnum;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProfileSettingsOut
+     */
+    maxBolus: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProfileSettingsOut
+     */
+    preBolus: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof ProfileSettingsOut
+     */
+    afterMealMinutes: number;
 }
 
 
@@ -73,6 +97,17 @@ export const ProfileSettingsOutCarbUnitsEnum = {
 } as const;
 export type ProfileSettingsOutCarbUnitsEnum = typeof ProfileSettingsOutCarbUnitsEnum[keyof typeof ProfileSettingsOutCarbUnitsEnum];
 
+/**
+ * @export
+ */
+export const ProfileSettingsOutRapidInsulinTypeEnum = {
+    Aspart: 'aspart',
+    Lispro: 'lispro',
+    Glulisine: 'glulisine',
+    Regular: 'regular'
+} as const;
+export type ProfileSettingsOutRapidInsulinTypeEnum = typeof ProfileSettingsOutRapidInsulinTypeEnum[keyof typeof ProfileSettingsOutRapidInsulinTypeEnum];
+
 
 /**
  * Check if a given object implements the ProfileSettingsOut interface.
@@ -84,6 +119,9 @@ export function instanceOfProfileSettingsOut(value: object): value is ProfileSet
     if (!('roundStep' in value) || value['roundStep'] === undefined) return false;
     if (!('carbUnits' in value) || value['carbUnits'] === undefined) return false;
     if (!('sosAlertsEnabled' in value) || value['sosAlertsEnabled'] === undefined) return false;
+    if (!('maxBolus' in value) || value['maxBolus'] === undefined) return false;
+    if (!('preBolus' in value) || value['preBolus'] === undefined) return false;
+    if (!('afterMealMinutes' in value) || value['afterMealMinutes'] === undefined) return false;
     return true;
 }
 
@@ -104,6 +142,10 @@ export function ProfileSettingsOutFromJSONTyped(json: any, ignoreDiscriminator: 
         'carbUnits': json['carbUnits'],
         'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
         'sosAlertsEnabled': json['sosAlertsEnabled'],
+        'rapidInsulinType': json['rapidInsulinType'] == null ? undefined : json['rapidInsulinType'],
+        'maxBolus': json['maxBolus'],
+        'preBolus': json['preBolus'],
+        'afterMealMinutes': json['afterMealMinutes'],
     };
 }
 
@@ -125,6 +167,10 @@ export function ProfileSettingsOutToJSONTyped(value?: ProfileSettingsOut | null,
         'carbUnits': value['carbUnits'],
         'sosContact': value['sosContact'],
         'sosAlertsEnabled': value['sosAlertsEnabled'],
+        'rapidInsulinType': value['rapidInsulinType'],
+        'maxBolus': value['maxBolus'],
+        'preBolus': value['preBolus'],
+        'afterMealMinutes': value['afterMealMinutes'],
     };
 }
 

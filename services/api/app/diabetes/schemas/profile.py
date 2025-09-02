@@ -18,6 +18,15 @@ class TherapyType(str, Enum):
     MIXED = "mixed"
 
 
+class RapidInsulinType(str, Enum):
+    """Types of rapid-acting insulin."""
+
+    ASPART = "aspart"
+    LISPRO = "lispro"
+    GLULISINE = "glulisine"
+    REGULAR = "regular"
+
+
 class ProfileSettingsIn(BaseModel):
     """Incoming user settings for profile configuration."""
 
@@ -53,6 +62,31 @@ class ProfileSettingsIn(BaseModel):
         alias="therapyType",
         validation_alias=AliasChoices("therapyType", "therapy_type"),
     )
+    rapidInsulinType: RapidInsulinType | None = Field(
+        default=None,
+        alias="rapidInsulinType",
+        validation_alias=AliasChoices("rapidInsulinType", "insulin_type"),
+    )
+    maxBolus: float | None = Field(
+        default=None,
+        alias="maxBolus",
+        validation_alias=AliasChoices("maxBolus", "max_bolus"),
+    )
+    preBolus: int | None = Field(
+        default=None,
+        alias="preBolus",
+        validation_alias=AliasChoices("preBolus", "prebolus_min"),
+    )
+    afterMealMinutes: int | None = Field(
+        default=None,
+        alias="afterMealMinutes",
+        validation_alias=AliasChoices(
+            "afterMealMinutes",
+            "postmeal_check_min",
+            "postMealCheckMin",
+            "defaultAfterMealMinutes",
+        ),
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -62,6 +96,12 @@ class ProfileSettingsIn(BaseModel):
             raise ValueError("dia must be between 1 and 24 hours")
         if self.roundStep is not None and self.roundStep <= 0:
             raise ValueError("roundStep must be positive")
+        if self.maxBolus is not None and self.maxBolus <= 0:
+            raise ValueError("maxBolus must be positive")
+        if self.preBolus is not None and not (0 <= self.preBolus <= 60):
+            raise ValueError("preBolus must be between 0 and 60 minutes")
+        if self.afterMealMinutes is not None and not (0 <= self.afterMealMinutes <= 240):
+            raise ValueError("afterMealMinutes must be between 0 and 240 minutes")
         return self
 
 
@@ -76,3 +116,7 @@ class ProfileSettingsOut(ProfileSettingsIn):
     sosContact: str | None = Field(default=None, alias="sosContact")
     sosAlertsEnabled: bool = Field(alias="sosAlertsEnabled")
     therapyType: TherapyType = Field(alias="therapyType")
+    rapidInsulinType: RapidInsulinType | None = Field(default=None, alias="rapidInsulinType")
+    maxBolus: float = Field(alias="maxBolus")
+    preBolus: int = Field(alias="preBolus")
+    afterMealMinutes: int = Field(alias="afterMealMinutes")

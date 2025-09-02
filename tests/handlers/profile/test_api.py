@@ -141,9 +141,7 @@ def test_save_profile_persists(session_factory: sessionmaker[Session]) -> None:
         assert prof.sos_alerts_enabled is False
 
 
-def test_save_profile_commit_failure(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
-) -> None:
+def test_save_profile_commit_failure(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]) -> None:
     def fail_commit(session: object) -> None:
         raise profile_api.CommitError
 
@@ -159,9 +157,7 @@ def test_save_profile_commit_failure(
         assert prof is None
 
 
-def test_local_profiles_post_failure(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
-) -> None:
+def test_local_profiles_post_failure(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]) -> None:
     api = profile_api.LocalProfileAPI(session_factory)
     monkeypatch.setattr(profile_api, "save_profile", lambda *a, **k: False)
     with pytest.raises(profile_api.ProfileSaveError):
@@ -206,9 +202,7 @@ def test_set_timezone_persists(session_factory: sessionmaker[Session]) -> None:
         assert prof.timezone == "Europe/Moscow"
 
 
-def test_set_timezone_commit_failure(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
-) -> None:
+def test_set_timezone_commit_failure(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]) -> None:
     def fail_commit(session: object) -> None:
         raise profile_api.CommitError
 
@@ -226,9 +220,7 @@ def test_set_timezone_commit_failure(
         assert prof.timezone == "UTC"
 
 
-def test_set_timezone_user_missing(
-    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
-) -> None:
+def test_set_timezone_user_missing(monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]) -> None:
     commit_mock = MagicMock(return_value=None)
     monkeypatch.setattr(profile_api, "commit", commit_mock)
     with session_factory() as session:
@@ -237,9 +229,7 @@ def test_set_timezone_user_missing(
         commit_mock.assert_called_once()
 
 
-def _build_app(
-    session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
-) -> FastAPI:
+def _build_app(session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     app = FastAPI()
     app.include_router(main.api_router, prefix="/api")
     app.dependency_overrides[main.require_tg_user] = lambda: {"id": 1}
@@ -309,9 +299,40 @@ def test_profile_patch_auto_device_timezone(
         assert prof.timezone_auto is True
 
 
-def test_profiles_get_returns_timezone(
+def test_profile_patch_updates_insulin_fields(
     session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    app = _build_app(session_factory, monkeypatch)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Profile(telegram_id=1, timezone="UTC", timezone_auto=True))
+        session.commit()
+    with TestClient(app) as client:
+        resp = client.patch(
+            "/api/profile",
+            json={
+                "rapidInsulinType": "lispro",
+                "maxBolus": 15,
+                "preBolus": 5,
+                "afterMealMinutes": 120,
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["rapidInsulinType"] == "lispro"
+        assert data["maxBolus"] == 15
+        assert data["preBolus"] == 5
+        assert data["afterMealMinutes"] == 120
+    with session_factory() as session:
+        prof = session.get(Profile, 1)
+        assert prof is not None
+        assert prof.insulin_type == "lispro"
+        assert prof.max_bolus == 15
+        assert prof.prebolus_min == 5
+        assert prof.postmeal_check_min == 120
+
+
+def test_profiles_get_returns_timezone(session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch) -> None:
     app = _build_app(session_factory, monkeypatch)
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t"))

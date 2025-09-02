@@ -742,6 +742,25 @@ components:
           type: boolean
           title: Sos Alerts Enabled
           default: true
+        rapidInsulinType:
+          anyOf:
+          - type: string
+            enum:
+            - aspart
+            - lispro
+            - glulisine
+            - regular
+          - type: 'null'
+          title: Rapid Insulin Type
+        maxBolus:
+          type: number
+          title: Max Bolus
+        preBolus:
+          type: integer
+          title: Pre Bolus
+        afterMealMinutes:
+          type: integer
+          title: After Meal Minutes
       type: object
       title: ProfileSettingsIn
     ProfileSettingsOut:
@@ -754,6 +773,9 @@ components:
       - roundStep
       - carbUnits
       - sosAlertsEnabled
+      - maxBolus
+      - preBolus
+      - afterMealMinutes
       title: ProfileSettingsOut
     ProfileSchema:
       properties:

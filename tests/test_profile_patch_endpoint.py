@@ -18,6 +18,7 @@ from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 TOKEN = "test-token"
 
+
 def build_init_data(user_id: int = 1) -> str:
     user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
     params = {"auth_date": str(int(time.time())), "query_id": "abc", "user": user}
@@ -42,9 +43,7 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
 
-    async def run_db_wrapper(
-        fn: Callable[..., Any], *args: Any, **kwargs: Any
-    ) -> Any:
+    async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
@@ -52,9 +51,7 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     return SessionLocal
 
 
-def test_profile_patch_returns_settings(
-    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
-) -> None:
+def test_profile_patch_returns_settings(monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]) -> None:
     SessionLocal = setup_db(monkeypatch)
     with TestClient(server.app) as client:
         resp = client.patch(
@@ -65,6 +62,10 @@ def test_profile_patch_returns_settings(
                 "dia": 6,
                 "roundStep": 1,
                 "carbUnits": "xe",
+                "rapidInsulinType": "aspart",
+                "maxBolus": 12.5,
+                "preBolus": 10,
+                "afterMealMinutes": 90,
             },
             headers=auth_headers,
         )
@@ -77,6 +78,10 @@ def test_profile_patch_returns_settings(
     assert data["carbUnits"] == "xe"
     assert data["sosAlertsEnabled"] is True
     assert data["sosContact"] is None
+    assert data["rapidInsulinType"] == "aspart"
+    assert data["maxBolus"] == 12.5
+    assert data["preBolus"] == 10
+    assert data["afterMealMinutes"] == 90
 
     with SessionLocal() as session:
         prof = session.get(db.Profile, 1)
@@ -88,16 +93,16 @@ def test_profile_patch_returns_settings(
         assert prof.carb_units == "xe"
         assert prof.sos_alerts_enabled is True
         assert prof.sos_contact is None
+        assert prof.insulin_type == "aspart"
+        assert prof.max_bolus == 12.5
+        assert prof.prebolus_min == 10
+        assert prof.postmeal_check_min == 90
 
 
-def test_profile_patch_partial_update(
-    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
-) -> None:
+def test_profile_patch_partial_update(monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]) -> None:
     SessionLocal = setup_db(monkeypatch)
     with TestClient(server.app) as client:
-        resp = client.patch(
-            "/api/profile", json={"dia": 5}, headers=auth_headers
-        )
+        resp = client.patch("/api/profile", json={"dia": 5}, headers=auth_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["dia"] == 5
@@ -105,6 +110,10 @@ def test_profile_patch_partial_update(
         assert data["carbUnits"] == "g"
         assert data["sosAlertsEnabled"] is True
         assert data["sosContact"] is None
+        assert data["rapidInsulinType"] is None
+        assert data["maxBolus"] == 10.0
+        assert data["preBolus"] == 0
+        assert data["afterMealMinutes"] == 0
 
     with SessionLocal() as session:
         prof = session.get(db.Profile, 1)
@@ -114,3 +123,7 @@ def test_profile_patch_partial_update(
         assert prof.carb_units == "g"
         assert prof.sos_alerts_enabled is True
         assert prof.sos_contact is None
+        assert prof.insulin_type is None
+        assert prof.max_bolus == 10.0
+        assert prof.prebolus_min == 0
+        assert prof.postmeal_check_min == 0
