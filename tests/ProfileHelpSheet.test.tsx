@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 
 import ProfileHelpSheet from '../services/webapp/ui/src/components/ProfileHelpSheet';
@@ -22,6 +22,17 @@ describe('ProfileHelpSheet', () => {
     fireEvent.click(screen.getAllByLabelText('Справка')[0]);
     expect(screen.queryByText('Инсулин')).toBeNull();
     expect(screen.getByText('Цели сахара')).toBeTruthy();
+  });
+
+  it('omits unit and range for rapid insulin type', () => {
+    render(<ProfileHelpSheet />);
+    fireEvent.click(screen.getAllByLabelText('Справка')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Инсулин' }));
+    const item = screen.getByText('Тип быстрого инсулина').closest('li');
+    expect(item).not.toBeNull();
+    const utils = within(item as HTMLElement);
+    expect(utils.queryByText(/Единицы/)).toBeNull();
+    expect(utils.queryByText(/Диапазон/)).toBeNull();
   });
 });
 
