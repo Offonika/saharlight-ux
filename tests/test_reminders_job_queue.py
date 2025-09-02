@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from datetime import datetime, timezone
+from datetime import datetime, time as dt_time, timezone
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -21,8 +21,9 @@ from services.api.app.telegram_auth import require_tg_user
 
 
 class DummyJob:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, run_time: dt_time | None = None) -> None:
         self.name = name
+        self.run_time = run_time
         self.removed = False
 
     def schedule_removal(self) -> None:  # pragma: no cover - trivial
@@ -36,12 +37,16 @@ class DummyJobQueue:
     def run_daily(
         self,
         callback: Any,
-        time: Any,
+        time: dt_time,
+        *,
         data: dict[str, Any] | None = None,
         name: str | None = None,
+        job_kwargs: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> DummyJob:
-        job = DummyJob(name or "")
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.jobs = [job for job in self.jobs if job.name != name]
+        job = DummyJob(name or "", time)
         self.jobs.append(job)
         return job
 
@@ -49,10 +54,14 @@ class DummyJobQueue:
         self,
         callback: Any,
         interval: Any,
+        *,
         data: dict[str, Any] | None = None,
         name: str | None = None,
+        job_kwargs: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> DummyJob:
+        if job_kwargs and job_kwargs.get("replace_existing"):
+            self.jobs = [job for job in self.jobs if job.name != name]
         job = DummyJob(name or "")
         self.jobs.append(job)
         return job
@@ -118,6 +127,53 @@ def test_post_reminder_uses_job_queue(
     rid = resp.json()["id"]
     spy.assert_awaited_once_with(rid)
     assert fake_queue.get_jobs_by_name(f"reminder_{rid}")
+
+    reminder_events.job_queue = None
+
+
+def test_edit_reminder_replaces_job(
+    client: TestClient,
+    session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.commit()
+
+    fake_queue = DummyJobQueue()
+    monkeypatch.setattr(reminder_events, "job_queue", fake_queue)
+    spy = AsyncMock(wraps=reminder_events.notify_reminder_saved)
+    monkeypatch.setattr(reminder_events, "notify_reminder_saved", spy)
+
+    resp = client.post(
+        "/api/reminders",
+        json={"telegramId": 1, "type": "sugar", "time": "08:00", "isEnabled": True},
+    )
+    assert resp.status_code == 200
+    rid = resp.json()["id"]
+    spy.assert_awaited_once_with(rid)
+    assert [
+        (j.run_time.hour, j.run_time.minute)
+        for j in fake_queue.get_jobs_by_name(f"reminder_{rid}")
+    ] == [(8, 0)]
+
+    spy.reset_mock()
+
+    resp = client.patch(
+        "/api/reminders",
+        json={
+            "id": rid,
+            "telegramId": 1,
+            "type": "sugar",
+            "time": "09:00",
+            "isEnabled": True,
+        },
+    )
+    assert resp.status_code == 200
+    spy.assert_awaited_once_with(rid)
+    jobs = fake_queue.get_jobs_by_name(f"reminder_{rid}")
+    assert len(jobs) == 1
+    assert (jobs[0].run_time.hour, jobs[0].run_time.minute) == (9, 0)
 
     reminder_events.job_queue = None
 
