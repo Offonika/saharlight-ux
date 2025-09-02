@@ -10,7 +10,13 @@ from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from ..diabetes.services.db import Reminder, ReminderLog, SessionLocal, User, run_db
+from ..diabetes.services.db import (
+    Reminder,
+    ReminderLog,
+    SessionLocal,
+    Profile,
+    run_db,
+)
 from ..diabetes.services.reminders_schedule import compute_next
 from ..diabetes.services.repository import CommitError, commit
 from ..schemas.reminders import ReminderSchema
@@ -34,8 +40,8 @@ def _default_title(rem_type: str, rem_time: time_ | None) -> str | None:
 
 async def list_reminders(telegram_id: int) -> list[Reminder]:
     def _list(session: Session) -> list[Reminder]:
-        user = cast(User | None, session.get(User, telegram_id))
-        if user is None:
+        profile = cast(Profile | None, session.get(Profile, telegram_id))
+        if profile is None:
             return []
         reminders_ = session.query(Reminder).filter_by(telegram_id=telegram_id).all()
         sql = resources.files("services.api.app.diabetes.sql").joinpath(
@@ -46,7 +52,7 @@ async def list_reminders(telegram_id: int) -> list[Reminder]:
             text(sql), {"telegram_id": telegram_id, "since": since}
         ).mappings()
         stats = {row["reminder_id"]: row for row in rows}
-        tz = ZoneInfo(user.timezone)
+        tz = ZoneInfo(profile.timezone)
         for rem in reminders_:
             st = stats.get(rem.id)
             last = st["last_fired_at"] if st else None

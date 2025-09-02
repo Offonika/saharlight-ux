@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from .routers.reminders import router as reminders_router
 from .schemas.profile import ProfileSchema
 from .services.profile import get_profile, save_profile
-from .diabetes.services.db import User as UserDB, run_db
+from .diabetes.services.db import Profile, run_db
 from .diabetes.services.repository import CommitError, commit
 
 logger = logging.getLogger(__name__)
@@ -22,19 +22,19 @@ async def profiles_post(data: ProfileSchema) -> ProfileSchema:
         await save_profile(data)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    def _save_user(session: Session) -> None:
-        user = session.get(UserDB, data.telegramId)
-        if user is None:
-            user = UserDB(telegram_id=data.telegramId, thread_id="api")
-            session.add(user)
-        user.timezone = data.timezone
-        user.timezone_auto = data.timezoneAuto
+    def _save_profile_settings(session: Session) -> None:
+        profile = session.get(Profile, data.telegramId)
+        if profile is None:
+            profile = Profile(telegram_id=data.telegramId)
+            session.add(profile)
+        profile.timezone = data.timezone
+        profile.timezone_auto = data.timezoneAuto
         try:
             commit(session)
         except CommitError:
             raise HTTPException(status_code=500, detail="db commit failed")
 
-    await run_db(_save_user)
+    await run_db(_save_profile_settings)
     return data
 
 
@@ -50,12 +50,8 @@ async def profiles_get(
     if profile is None:
         raise HTTPException(status_code=404, detail="profile not found")
 
-    def _get_user(session: Session) -> UserDB | None:
-        return session.get(UserDB, tid)
-
-    user = await run_db(_get_user)
-    tz = user.timezone if user else "UTC"
-    tz_auto = user.timezone_auto if user else True
+    tz = profile.timezone if profile.timezone else "UTC"
+    tz_auto = profile.timezone_auto if profile.timezone_auto is not None else True
 
     icr: float | None = profile.icr
     cf: float | None = profile.cf

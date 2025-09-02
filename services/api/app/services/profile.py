@@ -66,22 +66,22 @@ async def patch_user_settings(
             cast(Session, session).add(profile)
 
         if data.timezone is not None:
-            user.timezone = data.timezone
+            profile.timezone = data.timezone
         if data.timezoneAuto is not None:
-            user.timezone_auto = data.timezoneAuto
+            profile.timezone_auto = data.timezoneAuto
         if data.dia is not None:
-            user.dia = data.dia
+            profile.dia = data.dia
         if data.roundStep is not None:
-            user.round_step = data.roundStep
+            profile.round_step = data.roundStep
         if data.carbUnits is not None:
-            user.carb_units = data.carbUnits
+            profile.carb_units = data.carbUnits.value
         if data.sosContact is not None:
             profile.sos_contact = data.sosContact
         if data.sosAlertsEnabled is not None:
             profile.sos_alerts_enabled = data.sosAlertsEnabled
 
-        if user.timezone_auto and device_tz and user.timezone != device_tz:
-            user.timezone = device_tz
+        if profile.timezone_auto and device_tz and profile.timezone != device_tz:
+            profile.timezone = device_tz
 
         try:
             commit(cast(Session, session))
@@ -89,11 +89,11 @@ async def patch_user_settings(
             raise HTTPException(status_code=500, detail="db commit failed")
 
         return ProfileSettingsOut(
-            timezone=user.timezone,
-            timezoneAuto=user.timezone_auto,
-            dia=user.dia,
-            roundStep=user.round_step,
-            carbUnits=CarbUnits(user.carb_units),
+            timezone=profile.timezone,
+            timezoneAuto=profile.timezone_auto,
+            dia=profile.dia,
+            roundStep=profile.round_step,
+            carbUnits=CarbUnits(profile.carb_units),
             sosContact=profile.sos_contact,
             sosAlertsEnabled=profile.sos_alerts_enabled,
         )
@@ -150,6 +150,8 @@ async def save_profile(data: ProfileSchema) -> None:
             "quiet_end": data.quietEnd,
             "sos_contact": data.sosContact or "",
             "sos_alerts_enabled": (data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True),
+            "timezone": data.timezone,
+            "timezone_auto": data.timezoneAuto,
         }
 
         stmt = insert(Profile).values(**profile_data)
