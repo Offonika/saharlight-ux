@@ -53,6 +53,25 @@ def test_profiles_get_missing_profile_returns_404(
     engine.dispose()
 
 
+def test_profiles_get_db_error_returns_500(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    app = FastAPI()
+    app.include_router(router, prefix="/api")
+
+    async def _get_profile(tid: int):  # noqa: ARG001
+        raise RuntimeError("boom")
+
+    from services.api.app import legacy as legacy_module
+
+    monkeypatch.setattr(legacy_module, "get_profile", _get_profile)
+
+    with TestClient(app) as client:
+        resp = client.get("/api/profiles", params={"telegramId": 1})
+    assert resp.status_code == 500
+    assert resp.json() == {"detail": "database connection failed"}
+
+
 def test_profiles_post_creates_user_for_missing_telegram_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
