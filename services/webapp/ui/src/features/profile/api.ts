@@ -1,13 +1,15 @@
 import type { ProfileSchema } from '@sdk';
 import { api } from '@/api';
 
+export type RapidInsulin = 'aspart' | 'lispro' | 'glulisine' | 'regular';
+
 export interface ExtendedProfileSchema extends ProfileSchema {
   dia?: number | null;
   preBolus?: number | null;
   roundStep?: number | null;
   carbUnit?: 'g' | 'xe' | null;
   gramsPerXe?: number | null;
-  rapidInsulinType?: string | null;
+  rapidInsulinType?: RapidInsulin | null;
   maxBolus?: number | null;
   defaultAfterMealMinutes?: number | null;
   therapyType?: 'insulin' | 'tablets' | 'none' | 'mixed' | null;
@@ -62,7 +64,7 @@ export type PatchProfileDto = {
   roundStep?: number | null;
   carbUnit?: 'g' | 'xe' | null;
   gramsPerXe?: number | null;
-  rapidInsulinType?: string | null;
+  rapidInsulinType?: RapidInsulin | null;
   maxBolus?: number | null;
   defaultAfterMealMinutes?: number | null;
 };

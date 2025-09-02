@@ -16,6 +16,7 @@ import {
   getProfile,
   patchProfile,
   type PatchProfileDto,
+  type RapidInsulin,
 } from "@/features/profile/api";
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
@@ -23,6 +24,13 @@ import { useTelegramInitData } from "@/hooks/useTelegramInitData";
 import { resolveTelegramId } from "./resolveTelegramId";
 
 type TherapyType = 'insulin' | 'tablets' | 'none' | 'mixed';
+
+const rapidInsulinTypes: RapidInsulin[] = [
+  'aspart',
+  'lispro',
+  'glulisine',
+  'regular',
+];
 
 type ProfileForm = {
   icr: string;
@@ -37,7 +45,7 @@ type ProfileForm = {
   roundStep: string;
   carbUnit: 'g' | 'xe';
   gramsPerXe: string;
-  rapidInsulinType: string;
+  rapidInsulinType: RapidInsulin;
   maxBolus: string;
   afterMealMinutes: string;
 };
@@ -53,7 +61,7 @@ type ParsedProfile = {
   roundStep: number;
   carbUnit: 'g' | 'xe';
   gramsPerXe: number;
-  rapidInsulinType: string;
+  rapidInsulinType: RapidInsulin;
   maxBolus: number;
   afterMealMinutes: number;
 };
@@ -75,7 +83,7 @@ export const parseProfile = (
       roundStep: Number(profile.roundStep.replace(/,/g, '.')),
       carbUnit: profile.carbUnit,
       gramsPerXe: Number.isFinite(gramsPerXe) ? gramsPerXe : 0,
-      rapidInsulinType: '',
+      rapidInsulinType: profile.rapidInsulinType,
       maxBolus: 0,
       afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, '.')),
     } satisfies ParsedProfile;
@@ -218,7 +226,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     roundStep: "",
     carbUnit: 'g',
     gramsPerXe: "",
-    rapidInsulinType: "",
+    rapidInsulinType: 'aspart',
     maxBolus: "",
     afterMealMinutes: "",
   });
@@ -299,10 +307,13 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           typeof data.gramsPerXe === "number" && data.gramsPerXe > 0
             ? data.gramsPerXe.toString()
             : "";
-        const rapidInsulinType =
-          typeof data.rapidInsulinType === "string" && data.rapidInsulinType
-            ? data.rapidInsulinType
-            : "";
+        const rapidInsulinType: RapidInsulin =
+          typeof data.rapidInsulinType === "string" &&
+          rapidInsulinTypes.includes(
+            data.rapidInsulinType as RapidInsulin,
+          )
+            ? (data.rapidInsulinType as RapidInsulin)
+            : 'aspart';
         const maxBolus =
           typeof data.maxBolus === "number" && data.maxBolus > 0
             ? data.maxBolus.toString()
@@ -425,7 +436,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       return;
     }
     if (field === "rapidInsulinType") {
-      setProfile((prev) => ({ ...prev, rapidInsulinType: value }));
+      setProfile((prev) => ({
+        ...prev,
+        rapidInsulinType: value as RapidInsulin,
+      }));
       return;
     }
     if (/^\d*(?:[.,]\d*)?$/.test(value)) {
@@ -838,20 +852,18 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       id="rapidInsulinType"
                       className="medical-input"
                       value={profile.rapidInsulinType}
-                      onChange={(e) => handleInputChange('rapidInsulinType', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange(
+                          'rapidInsulinType',
+                          e.target.value as RapidInsulin,
+                        )
+                      }
                     >
-                      <option value="aspart">
-                        {t('profileHelp.rapidInsulinType.options.aspart')}
-                      </option>
-                      <option value="lispro">
-                        {t('profileHelp.rapidInsulinType.options.lispro')}
-                      </option>
-                      <option value="glulisine">
-                        {t('profileHelp.rapidInsulinType.options.glulisine')}
-                      </option>
-                      <option value="regular">
-                        {t('profileHelp.rapidInsulinType.options.regular')}
-                      </option>
+                      {rapidInsulinTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {t(`profileHelp.rapidInsulinType.options.${type}`)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   {/* Max bolus */}
