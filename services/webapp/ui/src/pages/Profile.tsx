@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save } from "lucide-react";
+import { Save, Info } from "lucide-react";
 import { MedicalHeader } from "@/components/MedicalHeader";
 import { useToast } from "@/hooks/use-toast";
 import MedicalButton from "@/components/MedicalButton";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Modal from "@/components/Modal";
+import HelpHint from "@/components/HelpHint";
+import ProfileHelpSheet from "@/components/ProfileHelpSheet";
 import {
   saveProfile,
   getProfile,
@@ -113,6 +115,30 @@ export const parseProfile = (profile: ProfileForm): ParsedProfile | null => {
 export const shouldWarnProfile = (profile: ParsedProfile): boolean =>
   profile.icr > 8 && profile.cf < 3;
 
+interface ProfileFormHeaderProps {
+  onBack: () => void;
+  onHelp: () => void;
+}
+
+const ProfileFormHeader = ({ onBack, onHelp }: ProfileFormHeaderProps) => (
+  <>
+    <MedicalHeader title="Мой профиль" showBack onBack={onBack}>
+      <Button variant="ghost" onClick={onHelp} className="hidden md:inline-flex">
+        Справка
+      </Button>
+    </MedicalHeader>
+    <Button
+      onClick={onHelp}
+      variant="default"
+      size="icon"
+      className="md:hidden fixed bottom-4 right-4 rounded-full shadow-lg"
+      aria-label="Справка"
+    >
+      <Info className="w-5 h-5" />
+    </Button>
+  </>
+);
+
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -138,6 +164,7 @@ const Profile = () => {
   });
   const [original, setOriginal] = useState<ProfileForm | null>(null);
   const [timezones, setTimezones] = useState<string[]>([]);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const [warningOpen, setWarningOpen] = useState(false);
   const [pendingProfile, setPendingProfile] = useState<
@@ -443,19 +470,17 @@ const Profile = () => {
       </Modal>
 
       <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-        <MedicalHeader
-          title="Мой профиль"
-          showBack
-          onBack={() => navigate("/")}
-        />
+        <ProfileFormHeader onBack={() => navigate("/")} onHelp={() => setHelpOpen(true)} />
+        <ProfileHelpSheet open={helpOpen} onOpenChange={setHelpOpen} />
 
         <main className="container mx-auto px-4 py-6">
           <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <div className="space-y-6">
             {/* ICR */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label className="flex items-center text-sm font-medium text-foreground mb-2">
                 ICR (Инсулино-углеводное соотношение)
+                <HelpHint text="Сколько граммов углеводов покрывает 1 единица инсулина." />
               </label>
               <div className="relative">
                 <input
@@ -471,15 +496,13 @@ const Profile = () => {
                   г/ед.
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Сколько граммов углеводов покрывает 1 единица инсулина
-              </p>
             </div>
 
             {/* Коэффициент коррекции */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label className="flex items-center text-sm font-medium text-foreground mb-2">
                 Коэффициент коррекции (КЧ)
+                <HelpHint text="На сколько ммоль/л снижает уровень глюкозы 1 единица быстрого инсулина." />
               </label>
               <div className="relative">
                 <input
@@ -495,15 +518,13 @@ const Profile = () => {
                   ммоль/л
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                На сколько снижает сахар 1 единица инсулина
-              </p>
             </div>
 
             {/* Целевой сахар */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label className="flex items-center text-sm font-medium text-foreground mb-2">
                 Целевой уровень сахара
+                <HelpHint text="Желаемый уровень глюкозы, к которому стремится коррекция." />
               </label>
               <div className="relative">
                 <input
@@ -524,8 +545,9 @@ const Profile = () => {
             {/* Пороги */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="flex items-center text-sm font-medium text-foreground mb-2">
                   Нижний порог
+                  <HelpHint text="Минимальный допустимый уровень глюкозы." />
                 </label>
                 <div className="relative">
                   <input
@@ -544,8 +566,9 @@ const Profile = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="flex items-center text-sm font-medium text-foreground mb-2">
                   Верхний порог
+                  <HelpHint text="Максимальный допустимый уровень глюкозы." />
                 </label>
                 <div className="relative">
                   <input
@@ -571,8 +594,9 @@ const Profile = () => {
               </h3>
               {/* DIA */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="flex items-center text-sm font-medium text-foreground mb-2">
                   DIA (часы)
+                  <HelpHint text="Длительность действия быстрого инсулина в часах." />
                 </label>
                 <input
                   type="text"
@@ -586,8 +610,9 @@ const Profile = () => {
               </div>
               {/* Pre-bolus */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="flex items-center text-sm font-medium text-foreground mb-2">
                   Пре-болюс (мин)
+                  <HelpHint text="Время между уколом и приемом пищи в минутах." />
                 </label>
                 <input
                   type="text"
@@ -601,8 +626,9 @@ const Profile = () => {
               </div>
               {/* Round step */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="flex items-center text-sm font-medium text-foreground mb-2">
                   Шаг округления
+                  <HelpHint text="Шаг округления рассчитанной дозы болюса." />
                 </label>
                 <input
                   type="text"
@@ -616,8 +642,9 @@ const Profile = () => {
               </div>
               {/* Carb unit and grams per XE */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="flex items-center text-sm font-medium text-foreground mb-2">
                   Единица углеводов
+                  <HelpHint text="Используются граммы или хлебные единицы." />
                 </label>
                 <select
                   className="medical-input"
@@ -629,8 +656,9 @@ const Profile = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="flex items-center text-sm font-medium text-foreground mb-2">
                   Граммов на 1 ХЕ
+                  <HelpHint text="Количество граммов углеводов в одной хлебной единице." />
                 </label>
                 <input
                   type="text"
@@ -644,8 +672,9 @@ const Profile = () => {
               </div>
               {/* Rapid insulin type */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="flex items-center text-sm font-medium text-foreground mb-2">
                   Тип быстрого инсулина
+                  <HelpHint text="Используемый тип быстродействующего инсулина." />
                 </label>
                 <select
                   className="medical-input"
@@ -660,8 +689,9 @@ const Profile = () => {
               </div>
               {/* Max bolus */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="flex items-center text-sm font-medium text-foreground mb-2">
                   Максимальный болюс
+                  <HelpHint text="Наибольшая разрешённая разовая доза болюсного инсулина." />
                 </label>
                 <input
                   type="text"
@@ -675,8 +705,9 @@ const Profile = () => {
               </div>
               {/* Default after-meal minutes */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="flex items-center text-sm font-medium text-foreground mb-2">
                   Минут после еды по умолчанию
+                  <HelpHint text="Время для расчётов, если фактическое время неизвестно." />
                 </label>
                 <input
                   type="text"
@@ -694,9 +725,10 @@ const Profile = () => {
             <div>
               <label
                 htmlFor="timezone"
-                className="block text-sm font-medium text-foreground mb-2"
+                className="flex items-center text-sm font-medium text-foreground mb-2"
               >
                 Часовой пояс
+                <HelpHint text="Используется для корректного времени записей и расчётов." />
               </label>
               <input
                 id="timezone"
@@ -766,25 +798,6 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Дополнительная информация */}
-        <div className="mt-6 medical-card bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20">
-          <h3 className="font-semibold text-foreground mb-3">Справка</h3>
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              <strong className="text-foreground">ICR</strong> - показывает,
-              сколько граммов углеводов покрывает 1 единица быстрого инсулина
-            </p>
-            <p>
-              <strong className="text-foreground">КЧ</strong> - показывает, на
-              сколько ммоль/л снижает уровень глюкозы 1 единица быстрого
-              инсулина
-            </p>
-            <p>
-              Эти параметры индивидуальны и должны быть определены совместно с
-              вашим врачом
-            </p>
-          </div>
-        </div>
       </main>
     </div>
     </>
