@@ -103,6 +103,18 @@ const profileHelp = {
     range: 'UTC−12:00 — UTC+14:00',
     auto: 'Определять автоматически',
   },
+  therapyType: {
+    title: 'Тип терапии',
+    definition: 'Используемый режим лечения',
+    unit: '—',
+    range: '—',
+    options: {
+      insulin: 'Инсулин',
+      tablets: 'Таблетки',
+      none: 'Нет',
+      mixed: 'Смешанная',
+    },
+  },
 };
 
 export default profileHelp;

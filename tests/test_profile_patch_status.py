@@ -24,7 +24,8 @@ def test_patch_profile_returns_status_ok(monkeypatch: pytest.MonkeyPatch) -> Non
 
     with TestClient(server.app) as client:
         resp = client.patch(
-            "/api/profile", json={"timezone": "UTC", "timezoneAuto": False}
+            "/api/profile",
+            json={"timezone": "UTC", "timezoneAuto": False, "therapyType": "tablets"},
         )
         assert resp.status_code == 200
         data = resp.json()
@@ -32,5 +33,6 @@ def test_patch_profile_returns_status_ok(monkeypatch: pytest.MonkeyPatch) -> Non
         assert data["timezoneAuto"] is False
         assert data["sosAlertsEnabled"] is True
         assert data["sosContact"] is None
+        assert data["therapyType"] == "tablets"
 
     server.app.dependency_overrides.clear()

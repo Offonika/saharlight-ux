@@ -244,6 +244,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   const [therapyType, setTherapyType] = useState<TherapyType>(
     therapyTypeProp ?? 'none',
   );
+  const [originalTherapyType, setOriginalTherapyType] = useState<TherapyType>(
+    therapyTypeProp ?? 'none',
+  );
 
   const isInsulinTherapy =
     therapyType === 'insulin' || therapyType === 'mixed';
@@ -390,6 +393,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         setProfile(loaded);
         setOriginal(loaded);
         setTherapyType(therapyType);
+        setOriginalTherapyType(therapyType);
 
         if (timezoneAuto && timezone !== deviceTz) {
           patchProfile({
@@ -458,9 +462,14 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     }
   };
 
-  const buildPatch = (parsed: ParsedProfile): PatchProfileDto => {
+  const buildPatch = (
+    parsed: ParsedProfile,
+    therapyTypeValue: TherapyType,
+  ): PatchProfileDto => {
     if (!original) return {};
     const patch: PatchProfileDto = {};
+    if (therapyTypeValue !== originalTherapyType)
+      patch.therapyType = therapyTypeValue;
     if (profile.timezone !== original.timezone) patch.timezone = profile.timezone;
     if (profile.timezoneAuto !== original.timezoneAuto)
       patch.timezoneAuto = profile.timezoneAuto;
@@ -511,6 +520,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
 
       await saveProfile(payload);
       setOriginal(profile);
+      if (data.therapyType) {
+        setOriginalTherapyType(data.therapyType);
+      }
       toast({
         title: t('profile.saved'),
         description: t('profile.settingsUpdated'),
@@ -555,7 +567,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       setPendingProfile({
         telegramId,
         ...parsed,
-        patch: buildPatch(parsed),
+        patch: buildPatch(parsed, therapyType),
         therapyType,
       });
       setWarningOpen(true);
@@ -569,7 +581,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     await saveParsedProfile({
       telegramId,
       ...parsed,
-      patch: buildPatch(parsed),
+      patch: buildPatch(parsed, therapyType),
       therapyType,
     });
   };
@@ -610,6 +622,37 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         <main className="container mx-auto px-4 py-6">
         <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
         <div className="space-y-6">
+          <div>
+            <label
+              htmlFor="therapyType"
+              className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+            >
+              {t('profileHelp.therapyType.title')}
+              <HelpHint label="profileHelp.therapyType.title">
+                {t('profileHelp.therapyType.definition')}
+              </HelpHint>
+            </label>
+            <select
+              id="therapyType"
+              className="medical-input"
+              value={therapyType}
+              onChange={(e) => setTherapyType(e.target.value as TherapyType)}
+            >
+              <option value="insulin">
+                {t('profileHelp.therapyType.options.insulin')}
+              </option>
+              <option value="tablets">
+                {t('profileHelp.therapyType.options.tablets')}
+              </option>
+              <option value="none">
+                {t('profileHelp.therapyType.options.none')}
+              </option>
+              <option value="mixed">
+                {t('profileHelp.therapyType.options.mixed')}
+              </option>
+            </select>
+          </div>
+
           {isInsulinTherapy && (
             <>
               {/* ICR */}

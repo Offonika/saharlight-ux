@@ -29,6 +29,8 @@ async def profiles_post(data: ProfileSchema) -> ProfileSchema:
             session.add(profile)
         profile.timezone = data.timezone
         profile.timezone_auto = data.timezoneAuto
+        if data.therapyType is not None:
+            profile.therapy_type = data.therapyType
         try:
             commit(session)
         except CommitError:
@@ -77,4 +79,5 @@ async def profiles_get(
         ),
         timezone=tz,
         timezoneAuto=tz_auto,
+        therapyType=profile.therapy_type,
     )

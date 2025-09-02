@@ -15,6 +15,7 @@ from ..diabetes.schemas.profile import (
     CarbUnits,
     ProfileSettingsIn,
     ProfileSettingsOut,
+    TherapyType,
 )
 from ..types import SessionProtocol
 
@@ -79,6 +80,8 @@ async def patch_user_settings(
             profile.sos_contact = data.sosContact
         if data.sosAlertsEnabled is not None:
             profile.sos_alerts_enabled = data.sosAlertsEnabled
+        if data.therapyType is not None:
+            profile.therapy_type = data.therapyType.value
 
         if profile.timezone_auto and device_tz and profile.timezone != device_tz:
             profile.timezone = device_tz
@@ -96,6 +99,7 @@ async def patch_user_settings(
             carbUnits=CarbUnits(profile.carb_units),
             sosContact=profile.sos_contact,
             sosAlertsEnabled=profile.sos_alerts_enabled,
+            therapyType=TherapyType(profile.therapy_type),
         )
 
     return await db.run_db(_patch, sessionmaker=db.SessionLocal)

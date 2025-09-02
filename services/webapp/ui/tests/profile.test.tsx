@@ -549,6 +549,32 @@ describe('Profile page', () => {
     });
   });
 
+  it('sends therapyType change to server on save', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (saveProfile as vi.Mock).mockResolvedValue(undefined);
+    const { getByLabelText, getByText } = render(<Profile />);
+    const { t } = useTranslation();
+
+    await waitFor(() => {
+      expect(
+        (getByLabelText(
+          t('profileHelp.therapyType.title'),
+        ) as HTMLSelectElement).value,
+      ).toBe('insulin');
+    });
+
+    const select = getByLabelText(
+      t('profileHelp.therapyType.title'),
+    ) as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'tablets' } });
+
+    fireEvent.click(getByText('Сохранить настройки'));
+
+    await waitFor(() => {
+      expect(patchProfile).toHaveBeenCalledWith({ therapyType: 'tablets' });
+    });
+  });
+
   it('loads profile on mount and updates form', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue({
