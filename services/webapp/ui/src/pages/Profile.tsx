@@ -448,7 +448,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       toast({
         title: "Проверьте значения",
         description:
-          "ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности введенных данных",
+          "ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности введённых данных",
       });
       return;
     }
@@ -482,7 +482,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       >
         <p>
           ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности
-          введенных данных
+          введённых данных
         </p>
       </Modal>
 
@@ -739,7 +739,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                   Максимальный болюс
                   <HelpHint label="Максимальный болюс">
-                    Максимальная доза болюсного инсулина за один раз
+                    Максимальная доза болюсного инсулина за один раз.
                   </HelpHint>
                 </label>
                 <input
