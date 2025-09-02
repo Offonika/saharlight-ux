@@ -8,6 +8,9 @@ from zoneinfo import ZoneInfo
 
 from telegram.ext import ContextTypes, JobQueue
 
+from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.orm.exc import DetachedInstanceError
+
 from services.api.app.diabetes.services.db import Reminder, User
 
 logger = logging.getLogger(__name__)
@@ -40,10 +43,23 @@ def schedule_reminder(
     if not rem.is_enabled:
         return
 
+    profile = None
+    tz_name: str | None = None
     if user is None:
         with SessionLocal() as session:
-            user = session.get(User, rem.telegram_id)
-    tz = ZoneInfo(getattr(user, "timezone", None) or "UTC")
+            db_user = session.get(User, rem.telegram_id)
+            if db_user is not None:
+                profile = getattr(db_user, "profile", None)
+                tz_name = getattr(profile, "timezone", None)
+    else:
+        try:
+            profile = getattr(user, "profile")
+        except DetachedInstanceError:
+            profile = None
+        tz_name = getattr(profile, "timezone", None)
+        if tz_name is None:
+            tz_name = getattr(user, "timezone", None)
+    tz = ZoneInfo(tz_name or "UTC")
 
     base_name = f"reminder_{rem.id}"
     kind = rem.kind

@@ -50,7 +50,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
 
     monkeypatch.setattr(reminders_router, "_post_job_queue_event", _noop)
     with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
     try:
         with TestClient(server.app) as test_client:

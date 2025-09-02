@@ -136,7 +136,7 @@ async def test_gc_replaces_outdated_job(
     monkeypatch.setattr(reminder_handlers, "SessionLocal", session_factory)
 
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(
             Reminder(
                 id=1,
@@ -175,8 +175,8 @@ async def test_gc_preloads_users(
     with session_factory() as session:
         session.add_all(
             [
-                User(telegram_id=1, thread_id="t1", timezone="UTC"),
-                User(telegram_id=2, thread_id="t2", timezone="UTC"),
+                User(telegram_id=1, thread_id="t1"),
+                User(telegram_id=2, thread_id="t2"),
             ]
         )
         session.add_all(
@@ -235,8 +235,8 @@ async def test_gc_continues_after_schedule_error(
     with session_factory() as session:
         session.add_all(
             [
-                User(telegram_id=1, thread_id="t1", timezone="UTC"),
-                User(telegram_id=2, thread_id="t2", timezone="UTC"),
+                User(telegram_id=1, thread_id="t1"),
+                User(telegram_id=2, thread_id="t2"),
             ]
         )
         session.add_all(

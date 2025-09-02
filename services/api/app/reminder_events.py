@@ -36,7 +36,7 @@ async def _reminders_gc(_context: ContextTypes.DEFAULT_TYPE) -> None:
         with session_factory() as session:
             return (
                 session.query(Reminder)
-                .options(selectinload(Reminder.user))
+                .options(selectinload(Reminder.user).selectinload(User.profile))
                 .filter(Reminder.is_enabled == True)  # noqa: E712
                 .all()
             )

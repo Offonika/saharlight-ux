@@ -111,7 +111,7 @@ def test_post_reminder_uses_job_queue(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
 
     fake_queue = DummyJobQueue()
@@ -137,7 +137,7 @@ def test_edit_reminder_replaces_job(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
 
     fake_queue = DummyJobQueue()

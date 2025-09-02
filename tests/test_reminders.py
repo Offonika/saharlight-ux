@@ -35,6 +35,7 @@ from services.api.app.diabetes.services.db import (
     Reminder,
     ReminderLog,
     User as DbUser,
+    Profile,
 )
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.helpers import parse_time_interval
@@ -259,7 +260,8 @@ def test_schedule_reminder_replaces_existing_job() -> None:
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
     with TestSession() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(Profile(telegram_id=1, timezone="Europe/Moscow"))
         session.add(
             Reminder(
                 id=1,
@@ -356,7 +358,11 @@ def test_schedule_reminder_without_user_defaults_to_utc() -> None:
 
 
 def test_schedule_reminder_uses_user_timezone_when_queue_has_none() -> None:
-    user = DbUser(telegram_id=1, thread_id="t", timezone="UTC")
+    user = DbUser(
+        telegram_id=1,
+        thread_id="t",
+        profile=Profile(telegram_id=1, timezone="UTC"),
+    )
     rem = Reminder(
         id=1,
         telegram_id=1,
@@ -377,7 +383,11 @@ def test_schedule_reminder_uses_user_timezone_when_queue_has_none() -> None:
 
 
 def test_schedule_reminder_ignores_application_timezone() -> None:
-    user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
+    user = DbUser(
+        telegram_id=1,
+        thread_id="t",
+        profile=Profile(telegram_id=1, timezone="Europe/Moscow"),
+    )
     rem = Reminder(
         id=1,
         telegram_id=1,
@@ -457,7 +467,11 @@ class DummyJobQueueNoDays:
 
 
 def test_schedule_reminder_no_timezone_kwarg() -> None:
-    user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
+    user = DbUser(
+        telegram_id=1,
+        thread_id="t",
+        profile=Profile(telegram_id=1, timezone="Europe/Moscow"),
+    )
     rem = Reminder(
         id=1,
         telegram_id=1,
@@ -477,7 +491,11 @@ def test_schedule_reminder_no_timezone_kwarg() -> None:
 
 
 def test_schedule_reminder_no_days_kwarg() -> None:
-    user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
+    user = DbUser(
+        telegram_id=1,
+        thread_id="t",
+        profile=Profile(telegram_id=1, timezone="Europe/Moscow"),
+    )
     rem = Reminder(
         id=1,
         telegram_id=1,
@@ -502,7 +520,8 @@ def test_schedule_reminder_respects_days_mask() -> None:
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
     with TestSession() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(Profile(telegram_id=1, timezone="Europe/Moscow"))
         session.add(
             Reminder(
                 id=1,
@@ -538,7 +557,11 @@ def test_schedule_with_next_interval(monkeypatch: pytest.MonkeyPatch) -> None:
             return cast("DummyDatetime", result)
 
     monkeypatch.setattr(handlers, "datetime", DummyDatetime)
-    user = DbUser(telegram_id=1, thread_id="t", timezone="Europe/Moscow")
+    user = DbUser(
+        telegram_id=1,
+        thread_id="t",
+        profile=Profile(telegram_id=1, timezone="Europe/Moscow"),
+    )
     rem = Reminder(
         telegram_id=1, type="sugar", interval_hours=2, is_enabled=True, user=user
     )
@@ -578,7 +601,7 @@ def test_interval_minutes_scheduling_and_rendering(
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
     with TestSession() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
             Reminder(
                 id=1,
@@ -617,7 +640,7 @@ def test_interval_hours_scheduling(
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
     with TestSession() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
             Reminder(
                 id=1,
@@ -653,7 +676,7 @@ def test_interval_minutes_non_positive_skips(
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     handlers.SessionLocal = TestSession
     with TestSession() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
             Reminder(
                 id=1,
@@ -684,7 +707,11 @@ def test_interval_minutes_non_positive_skips(
 def test_schedule_with_next_invalid_timezone_logs_warning(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    user = DbUser(telegram_id=1, thread_id="t", timezone="Invalid/Zone")
+    user = DbUser(
+        telegram_id=1,
+        thread_id="t",
+        profile=Profile(telegram_id=1, timezone="Invalid/Zone"),
+    )
     rem = Reminder(
         telegram_id=1,
         type="sugar",
@@ -700,7 +727,11 @@ def test_schedule_with_next_invalid_timezone_logs_warning(
 
 
 def test_schedule_reminder_invalid_timezone_raises() -> None:
-    user = DbUser(telegram_id=1, thread_id="t", timezone="Bad/Zone")
+    user = DbUser(
+        telegram_id=1,
+        thread_id="t",
+        profile=Profile(telegram_id=1, timezone="Bad/Zone"),
+    )
     rem = Reminder(
         id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True, user=user
     )
@@ -1860,7 +1891,7 @@ def test_empty_returns_200(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
     resp = client.get("/api/reminders", params={"telegramId": 1})
     assert resp.status_code == 200
@@ -1871,7 +1902,7 @@ def test_nonempty_returns_list(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
             Reminder(
                 id=1,
@@ -1910,7 +1941,7 @@ def test_get_single_reminder(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
             Reminder(
                 id=1,
@@ -1955,7 +1986,7 @@ def test_get_single_reminder_not_found(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
     resp = client.get("/api/reminders/1", params={"telegramId": 1})
     assert resp.status_code == 404
@@ -1966,7 +1997,7 @@ def test_post_reminder_forbidden(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
     fastapi_app = cast(FastAPI, client.app)
     fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
@@ -1983,7 +2014,7 @@ def test_patch_reminder_forbidden(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
     with session_factory() as session:
-        session.add(DbUser(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(DbUser(telegram_id=1, thread_id="t"))
         session.add(
             Reminder(
                 id=1,

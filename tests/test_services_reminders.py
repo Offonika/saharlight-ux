@@ -38,7 +38,7 @@ async def test_save_reminder_sets_default_title(
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
 
     rem_id = await reminders.save_reminder(
@@ -60,7 +60,7 @@ async def test_save_reminder_preserves_title_on_update(
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
 
     rem_id = await reminders.save_reminder(
@@ -91,7 +91,7 @@ async def test_save_reminder_sets_default_title_on_update_if_missing(
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0)))
         session.commit()
 
@@ -109,7 +109,7 @@ async def test_save_reminder_interval_minutes(
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
 
     rem_id = await reminders.save_reminder(
@@ -131,7 +131,7 @@ async def test_save_reminder_not_found_or_wrong_user(
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
 
@@ -170,7 +170,7 @@ async def test_list_reminders_stats(
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     now = datetime.now(timezone.utc)
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         recent = now - timedelta(days=1)
         session.add(
@@ -197,7 +197,7 @@ async def test_save_reminder_kind_and_days(
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
 
     rem_id = await reminders.save_reminder(
@@ -227,7 +227,7 @@ async def test_list_reminders_next_at(
         lambda rem, tz: datetime(2023, 1, 1, tzinfo=timezone.utc),
     )
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
     rems = await reminders.list_reminders(1)
@@ -240,7 +240,7 @@ async def test_delete_reminder(
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
 
@@ -255,7 +255,7 @@ async def test_delete_reminder_with_logs(
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.add(ReminderLog(reminder_id=1, telegram_id=1))
         session.commit()
@@ -278,7 +278,7 @@ async def test_delete_reminder_not_found_or_wrong_user(
 ) -> None:
     monkeypatch.setattr(reminders, "SessionLocal", session_factory)
     with cast(ContextManager[SASession], session_factory()) as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         session.commit()
     with pytest.raises(HTTPException):

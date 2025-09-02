@@ -171,7 +171,7 @@ async def test_daily_reminder_respects_timezone(queue_cls: QueueType) -> None:
             kind="at_time",
             is_enabled=True,
         )
-        user = SimpleNamespace(timezone="Asia/Tokyo")
+        user = SimpleNamespace(profile=SimpleNamespace(timezone="Asia/Tokyo"))
         reminder_jobs.schedule_reminder(rem, job_queue, user)
         await asyncio.wait_for(event.wait(), timeout=5)
     finally:
