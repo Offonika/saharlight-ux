@@ -317,7 +317,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         const timezoneAuto = data.timezoneAuto === true;
         const therapyType = data.therapyType ?? undefined;
 
-        const isComplete = [
+        const insulinRequiredComplete = [
           icr,
           cf,
           target,
@@ -330,6 +330,20 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           maxBolus,
           afterMealMinutes,
         ].every((v) => Number(v) > 0);
+
+        const nonInsulinComplete = [
+          target,
+          low,
+          high,
+          roundStep,
+          gramsPerXe,
+          afterMealMinutes,
+        ].every((v) => Number(v) > 0);
+
+        const isComplete =
+          therapyType === "tablets" || therapyType === "none"
+            ? nonInsulinComplete
+            : insulinRequiredComplete;
 
         const loaded: ProfileForm = {
           icr,
