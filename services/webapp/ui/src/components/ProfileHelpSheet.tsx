@@ -160,10 +160,11 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
   const isMobile = useIsMobile();
   const { t } = useTranslation();
 
-  const filtered =
-    therapyType === 'tablets' || therapyType === 'none'
-      ? sections.filter((section) => section.key !== 'insulin')
-      : sections;
+  const sectionsByTherapy = sections.filter(
+    (section) =>
+      section.key !== 'insulin' ||
+      (therapyType !== 'tablets' && therapyType !== 'none'),
+  );
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -195,7 +196,7 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
           </SheetClose>
         </SheetHeader>
         <Accordion type="multiple" className="w-full">
-          {filtered.map((section) => (
+          {sectionsByTherapy.map((section) => (
             <AccordionItem key={section.key} value={section.key}>
               <AccordionTrigger>{t(section.titleKey)}</AccordionTrigger>
               <AccordionContent>
