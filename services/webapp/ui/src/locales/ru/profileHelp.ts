@@ -49,6 +49,12 @@ const profileHelp = {
     unit: 'мин',
     range: '0–60',
   },
+  rapidInsulinType: {
+    title: 'Тип быстрого инсулина',
+    definition: 'Используемый тип быстродействующего инсулина',
+    unit: '—',
+    range: 'Aspart, Lispro, Glulisine, Regular',
+  },
   maxBolus: {
     title: 'Максимальный болюс',
     definition: 'Максимальная доза болюсного инсулина за один раз',
@@ -66,6 +72,12 @@ const profileHelp = {
     definition: 'Единица измерения углеводов в расчётах',
     unit: 'г или ХЕ',
     range: 'г, ХЕ',
+  },
+  gramsPerXe: {
+    title: 'Граммов на 1 ХЕ',
+    definition: 'Количество граммов углеводов в одной ХЕ',
+    unit: 'г/ХЕ',
+    range: '5–20',
   },
   afterMealMinutes: {
     title: 'Минут после еды',
