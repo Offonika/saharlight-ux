@@ -10,10 +10,14 @@ vi.mock('@/hooks/use-mobile', () => ({
 }));
 
 describe('ProfileHelpSheet', () => {
-  it.each(['none', 'tablets'] as const)(
+  it.each([undefined, 'none', 'tablets'] as const)(
     'hides insulin section for %s therapy',
     (therapy) => {
-      render(<ProfileHelpSheet therapyType={therapy} />);
+      if (therapy === undefined) {
+        render(<ProfileHelpSheet />);
+      } else {
+        render(<ProfileHelpSheet therapyType={therapy} />);
+      }
       fireEvent.click(screen.getAllByLabelText('Справка')[0]);
       expect(screen.queryByText('Инсулин')).toBeNull();
       expect(screen.queryByText('Тип быстрого инсулина')).toBeNull();

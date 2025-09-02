@@ -163,7 +163,9 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
   const sectionsByTherapy = sections.filter(
     (section) =>
       section.key !== 'insulin' ||
-      (therapyType !== 'tablets' && therapyType !== 'none'),
+      (therapyType !== undefined &&
+        therapyType !== 'tablets' &&
+        therapyType !== 'none'),
   );
 
   return (
