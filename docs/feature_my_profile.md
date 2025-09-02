@@ -104,10 +104,12 @@ Accept: application/json
   "therapy_type": "tablets",
   "glucose_units": "mmol/L",
   "target": 5.5, "low": 3.9, "high": 8.0,
-  "carb_units": "grams", "grams_per_xe": 12, "round_step": 1,
+
+  "carb_units": "g", "grams_per_xe": 12, "round_step": 1,
   "postmeal_check_min": 90,
   "timezone": "Europe/Moscow", "timezone_auto": false,
-  "quietStart": "23:00", "quietEnd": "07:00",
+  "quiet_start": "23:00", "quiet_end": "07:00",
+
   "sos_contact": "@user", "sos_alerts_enabled": true
 }
 
