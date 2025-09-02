@@ -240,6 +240,7 @@ describe('Profile page', () => {
     expect(queryByLabelText(/Коэффициент коррекции/)).toBeNull();
     expect(queryByLabelText(/DIA/)).toBeNull();
     expect(queryByLabelText(/Пре-болюс/)).toBeNull();
+    expect(queryByLabelText(/Тип быстрого инсулина/)).toBeNull();
     expect(queryByLabelText(/Максимальный болюс/)).toBeNull();
   });
 

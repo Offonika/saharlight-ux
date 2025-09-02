@@ -763,31 +763,33 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   placeholder="12"
                 />
               </div>
-              {/* Rapid insulin type */}
-              <div>
-                <label
-                  htmlFor="rapidInsulinType"
-                  className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
-                >
-                  Тип быстрого инсулина
-                  <HelpHint label="Тип быстрого инсулина">
-                    Используемый тип быстродействующего инсулина
-                  </HelpHint>
-                </label>
-                <select
-                  id="rapidInsulinType"
-                  className="medical-input"
-                  value={profile.rapidInsulinType}
-                  onChange={(e) => handleInputChange('rapidInsulinType', e.target.value)}
-                >
-                  <option value="aspart">Aspart</option>
-                  <option value="lispro">Lispro</option>
-                  <option value="glulisine">Glulisine</option>
-                  <option value="regular">Regular</option>
-                </select>
-              </div>
               {therapyType !== 'tablets' && (
                 <>
+                  {/* Rapid insulin type */}
+                  <div>
+                    <label
+                      htmlFor="rapidInsulinType"
+                      className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+                    >
+                      Тип быстрого инсулина
+                      <HelpHint label="Тип быстрого инсулина">
+                        Используемый тип быстродействующего инсулина
+                      </HelpHint>
+                    </label>
+                    <select
+                      id="rapidInsulinType"
+                      className="medical-input"
+                      value={profile.rapidInsulinType}
+                      onChange={(e) =>
+                        handleInputChange('rapidInsulinType', e.target.value)
+                      }
+                    >
+                      <option value="aspart">Aspart</option>
+                      <option value="lispro">Lispro</option>
+                      <option value="glulisine">Glulisine</option>
+                      <option value="regular">Regular</option>
+                    </select>
+                  </div>
                   {/* Max bolus */}
                   <div>
                     <label
