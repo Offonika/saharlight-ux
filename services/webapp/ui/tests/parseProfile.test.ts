@@ -217,6 +217,25 @@ describe("parseProfile", () => {
       ),
     ).toBeNull();
   });
+
+  it("parses mixed therapy profile including insulin fields", () => {
+    const result = parseProfile(makeProfile(), "mixed");
+    expect(result).toEqual({
+      icr: 1,
+      cf: 2,
+      target: 5,
+      low: 4,
+      high: 10,
+      dia: 7,
+      preBolus: 10,
+      roundStep: 1,
+      carbUnit: "g",
+      gramsPerXe: 12,
+      rapidInsulinType: "lispro" as RapidInsulin,
+      maxBolus: 20,
+      afterMealMinutes: 60,
+    });
+  });
 });
 
 describe("shouldWarnProfile", () => {
@@ -337,6 +356,26 @@ describe("shouldWarnProfile", () => {
 
     expect(
       shouldWarnProfile({ ...original, carbUnit: "xe", icr: 0.8 }, original),
+    ).toBe(false);
+  });
+
+  it("does not warn for non-insulin therapy", () => {
+    expect(
+      shouldWarnProfile({
+        icr: 0,
+        cf: 0,
+        target: 5,
+        low: 4,
+        high: 10,
+        dia: 0,
+        preBolus: 0,
+        roundStep: 1,
+        carbUnit: "g",
+        gramsPerXe: 10,
+        rapidInsulinType: "aspart" as RapidInsulin,
+        maxBolus: 0,
+        afterMealMinutes: 0,
+      }),
     ).toBe(false);
   });
 });

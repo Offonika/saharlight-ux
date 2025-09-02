@@ -82,6 +82,7 @@ export type PatchProfileDto = {
   rapidInsulinType?: RapidInsulin | null;
   maxBolus?: number | null;
   defaultAfterMealMinutes?: number | null;
+  therapyType?: 'insulin' | 'tablets' | 'none' | 'mixed' | null;
 };
 
 export async function patchProfile(payload: PatchProfileDto) {

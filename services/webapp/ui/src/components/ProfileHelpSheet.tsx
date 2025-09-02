@@ -124,6 +124,13 @@ const sections: HelpSection[] = [
         rangeKey: 'profileHelp.roundStep.range',
       },
       {
+        key: 'therapyType',
+        titleKey: 'profileHelp.therapyType.title',
+        definitionKey: 'profileHelp.therapyType.definition',
+        unitKey: 'profileHelp.therapyType.unit',
+        rangeKey: 'profileHelp.therapyType.range',
+      },
+      {
         key: 'carbUnit',
         titleKey: 'profileHelp.carbUnit.title',
         definitionKey: 'profileHelp.carbUnit.definition',

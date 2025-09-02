@@ -9,6 +9,15 @@ class CarbUnits(str, Enum):
     XE = "xe"
 
 
+class TherapyType(str, Enum):
+    """Available therapy types for a patient profile."""
+
+    INSULIN = "insulin"
+    TABLETS = "tablets"
+    NONE = "none"
+    MIXED = "mixed"
+
+
 class ProfileSettingsIn(BaseModel):
     """Incoming user settings for profile configuration."""
 
@@ -39,6 +48,11 @@ class ProfileSettingsIn(BaseModel):
         alias="sosAlertsEnabled",
         validation_alias=AliasChoices("sosAlertsEnabled", "sos_alerts_enabled"),
     )
+    therapyType: TherapyType | None = Field(
+        default=None,
+        alias="therapyType",
+        validation_alias=AliasChoices("therapyType", "therapy_type"),
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -61,3 +75,4 @@ class ProfileSettingsOut(ProfileSettingsIn):
     carbUnits: CarbUnits = Field(alias="carbUnits")
     sosContact: str | None = Field(default=None, alias="sosContact")
     sosAlertsEnabled: bool = Field(alias="sosAlertsEnabled")
+    therapyType: TherapyType = Field(alias="therapyType")

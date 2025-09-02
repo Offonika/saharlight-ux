@@ -63,6 +63,11 @@ class ProfileSchema(BaseModel):
         alias="timezoneAuto",
         validation_alias=AliasChoices("timezoneAuto", "timezone_auto"),
     )
+    therapyType: str | None = Field(
+        default=None,
+        alias="therapyType",
+        validation_alias=AliasChoices("therapyType", "therapy_type"),
+    )
 
     model_config = ConfigDict(populate_by_name=True)
 
