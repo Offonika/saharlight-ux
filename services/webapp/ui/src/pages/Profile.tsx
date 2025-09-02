@@ -63,6 +63,7 @@ export const parseProfile = (
   therapyType?: TherapyType,
 ): ParsedProfile | null => {
   if (therapyType === 'tablets' || therapyType === 'none') {
+    const gramsPerXe = Number(profile.gramsPerXe.replace(/,/g, '.'));
     const parsed = {
       icr: 0,
       cf: 0,
@@ -73,39 +74,40 @@ export const parseProfile = (
       preBolus: 0,
       roundStep: Number(profile.roundStep.replace(/,/g, '.')),
       carbUnit: profile.carbUnit,
-      gramsPerXe: Number(profile.gramsPerXe.replace(/,/g, '.')),
+      gramsPerXe: Number.isFinite(gramsPerXe) ? gramsPerXe : 0,
       rapidInsulinType: '',
       maxBolus: 0,
       afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, '.')),
     } satisfies ParsedProfile;
+    const validateGrams = parsed.carbUnit === 'xe';
     const numbersValid =
       [
         parsed.target,
         parsed.low,
         parsed.high,
         parsed.roundStep,
-        parsed.gramsPerXe,
         parsed.afterMealMinutes,
+        ...(validateGrams ? [parsed.gramsPerXe] : []),
       ].every((v) => Number.isFinite(v));
     const positiveValid =
       parsed.target > 0 &&
       parsed.low > 0 &&
       parsed.high > 0 &&
       parsed.roundStep > 0 &&
-      parsed.gramsPerXe > 0 &&
-      parsed.afterMealMinutes >= 0;
+      parsed.afterMealMinutes >= 0 &&
+      (!validateGrams || parsed.gramsPerXe > 0);
     const rangeValid =
       parsed.low < parsed.high &&
       parsed.low < parsed.target &&
       parsed.target < parsed.high &&
       parsed.roundStep <= 5 &&
-      parsed.gramsPerXe >= 5 &&
-      parsed.gramsPerXe <= 20 &&
       parsed.afterMealMinutes <= 180 &&
-      (parsed.carbUnit === 'g' || parsed.carbUnit === 'xe');
+      (parsed.carbUnit === 'g' || parsed.carbUnit === 'xe') &&
+      (!validateGrams || (parsed.gramsPerXe >= 5 && parsed.gramsPerXe <= 20));
     return numbersValid && positiveValid && rangeValid ? parsed : null;
   }
 
+  const gramsPerXe = Number(profile.gramsPerXe.replace(/,/g, '.'));
   const parsed = {
     icr: Number(profile.icr.replace(/,/g, '.')),
     cf: Number(profile.cf.replace(/,/g, '.')),
@@ -116,11 +118,12 @@ export const parseProfile = (
     preBolus: Number(profile.preBolus.replace(/,/g, '.')),
     roundStep: Number(profile.roundStep.replace(/,/g, '.')),
     carbUnit: profile.carbUnit,
-    gramsPerXe: Number(profile.gramsPerXe.replace(/,/g, '.')),
+    gramsPerXe: Number.isFinite(gramsPerXe) ? gramsPerXe : 0,
     rapidInsulinType: profile.rapidInsulinType,
     maxBolus: Number(profile.maxBolus.replace(/,/g, '.')),
     afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, '.')),
   } satisfies ParsedProfile;
+  const validateGrams = parsed.carbUnit === 'xe';
   const numbersValid =
     [
       parsed.icr,
@@ -131,9 +134,9 @@ export const parseProfile = (
       parsed.dia,
       parsed.preBolus,
       parsed.roundStep,
-      parsed.gramsPerXe,
       parsed.maxBolus,
       parsed.afterMealMinutes,
+      ...(validateGrams ? [parsed.gramsPerXe] : []),
     ].every((v) => Number.isFinite(v));
   const positiveValid =
     parsed.icr > 0 &&
@@ -144,9 +147,9 @@ export const parseProfile = (
     parsed.dia >= 1 &&
     parsed.preBolus >= 0 &&
     parsed.roundStep > 0 &&
-    parsed.gramsPerXe > 0 &&
     parsed.maxBolus > 0 &&
-    parsed.afterMealMinutes >= 0;
+    parsed.afterMealMinutes >= 0 &&
+    (!validateGrams || parsed.gramsPerXe > 0);
   const rangeValid =
     parsed.low < parsed.high &&
     parsed.low < parsed.target &&
@@ -154,12 +157,11 @@ export const parseProfile = (
     parsed.dia <= 12 &&
     parsed.preBolus <= 60 &&
     parsed.roundStep <= 5 &&
-    parsed.gramsPerXe >= 5 &&
-    parsed.gramsPerXe <= 20 &&
     parsed.maxBolus <= 25 &&
     parsed.afterMealMinutes <= 180 &&
     (parsed.carbUnit === 'g' || parsed.carbUnit === 'xe') &&
-    parsed.rapidInsulinType.length > 0;
+    parsed.rapidInsulinType.length > 0 &&
+    (!validateGrams || (parsed.gramsPerXe >= 5 && parsed.gramsPerXe <= 20));
   return numbersValid && positiveValid && rangeValid ? parsed : null;
 };
 
@@ -799,7 +801,8 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   <option value="xe">ХЕ</option>
                 </select>
               </div>
-              <div>
+              {profile.carbUnit === 'xe' && (
+                <div>
                   <label
                     htmlFor="gramsPerXe"
                     className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
@@ -809,17 +812,18 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       {t('profileHelp.gramsPerXe.definition')}
                     </HelpHint>
                   </label>
-                <input
-                  id="gramsPerXe"
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.gramsPerXe}
-                  onChange={(e) => handleInputChange('gramsPerXe', e.target.value)}
-                  className="medical-input"
-                  placeholder="12"
-                />
-              </div>
+                  <input
+                    id="gramsPerXe"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="^\\d*(?:[.,]\\d*)?$"
+                    value={profile.gramsPerXe}
+                    onChange={(e) => handleInputChange('gramsPerXe', e.target.value)}
+                    className="medical-input"
+                    placeholder="12"
+                  />
+                </div>
+              )}
               {isInsulinTherapy && (
                 <>
                   {/* Rapid insulin type */}

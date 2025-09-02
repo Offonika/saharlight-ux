@@ -60,6 +60,32 @@ describe("parseProfile", () => {
     expect(result).toBeNull();
   });
 
+  it("skips gramsPerXe validation when carb unit is grams", () => {
+    const result = parseProfile(makeProfile({ gramsPerXe: "", carbUnit: "g" }));
+    expect(result).toEqual({
+      icr: 1,
+      cf: 2,
+      target: 5,
+      low: 4,
+      high: 10,
+      dia: 7,
+      preBolus: 10,
+      roundStep: 1,
+      carbUnit: "g",
+      gramsPerXe: 0,
+      rapidInsulinType: "lispro",
+      maxBolus: 20,
+      afterMealMinutes: 60,
+    });
+  });
+
+  it("validates gramsPerXe when carb unit is XE", () => {
+    const result = parseProfile(
+      makeProfile({ gramsPerXe: "", carbUnit: "xe" }),
+    );
+    expect(result).toBeNull();
+  });
+
   it("returns null when low/high bounds are invalid", () => {
     expect(parseProfile(makeProfile({ low: "8", high: "6" }))).toBeNull();
     expect(parseProfile(makeProfile({ target: "3" }))).toBeNull();
