@@ -59,7 +59,13 @@ export default function RemindersList({
   const [items, setItems] = useState<ReminderDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<"all" | "on" | "off">(() => {
-    return (localStorage.getItem('reminderFilter') as "all" | "on" | "off") || "all";
+    try {
+      return (
+        localStorage.getItem('reminderFilter') as "all" | "on" | "off"
+      ) || "all";
+    } catch {
+      return "all";
+    }
   });
 
   async function load() {
