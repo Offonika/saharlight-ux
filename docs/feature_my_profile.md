@@ -27,7 +27,7 @@ timezone, timezoneAuto — IANA-таймзона и автодетект (при
 
 quietStart, quietEnd — «тихие часы» (HH:mm).
 
-sosContact, sosEnabled — SOS контакт/флаг (логика см. 003_sos-contact-alerts.md).
+sosContact, sosAlertsEnabled — SOS контакт и флаг включения оповещений (логика см. 003_sos-contact-alerts.md).
 
 2.2 Углеводы
 
@@ -108,7 +108,7 @@ Accept: application/json
   "postmeal_check_min": 90,
   "timezone": "Europe/Moscow", "timezone_auto": false,
   "quietStart": "23:00", "quietEnd": "07:00",
-  "sos_contact": "@user", "sos_enabled": true
+  "sos_contact": "@user", "sos_alerts_enabled": true
 }
 
 4.2 Базовое сохранение (исторический)
@@ -232,7 +232,7 @@ timezoneAuto    timezone_auto   timezone_auto   bool
 quietStart      quiet_start      quiet_start     HH:mm
 quietEnd        quiet_end        quiet_end       HH:mm
 sosContact      sos_contact     sos_contact     формат валидируется
-sosEnabled      sos_enabled     sos_enabled     bool
+sosAlertsEnabled      sos_alerts_enabled     sos_alerts_enabled     bool, включает отправку SOS-оповещений
 carbUnits       carb_units      carb_units      g | xe
 gramsPerXE      grams_per_xe    grams_per_xe    > 0 (по умолчанию 12)
 ICR     icr     icr     > 0 (только insulin/mixed)
