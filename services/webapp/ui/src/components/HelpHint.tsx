@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import { HelpCircle } from 'lucide-react';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -6,12 +6,13 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n';
 
 interface HelpHintProps {
-  label: string;
+  label?: string;
+  children: ReactNode;
   className?: string;
   side?: React.ComponentProps<typeof TooltipContent>['side'];
 }
 
-const HelpHint = ({ label, className, side }: HelpHintProps) => {
+const HelpHint = ({ label, children, className, side }: HelpHintProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
@@ -28,13 +29,16 @@ const HelpHint = ({ label, className, side }: HelpHintProps) => {
         <button
           type="button"
           onKeyDown={handleKeyDown}
-          className={cn('flex h-4 w-4 items-center justify-center text-muted-foreground', className)}
-          aria-label={t(label)}
+          className={cn(
+            'flex h-4 w-4 items-center justify-center text-muted-foreground',
+            className,
+          )}
+          aria-label={t(label ?? 'Справка')}
         >
           <HelpCircle className="h-4 w-4" aria-hidden="true" />
         </button>
       </TooltipTrigger>
-      <TooltipContent side={side}>{t(label)}</TooltipContent>
+      <TooltipContent side={side}>{children}</TooltipContent>
     </Tooltip>
   );
 };
