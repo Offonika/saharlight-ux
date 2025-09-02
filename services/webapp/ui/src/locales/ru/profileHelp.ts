@@ -67,6 +67,18 @@ const profileHelp = {
     unit: 'г или ХЕ',
     range: 'г, ХЕ',
   },
+  gramsPerXe: {
+    title: 'Граммов на 1 ХЕ',
+    definition: 'Количество граммов углеводов в одной ХЕ',
+    unit: 'г',
+    range: '5–20',
+  },
+  rapidInsulinType: {
+    title: 'Тип быстрого инсулина',
+    definition: 'Используемый тип быстродействующего инсулина',
+    unit: '—',
+    range: '—',
+  },
   afterMealMinutes: {
     title: 'Минут после еды',
     definition: 'Через сколько минут после еды напомнить о замере сахара',
