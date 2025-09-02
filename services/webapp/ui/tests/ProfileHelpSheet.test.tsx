@@ -10,13 +10,11 @@ vi.mock('@/hooks/use-mobile', () => ({
 }));
 
 describe('ProfileHelpSheet', () => {
-  it('hides insulin sections for tablet therapy', () => {
+  it('hides insulin section for tablet therapy', () => {
     render(<ProfileHelpSheet therapyType="tablets" />);
     fireEvent.click(screen.getAllByLabelText('Справка')[0]);
-    expect(screen.queryByText(/ICR/)).toBeNull();
-    expect(screen.queryByText(/Коэффициент коррекции/)).toBeNull();
-    expect(screen.queryByText(/DIA/)).toBeNull();
-    expect(screen.getByText(/Целевой уровень сахара/)).toBeTruthy();
+    expect(screen.queryByText('Инсулин')).toBeNull();
+    expect(screen.getByText('Цели сахара')).toBeTruthy();
   });
 
   it('closes on Escape key', () => {
