@@ -22,6 +22,8 @@ import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
 import { resolveTelegramId } from "./resolveTelegramId";
 
+type TherapyType = 'insulin' | 'tablets' | 'none' | 'mixed';
+
 type ProfileForm = {
   icr: string;
   cf: string;
@@ -119,26 +121,34 @@ export const shouldWarnProfile = (profile: ParsedProfile): boolean =>
 
 interface ProfileFormHeaderProps {
   onBack: () => void;
+  therapyType?: TherapyType;
 }
 
-const ProfileFormHeader = ({ onBack }: ProfileFormHeaderProps) => {
+const ProfileFormHeader = ({
+  onBack,
+  therapyType,
+}: ProfileFormHeaderProps) => {
   const isMobile = useIsMobile();
 
   return (
     <>
       <MedicalHeader title="Мой профиль" showBack onBack={onBack}>
-        {!isMobile && <ProfileHelpSheet />}
+        {!isMobile && <ProfileHelpSheet therapyType={therapyType} />}
       </MedicalHeader>
       {isMobile && (
         <div className="fixed bottom-4 right-4 z-50">
-          <ProfileHelpSheet />
+          <ProfileHelpSheet therapyType={therapyType} />
         </div>
       )}
     </>
   );
 };
 
-const Profile = () => {
+interface ProfileProps {
+  therapyType?: TherapyType;
+}
+
+const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useTelegram();
@@ -163,6 +173,9 @@ const Profile = () => {
   });
   const [original, setOriginal] = useState<ProfileForm | null>(null);
   const [timezones, setTimezones] = useState<string[]>([]);
+  const [therapyType, setTherapyType] = useState<TherapyType | undefined>(
+    therapyTypeProp,
+  );
 
   const [warningOpen, setWarningOpen] = useState(false);
   const [pendingProfile, setPendingProfile] = useState<
@@ -250,6 +263,7 @@ const Profile = () => {
             ? data.timezone
             : deviceTz;
         const timezoneAuto = data.timezoneAuto === true;
+        const therapyType = data.therapyType ?? undefined;
 
         const isComplete = [
           icr,
@@ -285,6 +299,7 @@ const Profile = () => {
 
         setProfile(loaded);
         setOriginal(loaded);
+        setTherapyType(therapyType);
 
         if (timezoneAuto && timezone !== deviceTz) {
           patchProfile({
@@ -337,8 +352,12 @@ const Profile = () => {
       setProfile((prev) => ({ ...prev, timezone: value }));
       return;
     }
-    if (field === "carbUnit" || field === "rapidInsulinType") {
-      setProfile((prev) => ({ ...prev, [field]: value as any }));
+    if (field === "carbUnit") {
+      setProfile((prev) => ({ ...prev, carbUnit: value as 'g' | 'xe' }));
+      return;
+    }
+    if (field === "rapidInsulinType") {
+      setProfile((prev) => ({ ...prev, rapidInsulinType: value }));
       return;
     }
     if (/^\d*(?:[.,]\d*)?$/.test(value)) {
@@ -469,7 +488,10 @@ const Profile = () => {
 
       <TooltipProvider>
         <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-          <ProfileFormHeader onBack={() => navigate("/")} />
+          <ProfileFormHeader
+            onBack={() => navigate("/")}
+            therapyType={therapyType}
+          />
 
           <main className="container mx-auto px-4 py-6">
           <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
