@@ -343,35 +343,6 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         const timezoneAuto = data.timezoneAuto === true;
         const therapyType = data.therapyType ?? 'none';
 
-        const insulinRequiredComplete =
-          [
-            icr,
-            cf,
-            target,
-            low,
-            high,
-            dia,
-            roundStep,
-            ...(carbUnit === "xe" ? [gramsPerXe] : []),
-            maxBolus,
-          ].every((v) => Number(v) > 0) &&
-          [preBolus, afterMealMinutes].every((v) => Number(v) >= 0);
-
-        const nonInsulinComplete =
-          [
-            target,
-            low,
-            high,
-            roundStep,
-            ...(carbUnit === "xe" ? [gramsPerXe] : []),
-          ].every((v) => Number(v) > 0) &&
-          [afterMealMinutes].every((v) => Number(v) >= 0);
-
-        const isComplete =
-          therapyType === "tablets" || therapyType === "none"
-            ? nonInsulinComplete
-            : insulinRequiredComplete;
-
         const loaded: ProfileForm = {
           icr,
           cf,
@@ -418,13 +389,6 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           setProfile((prev) => ({ ...prev, timezone: deviceTz }));
         }
 
-        if (!isComplete) {
-          toast({
-            title: t('profile.error'),
-            description: t('profile.incomplete'),
-            variant: "destructive",
-          });
-        }
       })
       .catch((error) => {
         if (cancelled) return;
