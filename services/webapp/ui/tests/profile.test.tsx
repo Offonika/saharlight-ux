@@ -34,6 +34,7 @@ import Profile from '../src/pages/Profile';
 import { saveProfile, getProfile, patchProfile } from '../src/features/profile/api';
 import { resolveTelegramId } from '../src/pages/resolveTelegramId';
 import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
+import { useTranslation } from '../src/i18n';
 
 const originalSupportedValuesOf = (Intl as any).supportedValuesOf;
 describe('Profile page', () => {
@@ -78,6 +79,21 @@ describe('Profile page', () => {
     cleanup();
     (Intl as any).supportedValuesOf = originalSupportedValuesOf;
     vi.restoreAllMocks();
+  });
+
+  it('displays carb unit options using localized text', () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    const { getByLabelText } = render(<Profile />);
+    const { t } = useTranslation();
+    const select = getByLabelText(
+      t('profileHelp.carbUnit.title'),
+    ) as HTMLSelectElement;
+    expect(select.options[0].text).toBe(
+      t('profileHelp.carbUnit.options.g'),
+    );
+    expect(select.options[1].text).toBe(
+      t('profileHelp.carbUnit.options.xe'),
+    );
   });
 
   it('blocks save without telegramId and shows toast', () => {

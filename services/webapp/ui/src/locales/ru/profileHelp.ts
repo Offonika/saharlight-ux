@@ -67,6 +67,10 @@ const profileHelp = {
     definition: 'Единица измерения углеводов в расчётах',
     unit: 'г или ХЕ',
     range: 'г, ХЕ',
+    options: {
+      g: 'г',
+      xe: 'ХЕ',
+    },
   },
   gramsPerXe: {
     title: 'Граммов на 1 ХЕ',

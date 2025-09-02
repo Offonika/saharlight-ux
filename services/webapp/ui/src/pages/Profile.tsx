@@ -834,8 +834,8 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   value={profile.carbUnit}
                   onChange={(e) => handleInputChange('carbUnit', e.target.value)}
                 >
-                  <option value="g">г</option>
-                  <option value="xe">ХЕ</option>
+                  <option value="g">{t('profileHelp.carbUnit.options.g')}</option>
+                  <option value="xe">{t('profileHelp.carbUnit.options.xe')}</option>
                 </select>
               </div>
               {profile.carbUnit === 'xe' && (
