@@ -30,6 +30,7 @@ from telegram.error import BadRequest, TelegramError
 
 from services.api.app import config, reminder_events
 from services.api.app.diabetes.services.db import (
+    Entry,
     Reminder,
     ReminderLog,
     SessionLocal as _SessionLocal,
@@ -45,6 +46,9 @@ from services.api.app.diabetes.utils.jobs import _remove_jobs, schedule_once
 from services.api.app.diabetes.utils.ui import menu_keyboard
 from services.api.app.diabetes.schemas.reminders import ScheduleKind
 from .reminder_jobs import DefaultJobQueue, schedule_reminder
+from .alert_handlers import check_alert as _check_alert
+
+check_alert = _check_alert
 
 if TYPE_CHECKING:
     from . import UserData
@@ -537,6 +541,55 @@ async def reminder_webapp_save(
     except json.JSONDecodeError:
         data = dict(parse_qsl(raw))
 
+    sugar_raw = data.get("sugar")
+    if sugar_raw is not None:
+        rid = data.get("id")
+        if rid is None:
+            return
+        try:
+            sugar_val = float(sugar_raw)
+        except (TypeError, ValueError):
+            await msg.reply_text("Неверный формат")
+            return
+        user_id = user.id
+
+        def save_sugar(session: Session) -> Literal["ok"] | Literal["error"]:
+            session.add(
+                Entry(
+                    telegram_id=user_id,
+                    event_time=datetime.datetime.now(datetime.timezone.utc),
+                    sugar_before=sugar_val,
+                )
+            )
+            session.add(
+                ReminderLog(
+                    reminder_id=int(rid),
+                    telegram_id=user_id,
+                    action="value_saved",
+                )
+            )
+            try:
+                commit(session)
+            except CommitError:
+                logger.error(
+                    "Failed to save sugar value for reminder %s", rid
+                )
+                return "error"
+            return "ok"
+
+        if run_db is None:
+            with SessionLocal() as session:
+                status = save_sugar(session)
+        else:
+            status = cast(
+                Literal["ok"] | Literal["error"],
+                await run_db(save_sugar, sessionmaker=SessionLocal),
+            )
+        if status == "ok":
+            await msg.reply_text(f"Записано {sugar_val} ммоль/л")
+            await check_alert(update, context, sugar_val)
+        return
+
     snooze_raw = data.get("snooze")
     if snooze_raw is not None:
         rid = data.get("id")
@@ -911,16 +964,25 @@ async def reminder_job(context: ContextTypes.DEFAULT_TYPE) -> None:
             return
         user = session.get(User, chat_id)
         text = _describe(rem, user)
-    keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton(
-                    "Отложить 10 мин", callback_data=f"remind_snooze:{rid}:10"
-                ),
-                InlineKeyboardButton("Отмена", callback_data=f"remind_cancel:{rid}"),
-            ]
-        ]
-    )
+    buttons = [
+        InlineKeyboardButton(
+            "⏰ Отложить 10 мин", callback_data=f"remind_snooze:{rid}:10"
+        )
+    ]
+    if rem.type == "sugar":
+        buttons.append(
+            InlineKeyboardButton("✅ Сделано", callback_data=f"remind_done:{rid}")
+        )
+        buttons.append(
+            InlineKeyboardButton(
+                "✍️ Записать сахар", callback_data=f"remind_log:{rid}"
+            )
+        )
+    else:
+        buttons.append(
+            InlineKeyboardButton("✅ Сделано", callback_data=f"remind_done:{rid}")
+        )
+    keyboard = InlineKeyboardMarkup([buttons])
     logger.info("Sending reminder %s to chat %s", rid, chat_id)
     try:
         await context.bot.send_message(
@@ -962,7 +1024,13 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
         if action == "remind_snooze":
             snooze_minutes = minutes or 10
-        log_action = action
+            log_action = "remind_snooze"
+        elif action == "remind_done":
+            log_action = "done"
+        elif action == "remind_log":
+            log_action = "log_opened"
+        else:
+            log_action = action
         session.add(
             ReminderLog(
                 reminder_id=rid,
@@ -1005,6 +1073,32 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 await query.answer()
             else:
                 raise
+    elif action == "remind_done":
+        try:
+            await query.edit_message_text("Готово ✅")
+        except BadRequest as exc:
+            if "Message is not modified" in str(exc):
+                await query.answer()
+            else:
+                raise
+    elif action == "remind_log":
+        settings = config.get_settings()
+        origin = (settings.public_origin or "").rstrip("/")
+        base_url = (getattr(settings, "ui_base_url", "") or "").strip("/")
+        url = (
+            f"{origin}/{base_url}/sugar"
+            if base_url
+            else f"{origin}/sugar"
+        )
+        keyboard = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Открыть", web_app=WebAppInfo(url))]]
+        )
+        try:
+            await query.message.reply_text(
+                "Введите уровень сахара (ммоль/л).", reply_markup=keyboard
+            )
+        except AttributeError:
+            pass
     else:
         try:
             await query.edit_message_text("❌ Напоминание отменено")
