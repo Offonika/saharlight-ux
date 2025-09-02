@@ -194,15 +194,16 @@ def test_local_profiles_roundtrip(session_factory: sessionmaker[Session]) -> Non
 
 def test_set_timezone_persists(session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Profile(telegram_id=1, timezone="UTC"))
         session.commit()
         found, ok = profile_api.set_timezone(session, 1, "Europe/Moscow")
         assert (found, ok) == (True, True)
 
     with session_factory() as session:
-        user = session.get(User, 1)
-        assert user is not None
-        assert user.timezone == "Europe/Moscow"
+        prof = session.get(Profile, 1)
+        assert prof is not None
+        assert prof.timezone == "Europe/Moscow"
 
 
 def test_set_timezone_commit_failure(
@@ -213,15 +214,16 @@ def test_set_timezone_commit_failure(
 
     monkeypatch.setattr(profile_api, "commit", fail_commit)
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Profile(telegram_id=1, timezone="UTC"))
         session.commit()
         found, ok = profile_api.set_timezone(session, 1, "Europe/Moscow")
         assert (found, ok) == (True, False)
 
     with session_factory() as session:
-        user = session.get(User, 1)
-        assert user is not None
-        assert user.timezone == "UTC"
+        prof = session.get(Profile, 1)
+        assert prof is not None
+        assert prof.timezone == "UTC"
 
 
 def test_set_timezone_user_missing(
@@ -231,8 +233,8 @@ def test_set_timezone_user_missing(
     monkeypatch.setattr(profile_api, "commit", commit_mock)
     with session_factory() as session:
         found, ok = profile_api.set_timezone(session, 999, "UTC")
-        assert (found, ok) == (False, False)
-        commit_mock.assert_not_called()
+        assert (found, ok) == (True, True)
+        commit_mock.assert_called_once()
 
 
 def _build_app(
@@ -259,7 +261,8 @@ def test_profile_patch_updates_timezone(
 ) -> None:
     app = _build_app(session_factory, monkeypatch)
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC", timezone_auto=True))
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Profile(telegram_id=1, timezone="UTC", timezone_auto=True))
         session.commit()
     with TestClient(app) as client:
         resp = client.patch(
@@ -273,10 +276,10 @@ def test_profile_patch_updates_timezone(
         assert data["sosAlertsEnabled"] is True
         assert data["sosContact"] is None
     with session_factory() as session:
-        user = session.get(User, 1)
-        assert user is not None
-        assert user.timezone == "Europe/Moscow"
-        assert user.timezone_auto is False
+        prof = session.get(Profile, 1)
+        assert prof is not None
+        assert prof.timezone == "Europe/Moscow"
+        assert prof.timezone_auto is False
 
 
 def test_profile_patch_auto_device_timezone(
@@ -284,7 +287,8 @@ def test_profile_patch_auto_device_timezone(
 ) -> None:
     app = _build_app(session_factory, monkeypatch)
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC", timezone_auto=True))
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Profile(telegram_id=1, timezone="UTC", timezone_auto=True))
         session.commit()
     with TestClient(app) as client:
         resp = client.patch(
@@ -299,10 +303,10 @@ def test_profile_patch_auto_device_timezone(
         assert data["sosAlertsEnabled"] is True
         assert data["sosContact"] is None
     with session_factory() as session:
-        user = session.get(User, 1)
-        assert user is not None
-        assert user.timezone == "Europe/Moscow"
-        assert user.timezone_auto is True
+        prof = session.get(Profile, 1)
+        assert prof is not None
+        assert prof.timezone == "Europe/Moscow"
+        assert prof.timezone_auto is True
 
 
 def test_profiles_get_returns_timezone(
@@ -310,10 +314,12 @@ def test_profiles_get_returns_timezone(
 ) -> None:
     app = _build_app(session_factory, monkeypatch)
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="Europe/Moscow", timezone_auto=False))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.add(
             Profile(
                 telegram_id=1,
+                timezone="Europe/Moscow",
+                timezone_auto=False,
                 icr=1.0,
                 cf=2.0,
                 target_bg=5.0,

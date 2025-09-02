@@ -284,14 +284,16 @@ async def onboarding_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE
         return ONB_PROFILE_TZ
     user_id = user.id
     with SessionLocal() as session:
-        user_obj = session.get(User, user_id)
-        if user_obj:
-            user_obj.timezone = tz_name
-            try:
-                commit(session)
-            except CommitError:
-                await message.reply_text("⚠️ Не удалось сохранить часовой пояс.")
-                return ConversationHandler.END
+        profile = session.get(Profile, user_id)
+        if profile is None:
+            profile = Profile(telegram_id=user_id)
+            session.add(profile)
+        profile.timezone = tz_name
+        try:
+            commit(session)
+        except CommitError:
+            await message.reply_text("⚠️ Не удалось сохранить часовой пояс.")
+            return ConversationHandler.END
 
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Далее", callback_data="onb_next")]])
     try:

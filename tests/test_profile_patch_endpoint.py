@@ -79,15 +79,13 @@ def test_profile_patch_returns_settings(
     assert data["sosContact"] is None
 
     with SessionLocal() as session:
-        user = session.get(db.User, 1)
-        assert user is not None
-        assert user.timezone == "Europe/Moscow"
-        assert user.timezone_auto is True
-        assert user.dia == 6
-        assert user.round_step == 1
-        assert user.carb_units == "xe"
         prof = session.get(db.Profile, 1)
         assert prof is not None
+        assert prof.timezone == "Europe/Moscow"
+        assert prof.timezone_auto is True
+        assert prof.dia == 6
+        assert prof.round_step == 1
+        assert prof.carb_units == "xe"
         assert prof.sos_alerts_enabled is True
         assert prof.sos_contact is None
 
@@ -109,12 +107,10 @@ def test_profile_patch_partial_update(
         assert data["sosContact"] is None
 
     with SessionLocal() as session:
-        user = session.get(db.User, 1)
-        assert user is not None
-        assert user.dia == 5
-        assert user.round_step == 0.5
-        assert user.carb_units == "g"
         prof = session.get(db.Profile, 1)
         assert prof is not None
+        assert prof.dia == 5
+        assert prof.round_step == 0.5
+        assert prof.carb_units == "g"
         assert prof.sos_alerts_enabled is True
         assert prof.sos_contact is None

@@ -34,7 +34,7 @@ class LocalProfile:
 
 @dataclass
 class LocalUserSettings:
-    """Local representation of user settings when SDK is unavailable."""
+    """Local representation of profile settings when SDK is unavailable."""
 
     telegram_id: int
     timezone: str = "UTC"
@@ -165,16 +165,16 @@ def set_timezone(session: Session, user_id: int, tz: str) -> tuple[bool, bool]:
 
 def get_user_settings(session: Session, user_id: int) -> LocalUserSettings | None:
     """Fetch user settings from the database."""
-    user = session.get(User, user_id)
-    if not user:
+    profile = session.get(Profile, user_id)
+    if not profile:
         return None
     return LocalUserSettings(
-        telegram_id=user.telegram_id,
-        timezone=user.timezone,
-        timezone_auto=user.timezone_auto,
-        dia=user.dia,
-        round_step=user.round_step,
-        carb_units=user.carb_units,
+        telegram_id=profile.telegram_id,
+        timezone=profile.timezone,
+        timezone_auto=profile.timezone_auto,
+        dia=profile.dia,
+        round_step=profile.round_step,
+        carb_units=profile.carb_units,
     )
 
 
@@ -184,27 +184,28 @@ def patch_user_settings(
     """Persist user settings updating only provided values."""
     user = session.get(User, user_id)
     if not user:
-        return False, False
+        user = User(telegram_id=user_id, thread_id="api")
+        session.add(user)
     profile = session.get(Profile, user_id)
     if profile is None:
         profile = Profile(telegram_id=user_id)
         session.add(profile)
     if data.timezone is not None:
-        user.timezone = data.timezone
+        profile.timezone = data.timezone
     if data.timezoneAuto is not None:
-        user.timezone_auto = data.timezoneAuto
+        profile.timezone_auto = data.timezoneAuto
     if data.dia is not None:
-        user.dia = data.dia
+        profile.dia = data.dia
     if data.roundStep is not None:
-        user.round_step = data.roundStep
+        profile.round_step = data.roundStep
     if data.carbUnits is not None:
-        user.carb_units = data.carbUnits
+        profile.carb_units = data.carbUnits.value
     if data.sosContact is not None:
         profile.sos_contact = data.sosContact
     if data.sosAlertsEnabled is not None:
         profile.sos_alerts_enabled = data.sosAlertsEnabled
-    if user.timezone_auto and device_tz and user.timezone != device_tz:
-        user.timezone = device_tz
+    if profile.timezone_auto and device_tz and profile.timezone != device_tz:
+        profile.timezone = device_tz
     try:
         commit(session)
     except CommitError:
