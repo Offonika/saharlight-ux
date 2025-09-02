@@ -160,19 +160,10 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
   const isMobile = useIsMobile();
   const { t } = useTranslation();
 
-  const filtered = sections
-    .map((section) => ({
-      ...section,
-      items:
-        therapyType === 'tablets' || therapyType === 'none'
-          ? section.items.filter((item) => item.key !== 'rapidInsulinType')
-          : section.items,
-    }))
-    .filter((section) =>
-      therapyType === 'tablets' || therapyType === 'none'
-        ? section.key !== 'insulin'
-        : true,
-    );
+  const filtered =
+    therapyType === 'tablets' || therapyType === 'none'
+      ? sections.filter((section) => section.key !== 'insulin')
+      : sections;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
