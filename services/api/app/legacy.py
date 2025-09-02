@@ -58,7 +58,8 @@ async def profiles_get(
     except Exception as exc:
         logger.exception("failed to fetch profile %s", tid)
         raise HTTPException(
-            status_code=500, detail="database connection failed"
+            status_code=503,
+            detail="database temporarily unavailable",
         ) from exc
 
     tz = profile.timezone if profile.timezone else "UTC"
