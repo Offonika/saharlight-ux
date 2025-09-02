@@ -71,19 +71,28 @@ describe("parseProfile", () => {
       makeProfile({
         icr: "",
         cf: "",
-        target: "",
-        low: "",
-        high: "",
         dia: "",
         preBolus: "",
-        roundStep: "",
         rapidInsulinType: "",
         maxBolus: "",
-        afterMealMinutes: "",
       }),
       "tablets",
     );
-    expect(result).toMatchObject({ carbUnit: "g", gramsPerXe: 12 });
+    expect(result).toEqual({
+      icr: 0,
+      cf: 0,
+      target: 5,
+      low: 4,
+      high: 10,
+      dia: 0,
+      preBolus: 0,
+      roundStep: 1,
+      carbUnit: "g",
+      gramsPerXe: 12,
+      rapidInsulinType: "",
+      maxBolus: 0,
+      afterMealMinutes: 60,
+    });
   });
 
   it("handles none therapy without insulin fields", () => {
@@ -91,19 +100,62 @@ describe("parseProfile", () => {
       makeProfile({
         icr: "",
         cf: "",
-        target: "",
-        low: "",
-        high: "",
         dia: "",
         preBolus: "",
-        roundStep: "",
         rapidInsulinType: "",
         maxBolus: "",
-        afterMealMinutes: "",
       }),
       "none",
     );
-    expect(result).toMatchObject({ carbUnit: "g", gramsPerXe: 12 });
+    expect(result).toEqual({
+      icr: 0,
+      cf: 0,
+      target: 5,
+      low: 4,
+      high: 10,
+      dia: 0,
+      preBolus: 0,
+      roundStep: 1,
+      carbUnit: "g",
+      gramsPerXe: 12,
+      rapidInsulinType: "",
+      maxBolus: 0,
+      afterMealMinutes: 60,
+    });
+  });
+
+  it("rejects invalid non-insulin fields for tablet therapy", () => {
+    expect(
+      parseProfile(
+        makeProfile({
+          icr: "",
+          cf: "",
+          dia: "",
+          preBolus: "",
+          rapidInsulinType: "",
+          maxBolus: "",
+          target: "",
+        }),
+        "tablets",
+      ),
+    ).toBeNull();
+  });
+
+  it("rejects invalid non-insulin fields for none therapy", () => {
+    expect(
+      parseProfile(
+        makeProfile({
+          icr: "",
+          cf: "",
+          dia: "",
+          preBolus: "",
+          rapidInsulinType: "",
+          maxBolus: "",
+          low: "",
+        }),
+        "none",
+      ),
+    ).toBeNull();
   });
 });
 
