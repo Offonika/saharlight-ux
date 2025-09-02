@@ -269,6 +269,61 @@ describe('Profile page', () => {
     },
   );
 
+  it.each(nonInsulinTherapies)(
+    'does not show toast when insulin fields missing for %s therapy',
+    async (therapy) => {
+      (resolveTelegramId as vi.Mock).mockReturnValue(123);
+      (getProfile as vi.Mock).mockResolvedValueOnce({
+        telegramId: 123,
+        target: 6,
+        low: 4,
+        high: 10,
+        roundStep: 1,
+        carbUnit: 'g',
+        gramsPerXe: 12,
+        defaultAfterMealMinutes: 120,
+        timezone: 'Europe/Moscow',
+        timezoneAuto: false,
+        therapyType: therapy,
+      });
+      render(<Profile therapyType={therapy} />);
+      await waitFor(() => {
+        expect(getProfile).toHaveBeenCalled();
+      });
+      expect(toast).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(nonInsulinTherapies)(
+    'shows toast when non-insulin fields missing for %s therapy',
+    async (therapy) => {
+      (resolveTelegramId as vi.Mock).mockReturnValue(123);
+      (getProfile as vi.Mock).mockResolvedValueOnce({
+        telegramId: 123,
+        low: 4,
+        high: 10,
+        roundStep: 1,
+        carbUnit: 'g',
+        gramsPerXe: 12,
+        defaultAfterMealMinutes: 120,
+        timezone: 'Europe/Moscow',
+        timezoneAuto: false,
+        therapyType: therapy,
+      });
+      render(<Profile therapyType={therapy} />);
+      await waitFor(() => {
+        expect(getProfile).toHaveBeenCalled();
+      });
+      expect(toast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Ошибка',
+          description: 'Профиль заполнен не полностью',
+          variant: 'destructive',
+        }),
+      );
+    },
+  );
+
   it('renders advanced bolus fields', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     const { getByPlaceholderText } = render(<Profile />);
