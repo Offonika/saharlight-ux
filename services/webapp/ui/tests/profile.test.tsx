@@ -522,6 +522,42 @@ describe('Profile page', () => {
       );
     });
   });
+
+  it('hides insulin-specific fields for tablet therapy', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (getProfile as vi.Mock).mockResolvedValue({
+      telegramId: 0,
+      icr: 12,
+      cf: 2.5,
+      target: 6,
+      low: 4,
+      high: 10,
+      dia: 4,
+      preBolus: 15,
+      roundStep: 0.5,
+      carbUnit: 'g',
+      gramsPerXe: 12,
+      rapidInsulinType: 'aspart',
+      maxBolus: 10,
+      defaultAfterMealMinutes: 120,
+      timezone: 'Europe/Moscow',
+      timezoneAuto: false,
+      therapyType: 'tablets',
+    });
+    const { queryByText } = render(<Profile />);
+
+    await waitFor(() => {
+      expect(getProfile).toHaveBeenCalledWith(123);
+    });
+
+    expect(
+      queryByText('ICR (Инсулино-углеводное соотношение)'),
+    ).toBeNull();
+    expect(queryByText('Коэффициент коррекции (КЧ)')).toBeNull();
+    expect(queryByText('DIA (часы)')).toBeNull();
+    expect(queryByText('Пре-болюс (мин)')).toBeNull();
+    expect(queryByText('Максимальный болюс')).toBeNull();
+  });
 });
 
 describe('resolveTelegramId', () => {

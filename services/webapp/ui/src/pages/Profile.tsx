@@ -497,54 +497,58 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <div className="space-y-6">
             {/* ICR */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                ICR (Инсулино-углеводное соотношение)
-                <HelpHint label="ICR (Инсулино-углеводное соотношение)">
-                  Показывает, сколько граммов углеводов покрывает 1 единица
-                  быстрого инсулина
-                </HelpHint>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.icr}
-                  onChange={(e) => handleInputChange("icr", e.target.value)}
-                  className="medical-input"
-                  placeholder="12"
-                />
-                <span className="absolute right-3 top-3 text-muted-foreground text-sm">
-                  г/ед.
-                </span>
+            {therapyType !== 'tablets' && (
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                  ICR (Инсулино-углеводное соотношение)
+                  <HelpHint label="ICR (Инсулино-углеводное соотношение)">
+                    Показывает, сколько граммов углеводов покрывает 1 единица
+                    быстрого инсулина
+                  </HelpHint>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="^\\d*(?:[.,]\\d*)?$"
+                    value={profile.icr}
+                    onChange={(e) => handleInputChange("icr", e.target.value)}
+                    className="medical-input"
+                    placeholder="12"
+                  />
+                  <span className="absolute right-3 top-3 text-muted-foreground text-sm">
+                    г/ед.
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Коэффициент коррекции */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                Коэффициент коррекции (КЧ)
-                <HelpHint label="Коэффициент коррекции (КЧ)">
-                  На сколько ммоль/л снижает уровень глюкозы 1 единица
-                  быстрого инсулина
-                </HelpHint>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.cf}
-                  onChange={(e) => handleInputChange("cf", e.target.value)}
-                  className="medical-input"
-                  placeholder="2.5"
-                />
-                <span className="absolute right-3 top-3 text-muted-foreground text-sm">
-                  ммоль/л
-                </span>
+            {therapyType !== 'tablets' && (
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                  Коэффициент коррекции (КЧ)
+                  <HelpHint label="Коэффициент коррекции (КЧ)">
+                    На сколько ммоль/л снижает уровень глюкозы 1 единица
+                    быстрого инсулина
+                  </HelpHint>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="^\\d*(?:[.,]\\d*)?$"
+                    value={profile.cf}
+                    onChange={(e) => handleInputChange("cf", e.target.value)}
+                    className="medical-input"
+                    placeholder="2.5"
+                  />
+                  <span className="absolute right-3 top-3 text-muted-foreground text-sm">
+                    ммоль/л
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Целевой сахар */}
             <div>
@@ -628,41 +632,45 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                 Расширенные настройки болюса
               </h3>
               {/* DIA */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                  DIA (часы)
-                  <HelpHint label="DIA (часы)">
-                    Сколько часов действует введённый инсулин
-                  </HelpHint>
-                </label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.dia}
-                  onChange={(e) => handleInputChange('dia', e.target.value)}
-                  className="medical-input"
-                  placeholder="4"
-                />
-              </div>
+              {therapyType !== 'tablets' && (
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                    DIA (часы)
+                    <HelpHint label="DIA (часы)">
+                      Сколько часов действует введённый инсулин
+                    </HelpHint>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="^\\d*(?:[.,]\\d*)?$"
+                    value={profile.dia}
+                    onChange={(e) => handleInputChange('dia', e.target.value)}
+                    className="medical-input"
+                    placeholder="4"
+                  />
+                </div>
+              )}
               {/* Pre-bolus */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                  Пре-болюс (мин)
-                  <HelpHint label="Пре-болюс (мин)">
-                    За сколько минут до еды вводить инсулин
-                  </HelpHint>
-                </label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.preBolus}
-                  onChange={(e) => handleInputChange('preBolus', e.target.value)}
-                  className="medical-input"
-                  placeholder="15"
-                />
-              </div>
+              {therapyType !== 'tablets' && (
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                    Пре-болюс (мин)
+                    <HelpHint label="Пре-болюс (мин)">
+                      За сколько минут до еды вводить инсулин
+                    </HelpHint>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="^\\d*(?:[.,]\\d*)?$"
+                    value={profile.preBolus}
+                    onChange={(e) => handleInputChange('preBolus', e.target.value)}
+                    className="medical-input"
+                    placeholder="15"
+                  />
+                </div>
+              )}
               {/* Round step */}
               <div>
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
@@ -735,23 +743,25 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                 </select>
               </div>
               {/* Max bolus */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                  Максимальный болюс
-                  <HelpHint label="Максимальный болюс">
-                    Максимальная доза болюсного инсулина за один раз
-                  </HelpHint>
-                </label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.maxBolus}
-                  onChange={(e) => handleInputChange('maxBolus', e.target.value)}
-                  className="medical-input"
-                  placeholder="10"
-                />
-              </div>
+              {therapyType !== 'tablets' && (
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                    Максимальный болюс
+                    <HelpHint label="Максимальный болюс">
+                      Максимальная доза болюсного инсулина за один раз
+                    </HelpHint>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    pattern="^\\d*(?:[.,]\\d*)?$"
+                    value={profile.maxBolus}
+                    onChange={(e) => handleInputChange('maxBolus', e.target.value)}
+                    className="medical-input"
+                    placeholder="10"
+                  />
+                </div>
+              )}
               {/* Default after-meal minutes */}
               <div>
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
