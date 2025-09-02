@@ -27,7 +27,7 @@ sosContact, sosEnabled — SOS контакт/флаг (логика см. 003_s
 
 2.2 Углеводы
 
-carbUnits ∈ {grams, xe} — формат ввода углеводов.
+carbUnits ∈ {g, xe} — формат ввода углеводов.
 
 gramsPerXE — по умолчанию 12, > 0; используется только при carbUnits='xe' (разные школы 10–15 г — оставляем настраиваемым).
 
@@ -100,7 +100,7 @@ Accept: application/json
   "therapy_type": "tablets",
   "glucose_units": "mmol/L",
   "target": 5.5, "low": 3.9, "high": 8.0,
-  "carb_units": "grams", "grams_per_xe": 12, "rounding_step": 1,
+  "carb_units": "g", "grams_per_xe": 12, "rounding_step": 1,
   "postmeal_check_min": 90,
   "timezone": "Europe/Moscow", "auto_timezone": false,
   "quietStart": "23:00", "quietEnd": "07:00",
@@ -151,7 +151,7 @@ Content-Type: application/json
 
 Таблица profiles (уже есть): добавить поля
 therapy_type TEXT CHECK ('insulin','tablets') DEFAULT 'insulin' NOT NULL,
-carb_units TEXT CHECK ('grams','xe') DEFAULT 'grams' NOT NULL,
+carb_units TEXT CHECK ('g','xe') DEFAULT 'g' NOT NULL,
 grams_per_xe NUMERIC DEFAULT 12 CHECK (grams_per_xe > 0),
 prebolus_min SMALLINT DEFAULT 0 CHECK (prebolus_min BETWEEN 0 AND 60),
 rounding_step NUMERIC DEFAULT 0.1 CHECK (rounding_step > 0),
@@ -225,7 +225,7 @@ quietStart	quietStart	quiet_start	HH:mm
 quietEnd	quietEnd	quiet_end	HH:mm
 sosContact	sos_contact	sos_contact	формат валидируется
 sosEnabled	sos_enabled	sos_enabled	bool
-carbUnits	carb_units	carb_units	grams | xe
+carbUnits	carb_units	carb_units	g | xe
 gramsPerXE	grams_per_xe	grams_per_xe	> 0 (по умолчанию 12)
 ICR	icr	icr	> 0 (только insulin)
 CF	cf	cf	> 0 (только insulin)
