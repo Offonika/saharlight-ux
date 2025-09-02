@@ -245,6 +245,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       ParsedProfile & {
         telegramId: number;
         patch: PatchProfileDto;
+        therapyType?: TherapyType;
       }
     ) | null
   >(null);
@@ -471,20 +472,34 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     data: ParsedProfile & {
       telegramId: number;
       patch: PatchProfileDto;
+      therapyType?: TherapyType;
     },
   ): Promise<void> => {
     try {
       if (Object.keys(data.patch).length > 0) {
         await patchProfile(data.patch);
       }
-      await saveProfile({
+
+      const payload = {
         telegramId: data.telegramId,
-        icr: data.icr,
-        cf: data.cf,
         target: data.target,
         low: data.low,
         high: data.high,
-      });
+      } as {
+        telegramId: number;
+        target: number;
+        low: number;
+        high: number;
+        icr?: number;
+        cf?: number;
+      };
+
+      if (data.therapyType !== 'tablets' && data.therapyType !== 'none') {
+        payload.icr = data.icr;
+        payload.cf = data.cf;
+      }
+
+      await saveProfile(payload);
       setOriginal(profile);
       toast({
         title: t('profile.saved'),
@@ -523,7 +538,12 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     }
 
     if (shouldWarnProfile(parsed)) {
-      setPendingProfile({ telegramId, ...parsed, patch: buildPatch(parsed) });
+      setPendingProfile({
+        telegramId,
+        ...parsed,
+        patch: buildPatch(parsed),
+        therapyType,
+      });
       setWarningOpen(true);
       toast({
         title: t('profile.warning.title'),
@@ -532,7 +552,12 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       return;
     }
 
-    await saveParsedProfile({ telegramId, ...parsed, patch: buildPatch(parsed) });
+    await saveParsedProfile({
+      telegramId,
+      ...parsed,
+      patch: buildPatch(parsed),
+      therapyType,
+    });
   };
 
   const handleConfirmSave = async () => {
