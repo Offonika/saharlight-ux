@@ -22,6 +22,7 @@ async def profiles_post(data: ProfileSchema) -> ProfileSchema:
         await save_profile(data)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     def _save_profile_settings(session: Session) -> None:
         profile = session.get(Profile, data.telegramId)
         if profile is None:
@@ -53,13 +54,11 @@ async def profiles_get(
     try:
         profile = await get_profile(tid)
     except HTTPException:
-        logger.exception("failed to fetch profile %s", tid)
+        logger.warning("failed to fetch profile %s", tid)
         raise
     except Exception as exc:
         logger.exception("failed to fetch profile %s", tid)
-        raise HTTPException(
-            status_code=500, detail="database connection failed"
-        ) from exc
+        raise HTTPException(status_code=500, detail="database connection failed") from exc
 
     tz = profile.timezone if profile.timezone else "UTC"
     tz_auto = profile.timezone_auto if profile.timezone_auto is not None else True
@@ -81,11 +80,7 @@ async def profiles_get(
         quietEnd=profile.quiet_end or time(7, 0),
         orgId=profile.org_id,
         sosContact=profile.sos_contact or "",
-        sosAlertsEnabled=(
-            profile.sos_alerts_enabled
-            if profile.sos_alerts_enabled is not None
-            else True
-        ),
+        sosAlertsEnabled=(profile.sos_alerts_enabled if profile.sos_alerts_enabled is not None else True),
         timezone=tz,
         timezoneAuto=tz_auto,
         therapyType=profile.therapy_type,
