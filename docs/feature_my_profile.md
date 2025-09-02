@@ -23,7 +23,7 @@ glucoseUnits — единицы сахара (mmol/L | mg/dL).
 
 target, low, high — целевой уровень и пороги.
 
-timezone, autoTimezone — IANA-таймзона и автодетект (при autoTimezone=true сервер может заменить timezone на device_tz).
+timezone, timezoneAuto — IANA-таймзона и автодетект (при timezoneAuto=true сервер может заменить timezone на device_tz).
 
 quietStart, quietEnd — «тихие часы» (HH:mm).
 
@@ -85,7 +85,7 @@ patch_user_settings:
 
 частичное обновление — сохраняем только переданные поля;
 
-autoTimezone=true ⇒ timezone := device_tz (если передан/доступен);
+timezoneAuto=true ⇒ timezone := device_tz (если передан/доступен);
 
 при therapy_type='tablets' или 'none' не переопределяем/очищаем болюсные поля (в зависимости от политики, минимум — допускаем NULL).
 
@@ -106,7 +106,7 @@ Accept: application/json
   "target": 5.5, "low": 3.9, "high": 8.0,
   "carb_units": "grams", "grams_per_xe": 12, "rounding_step": 1,
   "postmeal_check_min": 90,
-  "timezone": "Europe/Moscow", "auto_timezone": false,
+  "timezone": "Europe/Moscow", "timezone_auto": false,
   "quietStart": "23:00", "quietEnd": "07:00",
   "sos_contact": "@user", "sos_enabled": true
 }
@@ -129,7 +129,7 @@ Content-Type: application/json
   "telegram_id": 448794918,
   "therapy_type": "tablets",
   "timezone": "Europe/Moscow",
-  "auto_timezone": false,
+  "timezone_auto": false,
   "carb_units": "xe",
   "grams_per_xe": 12,
   "rounding_step": 1,
@@ -186,7 +186,7 @@ Backfill: существующим проставить therapy_type='insulin'.
 
 therapy_type='tablets' или 'none': болюсные поля допускают NULL/игнорируются.
 
-autoTimezone=true ⇒ подмена TZ.
+timezoneAuto=true ⇒ подмена TZ.
 
 9.2 Юнит-тесты (UI)
 
@@ -224,7 +224,7 @@ target	target	target	low < target < high
 low	low	low	> 0
 high	high	high	> 0
 timezone	timezone	timezone	IANA
-autoTimezone	auto_timezone	auto_timezone	bool
+timezoneAuto	timezone_auto	timezone_auto	bool
 quietStart	quietStart	quiet_start	HH:mm
 quietEnd	quietEnd	quiet_end	HH:mm
 sosContact	sos_contact	sos_contact	формат валидируется
