@@ -232,8 +232,8 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   });
   const [original, setOriginal] = useState<ProfileForm | null>(null);
   const [timezones, setTimezones] = useState<string[]>([]);
-  const [therapyType, setTherapyType] = useState<TherapyType | undefined>(
-    therapyTypeProp,
+  const [therapyType, setTherapyType] = useState<TherapyType>(
+    therapyTypeProp ?? 'none',
   );
 
   const isInsulinTherapy =
@@ -329,7 +329,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
             ? data.timezone
             : deviceTz;
         const timezoneAuto = data.timezoneAuto === true;
-        const therapyType = data.therapyType ?? undefined;
+        const therapyType = data.therapyType ?? 'none';
 
         const insulinRequiredComplete =
           [
