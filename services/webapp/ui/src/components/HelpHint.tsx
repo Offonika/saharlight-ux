@@ -33,7 +33,7 @@ const HelpHint = ({ label, children, className, side }: HelpHintProps) => {
             'flex h-4 w-4 items-center justify-center text-muted-foreground',
             className,
           )}
-          aria-label={t(label ?? 'Справка')}
+          aria-label={t(label ?? 'profileHelp.help')}
         >
           <HelpCircle className="h-4 w-4" aria-hidden="true" />
         </button>

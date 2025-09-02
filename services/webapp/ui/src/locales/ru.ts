@@ -1,2 +1,7 @@
-const ru: Record<string, string> = {};
+import profileHelp from './ru/profileHelp';
+
+const ru = {
+  profileHelp,
+};
+
 export default ru;
