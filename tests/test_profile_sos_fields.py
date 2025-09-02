@@ -59,7 +59,7 @@ async def test_save_profile_defaults_sos_fields(
     await profile_service.save_profile(data)
     prof = await profile_service.get_profile(2)
     assert prof is not None
-    assert prof.sos_contact == ""
+    assert prof.sos_contact is None
     assert prof.sos_alerts_enabled is True
     engine.dispose()
 
