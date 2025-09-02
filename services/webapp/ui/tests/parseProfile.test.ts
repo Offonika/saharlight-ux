@@ -95,6 +95,11 @@ describe("parseProfile", () => {
     expect(parseProfile(makeProfile({ target: "12" }))).toBeNull();
   });
 
+  it("validates preBolus upper bound", () => {
+    expect(parseProfile(makeProfile({ preBolus: "121" }))).toBeNull();
+    expect(parseProfile(makeProfile({ preBolus: "120" }))?.preBolus).toBe(120);
+  });
+
   it("parses tablet therapy profile skipping insulin fields", () => {
     const result = parseProfile(
       makeProfile({
