@@ -57,7 +57,9 @@ async def patch_user_settings(
         try:
             ZoneInfo(device_tz)
         except ZoneInfoNotFoundError as exc:  # pragma: no cover - validation
-            raise HTTPException(status_code=400, detail="invalid device timezone") from exc
+            raise HTTPException(
+                status_code=400, detail="invalid device timezone"
+            ) from exc
 
     def _patch(session: SessionProtocol) -> ProfileSettingsOut:
         user = cast(User | None, session.get(User, telegram_id))
@@ -116,9 +118,7 @@ async def patch_user_settings(
             sosAlertsEnabled=profile.sos_alerts_enabled,
             therapyType=TherapyType(profile.therapy_type),
             rapidInsulinType=(
-                RapidInsulinType(profile.insulin_type)
-                if profile.insulin_type
-                else None
+                RapidInsulinType(profile.insulin_type) if profile.insulin_type else None
             ),
             maxBolus=profile.max_bolus,
             preBolus=profile.prebolus_min,
@@ -175,14 +175,20 @@ async def save_profile(data: ProfileSchema) -> None:
             "high_threshold": data.high,
             "quiet_start": data.quietStart,
             "quiet_end": data.quietEnd,
-            "sos_contact": data.sosContact or "",
-            "sos_alerts_enabled": (data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True),
+            "sos_contact": data.sosContact,
+            "sos_alerts_enabled": (
+                data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
+            ),
             "timezone": data.timezone,
             "timezone_auto": data.timezoneAuto,
         }
 
         stmt = insert(Profile).values(**profile_data)
-        update_values = {key: getattr(stmt.excluded, key) for key in profile_data.keys() if key != "telegram_id"}
+        update_values = {
+            key: getattr(stmt.excluded, key)
+            for key in profile_data.keys()
+            if key != "telegram_id"
+        }
         session.execute(
             stmt.on_conflict_do_update(
                 index_elements=[Profile.telegram_id],
