@@ -207,6 +207,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     therapyTypeProp,
   );
 
+  const isInsulinTherapy =
+    therapyType === 'insulin' || therapyType === 'mixed';
+
   const [warningOpen, setWarningOpen] = useState(false);
   const [pendingProfile, setPendingProfile] = useState<
     (
@@ -526,7 +529,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           <main className="container mx-auto px-4 py-6">
           <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <div className="space-y-6">
-            {(therapyType === 'insulin' || therapyType === 'mixed') && (
+            {isInsulinTherapy && (
               <>
                 {/* ICR */}
                 <div>
@@ -676,7 +679,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
               <h3 className="font-semibold text-foreground">
                 Расширенные настройки болюса
               </h3>
-              {(therapyType === 'insulin' || therapyType === 'mixed') && (
+              {isInsulinTherapy && (
                 <>
                   {/* DIA */}
                   <div>
@@ -788,7 +791,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   placeholder="12"
                 />
               </div>
-              {(therapyType === 'insulin' || therapyType === 'mixed') && (
+              {isInsulinTherapy && (
                 <>
                   {/* Rapid insulin type */}
                   <div>

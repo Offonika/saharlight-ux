@@ -10,19 +10,15 @@ vi.mock('@/hooks/use-mobile', () => ({
 }));
 
 describe('ProfileHelpSheet', () => {
-  it('hides insulin section for tablet therapy', () => {
-    render(<ProfileHelpSheet therapyType="tablets" />);
-    fireEvent.click(screen.getAllByLabelText('Справка')[0]);
-    expect(screen.queryByText('Инсулин')).toBeNull();
-    expect(screen.getByText('Цели сахара')).toBeTruthy();
-  });
-
-  it('hides insulin section for none therapy', () => {
-    render(<ProfileHelpSheet therapyType="none" />);
-    fireEvent.click(screen.getAllByLabelText('Справка')[0]);
-    expect(screen.queryByText('Инсулин')).toBeNull();
-    expect(screen.getByText('Цели сахара')).toBeTruthy();
-  });
+  it.each(['none', 'tablets'] as const)(
+    'hides insulin section for %s therapy',
+    (therapy) => {
+      render(<ProfileHelpSheet therapyType={therapy} />);
+      fireEvent.click(screen.getAllByLabelText('Справка')[0]);
+      expect(screen.queryByText('Инсулин')).toBeNull();
+      expect(screen.getByText('Цели сахара')).toBeTruthy();
+    },
+  );
 
   it('closes on Escape key', () => {
     render(<ProfileHelpSheet />);
