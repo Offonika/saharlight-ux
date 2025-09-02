@@ -178,7 +178,7 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
             </Button>
           </SheetClose>
         </SheetHeader>
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion type="multiple" className="w-full">
           {filtered.map((section) => (
             <AccordionItem key={section.key} value={section.key}>
               <AccordionTrigger>{t(section.titleKey)}</AccordionTrigger>
