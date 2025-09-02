@@ -4,13 +4,17 @@ TL;DR: единая точка ввода персональных параме�
 
 1. Область и режимы
 
-Сервис обслуживает пациентов на инсулине и без инсулина (СД-2). Для последних — питание/коучинг/напоминания без расчёта болюса (см. Концепция_проекта.md).
+Сервис обслуживает пациентов на инсулине, таблетках, смешанной терапии и без медикаментозного лечения (СД‑2). Для последних — питание/коучинг/напоминания без расчёта болюса (см. Концепция_проекта.md).
 
-Режим терапии: therapyType ∈ {insulin, tablets} (расширяемо).
+Режим терапии: therapyType ∈ {insulin, tablets, none, mixed}.
+
+insulin — все поля для расчётов доступны.
 
 tablets — болюсные поля скрыты в UI и допускаются NULL на бэке.
 
-insulin — все поля для расчётов доступны.
+none — медикаментозная терапия отсутствует; UI скрывает болюсные поля, сервер игнорирует связанные значения.
+
+mixed — инсулин + таблетки; UI ведёт себя как для insulin, план таблеток вне текущего scope.
 
 2. Состав профиля (UI / API / DB)
 2.1 Общие поля (всегда)
@@ -31,7 +35,7 @@ carbUnits ∈ {grams, xe} — формат ввода углеводов.
 
 gramsPerXE — по умолчанию 12, > 0; используется только при carbUnits='xe' (разные школы 10–15 г — оставляем настраиваемым).
 
-2.3 Только для therapyType='insulin'
+2.3 Только для therapyType='insulin' или 'mixed'
 
 ICR — углеводный коэффициент (соответствует выбранным carbUnits).
 
@@ -49,7 +53,7 @@ maxBolus — ограничение максимального болюса, > 0
 
 postMealCheckMin — напоминание измерить после еды (0–240).
 
-2.4 Только для therapyType='tablets'
+2.4 Только для therapyType='tablets' или 'none'
 
 Болюсные поля необязательны/скрыты. (План приёма таблеток — отдельная фича, вне текущего scope.)
 
@@ -61,7 +65,7 @@ UI/SDK — camelCase, API — snake_case, БД — snake_case. SDK маппит 
 
 Нормализация чисел (,→.), положительность и диапазоны.
 
-Логика: low < target < high, gramsPerXE > 0, roundingStep > 0, DIA ∈ [1;24] (только для insulin), prebolusMin ∈ [0;60], postMealCheckMin ∈ [0;240], maxBolus > 0.
+Логика: low < target < high, gramsPerXE > 0, roundingStep > 0, DIA ∈ [1;24] (только для insulin/mixed), prebolusMin ∈ [0;60], postMealCheckMin ∈ [0;240], maxBolus > 0.
 
 Неблокирующие предупреждения (shouldWarnProfile):
 
@@ -83,9 +87,9 @@ patch_user_settings:
 
 autoTimezone=true ⇒ timezone := device_tz (если передан/доступен);
 
-при therapy_type='tablets' не переопределяем/очищаем болюсные поля (в зависимости от политики, минимум — допускаем NULL).
+при therapy_type='tablets' или 'none' не переопределяем/очищаем болюсные поля (в зависимости от политики, минимум — допускаем NULL).
 
-save_profile/_validate_profile: учитывают режим; в tablets болюсные поля опциональны/игнорируются.
+save_profile/_validate_profile: учитывают режим; в tablets/none болюсные поля опциональны/игнорируются.
 
 4. API контракты
 4.1 Получение
@@ -112,14 +116,14 @@ POST /api/profile/save
 Content-Type: application/json
 
 
-Сохраняет ICR, CF, target, low, high только если therapy_type='insulin' — иначе болюсные игнорируются.
+Сохраняет ICR, CF, target, low, high только если therapy_type='insulin' или 'mixed' — иначе болюсные игнорируются.
 
 4.3 Частичный апдейт (рекомендуемый)
 PATCH /api/profile/settings
 Content-Type: application/json
 
 
-Пример (tablets):
+Пример (tablets; аналогично none):
 
 {
   "telegram_id": 448794918,
@@ -137,7 +141,7 @@ Content-Type: application/json
 
 5. Поведение UI
 
-Динамический рендер полей по therapyType.
+Динамический рендер полей по therapyType: insulin/mixed — показывают болюсные поля, tablets/none — скрывают.
 
 Контекстные подсказки («i») у ключевых полей + шторка «Справка».
 
@@ -150,7 +154,7 @@ Content-Type: application/json
 6. БД и миграции
 
 Таблица profiles (уже есть): добавить поля
-therapy_type TEXT CHECK ('insulin','tablets') DEFAULT 'insulin' NOT NULL,
+therapy_type TEXT CHECK ('insulin','tablets','none','mixed') DEFAULT 'insulin' NOT NULL,
 carb_units TEXT CHECK ('grams','xe') DEFAULT 'grams' NOT NULL,
 grams_per_xe NUMERIC DEFAULT 12 CHECK (grams_per_xe > 0),
 prebolus_min SMALLINT DEFAULT 0 CHECK (prebolus_min BETWEEN 0 AND 60),
@@ -159,7 +163,7 @@ max_bolus NUMERIC DEFAULT 10 CHECK (max_bolus > 0),
 postmeal_check_min SMALLINT DEFAULT 0 CHECK (postmeal_check_min BETWEEN 0 AND 240),
 insulin_type TEXT NULL.
 
-Политика NULL для болюсных полей при therapy_type='tablets' — через бизнес-валидацию (предпочтительно), без жёстких CHECK.
+Политика NULL для болюсных полей при therapy_type='tablets' или 'none' — через бизнес-валидацию (предпочтительно), без жёстких CHECK.
 
 Backfill: существующим проставить therapy_type='insulin'.
 
@@ -180,7 +184,7 @@ Backfill: существующим проставить therapy_type='insulin'.
 
 Валидации диапазонов, логика low < target < high.
 
-therapy_type='tablets': болюсные поля допускают NULL/игнорируются.
+therapy_type='tablets' или 'none': болюсные поля допускают NULL/игнорируются.
 
 autoTimezone=true ⇒ подмена TZ.
 
@@ -214,7 +218,7 @@ PATCH→GET в обоих режимах; смена режимов туда-о�
 
 11. Матрица соответствия полей
 UI (camelCase)	API (snake_case)	DB (snake_case)	Диапазон / правило
-therapyType	therapy_type	therapy_type	insulin | tablets
+therapyType	therapy_type	therapy_type	insulin | tablets | none | mixed
 glucoseUnits	glucose_units	glucose_units	enum
 target	target	target	low < target < high
 low	low	low	> 0
@@ -227,11 +231,11 @@ sosContact	sos_contact	sos_contact	формат валидируется
 sosEnabled	sos_enabled	sos_enabled	bool
 carbUnits	carb_units	carb_units	grams | xe
 gramsPerXE	grams_per_xe	grams_per_xe	> 0 (по умолчанию 12)
-ICR	icr	icr	> 0 (только insulin)
-CF	cf	cf	> 0 (только insulin)
-DIA	dia_hours	dia_hours	1–24 (только insulin)
-insulinType	insulin_type	insulin_type	строка (только insulin)
-prebolusMin	prebolus_min	prebolus_min	0–60 (только insulin)
-roundingStep	rounding_step	rounding_step	> 0 (только insulin)
-maxBolus	max_bolus	max_bolus	> 0 (только insulin)
+ICR	icr	icr	> 0 (только insulin/mixed)
+CF	cf	cf	> 0 (только insulin/mixed)
+DIA	dia_hours	dia_hours	1–24 (только insulin/mixed)
+insulinType	insulin_type	insulin_type	строка (только insulin/mixed)
+prebolusMin	prebolus_min	prebolus_min	0–60 (только insulin/mixed)
+roundingStep	rounding_step	rounding_step	> 0 (только insulin/mixed)
+maxBolus	max_bolus	max_bolus	> 0 (только insulin/mixed)
 postMealCheckMin	postmeal_check_min	postmeal_check_min	0–240
