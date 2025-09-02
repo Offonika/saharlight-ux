@@ -455,10 +455,10 @@ async def profile_timezone_save(
 
     if run_db is None:
         with SessionLocal() as session:
-            exists, ok = db_set_timezone(session)
+            existed, ok = db_set_timezone(session)
     else:
-        exists, ok = await run_db(db_set_timezone, sessionmaker=SessionLocal)
-    if not exists:
+        existed, ok = await run_db(db_set_timezone, sessionmaker=SessionLocal)
+    if not existed:
         await message.reply_text("Профиль не найден.", reply_markup=menu_keyboard())
         return END
     if not ok:
@@ -472,6 +472,7 @@ async def profile_timezone_save(
     if job_queue is None:
         logger.warning("profile_timezone_save called without job_queue")
     else:
+
         def db_get_reminders(session: Session) -> list[Reminder]:
             return (
                 session.query(Reminder)

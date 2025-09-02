@@ -104,6 +104,27 @@ async def test_profile_timezone_save_db_error(monkeypatch: pytest.MonkeyPatch) -
 
 
 @pytest.mark.asyncio
+async def test_profile_timezone_save_profile_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_db_mock = AsyncMock(return_value=(False, True))
+    monkeypatch.setattr(handlers, "run_db", run_db_mock)
+    message = DummyMessage("Europe/Moscow")
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+    state = await handlers.profile_timezone_save(update, context)
+    assert state == handlers.END
+    assert any("Профиль не найден" in r for r in message.replies)
+    run_db_mock.assert_awaited_once()
+
+
+@pytest.mark.asyncio
 async def test_profile_timezone_save_success(monkeypatch: pytest.MonkeyPatch) -> None:
     reminder_user = SimpleNamespace(id=1)
     reminder = SimpleNamespace(id=5, user=reminder_user)

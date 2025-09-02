@@ -23,7 +23,9 @@ def session_factory() -> Generator[sessionmaker[Session], None, None]:
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
-    TestSession: sessionmaker[Session] = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    TestSession: sessionmaker[Session] = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False
+    )
     try:
         yield TestSession
     finally:
@@ -114,7 +116,7 @@ def test_post_profile_error() -> None:
 
 def test_save_profile_persists(session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
         ok = profile_api.save_profile(
             session,
@@ -149,7 +151,7 @@ def test_save_profile_commit_failure(
 
     monkeypatch.setattr(profile_api, "commit", fail_commit)
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
         ok = profile_api.save_profile(session, 1, 1.0, 1.0, 1.0, 1.0, 1.0)
         assert ok is False
@@ -172,7 +174,7 @@ def test_local_profiles_roundtrip(session_factory: sessionmaker[Session]) -> Non
     api = profile_api.LocalProfileAPI(session_factory)
 
     with session_factory() as session:
-        session.add(User(telegram_id=1, thread_id="t", timezone="UTC"))
+        session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
 
     profile = profile_api.LocalProfile(
@@ -232,8 +234,8 @@ def test_set_timezone_user_missing(
     commit_mock = MagicMock(return_value=None)
     monkeypatch.setattr(profile_api, "commit", commit_mock)
     with session_factory() as session:
-        found, ok = profile_api.set_timezone(session, 999, "UTC")
-        assert (found, ok) == (True, True)
+        existed, ok = profile_api.set_timezone(session, 999, "UTC")
+        assert (existed, ok) == (False, True)
         commit_mock.assert_called_once()
 
 

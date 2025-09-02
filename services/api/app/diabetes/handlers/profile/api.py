@@ -159,7 +159,11 @@ def save_profile(
 
 
 def set_timezone(session: Session, user_id: int, tz: str) -> tuple[bool, bool]:
-    """Update user timezone in the database."""
+    """Update user timezone in the database.
+
+    Returns ``(existed, ok)`` where ``existed`` shows whether the profile was
+    present before the update and ``ok`` indicates commit success.
+    """
     return patch_user_settings(session, user_id, ProfileSettingsIn(timezone=tz))
 
 
@@ -179,14 +183,22 @@ def get_user_settings(session: Session, user_id: int) -> LocalUserSettings | Non
 
 
 def patch_user_settings(
-    session: Session, user_id: int, data: ProfileSettingsIn, device_tz: str | None = None
+    session: Session,
+    user_id: int,
+    data: ProfileSettingsIn,
+    device_tz: str | None = None,
 ) -> tuple[bool, bool]:
-    """Persist user settings updating only provided values."""
+    """Persist user settings updating only provided values.
+
+    Returns ``(existed, ok)`` where ``existed`` reflects whether the profile
+    existed prior to this call and ``ok`` indicates if the commit succeeded.
+    """
     user = session.get(User, user_id)
     if not user:
         user = User(telegram_id=user_id, thread_id="api")
         session.add(user)
     profile = session.get(Profile, user_id)
+    existed = profile is not None
     if profile is None:
         profile = Profile(telegram_id=user_id)
         session.add(profile)
@@ -219,8 +231,8 @@ def patch_user_settings(
     try:
         commit(session)
     except CommitError:
-        return True, False
-    return True, True
+        return existed, False
+    return existed, True
 
 
 def fetch_profile(
