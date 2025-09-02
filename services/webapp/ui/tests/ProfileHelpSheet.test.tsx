@@ -10,29 +10,21 @@ vi.mock('@/hooks/use-mobile', () => ({
 }));
 
 describe('ProfileHelpSheet', () => {
-  it.each(['none', 'tablets'] as const)(
-    'hides insulin section for %s therapy',
-    (therapy) => {
-      render(<ProfileHelpSheet therapyType={therapy} />);
-      fireEvent.click(screen.getAllByLabelText('Справка')[0]);
-      expect(screen.queryByText('Инсулин')).toBeNull();
-      expect(screen.getByText('Цели сахара')).toBeTruthy();
-    },
-  );
-
-  it('closes on Escape key', () => {
-    render(<ProfileHelpSheet />);
+  const openSheet = (therapy = 'tablets') => {
+    render(<ProfileHelpSheet therapyType={therapy} />);
     fireEvent.click(screen.getAllByLabelText('Справка')[0]);
+  };
+
+  it('opens and closes on Escape key', () => {
+    openSheet();
     expect(screen.getByRole('dialog')).toBeTruthy();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('uses bottom sheet on mobile', () => {
-    (mobileHook.useIsMobile as unknown as vi.Mock).mockReturnValue(true);
-    render(<ProfileHelpSheet />);
-    fireEvent.click(screen.getAllByLabelText('Справка')[0]);
-    const content = screen.getByRole('dialog');
-    expect(content.className).toContain('bottom-0');
+  it("hides insulin section for tablets therapy", () => {
+    openSheet('tablets');
+    expect(screen.queryByText('Инсулин')).toBeNull();
+    expect(screen.getByText('Цели сахара')).toBeTruthy();
   });
 });

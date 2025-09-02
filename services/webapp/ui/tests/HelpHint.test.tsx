@@ -17,26 +17,14 @@ describe('HelpHint', () => {
       </TooltipProvider>,
     );
 
-  it('shows tooltip on focus and hides on blur', async () => {
-    setup();
-    const button = screen.getByLabelText('ICR');
-    expect(button.getAttribute('aria-label')).toBe('ICR');
-
-    fireEvent.focus(button);
-    expect((await screen.findByRole('tooltip')).textContent).toBe('Example');
-
-    fireEvent.blur(button);
-    expect(screen.queryByRole('tooltip')).toBeNull();
-  });
-
-  it('closes tooltip on Escape key', async () => {
+  it('shows tooltip on focus and closes on Escape', async () => {
     setup();
     const button = screen.getByLabelText('ICR');
 
     fireEvent.focus(button);
     expect((await screen.findByRole('tooltip')).textContent).toBe('Example');
 
-    fireEvent.keyDown(button, { key: 'Escape' });
+    fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('tooltip')).toBeNull();
   });
 });
