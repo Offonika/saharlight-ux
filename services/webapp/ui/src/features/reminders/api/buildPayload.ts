@@ -1,21 +1,5 @@
 import type { ReminderSchema } from "@sdk";
-
-export type ReminderType =
-  | "sugar" | "insulin_short" | "insulin_long" | "after_meal"
-  | "meal" | "sensor_change" | "injection_site" | "custom";
-export type ScheduleKind = "at_time" | "every" | "after_event";
-
-export interface ReminderFormValues {
-  telegramId: number;
-  type: ReminderType;
-  kind: ScheduleKind;
-  time?: string;
-  intervalMinutes?: number;
-  minutesAfter?: number;
-  daysOfWeek?: number[];
-  title?: string;
-  isEnabled?: boolean;
-}
+import type { ReminderDto, ReminderType } from "../types";
 
 const TYPE_LABEL: Record<ReminderType, string> = {
   sugar: "Измерение сахара",
@@ -28,7 +12,7 @@ const TYPE_LABEL: Record<ReminderType, string> = {
   custom: "Напоминание",
 };
 
-function generateTitle(v: ReminderFormValues): string {
+function generateTitle(v: ReminderDto): string {
   if (v.title?.trim()) return v.title.trim();
   if (v.kind === "at_time" && v.time) return `${TYPE_LABEL[v.type]} · ${v.time}`;
   if (v.kind === "every" && v.intervalMinutes) return `${TYPE_LABEL[v.type]} · каждые ${v.intervalMinutes} мин`;
@@ -36,7 +20,7 @@ function generateTitle(v: ReminderFormValues): string {
   return TYPE_LABEL[v.type];
 }
 
-export function buildReminderPayload(v: ReminderFormValues): ReminderSchema {
+export function buildReminderPayload(v: ReminderDto): ReminderSchema {
   // Guard: force after_event to use after_meal type
   const values = { ...v };
   if (values.kind === "after_event" && values.type !== "after_meal") {

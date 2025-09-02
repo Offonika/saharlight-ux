@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseProfile, shouldWarnProfile } from "../src/pages/Profile";
-import type { RapidInsulin } from "../src/features/profile/api";
+import type { RapidInsulin } from "../src/features/profile/types";
 
 const makeProfile = (
   overrides: Record<string, string | boolean | RapidInsulin> = {},

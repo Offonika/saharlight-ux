@@ -1,23 +1,10 @@
 import type { ProfileSchema } from '@sdk';
 import { api } from '@/api';
+import type { Profile, PatchProfileDto, RapidInsulin } from './types';
 
-export type RapidInsulin = 'aspart' | 'lispro' | 'glulisine' | 'regular';
-
-export interface ExtendedProfileSchema extends ProfileSchema {
-  dia?: number | null;
-  preBolus?: number | null;
-  roundStep?: number | null;
-  carbUnit?: 'g' | 'xe' | null;
-  gramsPerXe?: number | null;
-  rapidInsulinType?: RapidInsulin | null;
-  maxBolus?: number | null;
-  defaultAfterMealMinutes?: number | null;
-  therapyType?: 'insulin' | 'tablets' | 'none' | 'mixed' | null;
-}
-
-export async function getProfile(telegramId: number) {
+export async function getProfile(telegramId: number): Promise<Profile> {
   try {
-    return await api.get<ExtendedProfileSchema>(`/profiles?telegramId=${telegramId}`);
+    return await api.get<Profile>(`/profiles?telegramId=${telegramId}`);
   } catch (error) {
     console.error('Failed to load profile:', error);
     if (error instanceof SyntaxError) {
@@ -71,20 +58,6 @@ export async function saveProfile({
   }
 }
 
-export type PatchProfileDto = {
-  timezone?: string | null;
-  timezoneAuto?: boolean | null;
-  dia?: number | null;
-  preBolus?: number | null;
-  roundStep?: number | null;
-  carbUnit?: 'g' | 'xe' | null;
-  gramsPerXe?: number | null;
-  rapidInsulinType?: RapidInsulin | null;
-  maxBolus?: number | null;
-  defaultAfterMealMinutes?: number | null;
-  therapyType?: 'insulin' | 'tablets' | 'none' | 'mixed' | null;
-};
-
 export async function patchProfile(payload: PatchProfileDto) {
   try {
     const body: Record<string, unknown> = {};
@@ -102,3 +75,5 @@ export async function patchProfile(payload: PatchProfileDto) {
     throw error;
   }
 }
+
+export type { RapidInsulin, PatchProfileDto, Profile };

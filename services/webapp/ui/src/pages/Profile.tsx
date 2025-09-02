@@ -11,13 +11,8 @@ import HelpHint from "@/components/HelpHint";
 import ProfileHelpSheet from "@/components/ProfileHelpSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "@/i18n";
-import {
-  saveProfile,
-  getProfile,
-  patchProfile,
-  type PatchProfileDto,
-  type RapidInsulin,
-} from "@/features/profile/api";
+import { saveProfile, getProfile, patchProfile } from "@/features/profile/api";
+import type { PatchProfileDto, RapidInsulin } from "@/features/profile/types";
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
