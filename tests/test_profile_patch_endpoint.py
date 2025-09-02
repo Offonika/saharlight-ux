@@ -132,3 +132,34 @@ def test_profile_patch_sets_grams_per_xe(
         prof = session.get(db.Profile, 1)
         assert prof is not None
         assert prof.grams_per_xe == 15
+
+
+def test_profile_patch_saves_additional_fields(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    SessionLocal = setup_db(monkeypatch)
+    with TestClient(server.app) as client:
+        resp = client.patch(
+            "/api/profile",
+            json={
+                "rapidInsulinType": "lispro",
+                "maxBolus": 12,
+                "preBolus": 10,
+                "afterMealMinutes": 90,
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["rapidInsulinType"] == "lispro"
+        assert data["maxBolus"] == 12
+        assert data["preBolus"] == 10
+        assert data["afterMealMinutes"] == 90
+
+    with SessionLocal() as session:
+        prof = session.get(db.Profile, 1)
+        assert prof is not None
+        assert prof.insulin_type == "lispro"
+        assert prof.max_bolus == 12
+        assert prof.prebolus_min == 10
+        assert prof.postmeal_check_min == 90
