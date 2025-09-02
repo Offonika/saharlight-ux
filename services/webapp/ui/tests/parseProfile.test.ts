@@ -17,7 +17,7 @@ const makeProfile = (
   roundStep: "1",
   carbUnit: "g",
   gramsPerXe: "12",
-  rapidInsulinType: "lispro" as RapidInsulin,
+  rapidInsulinType: "lispro",
   maxBolus: "20",
   afterMealMinutes: "60",
   ...overrides,
