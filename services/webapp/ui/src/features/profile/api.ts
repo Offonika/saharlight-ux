@@ -1,15 +1,16 @@
 import type { ProfileSchema } from '@sdk';
-import { api } from '@/api';
+import { api } from '@/lib/tgFetch';
 import type { Profile, PatchProfileDto, RapidInsulin } from './types';
 
 export async function getProfile(telegramId: number): Promise<Profile> {
   try {
-    return await api.get<Profile>(`/profiles?telegramId=${telegramId}`);
+    const data = await api.get<unknown>(`/profiles?telegramId=${telegramId}`);
+    if (typeof data === 'string') {
+      throw new Error('Некорректный ответ сервера');
+    }
+    return data as Profile;
   } catch (error) {
     console.error('Failed to load profile:', error);
-    if (error instanceof SyntaxError) {
-      throw new Error('Не удалось получить профиль: некорректный ответ сервера');
-    }
     if (error instanceof Error) {
       throw new Error(`Не удалось получить профиль: ${error.message}`);
     }

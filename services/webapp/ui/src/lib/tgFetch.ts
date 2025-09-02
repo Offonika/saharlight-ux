@@ -38,6 +38,20 @@ async function tgFetch<T>(
   }
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers, body });
+
+  if (!res.ok) {
+    let msg = '';
+    try {
+      msg = await res.text();
+    } catch {
+      // ignore
+    }
+    if (!msg) {
+      msg = res.statusText || `Request failed with status ${res.status}`;
+    }
+    throw new Error(msg);
+  }
+
   const isJson = res.headers.get('content-type')?.includes('application/json');
   let data: unknown;
 
@@ -49,16 +63,6 @@ async function tgFetch<T>(
     }
   } else {
     data = await res.text();
-  }
-
-  if (!res.ok) {
-    const msg =
-      typeof (data as Record<string, unknown> | undefined)?.detail === 'string'
-        ? ((data as Record<string, string>).detail)
-        : typeof data === 'string'
-          ? data
-          : 'Request failed';
-    throw new Error(msg);
   }
 
   return data as T;
