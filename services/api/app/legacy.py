@@ -55,9 +55,11 @@ async def profiles_get(
     except HTTPException:
         logger.exception("failed to fetch profile %s", tid)
         raise
-    except Exception as exc:  # pragma: no cover - unexpected DB error
+    except Exception as exc:
         logger.exception("failed to fetch profile %s", tid)
-        raise HTTPException(status_code=500, detail="db error") from exc
+        raise HTTPException(
+            status_code=500, detail="database connection failed"
+        ) from exc
 
     tz = profile.timezone if profile.timezone else "UTC"
     tz_auto = profile.timezone_auto if profile.timezone_auto is not None else True
