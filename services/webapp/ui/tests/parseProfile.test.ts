@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { parseProfile, shouldWarnProfile } from "../src/pages/Profile";
+import type { RapidInsulin } from "../src/features/profile/api";
 
-const makeProfile = (overrides: Record<string, string | boolean> = {}) => ({
+const makeProfile = (
+  overrides: Record<string, string | boolean | RapidInsulin> = {},
+) => ({
   icr: "1",
   cf: "2",
   target: "5",
@@ -14,7 +17,7 @@ const makeProfile = (overrides: Record<string, string | boolean> = {}) => ({
   roundStep: "1",
   carbUnit: "g",
   gramsPerXe: "12",
-  rapidInsulinType: "lispro",
+  rapidInsulinType: "lispro" as RapidInsulin,
   maxBolus: "20",
   afterMealMinutes: "60",
   ...overrides,
@@ -99,7 +102,6 @@ describe("parseProfile", () => {
         cf: "",
         dia: "",
         preBolus: "",
-        rapidInsulinType: "",
         maxBolus: "",
       }),
       "tablets",
@@ -115,7 +117,7 @@ describe("parseProfile", () => {
       roundStep: 1,
       carbUnit: "g",
       gramsPerXe: 12,
-      rapidInsulinType: "",
+      rapidInsulinType: "lispro",
       maxBolus: 0,
       afterMealMinutes: 60,
     });
@@ -128,7 +130,6 @@ describe("parseProfile", () => {
         cf: "",
         dia: "",
         preBolus: "",
-        rapidInsulinType: "",
         maxBolus: "",
       }),
       "none",
@@ -144,7 +145,7 @@ describe("parseProfile", () => {
       roundStep: 1,
       carbUnit: "g",
       gramsPerXe: 12,
-      rapidInsulinType: "",
+      rapidInsulinType: "lispro",
       maxBolus: 0,
       afterMealMinutes: 60,
     });
@@ -158,7 +159,6 @@ describe("parseProfile", () => {
           cf: "",
           dia: "",
           preBolus: "",
-          rapidInsulinType: "",
           maxBolus: "",
           low: "8",
           high: "6",
@@ -176,7 +176,6 @@ describe("parseProfile", () => {
           cf: "",
           dia: "",
           preBolus: "",
-          rapidInsulinType: "",
           maxBolus: "",
           target: "3",
         }),
@@ -200,7 +199,7 @@ describe("shouldWarnProfile", () => {
         roundStep: 1,
         carbUnit: "g",
         gramsPerXe: 10,
-        rapidInsulinType: "a",
+        rapidInsulinType: "aspart",
         maxBolus: 1,
         afterMealMinutes: 0,
       }),
@@ -217,7 +216,7 @@ describe("shouldWarnProfile", () => {
         roundStep: 1,
         carbUnit: "g",
         gramsPerXe: 10,
-        rapidInsulinType: "a",
+        rapidInsulinType: "aspart",
         maxBolus: 1,
         afterMealMinutes: 0,
       }),
@@ -234,7 +233,7 @@ describe("shouldWarnProfile", () => {
         roundStep: 1,
         carbUnit: "g",
         gramsPerXe: 10,
-        rapidInsulinType: "a",
+        rapidInsulinType: "aspart",
         maxBolus: 1,
         afterMealMinutes: 0,
       }),
