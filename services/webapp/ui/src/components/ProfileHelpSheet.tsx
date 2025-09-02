@@ -21,57 +21,23 @@ interface ProfileHelpSheetProps {
   therapyType?: string;
 }
 
-const sections = [
-  {
-    key: 'icr',
-    title: 'ICR (Инсулино-углеводное соотношение)',
-    content:
-      'Показывает, сколько граммов углеводов покрывает 1 единица быстрого инсулина',
-  },
-  {
-    key: 'cf',
-    title: 'Коэффициент коррекции (КЧ)',
-    content:
-      'На сколько ммоль/л снижает уровень глюкозы 1 единица быстрого инсулина',
-  },
-  {
-    key: 'target',
-    title: 'Целевой уровень сахара',
-    content:
-      'Желаемый уровень глюкозы, к которому стремится приложение при расчётах',
-  },
-  {
-    key: 'low',
-    title: 'Нижний порог',
-    content: 'При достижении этого уровня бот предупредит о гипогликемии',
-  },
-  {
-    key: 'high',
-    title: 'Верхний порог',
-    content: 'При превышении этого уровня бот предупредит о гипергликемии',
-  },
-  {
-    key: 'dia',
-    title: 'DIA (длительность действия инсулина)',
-    content: 'Сколько часов действует введённый инсулин',
-  },
-];
+const sections = ['icr', 'cf', 'target', 'low', 'high', 'dia'] as const;
 
 const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
-  const { t } = useTranslation();
+  const { t } = useTranslation('profileHelp');
 
   const filtered =
     therapyType === 'tablets'
-      ? sections.filter((s) => !['icr', 'cf', 'dia'].includes(s.key))
+      ? sections.filter((s) => !['icr', 'cf', 'dia'].includes(s))
       : sections;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
-          aria-label={t('Справка')}
+          aria-label={t('help')}
           variant="ghost"
           size="icon"
         >
@@ -83,13 +49,13 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
         className="max-h-screen overflow-y-auto"
       >
         <SheetHeader>
-          <SheetTitle>{t('Справка')}</SheetTitle>
+          <SheetTitle>{t('help')}</SheetTitle>
         </SheetHeader>
         <Accordion type="single" collapsible className="w-full">
           {filtered.map((section) => (
-            <AccordionItem key={section.key} value={section.key}>
-              <AccordionTrigger>{t(section.title)}</AccordionTrigger>
-              <AccordionContent>{t(section.content)}</AccordionContent>
+            <AccordionItem key={section} value={section}>
+              <AccordionTrigger>{t(`${section}.title`)}</AccordionTrigger>
+              <AccordionContent>{t(`${section}.tooltip`)}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
