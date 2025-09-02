@@ -1,3 +1,4 @@
+import logging
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -26,8 +27,9 @@ def test_profiles_get_invalid_telegram_id_returns_422() -> None:
     assert resp.status_code == 422
 
 
-def test_profiles_get_missing_profile_returns_404(
+def test_profiles_get_missing_profile_logs_warning(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     app = FastAPI()
     app.include_router(router, prefix="/api")
@@ -47,9 +49,11 @@ def test_profiles_get_missing_profile_returns_404(
 
     monkeypatch.setattr(legacy_module, "run_db", _run_db)
 
-    with TestClient(app) as client:
+    with TestClient(app) as client, caplog.at_level(logging.WARNING):
         resp = client.get("/api/profiles", params={"telegramId": 1})
     assert resp.status_code == 404
+    assert any(rec.levelno == logging.WARNING and "failed to fetch profile" in rec.message for rec in caplog.records)
+    assert "Traceback" not in caplog.text
     engine.dispose()
 
 
