@@ -97,6 +97,13 @@ const sections: HelpSection[] = [
         rangeKey: 'profileHelp.preBolus.range',
       },
       {
+        key: 'rapidInsulinType',
+        titleKey: 'profileHelp.rapidInsulinType.title',
+        definitionKey: 'profileHelp.rapidInsulinType.definition',
+        unitKey: 'profileHelp.rapidInsulinType.unit',
+        rangeKey: 'profileHelp.rapidInsulinType.range',
+      },
+      {
         key: 'maxBolus',
         titleKey: 'profileHelp.maxBolus.title',
         definitionKey: 'profileHelp.maxBolus.definition',
@@ -124,6 +131,13 @@ const sections: HelpSection[] = [
         rangeKey: 'profileHelp.carbUnit.range',
       },
       {
+        key: 'gramsPerXe',
+        titleKey: 'profileHelp.gramsPerXe.title',
+        definitionKey: 'profileHelp.gramsPerXe.definition',
+        unitKey: 'profileHelp.gramsPerXe.unit',
+        rangeKey: 'profileHelp.gramsPerXe.range',
+      },
+      {
         key: 'afterMealMinutes',
         titleKey: 'profileHelp.afterMealMinutes.title',
         definitionKey: 'profileHelp.afterMealMinutes.definition',
@@ -146,10 +160,19 @@ const ProfileHelpSheet = ({ therapyType }: ProfileHelpSheetProps) => {
   const isMobile = useIsMobile();
   const { t } = useTranslation();
 
-  const filtered =
-    therapyType === 'tablets' || therapyType === 'none'
-      ? sections.filter((s) => s.key !== 'insulin')
-      : sections;
+  const filtered = sections
+    .map((section) => ({
+      ...section,
+      items:
+        therapyType === 'tablets' || therapyType === 'none'
+          ? section.items.filter((item) => item.key !== 'rapidInsulinType')
+          : section.items,
+    }))
+    .filter((section) =>
+      therapyType === 'tablets' || therapyType === 'none'
+        ? section.key !== 'insulin'
+        : true,
+    );
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

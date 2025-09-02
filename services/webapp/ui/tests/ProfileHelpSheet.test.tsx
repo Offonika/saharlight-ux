@@ -16,9 +16,11 @@ describe('ProfileHelpSheet', () => {
       render(<ProfileHelpSheet therapyType={therapy} />);
       fireEvent.click(screen.getAllByLabelText('Справка')[0]);
       expect(screen.queryByText('Инсулин')).toBeNull();
+      expect(screen.queryByText('Тип быстрого инсулина')).toBeNull();
       expect(screen.getByText('Цели сахара')).toBeTruthy();
     },
   );
+
 
   it('closes on Escape key', () => {
     render(<ProfileHelpSheet />);
