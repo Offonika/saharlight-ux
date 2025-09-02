@@ -496,63 +496,67 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           <main className="container mx-auto px-4 py-6">
           <div className="medical-card animate-slide-up bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
           <div className="space-y-6">
-            {/* ICR */}
-            <div>
-              <label
-                htmlFor="icr"
-                className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
-              >
-                ICR (Инсулино-углеводное соотношение)
-                <HelpHint label="ICR (Инсулино-углеводное соотношение)">
-                  Показывает, сколько граммов углеводов покрывает 1 единица
-                  быстрого инсулина
-                </HelpHint>
-              </label>
-              <div className="relative">
-                <input
-                  id="icr"
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.icr}
-                  onChange={(e) => handleInputChange("icr", e.target.value)}
-                  className="medical-input"
-                  placeholder="12"
-                />
-                <span className="absolute right-3 top-3 text-muted-foreground text-sm">
-                  г/ед.
-                </span>
-              </div>
-            </div>
+            {therapyType !== 'tablets' && (
+              <>
+                {/* ICR */}
+                <div>
+                  <label
+                    htmlFor="icr"
+                    className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+                  >
+                    ICR (Инсулино-углеводное соотношение)
+                    <HelpHint label="ICR (Инсулино-углеводное соотношение)">
+                      Показывает, сколько граммов углеводов покрывает 1 единица
+                      быстрого инсулина
+                    </HelpHint>
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="icr"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="^\\d*(?:[.,]\\d*)?$"
+                      value={profile.icr}
+                      onChange={(e) => handleInputChange("icr", e.target.value)}
+                      className="medical-input"
+                      placeholder="12"
+                    />
+                    <span className="absolute right-3 top-3 text-muted-foreground text-sm">
+                      г/ед.
+                    </span>
+                  </div>
+                </div>
 
-            {/* Коэффициент коррекции */}
-            <div>
-              <label
-                htmlFor="cf"
-                className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
-              >
-                Коэффициент коррекции (КЧ)
-                <HelpHint label="Коэффициент коррекции (КЧ)">
-                  На сколько ммоль/л снижает уровень глюкозы 1 единица
-                  быстрого инсулина
-                </HelpHint>
-              </label>
-              <div className="relative">
-                <input
-                  id="cf"
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.cf}
-                  onChange={(e) => handleInputChange("cf", e.target.value)}
-                  className="medical-input"
-                  placeholder="2.5"
-                />
-                <span className="absolute right-3 top-3 text-muted-foreground text-sm">
-                  ммоль/л
-                </span>
-              </div>
-            </div>
+                {/* Коэффициент коррекции */}
+                <div>
+                  <label
+                    htmlFor="cf"
+                    className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+                  >
+                    Коэффициент коррекции (КЧ)
+                    <HelpHint label="Коэффициент коррекции (КЧ)">
+                      На сколько ммоль/л снижает уровень глюкозы 1 единица
+                      быстрого инсулина
+                    </HelpHint>
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="cf"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="^\\d*(?:[.,]\\д*)?$"
+                      value={profile.cf}
+                      onChange={(e) => handleInputChange("cf", e.target.value)}
+                      className="medical-input"
+                      placeholder="2.5"
+                    />
+                    <span className="absolute right-3 top-3 text-muted-foreground text-sm">
+                      ммоль/л
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Целевой сахар */}
             <div>
@@ -647,50 +651,54 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
               <h3 className="font-semibold text-foreground">
                 Расширенные настройки болюса
               </h3>
-              {/* DIA */}
-              <div>
-                <label
-                  htmlFor="dia"
-                  className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
-                >
-                  DIA (часы)
-                  <HelpHint label="DIA (часы)">
-                    Сколько часов действует введённый инсулин
-                  </HelpHint>
-                </label>
-                <input
-                  id="dia"
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.dia}
-                  onChange={(e) => handleInputChange('dia', e.target.value)}
-                  className="medical-input"
-                  placeholder="4"
-                />
-              </div>
-              {/* Pre-bolus */}
-              <div>
-                <label
-                  htmlFor="preBolus"
-                  className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
-                >
-                  Пре-болюс (мин)
-                  <HelpHint label="Пре-болюс (мин)">
-                    За сколько минут до еды вводить инсулин
-                  </HelpHint>
-                </label>
-                <input
-                  id="preBolus"
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.preBolus}
-                  onChange={(e) => handleInputChange('preBolus', e.target.value)}
-                  className="medical-input"
-                  placeholder="15"
-                />
-              </div>
+              {therapyType !== 'tablets' && (
+                <>
+                  {/* DIA */}
+                  <div>
+                    <label
+                      htmlFor="dia"
+                      className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+                    >
+                      DIA (часы)
+                      <HelpHint label="DIA (часы)">
+                        Сколько часов действует введённый инсулин
+                      </HelpHint>
+                    </label>
+                    <input
+                      id="dia"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="^\\d*(?:[.,]\\d*)?$"
+                      value={profile.dia}
+                      onChange={(e) => handleInputChange('dia', e.target.value)}
+                      className="medical-input"
+                      placeholder="4"
+                    />
+                  </div>
+                  {/* Pre-bolus */}
+                  <div>
+                    <label
+                      htmlFor="preBolus"
+                      className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+                    >
+                      Пре-болюс (мин)
+                      <HelpHint label="Пре-болюс (мин)">
+                        За сколько минут до еды вводить инсулин
+                      </HelpHint>
+                    </label>
+                    <input
+                      id="preBolus"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="^\\d*(?:[.,]\\d*)?$"
+                      value={profile.preBolus}
+                      onChange={(e) => handleInputChange('preBolus', e.target.value)}
+                      className="medical-input"
+                      placeholder="15"
+                    />
+                  </div>
+                </>
+              )}
               {/* Round step */}
               <div>
                 <label
@@ -778,28 +786,32 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   <option value="regular">Regular</option>
                 </select>
               </div>
-              {/* Max bolus */}
-              <div>
-                <label
-                  htmlFor="maxBolus"
-                  className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
-                >
-                  Максимальный болюс
-                  <HelpHint label="Максимальный болюс">
-                    Максимальная доза болюсного инсулина за один раз.
-                  </HelpHint>
-                </label>
-                <input
-                  id="maxBolus"
-                  type="text"
-                  inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\d*)?$"
-                  value={profile.maxBolus}
-                  onChange={(e) => handleInputChange('maxBolus', e.target.value)}
-                  className="medical-input"
-                  placeholder="10"
-                />
-              </div>
+              {therapyType !== 'tablets' && (
+                <>
+                  {/* Max bolus */}
+                  <div>
+                    <label
+                      htmlFor="maxBolus"
+                      className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+                    >
+                      Максимальный болюс
+                      <HelpHint label="Максимальный болюс">
+                        Максимальная доза болюсного инсулина за один раз.
+                      </HelpHint>
+                    </label>
+                    <input
+                      id="maxBolus"
+                      type="text"
+                      inputMode="decimal"
+                      pattern="^\\d*(?:[.,]\\d*)?$"
+                      value={profile.maxBolus}
+                      onChange={(e) => handleInputChange('maxBolus', e.target.value)}
+                      className="medical-input"
+                      placeholder="10"
+                    />
+                  </div>
+                </>
+              )}
               {/* Default after-meal minutes */}
               <div>
                 <label
