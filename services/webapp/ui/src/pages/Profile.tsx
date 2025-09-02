@@ -374,15 +374,15 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           })
             .then(() =>
               toast({
-                title: "Профиль обновлен",
-                description: "Часовой пояс обновлен",
+                title: t('profile.updated'),
+                description: t('profile.timezoneUpdated'),
               }),
             )
             .catch((error) => {
               const message =
                 error instanceof Error ? error.message : String(error);
               toast({
-                title: "Ошибка",
+                title: t('profile.error'),
                 description: message,
                 variant: "destructive",
               });
@@ -392,8 +392,8 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
 
         if (!isComplete) {
           toast({
-            title: "Ошибка",
-            description: "Профиль заполнен не полностью",
+            title: t('profile.error'),
+            description: t('profile.incomplete'),
             variant: "destructive",
           });
         }
@@ -402,7 +402,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         if (cancelled) return;
         const message = error instanceof Error ? error.message : String(error);
         toast({
-          title: "Ошибка",
+          title: t('profile.error'),
           description: message,
           variant: "destructive",
         });
@@ -471,13 +471,13 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       });
       setOriginal(profile);
       toast({
-        title: "Профиль сохранен",
-        description: "Ваши настройки успешно обновлены",
+        title: t('profile.saved'),
+        description: t('profile.settingsUpdated'),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       toast({
-        title: "Ошибка",
+        title: t('profile.error'),
         description: message,
         variant: "destructive",
       });
@@ -489,8 +489,8 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
 
     if (typeof telegramId !== "number") {
       toast({
-        title: "Ошибка",
-        description: "Некорректный ID пользователя",
+        title: t('profile.error'),
+        description: t('profile.invalidId'),
         variant: "destructive",
       });
       return;
@@ -499,10 +499,8 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     const parsed = parseProfile(profile, therapyType);
     if (!parsed) {
       toast({
-        title: "Ошибка",
-        description:
-          "Проверьте, что все значения положительны, нижний порог меньше верхнего," +
-          " а целевой уровень между ними",
+        title: t('profile.error'),
+        description: t('profile.invalidValues'),
         variant: "destructive",
       });
       return;
@@ -512,9 +510,8 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       setPendingProfile({ telegramId, ...parsed, patch: buildPatch(parsed) });
       setWarningOpen(true);
       toast({
-        title: "Проверьте значения",
-        description:
-          "ICR больше 8 и CF меньше 3. Пожалуйста, убедитесь в корректности введённых данных",
+        title: t('profile.warning.title'),
+        description: t('profile.warning.message'),
       });
       return;
     }
@@ -706,7 +703,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
             {/* Расширенные настройки болюса */}
             <div className="space-y-6">
               <h3 className="font-semibold text-foreground">
-                Расширенные настройки болюса
+                {t('profile.bolusSettings')}
               </h3>
               {isInsulinTherapy && (
                 <>
