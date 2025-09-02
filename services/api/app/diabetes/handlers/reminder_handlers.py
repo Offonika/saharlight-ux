@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable, Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import parse_qsl
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker, selectinload
 from telegram import (
     InlineKeyboardButton,
@@ -341,14 +342,23 @@ async def reminders_list(
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
     )
-    if run_db is None:
-        with SessionLocal() as session:
-            text, keyboard = render_fn(session, user_id)
-    else:
-        text, keyboard = cast(
-            tuple[str, InlineKeyboardMarkup | None],
-            await run_db(render_fn, user_id, sessionmaker=SessionLocal),
-        )
+    try:
+        if run_db is None:
+            with SessionLocal() as session:
+                text, keyboard = render_fn(session, user_id)
+        else:
+            text, keyboard = cast(
+                tuple[str, InlineKeyboardMarkup | None],
+                await run_db(render_fn, user_id, sessionmaker=SessionLocal),
+            )
+    except SQLAlchemyError:
+        logger.exception("Failed to render reminders")
+        await message.reply_text("Не удалось получить напоминания, попробуйте позже.")
+        return
+    except Exception:
+        logger.exception("Failed to render reminders")
+        await message.reply_text("Не удалось получить напоминания, попробуйте позже.")
+        return
 
     if show_menu:
         await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
@@ -375,6 +385,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     rtype = args[0]
     value = args[1] if len(args) > 1 else None
     if rtype == "after_meal" and value is None:
+
         def load_default(session: Session) -> int | None:
             settings = session.get(UserSettings, user_id)
             return getattr(settings, "default_after_meal_minutes", None)
@@ -593,6 +604,7 @@ async def reminder_webapp_save(
 
     user_id = user.id
     if rtype == "after_meal" and minutes_after_raw is None:
+
         def load_default(session: Session) -> int | None:
             settings = session.get(UserSettings, user_id)
             return getattr(settings, "default_after_meal_minutes", None)

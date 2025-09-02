@@ -14,6 +14,7 @@ import importlib
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from telegram import (
@@ -492,6 +493,8 @@ def test_schedule_reminder_no_days_kwarg() -> None:
     called_time = jobs[0].time
     assert called_time.tzinfo == ZoneInfo("Europe/Moscow")
     assert jobs[0].id == "reminder_1"
+
+
 def test_schedule_reminder_respects_days_mask() -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -1054,6 +1057,30 @@ async def test_reminders_list_shows_menu_keyboard(
 
 
 @pytest.mark.asyncio
+async def test_reminders_list_db_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fail_run_db(*args: Any, **kwargs: Any) -> Any:
+        raise SQLAlchemyError("fail")
+
+    monkeypatch.setattr(handlers, "run_db", fail_run_db)
+
+    captured: list[str] = []
+
+    async def fake_reply_text(text: str, **kwargs: Any) -> None:
+        captured.append(text)
+
+    message = MagicMock(spec=Message)
+    message.reply_text = fake_reply_text
+    update = make_update(effective_user=make_user(1), message=message)
+    context = make_context()
+
+    await handlers.reminders_list(update, context)
+
+    assert captured == ["Не удалось получить напоминания, попробуйте позже."]
+
+
+@pytest.mark.asyncio
 async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -1471,6 +1498,7 @@ async def test_snooze_callback_custom_delay(
 
     query = DummyCallbackQuery("remind_snooze:1:15", DummyMessage())
     update = make_update(callback_query=query, effective_user=make_user(1))
+
     class Recorder:
         def __init__(self) -> None:
             self.kwargs: dict[str, object] | None = None
@@ -1589,6 +1617,7 @@ async def test_snooze_callback_logs_action(
         session.commit()
 
     query = DummyCallbackQuery("remind_snooze:1:15", DummyMessage())
+
     class Recorder:
         def __init__(self) -> None:
             self.kwargs: dict[str, object] | None = None
