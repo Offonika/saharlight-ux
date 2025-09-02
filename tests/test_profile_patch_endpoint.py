@@ -114,3 +114,21 @@ def test_profile_patch_partial_update(
         assert prof.carb_units == "g"
         assert prof.sos_alerts_enabled is True
         assert prof.sos_contact is None
+
+
+def test_profile_patch_sets_grams_per_xe(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    SessionLocal = setup_db(monkeypatch)
+    with TestClient(server.app) as client:
+        resp = client.patch(
+            "/api/profile", json={"gramsPerXe": 15}, headers=auth_headers
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["gramsPerXe"] == 15
+
+    with SessionLocal() as session:
+        prof = session.get(db.Profile, 1)
+        assert prof is not None
+        assert prof.grams_per_xe == 15

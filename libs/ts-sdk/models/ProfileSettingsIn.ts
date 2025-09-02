@@ -51,6 +51,12 @@ export interface ProfileSettingsIn {
     carbUnits?: ProfileSettingsInCarbUnitsEnum;
     /**
      * 
+     * @type {number}
+     * @memberof ProfileSettingsIn
+     */
+    gramsPerXe?: number;
+    /**
+     * 
      * @type {string}
      * @memberof ProfileSettingsIn
      */
@@ -96,6 +102,7 @@ export function ProfileSettingsInFromJSONTyped(json: any, ignoreDiscriminator: b
         'dia': json['dia'] == null ? undefined : json['dia'],
         'roundStep': json['roundStep'] == null ? undefined : json['roundStep'],
         'carbUnits': json['carbUnits'] == null ? undefined : json['carbUnits'],
+        'gramsPerXe': json['gramsPerXe'] == null ? undefined : json['gramsPerXe'],
         'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
         'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
     };
@@ -117,6 +124,7 @@ export function ProfileSettingsInToJSONTyped(value?: ProfileSettingsIn | null, i
         'dia': value['dia'],
         'roundStep': value['roundStep'],
         'carbUnits': value['carbUnits'],
+        'gramsPerXe': value['gramsPerXe'],
         'sosContact': value['sosContact'],
         'sosAlertsEnabled': value['sosAlertsEnabled'],
     };

@@ -76,6 +76,8 @@ async def patch_user_settings(
             profile.round_step = data.roundStep
         if data.carbUnits is not None:
             profile.carb_units = data.carbUnits.value
+        if data.gramsPerXe is not None:
+            profile.grams_per_xe = data.gramsPerXe
         if data.sosContact is not None:
             profile.sos_contact = data.sosContact
         if data.sosAlertsEnabled is not None:
@@ -97,6 +99,7 @@ async def patch_user_settings(
             dia=profile.dia,
             roundStep=profile.round_step,
             carbUnits=CarbUnits(profile.carb_units),
+            gramsPerXe=profile.grams_per_xe,
             sosContact=profile.sos_contact,
             sosAlertsEnabled=profile.sos_alerts_enabled,
             therapyType=TherapyType(profile.therapy_type),
