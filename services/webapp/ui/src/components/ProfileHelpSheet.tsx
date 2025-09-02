@@ -18,7 +18,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useTranslation } from '@/i18n';
 
 interface ProfileHelpSheetProps {
-  therapyType?: string;
+  therapyType?: 'insulin' | 'tablets' | 'none' | 'mixed';
 }
 
 const sections = [

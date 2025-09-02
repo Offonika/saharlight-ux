@@ -10,6 +10,7 @@ export interface ExtendedProfileSchema extends ProfileSchema {
   rapidInsulinType?: string | null;
   maxBolus?: number | null;
   defaultAfterMealMinutes?: number | null;
+  therapyType?: 'insulin' | 'tablets' | 'none' | 'mixed' | null;
 }
 
 export async function getProfile(telegramId: number) {
