@@ -338,6 +338,60 @@ describe('Profile page', () => {
     },
   );
 
+  it('allows zero pre-bolus and after-meal delay for insulin therapy', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (getProfile as vi.Mock).mockResolvedValueOnce({
+      telegramId: 123,
+      icr: 12,
+      cf: 2.5,
+      target: 6,
+      low: 4,
+      high: 10,
+      dia: 4,
+      preBolus: 0,
+      roundStep: 0.5,
+      carbUnit: 'g',
+      gramsPerXe: 12,
+      rapidInsulinType: 'aspart' as RapidInsulin,
+      maxBolus: 10,
+      defaultAfterMealMinutes: 0,
+      timezone: 'Europe/Moscow',
+      timezoneAuto: false,
+      therapyType: 'insulin',
+    });
+
+    render(<Profile />);
+    await waitFor(() => {
+      expect(getProfile).toHaveBeenCalled();
+    });
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it.each(nonInsulinTherapies)(
+    'allows zero after-meal delay for %s therapy',
+    async (therapy) => {
+      (resolveTelegramId as vi.Mock).mockReturnValue(123);
+      (getProfile as vi.Mock).mockResolvedValueOnce({
+        telegramId: 123,
+        target: 6,
+        low: 4,
+        high: 10,
+        roundStep: 1,
+        carbUnit: 'g',
+        gramsPerXe: 12,
+        defaultAfterMealMinutes: 0,
+        timezone: 'Europe/Moscow',
+        timezoneAuto: false,
+        therapyType: therapy,
+      });
+      render(<Profile therapyType={therapy} />);
+      await waitFor(() => {
+        expect(getProfile).toHaveBeenCalled();
+      });
+      expect(toast).not.toHaveBeenCalled();
+    },
+  );
+
   it('renders advanced bolus fields', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     const { getByPlaceholderText } = render(<Profile />);
