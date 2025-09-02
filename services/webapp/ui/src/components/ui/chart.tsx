@@ -65,6 +65,13 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "Chart"
 
+const COLOR_REGEX =
+  /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6,8})$|^(?:rgb|hsl)a?\([0-9.,%\s]+\)$/i
+
+function isValidColor(color: string): boolean {
+  return COLOR_REGEX.test(color.trim())
+}
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([_, config]) => config.theme || config.color
@@ -86,7 +93,9 @@ ${colorConfig
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+    return color && isValidColor(color)
+      ? `  --color-${key}: ${color};`
+      : null
   })
   .join("\n")}
 }
