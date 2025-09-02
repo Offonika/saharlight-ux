@@ -45,9 +45,9 @@ DIA — длительность действия быстрого инсули�
 
 insulinType — тип быстрого.
 
-prebolusMin — предболюс, мин (0–60).
+preBolus — предболюс, мин (0–60).
 
-roundingStep — шаг округления дозы, > 0 (напр., 0.1 / 0.5).
+roundStep — шаг округления дозы, > 0 (напр., 0.1 / 0.5).
 
 maxBolus — ограничение максимального болюса, > 0.
 
@@ -65,7 +65,7 @@ UI/SDK — camelCase, API — snake_case, БД — snake_case. SDK маппит 
 
 Нормализация чисел (,→.), положительность и диапазоны.
 
-Логика: low < target < high, gramsPerXE > 0, roundingStep > 0, DIA ∈ [1;24] (только для insulin/mixed), prebolusMin ∈ [0;60], postMealCheckMin ∈ [0;240], maxBolus > 0.
+Логика: low < target < high, gramsPerXE > 0, roundStep > 0, DIA ∈ [1;24] (только для insulin/mixed), preBolus ∈ [0;60], postMealCheckMin ∈ [0;240], maxBolus > 0.
 
 Неблокирующие предупреждения (shouldWarnProfile):
 
@@ -79,7 +79,7 @@ DIA > 12 (мягкое предупреждение).
 
 ProfileSchema (полный GET): подтверждает low < high и low < target < high, валидирует диапазоны.
 
-ProfileSettingsIn/Out (PATCH): валидирует DIA (1–24), rounding_step > 0, carb_units, grams_per_xe > 0, postmeal_check_min ∈ [0;240], timezone.
+ProfileSettingsIn/Out (PATCH): валидирует DIA (1–24), round_step > 0, carb_units, grams_per_xe > 0, postmeal_check_min ∈ [0;240], timezone.
 
 patch_user_settings:
 
@@ -104,7 +104,7 @@ Accept: application/json
   "therapy_type": "tablets",
   "glucose_units": "mmol/L",
   "target": 5.5, "low": 3.9, "high": 8.0,
-  "carb_units": "grams", "grams_per_xe": 12, "rounding_step": 1,
+  "carb_units": "grams", "grams_per_xe": 12, "round_step": 1,
   "postmeal_check_min": 90,
   "timezone": "Europe/Moscow", "timezone_auto": false,
   "quietStart": "23:00", "quietEnd": "07:00",
@@ -132,7 +132,7 @@ Content-Type: application/json
   "timezone_auto": false,
   "carb_units": "xe",
   "grams_per_xe": 12,
-  "rounding_step": 1,
+  "round_step": 1,
   "postmeal_check_min": 90
 }
 
@@ -239,7 +239,7 @@ ICR     icr     icr     > 0 (только insulin/mixed)
 CF      cf      cf      > 0 (только insulin/mixed)
 DIA     dia            dia            1–24 (только insulin/mixed)
 insulinType     insulin_type    insulin_type    строка (только insulin/mixed)
-prebolusMin     prebolus_min    prebolus_min    0–60 (только insulin/mixed)
-roundingStep    round_step      round_step      > 0 (только insulin/mixed)
+preBolus        prebolus_min    prebolus_min    0–60 (только insulin/mixed)
+roundStep       round_step      round_step      > 0 (только insulin/mixed)
 maxBolus        max_bolus       max_bolus       > 0 (только insulin/mixed)
 postMealCheckMin        postmeal_check_min      postmeal_check_min      0–240
