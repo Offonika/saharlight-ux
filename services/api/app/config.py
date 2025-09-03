@@ -11,9 +11,7 @@ from pydantic import Field, field_validator
 try:  # pragma: no cover - import guard
     from pydantic_settings import BaseSettings, SettingsConfigDict
 except ModuleNotFoundError as exc:  # pragma: no cover - executed at import time
-    raise ImportError(
-        "`pydantic-settings` is required. Install it with `pip install pydantic-settings`."
-    ) from exc
+    raise ImportError("`pydantic-settings` is required. Install it with `pip install pydantic-settings`.") from exc
 
 
 logger = logging.getLogger(__name__)
@@ -34,9 +32,7 @@ class Settings(BaseSettings):
     app_name: str = "diabetes-bot"
     debug: bool = False
 
-    photos_dir: str = Field(
-        default="/var/lib/diabetes-bot/photos", alias="PHOTOS_DIR"
-    )
+    photos_dir: str = Field(default="/var/lib/diabetes-bot/photos", alias="PHOTOS_DIR")
 
     # Database configuration
     database_url: str = Field(
@@ -58,22 +54,17 @@ class Settings(BaseSettings):
     ui_base_url: str = Field(default="/ui", alias="UI_BASE_URL")
     api_url: Optional[str] = Field(default=None, alias="API_URL")
     openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
-    openai_assistant_id: Optional[str] = Field(
-        default=None, alias="OPENAI_ASSISTANT_ID"
-    )
-    openai_command_model: str = Field(
-        default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL"
-    )
+    openai_assistant_id: Optional[str] = Field(default=None, alias="OPENAI_ASSISTANT_ID")
+    openai_command_model: str = Field(default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL")
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
     telegram_token: Optional[str] = Field(default=None, alias="TELEGRAM_TOKEN")
+    telegram_payments_provider_token: Optional[str] = Field(default=None, alias="TELEGRAM_PAYMENTS_PROVIDER_TOKEN")
     admin_id: Optional[int] = Field(default=None, alias="ADMIN_ID")
 
     @field_validator("log_level", mode="before")
     @classmethod
-    def parse_log_level(
-        cls, v: int | str | None
-    ) -> int:  # pragma: no cover - simple parsing
+    def parse_log_level(cls, v: int | str | None) -> int:  # pragma: no cover - simple parsing
         if isinstance(v, str):
             v_lower = v.lower()
             level_map: dict[str, int] = {
