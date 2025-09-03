@@ -355,6 +355,82 @@ def schedule_all(job_queue: DefaultJobQueue | None) -> None:
         logger.debug("Scheduled %d reminders", count)
 
 
+async def create_reminder_from_preset(
+    user_id: int, code: str, job_queue: DefaultJobQueue | None
+) -> Reminder | None:
+    """Create and schedule a reminder based on a preset code."""
+
+    presets: dict[str, dict[str, object]] = {
+        "sugar_08": {"type": "sugar", "time": time(8, 0)},
+        "long_22": {"type": "insulin_long", "time": time(22, 0)},
+        "pills_09": {
+            "type": "custom",
+            "title": "Таблетки",  # noqa: RUF001
+            "time": time(9, 0),
+        },
+    }
+    preset = presets.get(code)
+    if preset is None:
+        logger.warning("Unknown reminder preset: %s", code)
+        return None
+
+    reminder = Reminder(telegram_id=user_id, type=cast(str, preset["type"]))
+    reminder.time = cast(time, preset["time"])
+    reminder.kind = ScheduleKind.at_time.value
+    title = preset.get("title")
+    if title is not None:
+        reminder.title = cast(str, title)
+
+    def db_save(session: Session) -> tuple[Reminder | None, User | None]:
+        user = session.get(User, user_id)
+        exists = (
+            session.query(Reminder)
+            .filter_by(
+                telegram_id=user_id,
+                type=reminder.type,
+                time=reminder.time,
+            )
+            .first()
+        )
+        if exists is not None:
+            return None, user
+        session.add(reminder)
+        try:
+            commit(session)
+        except CommitError:
+            logger.exception(
+                "Failed to commit preset reminder for user %s", user_id
+            )
+            return None, user
+        return reminder, user
+
+    if run_db is None:
+        with SessionLocal() as session:
+            saved, db_user = db_save(session)
+    else:
+        saved, db_user = await run_db(db_save, sessionmaker=SessionLocal)
+
+    if saved is None:
+        logger.info(
+            "Preset reminder %s not created for user %s", code, user_id
+        )
+        return None
+
+    logger.info(
+        "Created preset reminder %s for user %s: id=%s",
+        code,
+        user_id,
+        saved.id,
+    )
+    if job_queue is not None and db_user is not None:
+        schedule_reminder(saved, job_queue, db_user)
+        logger.info("Scheduled preset reminder %s", saved.id)
+    else:
+        await reminder_events.notify_reminder_saved(saved.id)
+        logger.info("Sent reminder_saved event for %s", saved.id)
+    return saved
+
+
 async def reminders_list(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -1311,6 +1387,7 @@ reminder_webapp_handler = MessageHandler(
 __all__ = [
     "schedule_reminder",
     "schedule_all",
+    "create_reminder_from_preset",
     "reminders_list",
     "add_reminder",
     "reminder_webapp_save",
