@@ -67,7 +67,7 @@ describe('mockApi not used in production', () => {
 
   it('RemindersCreate uses toast and not mockApi in production', async () => {
     remindersPost.mockRejectedValue(new Error('fail'));
-    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('DEV', 'false');
     const { default: RemindersCreate } = await import('../src/features/reminders/pages/RemindersCreate');
     const { container } = render(<RemindersCreate />);
     const form = container.querySelector('form')!;

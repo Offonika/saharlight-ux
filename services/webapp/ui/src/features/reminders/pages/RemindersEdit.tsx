@@ -10,7 +10,6 @@ import type { ReminderDto, ScheduleKind, ReminderType } from "../types";
 import { validate, hasErrors } from "../logic/validate";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 import { getTelegramUserId } from "../../../shared/telegram";
-import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
 import { useTelegram } from "@/hooks/useTelegram";
 import TimeInput from "@/components/TimeInput";
@@ -82,8 +81,10 @@ export default function RemindersEdit() {
         try {
           reminder = await api.remindersIdGet({ id: Number(id), telegramId });
         } catch (apiError) {
-          console.warn("Backend API failed, using mock API:", apiError);
-          reminder = await mockApi.getReminder(telegramId, Number(id));
+          if (import.meta.env.DEV) {
+            console.warn("Backend API failed:", apiError);
+          }
+          throw apiError;
         }
         setForm(mapToForm(reminder));
       } catch (err) {
@@ -124,8 +125,10 @@ export default function RemindersEdit() {
       try {
         await api.remindersPatch({ reminder });
       } catch (apiError) {
-        console.warn("Backend API failed, using mock API:", apiError);
-        await mockApi.updateReminder(reminder);
+        if (import.meta.env.DEV) {
+          console.warn("Backend API failed:", apiError);
+        }
+        throw apiError;
       }
 
       const value = form.time
