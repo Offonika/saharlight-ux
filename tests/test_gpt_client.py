@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import asyncio
 import logging
 import threading
 import time
@@ -86,7 +87,7 @@ async def test_create_thread_openaierror(
     assert any("Failed to create thread" in r.message for r in caplog.records)
 
 
-def test_dispose_openai_clients_resets_all(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dispose_openai_clients_resets_all_sync(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_client = Mock()
     fake_async_client = Mock()
     fake_async_client.close = AsyncMock()
@@ -94,7 +95,26 @@ def test_dispose_openai_clients_resets_all(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(gpt_client, "_client", fake_client)
     monkeypatch.setattr(gpt_client, "_async_client", fake_async_client)
 
-    gpt_client.dispose_openai_clients()
+    asyncio.run(gpt_client.dispose_openai_clients())
+
+    fake_client.close.assert_called_once()
+    fake_async_client.close.assert_awaited_once()
+    assert gpt_client._client is None
+    assert gpt_client._async_client is None
+
+
+@pytest.mark.asyncio
+async def test_dispose_openai_clients_resets_all_async(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_client = Mock()
+    fake_async_client = Mock()
+    fake_async_client.close = AsyncMock()
+
+    monkeypatch.setattr(gpt_client, "_client", fake_client)
+    monkeypatch.setattr(gpt_client, "_async_client", fake_async_client)
+
+    await gpt_client.dispose_openai_clients()
 
     fake_client.close.assert_called_once()
     fake_async_client.close.assert_awaited_once()
