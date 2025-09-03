@@ -112,6 +112,18 @@ export interface ReminderSchema {
      * @memberof ReminderSchema
      */
     nextAt?: Date | null;
+    /**
+     * 
+     * @type {Date}
+     * @memberof ReminderSchema
+     */
+    lastFiredAt?: Date | null;
+    /**
+     * 
+     * @type {number}
+     * @memberof ReminderSchema
+     */
+    readonly fires7d?: number;
 }
 
 /**
@@ -146,6 +158,8 @@ export function ReminderSchemaFromJSONTyped(json: any, ignoreDiscriminator: bool
         'isEnabled': json['isEnabled'] == null ? undefined : json['isEnabled'],
         'orgId': json['orgId'] == null ? undefined : json['orgId'],
         'nextAt': json['nextAt'] == null ? undefined : (new Date(json['nextAt'])),
+        'lastFiredAt': json['lastFiredAt'] == null ? undefined : (new Date(json['lastFiredAt'])),
+        'fires7d': json['fires7d'] == null ? undefined : json['fires7d'],
     };
 }
 
@@ -173,6 +187,7 @@ export function ReminderSchemaToJSONTyped(value?: ReminderSchema | null, ignoreD
         'isEnabled': value['isEnabled'],
         'orgId': value['orgId'],
         'nextAt': value['nextAt'] === null ? null : ((value['nextAt'] as any)?.toISOString()),
+        'lastFiredAt': value['lastFiredAt'] === null ? null : ((value['lastFiredAt'] as any)?.toISOString()),
     };
 }
 

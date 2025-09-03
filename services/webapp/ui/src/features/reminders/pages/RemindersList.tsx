@@ -73,6 +73,8 @@ export default function RemindersList({
         daysOfWeek: r.daysOfWeek ? Array.from(r.daysOfWeek) : undefined,
         isEnabled: r.isEnabled ?? false,
         nextAt: r.nextAt ? r.nextAt.toISOString() : undefined,
+        lastFiredAt: r.lastFiredAt ? r.lastFiredAt.toISOString() : undefined,
+        fires7d: r.fires7d,
       }));
       setItems(reminders);
 
@@ -292,6 +294,16 @@ export default function RemindersList({
                     <div className="text-xs text-muted-foreground/70">
                       Следующее: {formatNextAt(r.nextAt)}
                     </div>
+                    {r.lastFiredAt && (
+                      <div className="text-xs text-muted-foreground/70">
+                        Прошлое: {formatNextAt(r.lastFiredAt)}
+                      </div>
+                    )}
+                    {typeof r.fires7d === 'number' && (
+                      <div className="text-xs text-muted-foreground/70">
+                        За 7 дней: {r.fires7d}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 ml-4">
                     <button 

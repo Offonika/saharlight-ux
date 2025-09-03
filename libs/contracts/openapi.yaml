@@ -956,6 +956,17 @@ components:
           readOnly: true
           description: Next fire in user timezone
           title: Next At
+        lastFiredAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          readOnly: true
+          title: Last Fired At
+        fires7d:
+          type: integer
+          readOnly: true
+          title: Fires7d
       type: object
       required:
       - telegramId

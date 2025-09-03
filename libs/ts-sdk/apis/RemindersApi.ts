@@ -40,11 +40,11 @@ export interface RemindersIdGetRequest {
 }
 
 export interface RemindersPatchRequest {
-    reminder: ReminderSchema | null;
+    reminder: Omit<ReminderSchema, 'fires7d'> | null;
 }
 
 export interface RemindersPostRequest {
-    reminder: ReminderSchema | null;
+    reminder: Omit<ReminderSchema, 'fires7d'> | null;
 }
 
 /**
