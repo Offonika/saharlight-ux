@@ -9,4 +9,4 @@ def test_models_metadata_contains_expected_tables() -> None:
 
 def test_models_exports_metadata() -> None:
     from services.api.app.diabetes import models
-    assert models.__all__ == ["metadata"]
+    assert models.__all__ == ["metadata", "OnboardingState"]
