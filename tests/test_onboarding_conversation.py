@@ -21,7 +21,10 @@ def fake_onboarding_state(monkeypatch: pytest.MonkeyPatch) -> None:
         user_id: int, step: int, data: dict[str, object], variant: str | None = None
     ) -> None:
         steps[user_id] = step
-        store[user_id] = dict(data)
+        save_data = dict(data)
+        if isinstance(save_data.get("reminders"), set):
+            save_data["reminders"] = list(save_data["reminders"])
+        store[user_id] = save_data
         variants[user_id] = variant
 
     class DummyState:
