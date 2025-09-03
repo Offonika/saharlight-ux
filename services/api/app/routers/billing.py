@@ -12,9 +12,10 @@ from sqlalchemy.orm import Session
 
 from services.api.app.billing import (
     BillingSettings,
+    create_checkout,
     create_payment,
-    create_subscription,
     get_billing_settings,
+    verify_webhook,
 )
 
 from ..diabetes.services.db import (
@@ -104,7 +105,7 @@ async def subscribe(
 ) -> CheckoutSchema:
     """Initiate a subscription and return checkout details."""
 
-    checkout = await create_subscription(settings, plan)
+    checkout = await create_checkout(settings, plan)
     now = datetime.now(timezone.utc)
 
     def _create_draft(session: Session) -> None:
@@ -132,12 +133,7 @@ async def webhook(
     """Process provider webhook and activate subscription."""
 
     logger = logging.getLogger(__name__)
-    if settings.billing_provider != "dummy":
-        raise HTTPException(status_code=501, detail="billing provider not supported")
-
-    expected_sig = f"{event.event_id}:{event.transaction_id}"
-    if event.signature != expected_sig:
-        logger.info("webhook %s invalid_signature", event.event_id)
+    if not await verify_webhook(settings, event):
         raise HTTPException(status_code=400, detail="invalid signature")
 
     now = datetime.now(timezone.utc)
@@ -167,7 +163,7 @@ async def webhook(
 
     updated = await run_db(_activate, sessionmaker=SessionLocal)
     status = "processed" if updated else "ignored"
-    logger.info("webhook %s %s", event.event_id, status)
+    logger.info("webhook %s %s", event.transaction_id, status)
     return {"status": status}
 
 

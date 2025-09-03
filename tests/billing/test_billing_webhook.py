@@ -56,7 +56,9 @@ def create_subscription(client: TestClient) -> str:
     return resp.json()["id"]
 
 
-def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_webhook_activates_subscription(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     checkout_id = create_subscription(client)
@@ -79,7 +81,7 @@ def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog:
         assert sub.status == SubscriptionStatus.ACTIVE
         assert sub.plan == SubscriptionPlan.PRO
         assert sub.end_date is not None
-    assert any("evt1 processed" in r.getMessage() for r in caplog.records)
+    assert any(f"{checkout_id} processed" in r.getMessage() for r in caplog.records)
 
 
 def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
