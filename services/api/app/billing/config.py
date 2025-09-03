@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,6 +18,13 @@ class BillingSettings(BaseSettings):
     billing_admin_token: str | None = Field(
         default=None, alias="BILLING_ADMIN_TOKEN"
     )
+
+    @model_validator(mode="after")
+    def _require_admin_token(self) -> "BillingSettings":
+        """Ensure real providers have an admin token configured."""
+        if self.billing_provider != "dummy" and not self.billing_admin_token:
+            raise ValueError("BILLING_ADMIN_TOKEN is required for non-dummy providers")
+        return self
 
 
 billing_settings = BillingSettings()

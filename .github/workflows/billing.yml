@@ -1,0 +1,50 @@
+name: Billing CI
+
+on:
+  push:
+    paths:
+      - '.github/workflows/billing.yml'
+      - 'services/api/app/billing/**'
+      - 'services/api/alembic/**'
+      - 'migrations/**'
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - env: dev
+            provider: dummy
+            test_mode: true
+          - env: staging
+            provider: stripe
+            test_mode: true
+          - env: prod
+            provider: stripe
+            test_mode: false
+    env:
+      BILLING_ENABLED: "true"
+      BILLING_PROVIDER: ${{ matrix.provider }}
+      BILLING_TEST_MODE: ${{ matrix.test_mode }}
+      BILLING_ADMIN_TOKEN: ${{ secrets.BILLING_ADMIN_TOKEN }}
+      DATABASE_URL: sqlite:///./${{ matrix.env }}.db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r services/api/app/requirements-dev.txt
+      - name: Validate billing secrets
+        if: matrix.provider != 'dummy'
+        run: |
+          if [ -z "$BILLING_ADMIN_TOKEN" ]; then
+            echo 'BILLING_ADMIN_TOKEN is required for ${{ matrix.env }}'
+            exit 1
+          fi
+      - name: Run migrations
+        run: make migrate
