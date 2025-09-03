@@ -71,90 +71,41 @@ def _sanitize_sensitive_data(text: str) -> str:
 def _extract_first_json(text: str) -> dict[str, object] | None:
     """Return the first complete JSON object found in *text*.
 
-    The previous implementation delegated to :class:`json.JSONDecoder` with a
-    moving ``raw_decode`` window.  That approach is brittle when the GPT reply
-    contains stray ``{`` or ``[`` characters inside quoted strings or when
-    several JSON objects are concatenated together.  Here we perform a small
-    character-by-character scan tracking string literals and bracket depth to
-    reliably locate the first standalone JSON payload.
+    The implementation scans for the first ``{`` or ``[`` character and then
+    attempts to decode from that offset using
+    :meth:`json.JSONDecoder.raw_decode`.  It gracefully skips over any
+    characters that cannot start valid JSON (for example braces inside string
+    literals) and therefore correctly handles nested structures and escaped
+    symbols.
 
     If the top-level structure is an array, a single dictionary element is
     extracted (``[{"action": "add_entry"}]``).  Arrays with multiple elements
     are ignored to avoid ambiguity.
     """
 
-    start: int | None = None
-    depth = 0
-    in_string = False
-    escape = False
-    pre_quote: str | None = None
-    pre_escape = False
-
-    for idx, ch in enumerate(text):
-        if start is None:
-            if pre_quote is not None:
-                if pre_escape:
-                    pre_escape = False
-                elif ch == "\\":
-                    pre_escape = True
-                elif ch == pre_quote:
-                    pre_quote = None
-                continue
-
-            if ch in {'"', "'"}:
-                pre_quote = ch
-                continue
-            if ch in "[{":
-                start = idx
-                depth = 1
-                in_string = False
-                escape = False
+    decoder = json.JSONDecoder()
+    pos = 0
+    while True:
+        match = re.search(r"[{[]", text[pos:])
+        if not match:
+            return None
+        start = pos + match.start()
+        if start > 0 and text[start - 1] not in " \t\n\r":
+            pos = start + 1
             continue
-
-        # We are inside a potential JSON segment
-        if in_string:
-            if escape:
-                escape = False
-            elif ch == "\\":
-                escape = True
-            elif ch == '"':
-                in_string = False
+        try:
+            obj, end = decoder.raw_decode(text, start)
+        except json.JSONDecodeError:
+            pos = start + 1
             continue
-
-        if ch == '"':
-            in_string = True
+        if isinstance(obj, dict):
+            return obj
+        if isinstance(obj, list):
+            if len(obj) == 1 and isinstance(obj[0], dict):
+                return obj[0]
+            pos = end
             continue
-
-        if ch in "[{":
-            depth += 1
-        elif ch in "}]":
-            depth -= 1
-            if depth == 0 and start is not None:
-                candidate = text[start : idx + 1]
-                try:
-                    obj = json.loads(candidate)
-                except json.JSONDecodeError:
-                    start = None
-                    depth = 0
-                    in_string = False
-                    escape = False
-                    continue
-
-                if isinstance(obj, dict):
-                    return obj
-                if isinstance(obj, list):
-                    if len(obj) == 1 and isinstance(obj[0], dict):
-                        return obj[0]
-                    start = None
-                    depth = 0
-                    continue
-                start = None
-                depth = 0
-                continue
-
-        escape = False
-
-    return None
+        pos = end
 
 
 async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | None:

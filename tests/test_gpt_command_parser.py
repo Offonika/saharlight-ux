@@ -566,18 +566,46 @@ def test_extract_first_json_malformed_then_valid() -> None:
 
 
 def test_extract_first_json_non_dict_reset(monkeypatch: pytest.MonkeyPatch) -> None:
-    orig_loads = gpt_command_parser.json.loads
+    orig_raw_decode = gpt_command_parser.json.JSONDecoder.raw_decode
 
-    def fake_loads(s: str, *args: object, **kwargs: object) -> object:
-        if s == '{"skip":1}':
-            return 1
-        return orig_loads(s, *args, **kwargs)
+    def fake_raw_decode(
+        self: gpt_command_parser.json.JSONDecoder, s: str, idx: int = 0
+    ) -> tuple[object, int]:
+        if s[idx:].startswith('{"skip":1}'):
+            return 1, idx + len('{"skip":1}')
+        return orig_raw_decode(self, s, idx)
 
-    monkeypatch.setattr(gpt_command_parser.json, "loads", fake_loads)
+    monkeypatch.setattr(
+        gpt_command_parser.json.JSONDecoder, "raw_decode", fake_raw_decode
+    )
     text = '{"skip":1} {"action":"add_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
+    }
+
+
+def test_extract_first_json_nested_object() -> None:
+    text = 'prefix {"action":"add_entry","fields":{"nested":{"level":1}}}' " suffix"
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {"nested": {"level": 1}},
+    }
+
+
+def test_extract_first_json_nested_array() -> None:
+    text = 'prefix {"action":"add_entry","fields":{"list":[{"x":1},{"x":2}]}}' " suffix"
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {"list": [{"x": 1}, {"x": 2}]},
+    }
+
+
+def test_extract_first_json_with_escaped_chars() -> None:
+    text = 'start {"action":"add_entry","fields":{"note":"Line1\\nLine2\\\\"}} end'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {"note": "Line1\nLine2\\"},
     }
 
 
