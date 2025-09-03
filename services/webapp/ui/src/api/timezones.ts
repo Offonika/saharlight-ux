@@ -1,13 +1,19 @@
+import { tgFetch } from '@/lib/tgFetch';
+
 export async function getTimezones(): Promise<string[]> {
-  const res = await fetch('/api/timezones');
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => '');
-    const msg = errorText || 'Request failed';
-    throw new Error(msg);
+  try {
+    const data = await tgFetch<unknown>('/timezones');
+    if (Array.isArray(data)) {
+      return data as string[];
+    }
+    throw new Error('Некорректный ответ сервера');
+  } catch (error) {
+    console.error('Failed to load timezones:', error);
+    if (error instanceof Error) {
+      throw new Error(
+        `Не удалось получить список часовых поясов: ${error.message}`,
+      );
+    }
+    throw error;
   }
-  const data = await res.json();
-  if (Array.isArray(data)) {
-    return data as string[];
-  }
-  throw new Error('Invalid response');
 }
