@@ -7,6 +7,7 @@ from .service import (
     create_subscription,
     verify_webhook,
 )
+from .log import BillingEvent, BillingLog, log_billing_event
 
 __all__ = [
     "BillingSettings",
@@ -16,4 +17,7 @@ __all__ = [
     "create_checkout",
     "create_subscription",
     "verify_webhook",
+    "BillingLog",
+    "BillingEvent",
+    "log_billing_event",
 ]

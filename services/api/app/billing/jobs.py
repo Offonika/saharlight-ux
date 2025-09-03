@@ -15,6 +15,7 @@ from services.api.app.diabetes.services.db import (
     run_db,
 )
 from services.api.app.diabetes.services.repository import commit
+from .log import BillingEvent, log_billing_event
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +49,7 @@ async def expire_subscriptions(_context: ContextTypes.DEFAULT_TYPE) -> None:
         now = _utcnow()
         subs = (
             session.query(Subscription)
-            .filter(
-                Subscription.status.in_(
-                    [SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE]
-                )
-            )
+            .filter(Subscription.status.in_([SubscriptionStatus.TRIAL, SubscriptionStatus.ACTIVE]))
             .filter(Subscription.end_date != None)  # noqa: E711
             .filter(Subscription.end_date < now)
             .all()
@@ -61,6 +58,13 @@ async def expire_subscriptions(_context: ContextTypes.DEFAULT_TYPE) -> None:
             sub.status = SubscriptionStatus.EXPIRED
         if subs:
             commit(session)
+            for sub in subs:
+                log_billing_event(
+                    session,
+                    sub.user_id,
+                    BillingEvent.EXPIRED,
+                    {"subscription_id": sub.id},
+                )
         return [sub.user_id for sub in subs]
 
     user_ids = await run_db(_expire)

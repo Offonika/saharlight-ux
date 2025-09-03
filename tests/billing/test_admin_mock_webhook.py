@@ -15,6 +15,7 @@ from services.api.app.diabetes.services.db import (
     SubscriptionPlan,
     SubscriptionStatus,
 )
+from services.api.app.billing.log import BillingLog
 from services.api.app.main import app
 from services.api.app.routers import billing
 
@@ -28,7 +29,7 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__])
+    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
     return sessionmaker(bind=engine)
 
 
@@ -37,9 +38,7 @@ def make_client(
     session_local: sessionmaker[Session],
     settings: BillingSettings,
 ) -> TestClient:
-    async def run_db(
-        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
-    ):
+    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
@@ -87,9 +86,7 @@ def test_admin_mock_webhook(monkeypatch: pytest.MonkeyPatch) -> None:
     client.app.dependency_overrides.clear()
 
     with session_local() as session:
-        sub = session.scalar(
-            select(Subscription).where(Subscription.transaction_id == "tx1")
-        )
+        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == "tx1"))
         assert sub is not None
         assert sub.status == SubscriptionStatus.ACTIVE
 
