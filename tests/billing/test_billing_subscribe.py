@@ -76,6 +76,7 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert set(data) == {"id", "url"}
+    assert "mock-checkout" in data["url"]
 
     with client:
         webhook = client.post(f"/api/billing/mock-webhook/{data['id']}")
