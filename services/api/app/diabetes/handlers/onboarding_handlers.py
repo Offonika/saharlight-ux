@@ -357,8 +357,37 @@ async def _mark_user_complete(user_id: int) -> None:
     await run_db(_update, sessionmaker=SessionLocal)
 
 
+async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Reset onboarding progress and allow user to restart."""
+
+    message = update.effective_message
+    user = update.effective_user
+    if message is None or user is None:
+        return ConversationHandler.END
+
+    def _reset(session: SessionProtocol) -> None:
+        state = cast(
+            onboarding_state.OnboardingState | None,
+            session.get(onboarding_state.OnboardingState, user.id),
+        )
+        if state is not None:
+            session.delete(state)
+        db_user = cast(User | None, session.get(User, user.id))
+        if db_user is not None:
+            db_user.onboarding_complete = False
+        commit(cast(Session, session))
+
+    await run_db(_reset, sessionmaker=SessionLocal)
+    await message.reply_text(
+        "Онбординг сброшен. Отправьте /start, чтобы начать заново."
+    )
+    return ConversationHandler.END
+
 onboarding_conv = ConversationHandler(
-    entry_points=[CommandHandler("start", start_command)],
+    entry_points=[
+        CommandHandler("start", start_command),
+        CommandHandler("reset_onboarding", reset_onboarding),
+    ],
     states={
         PROFILE: [CallbackQueryHandler(profile_chosen)],
         TIMEZONE: [
@@ -383,6 +412,7 @@ __all__ = [
     "timezone_text",
     "timezone_nav",
     "reminders_chosen",
+    "reset_onboarding",
     "onboarding_skip",
     "onboarding_reminders",
     "onboarding_poll_answer",
