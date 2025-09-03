@@ -52,6 +52,7 @@ class DummyMessage:
         self.text: str = text
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
+        self.web_app_data: Any | None = None
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append(text)
@@ -149,3 +150,20 @@ async def test_resume_from_saved_step() -> None:
     state = await onboarding.start_command(update2, context2)
     assert state == onboarding.TIMEZONE
     assert message2.replies[-1].startswith("Шаг 2/3")
+
+
+@pytest.mark.asyncio
+async def test_timezone_webapp_saves_and_moves_to_reminders() -> None:
+    message = DummyMessage()
+    message.web_app_data = SimpleNamespace(data="Europe/Moscow")
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    state = await onboarding.timezone_webapp(update, context)
+    assert state == onboarding.REMINDERS
+    assert context.user_data["timezone"] == "Europe/Moscow"
+    assert message.replies[-1].startswith("Шаг 3/3")

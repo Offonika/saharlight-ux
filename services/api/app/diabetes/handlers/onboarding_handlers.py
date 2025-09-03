@@ -191,6 +191,31 @@ async def timezone_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     return await _prompt_reminders(message, user_id, user_data, variant)
 
 
+async def timezone_webapp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle timezone sent from Telegram WebApp."""
+
+    message = update.message
+    user = update.effective_user
+    web_app = getattr(message, "web_app_data", None) if message else None
+    if message is None or web_app is None or user is None:
+        return ConversationHandler.END
+    user_id = user.id
+    user_data = cast(dict[str, Any], context.user_data)
+    state = await onboarding_state.load_state(user_id)
+    variant = cast(str | None, user_data.get("variant"))
+    if state is not None:
+        user_data.update(state.data)
+        variant = variant or state.variant
+        user_data["variant"] = variant
+        if state.step != TIMEZONE:
+            if state.step == PROFILE:
+                return await _prompt_profile(message, user_id, user_data, variant)
+            if state.step == REMINDERS:
+                return await _prompt_reminders(message, user_id, user_data, variant)
+    user_data["timezone"] = web_app.data.strip() or "Europe/Moscow"
+    return await _prompt_reminders(message, user_id, user_data, variant)
+
+
 async def timezone_nav(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle navigation callbacks in timezone step."""
 
@@ -366,6 +391,7 @@ onboarding_conv = ConversationHandler(
                 timezone_nav,
                 pattern=f"^({CB_BACK}|{CB_SKIP}|{CB_CANCEL})$",
             ),
+            MessageHandler(filters.StatusUpdate.WEB_APP_DATA, timezone_webapp),
             MessageHandler(filters.TEXT & (~filters.COMMAND), timezone_text),
         ],
         REMINDERS: [CallbackQueryHandler(reminders_chosen)],
@@ -381,6 +407,7 @@ __all__ = [
     "start_command",
     "profile_chosen",
     "timezone_text",
+    "timezone_webapp",
     "timezone_nav",
     "reminders_chosen",
     "onboarding_skip",
