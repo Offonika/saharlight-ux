@@ -63,12 +63,11 @@ export async function saveProfile({
 
 export async function patchProfile(payload: PatchProfileDto) {
   try {
-    const body: Record<string, unknown> = {};
-    Object.entries(payload).forEach(([key, value]) => {
-      if (value !== undefined) {
-        body[key] = value;
-      }
-    });
+    // Preserve explicit `null` values to clear fields, but drop `undefined`.
+    const body = Object.fromEntries(
+      Object.entries(payload).filter(([, value]) => value !== undefined),
+    ) as Record<string, unknown>;
+
     return await tgFetch<unknown>('/profile', { method: 'PATCH', body });
   } catch (error) {
     console.error('Failed to update profile:', error);

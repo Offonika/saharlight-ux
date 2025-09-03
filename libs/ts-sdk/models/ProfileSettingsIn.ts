@@ -24,13 +24,13 @@ export interface ProfileSettingsIn {
      * @type {string}
      * @memberof ProfileSettingsIn
      */
-    timezone?: string;
+    timezone?: string | null;
     /**
      * 
      * @type {boolean}
      * @memberof ProfileSettingsIn
      */
-    timezoneAuto?: boolean;
+    timezoneAuto?: boolean | null;
     /**
      * 
      * @type {number}

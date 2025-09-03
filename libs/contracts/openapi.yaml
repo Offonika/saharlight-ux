@@ -718,10 +718,14 @@ components:
     ProfileSettingsIn:
       properties:
         timezone:
-          type: string
+          anyOf:
+          - type: string
+          - type: 'null'
           title: Timezone
         timezoneAuto:
-          type: boolean
+          anyOf:
+          - type: boolean
+          - type: 'null'
           title: Timezone Auto
         dia:
           type: number
