@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session, sessionmaker
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 import services.api.app.diabetes.handlers.router as router
+from services.api.app.config import settings
+
 
 class DummyMessage:
     def __init__(
@@ -167,7 +169,7 @@ async def test_photo_flow_saves_entry(
     await photo_handlers.photo_handler(update_photo, context)
 
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_ref
-    assert not Path("photos/1_uid.jpg").exists()
+    assert not (Path(settings.photos_dir) / "1_uid.jpg").exists()
 
     entry = user_data["pending_entry"]
     assert entry["carbs_g"] == 30.0
@@ -250,4 +252,4 @@ async def test_photo_handler_removes_file_on_failure(
     await photo_handlers.photo_handler(update_photo, context)
 
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_ref
-    assert not Path("photos/1_uid.jpg").exists()
+    assert not (Path(settings.photos_dir) / "1_uid.jpg").exists()

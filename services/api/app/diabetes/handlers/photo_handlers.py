@@ -23,6 +23,7 @@ from services.api.app.diabetes.services.gpt_client import (
 from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.utils.functions import extract_nutrition_info
 from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.config import settings
 
 from . import EntryData, UserData
 
@@ -45,7 +46,9 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message is None:
         return
-    await message.reply_text("📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard())
+    await message.reply_text(
+        "📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard()
+    )
 
 
 async def photo_handler(
@@ -73,7 +76,10 @@ async def photo_handler(
     flag_ts = user_data.get(WAITING_GPT_TIMESTAMP)
     now = datetime.datetime.now(datetime.timezone.utc)
     if user_data.get(WAITING_GPT_FLAG):
-        if isinstance(flag_ts, datetime.datetime) and now - flag_ts > WAITING_GPT_TIMEOUT:
+        if (
+            isinstance(flag_ts, datetime.datetime)
+            and now - flag_ts > WAITING_GPT_TIMEOUT
+        ):
             _clear_waiting_gpt(user_data)
         else:
             await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
@@ -92,12 +98,18 @@ async def photo_handler(
             _clear_waiting_gpt(user_data)
             return END
 
-        os.makedirs("photos", exist_ok=True)
-        file_path = f"photos/{user_id}_{photo.file_unique_id}.jpg"
+        photos_dir = settings.photos_dir
         try:
+            os.makedirs(photos_dir, exist_ok=True)
+            file_path = f"{photos_dir}/{user_id}_{photo.file_unique_id}.jpg"
             file = await context.bot.get_file(photo.file_id)
             await file.download_to_drive(file_path)
-        except (TelegramError, OSError) as exc:
+        except OSError as exc:
+            logger.exception("[PHOTO] Failed to save photo: %s", exc)
+            await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
+            _clear_waiting_gpt(user_data)
+            return END
+        except TelegramError as exc:
             logger.exception("[PHOTO] Failed to save photo: %s", exc)
             await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
             _clear_waiting_gpt(user_data)
@@ -118,7 +130,9 @@ async def photo_handler(
                     try:
                         commit(session)
                     except CommitError:
-                        await message.reply_text("⚠️ Не удалось сохранить данные пользователя.")
+                        await message.reply_text(
+                            "⚠️ Не удалось сохранить данные пользователя."
+                        )
                         return END
             user_data["thread_id"] = thread_id
 
@@ -136,17 +150,23 @@ async def photo_handler(
             )
         except asyncio.TimeoutError:
             logger.warning("[PHOTO] GPT request timed out")
-            await message.reply_text("⚠️ Превышено время ожидания ответа. Попробуйте ещё раз.")
+            await message.reply_text(
+                "⚠️ Превышено время ожидания ответа. Попробуйте ещё раз."
+            )
             _clear_waiting_gpt(user_data)
             return END
-        status_message = await message.reply_text("🔍 Анализирую фото (это займёт 5‑10 с)…")
+        status_message = await message.reply_text(
+            "🔍 Анализирую фото (это займёт 5‑10 с)…"
+        )
         chat_id = getattr(message, "chat_id", None)
 
         async def send_typing_action() -> None:
             if not chat_id:
                 return
             try:
-                await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+                await context.bot.send_chat_action(
+                    chat_id=chat_id, action=ChatAction.TYPING
+                )
             except TelegramError as exc:
                 logger.warning(
                     "[PHOTO][TYPING_ACTION] Failed to send typing action: %s",
@@ -189,7 +209,9 @@ async def photo_handler(
                         exc,
                     )
                     raise
-            await message.reply_text("⚠️ Время ожидания Vision истекло. Попробуйте позже.")
+            await message.reply_text(
+                "⚠️ Время ожидания Vision истекло. Попробуйте позже."
+            )
             return END
 
         if run.status != "completed":
@@ -287,11 +309,15 @@ async def photo_handler(
 
     except OSError as exc:
         logger.exception("[PHOTO] File processing error: %s", exc)
-        await message.reply_text("⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз.")
+        await message.reply_text(
+            "⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз."
+        )
         return END
     except OpenAIError as exc:
         logger.exception("[PHOTO] Vision API error: %s", exc)
-        await message.reply_text("⚠️ Vision не смог обработать фото. Попробуйте ещё раз.")
+        await message.reply_text(
+            "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
+        )
         return END
     except ValueError as exc:
         logger.exception("[PHOTO] Parsing error: %s", exc)
@@ -338,13 +364,17 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user_id = effective_user.id
     filename = document.file_name or ""
     ext = Path(filename).suffix or ".jpg"
-    path = f"photos/{user_id}_{document.file_unique_id}{ext}"
-    os.makedirs("photos", exist_ok=True)
-
+    photos_dir = settings.photos_dir
+    path = f"{photos_dir}/{user_id}_{document.file_unique_id}{ext}"
     try:
+        os.makedirs(photos_dir, exist_ok=True)
         file = await context.bot.get_file(document.file_id)
         await file.download_to_drive(path)
-    except (TelegramError, OSError) as exc:
+    except OSError as exc:
+        logger.exception("[DOC] Failed to save document: %s", exc)
+        await message.reply_text("⚠️ Не удалось сохранить документ. Попробуйте ещё раз.")
+        return END
+    except TelegramError as exc:
         logger.exception("[DOC] Failed to save document: %s", exc)
         await message.reply_text("⚠️ Не удалось сохранить документ. Попробуйте ещё раз.")
         return END
