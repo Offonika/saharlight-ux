@@ -45,6 +45,10 @@ def fake_onboarding_state(monkeypatch: pytest.MonkeyPatch) -> None:
         pass
 
     monkeypatch.setattr(onboarding, "_mark_user_complete", noop_mark)
+    async def noop_save_timezone(telegram_id: int, tz: str, *, auto: bool) -> bool:
+        return True
+
+    monkeypatch.setattr(onboarding, "save_timezone", noop_save_timezone)
 
 
 class DummyMessage:

@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "set_timezone",
     "patch_user_settings",
+    "save_timezone",
     "save_profile",
     "get_profile",
 ]
@@ -126,6 +127,19 @@ async def patch_user_settings(
         )
 
     return await db.run_db(_patch, sessionmaker=db.SessionLocal)
+
+
+async def save_timezone(telegram_id: int, tz: str, *, auto: bool) -> bool:
+    """Persist only timezone and its auto-detection flag."""
+
+    try:
+        await patch_user_settings(
+            telegram_id,
+            ProfileSettingsIn(timezone=tz, timezoneAuto=auto),
+        )
+    except HTTPException:
+        return False
+    return True
 
 
 def _validate_profile(data: ProfileSchema) -> None:
