@@ -68,7 +68,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     finally:
         reminder_events.register_job_queue(None)
         dispose_http_client()
-        dispose_openai_clients()
+        await dispose_openai_clients()
 
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0", lifespan=lifespan)
