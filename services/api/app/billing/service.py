@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
+from collections.abc import Mapping
+
 from fastapi import HTTPException
 
 from ..schemas.billing import WebhookEvent
@@ -31,10 +35,31 @@ async def create_checkout(settings: BillingSettings, plan: str) -> dict[str, str
 create_subscription = create_checkout
 
 
-async def verify_webhook(settings: BillingSettings, event: WebhookEvent) -> bool:
+async def verify_webhook(
+    settings: BillingSettings,
+    event: WebhookEvent,
+    headers: Mapping[str, str],
+    ip: str | None,
+) -> bool:
     """Verify webhook payload using the configured provider."""
 
+    if settings.billing_webhook_ips and (ip is None or ip not in settings.billing_webhook_ips):
+        return False
+    if headers.get("X-Webhook-Signature") != event.signature:
+        return False
     if settings.billing_provider == "dummy":
-        provider = DummyBillingProvider(test_mode=settings.billing_test_mode)
-        return await provider.verify_webhook(event)
-    raise HTTPException(status_code=501, detail="billing provider not supported")
+        provider = DummyBillingProvider(
+            test_mode=settings.billing_test_mode,
+            webhook_secret=settings.billing_webhook_secret,
+        )
+    else:
+        raise HTTPException(status_code=501, detail="billing provider not supported")
+
+    try:
+        return await asyncio.wait_for(
+            provider.verify_webhook(event), timeout=settings.billing_webhook_timeout
+        )
+    except asyncio.TimeoutError:
+        logger = logging.getLogger(__name__)
+        logger.warning("webhook %s timeout", event.transaction_id)
+        return False

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -29,7 +31,11 @@ def setup_db() -> sessionmaker[Session]:
     return sessionmaker(bind=engine)
 
 
-def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
+def make_client(
+    monkeypatch: pytest.MonkeyPatch,
+    session_local: sessionmaker[Session],
+    **settings_kwargs: object,
+) -> TestClient:
     async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
@@ -37,10 +43,11 @@ def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Ses
     monkeypatch.setattr(billing, "run_db", run_db, raising=False)
     monkeypatch.setattr(billing, "SessionLocal", session_local, raising=False)
     settings = BillingSettings(
-        billing_enabled=True,
-        billing_test_mode=True,
-        billing_provider="dummy",
-        paywall_mode="soft",
+        BILLING_ENABLED=True,
+        BILLING_TEST_MODE=True,
+        BILLING_PROVIDER="dummy",
+        PAYWALL_MODE="soft",
+        **settings_kwargs,
     )
     client = TestClient(app)
     client.app.dependency_overrides[billing._require_billing_enabled] = lambda: settings
@@ -53,19 +60,31 @@ def create_subscription(client: TestClient) -> str:
     return resp.json()["id"]
 
 
-def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def _sign(secret: str, event_id: str, transaction_id: str) -> str:
+    payload = f"{event_id}:{transaction_id}".encode()
+    return hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+
+
+def test_webhook_activates_subscription(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session_local = setup_db()
-    client = make_client(monkeypatch, session_local)
+    secret = "testsecret"
+    client = make_client(monkeypatch, session_local, BILLING_WEBHOOK_SECRET=secret)
     checkout_id = create_subscription(client)
+    event_id = "evt1"
+    sig = _sign(secret, event_id, checkout_id)
     event = {
-        "event_id": "evt1",
+        "event_id": event_id,
         "transaction_id": checkout_id,
         "plan": "pro",
-        "signature": f"evt1:{checkout_id}",
+        "signature": sig,
     }
     caplog.set_level(logging.INFO)
     with client:
-        resp = client.post("/api/billing/webhook", json=event)
+        resp = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig}
+        )
     assert resp.status_code == 200
     assert resp.json() == {"status": "processed"}
     with session_local() as session:
@@ -86,16 +105,21 @@ def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog:
 
 def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
-    client = make_client(monkeypatch, session_local)
+    secret = "testsecret"
+    client = make_client(monkeypatch, session_local, BILLING_WEBHOOK_SECRET=secret)
     checkout_id = create_subscription(client)
+    event_id = "evt2"
+    sig = _sign(secret, event_id, checkout_id)
     event = {
-        "event_id": "evt2",
+        "event_id": event_id,
         "transaction_id": checkout_id,
         "plan": "pro",
-        "signature": f"evt2:{checkout_id}",
+        "signature": sig,
     }
     with client:
-        first = client.post("/api/billing/webhook", json=event)
+        first = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig}
+        )
     assert first.status_code == 200
     with session_local() as session:
         sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
@@ -103,7 +127,9 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
         first_end = sub.end_date
 
     with client:
-        dup = client.post("/api/billing/webhook", json=event)
+        dup = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig}
+        )
     assert dup.status_code == 200
     assert dup.json() == {"status": "ignored"}
     with session_local() as session:
@@ -113,19 +139,54 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
-    client = make_client(monkeypatch, session_local)
+    secret = "testsecret"
+    client = make_client(monkeypatch, session_local, BILLING_WEBHOOK_SECRET=secret)
     checkout_id = create_subscription(client)
+    event_id = "evt3"
+    bad_sig = "bad"
     event = {
-        "event_id": "evt3",
+        "event_id": event_id,
         "transaction_id": checkout_id,
         "plan": "pro",
-        "signature": "bad",
+        "signature": bad_sig,
     }
     with client:
-        resp = client.post("/api/billing/webhook", json=event)
+        resp = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": bad_sig}
+        )
     assert resp.status_code == 400
     with session_local() as session:
         sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
         assert sub is not None
         assert sub.status == SubscriptionStatus.PENDING
         assert sub.end_date is None
+
+
+def test_webhook_rejects_unknown_ip(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    secret = "testsecret"
+    client = make_client(
+        monkeypatch,
+        session_local,
+        BILLING_WEBHOOK_SECRET=secret,
+        BILLING_WEBHOOK_IPS="1.2.3.4",
+    )
+    checkout_id = create_subscription(client)
+    event_id = "evt4"
+    sig = _sign(secret, event_id, checkout_id)
+    event = {
+        "event_id": event_id,
+        "transaction_id": checkout_id,
+        "plan": "pro",
+        "signature": sig,
+    }
+    with client:
+        resp = client.post(
+            "/api/billing/webhook",
+            json=event,
+            headers={
+                "X-Webhook-Signature": sig,
+                "X-Forwarded-For": "5.6.7.8",
+            },
+        )
+    assert resp.status_code == 400
