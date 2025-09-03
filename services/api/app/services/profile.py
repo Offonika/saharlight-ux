@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "set_timezone",
+    "save_timezone",
     "patch_user_settings",
     "save_profile",
     "get_profile",
@@ -38,6 +39,15 @@ async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
     await patch_user_settings(
         telegram_id,
         ProfileSettingsIn(timezone=tz),
+    )
+
+
+async def save_timezone(telegram_id: int, tz: str, *, auto: bool) -> None:
+    """Save timezone and ``timezoneAuto`` flag for a user."""
+
+    await patch_user_settings(
+        telegram_id,
+        ProfileSettingsIn(timezone=tz, timezoneAuto=auto),
     )
 
 

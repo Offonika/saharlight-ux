@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any, cast
+from unittest.mock import AsyncMock
 
 import pytest
 from telegram import Update
@@ -48,8 +49,9 @@ def fake_onboarding_state(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 class DummyMessage:
-    def __init__(self, text: str = "") -> None:
+    def __init__(self, text: str = "", web_app_data: Any | None = None) -> None:
         self.text: str = text
+        self.web_app_data = web_app_data
         self.replies: list[str] = []
         self.kwargs: list[dict[str, Any]] = []
 
@@ -68,10 +70,18 @@ class DummyQuery:
 
 
 @pytest.mark.asyncio
-async def test_happy_path() -> None:
+async def test_happy_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    save_tz = AsyncMock()
+    monkeypatch.setattr(onboarding, "save_timezone", save_tz)
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
-    context = cast(CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], SimpleNamespace(user_data={}))
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
 
     state = await onboarding.start_command(update, context)
     assert state == onboarding.PROFILE
@@ -84,8 +94,12 @@ async def test_happy_path() -> None:
     assert message.replies[-1].startswith("Шаг 2/3")
 
     message.text = "Europe/Moscow"
-    update_tz = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update_tz = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
     state = await onboarding.timezone_text(update_tz, context)
+    save_tz.assert_awaited_once_with(1, "Europe/Moscow", auto=False)
     assert state == onboarding.REMINDERS
     assert message.replies[-1].startswith("Шаг 3/3")
 
@@ -149,3 +163,33 @@ async def test_resume_from_saved_step() -> None:
     state = await onboarding.start_command(update2, context2)
     assert state == onboarding.TIMEZONE
     assert message2.replies[-1].startswith("Шаг 2/3")
+
+
+@pytest.mark.asyncio
+async def test_timezone_webapp(monkeypatch: pytest.MonkeyPatch) -> None:
+    save_tz = AsyncMock()
+    monkeypatch.setattr(onboarding, "save_timezone", save_tz)
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    state = await onboarding.start_command(update, context)
+    assert state == onboarding.PROFILE
+    query = DummyQuery(message, f"{onboarding.CB_PROFILE_PREFIX}t2")
+    update_cb = cast(Update, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)))
+    state = await onboarding.profile_chosen(update_cb, context)
+    assert state == onboarding.TIMEZONE
+    message.web_app_data = SimpleNamespace(data="Europe/Moscow")
+    update_web = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    state = await onboarding.timezone_webapp(update_web, context)
+    assert state == onboarding.REMINDERS
+    assert message.replies[-1].startswith("Шаг 3/3")
+    save_tz.assert_awaited_once_with(1, "Europe/Moscow", auto=True)
