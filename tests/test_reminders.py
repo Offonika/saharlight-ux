@@ -1401,6 +1401,15 @@ async def test_toggle_reminder_missing_user(
 
 
 @pytest.mark.asyncio
+async def test_reminder_action_cb_invalid_data() -> None:
+    query = DummyCallbackQuery("rem_toggle1", DummyMessage())
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=None, user_data={})
+    await handlers.reminder_action_cb(update, context)
+    assert query.answers == ["Некорректное действие"]
+
+
+@pytest.mark.asyncio
 async def test_edit_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
