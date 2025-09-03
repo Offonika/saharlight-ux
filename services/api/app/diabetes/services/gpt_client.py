@@ -106,6 +106,10 @@ async def create_thread() -> str:
     except OpenAIError as exc:
         logger.exception("[OpenAI] Failed to create thread: %s", exc)
         raise
+    except asyncio.TimeoutError:
+        message = "Thread creation timed out"
+        logger.exception("[OpenAI] %s", message)
+        raise RuntimeError(message)
     return thread.id
 
 
@@ -167,6 +171,9 @@ async def send_message(
                     return client.files.create(file=f, purpose="vision")
 
             file = await asyncio.wait_for(asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT)
+        except asyncio.TimeoutError:
+            logger.exception("[OpenAI] Timeout while uploading %s", image_path)
+            raise RuntimeError("Timed out while uploading image")
         except OSError as exc:
             logger.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
             raise
@@ -203,6 +210,10 @@ async def send_message(
     except OpenAIError as exc:
         logger.exception("[OpenAI] Failed to create message: %s", exc)
         raise
+    except asyncio.TimeoutError:
+        message = "Message creation timed out"
+        logger.exception("[OpenAI] %s", message)
+        raise RuntimeError(message)
 
     # 3. Запускаем ассистента
     try:
@@ -217,6 +228,10 @@ async def send_message(
     except OpenAIError as exc:
         logger.exception("[OpenAI] Failed to create run: %s", exc)
         raise
+    except asyncio.TimeoutError:
+        message = "Run creation timed out"
+        logger.exception("[OpenAI] %s", message)
+        raise RuntimeError(message)
 
     if run is None:
         message = "Run creation returned None"
