@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, cast
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import (
@@ -25,6 +26,7 @@ from telegram.ext import (
 from services.api.app.diabetes.services.db import SessionLocal, User, run_db
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.services import onboarding_state
+from services.api.app.services.profile import save_timezone
 from services.api.app.types import SessionProtocol
 from sqlalchemy.orm import Session
 from services.api.app.diabetes.utils.ui import (
@@ -79,6 +81,7 @@ def _timezone_keyboard() -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     auto_btn = build_timezone_webapp_button()
     if auto_btn:
+        auto_btn.text = "Автоопределить (WebApp)"
         rows.append([auto_btn])
     rows.append(_nav_buttons(back=True))
     return InlineKeyboardMarkup(rows)
@@ -167,6 +170,42 @@ async def _prompt_timezone(
     return TIMEZONE
 
 
+async def timezone_webapp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle timezone received from WebApp."""
+
+    message = update.message
+    user = update.effective_user
+    web_app = getattr(message, "web_app_data", None) if message else None
+    if message is None or web_app is None or user is None:
+        return ConversationHandler.END
+    user_id = user.id
+    user_data = cast(dict[str, Any], context.user_data)
+    state = await onboarding_state.load_state(user_id)
+    variant = cast(str | None, user_data.get("variant"))
+    if state is not None:
+        user_data.update(state.data)
+        variant = variant or state.variant
+        user_data["variant"] = variant
+        if state.step != TIMEZONE:
+            if state.step == PROFILE:
+                return await _prompt_profile(message, user_id, user_data, variant)
+            if state.step == REMINDERS:
+                return await _prompt_reminders(message, user_id, user_data, variant)
+    raw = web_app.data.strip()
+    try:
+        ZoneInfo(raw)
+    except ZoneInfoNotFoundError:
+        await message.reply_text(
+            "Некорректный часовой пояс. Пример: Europe/Moscow",
+            reply_markup=_timezone_keyboard(),
+        )
+        return TIMEZONE
+    user_data["timezone"] = raw
+    await onboarding_state.save_state(user_id, TIMEZONE, user_data, variant)
+    await save_timezone(user_id, raw, auto=True)
+    return await _prompt_reminders(message, user_id, user_data, variant)
+
+
 async def timezone_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle timezone text input."""
 
@@ -187,7 +226,18 @@ async def timezone_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
                 return await _prompt_profile(message, user_id, user_data, variant)
             if state.step == REMINDERS:
                 return await _prompt_reminders(message, user_id, user_data, variant)
-    user_data["timezone"] = message.text.strip() or "Europe/Moscow"
+    raw = message.text.strip() or "Europe/Moscow"
+    try:
+        ZoneInfo(raw)
+    except ZoneInfoNotFoundError:
+        await message.reply_text(
+            "Некорректный часовой пояс. Пример: Europe/Moscow",
+            reply_markup=_timezone_keyboard(),
+        )
+        return TIMEZONE
+    user_data["timezone"] = raw
+    await onboarding_state.save_state(user_id, TIMEZONE, user_data, variant)
+    await save_timezone(user_id, raw, auto=False)
     return await _prompt_reminders(message, user_id, user_data, variant)
 
 
@@ -395,6 +445,7 @@ onboarding_conv = ConversationHandler(
                 timezone_nav,
                 pattern=f"^({CB_BACK}|{CB_SKIP}|{CB_CANCEL})$",
             ),
+            MessageHandler(filters.StatusUpdate.WEB_APP_DATA, timezone_webapp),
             MessageHandler(filters.TEXT & (~filters.COMMAND), timezone_text),
         ],
         REMINDERS: [CallbackQueryHandler(reminders_chosen)],
@@ -409,6 +460,7 @@ __all__ = [
     "ONB_PROFILE_ICR",
     "start_command",
     "profile_chosen",
+    "timezone_webapp",
     "timezone_text",
     "timezone_nav",
     "reminders_chosen",
