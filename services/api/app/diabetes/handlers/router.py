@@ -104,8 +104,12 @@ async def handle_edit_or_delete(
     update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, data: str
 ) -> None:
     """Edit or delete an existing entry based on callback action."""
-    action, entry_id_str = data.split(":", 1)
+    if ":" not in data:
+        logger.warning("Invalid callback data format: %s", data)
+        await query.edit_message_text("Некорректный формат данных.")
+        return
     try:
+        action, entry_id_str = data.split(":", 1)
         entry_id = int(entry_id_str)
     except ValueError:
         logger.warning("Invalid entry_id in callback data: %s", entry_id_str)
