@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
+import services.api.app.diabetes.utils.functions as functions
 from services.api.app.config import settings
 
 pytestmark = pytest.mark.skip("photo handler refactor; tests need update")
@@ -331,7 +332,9 @@ async def test_photo_handler_sends_bytes(
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0)
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda text: functions.NutritionInfo(carbs_g=10.0, xe=1.0),
     )
     monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
 
@@ -383,7 +386,9 @@ async def test_photo_then_freeform_calculates_dose(
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0)
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda text: functions.NutritionInfo(carbs_g=10.0, xe=1.0),
     )
     monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
     monkeypatch.setattr(gpt_handlers, "confirm_keyboard", lambda: None)

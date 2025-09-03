@@ -15,6 +15,7 @@ os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
+import services.api.app.diabetes.utils.functions as functions
 
 
 class DummyPhoto:
@@ -201,7 +202,9 @@ async def test_photo_handler_unparsed_response(
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda t: (None, None)
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda t: functions.NutritionInfo(),
     )
 
     message = DummyMessage()
@@ -275,7 +278,9 @@ async def test_photo_handler_unparsed_response_clears_pending_entry(
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda t: (None, None)
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda t: functions.NutritionInfo(),
     )
 
     message = DummyMessage()

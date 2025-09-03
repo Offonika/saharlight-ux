@@ -13,6 +13,10 @@ class EntryData(TypedDict, total=False):
     event_time: datetime.datetime
     xe: float | None
     carbs_g: float | None
+    portion_g: float | None
+    proteins_g: float | None
+    fats_g: float | None
+    calories_kcal: float | None
     dose: float | None
     sugar_before: float | None
     photo_path: str | None

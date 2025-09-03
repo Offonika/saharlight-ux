@@ -258,8 +258,8 @@ async def photo_handler(
             vision_text,
         )
 
-        carbs_g, xe = extract_nutrition_info(vision_text)
-        if carbs_g is None and xe is None:
+        nutrition = extract_nutrition_info(vision_text)
+        if nutrition.carbs_g is None and nutrition.xe is None:
             logger.debug(
                 "[VISION][NO_PARSE] Ответ ассистента: %r для пользователя: %s",
                 vision_text,
@@ -283,7 +283,17 @@ async def photo_handler(
                 "event_time": datetime.datetime.now(datetime.timezone.utc),
             },
         )
-        pending_entry.update({"carbs_g": carbs_g, "xe": xe, "photo_path": None})
+        pending_entry.update(
+            {
+                "carbs_g": nutrition.carbs_g,
+                "xe": nutrition.xe,
+                "portion_g": nutrition.portion_g,
+                "proteins_g": nutrition.proteins_g,
+                "fats_g": nutrition.fats_g,
+                "calories_kcal": nutrition.calories_kcal,
+                "photo_path": None,
+            }
+        )
         user_data["pending_entry"] = pending_entry
         if status_message and hasattr(status_message, "delete"):
             try:

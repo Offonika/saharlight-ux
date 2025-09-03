@@ -10,6 +10,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
+import services.api.app.diabetes.utils.functions as functions
 
 
 # ensure OpenAI env vars for tests
@@ -84,9 +85,9 @@ async def test_photo_handler_ignores_previous_runs(
 
     extracted: list[str] = []
 
-    def fake_extract(text: str) -> tuple[float | None, float | None]:
+    def fake_extract(text: str) -> functions.NutritionInfo:
         extracted.append(text)
-        return (30.0, 2.0)
+        return functions.NutritionInfo(carbs_g=30.0, xe=2.0)
 
     user_data: dict[str, Any] = {"thread_id": "tid"}
     context = cast(

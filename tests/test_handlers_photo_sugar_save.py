@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 import services.api.app.diabetes.handlers.router as router
+import services.api.app.diabetes.utils.functions as functions
 from services.api.app.config import settings
 
 
@@ -157,7 +158,9 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda text: (30.0, 2.0)
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda text: functions.NutritionInfo(carbs_g=30.0, xe=2.0),
     )
     user_data["thread_id"] = "tid"
 
