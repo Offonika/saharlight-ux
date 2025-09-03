@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/style.css">
+    <title>Часовой пояс</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script type="module" src="%BASE_URL%telegram-init.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const status = document.getElementById('status');
+            const addButton = (text, handler) => {
+                const btn = document.createElement('button');
+                btn.textContent = text;
+                btn.className = 'medical-button';
+                btn.addEventListener('click', handler);
+                document.body.appendChild(btn);
+            };
+
+            if (window.Telegram && window.Telegram.WebApp) {
+                try {
+                    window.Telegram.WebApp.sendData(tz);
+                    status.textContent = 'Часовой пояс определён';
+                    addButton('Закрыть', () => window.Telegram.WebApp.close());
+                } catch (err) {
+                    status.textContent = 'Не удалось отправить данные. Проверьте подключение к сети и попробуйте ещё раз.';
+                    addButton('Повторить', () => location.reload());
+                }
+            } else {
+                status.textContent = 'Недоступно в этом окружении.';
+            }
+        });
+    </script>
+</head>
+<body>
+    <p id="status">Определение часового пояса…</p>
+</body>
+</html>

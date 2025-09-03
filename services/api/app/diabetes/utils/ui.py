@@ -135,6 +135,6 @@ def build_timezone_webapp_button() -> InlineKeyboardButton | None:
         return None
 
     return InlineKeyboardButton(
-        "Определить автоматически",
+        "Автоопределить (WebApp)",
         web_app=WebAppInfo(config.build_ui_url("/timezone.html")),
     )
