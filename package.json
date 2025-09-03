@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter ./services/webapp/ui dev",
-    "build": "pnpm --filter ./services/webapp/ui build",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=4096\" pnpm --filter ./services/webapp/ui build",
     "preview": "pnpm --filter ./services/webapp/ui preview",
     "typecheck": "pnpm --filter ./services/webapp/ui typecheck",
     "generate:sdk": "bash scripts/gen_ts_sdk.sh"
