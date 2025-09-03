@@ -97,7 +97,7 @@ export default defineConfig(async ({ mode, command }) => {
         ...(mode === 'development' ? { treeshake: false } : {}),
         input: {
           main: path.resolve(__dirname, 'index.html'),
-          timezone: path.resolve(__dirname, 'public/timezone.html'),
+          timezone: path.resolve(__dirname, 'src/pages/timezone.html'),
         },
         preserveEntrySignatures: 'strict',
         output: {
