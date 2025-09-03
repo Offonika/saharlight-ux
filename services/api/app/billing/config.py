@@ -15,6 +15,9 @@ class BillingSettings(BaseSettings):
     billing_test_mode: bool = Field(default=True, alias="BILLING_TEST_MODE")
     billing_provider: str = Field(default="dummy", alias="BILLING_PROVIDER")
     paywall_mode: str = Field(default="soft", alias="PAYWALL_MODE")
+    billing_admin_token: str | None = Field(
+        default=None, alias="BILLING_ADMIN_TOKEN"
+    )
 
 
 billing_settings = BillingSettings()

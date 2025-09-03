@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -183,6 +183,34 @@ async def mock_webhook(
 
     def _activate(session: Session) -> bool:
         stmt = select(Subscription).where(Subscription.transaction_id == checkout_id)
+        sub = session.scalars(stmt).first()
+        if sub is None:
+            return False
+        sub.status = SubscriptionStatus.ACTIVE
+        session.commit()
+        return True
+
+    updated = await run_db(_activate, sessionmaker=SessionLocal)
+    if not updated:
+        raise HTTPException(status_code=404, detail="subscription not found")
+    return {"status": "ok"}
+
+
+@router.post("/admin/mock_webhook")
+async def admin_mock_webhook(
+    transaction_id: str,
+    x_token: str | None = Header(default=None, alias="X-Admin-Token"),
+    settings: BillingSettings = Depends(_require_billing_enabled),
+) -> dict[str, str]:
+    """Manually activate a subscription in test mode."""
+
+    if not settings.billing_test_mode:
+        raise HTTPException(status_code=403, detail="test mode disabled")
+    if settings.billing_admin_token is None or x_token != settings.billing_admin_token:
+        raise HTTPException(status_code=403, detail="forbidden")
+
+    def _activate(session: Session) -> bool:
+        stmt = select(Subscription).where(Subscription.transaction_id == transaction_id)
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
