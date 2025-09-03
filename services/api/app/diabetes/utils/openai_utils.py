@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import threading
 from typing import Literal, overload
@@ -90,7 +89,7 @@ def get_async_openai_client() -> AsyncOpenAI:
     return client
 
 
-def dispose_http_client() -> None:
+async def dispose_http_client() -> None:
     """Close and reset the HTTP client used by OpenAI."""
     global _http_client, _async_http_client
     with _http_client_lock:
@@ -99,10 +98,5 @@ def dispose_http_client() -> None:
             _http_client = None
     with _async_http_client_lock:
         if _async_http_client is not None:
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                asyncio.run(_async_http_client.aclose())
-            else:
-                loop.create_task(_async_http_client.aclose())
+            await _async_http_client.aclose()
             _async_http_client = None

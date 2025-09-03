@@ -67,7 +67,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         reminder_events.register_job_queue(None)
-        dispose_http_client()
+        await dispose_http_client()
         await dispose_openai_clients()
 
 

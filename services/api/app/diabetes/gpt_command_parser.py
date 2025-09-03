@@ -83,6 +83,22 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
     are ignored to avoid ambiguity.
     """
 
+    def _inside_quotes(src: str, index: int) -> bool:
+        in_single = False
+        in_double = False
+        i = 0
+        while i < index:
+            ch = src[i]
+            if ch == "\\":
+                i += 2
+                continue
+            if ch == "'" and not in_double:
+                in_single = not in_single
+            elif ch == '"' and not in_single:
+                in_double = not in_double
+            i += 1
+        return in_single or in_double
+
     decoder = json.JSONDecoder()
     pos = 0
     while True:
@@ -90,7 +106,9 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
         if not match:
             return None
         start = pos + match.start()
-        if start > 0 and text[start - 1] not in " \t\n\r":
+        if _inside_quotes(text, start) or (
+            start > 0 and text[start - 1] not in " \t\n\r"
+        ):
             pos = start + 1
             continue
         try:
