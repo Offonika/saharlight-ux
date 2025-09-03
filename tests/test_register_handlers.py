@@ -1,4 +1,7 @@
+import asyncio
+import datetime
 import os
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -44,7 +47,29 @@ def test_register_handlers_attaches_expected_handlers(
     )
 
     app = ApplicationBuilder().token("TESTTOKEN").build()
+    app._user_data[1] = {
+        photo_handlers.WAITING_GPT_FLAG: datetime.datetime.now(datetime.timezone.utc)
+    }
+    scheduled: dict[str, Any] = {}
+
+    def fake_run_repeating(self: Any, callback: Any, *args: Any, **kwargs: Any) -> None:
+        scheduled["callback"] = callback
+        scheduled["kwargs"] = kwargs
+
+    jq = app.job_queue
+    assert jq is not None
+    monkeypatch.setattr(JobQueue, "run_repeating", fake_run_repeating)
+
     register_handlers(app)
+
+    assert photo_handlers.WAITING_GPT_FLAG not in app.user_data[1]
+    assert scheduled["kwargs"].get("name") == "cleanup_waiting_gpt"
+
+    app._user_data[1][photo_handlers.WAITING_GPT_FLAG] = datetime.datetime.now(
+        datetime.timezone.utc
+    )
+    asyncio.run(scheduled["callback"](SimpleNamespace(application=app)))
+    assert photo_handlers.WAITING_GPT_FLAG not in app.user_data[1]
 
     handlers = app.handlers[0]
     callbacks = [getattr(h, "callback", None) for h in handlers]

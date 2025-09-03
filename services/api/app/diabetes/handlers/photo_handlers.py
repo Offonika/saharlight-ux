@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 PHOTO_SUGAR = 7
 WAITING_GPT_FLAG = "waiting_gpt_response"
+WAITING_GPT_TTL = datetime.timedelta(minutes=2)
 END = ConversationHandler.END
 
 
@@ -61,11 +62,19 @@ async def photo_handler(
     if effective_user is None:
         return END
     user_id = effective_user.id
+    now = datetime.datetime.now(datetime.timezone.utc)
 
-    if user_data.get(WAITING_GPT_FLAG):
-        await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
-        return END
-    user_data[WAITING_GPT_FLAG] = True
+    flag = user_data.get(WAITING_GPT_FLAG)
+    if flag:
+        if isinstance(flag, datetime.datetime):
+            if now - flag <= WAITING_GPT_TTL:
+                await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
+                return END
+        else:
+            await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
+            return END
+        user_data.pop(WAITING_GPT_FLAG, None)
+    user_data[WAITING_GPT_FLAG] = now
 
     if file_path is None:
         file_path = user_data.pop("__file_path", None)
@@ -329,6 +338,7 @@ prompt_photo = photo_prompt
 __all__ = [
     "PHOTO_SUGAR",
     "WAITING_GPT_FLAG",
+    "WAITING_GPT_TTL",
     "photo_prompt",
     "photo_handler",
     "doc_handler",

@@ -1,3 +1,4 @@
+import datetime
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -54,7 +55,13 @@ async def test_photo_handler_waiting_flag() -> None:
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={photo_handlers.WAITING_GPT_FLAG: True}),
+        SimpleNamespace(
+            user_data={
+                photo_handlers.WAITING_GPT_FLAG: datetime.datetime.now(
+                    datetime.timezone.utc
+                )
+            }
+        ),
     )
     result = await photo_handlers.photo_handler(update, context)
     assert result == photo_handlers.END
@@ -80,3 +87,22 @@ async def test_photo_handler_not_image() -> None:
     result = await photo_handlers.photo_handler(update, context)
     assert result == photo_handlers.END
     assert message.texts == ["❗ Файл не распознан как изображение."]
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_clears_stale_waiting_flag() -> None:
+    message = NoPhotoMessage()
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    old = datetime.datetime.now(datetime.timezone.utc) - (
+        photo_handlers.WAITING_GPT_TTL + datetime.timedelta(seconds=1)
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={photo_handlers.WAITING_GPT_FLAG: old}),
+    )
+    result = await photo_handlers.photo_handler(update, context)
+    assert result == photo_handlers.END
+    assert message.texts == ["❗ Файл не распознан как изображение."]
+    assert photo_handlers.WAITING_GPT_FLAG not in cast(dict[str, Any], context.user_data)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import timedelta
 
 from telegram.ext import (
     Application,
@@ -15,11 +16,12 @@ from telegram.ext import (
     filters,
 )
 from sqlalchemy.exc import SQLAlchemyError
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias, cast
 
 from .onboarding_handlers import onboarding_conv, onboarding_poll_answer
 from .common_handlers import menu_command, help_command, smart_input_help
 from .router import callback_router
+from .photo_handlers import WAITING_GPT_FLAG
 from ..utils.ui import (
     PROFILE_BUTTON_TEXT,
     REMINDERS_BUTTON_TEXT,
@@ -32,6 +34,40 @@ from ..utils.ui import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _clear_waiting_gpt_flags(
+    app: Application[
+        ExtBot[None],
+        ContextTypes.DEFAULT_TYPE,
+        dict[str, object],
+        dict[str, object],
+        dict[str, object],
+        JobQueue[ContextTypes.DEFAULT_TYPE],
+    ],
+) -> None:
+    """Remove ``waiting_gpt_response`` flag from all stored user data."""
+
+    for data in app.user_data.values():
+        data.pop(WAITING_GPT_FLAG, None)
+
+
+async def _clear_waiting_gpt_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Periodic job to clear stale GPT flags."""
+
+    _clear_waiting_gpt_flags(
+        cast(
+            Application[
+                ExtBot[None],
+                ContextTypes.DEFAULT_TYPE,
+                dict[str, object],
+                dict[str, object],
+                dict[str, object],
+                JobQueue[ContextTypes.DEFAULT_TYPE],
+            ],
+            context.application,
+        )
+    )
 
 if TYPE_CHECKING:
     CommandHandlerT: TypeAlias = CommandHandler[ContextTypes.DEFAULT_TYPE, object]
@@ -263,3 +299,13 @@ def register_handlers(
         )
     )
     app.add_handler(CallbackQueryHandlerT(callback_router))
+
+    _clear_waiting_gpt_flags(app)
+    jq = app.job_queue
+    if jq:
+        jq.run_repeating(
+            _clear_waiting_gpt_job,
+            interval=timedelta(minutes=5),
+            first=timedelta(minutes=5),
+            name="cleanup_waiting_gpt",
+        )

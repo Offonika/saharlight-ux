@@ -1,3 +1,4 @@
+import datetime
 import logging
 from pathlib import Path
 from types import SimpleNamespace
@@ -40,7 +41,13 @@ async def test_photo_handler_waiting_flag_returns_end() -> None:
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={photo_handlers.WAITING_GPT_FLAG: True}),
+        SimpleNamespace(
+            user_data={
+                photo_handlers.WAITING_GPT_FLAG: datetime.datetime.now(
+                    datetime.timezone.utc
+                )
+            }
+        ),
     )
     result = await photo_handlers.photo_handler(update, context)
     assert result == photo_handlers.END
