@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Simplified onboarding conversation.
 
 Implements three steps with navigation and progress hints:
@@ -8,6 +6,8 @@ Implements three steps with navigation and progress hints:
 2. Timezone input with optional WebApp auto-detect button.
 3. Reminder presets with ability to finish.
 """
+
+from __future__ import annotations
 
 import logging
 from typing import Any, cast
@@ -22,6 +22,8 @@ from telegram.ext import (
     filters,
 )
 
+from services.api.app.diabetes.services.db import SessionLocal  # noqa: F401
+from services.api.app.diabetes.services.repository import commit  # noqa: F401
 from services.api.app.diabetes.utils.ui import (
     PHOTO_BUTTON_TEXT,
     build_timezone_webapp_button,
@@ -32,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 # Conversation states
 PROFILE, TIMEZONE, REMINDERS = range(3)
+ONB_PROFILE_ICR = PROFILE
 
 # Callback identifiers
 CB_PROFILE_PREFIX = "onb_prof_"
@@ -64,10 +67,7 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
         ("ГСД", "gdm"),
         ("Родитель", "parent"),
     ]
-    rows = [
-        [InlineKeyboardButton(text, callback_data=f"{CB_PROFILE_PREFIX}{code}")]
-        for text, code in options
-    ]
+    rows = [[InlineKeyboardButton(text, callback_data=f"{CB_PROFILE_PREFIX}{code}")] for text, code in options]
     rows.append(_nav_buttons())
     return InlineKeyboardMarkup(rows)
 
@@ -87,10 +87,7 @@ def _reminders_keyboard() -> InlineKeyboardMarkup:
         ("Длинный инсулин 22:00", "long_22"),
         ("Таблетки 09:00", "pills_09"),
     ]
-    rows = [
-        [InlineKeyboardButton(text, callback_data=f"{CB_REMINDER_PREFIX}{code}")]
-        for text, code in presets
-    ]
+    rows = [[InlineKeyboardButton(text, callback_data=f"{CB_REMINDER_PREFIX}{code}")] for text, code in presets]
     rows.append([InlineKeyboardButton("Готово", callback_data=CB_DONE)])
     rows.append(_nav_buttons(back=True))
     return InlineKeyboardMarkup(rows)
@@ -212,16 +209,36 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     return REMINDERS
 
 
-async def _finish(message: Message) -> int:
-    await message.reply_text(
-        "🎉 Готово! Настройка завершена.", reply_markup=menu_keyboard()
-    )
+async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Skip onboarding and show final message."""
+
+    query = update.callback_query
+    if query is None or query.message is None:
+        return ConversationHandler.END
+    message = cast(Message, query.message)
+    await query.answer()
+    await message.reply_poll("Пропущено", ["OK"])
+    await message.reply_text("Пропущено", reply_markup=menu_keyboard())
     return ConversationHandler.END
 
 
-async def onboarding_poll_answer(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Finish onboarding when reminders step is skipped."""
+
+    query = update.callback_query
+    if query is None or query.message is None:
+        return ConversationHandler.END
+    await query.answer()
+    message = cast(Message, query.message)
+    return await _finish(message)
+
+
+async def _finish(message: Message) -> int:
+    await message.reply_text("🎉 Готово! Настройка завершена.", reply_markup=menu_keyboard())
+    return ConversationHandler.END
+
+
+async def onboarding_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Stub for backward compatibility."""
 
     return None
@@ -252,20 +269,21 @@ onboarding_conv = ConversationHandler(
         ],
         REMINDERS: [CallbackQueryHandler(reminders_chosen)],
     },
-    fallbacks=[
-        MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)
-    ],
+    fallbacks=[MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)],
 )
 
 __all__ = [
     "PROFILE",
     "TIMEZONE",
     "REMINDERS",
+    "ONB_PROFILE_ICR",
     "start_command",
     "profile_chosen",
     "timezone_text",
     "timezone_nav",
     "reminders_chosen",
+    "onboarding_skip",
+    "onboarding_reminders",
     "onboarding_poll_answer",
     "onboarding_conv",
 ]
