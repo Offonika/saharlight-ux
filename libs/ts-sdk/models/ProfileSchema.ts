@@ -30,13 +30,13 @@ export interface ProfileSchema {
      * @type {number}
      * @memberof ProfileSchema
      */
-    icr: number;
+    icr?: number | null;
     /**
-     * Alias `cf` for compatibility.
+     * 
      * @type {number}
      * @memberof ProfileSchema
      */
-    cf?: number;
+    cf?: number | null;
     /**
      * 
      * @type {number}
@@ -104,7 +104,6 @@ export interface ProfileSchema {
  */
 export function instanceOfProfileSchema(value: object): value is ProfileSchema {
     if (!('telegramId' in value) || value['telegramId'] === undefined) return false;
-    if (!('icr' in value) || value['icr'] === undefined) return false;
     if (!('target' in value) || value['target'] === undefined) return false;
     if (!('low' in value) || value['low'] === undefined) return false;
     if (!('high' in value) || value['high'] === undefined) return false;
@@ -122,7 +121,7 @@ export function ProfileSchemaFromJSONTyped(json: any, ignoreDiscriminator: boole
     return {
         
         'telegramId': json['telegramId'],
-        'icr': json['icr'],
+        'icr': json['icr'] == null ? undefined : json['icr'],
         'cf': json['cf'] == null ? undefined : json['cf'],
         'target': json['target'],
         'low': json['low'],

@@ -193,6 +193,7 @@ def test_profiles_post_invalid_icr_returns_422(
         "target": 5.0,
         "low": 4.0,
         "high": 6.0,
+        "therapyType": "insulin",
     }
     with TestClient(app) as client:
         resp = client.post("/api/profiles", json=payload)
@@ -228,6 +229,7 @@ def test_profiles_post_invalid_cf_returns_422(
         "target": 5.0,
         "low": 4.0,
         "high": 6.0,
+        "therapyType": "insulin",
     }
     with TestClient(app) as client:
         resp = client.post("/api/profiles", json=payload)

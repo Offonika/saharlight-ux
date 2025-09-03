@@ -131,12 +131,13 @@ async def patch_user_settings(
 def _validate_profile(data: ProfileSchema) -> None:
     """Validate business rules for a patient profile."""
     required = {
-        "icr": data.icr,
-        "cf": data.cf,
         "target": data.target,
         "low": data.low,
         "high": data.high,
     }
+    if data.therapyType in {"insulin", "mixed"}:
+        required["icr"] = data.icr
+        required["cf"] = data.cf
     for name, value in required.items():
         if value is None:
             raise ValueError(f"{name} is required")  # pragma: no cover
