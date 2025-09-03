@@ -1055,3 +1055,91 @@ async def test_reminder_action_toggle(reminder_handlers: Any, monkeypatch: pytes
     assert rem_instance.is_enabled is True
     notify_mock.assert_awaited_once_with(1)
     query.answer.assert_awaited_once_with("Готово ✅")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "code,rtype,title,hour",
+    [
+        ("sugar_08", "sugar", None, 8),
+        ("long_22", "insulin_long", None, 22),
+        ("pills_09", "custom", "Таблетки", 9),
+    ],
+)
+async def test_create_reminder_from_preset_schedules(
+    reminder_handlers: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    code: str,
+    rtype: str,
+    title: str | None,
+    hour: int,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    schedule_mock = MagicMock()
+    monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
+    notify_mock = AsyncMock()
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=notify_mock),
+    )
+
+    jq = DummyJobQueue()
+    rem = await reminder_handlers.create_reminder_from_preset(1, code, jq)
+
+    assert rem is not None
+    assert rem.type == rtype
+    assert rem.time == time(hour, 0)
+    if title is not None:
+        assert rem.title == title
+    schedule_mock.assert_called_once()
+    notify_mock.assert_not_awaited()
+    with TestSession() as session:
+        assert session.query(Reminder).count() == 1
+
+
+@pytest.mark.asyncio
+async def test_create_reminder_from_preset_no_queue_and_duplicate(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    schedule_mock = MagicMock()
+    monkeypatch.setattr(reminder_handlers, "schedule_reminder", schedule_mock)
+    notify_mock = AsyncMock()
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=notify_mock),
+    )
+
+    first = await reminder_handlers.create_reminder_from_preset(1, "sugar_08", None)
+    second = await reminder_handlers.create_reminder_from_preset(1, "sugar_08", None)
+
+    assert first is not None
+    assert second is None
+    schedule_mock.assert_not_called()
+    notify_mock.assert_awaited_once_with(first.id)
+    with TestSession() as session:
+        assert session.query(Reminder).count() == 1
