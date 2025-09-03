@@ -224,7 +224,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
         return None
 
     safe_content = _sanitize_sensitive_data(content)
-    logger.info("GPT raw response: %s", safe_content[:200])
+    logger.debug("GPT raw response: %s", safe_content[:200])
     parsed = _extract_first_json(content)
     if parsed is None:
         logger.error("No JSON object found in response")
