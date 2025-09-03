@@ -287,9 +287,9 @@ async def photo_handler(
             {
                 "carbs_g": nutrition.carbs_g,
                 "xe": nutrition.xe,
-                "portion_g": nutrition.portion_g,
-                "proteins_g": nutrition.proteins_g,
-                "fats_g": nutrition.fats_g,
+                "weight_g": nutrition.weight_g,
+                "protein_g": nutrition.protein_g,
+                "fat_g": nutrition.fat_g,
                 "calories_kcal": nutrition.calories_kcal,
                 "photo_path": None,
             }

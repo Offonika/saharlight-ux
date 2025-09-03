@@ -40,7 +40,9 @@ XE_COLON_RANGE_RE = re.compile(
     rf"\b{XE_WORD_RE.pattern}\s*:\s*{DASH_RANGE_RE.pattern}",
     re.IGNORECASE,
 )
-XE_COLON_SINGLE_RE = re.compile(rf"\b{XE_WORD_RE.pattern}\s*:\s*([\d.,]+)", re.IGNORECASE)
+XE_COLON_SINGLE_RE = re.compile(
+    rf"\b{XE_WORD_RE.pattern}\s*:\s*([\d.,]+)", re.IGNORECASE
+)
 XE_PM_RE = re.compile(
     rf"{PLUS_MINUS_RANGE_RE.pattern}\s*{XE_WORD_RE.pattern}",
     re.IGNORECASE,
@@ -49,27 +51,29 @@ XE_RANGE_RE = re.compile(
     rf"{DASH_RANGE_RE.pattern}\s*{XE_WORD_RE.pattern}",
     re.IGNORECASE,
 )
-CARBS_PM_RE = re.compile(rf"({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г", re.IGNORECASE)
+CARBS_PM_RE = re.compile(
+    rf"({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г", re.IGNORECASE
+)
 CARBS_RANGE_RE = re.compile(rf"{DASH_RANGE_RE.pattern}\s*г", re.IGNORECASE)
 
 # ---------------------------------------------------------------------------
-# Additional nutrition patterns (portion, proteins, fats, calories)
+# Additional nutrition patterns (weight, protein, fat, calories)
 # ---------------------------------------------------------------------------
-PORTION_LABEL_RE = r"(?:вес|масса|порц(?:ия|ии|ий)?|portion|weight)"
+WEIGHT_LABEL_RE = r"(?:вес|масса|порц(?:ия|ии|ий)?|portion|weight)"
 PROTEIN_LABEL_RE = r"(?:белк(?:и)?|proteins?)"
 FAT_LABEL_RE = r"(?:жир(?:ы)?|fats?)"
 CALORIES_LABEL_RE = r"(?:калори(?:и)?|ккал|calories?)"
 
-PORTION_PM_RE = re.compile(
-    rf"{PORTION_LABEL_RE}[^\d]*:\s*({NUMBER_RE})\s*±\s*({NUMBER_RE})\s*г",
+WEIGHT_PM_RE = re.compile(
+    rf"{WEIGHT_LABEL_RE}[^\d]*:\s*({NUMBER_RE})\s*±\s*({NUMBER_RE})\s*г",
     re.IGNORECASE,
 )
-PORTION_RANGE_RE = re.compile(
-    rf"{PORTION_LABEL_RE}[^\d]*:\s*{DASH_RANGE_RE.pattern}\s*г",
+WEIGHT_RANGE_RE = re.compile(
+    rf"{WEIGHT_LABEL_RE}[^\d]*:\s*{DASH_RANGE_RE.pattern}\s*г",
     re.IGNORECASE,
 )
-PORTION_SINGLE_RE = re.compile(
-    rf"{PORTION_LABEL_RE}[^\d]*:\s*({NUMBER_RE})\s*г",
+WEIGHT_SINGLE_RE = re.compile(
+    rf"{WEIGHT_LABEL_RE}[^\d]*:\s*({NUMBER_RE})\s*г",
     re.IGNORECASE,
 )
 
@@ -113,7 +117,9 @@ CAL_SINGLE_RE = re.compile(
 )
 
 # Patterns for ``smart_input``.
-BAD_SUGAR_UNIT_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:xe|хе|ед)\b(?!\s*[\d=:])")
+BAD_SUGAR_UNIT_RE = re.compile(
+    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:xe|хе|ед)\b(?!\s*[\d=:])"
+)
 BAD_XE_UNIT_RE = re.compile(
     rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:ммоль(?:/л)?|mmol(?:/l)?|ед)\b(?![=:])"
 )
@@ -121,14 +127,18 @@ BAD_DOSE_UNIT_RE = re.compile(
     rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:ммоль(?:/л)?|mmol(?:/l)?|xe|хе)\b(?![=:])"
 )
 
-SUGAR_VALUE_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)")
+SUGAR_VALUE_RE = re.compile(
+    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)"
+)
 SUGAR_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(ммоль/?л|mmol/?l)\b")
 XE_VALUE_RE = re.compile(rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*({NUMBER_RE})\b")
 XE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:xe|хе)\b")
 # ``dose`` may be followed immediately by another token (e.g. ``"carbs=30"``).
 # ``\b`` would fail in such cases, so we use a lookahead that ensures the
 # number is terminated by a non-numeric character or end of string.
-DOSE_VALUE_RE = re.compile(rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=$|\s|[^0-9a-zA-Z.,])")
+DOSE_VALUE_RE = re.compile(
+    rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=$|\s|[^0-9a-zA-Z.,])"
+)
 DOSE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:ед\.?|units?|u)\b")
 ONLY_NUMBER_RE = re.compile(rf"\s*({NUMBER_RE})\s*")
 
@@ -171,9 +181,9 @@ def _safe_float(value: object) -> float | None:
 class NutritionInfo:
     """Parsed nutrition values."""
 
-    portion_g: float | None = None
-    proteins_g: float | None = None
-    fats_g: float | None = None
+    weight_g: float | None = None
+    protein_g: float | None = None
+    fat_g: float | None = None
     carbs_g: float | None = None
     calories_kcal: float | None = None
     xe: float | None = None
@@ -306,13 +316,13 @@ def extract_nutrition_info(text: object) -> NutritionInfo:
                 result.carbs_g = (first + second) / 2
 
     # Дополнительные поля
-    result.portion_g = _extract_labeled_value(
-        text, PORTION_PM_RE, PORTION_RANGE_RE, PORTION_SINGLE_RE
+    result.weight_g = _extract_labeled_value(
+        text, WEIGHT_PM_RE, WEIGHT_RANGE_RE, WEIGHT_SINGLE_RE
     )
-    result.proteins_g = _extract_labeled_value(
+    result.protein_g = _extract_labeled_value(
         text, PROTEIN_PM_RE, PROTEIN_RANGE_RE, PROTEIN_SINGLE_RE
     )
-    result.fats_g = _extract_labeled_value(text, FAT_PM_RE, FAT_RANGE_RE, FAT_SINGLE_RE)
+    result.fat_g = _extract_labeled_value(text, FAT_PM_RE, FAT_RANGE_RE, FAT_SINGLE_RE)
     result.calories_kcal = _extract_labeled_value(
         text, CAL_PM_RE, CAL_RANGE_RE, CAL_SINGLE_RE
     )

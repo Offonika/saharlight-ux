@@ -29,9 +29,9 @@ def test_extract_nutrition_info_simple() -> None:
         "ХЕ: 3.5"
     )
     info = extract_nutrition_info(text)
-    assert info.portion_g == 100
-    assert info.proteins_g == 5
-    assert info.fats_g == 10
+    assert info.weight_g == 100
+    assert info.protein_g == 5
+    assert info.fat_g == 10
     assert info.carbs_g == 45
     assert info.calories_kcal == 200
     assert info.xe == 3.5
@@ -43,9 +43,9 @@ def test_extract_nutrition_info_ranges() -> None:
         "Калории: 180-220 ккал, XE: 2–3"
     )
     info = extract_nutrition_info(text)
-    assert info.portion_g == 100  # (90+110)/2
-    assert info.proteins_g == 6  # (5+7)/2
-    assert info.fats_g == 10  # (8+12)/2
+    assert info.weight_g == 100  # (90+110)/2
+    assert info.protein_g == 6  # (5+7)/2
+    assert info.fat_g == 10  # (8+12)/2
     assert info.carbs_g == 40  # (30+50)/2
     assert info.calories_kcal == 200  # (180+220)/2
     assert info.xe == 2.5  # (2+3)/2
@@ -57,9 +57,9 @@ def test_extract_nutrition_info_plus_minus() -> None:
         "углеводы: 45 г ± 5 г, Калории: 200 ± 20 ккал, XE: 3 ± 0.5"
     )
     info = extract_nutrition_info(text)
-    assert info.portion_g == 100
-    assert info.proteins_g == 6
-    assert info.fats_g == 10
+    assert info.weight_g == 100
+    assert info.protein_g == 6
+    assert info.fat_g == 10
     assert info.carbs_g == 45
     assert info.calories_kcal == 200
     assert info.xe == 3
