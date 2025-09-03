@@ -281,27 +281,57 @@ const profile = await api.profilesGet({ telegramId: 123 });
 `tgFetch` добавляет `X-Telegram-Init-Data` ко всем запросам. Запросы
 без этого заголовка будут отклонены.
 
-## Запуск бота
+## Бот: запуск и деплой
 
-Для ручного запуска после настройки окружения используйте:
+### Переменные окружения
+
+- `TELEGRAM_TOKEN` — токен Telegram‑бота.
+- `PUBLIC_ORIGIN` — публичный URL API, например `https://example.com`.
+  Используется для формирования ссылок и кнопок.
+- `UI_BASE_URL` — базовый путь UI (по умолчанию `/ui`).
+
+### Ручной запуск
+
+После настройки `.env` запустите бота:
 
 ```bash
 scripts/run_bot.sh
 ```
 
-Скрипт устанавливает `PYTHONPATH` и запускает модуль
-`services.api.app.bot`. Все переданные аргументы прокидываются дальше в
-Python.
+Скрипт читает `.env`, устанавливает `PYTHONPATH` и выполняет
+`services.api.app.bot`.
+
+### systemd
+
+Шаблон unit‑файла находится в
+`services/deploy/systemd/diabetes-bot.service.example`. Скопируйте его в
+`/etc/systemd/system/diabetes-bot.service`, отредактируйте пути и
+пользователя и активируйте службу:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now diabetes-bot
+```
+
+Файл запускает `scripts/run_bot.sh`, логирует в journald и перед стартом
+пингует `${PUBLIC_ORIGIN}/health`.
 
 ## Сервисный запуск
 
-В каталоге `docs/deploy/` лежат примерные конфигурации для запуска приложения как службы.
-Они выполняют `uvicorn services.api.app.main:app --workers 4` и автоматически перезапускаются при сбое.
+В каталоге `docs/deploy/` лежат примерные конфигурации для запуска
+приложения как службы. Они выполняют
+`uvicorn services.api.app.main:app --workers 4` и автоматически
+перезапускаются при сбое.
 
-- `docs/deploy/diabetes-assistant.service` — unit‑файл для **systemd**. Скопируйте его в `/etc/systemd/system/`, отредактируйте пути и пользователя, затем выполните `sudo systemctl enable --now diabetes-assistant`.
-- `docs/deploy/supervisord.conf` — секция для **supervisord**. Добавьте её в конфигурацию и перезапустите менеджер процессов.
+- `docs/deploy/diabetes-assistant.service` — unit‑файл для **systemd**.
+  Скопируйте его в `/etc/systemd/system/`, отредактируйте пути и
+  пользователя, затем выполните `sudo systemctl enable --now
+  diabetes-assistant`.
+- `docs/deploy/supervisord.conf` — секция для **supervisord**. Добавьте
+  её в конфигурацию и перезапустите менеджер процессов.
 
-При необходимости настройте рабочий каталог и параметры запуска под своё окружение.
+При необходимости настройте рабочий каталог и параметры запуска под
+своё окружение.
 
 ## Тесты и линтинг
 
