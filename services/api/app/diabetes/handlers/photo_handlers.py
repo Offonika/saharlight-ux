@@ -89,6 +89,7 @@ async def photo_handler(
         except (AttributeError, IndexError, TypeError):
             await message.reply_text("❗ Файл не распознан как изображение.")
             user_data.pop(WAITING_GPT_FLAG, None)
+            user_data.pop(WAITING_GPT_TIMESTAMP, None)
             return END
 
         os.makedirs("photos", exist_ok=True)
@@ -100,6 +101,7 @@ async def photo_handler(
             logger.exception("[PHOTO] Failed to save photo: %s", exc)
             await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
             user_data.pop(WAITING_GPT_FLAG, None)
+            user_data.pop(WAITING_GPT_TIMESTAMP, None)
             return END
 
     logger.info("[PHOTO] Saved to %s", file_path)
