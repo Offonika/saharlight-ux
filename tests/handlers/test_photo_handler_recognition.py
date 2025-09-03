@@ -17,7 +17,6 @@ os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
-from services.api.app.config import settings
 
 
 class DummyPhoto:
@@ -373,15 +372,13 @@ async def test_photo_handler_run_timeout(
 
 
 @pytest.mark.asyncio
-async def test_doc_handler_valid_image(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_doc_handler_valid_image(monkeypatch: pytest.MonkeyPatch) -> None:
     photo_mock = AsyncMock(return_value=photo_handlers.PHOTO_SUGAR)
     monkeypatch.setattr(photo_handlers, "photo_handler", photo_mock)
 
     class File:
-        async def download_to_drive(self, path: str) -> None:
-            Path(path).write_bytes(b"img")
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
 
     bot = SimpleNamespace(get_file=AsyncMock(return_value=File()))
     document = SimpleNamespace(
@@ -398,15 +395,15 @@ async def test_doc_handler_valid_image(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data={}),
     )
-    monkeypatch.chdir(tmp_path)
+
     result = await photo_handlers.doc_handler(update, context)
 
     assert result == photo_handlers.PHOTO_SUGAR
     assert context.user_data == {}
     assert message.photo is None
-    photo_mock.assert_awaited_once_with(
-        update, context, file_path=f"{settings.photos_dir}/1_uid.png"
-    )
+    photo_mock.assert_awaited_once()
+    args, kwargs = photo_mock.call_args
+    assert kwargs.get("image_bytes") == b"img"
 
 
 @pytest.mark.asyncio

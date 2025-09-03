@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
-from services.api.app.config import settings
 
 
 class DummyMessage:
@@ -31,20 +30,21 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) -> None:
-    called = SimpleNamespace(flag=False, path=None)
+    called = SimpleNamespace(flag=False, data=None)
 
     async def fake_photo_handler(
         update: Update,
         context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         file_path: str | None = None,
+        image_bytes: bytes | None = None,
     ) -> int:
         called.flag = True
-        called.path = file_path
+        called.data = image_bytes
         return 200
 
     class DummyFile:
-        async def download_to_drive(self, path: str) -> None:
-            self.path = path
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
 
     async def fake_get_file(file_id: str) -> DummyFile:
         return DummyFile()
@@ -67,17 +67,12 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
     )
 
     monkeypatch.setattr(photo_handlers, "photo_handler", fake_photo_handler)
-    monkeypatch.setattr(
-        photo_handlers.os,
-        "makedirs",
-        lambda *args, **kwargs: None,
-    )
 
     result = await photo_handlers.doc_handler(update, context)
 
     assert result == 200
     assert called.flag
-    assert called.path == f"{settings.photos_dir}/1_uid.png"
+    assert called.data == b"img"
     assert context.user_data == {}
     assert update.message is not None
     msg = update.message
@@ -92,6 +87,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
         update: Update,
         context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         file_path: str | None = None,
+        image_bytes: bytes | None = None,
     ) -> None:
         called.flag = True
 
@@ -137,11 +133,6 @@ async def test_doc_handler_get_file_error(monkeypatch: pytest.MonkeyPatch) -> No
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data={}),
     )
-    monkeypatch.setattr(
-        photo_handlers.os,
-        "makedirs",
-        lambda *args, **kwargs: None,
-    )
 
     result = await photo_handlers.doc_handler(update, context)
 
@@ -153,7 +144,7 @@ async def test_doc_handler_get_file_error(monkeypatch: pytest.MonkeyPatch) -> No
 @pytest.mark.asyncio
 async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> None:
     class DummyFile:
-        async def download_to_drive(self, path: str) -> None:
+        async def download_as_bytearray(self) -> bytearray:
             raise OSError("disk full")
 
     document = SimpleNamespace(
@@ -170,11 +161,6 @@ async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> No
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data={}),
-    )
-    monkeypatch.setattr(
-        photo_handlers.os,
-        "makedirs",
-        lambda *args, **kwargs: None,
     )
 
     result = await photo_handlers.doc_handler(update, context)
@@ -213,41 +199,6 @@ async def test_photo_handler_non_writable_dir(monkeypatch: pytest.MonkeyPatch) -
     message.reply_text.assert_awaited_once()
     assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
 
-
-@pytest.mark.asyncio
-async def test_doc_handler_non_writable_dir(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def fail_photo_handler(*args: Any, **kwargs: Any) -> int:
-        raise AssertionError("photo_handler should not be called")
-
-    monkeypatch.setattr(photo_handlers, "photo_handler", fail_photo_handler)
-
-    def raise_os_error(*args: Any, **kwargs: Any) -> None:
-        raise OSError("no perm")
-
-    monkeypatch.setattr(photo_handlers.os, "makedirs", raise_os_error)
-
-    document = SimpleNamespace(
-        file_name="img.png",
-        file_unique_id="uid",
-        file_id="fid",
-        mime_type="image/png",
-    )
-    message = SimpleNamespace(document=document, reply_text=AsyncMock())
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
-    bot = SimpleNamespace(
-        get_file=AsyncMock(side_effect=AssertionError("get_file called"))
-    )
-    context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(bot=bot, user_data={}),
-    )
-
-    result = await photo_handlers.doc_handler(update, context)
-
-    assert result == photo_handlers.END
-    message.reply_text.assert_awaited_once()
 
 
 @pytest.mark.asyncio

@@ -5,6 +5,7 @@ import datetime
 import html
 import logging
 import os
+import tempfile
 from pathlib import Path
 from typing import cast
 
@@ -55,6 +56,7 @@ async def photo_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     file_path: str | None = None,
+    image_bytes: bytes | None = None,
 ) -> int:
     """Process food photos and trigger nutrition analysis."""
     user_data_raw = context.user_data
@@ -89,6 +91,19 @@ async def photo_handler(
 
     if file_path is None:
         file_path = user_data.pop("__file_path", None)
+
+    if not file_path and image_bytes is not None:
+        try:
+            fd, file_path = tempfile.mkstemp(suffix=".jpg")
+            with os.fdopen(fd, "wb") as tmp:
+                tmp.write(image_bytes)
+        except OSError as exc:
+            logger.exception("[PHOTO] Failed to save photo: %s", exc)
+            await message.reply_text(
+                "⚠️ Не удалось сохранить фото. Попробуйте ещё раз."
+            )
+            _clear_waiting_gpt(user_data)
+            return END
 
     if not file_path:
         try:
@@ -362,26 +377,18 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     if mime_type is None or not mime_type.startswith("image/"):
         return END
 
-    user_id = effective_user.id
-    filename = document.file_name or ""
-    ext = Path(filename).suffix or ".jpg"
-    photos_dir = settings.photos_dir
-    path = f"{photos_dir}/{user_id}_{document.file_unique_id}{ext}"
     try:
-        os.makedirs(photos_dir, exist_ok=True)
         file = await context.bot.get_file(document.file_id)
-        await file.download_to_drive(path)
-    except OSError as exc:
-        logger.exception("[DOC] Failed to save document: %s", exc)
-        await message.reply_text("⚠️ Не удалось сохранить документ. Попробуйте ещё раз.")
-        return END
-    except TelegramError as exc:
-        logger.exception("[DOC] Failed to save document: %s", exc)
-        await message.reply_text("⚠️ Не удалось сохранить документ. Попробуйте ещё раз.")
+        image_bytes = bytes(await file.download_as_bytearray())
+    except (OSError, TelegramError) as exc:
+        logger.exception("[DOC] Failed to download document: %s", exc)
+        await message.reply_text(
+            "⚠️ Не удалось сохранить документ. Попробуйте ещё раз."
+        )
         return END
 
     user_data.pop("__file_path", None)
-    return await photo_handler(update, context, file_path=path)
+    return await photo_handler(update, context, image_bytes=image_bytes)
 
 
 prompt_photo = photo_prompt
