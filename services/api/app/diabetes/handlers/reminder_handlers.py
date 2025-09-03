@@ -397,11 +397,14 @@ async def create_reminder_from_preset(
         session.add(reminder)
         try:
             commit(session)
+            session.refresh(reminder)
         except CommitError:
             logger.exception(
                 "Failed to commit preset reminder for user %s", user_id
             )
             return None, user
+        if user is not None:
+            reminder.user = user
         return reminder, user
 
     if run_db is None:
