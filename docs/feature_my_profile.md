@@ -41,7 +41,8 @@ ICR — углеводный коэффициент (соответствует 
 
 CF — коэффициент чувствительности.
 
-DIA — длительность действия быстрого инсулина, 1–24 ч.
+DIA — длительность действия быстрого инсулина, 1–24 ч.;
+влияет на учёт IOB при расчёте болюса.
 
 insulinType — тип быстрого *(не запланировано)*.
 
@@ -240,7 +241,7 @@ carbUnits       carb_units      carb_units      g | xe
 gramsPerXE      grams_per_xe    grams_per_xe    > 0 (по умолчанию 12)
 ICR     icr     icr     > 0 (только insulin/mixed)
 CF      cf      cf      > 0 (только insulin/mixed)
-DIA     dia            dia            1–24 (только insulin/mixed)
+DIA     dia            dia            1–24 (только insulin/mixed), учитывается в IOB
 
 insulinType     insulin_type    insulin_type    строка (только insulin/mixed) *(не запланировано)*
 prebolusMin     prebolus_min    prebolus_min    0–60 (только insulin/mixed)

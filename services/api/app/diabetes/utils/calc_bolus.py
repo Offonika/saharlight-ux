@@ -52,8 +52,8 @@ def calc_bolus(
     carb_units: Literal["g", "xe"] = "g",
     bolus_round_step: float = 0.5,
     max_bolus: float | None = None,
-    dia: float | None = None,  # pragma: no cover - placeholder
-    iob: float | None = None,  # pragma: no cover - placeholder
+    dia: float | None = None,
+    iob: float | None = None,
 ) -> float:
     """Calculate bolus based on carbohydrates and blood glucose.
 
@@ -64,8 +64,8 @@ def calc_bolus(
         carb_units: Unit of ``carbs`` – grams (``"g"``) or XE (``"xe"``).
         bolus_round_step: Step size for floor rounding of the result.
         max_bolus: Optional maximum bolus allowed. ``None`` disables capping.
-        dia: Duration of insulin action (not used yet).
-        iob: Insulin on board (not used yet).
+        dia: Duration of insulin action in hours. Influences the impact of ``iob``.
+        iob: Insulin on board to subtract from the recommendation.
 
     Returns:
         Rounded bolus value in insulin units.
@@ -102,6 +102,18 @@ def calc_bolus(
         if correction < 0:
             correction = Decimal("0")
         total = meal + correction
+
+    if iob is not None:
+        if iob < 0:
+            raise ValueError("iob must be non-negative")
+        effective_iob = Decimal(str(iob))
+        if dia is not None:
+            if dia <= 0:
+                raise ValueError("dia must be greater than 0")
+            effective_iob *= Decimal("4") / Decimal(str(dia))
+        total -= effective_iob
+        if total < 0:
+            total = Decimal("0")
 
     total_f = float(total)
     if max_bolus is not None:
