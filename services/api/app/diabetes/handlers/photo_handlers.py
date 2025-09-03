@@ -192,12 +192,21 @@ async def photo_handler(
                 await message.reply_text("⚠️ Vision не смог обработать фото.")
             return END
 
-        messages = await asyncio.to_thread(
-            _get_client().beta.threads.messages.list,
-            thread_id=run.thread_id,
-        )
+        try:
+            messages = await asyncio.to_thread(
+                _get_client().beta.threads.messages.list,
+                thread_id=run.thread_id,
+                run_id=run.id,
+            )
+        except TypeError:
+            messages = await asyncio.to_thread(
+                _get_client().beta.threads.messages.list,
+                thread_id=run.thread_id,
+            )
         vision_text = ""
         for m in messages.data:
+            if getattr(m, "run_id", run.id) != run.id:
+                continue
             if m.role == "assistant" and m.content:
                 first_block: object = m.content[0]
                 text_block = getattr(first_block, "text", None)
