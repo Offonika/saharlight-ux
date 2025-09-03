@@ -35,7 +35,9 @@ XE_COLON_RANGE_RE = re.compile(
     rf"\b{XE_WORD_RE.pattern}\s*:\s*{DASH_RANGE_RE.pattern}",
     re.IGNORECASE,
 )
-XE_COLON_SINGLE_RE = re.compile(rf"\b{XE_WORD_RE.pattern}\s*:\s*([\d.,]+)", re.IGNORECASE)
+XE_COLON_SINGLE_RE = re.compile(
+    rf"\b{XE_WORD_RE.pattern}\s*:\s*([\d.,]+)", re.IGNORECASE
+)
 XE_PM_RE = re.compile(
     rf"{PLUS_MINUS_RANGE_RE.pattern}\s*{XE_WORD_RE.pattern}",
     re.IGNORECASE,
@@ -44,11 +46,15 @@ XE_RANGE_RE = re.compile(
     rf"{DASH_RANGE_RE.pattern}\s*{XE_WORD_RE.pattern}",
     re.IGNORECASE,
 )
-CARBS_PM_RE = re.compile(rf"({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г", re.IGNORECASE)
+CARBS_PM_RE = re.compile(
+    rf"({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г", re.IGNORECASE
+)
 CARBS_RANGE_RE = re.compile(rf"{DASH_RANGE_RE.pattern}\s*г", re.IGNORECASE)
 
 # Patterns for ``smart_input``.
-BAD_SUGAR_UNIT_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:xe|хе|ед)\b(?!\s*[\d=:])")
+BAD_SUGAR_UNIT_RE = re.compile(
+    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:xe|хе|ед)\b(?!\s*[\d=:])"
+)
 BAD_XE_UNIT_RE = re.compile(
     rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:ммоль(?:/л)?|mmol(?:/l)?|ед)\b(?![=:])"
 )
@@ -56,14 +62,18 @@ BAD_DOSE_UNIT_RE = re.compile(
     rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:ммоль(?:/л)?|mmol(?:/l)?|xe|хе)\b(?![=:])"
 )
 
-SUGAR_VALUE_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)")
+SUGAR_VALUE_RE = re.compile(
+    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)"
+)
 SUGAR_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(ммоль/?л|mmol/?l)\b")
 XE_VALUE_RE = re.compile(rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*({NUMBER_RE})\b")
 XE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:xe|хе)\b")
 # ``dose`` may be followed immediately by another token (e.g. ``"carbs=30"``).
 # ``\b`` would fail in such cases, so we use a lookahead that ensures the
 # number is terminated by a non-numeric character or end of string.
-DOSE_VALUE_RE = re.compile(rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=$|\s|[^0-9a-zA-Z.,])")
+DOSE_VALUE_RE = re.compile(
+    rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=$|\s|[^0-9a-zA-Z.,])"
+)
 DOSE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:ед\.?|units?|u)\b")
 ONLY_NUMBER_RE = re.compile(rf"\s*({NUMBER_RE})\s*")
 
@@ -239,6 +249,8 @@ def smart_input(message: str) -> dict[str, float | None]:
 
     if not isinstance(message, str):
         raise ValueError("message must be a string")
+    if not message.strip():
+        raise ValueError("message must not be empty")
 
     text = message.lower()
     result: dict[str, float | None] = {"sugar": None, "xe": None, "dose": None}
