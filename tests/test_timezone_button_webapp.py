@@ -79,6 +79,10 @@ async def test_timezone_webapp_saves_tz_and_moves_to_reminders(
     monkeypatch.setattr(
         handlers.onboarding_state, "load_state", AsyncMock(return_value=None)
     )
+    monkeypatch.setattr(
+        handlers.onboarding_state, "save_state", AsyncMock(return_value=None)
+    )
+    monkeypatch.setattr(handlers, "save_timezone", AsyncMock())
     prompt = AsyncMock(return_value=handlers.REMINDERS)
     monkeypatch.setattr(handlers, "_prompt_reminders", prompt)
     state = await handlers.timezone_webapp(update, context)
