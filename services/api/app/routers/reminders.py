@@ -34,10 +34,11 @@ async def _post_job_queue_event(action: Literal["saved", "deleted"], rid: int) -
             else:
                 reminder_events.notify_reminder_deleted(rid)
         except (ReminderError, RuntimeError, httpx.HTTPError):
-            logger.exception("failed to notify job queue")
-        except Exception:  # pragma: no cover - safety net
-            logger.exception("failed to notify job queue")
-            raise
+            logger.exception(
+                "failed to notify job queue: action=%s reminder_id=%s",
+                action,
+                rid,
+            )
         return
     base = config.get_settings().api_url
     if not base:
@@ -47,11 +48,17 @@ async def _post_job_queue_event(action: Literal["saved", "deleted"], rid: int) -
         try:
             resp = await client.post(url, json={"id": rid})
         except httpx.HTTPError:  # pragma: no cover - network errors
-            logger.exception("failed to notify job queue")
+            logger.exception(
+                "failed to notify job queue: action=%s reminder_id=%s",
+                action,
+                rid,
+            )
             return
         if not 200 <= resp.status_code < 300:
             logger.error(
-                "failed to notify job queue: status=%s body=%s",
+                "failed to notify job queue: action=%s reminder_id=%s status=%s body=%s",
+                action,
+                rid,
                 resp.status_code,
                 resp.text,
             )
