@@ -71,59 +71,84 @@ def _sanitize_sensitive_data(text: str) -> str:
 def _extract_first_json(text: str) -> dict[str, object] | None:
     """Return the first complete JSON object found in *text*.
 
-    The implementation scans for the first ``{`` or ``[`` character and then
-    attempts to decode from that offset using
-    :meth:`json.JSONDecoder.raw_decode`.  It gracefully skips over any
-    characters that cannot start valid JSON (for example braces inside string
-    literals) and therefore correctly handles nested structures and escaped
-    symbols.
-
-    If the top-level structure is an array, a single dictionary element is
-    extracted (``[{"action": "add_entry"}]``).  Arrays with multiple elements
-    are ignored to avoid ambiguity.
+    The function iterates over *text* character by character keeping track of
+    string literals and escape sequences.  This allows it to correctly ignore
+    braces that appear inside quoted strings and extract the first JSON object
+    or a single dictionary within a top-level array.  Other structures are
+    skipped.
     """
 
-    def _inside_quotes(src: str, index: int) -> bool:
-        in_single = False
-        in_double = False
-        i = 0
-        while i < index:
-            ch = src[i]
-            if ch == "\\":
-                i += 2
-                continue
-            if ch == "'" and not in_double:
-                in_single = not in_single
-            elif ch == '"' and not in_single:
-                in_double = not in_double
-            i += 1
-        return in_single or in_double
+    length = len(text)
+    i = 0
+    in_str = False
+    escape = False
+    quote = ""
 
-    decoder = json.JSONDecoder()
-    pos = 0
-    while True:
-        match = re.search(r"[{[]", text[pos:])
-        if not match:
-            return None
-        start = pos + match.start()
-        if _inside_quotes(text, start) or (
-            start > 0 and text[start - 1] not in " \t\n\r"
-        ):
-            pos = start + 1
+    while i < length:
+        ch = text[i]
+        if in_str:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == quote:
+                in_str = False
+            i += 1
             continue
+        if ch in {'"', "'"}:
+            in_str = True
+            quote = ch
+            i += 1
+            continue
+        if ch not in "{[":
+            i += 1
+            continue
+
+        start = i
+        stack: list[str] = [ch]
+        i += 1
+        inner_in_str = False
+        inner_escape = False
+        inner_quote = ""
+
+        while i < length and stack:
+            c = text[i]
+            if inner_in_str:
+                if inner_escape:
+                    inner_escape = False
+                elif c == "\\":
+                    inner_escape = True
+                elif c == inner_quote:
+                    inner_in_str = False
+            else:
+                if c in {'"', "'"}:
+                    inner_in_str = True
+                    inner_quote = c
+                elif c in "{[":
+                    stack.append(c)
+                elif c == "}" and stack[-1] == "{":
+                    stack.pop()
+                elif c == "]" and stack[-1] == "[":
+                    stack.pop()
+            i += 1
+
+        if stack:
+            return None
+
+        candidate = text[start:i]
         try:
-            obj, end = decoder.raw_decode(text, start)
+            obj = cast(object, json.loads(candidate))
         except json.JSONDecodeError:
-            pos = start + 1
+            i = start + 1
             continue
         if isinstance(obj, dict):
             return obj
         if isinstance(obj, list):
             if len(obj) == 1 and isinstance(obj[0], dict):
                 return obj[0]
-            pos = end
             continue
-        pos = end
+
+    return None
 
 
 async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | None:
