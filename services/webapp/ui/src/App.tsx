@@ -19,6 +19,7 @@ import NewMeal from "./pages/NewMeal"
 import Analytics from "./pages/Analytics"
 import Subscription from "./pages/Subscription"
 import NotFound from "./pages/NotFound"
+import PaywallGuard from "./features/paywall/PaywallGuard"
 
 const queryClient = new QueryClient()
 
@@ -40,13 +41,13 @@ const AppContent = () => {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/profile" element={<Profile />} />
-      <Route path="/reminders" element={<Reminders />} />
-      <Route path="/reminders/new" element={<RemindersCreate />} />
-      <Route path="/reminders/:id/edit" element={<RemindersEdit />} />
+      <Route path="/reminders" element={<PaywallGuard><Reminders /></PaywallGuard>} />
+      <Route path="/reminders/new" element={<PaywallGuard><RemindersCreate /></PaywallGuard>} />
+      <Route path="/reminders/:id/edit" element={<PaywallGuard><RemindersEdit /></PaywallGuard>} />
       <Route path="/history" element={<History />} />
       <Route path="/history/new-measurement" element={<NewMeasurement />} />
       <Route path="/history/new-meal" element={<NewMeal />} />
-      <Route path="/analytics" element={<Analytics />} />
+      <Route path="/analytics" element={<PaywallGuard><Analytics /></PaywallGuard>} />
       <Route path="/subscription" element={<Subscription />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
