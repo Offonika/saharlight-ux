@@ -334,6 +334,7 @@ async def test_freeform_handler_quick_entry_complete(
 
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
+
     async def fake_check_alert(
         update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
     ) -> None:
@@ -534,10 +535,12 @@ async def test_freeform_handler_pending_entry_commit(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),
     )
+
     async def fake_check_alert(
         update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
     ) -> None:
         return None
+
     class DummySession:
         def __enter__(self) -> "DummySession":
             return self
@@ -582,6 +585,7 @@ async def test_freeform_handler_pending_entry_commit_fail(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),
     )
+
     class DummySession:
         def __enter__(self) -> "DummySession":
             return self
@@ -640,6 +644,7 @@ async def test_freeform_handler_pending_entry_numeric_add_carbs(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),
     )
+
     class DummySession:
         def __enter__(self) -> "DummySession":
             return self
@@ -845,4 +850,96 @@ async def test_freeform_handler_no_text() -> None:
         SimpleNamespace(user_data={}),
     )
     await gpt_handlers.freeform_handler(update, context)
+    assert message.texts == []
+
+
+def test_parse_quick_values() -> None:
+    def fake_smart_input(text: str) -> dict[str, float | None]:
+        return {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
+
+    quick, carbs = gpt_handlers.parse_quick_values(
+        "sugar=5 xe=1 dose=2 carbs=10", smart_input=fake_smart_input
+    )
+    assert quick == {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
+    assert carbs == 10.0
+
+
+@pytest.mark.asyncio
+async def test_apply_pending_entry_new(monkeypatch: pytest.MonkeyPatch) -> None:
+    saved: list[gpt_handlers.EntryData] = []
+
+    async def fake_save_entry(
+        entry_data: gpt_handlers.EntryData, *, SessionLocal: Any, commit: Any
+    ) -> bool:
+        saved.append(entry_data)
+        return True
+
+    monkeypatch.setattr(gpt_handlers, "_save_entry", fake_save_entry)
+
+    sugar_called: list[float] = []
+
+    async def fake_check_alert(
+        update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
+    ) -> None:
+        sugar_called.append(sugar)
+
+    user_data: dict[str, Any] = {}
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace())
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+    quick = {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
+    handled = await gpt_handlers.apply_pending_entry(
+        quick,
+        None,
+        user_data=user_data,
+        message=message,
+        update=update,
+        context=context,
+        user_id=1,
+        SessionLocal=cast(Any, SimpleNamespace()),
+        commit=lambda session: None,
+        check_alert=fake_check_alert,
+        menu_keyboard=None,
+    )
+    assert handled is True
+    assert message.texts == [
+        "✅ Запись сохранена: сахар 5.0 ммоль/л, ХЕ 1.0, доза 2.0 Ед."
+    ]
+    assert sugar_called == [5.0]
+    assert "pending_entry" not in user_data
+    assert saved and saved[0]["sugar_before"] == 5.0
+
+
+@pytest.mark.asyncio
+async def test_finalize_entry() -> None:
+    message = DummyMessage()
+    user_data: dict[str, Any] = {}
+    fields = {"xe": 1.0, "carbs_g": 10.0, "dose": 2.0, "sugar_before": 5.0}
+    dt = datetime.datetime(2024, 1, 2, 3, 4, tzinfo=datetime.timezone.utc)
+    await gpt_handlers.finalize_entry(fields, dt, 1, user_data, message)
+    assert "pending_entry" in user_data
+    assert user_data["pending_entry"]["xe"] == 1.0
+    assert message.texts and "Сохранить это в дневник?" in message.texts[0]
+
+
+@pytest.mark.asyncio
+async def test_parse_via_gpt_success() -> None:
+    async def fake_parse_command(text: str) -> dict[str, object]:
+        return {
+            "action": "add_entry",
+            "fields": {"xe": 1.0, "dose": 2.0, "sugar_before": 5.0},
+            "entry_date": "2024-01-02T03:04:00+00:00",
+        }
+
+    message = DummyMessage()
+    result = await gpt_handlers.parse_via_gpt(
+        "text", message, parse_command=fake_parse_command
+    )
+    assert result is not None
+    event_dt, fields = result
+    assert event_dt.year == 2024
+    assert fields["xe"] == 1.0
     assert message.texts == []
