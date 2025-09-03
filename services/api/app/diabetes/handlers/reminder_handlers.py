@@ -372,10 +372,6 @@ async def reminders_list(
         logger.exception("Failed to render reminders")
         await message.reply_text("Не удалось получить напоминания, попробуйте позже.")
         return
-    except Exception:
-        logger.exception("Failed to render reminders")
-        await message.reply_text("Не удалось получить напоминания, попробуйте позже.")
-        return
 
     if show_menu:
         await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())

@@ -1113,6 +1113,32 @@ async def test_reminders_list_db_error(
 
 
 @pytest.mark.asyncio
+async def test_reminders_list_unexpected_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fail_run_db(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(handlers, "run_db", fail_run_db)
+
+    called = False
+
+    async def fake_reply_text(text: str, **kwargs: Any) -> None:
+        nonlocal called
+        called = True
+
+    message = MagicMock(spec=Message)
+    message.reply_text = fake_reply_text
+    update = make_update(effective_user=make_user(1), message=message)
+    context = make_context()
+
+    with pytest.raises(RuntimeError):
+        await handlers.reminders_list(update, context)
+
+    assert not called
+
+
+@pytest.mark.asyncio
 async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
