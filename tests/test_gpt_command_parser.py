@@ -56,7 +56,7 @@ async def test_parse_command_timeout_non_blocking(
 
 @pytest.mark.asyncio
 async def test_parse_command_with_explanatory_text(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     class FakeResponse:
         choices = [
@@ -87,10 +87,12 @@ async def test_parse_command_with_explanatory_text(
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
-    result = await gpt_command_parser.parse_command("test")
+    with caplog.at_level(logging.DEBUG):
+        result = await gpt_command_parser.parse_command("test")
 
     assert result == {"action": "add_entry", "time": "09:00", "fields": {}}
     assert captured.get("model") == config.get_settings().openai_command_model
+    assert "GPT raw response:" in caplog.text
 
 
 @pytest.mark.asyncio
