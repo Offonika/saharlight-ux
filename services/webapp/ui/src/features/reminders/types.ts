@@ -26,5 +26,7 @@ export interface Reminder extends ReminderDto {
   id: number;
   isEnabled: boolean;
   nextAt?: string | null;
+  lastFiredAt?: string | null;
+  fires7d?: number;
 }
 
