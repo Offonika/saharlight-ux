@@ -37,6 +37,7 @@ from .legacy import router as legacy_router
 from .routers.internal_reminders import router as internal_reminders_router
 from .routers.stats import router as stats_router
 from .routers import metrics
+from .routers.billing import router as billing_router
 from .schemas.history import ALLOWED_HISTORY_TYPES, HistoryRecordSchema, HistoryType
 from .schemas.role import RoleSchema
 from .services.profile import patch_user_settings
@@ -99,6 +100,7 @@ api_router = APIRouter()
 api_router.include_router(stats_router)
 api_router.include_router(legacy_router)
 api_router.include_router(metrics.router)
+api_router.include_router(billing_router)
 
 # ────────── статические файлы UI ──────────
 BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
