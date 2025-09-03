@@ -1,8 +1,15 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Star, Users, Zap } from 'lucide-react';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { useToast } from '@/hooks/use-toast';
 import MedicalButton from '@/components/MedicalButton';
+import {
+  getBillingStatus,
+  startTrial,
+  subscribePlan,
+  type BillingStatus,
+} from '@/api/billing';
 
 interface TariffPlan {
   id: string;
@@ -73,23 +80,92 @@ const tariffPlans: TariffPlan[] = [
 const Subscription = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [billing, setBilling] = useState<BillingStatus | null>(null);
 
-  const handleSubscribe = (planId: string) => {
-    toast({
-      title: "Подписка оформлена",
-      description: `Тариф ${tariffPlans.find(p => p.id === planId)?.name} успешно активирован`
-    });
+  useEffect(() => {
+    getBillingStatus()
+      .then(setBilling)
+      .catch((e) =>
+        toast({
+          title: 'Ошибка',
+          description: String(e),
+          variant: 'destructive',
+        }),
+      );
+  }, [toast]);
+
+  const handleTrial = async () => {
+    try {
+      const sub = await startTrial();
+      setBilling((prev) =>
+        prev
+          ? { ...prev, subscription: sub }
+          : {
+              featureFlags: { billingEnabled: false, paywallMode: 'soft' },
+              subscription: sub,
+            },
+      );
+    } catch (e) {
+      toast({ title: 'Ошибка', description: String(e), variant: 'destructive' });
+    }
+  };
+
+  const handleSubscribe = async (planId: string) => {
+    if (!billing?.featureFlags.billingEnabled) return;
+    try {
+      const { url } = await subscribePlan(planId);
+      window.open(url, '_blank');
+    } catch (e) {
+      toast({ title: 'Ошибка', description: String(e), variant: 'destructive' });
+    }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <MedicalHeader 
-        title="Подписка и тарифы" 
-        showBack 
+      <MedicalHeader
+        title="Подписка и тарифы"
+        showBack
         onBack={() => navigate('/')}
       />
-      
+
       <main className="container mx-auto px-4 py-6">
+        {/* Текущая подписка и флаги */}
+        <div className="medical-card mb-4" data-testid="status-card">
+          {billing && billing.subscription ? (
+            <div>
+              <p data-testid="current-plan">План: {billing.subscription.plan}</p>
+              <p data-testid="current-status">
+                Статус: {billing.subscription.status}
+              </p>
+              {billing.subscription.endDate && (
+                <p data-testid="end-date">
+                  До: {new Date(billing.subscription.endDate).toLocaleDateString('ru-RU')}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p data-testid="no-sub">Нет подписки</p>
+          )}
+          {billing && (
+            <div className="mt-2 text-sm text-muted-foreground">
+              {billing.featureFlags.testMode && (
+                <div data-testid="flag-test">Test mode</div>
+              )}
+              <div data-testid="flag-paywall">
+                Paywall: {billing.featureFlags.paywallMode}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <MedicalButton
+          onClick={handleTrial}
+          className="w-full mb-6"
+          data-testid="trial-btn"
+        >
+          Пробный период
+        </MedicalButton>
+
         {/* Описание */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-foreground mb-3">
@@ -155,12 +231,14 @@ const Subscription = () => {
                     
                     <MedicalButton
                       onClick={() => handleSubscribe(plan.id)}
-                      disabled={plan.price === '0'}
+                      disabled={
+                        plan.price === '0' || !billing?.featureFlags.billingEnabled
+                      }
                       className="w-full"
                       size="lg"
                       variant={plan.recommended ? 'default' : 'secondary'}
                     >
-                      {plan.price === '0' ? 'Текущий тариф' : 'Выбрать тариф'}
+                      {plan.price === '0' ? 'Текущий тариф' : 'Оформить'}
                     </MedicalButton>
                   </div>
                 </div>
