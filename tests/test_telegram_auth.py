@@ -20,7 +20,7 @@ TOKEN = "test-token"
 
 
 def build_init_data(
-    token: str = TOKEN, user_id: int = 1, auth_date: int | None = None
+    token: str = TOKEN, user_id: int | str = 1, auth_date: int | None = None
 ) -> str:
     user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
     if auth_date is None:
@@ -40,6 +40,7 @@ def test_parse_and_verify_init_data_valid() -> None:
     init_data: str = build_init_data()
     data: dict[str, Any] = parse_and_verify_init_data(init_data, TOKEN)
     assert data["user"]["id"] == 1
+    assert isinstance(data["user"]["id"], int)
 
 
 def test_parse_and_verify_init_data_invalid_hash() -> None:
@@ -80,6 +81,18 @@ def test_require_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
     init_data: str = build_init_data()
     user: UserContext = require_tg_user(init_data)
     assert user["id"] == 1
+    assert isinstance(user["id"], int)
+
+
+def test_require_tg_user_invalid_id_type(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data: str = build_init_data(user_id="bad")
+    with pytest.raises(HTTPException) as exc:
+        require_tg_user(init_data)
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "invalid user"
 
 
 def test_require_tg_user_missing() -> None:
