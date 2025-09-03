@@ -112,12 +112,9 @@ async def test_send_message_run_error_retry(
 
 
 @pytest.mark.asyncio
-async def test_send_message_cleanup_warning(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+async def test_send_message_no_cleanup_warning(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    img = tmp_path / "img.jpg"
-    img.write_bytes(b"data")
-
     def fake_files_create(file: Any, purpose: str) -> SimpleNamespace:
         return SimpleNamespace(id="f1")
 
@@ -139,16 +136,22 @@ async def test_send_message_cleanup_warning(
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(settings, "openai_assistant_id", "asst")
 
+    called = False
+
     def fake_remove(_: str) -> None:
+        nonlocal called
+        called = True
         raise OSError("nope")
 
-    monkeypatch.setattr(gpt_client, "os", SimpleNamespace(remove=fake_remove))
+    monkeypatch.setattr(
+        gpt_client, "os", SimpleNamespace(remove=fake_remove), raising=False
+    )
 
     with caplog.at_level(logging.WARNING):
-        await gpt_client.send_message(thread_id="t", image_path=str(img))
+        await gpt_client.send_message(thread_id="t", image_bytes=b"data")
 
-    assert img.exists()
-    assert any("Failed to delete" in r.message for r in caplog.records)
+    assert not called
+    assert not any("Failed to delete" in r.message for r in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -183,14 +186,13 @@ async def test_create_thread_retry(
 
 
 @pytest.mark.asyncio
-async def test_send_message_image_open_error(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+async def test_send_message_path_and_bytes_conflict(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(gpt_client, "_get_client", lambda: SimpleNamespace())
-    monkeypatch.setattr(settings, "openai_assistant_id", "asst")
+    img = tmp_path / "img.jpg"
+    img.write_bytes(b"data")
 
-    with caplog.at_level(logging.ERROR):
-        with pytest.raises(OSError):
-            await gpt_client.send_message(thread_id="t", image_path="missing.jpg")
-
-    assert any("Failed to read" in r.message for r in caplog.records)
+    with pytest.raises(ValueError):
+        await gpt_client.send_message(
+            thread_id="t", image_path=str(img), image_bytes=b"data"
+        )

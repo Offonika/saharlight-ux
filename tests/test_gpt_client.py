@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import asyncio
 import logging
 import threading
@@ -57,6 +55,7 @@ async def test_send_message_openaierror(monkeypatch: pytest.MonkeyPatch, caplog:
     )
 
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(settings, "openai_assistant_id", "asst_test")
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(OpenAIError):
@@ -117,27 +116,20 @@ async def test_dispose_openai_clients_resets_all_async(
 
 
 @pytest.mark.asyncio
-async def test_send_message_upload_error_removes_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    img = tmp_path / "img.jpg"
-    img.write_bytes(b"data")
-
+async def test_send_message_upload_error(monkeypatch: pytest.MonkeyPatch) -> None:
     def raise_upload(*_: Any, **__: Any) -> None:
         raise OpenAIError("boom")
 
     fake_client = SimpleNamespace(files=SimpleNamespace(create=raise_upload))
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(settings, "openai_assistant_id", "asst_test")
 
     with pytest.raises(OpenAIError):
-        await gpt_client.send_message(thread_id="t", image_path=str(img))
-
-    assert not img.exists()
+        await gpt_client.send_message(thread_id="t", image_bytes=b"data")
 
 
 @pytest.mark.asyncio
-async def test_send_message_empty_string_preserved(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    img = tmp_path / "img.jpg"
-    img.write_bytes(b"data")
-
+async def test_send_message_empty_string_preserved(monkeypatch: pytest.MonkeyPatch) -> None:
     captured = {}
 
     def fake_files_create(file: Any, purpose: str) -> SimpleNamespace:
@@ -159,9 +151,8 @@ async def test_send_message_empty_string_preserved(tmp_path: Path, monkeypatch: 
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(settings, "openai_assistant_id", "asst_test")
 
-    await gpt_client.send_message(thread_id="t", content="", image_path=str(img))
+    await gpt_client.send_message(thread_id="t", content="", image_bytes=b"data")
     assert captured["content"][1]["text"] == ""
-    assert not img.exists()
 
 
 @pytest.mark.asyncio
