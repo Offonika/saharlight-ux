@@ -474,7 +474,6 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await onboarding_state.complete_state(user.id)
     await _mark_user_complete(user.id)
     await _log_event(user.id, "onboarding_finished", 3, variant)
-    await message.reply_poll("Пропущено", ["OK"])
     await message.reply_text("Пропущено", reply_markup=menu_keyboard())
     return ConversationHandler.END
 

@@ -18,10 +18,12 @@ class DummyMessage:
         self.text = text
         self.texts: list[str] = []
         self.polls: list[tuple[str, list[str]]] = []
+        self.reply_markups: list[Any] = []
         self.deleted = False
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
+        self.reply_markups.append(kwargs.get("reply_markup"))
 
     async def reply_poll(self, question: str, options: list[str], **kwargs: Any) -> Any:
         self.polls.append((question, options))
@@ -181,8 +183,9 @@ async def test_onboarding_skip_sends_final(
 
     state = await onboarding.onboarding_skip(update, context)
     assert state == ConversationHandler.END
-    assert message.polls
-    assert any("Пропущено" in text for text in message.texts)
+    assert not message.polls
+    assert message.texts == ["Пропущено"]
+    assert message.reply_markups == ["MK"]
     engine.dispose()
 
 
