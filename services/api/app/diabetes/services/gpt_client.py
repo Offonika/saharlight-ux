@@ -39,6 +39,7 @@ _async_client_lock: asyncio.Lock | None = None
 
 
 def _get_client() -> OpenAI:
+    """Return cached OpenAI client, creating it once in a thread-safe manner."""
     global _client
     if _client is None:
         with _client_lock:
@@ -48,6 +49,7 @@ def _get_client() -> OpenAI:
 
 
 async def _get_async_client() -> AsyncOpenAI:
+    """Return cached AsyncOpenAI client, creating it once in an async-safe manner."""
     global _async_client
     if _async_client is None:
         global _async_client_lock
@@ -119,6 +121,53 @@ async def create_thread() -> str:
     return thread.id
 
 
+async def _upload_image_file(client: OpenAI, image_path: str) -> FileObject:
+    """Upload an image from filesystem and return the created file object."""
+    try:
+
+        def _upload() -> FileObject:
+            with open(image_path, "rb") as f:
+                return client.files.create(file=f, purpose="vision")
+
+        file = await asyncio.wait_for(
+            asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT
+        )
+    except asyncio.TimeoutError:
+        logger.exception("[OpenAI] Timeout while uploading %s", image_path)
+        raise RuntimeError("Timed out while uploading image")
+    except OSError as exc:
+        logger.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
+        raise
+    except OpenAIError as exc:
+        logger.exception("[OpenAI] Failed to upload %s: %s", image_path, exc)
+        raise
+    else:
+        logger.info("[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id)
+        return file
+
+
+async def _upload_image_bytes(client: OpenAI, image_bytes: bytes) -> FileObject:
+    """Upload raw image bytes and return the created file object."""
+    try:
+
+        def _upload_bytes() -> FileObject:
+            with io.BytesIO(image_bytes) as buffer:
+                return client.files.create(file=("image.jpg", buffer), purpose="vision")
+
+        file = await asyncio.wait_for(
+            asyncio.to_thread(_upload_bytes), timeout=FILE_UPLOAD_TIMEOUT
+        )
+    except asyncio.TimeoutError:
+        logger.exception("[OpenAI] Timeout while uploading bytes")
+        raise RuntimeError("Timed out while uploading image")
+    except OpenAIError as exc:
+        logger.exception("[OpenAI] Failed to upload image bytes: %s", exc)
+        raise
+    else:
+        logger.info("[OpenAI] Uploaded image from bytes, file_id=%s", file.id)
+        return file
+
+
 async def send_message(
     thread_id: str,
     content: str | None = None,
@@ -167,63 +216,25 @@ async def send_message(
         "type": "text",
         "text": content if content is not None else "Что изображено на фото?",
     }
-    message_content: Iterable[ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam]
+    message_content: Iterable[
+        ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam
+    ]
     if image_path:
-        try:
-
-            def _upload() -> FileObject:
-                with open(image_path, "rb") as f:
-                    return client.files.create(file=f, purpose="vision")
-
-            file = await asyncio.wait_for(
-                asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT
-            )
-        except asyncio.TimeoutError:
-            logger.exception("[OpenAI] Timeout while uploading %s", image_path)
-            raise RuntimeError("Timed out while uploading image")
-        except OSError as exc:
-            logger.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
-            raise
-        except OpenAIError as exc:
-            logger.exception("[OpenAI] Failed to upload %s: %s", image_path, exc)
-            raise
-        else:
-            logger.info("[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id)
-            image_block: ImageFileContentBlockParam = {
-                "type": "image_file",
-                "image_file": {"file_id": file.id},
-            }
-            message_content = [image_block, text_block]
+        file = await _upload_image_file(client, image_path)
+        image_block: ImageFileContentBlockParam = {
+            "type": "image_file",
+            "image_file": {"file_id": file.id},
+        }
+        message_content = [image_block, text_block]
     elif image_bytes is not None:
-        try:
-
-            def _upload_bytes() -> FileObject:
-                with io.BytesIO(image_bytes) as buffer:
-                    return client.files.create(
-                        file=("image.jpg", buffer), purpose="vision"
-                    )
-
-            file = await asyncio.wait_for(
-                asyncio.to_thread(_upload_bytes), timeout=FILE_UPLOAD_TIMEOUT
-            )
-        except asyncio.TimeoutError:
-            logger.exception("[OpenAI] Timeout while uploading bytes")
-            raise RuntimeError("Timed out while uploading image")
-        except OpenAIError as exc:
-            logger.exception("[OpenAI] Failed to upload image bytes: %s", exc)
-            raise
-        else:
-            logger.info(
-                "[OpenAI] Uploaded image from bytes, file_id=%s", file.id
-            )
-            image_block: ImageFileContentBlockParam = {
-                "type": "image_file",
-                "image_file": {"file_id": file.id},
-            }
-            message_content = [image_block, text_block]
+        file = await _upload_image_bytes(client, image_bytes)
+        image_block: ImageFileContentBlockParam = {
+            "type": "image_file",
+            "image_file": {"file_id": file.id},
+        }
+        message_content = [image_block, text_block]
     else:
         message_content = [text_block]
-
     # 2. Создаём сообщение в thread
     try:
         await asyncio.wait_for(
