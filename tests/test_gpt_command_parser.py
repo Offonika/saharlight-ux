@@ -1,4 +1,5 @@
 from typing import Any
+from types import SimpleNamespace
 
 import os
 import asyncio
@@ -9,6 +10,7 @@ import pytest
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
+from services.api.app import config  # noqa: E402
 from services.api.app.diabetes.utils import openai_utils  # noqa: F401,E402
 from services.api.app.diabetes import gpt_command_parser  # noqa: E402
 
@@ -77,7 +79,10 @@ async def test_parse_command_with_explanatory_text(
             )
         ]
 
+    captured: dict[str, Any] = {}
+
     async def create(*args: Any, **kwargs: Any) -> Any:
+        captured.update(kwargs)
         return FakeResponse()
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
@@ -85,6 +90,7 @@ async def test_parse_command_with_explanatory_text(
     result = await gpt_command_parser.parse_command("test")
 
     assert result == {"action": "add_entry", "time": "09:00", "fields": {}}
+    assert captured.get("model") == config.get_settings().openai_command_model
 
 
 @pytest.mark.asyncio
@@ -114,6 +120,41 @@ async def test_parse_command_with_array_response(
     result = await gpt_command_parser.parse_command("test")
 
     assert result == {"action": "add_entry", "fields": {}}
+
+
+@pytest.mark.asyncio
+async def test_parse_command_uses_config_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeResponse:
+        choices = [
+            type(
+                "Choice",
+                (),
+                {
+                    "message": type(
+                        "Msg", (), {"content": '{"action":"get_day_summary"}'}
+                    )()
+                },
+            )
+        ]
+
+    called: dict[str, Any] = {}
+
+    async def create(*args: Any, **kwargs: Any) -> Any:
+        called.update(kwargs)
+        return FakeResponse()
+
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
+    monkeypatch.setattr(
+        config,
+        "get_settings",
+        lambda: SimpleNamespace(openai_command_model="model-x"),
+    )
+
+    await gpt_command_parser.parse_command("test")
+
+    assert called.get("model") == "model-x"
 
 
 @pytest.mark.asyncio
@@ -159,7 +200,11 @@ async def test_parse_command_without_fields(
             type(
                 "Choice",
                 (),
-                {"message": type("Msg", (), {"content": '{"action":"get_day_summary"}'})()},
+                {
+                    "message": type(
+                        "Msg", (), {"content": '{"action":"get_day_summary"}'}
+                    )()
+                },
             )
         ]
 
@@ -454,10 +499,7 @@ def test_extract_first_json_braces_in_string_before_object() -> None:
 
 
 def test_extract_first_json_braces_in_single_quotes_before_object() -> None:
-    text = (
-        "prefix 'not json { [ ] }' "
-        '{"action":"add_entry","fields":{}}'
-    )
+    text = "prefix 'not json { [ ] }' " '{"action":"add_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
@@ -465,10 +507,7 @@ def test_extract_first_json_braces_in_single_quotes_before_object() -> None:
 
 
 def test_extract_first_json_explanatory_braces_before_object() -> None:
-    text = (
-        "text with {not valid json} "
-        '{"action":"add_entry","fields":{}}'
-    )
+    text = "text with {not valid json} " '{"action":"add_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
@@ -513,8 +552,7 @@ def test_extract_first_json_with_escaped_quotes() -> None:
 
 def test_extract_first_json_array_with_many_objects() -> None:
     text = (
-        '[{"action":"add_entry","fields":{}},'
-        ' {"action":"delete_entry","fields":{}}]'
+        '[{"action":"add_entry","fields":{}},' ' {"action":"delete_entry","fields":{}}]'
     )
     assert gpt_command_parser._extract_first_json(text) is None
 

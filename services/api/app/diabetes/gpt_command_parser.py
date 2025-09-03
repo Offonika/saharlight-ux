@@ -10,6 +10,7 @@ from openai.types.chat import ChatCompletion
 
 from pydantic import ValidationError
 
+from services.api.app import config
 from services.api.app.diabetes.services.gpt_client import create_chat_completion
 from services.api.app.schemas import CommandSchema
 
@@ -175,7 +176,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
 
     try:
         resp: ChatCompletion | Awaitable[ChatCompletion] = create_chat_completion(
-            model="gpt-4o-mini",
+            model=config.get_settings().openai_command_model,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": text},
