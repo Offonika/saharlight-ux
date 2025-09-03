@@ -10,7 +10,7 @@ Implements three steps with navigation and progress hints:
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any, Awaitable, Callable, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
@@ -34,6 +34,8 @@ from services.api.app.diabetes.utils.ui import (
     build_timezone_webapp_button,
     menu_keyboard,
 )
+from . import reminder_handlers
+from .reminder_jobs import DefaultJobQueue
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +56,9 @@ def _progress(step: int) -> str:
     return f"Шаг {step}/3"
 
 
-def _nav_buttons(*, back: bool = False, skip: bool = True) -> list[InlineKeyboardButton]:
+def _nav_buttons(
+    *, back: bool = False, skip: bool = True
+) -> list[InlineKeyboardButton]:
     buttons: list[InlineKeyboardButton] = []
     if back:
         buttons.append(InlineKeyboardButton("Назад", callback_data=CB_BACK))
@@ -72,7 +76,10 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
         ("ГСД", "gdm"),
         ("Родитель", "parent"),
     ]
-    rows = [[InlineKeyboardButton(text, callback_data=f"{CB_PROFILE_PREFIX}{code}")] for text, code in options]
+    rows = [
+        [InlineKeyboardButton(text, callback_data=f"{CB_PROFILE_PREFIX}{code}")]
+        for text, code in options
+    ]
     rows.append(_nav_buttons())
     return InlineKeyboardMarkup(rows)
 
@@ -93,7 +100,10 @@ def _reminders_keyboard() -> InlineKeyboardMarkup:
         ("Длинный инсулин 22:00", "long_22"),
         ("Таблетки 09:00", "pills_09"),
     ]
-    rows = [[InlineKeyboardButton(text, callback_data=f"{CB_REMINDER_PREFIX}{code}")] for text, code in presets]
+    rows = [
+        [InlineKeyboardButton(text, callback_data=f"{CB_REMINDER_PREFIX}{code}")]
+        for text, code in presets
+    ]
     rows.append([InlineKeyboardButton("Готово", callback_data=CB_DONE)])
     rows.append(_nav_buttons(back=True))
     return InlineKeyboardMarkup(rows)
@@ -173,7 +183,9 @@ async def _prompt_timezone(
 async def timezone_webapp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle timezone received from WebApp."""
 
-    message = update.message
+    message = getattr(update, "message", None) or getattr(
+        update, "effective_message", None
+    )
     user = update.effective_user
     web_app = getattr(message, "web_app_data", None) if message else None
     if message is None or web_app is None or user is None:
@@ -238,30 +250,6 @@ async def timezone_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     user_data["timezone"] = raw
     await onboarding_state.save_state(user_id, TIMEZONE, user_data, variant)
     await save_timezone(user_id, raw, auto=False)
-    return await _prompt_reminders(message, user_id, user_data, variant)
-
-
-async def timezone_webapp(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Handle timezone input coming from WebApp."""
-
-    message = update.effective_message
-    user = update.effective_user
-    if message is None or getattr(message, "web_app_data", None) is None or user is None:
-        return ConversationHandler.END
-    user_id = user.id
-    user_data = cast(dict[str, Any], context.user_data)
-    state = await onboarding_state.load_state(user_id)
-    variant = cast(str | None, user_data.get("variant"))
-    if state is not None:
-        user_data.update(state.data)
-        variant = variant or state.variant
-        user_data["variant"] = variant
-        if state.step != TIMEZONE:
-            if state.step == PROFILE:
-                return await _prompt_profile(message, user_id, user_data, variant)
-            if state.step == REMINDERS:
-                return await _prompt_reminders(message, user_id, user_data, variant)
-    user_data["timezone"] = message.web_app_data.data.strip() or "Europe/Moscow"
     return await _prompt_reminders(message, user_id, user_data, variant)
 
 
@@ -347,7 +335,8 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return await _prompt_timezone(message, user_id, user_data, variant)
     if data in {CB_SKIP, CB_DONE}:
         await onboarding_state.save_state(user_id, REMINDERS, user_data, variant)
-        return await _finish(message, user_id)
+        job_queue = cast(DefaultJobQueue | None, getattr(context, "job_queue", None))
+        return await _finish(message, user_id, user_data, job_queue)
     if data == CB_CANCEL:
         await message.reply_text("Отменено.")
         return ConversationHandler.END
@@ -380,7 +369,9 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return ConversationHandler.END
 
 
-async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def onboarding_reminders(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     """Finish onboarding when reminders step is skipped."""
 
     query = update.callback_query
@@ -392,17 +383,41 @@ async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYP
     user_data = cast(dict[str, Any], getattr(context, "user_data", {}))
     variant = cast(str | None, user_data.get("variant"))
     await onboarding_state.save_state(user.id, REMINDERS, user_data, variant)
-    return await _finish(message, user.id)
+    job_queue = cast(DefaultJobQueue | None, getattr(context, "job_queue", None))
+    return await _finish(message, user.id, user_data, job_queue)
 
 
-async def _finish(message: Message, user_id: int) -> int:
+async def _finish(
+    message: Message,
+    user_id: int,
+    user_data: dict[str, Any],
+    job_queue: DefaultJobQueue | None,
+) -> int:
     await onboarding_state.complete_state(user_id)
     await _mark_user_complete(user_id)
-    await message.reply_text("🎉 Готово! Настройка завершена.", reply_markup=menu_keyboard())
+
+    reminders = sorted(cast(set[str], user_data.get("reminders", set())))
+    descriptions: list[str] = []
+    create_from_preset = cast(
+        Callable[[int, str, DefaultJobQueue | None], Awaitable[Any]] | None,
+        getattr(reminder_handlers, "create_reminder_from_preset", None),
+    )
+    if create_from_preset is not None:
+        for code in reminders:
+            reminder = await create_from_preset(user_id, code, job_queue)
+            descriptions.append(reminder_handlers._describe(reminder))
+    if descriptions:
+        await message.reply_text("Созданы напоминания:\n" + "\n".join(descriptions))
+
+    await message.reply_text(
+        "🎉 Готово! Настройка завершена.", reply_markup=menu_keyboard()
+    )
     return ConversationHandler.END
 
 
-async def onboarding_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def onboarding_poll_answer(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Stub for backward compatibility."""
 
     return None
@@ -457,6 +472,7 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     )
     return ConversationHandler.END
 
+
 onboarding_conv = ConversationHandler(
     entry_points=[
         CommandHandler("start", start_command),
@@ -474,7 +490,9 @@ onboarding_conv = ConversationHandler(
         ],
         REMINDERS: [CallbackQueryHandler(reminders_chosen)],
     },
-    fallbacks=[MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)],
+    fallbacks=[
+        MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)
+    ],
 )
 
 __all__ = [
@@ -486,7 +504,6 @@ __all__ = [
     "profile_chosen",
     "timezone_webapp",
     "timezone_text",
-    "timezone_webapp",
     "timezone_nav",
     "reminders_chosen",
     "reset_onboarding",
