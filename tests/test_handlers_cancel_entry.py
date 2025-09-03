@@ -75,7 +75,8 @@ async def test_callback_router_cancel_entry_sends_menu(
 
 @pytest.mark.asyncio
 async def test_callback_router_invalid_entry_id(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
@@ -97,8 +98,33 @@ async def test_callback_router_invalid_entry_id(
 
 
 @pytest.mark.asyncio
+async def test_handle_edit_or_delete_missing_colon(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
+    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
+    import services.api.app.diabetes.handlers.router as router
+
+    query = DummyQuery(DummyMessage(), "del")
+    update = cast(Update, SimpleNamespace(callback_query=query))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+
+    with caplog.at_level(logging.WARNING):
+        await router.handle_edit_or_delete(update, context, query, "del")
+
+    assert query.edited == ["Некорректный формат данных."]
+    assert "Invalid callback data format" in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_callback_router_unknown_data(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
