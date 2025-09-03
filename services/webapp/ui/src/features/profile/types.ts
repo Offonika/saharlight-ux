@@ -11,9 +11,6 @@ export interface Profile extends ProfileSchema {
   rapidInsulinType?: RapidInsulin | null;
   maxBolus?: number | null;
   afterMealMinutes?: number | null;
-  defaultAfterMealMinutes?: number | null;
-  /** Compatibility with snake_case responses */
-  default_after_meal_minutes?: number | null;
   therapyType?: "insulin" | "tablets" | "none" | "mixed" | null;
 }
 
@@ -27,7 +24,7 @@ export type PatchProfileDto = {
   gramsPerXe?: number | null;
   rapidInsulinType?: RapidInsulin | null;
   maxBolus?: number | null;
-  defaultAfterMealMinutes?: number | null;
+  afterMealMinutes?: number | null;
   therapyType?: "insulin" | "tablets" | "none" | "mixed" | null;
 };
 

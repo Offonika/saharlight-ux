@@ -90,7 +90,6 @@ class ProfileSettingsIn(BaseModel):
             "after_meal_minutes",
             "postMealCheckMin",
             "postmeal_check_min",
-            "defaultAfterMealMinutes",
         ),
     )
 
