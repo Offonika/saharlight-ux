@@ -56,7 +56,11 @@ async def test_photo_handler_clears_stale_waiting_flag(
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
-    old_ts = datetime.datetime.now(datetime.timezone.utc) - photo_handlers.WAITING_GPT_TIMEOUT - datetime.timedelta(seconds=1)
+    old_ts = (
+        datetime.datetime.now(datetime.timezone.utc)
+        - photo_handlers.WAITING_GPT_TIMEOUT
+        - datetime.timedelta(seconds=1)
+    )
     user_data = {
         photo_handlers.WAITING_GPT_FLAG: True,
         photo_handlers.WAITING_GPT_TIMESTAMP: old_ts,
@@ -114,6 +118,7 @@ async def test_photo_handler_get_file_telegram_error(
     assert context.user_data is not None
     user_data = context.user_data
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
+    assert photo_handlers.WAITING_GPT_TIMESTAMP not in user_data
     assert "[PHOTO] Failed to save photo" in caplog.text
 
 
