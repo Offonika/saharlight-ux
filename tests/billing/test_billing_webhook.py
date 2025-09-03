@@ -14,6 +14,7 @@ from services.api.app.diabetes.services.db import (
     SubscriptionPlan,
     SubscriptionStatus,
 )
+from services.api.app.billing.log import BillingEvent, BillingLog
 from services.api.app.routers import billing
 from services.api.app.main import app
 
@@ -24,16 +25,12 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__])
+    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
     return sessionmaker(bind=engine)
 
 
-def make_client(
-    monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
-) -> TestClient:
-    async def run_db(
-        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
-    ):
+def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
+    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
@@ -56,9 +53,7 @@ def create_subscription(client: TestClient) -> str:
     return resp.json()["id"]
 
 
-def test_webhook_activates_subscription(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     checkout_id = create_subscription(client)
@@ -74,13 +69,18 @@ def test_webhook_activates_subscription(
     assert resp.status_code == 200
     assert resp.json() == {"status": "processed"}
     with session_local() as session:
-        sub = session.scalar(
-            select(Subscription).where(Subscription.transaction_id == checkout_id)
-        )
+        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
         assert sub is not None
         assert sub.status == SubscriptionStatus.ACTIVE
         assert sub.plan == SubscriptionPlan.PRO
         assert sub.end_date is not None
+        log = session.scalar(
+            select(BillingLog).where(
+                BillingLog.user_id == 1,
+                BillingLog.event == BillingEvent.WEBHOOK_OK,
+            )
+        )
+        assert log is not None
     assert any(f"{checkout_id} processed" in r.getMessage() for r in caplog.records)
 
 
@@ -98,9 +98,7 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
         first = client.post("/api/billing/webhook", json=event)
     assert first.status_code == 200
     with session_local() as session:
-        sub = session.scalar(
-            select(Subscription).where(Subscription.transaction_id == checkout_id)
-        )
+        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
         assert sub is not None
         first_end = sub.end_date
 
@@ -109,9 +107,7 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
     assert dup.status_code == 200
     assert dup.json() == {"status": "ignored"}
     with session_local() as session:
-        sub = session.scalar(
-            select(Subscription).where(Subscription.transaction_id == checkout_id)
-        )
+        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
         assert sub.end_date == first_end
 
 
@@ -129,9 +125,7 @@ def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.post("/api/billing/webhook", json=event)
     assert resp.status_code == 400
     with session_local() as session:
-        sub = session.scalar(
-            select(Subscription).where(Subscription.transaction_id == checkout_id)
-        )
+        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
         assert sub is not None
         assert sub.status == SubscriptionStatus.PENDING
         assert sub.end_date is None

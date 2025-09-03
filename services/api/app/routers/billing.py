@@ -11,10 +11,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from services.api.app.billing import (
+    BillingEvent,
     BillingSettings,
     create_checkout,
     create_payment,
     get_billing_settings,
+    log_billing_event,
     verify_webhook,
 )
 
@@ -91,6 +93,13 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
         session.add(trial)
         session.commit()
         session.refresh(trial)
+        log_billing_event(
+            session,
+            user_id,
+            BillingEvent.INIT,
+            {"plan": SubscriptionPlan.PRO.value, "source": "trial"},
+        )
+        session.refresh(trial)
         return trial
 
     trial = await run_db(_create_trial, sessionmaker=SessionLocal)
@@ -120,6 +129,18 @@ async def subscribe(
         )
         session.add(draft)
         session.commit()
+        log_billing_event(
+            session,
+            user_id,
+            BillingEvent.INIT,
+            {"plan": plan.value},
+        )
+        log_billing_event(
+            session,
+            user_id,
+            BillingEvent.CHECKOUT_CREATED,
+            {"plan": plan.value, "checkout_id": checkout["id"]},
+        )
 
     await run_db(_create_draft, sessionmaker=SessionLocal)
     return CheckoutSchema.model_validate(checkout)
@@ -139,26 +160,29 @@ async def webhook(
     now = datetime.now(timezone.utc)
 
     def _activate(session: Session) -> bool:
-        stmt = select(Subscription).where(
-            Subscription.transaction_id == event.transaction_id
-        )
+        stmt = select(Subscription).where(Subscription.transaction_id == event.transaction_id)
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
-        if (
-            sub.status == SubscriptionStatus.ACTIVE
-            and sub_end is not None
-            and sub_end > now
-        ):
+        if sub.status == SubscriptionStatus.ACTIVE and sub_end is not None and sub_end > now:
             return False
         base = sub_end if sub_end is not None and sub_end > now else now
         sub.plan = event.plan
         sub.status = SubscriptionStatus.ACTIVE
         sub.end_date = base + timedelta(days=30)
         session.commit()
+        log_billing_event(
+            session,
+            sub.user_id,
+            BillingEvent.WEBHOOK_OK,
+            {
+                "transaction_id": event.transaction_id,
+                "plan": event.plan,
+            },
+        )
         return True
 
     updated = await run_db(_activate, sessionmaker=SessionLocal)
@@ -184,6 +208,12 @@ async def mock_webhook(
             return False
         sub.status = SubscriptionStatus.ACTIVE
         session.commit()
+        log_billing_event(
+            session,
+            sub.user_id,
+            BillingEvent.WEBHOOK_OK,
+            {"transaction_id": checkout_id},
+        )
         return True
 
     updated = await run_db(_activate, sessionmaker=SessionLocal)
@@ -212,6 +242,12 @@ async def admin_mock_webhook(
             return False
         sub.status = SubscriptionStatus.ACTIVE
         session.commit()
+        log_billing_event(
+            session,
+            sub.user_id,
+            BillingEvent.WEBHOOK_OK,
+            {"transaction_id": transaction_id},
+        )
         return True
 
     updated = await run_db(_activate, sessionmaker=SessionLocal)
@@ -221,9 +257,7 @@ async def admin_mock_webhook(
 
 
 @router.get("/status", response_model=BillingStatusResponse)
-async def status(
-    user_id: int, settings: BillingSettings = Depends(get_billing_settings)
-) -> BillingStatusResponse:
+async def status(user_id: int, settings: BillingSettings = Depends(get_billing_settings)) -> BillingStatusResponse:
     """Return billing feature flags and the latest subscription for a user."""
 
     def _get_subscription(session: Session) -> Subscription | None:
@@ -236,14 +270,10 @@ async def status(
         return session.scalars(stmt).first()
 
     subscription = await run_db(_get_subscription, sessionmaker=SessionLocal)
-    flags = FeatureFlags(
-        billingEnabled=settings.billing_enabled, paywallMode=settings.paywall_mode
-    )
+    flags = FeatureFlags(billingEnabled=settings.billing_enabled, paywallMode=settings.paywall_mode)
     if subscription is None:
         return BillingStatusResponse(featureFlags=flags, subscription=None)
     return BillingStatusResponse(
         featureFlags=flags,
-        subscription=SubscriptionSchema.model_validate(
-            subscription, from_attributes=True
-        ),
+        subscription=SubscriptionSchema.model_validate(subscription, from_attributes=True),
     )

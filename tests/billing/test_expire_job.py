@@ -15,6 +15,7 @@ from services.api.app.diabetes.services.db import (
     SubscriptionPlan,
     SubscriptionStatus,
 )
+from services.api.app.billing.log import BillingEvent, BillingLog
 from services.api.app.billing import jobs
 
 
@@ -24,7 +25,7 @@ def _setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__])
+    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
     return sessionmaker(bind=engine)
 
 
@@ -45,16 +46,12 @@ async def test_expire_subscriptions_marks_expired(
         session.add(sub)
         session.commit()
 
-    async def run_db(
-        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
-    ) -> Any:
+    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs) -> Any:
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
     monkeypatch.setattr(jobs, "run_db", run_db)
-    monkeypatch.setattr(
-        jobs, "_utcnow", lambda: datetime(2024, 1, 2, tzinfo=timezone.utc)
-    )
+    monkeypatch.setattr(jobs, "_utcnow", lambda: datetime(2024, 1, 2, tzinfo=timezone.utc))
 
     caplog.set_level(logging.INFO)
     await jobs.expire_subscriptions(None)
@@ -63,6 +60,13 @@ async def test_expire_subscriptions_marks_expired(
         sub = session.scalar(select(Subscription))
         assert sub is not None
         assert sub.status == SubscriptionStatus.EXPIRED
+        log = session.scalar(
+            select(BillingLog).where(
+                BillingLog.user_id == 1,
+                BillingLog.event == BillingEvent.EXPIRED,
+            )
+        )
+        assert log is not None
 
     assert any("expired 1 subscription" in r.getMessage() for r in caplog.records)
 
