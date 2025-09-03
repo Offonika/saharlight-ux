@@ -36,3 +36,9 @@ def test_smart_input_rejects_garbage(message: str) -> None:
 def test_smart_input_plain_number(message: str) -> None:
     with pytest.raises(ValueError):
         smart_input(message)
+
+
+@pytest.mark.parametrize("message", ["", "   "])
+def test_smart_input_empty_message(message: str) -> None:
+    with pytest.raises(ValueError):
+        smart_input(message)
