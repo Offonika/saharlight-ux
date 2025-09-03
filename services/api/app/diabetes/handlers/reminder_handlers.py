@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable, Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import parse_qsl
 
+import sqlalchemy
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker, selectinload
 from sqlalchemy.orm.exc import DetachedInstanceError
@@ -426,7 +427,10 @@ async def create_reminder_from_preset(
         saved.id,
     )
     if job_queue is not None and db_user is not None:
-        schedule_reminder(saved, job_queue, db_user)
+        user_to_schedule = db_user
+        if sqlalchemy.inspect(db_user).detached:
+            user_to_schedule = None
+        schedule_reminder(saved, job_queue, user_to_schedule)
         logger.info("Scheduled preset reminder %s", saved.id)
     else:
         await reminder_events.notify_reminder_saved(saved.id)

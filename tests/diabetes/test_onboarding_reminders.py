@@ -147,3 +147,39 @@ async def test_onboarding_creates_reminder(monkeypatch: pytest.MonkeyPatch) -> N
     jobs = context.job_queue.scheduler.jobs
     assert any(job["name"] == f"reminder_{rem.id}" for job in jobs)
     assert any("Сахар 08:00" in r for r in message.replies)
+
+
+@pytest.mark.asyncio
+async def test_preset_reminder_schedules_with_detached_user(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession, raising=False)
+    monkeypatch.setattr(reminder_handlers, "commit", commit, raising=False)
+    monkeypatch.setattr(reminder_handlers, "run_db", None, raising=False)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    captured: dict[str, Any] = {}
+    original_schedule = reminder_handlers.schedule_reminder
+
+    def fake_schedule(
+        rem: Reminder,
+        job_queue: DefaultJobQueue | None,
+        user: User | None,
+    ) -> None:
+        captured["user"] = user
+        original_schedule(rem, job_queue, user)
+
+    monkeypatch.setattr(reminder_handlers, "schedule_reminder", fake_schedule)
+
+    job_queue = DummyJobQueue()
+    rem = await reminder_handlers.create_reminder_from_preset(1, "sugar_08", job_queue)
+    assert rem is not None
+    assert captured["user"] is None
+    assert any(job["name"] == f"reminder_{rem.id}" for job in job_queue.scheduler.jobs)
