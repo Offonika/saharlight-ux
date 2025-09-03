@@ -609,6 +609,24 @@ def test_extract_first_json_with_escaped_chars() -> None:
     }
 
 
+def test_extract_first_json_braces_in_string_field() -> None:
+    text = (
+        'begin {"action":"add_entry","fields":{"note":"text with {curly} braces"}} end'
+    )
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {"note": "text with {curly} braces"},
+    }
+
+
+def test_extract_first_json_braces_and_quotes_in_string_field() -> None:
+    text = 'start {"action":"add_entry","fields":{"note":"say \\"{hi}\\""}} finish'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {"note": 'say "{hi}"'},
+    }
+
+
 @pytest.mark.asyncio
 async def test_parse_command_with_multiple_jsons(
     monkeypatch: pytest.MonkeyPatch,
