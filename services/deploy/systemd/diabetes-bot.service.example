@@ -1,3 +1,6 @@
+## Example unit file for running the Diabetes bot
+## Copy to /etc/systemd/system/diabetes-bot.service and adjust paths and user
+
 [Unit]
 Description=Diabetes Telegram bot
 After=network.target
@@ -6,10 +9,11 @@ After=network.target
 Type=simple
 WorkingDirectory=/srv/diabetes-bot
 EnvironmentFile=/srv/diabetes-bot/.env
-ExecStartPre=/bin/sh -c '/usr/bin/curl -fsS "$PUBLIC_ORIGIN/health" || exit 1'
+ExecStartPre=/usr/bin/curl -fsS "$PUBLIC_ORIGIN/health"
 ExecStart=/srv/diabetes-bot/scripts/run_bot.sh
 Restart=on-failure
 RestartSec=5
+# log to journald
 StandardOutput=journal
 StandardError=journal
 

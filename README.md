@@ -285,9 +285,9 @@ const profile = await api.profilesGet({ telegramId: 123 });
 
 ### Переменные окружения
 
-- `TELEGRAM_TOKEN` — токен Telegram‑бота.
+- `TELEGRAM_TOKEN` — токен Telegram‑бота (**обязательно**).
 - `PUBLIC_ORIGIN` — публичный URL API, например `https://example.com`.
-  Используется для формирования ссылок и кнопок.
+  Используется для формирования ссылок, кнопок и health‑check.
 - `UI_BASE_URL` — базовый путь UI (по умолчанию `/ui`).
 
 ### Ручной запуск
@@ -298,8 +298,8 @@ const profile = await api.profilesGet({ telegramId: 123 });
 scripts/run_bot.sh
 ```
 
-Скрипт читает `.env`, устанавливает `PYTHONPATH` и выполняет
-`services.api.app.bot`.
+Скрипт подгружает `.env`, проверяет обязательные переменные и
+запускает `services.api.app.bot`.
 
 ### systemd
 
@@ -313,8 +313,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now diabetes-bot
 ```
 
-Файл запускает `scripts/run_bot.sh`, логирует в journald и перед стартом
-пингует `${PUBLIC_ORIGIN}/health`.
+Служба пингует `${PUBLIC_ORIGIN}/health` перед стартом, запускает
+`scripts/run_bot.sh`, а логи доступны через journald:
+
+```bash
+journalctl -u diabetes-bot
+```
 
 ## Сервисный запуск
 
