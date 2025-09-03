@@ -1,0 +1,35 @@
+"""Billing configuration via Pydantic settings."""
+
+from __future__ import annotations
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class BillingSettings(BaseSettings):
+    """Runtime billing configuration."""
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    billing_enabled: bool = Field(default=False, alias="BILLING_ENABLED")
+    billing_test_mode: bool = Field(default=True, alias="BILLING_TEST_MODE")
+    billing_provider: str = Field(default="dummy", alias="BILLING_PROVIDER")
+    paywall_mode: str = Field(default="soft", alias="PAYWALL_MODE")
+
+
+billing_settings = BillingSettings()
+
+
+def get_billing_settings() -> BillingSettings:
+    """Return current billing settings."""
+
+    return billing_settings
+
+
+def reload_billing_settings() -> BillingSettings:
+    """Reload billing settings from the environment."""
+
+    global billing_settings
+    billing_settings = BillingSettings()
+    return billing_settings
+
