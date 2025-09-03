@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
+from datetime import datetime, timezone
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -54,6 +57,23 @@ def create_subscription(client: TestClient) -> str:
     resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
     assert resp.status_code == 200
     return resp.json()["id"]
+
+
+def create_pending_subscription(session_local: sessionmaker[Session]) -> str:
+    tid = "tx1"
+    with session_local() as session:
+        sub = Subscription(
+            user_id=1,
+            plan=SubscriptionPlan.PRO,
+            status=SubscriptionStatus.PENDING,
+            provider="stripe",
+            transaction_id=tid,
+            start_date=datetime.now(timezone.utc),
+            end_date=None,
+        )
+        session.add(sub)
+        session.commit()
+    return tid
 
 
 def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
@@ -133,3 +153,91 @@ def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
         assert sub is not None
         assert sub.status == SubscriptionStatus.PENDING
         assert sub.end_date is None
+
+
+def make_client_real(
+    monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
+) -> TestClient:
+    async def run_db(
+        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
+    ):
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(billing, "run_db", run_db, raising=False)
+    monkeypatch.setattr(billing, "SessionLocal", session_local, raising=False)
+    settings = BillingSettings(
+        billing_enabled=True,
+        billing_test_mode=True,
+        billing_provider="stripe",
+        paywall_mode="soft",
+        billing_webhook_secret="secret",  # noqa: S105
+        billing_webhook_ips=["1.2.3.4"],
+    )
+    client = TestClient(app)
+    client.app.dependency_overrides[billing._require_billing_enabled] = lambda: settings
+    return client
+
+
+def sign(event_id: str, transaction_id: str, secret: str) -> str:
+    return hmac.new(
+        secret.encode(), f"{event_id}:{transaction_id}".encode(), hashlib.sha256
+    ).hexdigest()
+
+
+def test_webhook_real_activates_subscription(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session_local = setup_db()
+    client = make_client_real(monkeypatch, session_local)
+    checkout_id = create_pending_subscription(session_local)
+    event = {
+        "event_id": "evt4",
+        "transaction_id": checkout_id,
+        "plan": "pro",
+        "signature": "",
+    }
+    sig = sign("evt4", checkout_id, "secret")
+    headers = {"X-Webhook-Signature": sig, "X-Real-IP": "1.2.3.4"}
+    with client:
+        resp = client.post("/api/billing/webhook", json=event, headers=headers)
+    assert resp.status_code == 200
+    with session_local() as session:
+        sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout_id)
+        )
+        assert sub is not None
+        assert sub.status == SubscriptionStatus.ACTIVE
+
+
+def test_webhook_real_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    client = make_client_real(monkeypatch, session_local)
+    checkout_id = create_pending_subscription(session_local)
+    event = {
+        "event_id": "evt5",
+        "transaction_id": checkout_id,
+        "plan": "pro",
+        "signature": "",
+    }
+    headers = {"X-Webhook-Signature": "bad", "X-Real-IP": "1.2.3.4"}
+    with client:
+        resp = client.post("/api/billing/webhook", json=event, headers=headers)
+    assert resp.status_code == 400
+
+
+def test_webhook_real_invalid_ip(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    client = make_client_real(monkeypatch, session_local)
+    checkout_id = create_pending_subscription(session_local)
+    event = {
+        "event_id": "evt6",
+        "transaction_id": checkout_id,
+        "plan": "pro",
+        "signature": "",
+    }
+    sig = sign("evt6", checkout_id, "secret")
+    headers = {"X-Webhook-Signature": sig, "X-Real-IP": "5.6.7.8"}
+    with client:
+        resp = client.post("/api/billing/webhook", json=event, headers=headers)
+    assert resp.status_code == 403

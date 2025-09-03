@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
+from asyncio import TimeoutError, timeout
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -126,6 +129,7 @@ async def subscribe(
 
 @router.post("/webhook")
 async def webhook(
+    request: Request,
     event: WebhookEvent,
     settings: BillingSettings = Depends(_require_billing_enabled),
 ) -> dict[str, str]:
@@ -133,12 +137,26 @@ async def webhook(
 
     logger = logging.getLogger(__name__)
     if settings.billing_provider != "dummy":
-        raise HTTPException(status_code=501, detail="billing provider not supported")
-
-    expected_sig = f"{event.event_id}:{event.transaction_id}"
-    if event.signature != expected_sig:
-        logger.info("webhook %s invalid_signature", event.event_id)
-        raise HTTPException(status_code=400, detail="invalid signature")
+        ip = request.headers.get("X-Real-IP")
+        if settings.billing_webhook_ips and ip not in settings.billing_webhook_ips:
+            logger.info("webhook %s invalid_ip %s", event.event_id, ip)
+            raise HTTPException(status_code=403, detail="invalid ip")
+        sig = request.headers.get("X-Webhook-Signature")
+        if settings.billing_webhook_secret is None or sig is None:
+            raise HTTPException(status_code=400, detail="invalid signature")
+        expected_sig = hmac.new(
+            settings.billing_webhook_secret.encode(),
+            f"{event.event_id}:{event.transaction_id}".encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        if not hmac.compare_digest(sig, expected_sig):
+            logger.info("webhook %s invalid_signature", event.event_id)
+            raise HTTPException(status_code=400, detail="invalid signature")
+    else:
+        expected_sig = f"{event.event_id}:{event.transaction_id}"
+        if event.signature != expected_sig:
+            logger.info("webhook %s invalid_signature", event.event_id)
+            raise HTTPException(status_code=400, detail="invalid signature")
 
     now = datetime.now(timezone.utc)
 
@@ -165,7 +183,12 @@ async def webhook(
         session.commit()
         return True
 
-    updated = await run_db(_activate, sessionmaker=SessionLocal)
+    try:
+        async with timeout(settings.billing_webhook_timeout):
+            updated = await run_db(_activate, sessionmaker=SessionLocal)
+    except TimeoutError:
+        logger.info("webhook %s timeout", event.event_id)
+        raise HTTPException(status_code=504, detail="timeout")
     status = "processed" if updated else "ignored"
     logger.info("webhook %s %s", event.event_id, status)
     return {"status": status}
