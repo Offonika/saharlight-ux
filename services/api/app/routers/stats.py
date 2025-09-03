@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from ..schemas.stats import AnalyticsPoint, DayStats
 from ..schemas.user import UserContext
@@ -12,16 +12,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/stats", response_model=DayStats | dict[str, object])
+@router.get(
+    "/stats",
+    response_model=DayStats,
+    responses={204: {"description": "No Content - no statistics available."}},
+)
 async def get_stats(
     telegram_id: int = Query(alias="telegramId"),
     user: UserContext = Depends(require_tg_user),
-) -> DayStats | dict[str, object]:
+) -> DayStats | Response:
     if telegram_id != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
     stats = await get_day_stats(telegram_id)
     if stats is None:
-        return {}
+        return Response(status_code=204)
     return stats
 
 
