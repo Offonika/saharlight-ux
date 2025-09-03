@@ -42,3 +42,12 @@ def test_transactional_failure() -> None:
             raise DummyError("boom")
     session.rollback.assert_called_once()
     session.commit.assert_not_called()
+
+
+def test_transactional_value_error() -> None:
+    session = MagicMock()
+    with pytest.raises(ValueError):
+        with repository.transactional(session):
+            raise ValueError("boom")
+    session.rollback.assert_called_once()
+    session.commit.assert_not_called()
