@@ -96,8 +96,8 @@ async def test_photo_handler_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: 
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -112,7 +112,6 @@ async def test_photo_handler_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: 
         SimpleNamespace(bot=dummy_bot, user_data={"thread_id": "tid"}),
     )
 
-    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
 
     result = await photo_handlers.photo_handler(update, context)
@@ -136,7 +135,7 @@ async def test_photo_handler_download_os_error(monkeypatch: pytest.MonkeyPatch, 
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
+            async def download_as_bytearray(self) -> bytearray:
                 raise OSError("boom")
 
         return File()
@@ -147,11 +146,9 @@ async def test_photo_handler_download_os_error(monkeypatch: pytest.MonkeyPatch, 
         SimpleNamespace(bot=dummy_bot, user_data={}),
     )
 
-    monkeypatch.chdir(tmp_path)
-
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
-    assert message.texts == ["⚠️ Не удалось сохранить фото. Попробуйте ещё раз."]
+    assert message.texts == ["⚠️ Не удалось скачать фото. Попробуйте ещё раз."]
     assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
     assert photo_handlers.WAITING_GPT_TIMESTAMP not in context.user_data

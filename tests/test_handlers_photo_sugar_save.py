@@ -108,8 +108,8 @@ async def test_photo_flow_saves_entry(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -174,7 +174,7 @@ async def test_photo_flow_saves_entry(
     entry = user_data["pending_entry"]
     assert entry["carbs_g"] == 30.0
     assert entry["xe"] == 2.0
-    assert entry["photo_path"].endswith("uid.jpg")
+    assert entry["photo_path"] is None
 
     msg_sugar = DummyMessage("5.5")
     update_sugar = cast(
@@ -221,8 +221,8 @@ async def test_photo_handler_removes_file_on_failure(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 

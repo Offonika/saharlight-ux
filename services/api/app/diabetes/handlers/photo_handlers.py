@@ -4,8 +4,6 @@ import asyncio
 import datetime
 import html
 import logging
-import os
-from pathlib import Path
 from typing import cast
 
 from openai import OpenAIError
@@ -23,7 +21,6 @@ from services.api.app.diabetes.services.gpt_client import (
 from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.utils.functions import extract_nutrition_info
 from services.api.app.diabetes.utils.ui import menu_keyboard
-from services.api.app.config import settings
 
 from . import EntryData, UserData
 
@@ -54,7 +51,7 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def photo_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
-    file_path: str | None = None,
+    file_bytes: bytes | None = None,
 ) -> int:
     """Process food photos and trigger nutrition analysis."""
     user_data_raw = context.user_data
@@ -87,10 +84,7 @@ async def photo_handler(
     user_data[WAITING_GPT_FLAG] = True
     user_data[WAITING_GPT_TIMESTAMP] = now
 
-    if file_path is None:
-        file_path = user_data.pop("__file_path", None)
-
-    if not file_path:
+    if file_bytes is None:
         try:
             photo = message.photo[-1]
         except (AttributeError, IndexError, TypeError):
@@ -98,24 +92,25 @@ async def photo_handler(
             _clear_waiting_gpt(user_data)
             return END
 
-        photos_dir = settings.photos_dir
         try:
-            os.makedirs(photos_dir, exist_ok=True)
-            file_path = f"{photos_dir}/{user_id}_{photo.file_unique_id}.jpg"
             file = await context.bot.get_file(photo.file_id)
-            await file.download_to_drive(file_path)
+            file_bytes = bytes(await file.download_as_bytearray())
         except OSError as exc:
-            logger.exception("[PHOTO] Failed to save photo: %s", exc)
-            await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
+            logger.exception("[PHOTO] Failed to download photo: %s", exc)
+            await message.reply_text(
+                "⚠️ Не удалось скачать фото. Попробуйте ещё раз."
+            )
             _clear_waiting_gpt(user_data)
             return END
         except TelegramError as exc:
-            logger.exception("[PHOTO] Failed to save photo: %s", exc)
-            await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
+            logger.exception("[PHOTO] Failed to download photo: %s", exc)
+            await message.reply_text(
+                "⚠️ Не удалось скачать фото. Попробуйте ещё раз."
+            )
             _clear_waiting_gpt(user_data)
             return END
 
-    logger.info("[PHOTO] Saved to %s", file_path)
+    logger.info("[PHOTO] Received photo from user %s", user_id)
 
     try:
         thread_id = user_data.get("thread_id")
@@ -145,8 +140,7 @@ async def photo_handler(
                     "Углеводы: <...>\n"
                     "ХЕ: <...>"
                 ),
-                image_path=file_path,
-                keep_image=True,
+                image_bytes=file_bytes,
             )
         except asyncio.TimeoutError:
             logger.warning("[PHOTO] GPT request timed out")
@@ -256,17 +250,17 @@ async def photo_handler(
                     vision_text = text_block.value
                     break
         logger.debug(
-            "[VISION][RESPONSE] Ответ Vision для %s:\n%s",
-            file_path,
+            "[VISION][RESPONSE] Ответ Vision для пользователя %s:\n%s",
+            user_id,
             vision_text,
         )
 
         carbs_g, xe = extract_nutrition_info(vision_text)
         if carbs_g is None and xe is None:
             logger.debug(
-                "[VISION][NO_PARSE] Ответ ассистента: %r для файла: %s",
+                "[VISION][NO_PARSE] Ответ ассистента: %r для пользователя: %s",
                 vision_text,
-                file_path,
+                user_id,
             )
             await message.reply_text(
                 "⚠️ Не смог разобрать углеводы на фото.\n\n"
@@ -286,7 +280,7 @@ async def photo_handler(
                 "event_time": datetime.datetime.now(datetime.timezone.utc),
             },
         )
-        pending_entry.update({"carbs_g": carbs_g, "xe": xe, "photo_path": file_path})
+        pending_entry.update({"carbs_g": carbs_g, "xe": xe, "photo_path": None})
         user_data["pending_entry"] = pending_entry
         if status_message and hasattr(status_message, "delete"):
             try:
@@ -330,15 +324,6 @@ async def photo_handler(
         return END
     finally:
         _clear_waiting_gpt(user_data)
-        if file_path:
-            try:
-                Path(file_path).unlink()
-            except OSError as exc:
-                logger.warning(
-                    "[PHOTO][CLEANUP] Failed to remove file %s: %s",
-                    file_path,
-                    exc,
-                )
 
 
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -346,7 +331,6 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user_data_raw = context.user_data
     if user_data_raw is None:
         return END
-    user_data = cast(UserData, user_data_raw)
     message = update.message
     if message is None:
         return END
@@ -362,26 +346,19 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     if mime_type is None or not mime_type.startswith("image/"):
         return END
 
-    user_id = effective_user.id
-    filename = document.file_name or ""
-    ext = Path(filename).suffix or ".jpg"
-    photos_dir = settings.photos_dir
-    path = f"{photos_dir}/{user_id}_{document.file_unique_id}{ext}"
     try:
-        os.makedirs(photos_dir, exist_ok=True)
         file = await context.bot.get_file(document.file_id)
-        await file.download_to_drive(path)
+        file_bytes = bytes(await file.download_as_bytearray())
     except OSError as exc:
-        logger.exception("[DOC] Failed to save document: %s", exc)
+        logger.exception("[DOC] Failed to download document: %s", exc)
         await message.reply_text("⚠️ Не удалось сохранить документ. Попробуйте ещё раз.")
         return END
     except TelegramError as exc:
-        logger.exception("[DOC] Failed to save document: %s", exc)
+        logger.exception("[DOC] Failed to download document: %s", exc)
         await message.reply_text("⚠️ Не удалось сохранить документ. Попробуйте ещё раз.")
         return END
 
-    user_data.pop("__file_path", None)
-    return await photo_handler(update, context, file_path=path)
+    return await photo_handler(update, context, file_bytes=file_bytes)
 
 
 prompt_photo = photo_prompt
