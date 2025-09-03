@@ -1,0 +1,17 @@
+[Unit]
+Description=Diabetes Telegram bot
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/diabetes-bot
+EnvironmentFile=/srv/diabetes-bot/.env
+ExecStartPre=/bin/sh -c '/usr/bin/curl -fsS "$PUBLIC_ORIGIN/health" || exit 1'
+ExecStart=/srv/diabetes-bot/scripts/run_bot.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
