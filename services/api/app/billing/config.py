@@ -18,6 +18,15 @@ class BillingSettings(BaseSettings):
     billing_admin_token: str | None = Field(
         default=None, alias="BILLING_ADMIN_TOKEN"
     )
+    billing_webhook_secret: str | None = Field(
+        default=None, alias="BILLING_WEBHOOK_SECRET"
+    )
+    billing_webhook_ips: list[str] = Field(
+        default_factory=list, alias="BILLING_WEBHOOK_IPS"
+    )
+    billing_webhook_timeout: float = Field(
+        default=5.0, alias="BILLING_WEBHOOK_TIMEOUT"
+    )
 
     @model_validator(mode="after")
     def _require_admin_token(self) -> "BillingSettings":

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -128,12 +129,26 @@ async def subscribe(
 @router.post("/webhook")
 async def webhook(
     event: WebhookEvent,
+    request: Request,
+    x_signature: str = Header(alias="X-Signature"),
     settings: BillingSettings = Depends(_require_billing_enabled),
 ) -> dict[str, str]:
     """Process provider webhook and activate subscription."""
 
     logger = logging.getLogger(__name__)
-    if not await verify_webhook(settings, event):
+    client_ip = request.headers.get("X-Real-IP") or (
+        request.client.host if request.client else None
+    )
+    if settings.billing_webhook_ips and client_ip not in settings.billing_webhook_ips:
+        raise HTTPException(status_code=403, detail="forbidden")
+    try:
+        verified = await asyncio.wait_for(
+            verify_webhook(settings, event, x_signature),
+            timeout=settings.billing_webhook_timeout,
+        )
+    except asyncio.TimeoutError as exc:  # pragma: no cover - safety
+        raise HTTPException(status_code=408, detail="timeout") from exc
+    if not verified:
         raise HTTPException(status_code=400, detail="invalid signature")
 
     now = datetime.now(timezone.utc)

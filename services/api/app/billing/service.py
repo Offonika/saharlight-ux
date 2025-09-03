@@ -31,10 +31,15 @@ async def create_checkout(settings: BillingSettings, plan: str) -> dict[str, str
 create_subscription = create_checkout
 
 
-async def verify_webhook(settings: BillingSettings, event: WebhookEvent) -> bool:
+async def verify_webhook(
+    settings: BillingSettings, event: WebhookEvent, signature: str
+) -> bool:
     """Verify webhook payload using the configured provider."""
 
     if settings.billing_provider == "dummy":
-        provider = DummyBillingProvider(test_mode=settings.billing_test_mode)
-        return await provider.verify_webhook(event)
+        provider = DummyBillingProvider(
+            test_mode=settings.billing_test_mode,
+            webhook_secret=settings.billing_webhook_secret,
+        )
+        return await provider.verify_webhook(event, signature)
     raise HTTPException(status_code=501, detail="billing provider not supported")

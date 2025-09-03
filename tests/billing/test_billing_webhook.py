@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import hmac
+import hashlib
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -30,7 +32,7 @@ def setup_db() -> sessionmaker[Session]:
 
 def make_client(
     monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
-) -> TestClient:
+) -> tuple[TestClient, BillingSettings]:
     async def run_db(
         fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
     ):
@@ -44,10 +46,11 @@ def make_client(
         billing_test_mode=True,
         billing_provider="dummy",
         paywall_mode="soft",
+        BILLING_WEBHOOK_SECRET="test-secret",
     )
     client = TestClient(app)
     client.app.dependency_overrides[billing._require_billing_enabled] = lambda: settings
-    return client
+    return client, settings
 
 
 def create_subscription(client: TestClient) -> str:
@@ -60,17 +63,24 @@ def test_webhook_activates_subscription(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     session_local = setup_db()
-    client = make_client(monkeypatch, session_local)
+    client, settings = make_client(monkeypatch, session_local)
     checkout_id = create_subscription(client)
     event = {
         "event_id": "evt1",
         "transaction_id": checkout_id,
         "plan": "pro",
-        "signature": f"evt1:{checkout_id}",
+        "signature": "unused",
     }
+    sig = hmac.new(
+        settings.billing_webhook_secret.encode(),
+        f"evt1:{checkout_id}".encode(),
+        hashlib.sha256,
+    ).hexdigest()
     caplog.set_level(logging.INFO)
     with client:
-        resp = client.post("/api/billing/webhook", json=event)
+        resp = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Signature": sig}
+        )
     assert resp.status_code == 200
     assert resp.json() == {"status": "processed"}
     with session_local() as session:
@@ -86,16 +96,23 @@ def test_webhook_activates_subscription(
 
 def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
-    client = make_client(monkeypatch, session_local)
+    client, settings = make_client(monkeypatch, session_local)
     checkout_id = create_subscription(client)
     event = {
         "event_id": "evt2",
         "transaction_id": checkout_id,
         "plan": "pro",
-        "signature": f"evt2:{checkout_id}",
+        "signature": "unused",
     }
+    sig = hmac.new(
+        settings.billing_webhook_secret.encode(),
+        f"evt2:{checkout_id}".encode(),
+        hashlib.sha256,
+    ).hexdigest()
     with client:
-        first = client.post("/api/billing/webhook", json=event)
+        first = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Signature": sig}
+        )
     assert first.status_code == 200
     with session_local() as session:
         sub = session.scalar(
@@ -105,7 +122,9 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
         first_end = sub.end_date
 
     with client:
-        dup = client.post("/api/billing/webhook", json=event)
+        dup = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Signature": sig}
+        )
     assert dup.status_code == 200
     assert dup.json() == {"status": "ignored"}
     with session_local() as session:
@@ -117,16 +136,19 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
-    client = make_client(monkeypatch, session_local)
+    client, settings = make_client(monkeypatch, session_local)
     checkout_id = create_subscription(client)
     event = {
         "event_id": "evt3",
         "transaction_id": checkout_id,
         "plan": "pro",
-        "signature": "bad",
+        "signature": "unused",
     }
+    bad_sig = "bad"
     with client:
-        resp = client.post("/api/billing/webhook", json=event)
+        resp = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Signature": bad_sig}
+        )
     assert resp.status_code == 400
     with session_local() as session:
         sub = session.scalar(
@@ -135,3 +157,28 @@ def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
         assert sub is not None
         assert sub.status == SubscriptionStatus.PENDING
         assert sub.end_date is None
+
+
+def test_webhook_invalid_ip(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    client, settings = make_client(monkeypatch, session_local)
+    settings.billing_webhook_ips = ["203.0.113.1"]
+    checkout_id = create_subscription(client)
+    event = {
+        "event_id": "evt4",
+        "transaction_id": checkout_id,
+        "plan": "pro",
+        "signature": "unused",
+    }
+    sig = hmac.new(
+        settings.billing_webhook_secret.encode(),
+        f"evt4:{checkout_id}".encode(),
+        hashlib.sha256,
+    ).hexdigest()
+    with client:
+        resp = client.post(
+            "/api/billing/webhook",
+            json=event,
+            headers={"X-Signature": sig, "X-Real-IP": "203.0.113.2"},
+        )
+    assert resp.status_code == 403
