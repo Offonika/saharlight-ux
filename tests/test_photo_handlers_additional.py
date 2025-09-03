@@ -36,8 +36,8 @@ async def test_photo_handler_commit_failure(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -115,8 +115,8 @@ async def test_photo_handler_run_failure(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -170,8 +170,8 @@ async def test_photo_handler_unparsed_response(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -244,8 +244,8 @@ async def test_photo_handler_unparsed_response_clears_pending_entry(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 

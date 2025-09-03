@@ -67,8 +67,8 @@ async def test_photo_handler_recognition_success_db_save(
             return None
 
     class File:
-        async def download_to_drive(self, path: str) -> None:
-            Path(path).write_bytes(b"img")
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
 
     bot = SimpleNamespace(
         get_file=AsyncMock(return_value=File()),
@@ -163,7 +163,7 @@ async def test_photo_handler_openai_error(monkeypatch: pytest.MonkeyPatch) -> No
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"thread_id": "tid", "__file_path": "p.jpg"}),
+        SimpleNamespace(user_data={"thread_id": "tid"}),
     )
 
     result = await photo_handlers.photo_handler(update, context)
@@ -229,8 +229,8 @@ async def test_photo_handler_fallback_parse_fail(
     )
 
     class File:
-        async def download_to_drive(self, path: str) -> None:
-            Path(path).write_bytes(b"x")
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"x")
 
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -325,8 +325,8 @@ async def test_photo_handler_run_timeout(
             return None
 
     class File:
-        async def download_to_drive(self, path: str) -> None:
-            Path(path).write_bytes(b"img")
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
 
     bot = SimpleNamespace(
         get_file=AsyncMock(return_value=File()),
@@ -380,8 +380,8 @@ async def test_doc_handler_valid_image(
     monkeypatch.setattr(photo_handlers, "photo_handler", photo_mock)
 
     class File:
-        async def download_to_drive(self, path: str) -> None:
-            Path(path).write_bytes(b"img")
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
 
     bot = SimpleNamespace(get_file=AsyncMock(return_value=File()))
     document = SimpleNamespace(
@@ -463,9 +463,7 @@ async def test_photo_handler_typing_action_error(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(
-            bot=bot, user_data={"thread_id": "tid", "__file_path": str(path)}
-        ),
+        SimpleNamespace(bot=bot, user_data={"thread_id": "tid"}),
     )
     result = await photo_handlers.photo_handler(update, context)
 
@@ -526,7 +524,7 @@ async def test_photo_handler_value_error(monkeypatch: pytest.MonkeyPatch) -> Non
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"thread_id": "tid", "__file_path": str(path)}),
+        SimpleNamespace(user_data={"thread_id": "tid"}),
     )
 
     result = await photo_handlers.photo_handler(update, context)

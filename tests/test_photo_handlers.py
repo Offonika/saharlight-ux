@@ -71,7 +71,7 @@ async def test_photo_handler_clears_stale_waiting_flag(
         raise ValueError("fail")
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
-    result = await photo_handlers.photo_handler(update, context, file_path="dummy.jpg")
+    result = await photo_handlers.photo_handler(update, context, file_bytes=b"img")
 
     assert result == photo_handlers.END
     assert message.texts == ["⚠️ Не удалось распознать фото. Попробуйте ещё раз."]
@@ -104,18 +104,16 @@ async def test_photo_handler_get_file_telegram_error(
         SimpleNamespace(bot=dummy_bot, user_data={}),
     )
 
-    monkeypatch.chdir(tmp_path)
-
     with caplog.at_level(logging.ERROR):
         result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
-    assert message.texts == ["⚠️ Не удалось сохранить фото. Попробуйте ещё раз."]
+    assert message.texts == ["⚠️ Не удалось скачать фото. Попробуйте ещё раз."]
     assert context.user_data is not None
     user_data = context.user_data
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
     assert photo_handlers.WAITING_GPT_TIMESTAMP not in user_data
-    assert "[PHOTO] Failed to save photo" in caplog.text
+    assert "[PHOTO] Failed to download photo" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -136,8 +134,8 @@ async def test_photo_handler_telegram_error(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 

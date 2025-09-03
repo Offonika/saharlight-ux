@@ -12,6 +12,7 @@ from telegram.ext import CallbackContext
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 
 
+# ensure OpenAI env vars for tests
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 
@@ -36,8 +37,8 @@ async def test_photo_handler_ignores_previous_runs(
 ) -> None:
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -100,7 +101,6 @@ async def test_photo_handler_ignores_previous_runs(
         ),
     )
 
-    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: dummy_client)
     monkeypatch.setattr(photo_handlers, "extract_nutrition_info", fake_extract)
