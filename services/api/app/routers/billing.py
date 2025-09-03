@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -28,6 +29,7 @@ from ..schemas.billing import (
     CheckoutSchema,
     FeatureFlags,
     SubscriptionSchema,
+    WebhookEvent,
 )
 
 router = APIRouter(prefix="/billing", tags=["Billing"])
@@ -120,6 +122,53 @@ async def subscribe(
 
     await run_db(_create_draft, sessionmaker=SessionLocal)
     return CheckoutSchema.model_validate(checkout)
+
+
+@router.post("/webhook")
+async def webhook(
+    event: WebhookEvent,
+    settings: BillingSettings = Depends(_require_billing_enabled),
+) -> dict[str, str]:
+    """Process provider webhook and activate subscription."""
+
+    logger = logging.getLogger(__name__)
+    if settings.billing_provider != "dummy":
+        raise HTTPException(status_code=501, detail="billing provider not supported")
+
+    expected_sig = f"{event.event_id}:{event.transaction_id}"
+    if event.signature != expected_sig:
+        logger.info("webhook %s invalid_signature", event.event_id)
+        raise HTTPException(status_code=400, detail="invalid signature")
+
+    now = datetime.now(timezone.utc)
+
+    def _activate(session: Session) -> bool:
+        stmt = select(Subscription).where(
+            Subscription.transaction_id == event.transaction_id
+        )
+        sub = session.scalars(stmt).first()
+        if sub is None:
+            return False
+        sub_end = sub.end_date
+        if sub_end is not None and sub_end.tzinfo is None:
+            sub_end = sub_end.replace(tzinfo=timezone.utc)
+        if (
+            sub.status == SubscriptionStatus.ACTIVE
+            and sub_end is not None
+            and sub_end > now
+        ):
+            return False
+        base = sub_end if sub_end is not None and sub_end > now else now
+        sub.plan = event.plan
+        sub.status = SubscriptionStatus.ACTIVE
+        sub.end_date = base + timedelta(days=30)
+        session.commit()
+        return True
+
+    updated = await run_db(_activate, sessionmaker=SessionLocal)
+    status = "processed" if updated else "ignored"
+    logger.info("webhook %s %s", event.event_id, status)
+    return {"status": status}
 
 
 @router.post("/mock-webhook/{checkout_id}")

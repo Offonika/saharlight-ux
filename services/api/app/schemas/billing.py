@@ -22,6 +22,17 @@ class CheckoutSchema(BaseModel):
     url: str
 
 
+class WebhookEvent(BaseModel):
+    """Webhook event payload from billing provider."""
+
+    event_id: str = Field(alias="event_id")
+    transaction_id: str = Field(alias="transaction_id")
+    plan: SubscriptionPlan
+    signature: str
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class SubscriptionSchema(BaseModel):
     """Information about a user subscription."""
 
