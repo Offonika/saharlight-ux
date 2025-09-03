@@ -634,7 +634,6 @@ __all__ = [
     "profile_chosen",
     "timezone_webapp",
     "timezone_text",
-    "timezone_webapp",
     "timezone_nav",
     "reminders_chosen",
     "reset_onboarding",
