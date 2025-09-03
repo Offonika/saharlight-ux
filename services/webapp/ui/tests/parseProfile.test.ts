@@ -15,7 +15,7 @@ const makeProfile = (
   dia: "7",
   preBolus: "10",
   roundStep: "1",
-  carbUnit: "g",
+  carbUnits: "g",
   gramsPerXe: "12",
   rapidInsulinType: "lispro" as RapidInsulin,
   maxBolus: "20",
@@ -35,7 +35,7 @@ describe("parseProfile", () => {
       dia: 7,
       preBolus: 10,
       roundStep: 1,
-      carbUnit: "g",
+      carbUnits: "g",
       gramsPerXe: 12,
       rapidInsulinType: "lispro" as RapidInsulin,
       maxBolus: 20,
@@ -63,8 +63,8 @@ describe("parseProfile", () => {
     expect(result).toBeNull();
   });
 
-  it("skips gramsPerXe validation when carb unit is grams", () => {
-    const result = parseProfile(makeProfile({ gramsPerXe: "", carbUnit: "g" }));
+  it("skips gramsPerXe validation when carbUnits is grams", () => {
+    const result = parseProfile(makeProfile({ gramsPerXe: "", carbUnits: "g" }));
     expect(result).toEqual({
       icr: 1,
       cf: 2,
@@ -74,7 +74,7 @@ describe("parseProfile", () => {
       dia: 7,
       preBolus: 10,
       roundStep: 1,
-      carbUnit: "g",
+      carbUnits: "g",
       gramsPerXe: 0,
       rapidInsulinType: "lispro" as RapidInsulin,
       maxBolus: 20,
@@ -82,9 +82,9 @@ describe("parseProfile", () => {
     });
   });
 
-  it("validates gramsPerXe when carb unit is XE", () => {
+  it("validates gramsPerXe when carbUnits is XE", () => {
     const result = parseProfile(
-      makeProfile({ gramsPerXe: "", carbUnit: "xe" }),
+      makeProfile({ gramsPerXe: "", carbUnits: "xe" }),
     );
     expect(result).toBeNull();
   });
@@ -124,7 +124,7 @@ describe("parseProfile", () => {
 
   it("allows gramsPerXe above 20", () => {
     const result = parseProfile(
-      makeProfile({ gramsPerXe: "25", carbUnit: "xe" }),
+      makeProfile({ gramsPerXe: "25", carbUnits: "xe" }),
     );
     expect(result?.gramsPerXe).toBe(25);
   });
@@ -149,7 +149,7 @@ describe("parseProfile", () => {
       dia: 0,
       preBolus: 0,
       roundStep: 1,
-      carbUnit: "g",
+      carbUnits: "g",
       gramsPerXe: 12,
       rapidInsulinType: "lispro" as RapidInsulin,
       maxBolus: 0,
@@ -177,7 +177,7 @@ describe("parseProfile", () => {
       dia: 0,
       preBolus: 0,
       roundStep: 1,
-      carbUnit: "g",
+      carbUnits: "g",
       gramsPerXe: 12,
       rapidInsulinType: "lispro" as RapidInsulin,
       maxBolus: 0,
@@ -229,7 +229,7 @@ describe("parseProfile", () => {
       dia: 7,
       preBolus: 10,
       roundStep: 1,
-      carbUnit: "g",
+      carbUnits: "g",
       gramsPerXe: 12,
       rapidInsulinType: "lispro" as RapidInsulin,
       maxBolus: 20,
@@ -250,7 +250,7 @@ describe("shouldWarnProfile", () => {
         dia: 1,
         preBolus: 0,
         roundStep: 1,
-        carbUnit: "g",
+        carbUnits: "g",
         gramsPerXe: 10,
         rapidInsulinType: "aspart" as RapidInsulin,
         maxBolus: 1,
@@ -268,7 +268,7 @@ describe("shouldWarnProfile", () => {
         dia: 1,
         preBolus: 0,
         roundStep: 1,
-        carbUnit: "g",
+        carbUnits: "g",
         gramsPerXe: 10,
         rapidInsulinType: "aspart" as RapidInsulin,
         maxBolus: 1,
@@ -286,7 +286,7 @@ describe("shouldWarnProfile", () => {
         dia: 1,
         preBolus: 0,
         roundStep: 1,
-        carbUnit: "g",
+        carbUnits: "g",
         gramsPerXe: 10,
         rapidInsulinType: "aspart" as RapidInsulin,
         maxBolus: 1,
@@ -306,7 +306,7 @@ describe("shouldWarnProfile", () => {
         dia: 13,
         preBolus: 0,
         roundStep: 1,
-        carbUnit: "g",
+        carbUnits: "g",
         gramsPerXe: 10,
         rapidInsulinType: "aspart" as RapidInsulin,
         maxBolus: 1,
@@ -324,7 +324,7 @@ describe("shouldWarnProfile", () => {
         dia: 12,
         preBolus: 0,
         roundStep: 1,
-        carbUnit: "g",
+        carbUnits: "g",
         gramsPerXe: 10,
         rapidInsulinType: "aspart" as RapidInsulin,
         maxBolus: 1,
@@ -333,7 +333,7 @@ describe("shouldWarnProfile", () => {
     ).toBe(false);
   });
 
-  it("warns when carb unit changes without ICR recalculation", () => {
+  it("warns when carbUnits change without ICR recalculation", () => {
     const original = {
       icr: 10,
       cf: 2,
@@ -343,7 +343,7 @@ describe("shouldWarnProfile", () => {
       dia: 1,
       preBolus: 0,
       roundStep: 1,
-      carbUnit: "g" as const,
+      carbUnits: "g" as const,
       gramsPerXe: 12,
       rapidInsulinType: "aspart" as RapidInsulin,
       maxBolus: 1,
@@ -351,11 +351,11 @@ describe("shouldWarnProfile", () => {
     };
 
     expect(
-      shouldWarnProfile({ ...original, carbUnit: "xe" }, original),
+      shouldWarnProfile({ ...original, carbUnits: "xe" }, original),
     ).toBe(true);
 
     expect(
-      shouldWarnProfile({ ...original, carbUnit: "xe", icr: 0.8 }, original),
+      shouldWarnProfile({ ...original, carbUnits: "xe", icr: 0.8 }, original),
     ).toBe(false);
   });
 
@@ -370,7 +370,7 @@ describe("shouldWarnProfile", () => {
         dia: 0,
         preBolus: 0,
         roundStep: 1,
-        carbUnit: "g",
+        carbUnits: "g",
         gramsPerXe: 10,
         rapidInsulinType: "aspart" as RapidInsulin,
         maxBolus: 0,

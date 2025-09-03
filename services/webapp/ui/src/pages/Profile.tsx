@@ -38,7 +38,7 @@ type ProfileForm = {
   dia: string;
   preBolus: string;
   roundStep: string;
-  carbUnit: 'g' | 'xe';
+  carbUnits: 'g' | 'xe';
   gramsPerXe: string;
   rapidInsulinType: RapidInsulin;
   maxBolus: string;
@@ -54,7 +54,7 @@ type ParsedProfile = {
   dia: number;
   preBolus: number;
   roundStep: number;
-  carbUnit: 'g' | 'xe';
+  carbUnits: 'g' | 'xe';
   gramsPerXe: number;
   rapidInsulinType: RapidInsulin;
   maxBolus: number;
@@ -76,13 +76,13 @@ export const parseProfile = (
       dia: 0,
       preBolus: 0,
       roundStep: Number(profile.roundStep.replace(/,/g, '.')),
-      carbUnit: profile.carbUnit,
+      carbUnits: profile.carbUnits,
       gramsPerXe: Number.isFinite(gramsPerXe) ? gramsPerXe : 0,
       rapidInsulinType: profile.rapidInsulinType,
       maxBolus: 0,
       afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, '.')),
     } satisfies ParsedProfile;
-    const validateGrams = parsed.carbUnit === 'xe';
+    const validateGrams = parsed.carbUnits === 'xe';
     const numbersValid =
       [
         parsed.target,
@@ -104,7 +104,7 @@ export const parseProfile = (
       parsed.low < parsed.target &&
       parsed.target < parsed.high &&
       parsed.afterMealMinutes <= 240 &&
-      (parsed.carbUnit === 'g' || parsed.carbUnit === 'xe') &&
+      (parsed.carbUnits === 'g' || parsed.carbUnits === 'xe') &&
       (!validateGrams || parsed.gramsPerXe > 0);
     return numbersValid && positiveValid && rangeValid ? parsed : null;
   }
@@ -119,13 +119,13 @@ export const parseProfile = (
     dia: Number(profile.dia.replace(/,/g, '.')),
     preBolus: Number(profile.preBolus.replace(/,/g, '.')),
     roundStep: Number(profile.roundStep.replace(/,/g, '.')),
-    carbUnit: profile.carbUnit,
+    carbUnits: profile.carbUnits,
     gramsPerXe: Number.isFinite(gramsPerXe) ? gramsPerXe : 0,
     rapidInsulinType: profile.rapidInsulinType,
     maxBolus: Number(profile.maxBolus.replace(/,/g, '.')),
     afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, '.')),
   } satisfies ParsedProfile;
-  const validateGrams = parsed.carbUnit === 'xe';
+  const validateGrams = parsed.carbUnits === 'xe';
   const numbersValid =
     [
       parsed.icr,
@@ -159,7 +159,7 @@ export const parseProfile = (
     parsed.dia <= 24 &&
     parsed.preBolus <= 60 &&
     parsed.afterMealMinutes <= 240 &&
-    (parsed.carbUnit === 'g' || parsed.carbUnit === 'xe') &&
+    (parsed.carbUnits === 'g' || parsed.carbUnits === 'xe') &&
     parsed.rapidInsulinType.length > 0 &&
     (!validateGrams || parsed.gramsPerXe > 0);
   return numbersValid && positiveValid && rangeValid ? parsed : null;
@@ -171,13 +171,13 @@ export const shouldWarnProfile = (
 ): boolean => {
   const icrCfWarn = profile.icr > 8 && profile.cf < 3;
   const diaWarn = profile.dia > 12;
-  const carbUnitWarn =
+  const carbUnitsWarn =
     !!original &&
-    original.carbUnit !== profile.carbUnit &&
+    original.carbUnits !== profile.carbUnits &&
     original.icr === profile.icr &&
     profile.icr > 0;
 
-  return icrCfWarn || diaWarn || carbUnitWarn;
+  return icrCfWarn || diaWarn || carbUnitsWarn;
 };
 
 interface ProfileFormHeaderProps {
@@ -228,7 +228,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     dia: "",
     preBolus: "",
     roundStep: "",
-    carbUnit: 'g',
+    carbUnits: 'g',
     gramsPerXe: "",
     rapidInsulinType: 'aspart',
     maxBolus: "",
@@ -310,7 +310,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           typeof data.roundStep === "number" && data.roundStep > 0
             ? data.roundStep.toString()
             : "";
-        const carbUnit = data.carbUnit === "xe" ? "xe" : "g";
+        const carbUnits = data.carbUnits === "xe" ? "xe" : "g";
         const gramsPerXe =
           typeof data.gramsPerXe === "number" && data.gramsPerXe > 0
             ? data.gramsPerXe.toString()
@@ -349,7 +349,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           dia,
           preBolus,
           roundStep,
-          carbUnit,
+          carbUnits,
           gramsPerXe,
           rapidInsulinType,
           maxBolus,
@@ -405,8 +405,8 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       setProfile((prev) => ({ ...prev, timezone: value }));
       return;
     }
-    if (field === "carbUnit") {
-      setProfile((prev) => ({ ...prev, carbUnit: value as 'g' | 'xe' }));
+    if (field === "carbUnits") {
+      setProfile((prev) => ({ ...prev, carbUnits: value as 'g' | 'xe' }));
       return;
     }
     if (field === "rapidInsulinType") {
@@ -435,7 +435,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     if (profile.dia !== original.dia) patch.dia = parsed.dia;
     if (profile.preBolus !== original.preBolus) patch.preBolus = parsed.preBolus;
     if (profile.roundStep !== original.roundStep) patch.roundStep = parsed.roundStep;
-    if (profile.carbUnit !== original.carbUnit) patch.carbUnit = parsed.carbUnit;
+    if (profile.carbUnits !== original.carbUnits) patch.carbUnits = parsed.carbUnits;
     if (profile.gramsPerXe !== original.gramsPerXe)
       patch.gramsPerXe = parsed.gramsPerXe;
     if (profile.rapidInsulinType !== original.rapidInsulinType)
@@ -835,25 +835,25 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
               {/* Carb unit and grams per XE */}
               <div>
                 <label
-                  htmlFor="carbUnit"
+                  htmlFor="carbUnits"
                   className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
                 >
-                  {t('profileHelp.carbUnit.title')}
-                  <HelpHint label="profileHelp.carbUnit.title">
-                    {t('profileHelp.carbUnit.definition')}
+                  {t('profileHelp.carbUnits.title')}
+                  <HelpHint label="profileHelp.carbUnits.title">
+                    {t('profileHelp.carbUnits.definition')}
                   </HelpHint>
                 </label>
                 <select
-                  id="carbUnit"
+                  id="carbUnits"
                   className="medical-input"
-                  value={profile.carbUnit}
-                  onChange={(e) => handleInputChange('carbUnit', e.target.value)}
+                  value={profile.carbUnits}
+                  onChange={(e) => handleInputChange('carbUnits', e.target.value)}
                 >
-                  <option value="g">{t('profileHelp.carbUnit.options.g')}</option>
-                  <option value="xe">{t('profileHelp.carbUnit.options.xe')}</option>
+                  <option value="g">{t('profileHelp.carbUnits.options.g')}</option>
+                  <option value="xe">{t('profileHelp.carbUnits.options.xe')}</option>
                 </select>
               </div>
-              {profile.carbUnit === 'xe' && (
+              {profile.carbUnits === 'xe' && (
                 <div>
                   <label
                     htmlFor="gramsPerXe"
