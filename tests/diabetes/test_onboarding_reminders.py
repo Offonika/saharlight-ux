@@ -15,6 +15,7 @@ from services.api.app.diabetes.handlers.reminder_jobs import DefaultJobQueue
 from services.api.app.diabetes.services.db import Base, Reminder, User, run_db
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.services.onboarding_state as onboarding_state
+from services.api.app.services import onboarding_events
 
 
 class DummyMessage:
@@ -79,7 +80,9 @@ class DummyContext:
 async def test_onboarding_creates_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    TestSession = sessionmaker(
+        bind=engine, autoflush=False, autocommit=False, expire_on_commit=False
+    )
 
     # patch DB session makers
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession, raising=False)
@@ -115,10 +118,44 @@ async def test_onboarding_creates_reminder(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(onboarding_state, "load_state", load_state)
     monkeypatch.setattr(onboarding_state, "complete_state", complete_state)
 
+    async def noop_log(step: str, variant: str | None) -> None:  # pragma: no cover - stub
+        pass
+
+    monkeypatch.setattr(onboarding_events, "log_event", noop_log)
+
     # ensure synchronous DB operations
     monkeypatch.setattr(reminder_handlers, "commit", commit, raising=False)
     monkeypatch.setattr(reminder_handlers, "run_db", None, raising=False)
     monkeypatch.setattr(onboarding, "run_db", run_db, raising=False)
+
+    async def create_reminder_stub(
+        user_id: int, code: str, job_queue: DefaultJobQueue | None
+    ) -> Reminder | None:
+        mapping = {
+            "sugar_08": ("sugar", time(8, 0)),
+        }
+        kind = mapping.get(code)
+        if kind is None:
+            return None
+        rem = Reminder(telegram_id=user_id, type=kind[0])
+        rem.time = kind[1]
+        rem.kind = "at_time"
+        with TestSession() as session:
+            session.add(rem)
+            session.commit()
+        return rem
+
+    monkeypatch.setattr(
+        reminder_handlers,
+        "create_reminder_from_preset",
+        create_reminder_stub,
+    )
+    monkeypatch.setattr(
+        onboarding.reminder_handlers,
+        "create_reminder_from_preset",
+        create_reminder_stub,
+        raising=False,
+    )
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))

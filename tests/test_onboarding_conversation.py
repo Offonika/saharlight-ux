@@ -9,6 +9,7 @@ from telegram.ext import CallbackContext, ConversationHandler
 
 import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
 import services.api.app.services.onboarding_state as onboarding_state
+from services.api.app.services import onboarding_events
 
 
 @pytest.fixture(autouse=True)
@@ -43,6 +44,11 @@ def fake_onboarding_state(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(onboarding_state, "save_state", save_state)
     monkeypatch.setattr(onboarding_state, "load_state", load_state)
     monkeypatch.setattr(onboarding_state, "complete_state", complete_state)
+
+    async def noop_log(step: str, variant: str | None) -> None:  # pragma: no cover - stub
+        pass
+
+    monkeypatch.setattr(onboarding_events, "log_event", noop_log)
 
     async def noop_mark(user_id: int) -> None:  # pragma: no cover - no logic
         pass
@@ -100,7 +106,7 @@ async def test_happy_path() -> None:
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None),
+        SimpleNamespace(user_data={}, job_queue=None, args=["A"]),
     )
 
     state = await onboarding.start_command(update, context)
@@ -152,7 +158,7 @@ async def test_navigation_buttons() -> None:
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None),
+        SimpleNamespace(user_data={}, job_queue=None, args=["A"]),
     )
 
     state = await onboarding.start_command(update, context)
@@ -190,13 +196,29 @@ async def test_navigation_buttons() -> None:
 
 
 @pytest.mark.asyncio
+async def test_variant_b_order() -> None:
+    message = DummyMessage()
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, job_queue=None, args=["B"]),
+    )
+
+    state = await onboarding.start_command(update, context)
+    assert state == onboarding.TIMEZONE
+    assert message.replies[-1].startswith("Шаг 1/3")
+
+
+@pytest.mark.asyncio
 async def test_resume_from_saved_step() -> None:
     user = SimpleNamespace(id=42)
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message, effective_user=user))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, args=[], job_queue=None),
+        SimpleNamespace(user_data={}, args=["A"], job_queue=None),
     )
     await onboarding.start_command(update, context)
     query = DummyQuery(message, f"{onboarding.CB_PROFILE_PREFIX}t2")
@@ -207,7 +229,7 @@ async def test_resume_from_saved_step() -> None:
     update2 = cast(Update, SimpleNamespace(message=message2, effective_user=user))
     context2 = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, args=[], job_queue=None),
+        SimpleNamespace(user_data={}, args=["A"], job_queue=None),
     )
     state = await onboarding.start_command(update2, context2)
     assert state == onboarding.TIMEZONE

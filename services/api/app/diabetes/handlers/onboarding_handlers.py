@@ -31,7 +31,8 @@ from telegram.ext import (
 
 from services.api.app.diabetes.services.db import SessionLocal, User, run_db
 from services.api.app.diabetes.services.repository import commit
-from services.api.app.services import onboarding_state
+from services.api.app.services import onboarding_events, onboarding_state
+from services.api.app.utils.ab import choose_variant
 from services.api.app.services.profile import save_timezone
 from services.api.app.types import SessionProtocol
 from sqlalchemy.orm import Session
@@ -74,7 +75,7 @@ def _nav_buttons(
     return buttons
 
 
-def _profile_keyboard() -> InlineKeyboardMarkup:
+def _profile_keyboard(*, back: bool = False) -> InlineKeyboardMarkup:
     options = [
         ("СД2 без инсулина", "t2_no"),
         ("СД2 на инсулине", "t2_ins"),
@@ -86,17 +87,17 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text, callback_data=f"{CB_PROFILE_PREFIX}{code}")]
         for text, code in options
     ]
-    rows.append(_nav_buttons())
+    rows.append(_nav_buttons(back=back))
     return InlineKeyboardMarkup(rows)
 
 
-def _timezone_keyboard() -> InlineKeyboardMarkup:
+def _timezone_keyboard(*, back: bool = True) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     auto_btn = build_timezone_webapp_button()
     if auto_btn:
         auto_btn.text = "Автоопределить (WebApp)"
         rows.append([auto_btn])
-    rows.append(_nav_buttons(back=True))
+    rows.append(_nav_buttons(back=back))
     return InlineKeyboardMarkup(rows)
 
 
@@ -137,7 +138,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             return await _prompt_timezone(message, user_id, user_data, variant)
         if state.step == REMINDERS:
             return await _prompt_reminders(message, user_id, user_data, variant)
+    if variant is None:
+        variant = choose_variant(user_id)
     user_data["variant"] = variant
+    await onboarding_events.log_event("start", variant)
+    if variant == "B":
+        return await _prompt_timezone(message, user_id, user_data, variant)
     return await _prompt_profile(message, user_id, user_data, variant)
 
 
@@ -164,13 +170,22 @@ async def profile_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 return await _prompt_reminders(message, user_id, user_data, variant)
     await query.answer()
     data = query.data
+    if data == CB_BACK and variant == "B":
+        return await _prompt_timezone(message, user_id, user_data, variant)
     if data == CB_SKIP:
+        if variant == "B":
+            return await _prompt_reminders(message, user_id, user_data, variant)
         return await _prompt_timezone(message, user_id, user_data, variant)
     if data == CB_CANCEL:
+        await onboarding_events.log_event("cancel", variant)
         await message.reply_text("Отменено.")
         return ConversationHandler.END
     if data.startswith(CB_PROFILE_PREFIX):
         user_data["profile"] = data[len(CB_PROFILE_PREFIX) :]
+        step = 2 if variant == "B" else 1
+        await onboarding_events.log_event(f"step{step}", variant)
+        if variant == "B":
+            return await _prompt_reminders(message, user_id, user_data, variant)
         return await _prompt_timezone(message, user_id, user_data, variant)
     return ConversationHandler.END
 
@@ -178,10 +193,11 @@ async def profile_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def _prompt_timezone(
     message: Message, user_id: int, user_data: dict[str, Any], variant: str | None
 ) -> int:
+    step_num = 1 if variant == "B" else 2
     await onboarding_state.save_state(user_id, TIMEZONE, user_data, variant)
     await message.reply_text(
-        f"{_progress(2)}. Введите часовой пояс (например, Europe/Moscow).",
-        reply_markup=_timezone_keyboard(),
+        f"{_progress(step_num)}. Введите часовой пояс (например, Europe/Moscow).",
+        reply_markup=_timezone_keyboard(back=variant != "B"),
     )
     return TIMEZONE
 
@@ -218,6 +234,10 @@ async def timezone_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     user_data["timezone"] = raw
     await onboarding_state.save_state(user_id, TIMEZONE, user_data, variant)
     await save_timezone(user_id, raw, auto=False)
+    step = 1 if variant == "B" else 2
+    await onboarding_events.log_event(f"step{step}", variant)
+    if variant == "B":
+        return await _prompt_profile(message, user_id, user_data, variant)
     return await _prompt_reminders(message, user_id, user_data, variant)
 
 
@@ -247,6 +267,10 @@ async def timezone_webapp(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 return await _prompt_reminders(message, user_id, user_data, variant)
     web_app = cast(WebAppData, message.web_app_data)
     user_data["timezone"] = web_app.data.strip() or "Europe/Moscow"
+    step = 1 if variant == "B" else 2
+    await onboarding_events.log_event(f"step{step}", variant)
+    if variant == "B":
+        return await _prompt_profile(message, user_id, user_data, variant)
     return await _prompt_reminders(message, user_id, user_data, variant)
 
 
@@ -276,8 +300,13 @@ async def timezone_nav(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     if data == CB_BACK:
         return await _prompt_profile(message, user_id, user_data, variant)
     if data == CB_SKIP:
+        step = 1 if variant == "B" else 2
+        await onboarding_events.log_event(f"step{step}", variant)
+        if variant == "B":
+            return await _prompt_profile(message, user_id, user_data, variant)
         return await _prompt_reminders(message, user_id, user_data, variant)
     if data == CB_CANCEL:
+        await onboarding_events.log_event("cancel", variant)
         await message.reply_text("Отменено.")
         return ConversationHandler.END
     return TIMEZONE
@@ -286,10 +315,12 @@ async def timezone_nav(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 async def _prompt_profile(
     message: Message, user_id: int, user_data: dict[str, Any], variant: str | None
 ) -> int:
+    step_num = 2 if variant == "B" else 1
     await onboarding_state.save_state(user_id, PROFILE, user_data, variant)
+    hint = "Выберите профиль:" if variant != "B" else "Теперь выберите профиль:" 
     await message.reply_text(
-        f"{_progress(1)}. Выберите профиль:",
-        reply_markup=_profile_keyboard(),
+        f"{_progress(step_num)}. {hint}",
+        reply_markup=_profile_keyboard(back=variant == "B"),
     )
     return PROFILE
 
@@ -298,8 +329,9 @@ async def _prompt_reminders(
     message: Message, user_id: int, user_data: dict[str, Any], variant: str | None
 ) -> int:
     await onboarding_state.save_state(user_id, REMINDERS, user_data, variant)
+    hint = "Выберите напоминания:" if variant != "B" else "Настройте напоминания:"
     await message.reply_text(
-        f"{_progress(3)}. Выберите напоминания:",
+        f"{_progress(3)}. {hint}",
         reply_markup=_reminders_keyboard(),
     )
     return REMINDERS
@@ -329,9 +361,12 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     await query.answer()
     data = query.data
     if data == CB_BACK:
+        if variant == "B":
+            return await _prompt_profile(message, user_id, user_data, variant)
         return await _prompt_timezone(message, user_id, user_data, variant)
     if data in {CB_SKIP, CB_DONE}:
         await onboarding_state.save_state(user_id, REMINDERS, user_data, variant)
+        await onboarding_events.log_event("step3", variant)
         return await _finish(
             message,
             user_id,
@@ -339,6 +374,7 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             cast("DefaultJobQueue | None", context.job_queue),
         )
     if data == CB_CANCEL:
+        await onboarding_events.log_event("cancel", variant)
         await message.reply_text("Отменено.")
         return ConversationHandler.END
     if data.startswith(CB_REMINDER_PREFIX):
@@ -363,6 +399,9 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return ConversationHandler.END
     message = cast(Message, query.message)
     await query.answer()
+    user_data = cast(dict[str, Any], context.user_data)
+    variant = cast(str | None, user_data.get("variant"))
+    await onboarding_events.log_event("cancel", variant)
     await onboarding_state.complete_state(user.id)
     await _mark_user_complete(user.id)
     await message.reply_poll("Пропущено", ["OK"])
@@ -384,6 +423,7 @@ async def onboarding_reminders(
     user_data = cast(dict[str, Any], getattr(context, "user_data", {}))
     variant = cast(str | None, user_data.get("variant"))
     await onboarding_state.save_state(user.id, REMINDERS, user_data, variant)
+    await onboarding_events.log_event("step3", variant)
     return await _finish(
         message,
         user.id,
@@ -398,6 +438,8 @@ async def _finish(
     user_data: dict[str, Any],
     job_queue: DefaultJobQueue | None,
 ) -> int:
+    variant = cast(str | None, user_data.get("variant"))
+    await onboarding_events.log_event("finish", variant)
     await onboarding_state.complete_state(user_id)
     await _mark_user_complete(user_id)
     reminders = []
