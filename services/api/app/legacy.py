@@ -2,6 +2,7 @@ import logging
 from datetime import time
 
 from fastapi import APIRouter, HTTPException, Query
+from sqlalchemy import exc as sqlalchemy_exc
 from sqlalchemy.orm import Session
 
 from .routers.reminders import router as reminders_router
@@ -56,6 +57,9 @@ async def profiles_get(
     except HTTPException:
         logger.warning("failed to fetch profile %s", tid)
         raise
+    except (ConnectionError, sqlalchemy_exc.OperationalError) as exc:
+        logger.exception("failed to fetch profile %s", tid)
+        raise HTTPException(status_code=503, detail="database temporarily unavailable") from exc
     except Exception as exc:
         logger.exception("failed to fetch profile %s", tid)
         raise HTTPException(status_code=500, detail="database connection failed") from exc
