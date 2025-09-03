@@ -132,7 +132,18 @@ async def test_history_view_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
         datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc),
     ]:
         day_str = d.strftime("%d.%m %H:%M")
-        expected_texts.append(f"<b>{day_str}</b>\n🍭 Сахар: <b>—</b>\n🍞 Углеводы: <b>—</b>\n💉 Доза: <b>—</b>")
+        expected_texts.append(
+            (
+                f"<b>{day_str}</b>\n"
+                "🍭 Сахар: <b>—</b>\n"
+                "🍞 Углеводы: <b>—</b>\n"
+                "💉 Доза: <b>—</b>\n"
+                "⚖️ Вес: <b>—</b>\n"
+                "🥚 Белки: <b>—</b>\n"
+                "🥓 Жиры: <b>—</b>\n"
+                "🔥 Калории: <b>—</b>"
+            )
+        )
     for text, kwargs, expected in zip(message.replies[1:-1], message.kwargs[1:-1], expected_texts):
         markup = kwargs.get("reply_markup")
         assert kwargs.get("parse_mode") == "HTML"

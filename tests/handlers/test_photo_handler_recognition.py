@@ -17,7 +17,6 @@ os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
-from services.api.app.config import settings
 
 
 class DummyPhoto:
@@ -161,9 +160,14 @@ async def test_photo_handler_openai_error(monkeypatch: pytest.MonkeyPatch) -> No
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
+    class File:
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
+
+    bot = SimpleNamespace(get_file=AsyncMock(return_value=File()))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"thread_id": "tid"}),
+        SimpleNamespace(user_data={"thread_id": "tid"}, bot=bot),
     )
 
     result = await photo_handlers.photo_handler(update, context)
@@ -404,9 +408,7 @@ async def test_doc_handler_valid_image(
     assert result == photo_handlers.PHOTO_SUGAR
     assert context.user_data == {}
     assert message.photo is None
-    photo_mock.assert_awaited_once_with(
-        update, context, file_path=f"{settings.photos_dir}/1_uid.png"
-    )
+    photo_mock.assert_awaited_once_with(update, context, file_bytes=b"img")
 
 
 @pytest.mark.asyncio
@@ -465,7 +467,7 @@ async def test_photo_handler_typing_action_error(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data={"thread_id": "tid"}),
     )
-    result = await photo_handlers.photo_handler(update, context)
+    result = await photo_handlers.photo_handler(update, context, path.read_bytes())
 
     assert result == photo_handlers.PHOTO_SUGAR
     assert any("На фото" in t for t in message.texts)
@@ -527,7 +529,7 @@ async def test_photo_handler_value_error(monkeypatch: pytest.MonkeyPatch) -> Non
         SimpleNamespace(user_data={"thread_id": "tid"}),
     )
 
-    result = await photo_handlers.photo_handler(update, context)
+    result = await photo_handlers.photo_handler(update, context, path.read_bytes())
 
     assert result == photo_handlers.END
     assert message.texts[-1] == "⚠️ Не удалось распознать фото. Попробуйте ещё раз."

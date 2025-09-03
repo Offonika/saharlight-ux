@@ -5,6 +5,7 @@ import pytest
 from services.api.app.diabetes.utils.functions import (
     _safe_float,
     extract_nutrition_info,
+    extract_macros_info,
     smart_input,
 )
 
@@ -101,6 +102,19 @@ def test_extract_nutrition_info_first_line_xe_only() -> None:
 
 def test_extract_nutrition_info_non_string() -> None:
     assert extract_nutrition_info(123) == (None, None)
+
+
+def test_extract_macros_info_simple() -> None:
+    text = "вес: 100 г белки: 20 г жиры: 10 г калории: 200"
+    weight, protein, fat, calories = extract_macros_info(text)
+    assert weight == 100
+    assert protein == 20
+    assert fat == 10
+    assert calories == 200
+
+
+def test_extract_macros_info_non_string() -> None:
+    assert extract_macros_info(123) == (None, None, None, None)
 
 
 def test_smart_input_basic() -> None:

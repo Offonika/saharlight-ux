@@ -47,6 +47,13 @@ XE_RANGE_RE = re.compile(
 CARBS_PM_RE = re.compile(rf"({NUMBER_RE})\s*(?:г)?\s*±\s*({NUMBER_RE})\s*г", re.IGNORECASE)
 CARBS_RANGE_RE = re.compile(rf"{DASH_RANGE_RE.pattern}\s*г", re.IGNORECASE)
 
+WEIGHT_RE = re.compile(rf"(?:вес|масса)[^\d]*({NUMBER_RE})\s*г", re.IGNORECASE)
+PROTEIN_RE = re.compile(rf"белк[аи][^\d]*({NUMBER_RE})\s*г", re.IGNORECASE)
+FAT_RE = re.compile(rf"жир[ыа]?[^\d]*({NUMBER_RE})\s*г", re.IGNORECASE)
+CALORIES_RE = re.compile(
+    rf"(?:ккал|калор(?:ий|ия|и))[^0-9]*({NUMBER_RE})", re.IGNORECASE
+)
+
 # Patterns for ``smart_input``.
 BAD_SUGAR_UNIT_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*{NUMBER_RE}\s*(?:xe|хе|ед)\b(?!\s*[\d=:])")
 BAD_XE_UNIT_RE = re.compile(
@@ -201,6 +208,21 @@ def extract_nutrition_info(text: object) -> tuple[float | None, float | None]:
             if first is not None and second is not None:
                 carbs = (first + second) / 2
     return carbs, xe
+
+
+def extract_macros_info(
+    text: object,
+) -> tuple[float | None, float | None, float | None, float | None]:
+    """Извлекает массу, белки, жиры и калории из произвольной строки."""
+
+    if not isinstance(text, str):
+        return (None, None, None, None)
+
+    weight = _safe_float(m.group(1)) if (m := WEIGHT_RE.search(text)) else None
+    protein = _safe_float(m.group(1)) if (m := PROTEIN_RE.search(text)) else None
+    fat = _safe_float(m.group(1)) if (m := FAT_RE.search(text)) else None
+    calories = _safe_float(m.group(1)) if (m := CALORIES_RE.search(text)) else None
+    return weight, protein, fat, calories
 
 
 def smart_input(message: str) -> dict[str, float | None]:

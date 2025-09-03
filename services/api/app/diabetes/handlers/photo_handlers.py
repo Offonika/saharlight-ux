@@ -19,7 +19,10 @@ from services.api.app.diabetes.services.gpt_client import (
     send_message,
 )
 from services.api.app.diabetes.services.repository import CommitError, commit
-from services.api.app.diabetes.utils.functions import extract_nutrition_info
+from services.api.app.diabetes.utils.functions import (
+    extract_nutrition_info,
+    extract_macros_info,
+)
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 from . import EntryData, UserData
@@ -256,6 +259,7 @@ async def photo_handler(
         )
 
         carbs_g, xe = extract_nutrition_info(vision_text)
+        weight_g, protein_g, fat_g, calories_kcal = extract_macros_info(vision_text)
         if carbs_g is None and xe is None:
             logger.debug(
                 "[VISION][NO_PARSE] Ответ ассистента: %r для пользователя: %s",
@@ -280,7 +284,17 @@ async def photo_handler(
                 "event_time": datetime.datetime.now(datetime.timezone.utc),
             },
         )
-        pending_entry.update({"carbs_g": carbs_g, "xe": xe, "photo_path": None})
+        pending_entry.update(
+            {
+                "carbs_g": carbs_g,
+                "xe": xe,
+                "photo_path": None,
+                "weight_g": weight_g,
+                "protein_g": protein_g,
+                "fat_g": fat_g,
+                "calories_kcal": calories_kcal,
+            }
+        )
         user_data["pending_entry"] = pending_entry
         if status_message and hasattr(status_message, "delete"):
             try:

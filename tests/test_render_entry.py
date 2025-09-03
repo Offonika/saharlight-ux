@@ -15,6 +15,10 @@ def make_entry(**kwargs: Any) -> EntryLike:
         "carbs_g": None,
         "xe": None,
         "dose": 1.0,
+        "weight_g": None,
+        "protein_g": None,
+        "fat_g": None,
+        "calories_kcal": None,
     }
     defaults.update(kwargs)
     return cast(EntryLike, SimpleNamespace(**defaults))
@@ -43,3 +47,17 @@ def test_render_entry_escapes_html() -> None:
     entry: EntryLike = make_entry(dose="<script>")
     text = render_entry(entry)
     assert "&lt;script&gt;" in text
+
+
+def test_render_entry_shows_macros() -> None:
+    entry: EntryLike = make_entry(
+        weight_g=100,
+        protein_g=20,
+        fat_g=10,
+        calories_kcal=200,
+    )
+    text = render_entry(entry)
+    assert "⚖️ Вес: <b>100 г</b>" in text
+    assert "🥚 Белки: <b>20 г</b>" in text
+    assert "🥓 Жиры: <b>10 г</b>" in text
+    assert "🔥 Калории: <b>200 ккал</b>" in text
