@@ -40,7 +40,9 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message is None:
         return
-    await message.reply_text("📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard())
+    await message.reply_text(
+        "📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard()
+    )
 
 
 async def photo_handler(
@@ -89,6 +91,7 @@ async def photo_handler(
         except (AttributeError, IndexError, TypeError):
             await message.reply_text("❗ Файл не распознан как изображение.")
             user_data.pop(WAITING_GPT_FLAG, None)
+            user_data.pop(WAITING_GPT_TIMESTAMP, None)
             return END
 
         os.makedirs("photos", exist_ok=True)
@@ -100,6 +103,7 @@ async def photo_handler(
             logger.exception("[PHOTO] Failed to save photo: %s", exc)
             await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
             user_data.pop(WAITING_GPT_FLAG, None)
+            user_data.pop(WAITING_GPT_TIMESTAMP, None)
             return END
 
     logger.info("[PHOTO] Saved to %s", file_path)
@@ -117,7 +121,9 @@ async def photo_handler(
                     try:
                         commit(session)
                     except CommitError:
-                        await message.reply_text("⚠️ Не удалось сохранить данные пользователя.")
+                        await message.reply_text(
+                            "⚠️ Не удалось сохранить данные пользователя."
+                        )
                         return END
             user_data["thread_id"] = thread_id
 
@@ -140,14 +146,18 @@ async def photo_handler(
             )
             user_data.pop(WAITING_GPT_FLAG, None)
             return END
-        status_message = await message.reply_text("🔍 Анализирую фото (это займёт 5‑10 с)…")
+        status_message = await message.reply_text(
+            "🔍 Анализирую фото (это займёт 5‑10 с)…"
+        )
         chat_id = getattr(message, "chat_id", None)
 
         async def send_typing_action() -> None:
             if not chat_id:
                 return
             try:
-                await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+                await context.bot.send_chat_action(
+                    chat_id=chat_id, action=ChatAction.TYPING
+                )
             except TelegramError as exc:
                 logger.warning(
                     "[PHOTO][TYPING_ACTION] Failed to send typing action: %s",
@@ -190,7 +200,9 @@ async def photo_handler(
                         exc,
                     )
                     raise
-            await message.reply_text("⚠️ Время ожидания Vision истекло. Попробуйте позже.")
+            await message.reply_text(
+                "⚠️ Время ожидания Vision истекло. Попробуйте позже."
+            )
             return END
 
         if run.status != "completed":
@@ -288,11 +300,15 @@ async def photo_handler(
 
     except OSError as exc:
         logger.exception("[PHOTO] File processing error: %s", exc)
-        await message.reply_text("⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз.")
+        await message.reply_text(
+            "⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз."
+        )
         return END
     except OpenAIError as exc:
         logger.exception("[PHOTO] Vision API error: %s", exc)
-        await message.reply_text("⚠️ Vision не смог обработать фото. Попробуйте ещё раз.")
+        await message.reply_text(
+            "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
+        )
         return END
     except ValueError as exc:
         logger.exception("[PHOTO] Parsing error: %s", exc)
