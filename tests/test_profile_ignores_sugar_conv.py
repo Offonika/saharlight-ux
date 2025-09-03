@@ -14,6 +14,7 @@ import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F40
 from services.api.app.diabetes.handlers import profile as profile_handlers
 import services.api.app.diabetes.services.db as db
 from services.api.app.diabetes.services.db import Base, Entry, User
+from tests.utils.profile_factory import make_profile
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -65,6 +66,7 @@ async def test_profile_input_not_logged_as_sugar(
 
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
+        session.add(make_profile(telegram_id=1))
         session.commit()
 
     # Start sugar conversation
@@ -100,7 +102,10 @@ async def test_profile_input_not_logged_as_sugar(
     )
     result = await profile_handlers.profile_command(prof_update, prof_context)
     assert result == profile_handlers.END
-    assert "Ваш профиль" in prof_msg.replies[0]
+    reply = prof_msg.replies[0]
+    assert "💉 *Болус*" in reply
+    assert "🍽 *Углеводы*" in reply
+    assert "🛡 *Безопасность*" in reply
     assert "sugar_active" not in shared_chat_data
 
     # Attempt to send a value; sugar conversation should be inactive
