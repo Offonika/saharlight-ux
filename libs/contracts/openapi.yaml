@@ -798,10 +798,14 @@ components:
           type: integer
           title: Telegram Id
         icr:
-          type: number
+          anyOf:
+          - type: number
+          - type: 'null'
           title: Icr
         cf:
-          type: number
+          anyOf:
+          - type: number
+          - type: 'null'
           title: Cf
           description: Alias `cf` for compatibility.
         target:
@@ -848,7 +852,6 @@ components:
       type: object
       required:
       - telegramId
-      - icr
       - target
       - low
       - high

@@ -14,6 +14,7 @@ def test_validate_profile_allows_computed_target() -> None:
         cf=1.0,
         low=4.0,
         high=6.0,
+        therapyType="insulin",
     )
     _validate_profile(data)
     assert data.target == 5.0
@@ -28,6 +29,7 @@ def test_validate_profile_rejects_target_outside_limits(target: Any) -> None:
         target=target,
         low=4.0,
         high=7.0,
+        therapyType="insulin",
     )
     with pytest.raises(ValueError) as exc:
         _validate_profile(data)
@@ -55,6 +57,7 @@ def test_validate_profile_rejects_invalid_values(
         "target": 5.0,
         "low": 4.0,
         "high": 7.0,
+        "therapyType": "insulin",
     }
     if field == "low_high":
         kwargs["low"], kwargs["high"] = value
@@ -82,6 +85,7 @@ def test_validate_profile_rejects_missing_fields(field: str, message: str) -> No
         "cf": 1.0,
         "low": 4.0,
         "high": 7.0,
+        "therapyType": "insulin",
     }
     kwargs.pop(field)
     data = ProfileSchema(**kwargs)
@@ -102,7 +106,20 @@ def test_profile_rejects_malformed_quiet_times(field: str, value: str) -> None:
         "target": 5.0,
         "low": 4.0,
         "high": 7.0,
+        "therapyType": "insulin",
     }
     kwargs[field] = value
     with pytest.raises(ValidationError):
         ProfileSchema(**kwargs)
+
+
+@pytest.mark.parametrize("therapy_type", ["tablets", "none"])
+def test_validate_profile_skips_icr_cf_for_non_insulin(therapy_type: str) -> None:
+    data = ProfileSchema(
+        telegramId=1,
+        target=5.0,
+        low=4.0,
+        high=6.0,
+        therapyType=therapy_type,
+    )
+    _validate_profile(data)
