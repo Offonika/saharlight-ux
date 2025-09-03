@@ -154,7 +154,7 @@ async def test_get_coords_and_link_custom_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
-        assert url == "http://custom"
+        assert url == "https://custom"
 
         class Resp:
             status_code = 200
@@ -170,9 +170,25 @@ async def test_get_coords_and_link_custom_source(
 
     monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
 
-    coords, link = await utils.get_coords_and_link("http://custom")
+    coords, link = await utils.get_coords_and_link("https://custom")
     assert coords == "1,2"
     assert link == "https://maps.google.com/?q=1,2"
+
+
+@pytest.mark.asyncio
+async def test_get_coords_and_link_insecure_source(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
+        raise AssertionError("should not be called")
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+
+    with caplog.at_level(logging.WARNING):
+        coords, link = await utils.get_coords_and_link("http://insecure")
+
+    assert coords is None and link is None
+    assert any("Insecure URL scheme" in msg for msg in caplog.messages)
 
 
 @pytest.mark.parametrize(

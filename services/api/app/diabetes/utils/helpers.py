@@ -3,6 +3,7 @@ import os
 import re
 from datetime import datetime, time, timedelta
 from json import JSONDecodeError
+from urllib.parse import urlparse
 
 import httpx
 
@@ -68,6 +69,9 @@ async def get_coords_and_link(
     """Return approximate coordinates and Google Maps link based on IP."""
 
     url = source_url or GEO_DATA_URL
+    if urlparse(url).scheme.lower() != "https":
+        logger.warning("Insecure URL scheme: %s", url)
+        return None, None
 
     try:
         async with httpx.AsyncClient() as client:
