@@ -27,7 +27,11 @@ from services.api.app.diabetes.handlers.registration import (
 )
 from services.api.app.diabetes.handlers.router import callback_router
 from services.api.app.diabetes.handlers.onboarding_handlers import start_command
-from services.api.app.diabetes.handlers import security_handlers, reminder_handlers
+from services.api.app.diabetes.handlers import (
+    security_handlers,
+    reminder_handlers,
+    billing_handlers,
+)
 
 
 def test_register_handlers_attaches_expected_handlers(
@@ -71,6 +75,8 @@ def test_register_handlers_attaches_expected_handlers(
     )
     assert gpt_handlers.chat_with_gpt in callbacks
     assert security_handlers.hypo_alert_faq in callbacks
+    assert billing_handlers.trial_command in callbacks
+    assert billing_handlers.upgrade_command in callbacks
     # Reminder handlers should be registered
     assert any(
         isinstance(h, CallbackQueryHandler)
