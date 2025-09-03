@@ -15,6 +15,13 @@ class FeatureFlags(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class CheckoutSchema(BaseModel):
+    """Checkout information returned by billing provider."""
+
+    id: str
+    url: str
+
+
 class SubscriptionSchema(BaseModel):
     """Information about a user subscription."""
 
