@@ -5,7 +5,7 @@ import { MedicalHeader } from '@/components/MedicalHeader';
 import { useTelegram } from '@/hooks/useTelegram';
 import MedicalButton from '@/components/MedicalButton';
 import { StatCard } from '@/components/StatCard';
-import { fetchDayStats, fallbackDayStats } from '@/api/stats';
+import { fetchDayStats } from '@/api/stats';
 
 const menuItems = [
   {
@@ -26,10 +26,7 @@ const Home = () => {
     queryKey: ['day-stats', user?.id],
     queryFn: () => fetchDayStats(user?.id ?? 0),
     enabled: !!user?.id,
-    placeholderData: fallbackDayStats,
   });
-
-  const dayStats = stats ?? fallbackDayStats;
 
   const handleTileClick = (route: string) => {
     navigate(route);
@@ -118,21 +115,21 @@ const Home = () => {
           </p>
         )}
         <div className="mt-6 grid grid-cols-3 gap-3">
-          <StatCard 
-            value={dayStats.sugar} 
-            unit="ммоль/л" 
+          <StatCard
+            value={stats?.sugar ?? 0}
+            unit="ммоль/л"
             label="Сахар"
             variant="sugar"
           />
-          <StatCard 
-            value={dayStats.breadUnits} 
-            unit="ХЕ" 
+          <StatCard
+            value={stats?.breadUnits ?? 0}
+            unit="ХЕ"
             label="Хлебные единицы"
             variant="bread"
           />
-          <StatCard 
-            value={dayStats.insulin} 
-            unit="ед." 
+          <StatCard
+            value={stats?.insulin ?? 0}
+            unit="ед."
             label="Инсулин"
             variant="insulin"
           />
