@@ -35,7 +35,7 @@ _client: OpenAI | None = None
 _client_lock = threading.Lock()
 
 _async_client: AsyncOpenAI | None = None
-_async_client_lock = asyncio.Lock()
+_async_client_lock: asyncio.Lock | None = None
 
 
 def _get_client() -> OpenAI:
@@ -50,6 +50,9 @@ def _get_client() -> OpenAI:
 async def _get_async_client() -> AsyncOpenAI:
     global _async_client
     if _async_client is None:
+        global _async_client_lock
+        if _async_client_lock is None:
+            _async_client_lock = asyncio.Lock()
         async with _async_client_lock:
             if _async_client is None:
                 _async_client = get_async_openai_client()
@@ -63,6 +66,9 @@ async def dispose_openai_clients() -> None:
         if _client is not None:
             _client.close()
             _client = None
+    global _async_client_lock
+    if _async_client_lock is None:
+        _async_client_lock = asyncio.Lock()
     async with _async_client_lock:
         if _async_client is not None:
             await _async_client.close()
