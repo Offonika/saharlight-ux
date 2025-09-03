@@ -142,9 +142,7 @@ def _reminders_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
-async def _log_event(
-    user_id: int, name: str, step: int, variant: str | None
-) -> None:
+async def _log_event(user_id: int, name: str, step: int, variant: str | None) -> None:
     def _log(session: SessionProtocol) -> None:
         log_onboarding_event(cast(Session, session), user_id, name, step, variant)
 
@@ -492,10 +490,9 @@ async def _finish(
             user_id, code, job_queue
         )
         if rem is not None:
-            action = (
-                getattr(rem, "title", None)
-                or reminder_handlers.REMINDER_ACTIONS.get(rem.type, rem.type)
-            )
+            action = getattr(
+                rem, "title", None
+            ) or reminder_handlers.REMINDER_ACTIONS.get(rem.type, rem.type)
             if action.startswith("Замерить "):
                 action = action.split(" ", 1)[1]
             time_val = getattr(rem, "time", None)
@@ -607,7 +604,6 @@ __all__ = [
     "profile_chosen",
     "timezone_webapp",
     "timezone_text",
-    "timezone_webapp",
     "timezone_nav",
     "reminders_chosen",
     "reset_onboarding",
