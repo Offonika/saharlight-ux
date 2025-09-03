@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useTelegram } from '@/hooks/useTelegram';
-import { fetchAnalytics, fallbackAnalytics } from '@/api/stats';
+import { fetchAnalytics } from '@/api/stats';
 
 const Analytics = () => {
   const navigate = useNavigate();
@@ -14,10 +14,9 @@ const Analytics = () => {
     queryKey: ['analytics', user?.id],
     queryFn: () => fetchAnalytics(user?.id ?? 0),
     enabled: !!user?.id,
-    placeholderData: fallbackAnalytics,
   });
 
-  const chartData = data ?? fallbackAnalytics;
+  const chartData = data ?? [];
 
   return (
     <div className="min-h-screen bg-background">
