@@ -43,3 +43,12 @@ async def test_load_state_expired(session_local: sessionmaker[SASession]) -> Non
     assert state is None
     with session_local() as session:
         assert session.get(onboarding_state.OnboardingState, 1) is None
+
+
+@pytest.mark.asyncio
+async def test_complete_state(session_local: sessionmaker[SASession]) -> None:
+    await onboarding_state.save_state(1, 1, {})
+    await onboarding_state.complete_state(1)
+    state = await onboarding_state.load_state(1)
+    assert state is not None
+    assert state.completed_at is not None
