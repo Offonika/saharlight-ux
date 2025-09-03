@@ -10,7 +10,6 @@ import { validate, hasErrors } from "../logic/validate";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
 import { useTelegram } from "../../../hooks/useTelegram";
 import { getTelegramUserId } from "../../../shared/telegram";
-import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
 import TimeInput from "@/components/TimeInput";
 
@@ -42,7 +41,6 @@ export default function RemindersCreate() {
   );
   const nav = useNavigate();
   const toast = useToast();
-  const isDev = process.env.NODE_ENV === "development";
 
   const [form, setForm] = useState<ReminderDto>({
     telegramId,
@@ -81,16 +79,10 @@ export default function RemindersCreate() {
         const res = await api.remindersPost({ reminder });
         rid = res?.id;
       } catch (apiError) {
-        if (isDev) {
-          if (import.meta.env.DEV) {
-            console.warn("Backend API failed, using mock API:", apiError);
-          }
-          // Fallback на mock API
-          const res = await mockApi.createReminder(reminder);
-          rid = (res as { id?: number })?.id;
-        } else {
-          throw apiError;
+        if (import.meta.env.DEV) {
+          console.warn("Backend API failed:", apiError);
         }
+        throw apiError;
       }
 
       if (rid) {

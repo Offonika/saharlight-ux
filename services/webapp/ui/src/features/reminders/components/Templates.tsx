@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
 import { useRemindersApi } from "../api/reminders";
 import { buildReminderPayload } from "../api/buildPayload";
-import { mockApi } from "../../../api/mock-server";
 import { useToast } from "../../../shared/toast";
 import { useDefaultAfterMealMinutes } from "../../profile/hooks";
 import type { ReminderDto } from "../types";
@@ -61,8 +60,10 @@ export function Templates({
       try {
         await api.remindersPost({ reminder });
       } catch (apiError) {
-        console.warn("Backend API failed, using mock API:", apiError);
-        await mockApi.createReminder(reminder);
+        if (import.meta.env.DEV) {
+          console.warn("Backend API failed:", apiError);
+        }
+        throw apiError;
       }
       
       toast.success("Напоминание создано из шаблона");

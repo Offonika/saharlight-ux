@@ -141,12 +141,9 @@ export default function RemindersList({
         await api.remindersPatch({ reminder });
       } catch (apiError) {
         if (isDev) {
-          console.warn("Backend API failed, using mock API:", apiError);
-          const { mockApi } = await import("../../../api/mock-server");
-          await mockApi.updateReminder({ ...r, isEnabled: !r.isEnabled });
-        } else {
-          throw apiError;
+          console.warn("Backend API failed:", apiError);
         }
+        throw apiError;
       }
       load();
     } catch {
@@ -207,12 +204,9 @@ export default function RemindersList({
         await api.remindersDelete({ telegramId: r.telegramId, id: r.id });
       } catch (apiError) {
         if (isDev) {
-          console.warn("Backend API failed, using mock API:", apiError);
-          const { mockApi } = await import("../../../api/mock-server");
-          await mockApi.deleteReminder(r.telegramId, r.id);
-        } else {
-          throw apiError;
+          console.warn("Backend API failed:", apiError);
         }
+        throw apiError;
       }
     } catch {
       toast({ title: "Ошибка", description: "Не удалось удалить", variant: "destructive" });
