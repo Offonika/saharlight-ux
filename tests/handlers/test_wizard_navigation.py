@@ -59,6 +59,7 @@ def patch_state(monkeypatch: pytest.MonkeyPatch) -> None:
         pass
 
     monkeypatch.setattr(onboarding, "_mark_user_complete", noop_mark)
+    monkeypatch.setattr(onboarding, "choose_variant", lambda uid: "A")
 
 
 @pytest.mark.asyncio
@@ -93,6 +94,29 @@ async def test_start_triggers_onboarding(
 
     state = await onboarding.start_command(update, context)
     assert state == onboarding.ONB_PROFILE_ICR
+    assert any("1/3" in text for text in message.texts)
+
+
+@pytest.mark.asyncio
+async def test_variant_b_starts_with_timezone(
+    monkeypatch: pytest.MonkeyPatch, patch_state: None
+) -> None:
+    import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
+
+    monkeypatch.setattr(onboarding, "choose_variant", lambda uid: "B")
+
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=5)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, bot_data={}),
+    )
+
+    state = await onboarding.start_command(update, context)
+    assert state == onboarding.TIMEZONE
     assert any("1/3" in text for text in message.texts)
 
 

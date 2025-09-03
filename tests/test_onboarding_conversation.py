@@ -70,6 +70,7 @@ def fake_onboarding_state(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         onboarding.reminder_handlers, "_describe", fake_describe, raising=False
     )
+    monkeypatch.setattr(onboarding, "choose_variant", lambda uid: "A")
 
 
 class DummyMessage:

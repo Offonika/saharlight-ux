@@ -42,6 +42,7 @@ from services.api.app.diabetes.utils.ui import (
     build_timezone_webapp_button,
     menu_keyboard,
 )
+from services.api.app.utils import choose_variant
 from .reminder_jobs import DefaultJobQueue
 from . import reminder_handlers
 
@@ -64,6 +65,30 @@ def _progress(step: int) -> str:
     return f"Шаг {step}/3"
 
 
+VARIANT_ORDER: dict[str | None, list[int]] = {
+    "A": [PROFILE, TIMEZONE, REMINDERS],
+    "B": [TIMEZONE, PROFILE, REMINDERS],
+    None: [PROFILE, TIMEZONE, REMINDERS],
+}
+
+
+def _step_num(step: int, variant: str | None) -> int:
+    order = VARIANT_ORDER.get(variant, VARIANT_ORDER[None])
+    return order.index(step) + 1
+
+
+def _next_step(step: int, variant: str | None) -> int | None:
+    order = VARIANT_ORDER.get(variant, VARIANT_ORDER[None])
+    idx = order.index(step)
+    return order[idx + 1] if idx + 1 < len(order) else None
+
+
+def _prev_step(step: int, variant: str | None) -> int | None:
+    order = VARIANT_ORDER.get(variant, VARIANT_ORDER[None])
+    idx = order.index(step)
+    return order[idx - 1] if idx > 0 else None
+
+
 def _nav_buttons(
     *, back: bool = False, skip: bool = True
 ) -> list[InlineKeyboardButton]:
@@ -76,7 +101,7 @@ def _nav_buttons(
     return buttons
 
 
-def _profile_keyboard() -> InlineKeyboardMarkup:
+def _profile_keyboard(*, back: bool = False) -> InlineKeyboardMarkup:
     options = [
         ("СД2 без инсулина", "t2_no"),
         ("СД2 на инсулине", "t2_ins"),
@@ -88,17 +113,17 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text, callback_data=f"{CB_PROFILE_PREFIX}{code}")]
         for text, code in options
     ]
-    rows.append(_nav_buttons())
+    rows.append(_nav_buttons(back=back))
     return InlineKeyboardMarkup(rows)
 
 
-def _timezone_keyboard() -> InlineKeyboardMarkup:
+def _timezone_keyboard(*, back: bool = True) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     auto_btn = build_timezone_webapp_button()
     if auto_btn:
         auto_btn.text = "Автоопределить (WebApp)"
         rows.append([auto_btn])
-    rows.append(_nav_buttons(back=True))
+    rows.append(_nav_buttons(back=back))
     return InlineKeyboardMarkup(rows)
 
 
@@ -144,6 +169,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     if state is not None:
         user_data.update(state.data)
         variant = variant or state.variant
+    if variant is None:
+        variant = choose_variant(user_id)
     user_data["variant"] = variant
     await _log_event(user_id, "onboarding_started", 0, variant)
     if state is not None:
@@ -153,6 +180,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             return await _prompt_timezone(message, user_id, user_data, variant)
         if state.step == REMINDERS:
             return await _prompt_reminders(message, user_id, user_data, variant)
+    first_step = VARIANT_ORDER.get(variant, VARIANT_ORDER[None])[0]
+    if first_step == TIMEZONE:
+        return await _prompt_timezone(message, user_id, user_data, variant)
     return await _prompt_profile(message, user_id, user_data, variant)
 
 
@@ -179,16 +209,27 @@ async def profile_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 return await _prompt_reminders(message, user_id, user_data, variant)
     await query.answer()
     data = query.data
+    if data == CB_BACK and _step_num(PROFILE, variant) != 1:
+        return await _prompt_timezone(message, user_id, user_data, variant)
     if data == CB_SKIP:
-        await _log_event(user_id, "step_completed_1", 1, variant)
+        step_num = _step_num(PROFILE, variant)
+        await _log_event(user_id, f"step_completed_{step_num}", step_num, variant)
+        next_step = _next_step(PROFILE, variant)
+        if next_step == REMINDERS:
+            return await _prompt_reminders(message, user_id, user_data, variant)
         return await _prompt_timezone(message, user_id, user_data, variant)
     if data == CB_CANCEL:
-        await _log_event(user_id, "onboarding_canceled", 1, variant)
+        step_num = _step_num(PROFILE, variant)
+        await _log_event(user_id, "onboarding_canceled", step_num, variant)
         await message.reply_text("Отменено.")
         return ConversationHandler.END
     if data.startswith(CB_PROFILE_PREFIX):
         user_data["profile"] = data[len(CB_PROFILE_PREFIX) :]
-        await _log_event(user_id, "step_completed_1", 1, variant)
+        step_num = _step_num(PROFILE, variant)
+        await _log_event(user_id, f"step_completed_{step_num}", step_num, variant)
+        next_step = _next_step(PROFILE, variant)
+        if next_step == REMINDERS:
+            return await _prompt_reminders(message, user_id, user_data, variant)
         return await _prompt_timezone(message, user_id, user_data, variant)
     return ConversationHandler.END
 
@@ -197,9 +238,10 @@ async def _prompt_timezone(
     message: Message, user_id: int, user_data: dict[str, Any], variant: str | None
 ) -> int:
     await onboarding_state.save_state(user_id, TIMEZONE, user_data, variant)
+    step_num = _step_num(TIMEZONE, variant)
     await message.reply_text(
-        f"{_progress(2)}. Введите часовой пояс (например, Europe/Moscow).",
-        reply_markup=_timezone_keyboard(),
+        f"{_progress(step_num)}. Введите часовой пояс (например, Europe/Moscow).",
+        reply_markup=_timezone_keyboard(back=step_num != 1),
     )
     return TIMEZONE
 
@@ -236,7 +278,11 @@ async def timezone_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     user_data["timezone"] = raw
     await onboarding_state.save_state(user_id, TIMEZONE, user_data, variant)
     await save_timezone(user_id, raw, auto=False)
-    await _log_event(user_id, "step_completed_2", 2, variant)
+    step_num = _step_num(TIMEZONE, variant)
+    await _log_event(user_id, f"step_completed_{step_num}", step_num, variant)
+    next_step = _next_step(TIMEZONE, variant)
+    if next_step == PROFILE:
+        return await _prompt_profile(message, user_id, user_data, variant)
     return await _prompt_reminders(message, user_id, user_data, variant)
 
 
@@ -266,7 +312,11 @@ async def timezone_webapp(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 return await _prompt_reminders(message, user_id, user_data, variant)
     web_app = cast(WebAppData, message.web_app_data)
     user_data["timezone"] = web_app.data.strip() or "Europe/Moscow"
-    await _log_event(user_id, "step_completed_2", 2, variant)
+    step_num = _step_num(TIMEZONE, variant)
+    await _log_event(user_id, f"step_completed_{step_num}", step_num, variant)
+    next_step = _next_step(TIMEZONE, variant)
+    if next_step == PROFILE:
+        return await _prompt_profile(message, user_id, user_data, variant)
     return await _prompt_reminders(message, user_id, user_data, variant)
 
 
@@ -293,13 +343,17 @@ async def timezone_nav(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
                 return await _prompt_reminders(message, user_id, user_data, variant)
     await query.answer()
     data = query.data
-    if data == CB_BACK:
+    step_num = _step_num(TIMEZONE, variant)
+    if data == CB_BACK and step_num != 1:
         return await _prompt_profile(message, user_id, user_data, variant)
     if data == CB_SKIP:
-        await _log_event(user_id, "step_completed_2", 2, variant)
+        await _log_event(user_id, f"step_completed_{step_num}", step_num, variant)
+        next_step = _next_step(TIMEZONE, variant)
+        if next_step == PROFILE:
+            return await _prompt_profile(message, user_id, user_data, variant)
         return await _prompt_reminders(message, user_id, user_data, variant)
     if data == CB_CANCEL:
-        await _log_event(user_id, "onboarding_canceled", 2, variant)
+        await _log_event(user_id, "onboarding_canceled", step_num, variant)
         await message.reply_text("Отменено.")
         return ConversationHandler.END
     return TIMEZONE
@@ -309,9 +363,10 @@ async def _prompt_profile(
     message: Message, user_id: int, user_data: dict[str, Any], variant: str | None
 ) -> int:
     await onboarding_state.save_state(user_id, PROFILE, user_data, variant)
+    step_num = _step_num(PROFILE, variant)
     await message.reply_text(
-        f"{_progress(1)}. Выберите профиль:",
-        reply_markup=_profile_keyboard(),
+        f"{_progress(step_num)}. Выберите профиль:",
+        reply_markup=_profile_keyboard(back=step_num != 1),
     )
     return PROFILE
 
@@ -320,8 +375,9 @@ async def _prompt_reminders(
     message: Message, user_id: int, user_data: dict[str, Any], variant: str | None
 ) -> int:
     await onboarding_state.save_state(user_id, REMINDERS, user_data, variant)
+    step_num = _step_num(REMINDERS, variant)
     await message.reply_text(
-        f"{_progress(3)}. Выберите напоминания:",
+        f"{_progress(step_num)}. Выберите напоминания:",
         reply_markup=_reminders_keyboard(),
     )
     return REMINDERS
@@ -351,6 +407,9 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     await query.answer()
     data = query.data
     if data == CB_BACK:
+        prev_step = _prev_step(REMINDERS, variant)
+        if prev_step == PROFILE:
+            return await _prompt_profile(message, user_id, user_data, variant)
         return await _prompt_timezone(message, user_id, user_data, variant)
     if data in {CB_SKIP, CB_DONE}:
         await onboarding_state.save_state(user_id, REMINDERS, user_data, variant)

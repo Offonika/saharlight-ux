@@ -9,9 +9,9 @@ from services.api.app.diabetes.services.db import Base
 
 
 class OnboardingEvent(Base):
-    """Raw onboarding step event."""
+    """Raw onboarding step event for metrics."""
 
-    __tablename__ = "onboarding_events"
+    __tablename__ = "onboarding_events_metrics"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     variant: Mapped[str] = mapped_column(String, nullable=False)
@@ -30,3 +30,6 @@ class OnboardingMetricDaily(Base):
     variant: Mapped[str] = mapped_column(String, primary_key=True)
     step: Mapped[str] = mapped_column(String, primary_key=True)
     count: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+__all__ = ["OnboardingEvent", "OnboardingMetricDaily"]
