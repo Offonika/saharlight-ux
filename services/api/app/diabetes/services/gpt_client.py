@@ -27,6 +27,8 @@ from services.api.app.diabetes.utils.openai_utils import (
 logger = logging.getLogger(__name__)
 
 FILE_UPLOAD_TIMEOUT = 30.0
+THREAD_CREATION_TIMEOUT = 30.0
+MESSAGE_CREATION_TIMEOUT = 30.0
 RUN_CREATION_TIMEOUT = 30.0
 
 _client: OpenAI | None = None
@@ -97,7 +99,10 @@ async def create_thread() -> str:
     """
     client: OpenAI = _get_client()
     try:
-        thread: Thread = await asyncio.to_thread(client.beta.threads.create)
+        thread: Thread = await asyncio.wait_for(
+            asyncio.to_thread(client.beta.threads.create),
+            timeout=THREAD_CREATION_TIMEOUT,
+        )
     except OpenAIError as exc:
         logger.exception("[OpenAI] Failed to create thread: %s", exc)
         raise
@@ -153,9 +158,7 @@ async def send_message(
         "type": "text",
         "text": content if content is not None else "Что изображено на фото?",
     }
-    message_content: Iterable[
-        ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam
-    ]
+    message_content: Iterable[ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam]
     if image_path:
         try:
 
@@ -163,9 +166,7 @@ async def send_message(
                 with open(image_path, "rb") as f:
                     return client.files.create(file=f, purpose="vision")
 
-            file = await asyncio.wait_for(
-                asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT
-            )
+            file = await asyncio.wait_for(asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT)
         except OSError as exc:
             logger.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
             raise
@@ -190,11 +191,14 @@ async def send_message(
 
     # 2. Создаём сообщение в thread
     try:
-        await asyncio.to_thread(
-            client.beta.threads.messages.create,
-            thread_id=thread_id,
-            role="user",
-            content=message_content,
+        await asyncio.wait_for(
+            asyncio.to_thread(
+                client.beta.threads.messages.create,
+                thread_id=thread_id,
+                role="user",
+                content=message_content,
+            ),
+            timeout=MESSAGE_CREATION_TIMEOUT,
         )
     except OpenAIError as exc:
         logger.exception("[OpenAI] Failed to create message: %s", exc)
