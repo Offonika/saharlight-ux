@@ -9,10 +9,7 @@ export function useDefaultAfterMealMinutes(telegramId: number | null | undefined
     if (!telegramId) return;
     getProfile(telegramId)
       .then((profile: Profile) => {
-        const minutes =
-          profile.afterMealMinutes ??
-          profile.defaultAfterMealMinutes ??
-          profile.default_after_meal_minutes;
+        const minutes = profile.afterMealMinutes;
         if (typeof minutes === "number") {
           setValue(minutes);
         }

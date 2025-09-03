@@ -21,19 +21,11 @@ describe('useDefaultAfterMealMinutes', () => {
     });
   });
 
-  it('falls back to defaultAfterMealMinutes', async () => {
-    (getProfile as vi.Mock).mockResolvedValue({ defaultAfterMealMinutes: 45 });
+  it('returns null when afterMealMinutes is missing', async () => {
+    (getProfile as vi.Mock).mockResolvedValue({});
     const { result } = renderHook(() => useDefaultAfterMealMinutes(1));
     await waitFor(() => {
-      expect(result.current).toBe(45);
-    });
-  });
-
-  it('falls back to default_after_meal_minutes', async () => {
-    (getProfile as vi.Mock).mockResolvedValue({ default_after_meal_minutes: 60 });
-    const { result } = renderHook(() => useDefaultAfterMealMinutes(1));
-    await waitFor(() => {
-      expect(result.current).toBe(60);
+      expect(result.current).toBeNull();
     });
   });
 });

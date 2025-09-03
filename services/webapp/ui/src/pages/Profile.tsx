@@ -327,9 +327,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
             ? data.maxBolus.toString()
             : "";
         const afterMealMinutes =
-          typeof data.defaultAfterMealMinutes === "number" &&
-          data.defaultAfterMealMinutes >= 0
-            ? data.defaultAfterMealMinutes.toString()
+          typeof data.afterMealMinutes === "number" &&
+          data.afterMealMinutes >= 0
+            ? data.afterMealMinutes.toString()
             : "";
         const timezone =
           typeof data.timezone === "string" && data.timezone
@@ -442,7 +442,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       patch.rapidInsulinType = parsed.rapidInsulinType;
     if (profile.maxBolus !== original.maxBolus) patch.maxBolus = parsed.maxBolus;
     if (profile.afterMealMinutes !== original.afterMealMinutes)
-      patch.defaultAfterMealMinutes = parsed.afterMealMinutes;
+      patch.afterMealMinutes = parsed.afterMealMinutes;
     return patch;
   };
 
