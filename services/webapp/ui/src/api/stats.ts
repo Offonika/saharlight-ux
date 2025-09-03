@@ -33,10 +33,16 @@ export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint
   return data as AnalyticsPoint[];
 }
 
-export async function fetchDayStats(telegramId: number): Promise<DayStats> {
-  const data = await http.get<unknown>(`/stats?telegramId=${telegramId}`);
+export async function fetchDayStats(
+  telegramId: number,
+): Promise<DayStats | null> {
+  const data = await http.get<unknown | null>(`/stats?telegramId=${telegramId}`);
 
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+  if (data === null) {
+    return null;
+  }
+
+  if (typeof data !== 'object' || Array.isArray(data)) {
     throw new Error('Invalid stats data');
   }
 

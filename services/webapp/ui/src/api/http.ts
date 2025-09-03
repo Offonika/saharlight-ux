@@ -5,7 +5,7 @@ const API_BASE = '/api';
 export async function request<T>(
   path: string,
   init: RequestInit = {},
-): Promise<T> {
+): Promise<T | null> {
   const headers = new Headers(init.headers);
 
   if (
@@ -24,6 +24,11 @@ export async function request<T>(
       ...init,
       headers,
     });
+
+    // 204 has no body; skip JSON parsing
+    if (res.status === 204) {
+      return null;
+    }
 
     // Check if response is HTML (backend not available) - do this BEFORE parsing JSON
     const contentType = res.headers.get('content-type');

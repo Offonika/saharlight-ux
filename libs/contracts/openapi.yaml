@@ -366,7 +366,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DayStats'
+                anyOf:
+                  - $ref: '#/components/schemas/DayStats'
+                  - type: 'null'
         '204':
           description: No Content - no statistics available.
         '403':
