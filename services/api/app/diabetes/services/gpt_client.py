@@ -26,6 +26,9 @@ from services.api.app.diabetes.utils.openai_utils import (
 
 logger = logging.getLogger(__name__)
 
+FILE_UPLOAD_TIMEOUT = 30.0
+RUN_CREATION_TIMEOUT = 30.0
+
 _client: OpenAI | None = None
 _client_lock = threading.Lock()
 
@@ -165,7 +168,9 @@ async def send_message(
                 with open(image_path, "rb") as f:
                     return client.files.create(file=f, purpose="vision")
 
-            file = await asyncio.to_thread(_upload)
+            file = await asyncio.wait_for(
+                asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT
+            )
         except OSError as exc:
             logger.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
             raise
@@ -202,10 +207,13 @@ async def send_message(
 
     # 3. Запускаем ассистента
     try:
-        run = await asyncio.to_thread(
-            client.beta.threads.runs.create,
-            thread_id=thread_id,
-            assistant_id=settings.openai_assistant_id,
+        run = await asyncio.wait_for(
+            asyncio.to_thread(
+                client.beta.threads.runs.create,
+                thread_id=thread_id,
+                assistant_id=settings.openai_assistant_id,
+            ),
+            timeout=RUN_CREATION_TIMEOUT,
         )
     except OpenAIError as exc:
         logger.exception("[OpenAI] Failed to create run: %s", exc)

@@ -108,17 +108,25 @@ async def photo_handler(
                         return END
             user_data["thread_id"] = thread_id
 
-        run = await send_message(
-            thread_id=thread_id,
-            content=(
-                "Определи **название** блюда и количество углеводов/ХЕ. Ответ:\n"
-                "<название блюда>\n"
-                "Углеводы: <...>\n"
-                "ХЕ: <...>"
-            ),
-            image_path=file_path,
-            keep_image=True,
-        )
+        try:
+            run = await send_message(
+                thread_id=thread_id,
+                content=(
+                    "Определи **название** блюда и количество углеводов/ХЕ. Ответ:\n"
+                    "<название блюда>\n"
+                    "Углеводы: <...>\n"
+                    "ХЕ: <...>"
+                ),
+                image_path=file_path,
+                keep_image=True,
+            )
+        except asyncio.TimeoutError:
+            logger.warning("[PHOTO] GPT request timed out")
+            await message.reply_text(
+                "⚠️ Превышено время ожидания ответа. Попробуйте ещё раз."
+            )
+            user_data.pop(WAITING_GPT_FLAG, None)
+            return END
         status_message = await message.reply_text("🔍 Анализирую фото (это займёт 5‑10 с)…")
         chat_id = getattr(message, "chat_id", None)
 
