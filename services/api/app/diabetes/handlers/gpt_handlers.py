@@ -361,49 +361,41 @@ async def _handle_edit_entry(
     return True
 
 
-async def _handle_smart_input(
-    raw_text: str,
+def parse_quick_values(
+    raw_text: str, *, smart_input: Callable[[str], dict[str, float | None]]
+) -> tuple[dict[str, float | None], float | None]:
+    """Parse quick values (sugar/xe/dose) and carbs."""
+    quick = smart_input(raw_text)
+    carbs_match = re.search(
+        r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I
+    )
+    carbs_val = float(carbs_match.group(1).replace(",", ".")) if carbs_match else None
+    return quick, carbs_val
+
+
+async def apply_pending_entry(
+    quick: dict[str, float | None],
+    carbs_g: float | None,
+    *,
     user_data: UserData,
     message: Message,
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     user_id: int,
-    *,
     SessionLocal: sessionmaker[Session],
     commit: Callable[[Session], None],
     check_alert: Callable[
         [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
     ],
     menu_keyboard: ReplyKeyboardMarkup | None,
-    smart_input: Callable[[str], dict[str, float | None]],
-    parse_command: Callable[[str], Awaitable[dict[str, object] | None]],
-) -> None:
-    """Process smart input or GPT command."""
-    try:
-        quick = smart_input(raw_text)
-    except ValueError as exc:
-        msg = str(exc)
-        if "mismatched unit for sugar" in msg:
-            await message.reply_text("❗ Сахар указывается в ммоль/л, не в XE.")
-        elif "mismatched unit for dose" in msg:
-            await message.reply_text("❗ Доза указывается в ед., не в ммоль.")
-        elif "mismatched unit for xe" in msg:
-            await message.reply_text("❗ ХЕ указываются числом, без ммоль/л и ед.")
-        else:
-            await message.reply_text(
-                "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2",
-            )
-        return
-
-    carbs_match = re.search(
-        r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I
-    )
+) -> bool:
+    """Apply quick values to pending entry or create a new one."""
     pending_raw = user_data.get("pending_entry")
     edit_id = user_data.get("edit_id")
     if (
         isinstance(pending_raw, dict)
         and edit_id is None
-        and (any(v is not None for v in quick.values()) or carbs_match)
+        and (any(v is not None for v in quick.values()) or carbs_g is not None)
     ):
         pending_entry: EntryData = pending_raw
         if quick["sugar"] is not None:
@@ -411,14 +403,13 @@ async def _handle_smart_input(
         if quick["xe"] is not None:
             pending_entry["xe"] = quick["xe"]
             pending_entry["carbs_g"] = XE_GRAMS * quick["xe"]
-        elif carbs_match:
-            carbs_match_val = float(carbs_match.group(1).replace(",", "."))
-            if carbs_match_val < 0:
+        elif carbs_g is not None:
+            if carbs_g < 0:
                 await message.reply_text(
                     "Количество углеводов не может быть отрицательным."
                 )
-                return
-            pending_entry["carbs_g"] = carbs_match_val
+                return True
+            pending_entry["carbs_g"] = carbs_g
         if quick["dose"] is not None:
             pending_entry["dose"] = quick["dose"]
         missing = [
@@ -440,12 +431,11 @@ async def _handle_smart_input(
                 await message.reply_text("Введите количество ХЕ.")
             else:
                 await message.reply_text("Введите дозу инсулина (ед.).")
-            return
-
+            return True
         ok = await _save_entry(pending_entry, SessionLocal=SessionLocal, commit=commit)
         if not ok:
             await message.reply_text("⚠️ Не удалось сохранить запись.")
-            return
+            return True
         sugar = pending_entry.get("sugar_before")
         if sugar is not None:
             await check_alert(update, context, sugar)
@@ -460,7 +450,7 @@ async def _handle_smart_input(
             f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
             reply_markup=menu_keyboard,
         )
-        return
+        return True
 
     if any(v is not None for v in quick.values()):
         sugar = quick["sugar"]
@@ -468,7 +458,7 @@ async def _handle_smart_input(
         dose = quick["dose"]
         if any(v is not None and v < 0 for v in (sugar, xe, dose)):
             await message.reply_text("Значения не могут быть отрицательными.")
-            return
+            return True
         entry_data: EntryData = {
             "telegram_id": user_id,
             "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -484,7 +474,7 @@ async def _handle_smart_input(
             ok = await _save_entry(entry_data, SessionLocal=SessionLocal, commit=commit)
             if not ok:
                 await message.reply_text("⚠️ Не удалось сохранить запись.")
-                return
+                return True
             if sugar is not None:
                 await check_alert(update, context, sugar)
             user_data.pop("pending_entry", None)
@@ -493,7 +483,7 @@ async def _handle_smart_input(
                 f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
                 reply_markup=menu_keyboard,
             )
-            return
+            return True
         next_field = missing[0]
         if next_field == "sugar":
             await message.reply_text("Введите уровень сахара (ммоль/л).")
@@ -501,23 +491,31 @@ async def _handle_smart_input(
             await message.reply_text("Введите количество ХЕ.")
         else:
             await message.reply_text("Введите дозу инсулина (ед.).")
-        return
+        return True
 
+    return False
+
+
+async def parse_via_gpt(
+    raw_text: str,
+    message: Message,
+    *,
+    parse_command: Callable[[str], Awaitable[dict[str, object] | None]],
+) -> tuple[datetime.datetime, dict[str, float | None]] | None:
+    """Parse freeform text via GPT parser."""
     try:
         parsed = await parse_command(raw_text)
     except ParserTimeoutError:
         await message.reply_text("Парсер недоступен, попробуйте позже")
-        return
-
+        return None
     logger.info("FREEFORM parsed=%s", parsed)
     if not parsed or parsed.get("action") != "add_entry":
         await message.reply_text("Не понял, воспользуйтесь /help или кнопками меню")
-        return
-
+        return None
     fields = parsed.get("fields")
     if not isinstance(fields, dict):
         await message.reply_text("Не удалось распознать данные, попробуйте ещё раз.")
-        return
+        return None
     if any(
         v is not None and v < 0
         for v in (
@@ -528,10 +526,9 @@ async def _handle_smart_input(
         )
     ):
         await message.reply_text("Значения не могут быть отрицательными.")
-        return
+        return None
     entry_date_obj = parsed.get("entry_date")
     time_obj = parsed.get("time")
-
     if isinstance(entry_date_obj, str):
         try:
             event_dt = datetime.datetime.fromisoformat(entry_date_obj)
@@ -555,6 +552,23 @@ async def _handle_smart_input(
             event_dt = datetime.datetime.now(datetime.timezone.utc)
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
+    clean_fields: dict[str, float | None] = {
+        "xe": cast(float | None, fields.get("xe")),
+        "carbs_g": cast(float | None, fields.get("carbs_g")),
+        "dose": cast(float | None, fields.get("dose")),
+        "sugar_before": cast(float | None, fields.get("sugar_before")),
+    }
+    return event_dt, clean_fields
+
+
+async def finalize_entry(
+    fields: dict[str, float | None],
+    event_dt: datetime.datetime,
+    user_id: int,
+    user_data: UserData,
+    message: Message,
+) -> None:
+    """Store parsed entry and ask user for confirmation."""
     user_data.pop("pending_entry", None)
     user_data["pending_entry"] = {
         "telegram_id": user_id,
@@ -566,7 +580,6 @@ async def _handle_smart_input(
         "photo_path": None,
     }
     pending_entry = user_data["pending_entry"]
-
     xe_val: float | None = pending_entry.get("xe")
     carbs_val: float | None = pending_entry.get("carbs_g")
     dose_val: float | None = pending_entry.get("dose")
@@ -577,7 +590,6 @@ async def _handle_smart_input(
     dose_part = f"Инсулин: {dose_val}\u202fед" if dose_val is not None else ""
     sugar_part = f"Сахар: {sugar_val}\u202fммоль/л" if sugar_val is not None else ""
     lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
-
     reply = (
         f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
     )
@@ -658,20 +670,44 @@ async def freeform_handler(
         commit=commit,
     ):
         return
-    await _handle_smart_input(
-        raw_text,
-        user_data,
-        message,
-        update,
-        context,
-        user_id,
+    try:
+        quick, carbs_g = parse_quick_values(raw_text, smart_input=smart_input)
+    except ValueError as exc:
+        msg = str(exc)
+        if "mismatched unit for sugar" in msg:
+            await message.reply_text("❗ Сахар указывается в ммоль/л, не в XE.")
+        elif "mismatched unit for dose" in msg:
+            await message.reply_text("❗ Доза указывается в ед., не в ммоль.")
+        elif "mismatched unit for xe" in msg:
+            await message.reply_text("❗ ХЕ указываются числом, без ммоль/л и ед.")
+        else:
+            await message.reply_text(
+                "Не удалось распознать значения, используйте сахар=5 xe=1 dose=2",
+            )
+        return
+    if await apply_pending_entry(
+        quick,
+        carbs_g,
+        user_data=user_data,
+        message=message,
+        update=update,
+        context=context,
+        user_id=user_id,
         SessionLocal=SessionLocal,
         commit=commit,
         check_alert=check_alert,
         menu_keyboard=menu_keyboard_markup,
-        smart_input=smart_input,
+    ):
+        return
+    parsed = await parse_via_gpt(
+        raw_text,
+        message,
         parse_command=parse_command,
     )
+    if parsed is None:
+        return
+    event_dt, fields = parsed
+    await finalize_entry(fields, event_dt, user_id, user_data, message)
 
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -682,4 +718,13 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await message.reply_text("🗨️ Чат с GPT временно недоступен.")
 
 
-__all__ = ["SessionLocal", "freeform_handler", "chat_with_gpt", "ParserTimeoutError"]
+__all__ = [
+    "SessionLocal",
+    "freeform_handler",
+    "chat_with_gpt",
+    "ParserTimeoutError",
+    "parse_quick_values",
+    "apply_pending_entry",
+    "parse_via_gpt",
+    "finalize_entry",
+]
