@@ -97,16 +97,12 @@ async def photo_handler(
             file_bytes = bytes(await file.download_as_bytearray())
         except OSError as exc:
             logger.exception("[PHOTO] Failed to download photo: %s", exc)
-            await message.reply_text(
-                "⚠️ Не удалось скачать фото. Попробуйте ещё раз."
-            )
+            await message.reply_text("⚠️ Не удалось скачать фото. Попробуйте ещё раз.")
             _clear_waiting_gpt(user_data)
             return END
         except TelegramError as exc:
             logger.exception("[PHOTO] Failed to download photo: %s", exc)
-            await message.reply_text(
-                "⚠️ Не удалось скачать фото. Попробуйте ещё раз."
-            )
+            await message.reply_text("⚠️ Не удалось скачать фото. Попробуйте ещё раз.")
             _clear_waiting_gpt(user_data)
             return END
 
@@ -135,9 +131,16 @@ async def photo_handler(
             run = await send_message(
                 thread_id=thread_id,
                 content=(
-                    "Определи **название** блюда и количество углеводов/ХЕ. Ответ:\n"
+                    "Определи название блюда, вес порции и его пищевую "
+                    "ценность (белки, жиры, углеводы, калории, хлебные "
+                    "единицы). Учитывай изображение и текстовое описание, "
+                    "если они есть. Ответ на русском языке в формате:\n"
                     "<название блюда>\n"
-                    "Углеводы: <...>\n"
+                    "Вес: <...> г\n"
+                    "Белки: <...> г\n"
+                    "Жиры: <...> г\n"
+                    "Углеводы: <...> г\n"
+                    "Калории: <...> ккал\n"
                     "ХЕ: <...>"
                 ),
                 image_bytes=file_bytes,
