@@ -90,9 +90,14 @@ async def test_onboarding_creates_reminder(monkeypatch: pytest.MonkeyPatch) -> N
     steps: dict[int, int] = {}
     variants: dict[int, str | None] = {}
 
-    async def save_state(user_id: int, step: int, data: dict[str, Any], variant: str | None = None) -> None:
+    async def save_state(
+        user_id: int, step: int, data: dict[str, Any], variant: str | None = None
+    ) -> None:
         steps[user_id] = step
-        store[user_id] = dict(data)
+        save_data = dict(data)
+        if isinstance(save_data.get("reminders"), set):
+            save_data["reminders"] = list(save_data["reminders"])
+        store[user_id] = save_data
         variants[user_id] = variant
 
     class DummyState:

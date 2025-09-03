@@ -10,7 +10,7 @@ Implements three steps with navigation and progress hints:
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any, Iterable, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from datetime import time as time_cls
 
@@ -421,7 +421,12 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             return await _prompt_profile(message, user_id, user_data, variant)
         return await _prompt_timezone(message, user_id, user_data, variant)
     if data in {CB_SKIP, CB_DONE}:
-        await onboarding_state.save_state(user_id, REMINDERS, user_data, variant)
+        save_data = dict(user_data)
+        if "reminders" in save_data:
+            save_data["reminders"] = list(
+                cast(Iterable[str], save_data["reminders"])
+            )
+        await onboarding_state.save_state(user_id, REMINDERS, save_data, variant)
         return await _finish(
             message,
             user_id,
@@ -433,15 +438,25 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await message.reply_text("Отменено.")
         return ConversationHandler.END
     if data.startswith(CB_REMINDER_PREFIX):
-        reminders = cast(set[str], user_data.setdefault("reminders", set()))
+        reminders = cast(list[str], user_data.setdefault("reminders", []))
         code = data[len(CB_REMINDER_PREFIX) :]
         if code in reminders:
             reminders.remove(code)
         else:
-            reminders.add(code)
-        await onboarding_state.save_state(user_id, REMINDERS, user_data, variant)
+            reminders.append(code)
+        await onboarding_state.save_state(
+            user_id,
+            REMINDERS,
+            {**user_data, "reminders": list(reminders)},
+            variant,
+        )
         return REMINDERS
-    await onboarding_state.save_state(user_id, REMINDERS, user_data, variant)
+    save_data = dict(user_data)
+    if "reminders" in save_data:
+        save_data["reminders"] = list(
+            cast(Iterable[str], save_data["reminders"])
+        )
+    await onboarding_state.save_state(user_id, REMINDERS, save_data, variant)
     return REMINDERS
 
 
@@ -477,7 +492,12 @@ async def onboarding_reminders(
     message = cast(Message, query.message)
     user_data = cast(dict[str, Any], getattr(context, "user_data", {}))
     variant = cast(str | None, user_data.get("variant"))
-    await onboarding_state.save_state(user.id, REMINDERS, user_data, variant)
+    save_data = dict(user_data)
+    if "reminders" in save_data:
+        save_data["reminders"] = list(
+            cast(Iterable[str], save_data["reminders"])
+        )
+    await onboarding_state.save_state(user.id, REMINDERS, save_data, variant)
     return await _finish(
         message,
         user.id,
@@ -496,7 +516,7 @@ async def _finish(
     await onboarding_state.complete_state(user_id)
     await _mark_user_complete(user_id)
     reminders = []
-    for code in cast(set[str], user_data.get("reminders", set())):
+    for code in cast(list[str], user_data.get("reminders", [])):
         rem = await reminder_handlers.create_reminder_from_preset(
             user_id, code, job_queue
         )
