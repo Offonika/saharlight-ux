@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session, sessionmaker
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 import services.api.app.diabetes.handlers.router as router
-from services.api.app.config import settings
 
 
 class DummyMessage:
@@ -169,9 +168,8 @@ async def test_photo_flow_saves_entry(
     await photo_handlers.photo_handler(update_photo, context)
 
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_ref
-    assert not (Path(settings.photos_dir) / "1_uid.jpg").exists()
-
     entry = user_data["pending_entry"]
+    assert not Path(entry["photo_path"]).exists()
     assert entry["carbs_g"] == 30.0
     assert entry["xe"] == 2.0
     assert entry["photo_path"].endswith("uid.jpg")
@@ -219,13 +217,6 @@ async def test_photo_handler_removes_file_on_failure(
 ) -> None:
     monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
 
-    async def fake_get_file(file_id: str) -> Any:
-        class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
-
-        return File()
-
     monkeypatch.chdir(tmp_path)
 
     context = cast(
@@ -236,13 +227,25 @@ async def test_photo_handler_removes_file_on_failure(
     setattr(
         cast(Any, type(context)), "user_data", PropertyMock(return_value=user_data_ref)
     )
-    fake_bot = SimpleNamespace(get_file=fake_get_file)
-    setattr(cast(Any, type(context)), "bot", PropertyMock(return_value=fake_bot))
 
     async def fail_send_message(**kwargs: Any) -> Any:
         raise OpenAIError("boom")
 
     monkeypatch.setattr(photo_handlers, "send_message", fail_send_message)
+
+    downloaded_path: Path | None = None
+
+    async def fake_get_file(file_id: str) -> Any:
+        class File:
+            async def download_to_drive(self, path: str) -> None:
+                nonlocal downloaded_path
+                downloaded_path = Path(path)
+                downloaded_path.write_bytes(b"img")
+
+        return File()
+
+    fake_bot = SimpleNamespace(get_file=fake_get_file)
+    setattr(cast(Any, type(context)), "bot", PropertyMock(return_value=fake_bot))
 
     msg_photo = DummyMessage(photo=cast(tuple[PhotoSize, ...], (DummyPhoto(),)))
     update_photo = cast(
@@ -252,4 +255,4 @@ async def test_photo_handler_removes_file_on_failure(
     await photo_handlers.photo_handler(update_photo, context)
 
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_ref
-    assert not (Path(settings.photos_dir) / "1_uid.jpg").exists()
+    assert downloaded_path is not None and not downloaded_path.exists()

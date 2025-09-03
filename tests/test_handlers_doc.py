@@ -1,6 +1,8 @@
 from pathlib import Path
 from types import SimpleNamespace, TracebackType
 from typing import Any, cast
+import os
+import tempfile
 
 
 import pytest
@@ -12,7 +14,6 @@ from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
-from services.api.app.config import settings
 
 
 class DummyMessage:
@@ -77,7 +78,8 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
 
     assert result == 200
     assert called.flag
-    assert called.path == f"{settings.photos_dir}/1_uid.png"
+    expected = os.path.join(tempfile.gettempdir(), "diabetes-bot-photos", "1_uid.png")
+    assert called.path == expected
     assert context.user_data == {}
     assert update.message is not None
     msg = update.message

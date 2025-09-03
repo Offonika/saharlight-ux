@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import os
 import asyncio
+import os
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
@@ -17,7 +18,6 @@ os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
-from services.api.app.config import settings
 
 
 class DummyPhoto:
@@ -404,9 +404,8 @@ async def test_doc_handler_valid_image(
     assert result == photo_handlers.PHOTO_SUGAR
     assert context.user_data == {}
     assert message.photo is None
-    photo_mock.assert_awaited_once_with(
-        update, context, file_path=f"{settings.photos_dir}/1_uid.png"
-    )
+    expected = os.path.join(tempfile.gettempdir(), "diabetes-bot-photos", "1_uid.png")
+    photo_mock.assert_awaited_once_with(update, context, file_path=expected)
 
 
 @pytest.mark.asyncio

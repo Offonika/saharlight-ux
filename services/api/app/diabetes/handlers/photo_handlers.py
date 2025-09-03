@@ -5,6 +5,7 @@ import datetime
 import html
 import logging
 import os
+import tempfile
 from pathlib import Path
 from typing import cast
 
@@ -23,7 +24,6 @@ from services.api.app.diabetes.services.gpt_client import (
 from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.utils.functions import extract_nutrition_info
 from services.api.app.diabetes.utils.ui import menu_keyboard
-from services.api.app.config import settings
 
 from . import EntryData, UserData
 
@@ -98,7 +98,9 @@ async def photo_handler(
             _clear_waiting_gpt(user_data)
             return END
 
-        photos_dir = settings.photos_dir
+        photos_dir = os.path.join(
+            tempfile.gettempdir(), "diabetes-bot-photos"
+        )
         try:
             os.makedirs(photos_dir, exist_ok=True)
             file_path = f"{photos_dir}/{user_id}_{photo.file_unique_id}.jpg"
@@ -365,7 +367,7 @@ async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     user_id = effective_user.id
     filename = document.file_name or ""
     ext = Path(filename).suffix or ".jpg"
-    photos_dir = settings.photos_dir
+    photos_dir = os.path.join(tempfile.gettempdir(), "diabetes-bot-photos")
     path = f"{photos_dir}/{user_id}_{document.file_unique_id}{ext}"
     try:
         os.makedirs(photos_dir, exist_ok=True)
