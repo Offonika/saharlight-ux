@@ -13,6 +13,8 @@ from services.api.app.diabetes.services.db import (
     Subscription,
     SubscriptionPlan,
     SubscriptionStatus,
+    BillingLog,
+    BillingEvent,
 )
 from services.api.app.routers import billing
 from services.api.app.main import app
@@ -24,7 +26,7 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__])
+    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
     return sessionmaker(bind=engine)
 
 
@@ -79,7 +81,12 @@ def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog:
         assert sub.status == SubscriptionStatus.ACTIVE
         assert sub.plan == SubscriptionPlan.PRO
         assert sub.end_date is not None
+        logs = session.scalars(select(BillingLog).order_by(BillingLog.id)).all()
     assert any("evt1 processed" in r.getMessage() for r in caplog.records)
+    assert [log.event for log in logs] == [
+        BillingEvent.CHECKOUT_CREATED,
+        BillingEvent.WEBHOOK_OK,
+    ]
 
 
 def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -101,6 +108,8 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         assert sub is not None
         first_end = sub.end_date
+        logs = session.scalars(select(BillingLog)).all()
+    assert len(logs) == 2
 
     with client:
         dup = client.post("/api/billing/webhook", json=event)
@@ -111,6 +120,8 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
             select(Subscription).where(Subscription.transaction_id == checkout_id)
         )
         assert sub.end_date == first_end
+        logs = session.scalars(select(BillingLog)).all()
+    assert len(logs) == 2
 
 
 def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -133,3 +144,6 @@ def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
         assert sub is not None
         assert sub.status == SubscriptionStatus.PENDING
         assert sub.end_date is None
+        logs = session.scalars(select(BillingLog)).all()
+    assert len(logs) == 1
+    assert logs[0].event == BillingEvent.CHECKOUT_CREATED

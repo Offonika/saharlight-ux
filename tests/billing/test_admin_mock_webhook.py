@@ -14,6 +14,8 @@ from services.api.app.diabetes.services.db import (
     Subscription,
     SubscriptionPlan,
     SubscriptionStatus,
+    BillingLog,
+    BillingEvent,
 )
 from services.api.app.main import app
 from services.api.app.routers import billing
@@ -28,7 +30,7 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__])
+    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
     return sessionmaker(bind=engine)
 
 
@@ -92,6 +94,9 @@ def test_admin_mock_webhook(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         assert sub is not None
         assert sub.status == SubscriptionStatus.ACTIVE
+        logs = session.scalars(select(BillingLog)).all()
+    assert len(logs) == 1
+    assert logs[0].event == BillingEvent.WEBHOOK_OK
 
 
 def test_admin_mock_webhook_requires_token(monkeypatch: pytest.MonkeyPatch) -> None:

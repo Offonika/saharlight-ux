@@ -12,6 +12,8 @@ from services.api.app.diabetes.handlers.reminder_jobs import DefaultJobQueue
 from services.api.app.diabetes.services.db import (
     Subscription,
     SubscriptionStatus,
+    BillingLog,
+    BillingEvent,
     run_db,
 )
 from services.api.app.diabetes.services.repository import commit
@@ -59,6 +61,13 @@ async def expire_subscriptions(_context: ContextTypes.DEFAULT_TYPE) -> None:
         )
         for sub in subs:
             sub.status = SubscriptionStatus.EXPIRED
+            session.add(
+                BillingLog(
+                    user_id=sub.user_id,
+                    event=BillingEvent.EXPIRED,
+                    context={"subscription_id": sub.id},
+                )
+            )
         if subs:
             commit(session)
         return [sub.user_id for sub in subs]

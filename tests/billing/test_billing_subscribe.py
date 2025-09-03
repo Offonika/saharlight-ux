@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 import pytest
 
-from services.api.app.billing import reload_billing_settings
 from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
     SubscriptionPlan,
     SubscriptionStatus,
+    BillingLog,
+    BillingEvent,
 )
 from services.api.app.routers import billing
 from services.api.app.billing.config import BillingSettings
@@ -27,7 +29,7 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__])
+    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
     return sessionmaker(bind=engine)
 
 
@@ -57,13 +59,16 @@ def make_client(
 
 
 def test_subscribe_billing_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("BILLING_ENABLED", "false")
-    reload_billing_settings()
-    with TestClient(app) as client:
+    client = TestClient(app)
+    client.app.dependency_overrides[billing._require_billing_enabled] = (
+        lambda: (_ for _ in ()).throw(HTTPException(status_code=503))
+    )
+    with client:
         resp = client.post(
             "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
         )
     assert resp.status_code == 503
+    client.app.dependency_overrides.clear()
 
 
 def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -88,3 +93,8 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
         assert sub is not None
         assert sub.status == SubscriptionStatus.ACTIVE
         assert sub.plan == SubscriptionPlan.PRO
+        logs = session.scalars(select(BillingLog).order_by(BillingLog.id)).all()
+    assert [log.event for log in logs] == [
+        BillingEvent.CHECKOUT_CREATED,
+        BillingEvent.WEBHOOK_OK,
+    ]

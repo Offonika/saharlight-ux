@@ -24,6 +24,7 @@ from sqlalchemy import (
     Date,
     Time,
     func,
+    JSON,
 )
 import sqlalchemy as sa
 from sqlalchemy.engine import URL, Engine
@@ -399,6 +400,28 @@ class Subscription(Base):
     )
 
     user: Mapped["User"] = relationship("User")
+
+
+class BillingEvent(str, Enum):
+    INIT = "init"
+    CHECKOUT_CREATED = "checkout_created"
+    WEBHOOK_OK = "webhook_ok"
+    EXPIRED = "expired"
+    CANCELED = "canceled"
+
+
+class BillingLog(Base):
+    __tablename__ = "billing_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
+    event: Mapped[BillingEvent] = mapped_column(
+        sa.Enum(BillingEvent, name="billing_event"), nullable=False
+    )
+    ts: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
+    )
+    context: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
 
 
 class HistoryRecord(Base):

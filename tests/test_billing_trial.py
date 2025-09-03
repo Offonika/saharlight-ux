@@ -13,6 +13,8 @@ from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
     SubscriptionStatus,
+    BillingLog,
+    BillingEvent,
 )
 
 
@@ -24,7 +26,7 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__])
+    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
     return sessionmaker(bind=engine)
 
 
@@ -73,9 +75,14 @@ def test_trial_creation(monkeypatch: pytest.MonkeyPatch) -> None:
     end = datetime.fromisoformat(data["endDate"])
     assert end - start == timedelta(days=14)
     count_stmt = select(func.count()).select_from(Subscription)
+    log_stmt = select(BillingLog)
     with session_local() as session:
         count = session.scalar(count_stmt)
+        logs = session.scalars(log_stmt).all()
     assert count == 1
+    assert len(logs) == 1
+    assert logs[0].user_id == 1
+    assert logs[0].event == BillingEvent.INIT
 
 
 def test_trial_repeat_call(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -87,6 +94,9 @@ def test_trial_repeat_call(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resp1.status_code == 200
     assert resp1.json() == resp2.json()
     count_stmt = select(func.count()).select_from(Subscription)
+    log_stmt = select(func.count()).select_from(BillingLog)
     with session_local() as session:
         count = session.scalar(count_stmt)
+        log_count = session.scalar(log_stmt)
     assert count == 1
+    assert log_count == 1

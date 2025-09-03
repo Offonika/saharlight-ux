@@ -22,6 +22,8 @@ from ..diabetes.services.db import (
     Subscription,
     SubscriptionPlan,
     SubscriptionStatus,
+    BillingLog,
+    BillingEvent,
     run_db,
 )
 from ..schemas.billing import (
@@ -33,6 +35,18 @@ from ..schemas.billing import (
 )
 
 router = APIRouter(prefix="/billing", tags=["Billing"])
+
+
+def _log_event(
+    session: Session,
+    user_id: int,
+    event: BillingEvent,
+    context: dict[str, object] | None = None,
+) -> None:
+    """Persist a billing event for auditing."""
+
+    session.add(BillingLog(user_id=user_id, event=event, context=context))
+    session.commit()
 
 
 def _require_billing_enabled(
@@ -93,6 +107,13 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
         return trial
 
     trial = await run_db(_create_trial, sessionmaker=SessionLocal)
+    await run_db(
+        _log_event,
+        user_id,
+        BillingEvent.INIT,
+        {"subscription_id": trial.id, "plan": trial.plan.value},
+        sessionmaker=SessionLocal,
+    )
     return SubscriptionSchema.model_validate(trial, from_attributes=True)
 
 
@@ -121,6 +142,13 @@ async def subscribe(
         session.commit()
 
     await run_db(_create_draft, sessionmaker=SessionLocal)
+    await run_db(
+        _log_event,
+        user_id,
+        BillingEvent.CHECKOUT_CREATED,
+        {"plan": plan.value, "checkout_id": checkout["id"]},
+        sessionmaker=SessionLocal,
+    )
     return CheckoutSchema.model_validate(checkout)
 
 
@@ -142,13 +170,13 @@ async def webhook(
 
     now = datetime.now(timezone.utc)
 
-    def _activate(session: Session) -> bool:
+    def _activate(session: Session) -> tuple[bool, int | None]:
         stmt = select(Subscription).where(
             Subscription.transaction_id == event.transaction_id
         )
         sub = session.scalars(stmt).first()
         if sub is None:
-            return False
+            return False, None
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
@@ -157,15 +185,23 @@ async def webhook(
             and sub_end is not None
             and sub_end > now
         ):
-            return False
+            return False, sub.user_id
         base = sub_end if sub_end is not None and sub_end > now else now
         sub.plan = event.plan
         sub.status = SubscriptionStatus.ACTIVE
         sub.end_date = base + timedelta(days=30)
         session.commit()
-        return True
+        return True, sub.user_id
 
-    updated = await run_db(_activate, sessionmaker=SessionLocal)
+    updated, uid = await run_db(_activate, sessionmaker=SessionLocal)
+    if updated and uid is not None:
+        await run_db(
+            _log_event,
+            uid,
+            BillingEvent.WEBHOOK_OK,
+            {"transaction_id": event.transaction_id},
+            sessionmaker=SessionLocal,
+        )
     status = "processed" if updated else "ignored"
     logger.info("webhook %s %s", event.event_id, status)
     return {"status": status}
@@ -181,18 +217,25 @@ async def mock_webhook(
     if not settings.billing_test_mode:
         raise HTTPException(status_code=403, detail="test mode disabled")
 
-    def _activate(session: Session) -> bool:
+    def _activate(session: Session) -> int | None:
         stmt = select(Subscription).where(Subscription.transaction_id == checkout_id)
         sub = session.scalars(stmt).first()
         if sub is None:
-            return False
+            return None
         sub.status = SubscriptionStatus.ACTIVE
         session.commit()
-        return True
+        return sub.user_id
 
-    updated = await run_db(_activate, sessionmaker=SessionLocal)
-    if not updated:
+    uid = await run_db(_activate, sessionmaker=SessionLocal)
+    if uid is None:
         raise HTTPException(status_code=404, detail="subscription not found")
+    await run_db(
+        _log_event,
+        uid,
+        BillingEvent.WEBHOOK_OK,
+        {"transaction_id": checkout_id},
+        sessionmaker=SessionLocal,
+    )
     return {"status": "ok"}
 
 
@@ -209,18 +252,25 @@ async def admin_mock_webhook(
     if settings.billing_admin_token is None or x_token != settings.billing_admin_token:
         raise HTTPException(status_code=403, detail="forbidden")
 
-    def _activate(session: Session) -> bool:
+    def _activate(session: Session) -> int | None:
         stmt = select(Subscription).where(Subscription.transaction_id == transaction_id)
         sub = session.scalars(stmt).first()
         if sub is None:
-            return False
+            return None
         sub.status = SubscriptionStatus.ACTIVE
         session.commit()
-        return True
+        return sub.user_id
 
-    updated = await run_db(_activate, sessionmaker=SessionLocal)
-    if not updated:
+    uid = await run_db(_activate, sessionmaker=SessionLocal)
+    if uid is None:
         raise HTTPException(status_code=404, detail="subscription not found")
+    await run_db(
+        _log_event,
+        uid,
+        BillingEvent.WEBHOOK_OK,
+        {"transaction_id": transaction_id},
+        sessionmaker=SessionLocal,
+    )
     return {"status": "ok"}
 
 

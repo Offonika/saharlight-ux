@@ -14,6 +14,8 @@ from services.api.app.diabetes.services.db import (
     Subscription,
     SubscriptionPlan,
     SubscriptionStatus,
+    BillingLog,
+    BillingEvent,
 )
 from services.api.app.billing import jobs
 
@@ -24,7 +26,7 @@ def _setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__])
+    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
     return sessionmaker(bind=engine)
 
 
@@ -63,6 +65,9 @@ async def test_expire_subscriptions_marks_expired(
         sub = session.scalar(select(Subscription))
         assert sub is not None
         assert sub.status == SubscriptionStatus.EXPIRED
+        logs = session.scalars(select(BillingLog)).all()
+    assert len(logs) == 1
+    assert logs[0].event == BillingEvent.EXPIRED
 
     assert any("expired 1 subscription" in r.getMessage() for r in caplog.records)
 
