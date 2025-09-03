@@ -340,8 +340,9 @@ async def test_photo_handler_removes_file(
 
     result = await photo_handlers.photo_handler(update, context)
 
-    assert call["keep_image"] is True
-    assert not Path(call["image_path"]).exists()
+    expected_path = Path(settings.photos_dir) / "1_uid.jpg"
+    assert call["image_bytes"] == b"img"
+    assert not expected_path.exists()
     assert result == photo_handlers.PHOTO_SUGAR
 
 

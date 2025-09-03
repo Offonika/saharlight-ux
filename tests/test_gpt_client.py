@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import asyncio
 import logging
 import threading
@@ -43,7 +41,9 @@ def test_get_client_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_message_openaierror(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_send_message_openaierror(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     def raise_error(**kwargs: Any) -> None:
         raise OpenAIError("boom")
 
@@ -57,6 +57,7 @@ async def test_send_message_openaierror(monkeypatch: pytest.MonkeyPatch, caplog:
     )
 
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(settings, "openai_assistant_id", "asst")
 
     with caplog.at_level(logging.ERROR):
         with pytest.raises(OpenAIError):
@@ -66,11 +67,15 @@ async def test_send_message_openaierror(monkeypatch: pytest.MonkeyPatch, caplog:
 
 
 @pytest.mark.asyncio
-async def test_create_thread_openaierror(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_create_thread_openaierror(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     def raise_error() -> None:
         raise OpenAIError("boom")
 
-    fake_client = SimpleNamespace(beta=SimpleNamespace(threads=SimpleNamespace(create=raise_error)))
+    fake_client = SimpleNamespace(
+        beta=SimpleNamespace(threads=SimpleNamespace(create=raise_error))
+    )
 
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
 
@@ -81,7 +86,9 @@ async def test_create_thread_openaierror(monkeypatch: pytest.MonkeyPatch, caplog
     assert any("Failed to create thread" in r.message for r in caplog.records)
 
 
-def test_dispose_openai_clients_resets_all_sync(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_dispose_openai_clients_resets_all_sync(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     fake_client = Mock()
     fake_async_client = Mock()
     fake_async_client.close = AsyncMock()
@@ -117,33 +124,34 @@ async def test_dispose_openai_clients_resets_all_async(
 
 
 @pytest.mark.asyncio
-async def test_send_message_upload_error_removes_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    img = tmp_path / "img.jpg"
-    img.write_bytes(b"data")
+async def test_send_message_upload_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    image_bytes = b"data"
 
     def raise_upload(*_: Any, **__: Any) -> None:
         raise OpenAIError("boom")
 
     fake_client = SimpleNamespace(files=SimpleNamespace(create=raise_upload))
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(settings, "openai_assistant_id", "asst")
 
     with pytest.raises(OpenAIError):
-        await gpt_client.send_message(thread_id="t", image_path=str(img))
-
-    assert not img.exists()
+        await gpt_client.send_message(thread_id="t", image_bytes=image_bytes)
 
 
 @pytest.mark.asyncio
-async def test_send_message_empty_string_preserved(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    img = tmp_path / "img.jpg"
-    img.write_bytes(b"data")
+async def test_send_message_empty_string_preserved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image_bytes = b"data"
 
     captured = {}
 
     def fake_files_create(file: Any, purpose: str) -> SimpleNamespace:
         return SimpleNamespace(id="f1")
 
-    def fake_messages_create(*, thread_id: str, role: str, content: list[dict[str, Any]]) -> None:
+    def fake_messages_create(
+        *, thread_id: str, role: str, content: list[dict[str, Any]]
+    ) -> None:
         captured["content"] = content
 
     fake_client = SimpleNamespace(
@@ -159,9 +167,8 @@ async def test_send_message_empty_string_preserved(tmp_path: Path, monkeypatch: 
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(settings, "openai_assistant_id", "asst_test")
 
-    await gpt_client.send_message(thread_id="t", content="", image_path=str(img))
+    await gpt_client.send_message(thread_id="t", content="", image_bytes=image_bytes)
     assert captured["content"][1]["text"] == ""
-    assert not img.exists()
 
 
 @pytest.mark.asyncio
@@ -171,7 +178,9 @@ async def test_create_thread_timeout(
     def slow_create() -> None:
         time.sleep(0.05)
 
-    fake_client = SimpleNamespace(beta=SimpleNamespace(threads=SimpleNamespace(create=slow_create)))
+    fake_client = SimpleNamespace(
+        beta=SimpleNamespace(threads=SimpleNamespace(create=slow_create))
+    )
 
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(gpt_client, "THREAD_CREATION_TIMEOUT", 0.01)

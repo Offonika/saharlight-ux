@@ -137,6 +137,7 @@ async def photo_handler(
             user_data["thread_id"] = thread_id
 
         try:
+            image_bytes = await asyncio.to_thread(Path(file_path).read_bytes)
             run = await send_message(
                 thread_id=thread_id,
                 content=(
@@ -145,8 +146,7 @@ async def photo_handler(
                     "Углеводы: <...>\n"
                     "ХЕ: <...>"
                 ),
-                image_path=file_path,
-                keep_image=True,
+                image_bytes=image_bytes,
             )
         except asyncio.TimeoutError:
             logger.warning("[PHOTO] GPT request timed out")

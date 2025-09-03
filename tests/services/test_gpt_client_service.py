@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -112,46 +111,6 @@ async def test_send_message_run_error_retry(
 
 
 @pytest.mark.asyncio
-async def test_send_message_cleanup_warning(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
-    img = tmp_path / "img.jpg"
-    img.write_bytes(b"data")
-
-    def fake_files_create(file: Any, purpose: str) -> SimpleNamespace:
-        return SimpleNamespace(id="f1")
-
-    def fake_messages_create(**_: Any) -> None:
-        return None
-
-    def fake_runs_create(**_: Any) -> SimpleNamespace:
-        return SimpleNamespace(id="r1")
-
-    fake_client = SimpleNamespace(
-        files=SimpleNamespace(create=fake_files_create),
-        beta=SimpleNamespace(
-            threads=SimpleNamespace(
-                messages=SimpleNamespace(create=fake_messages_create),
-                runs=SimpleNamespace(create=fake_runs_create),
-            )
-        ),
-    )
-    monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
-    monkeypatch.setattr(settings, "openai_assistant_id", "asst")
-
-    def fake_remove(_: str) -> None:
-        raise OSError("nope")
-
-    monkeypatch.setattr(gpt_client, "os", SimpleNamespace(remove=fake_remove))
-
-    with caplog.at_level(logging.WARNING):
-        await gpt_client.send_message(thread_id="t", image_path=str(img))
-
-    assert img.exists()
-    assert any("Failed to delete" in r.message for r in caplog.records)
-
-
-@pytest.mark.asyncio
 async def test_create_thread_retry(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -180,17 +139,3 @@ async def test_create_thread_retry(
     assert call_count == 2
     assert thread_id == "t1"
     assert any("Failed to create thread" in r.message for r in caplog.records)
-
-
-@pytest.mark.asyncio
-async def test_send_message_image_open_error(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
-    monkeypatch.setattr(gpt_client, "_get_client", lambda: SimpleNamespace())
-    monkeypatch.setattr(settings, "openai_assistant_id", "asst")
-
-    with caplog.at_level(logging.ERROR):
-        with pytest.raises(OSError):
-            await gpt_client.send_message(thread_id="t", image_path="missing.jpg")
-
-    assert any("Failed to read" in r.message for r in caplog.records)
