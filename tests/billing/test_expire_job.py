@@ -82,3 +82,20 @@ def test_schedule_subscription_expiration_sets_job_kwargs() -> None:
     jq = DummyJobQueue()
     jobs.schedule_subscription_expiration(cast(Any, jq))
     assert jq.kwargs == {"id": "subscriptions_expire", "replace_existing": True}
+
+
+def test_schedule_subscription_expiration_skips_without_run_daily(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class Dummy:
+        pass
+
+    jq = Dummy()
+    caplog.set_level(logging.INFO)
+    jobs.schedule_subscription_expiration(cast(Any, jq))
+    assert not any("subscriptions_expire" in r.getMessage() for r in caplog.records)
+
+
+def test_utcnow_returns_aware_datetime() -> None:
+    now = jobs._utcnow()
+    assert now.tzinfo is timezone.utc
