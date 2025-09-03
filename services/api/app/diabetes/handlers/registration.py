@@ -167,6 +167,7 @@ def register_handlers(
         photo_handlers,
         sugar_handlers,
         gpt_handlers,
+        billing_handlers,
     )
 
     app.add_handler(onboarding_conv)
@@ -194,6 +195,8 @@ def register_handlers(
     app.add_handler(
         CommandHandlerT("gpt", gpt_handlers.chat_with_gpt)
     )
+    app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
+    app.add_handler(CommandHandlerT("upgrade", billing_handlers.upgrade_command))
     register_reminder_handlers(app)
     app.add_handler(
         CommandHandlerT(
