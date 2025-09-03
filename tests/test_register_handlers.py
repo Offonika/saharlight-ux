@@ -1,4 +1,6 @@
 import os
+import builtins
+import logging
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -310,6 +312,26 @@ def test_register_reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
         isinstance(h, CallbackQueryHandler) and h.callback is rh.reminder_callback
         for h in handlers
     )
+
+
+def test_register_reminder_handlers_missing_debug_module(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    orig_import = builtins.__import__
+
+    def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "services.api.app.diabetes.handlers.reminder_debug":
+            raise ImportError("missing module")
+        return orig_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+
+    with caplog.at_level(logging.WARNING):
+        register_reminder_handlers(app)
+
+    assert "Could not load debug reminder handlers" in caplog.text
 
 
 @pytest.mark.asyncio

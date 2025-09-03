@@ -128,8 +128,11 @@ def register_reminder_handlers(
             register_debug_reminder_handlers,
         )
         register_debug_reminder_handlers(app)
-    except Exception as e:
+    except ImportError as e:
         logger.warning("⚠️ Could not load debug reminder handlers: %s", e)
+    except Exception:
+        logger.exception("Failed to load debug reminder handlers")
+        raise
 
     # --- Schedule reminders ---
     job_queue = app.job_queue
