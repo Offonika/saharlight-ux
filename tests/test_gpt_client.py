@@ -165,7 +165,9 @@ async def test_send_message_empty_string_preserved(tmp_path: Path, monkeypatch: 
 
 
 @pytest.mark.asyncio
-async def test_create_thread_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_create_thread_timeout(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     def slow_create() -> None:
         time.sleep(0.05)
 
@@ -174,13 +176,20 @@ async def test_create_thread_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
     monkeypatch.setattr(gpt_client, "THREAD_CREATION_TIMEOUT", 0.01)
 
-    with pytest.raises(asyncio.TimeoutError):
-        await gpt_client.create_thread()
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError):
+            await gpt_client.create_thread()
+
+    assert any("Thread creation timed out" in r.message for r in caplog.records)
 
 
 @pytest.mark.asyncio
-async def test_send_message_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
-    def slow_message_create(*, thread_id: str, role: str, content: list[dict[str, Any]]) -> None:
+async def test_send_message_timeout(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def slow_message_create(
+        *, thread_id: str, role: str, content: list[dict[str, Any]]
+    ) -> None:
         time.sleep(0.05)
 
     run_create = Mock()
@@ -197,7 +206,35 @@ async def test_send_message_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "openai_assistant_id", "asst_test")
     monkeypatch.setattr(gpt_client, "MESSAGE_CREATION_TIMEOUT", 0.01)
 
-    with pytest.raises(asyncio.TimeoutError):
-        await gpt_client.send_message(thread_id="t", content="hi")
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError):
+            await gpt_client.send_message(thread_id="t", content="hi")
 
     run_create.assert_not_called()
+    assert any("Message creation timed out" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_send_message_run_timeout(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    run_create = Mock(side_effect=lambda **_: time.sleep(0.05))
+    fake_client = SimpleNamespace(
+        beta=SimpleNamespace(
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(create=lambda **_: None),
+                runs=SimpleNamespace(create=run_create),
+            )
+        )
+    )
+
+    monkeypatch.setattr(gpt_client, "_get_client", lambda: fake_client)
+    monkeypatch.setattr(settings, "openai_assistant_id", "asst_test")
+    monkeypatch.setattr(gpt_client, "RUN_CREATION_TIMEOUT", 0.01)
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError):
+            await gpt_client.send_message(thread_id="t", content="hi")
+
+    assert run_create.call_count == 1
+    assert any("Run creation timed out" in r.message for r in caplog.records)
