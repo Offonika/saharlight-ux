@@ -17,6 +17,7 @@ from services.api.app.diabetes.handlers.registration import register_handlers
 from services.api.app.diabetes.services.db import init_db
 from services.api.app.menu_button import post_init as menu_button_post_init
 from services.bot.ptb_patches import apply_jobqueue_stop_workaround  # 👈 добавили
+from services.bot.telegram_payments import register_billing_handlers
 
 if TYPE_CHECKING:
     DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
@@ -58,18 +59,14 @@ async def post_init(
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.exception(
-        "Exception while handling update %s", update, exc_info=context.error
-    )
+    logger.exception("Exception while handling update %s", update, exc_info=context.error)
 
 
 def main() -> None:  # pragma: no cover
     level = settings.log_level
     if isinstance(level, str):  # pragma: no cover - runtime config
         level = getattr(logging, level.upper(), logging.INFO)
-    logging.basicConfig(
-        level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     logger.info("=== Bot started ===")
 
     # применяем воркараунд к PTB JobQueue.stop
@@ -82,9 +79,7 @@ def main() -> None:  # pragma: no cover
         sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
         logger.error("Failed to initialize the database", exc_info=exc)
-        sys.exit(
-            "Database initialization failed. Please check your configuration and try again."
-        )
+        sys.exit("Database initialization failed. Please check your configuration and try again.")
 
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:
@@ -99,9 +94,7 @@ def main() -> None:  # pragma: no cover
         dict[str, object],
         dict[str, object],
         DefaultJobQueue,
-    ] = (
-        Application.builder().token(BOT_TOKEN).post_init(post_init).build()
-    )
+    ] = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
 
     # ---- Configure APScheduler timezone BEFORE any scheduling
     tz_msk = ZoneInfo("Europe/Moscow")
@@ -122,6 +115,7 @@ def main() -> None:  # pragma: no cover
 
     # ---- Register handlers (they may schedule reminders)
     register_handlers(application)
+    register_billing_handlers(application)
 
     # ---- Schedule test job on startup
     async def test_job(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -129,9 +123,7 @@ def main() -> None:  # pragma: no cover
         if admin_id is None:
             logger.warning("Admin ID not configured; skipping test reminder")
             return
-        await context.bot.send_message(
-            chat_id=admin_id, text="🔔 Test reminder fired! JobQueue работает ✅"
-        )
+        await context.bot.send_message(chat_id=admin_id, text="🔔 Test reminder fired! JobQueue работает ✅")
 
     job_queue.run_once(test_job, when=timedelta(seconds=30), name="test_job")
     logger.info("🧪 Scheduled test_job in +30s")
