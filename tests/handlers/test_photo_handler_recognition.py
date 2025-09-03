@@ -17,6 +17,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
+from services.api.app.config import settings
 
 
 class DummyPhoto:
@@ -403,7 +404,9 @@ async def test_doc_handler_valid_image(
     assert result == photo_handlers.PHOTO_SUGAR
     assert context.user_data == {}
     assert message.photo is None
-    photo_mock.assert_awaited_once_with(update, context, file_path="photos/1_uid.png")
+    photo_mock.assert_awaited_once_with(
+        update, context, file_path=f"{settings.photos_dir}/1_uid.png"
+    )
 
 
 @pytest.mark.asyncio

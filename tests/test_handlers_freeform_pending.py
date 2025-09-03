@@ -9,6 +9,7 @@ from telegram.ext import CallbackContext
 import services.api.app.diabetes.handlers.gpt_handlers as handlers
 from sqlalchemy.orm import Session, sessionmaker
 from services.api.app.diabetes.handlers import EntryData
+from services.api.app.config import settings
 
 
 class DummyMessage:
@@ -33,7 +34,7 @@ async def test_freeform_handler_edits_pending_entry_keeps_state(
         "xe": 2.0,
         "dose": 5.0,
         "sugar_before": 4.5,
-        "photo_path": "photos/img.jpg",
+        "photo_path": f"{settings.photos_dir}/img.jpg",
     }
     message = DummyMessage("dose=3.5 carbs=30")
     update = cast(
@@ -91,7 +92,7 @@ async def test_freeform_handler_adds_sugar_to_photo_entry(
         "xe": 2.0,
         "dose": 5.0,
         "sugar_before": None,
-        "photo_path": "photos/img.jpg",
+        "photo_path": f"{settings.photos_dir}/img.jpg",
     }
 
     class DummySession(Session):
@@ -181,7 +182,7 @@ async def test_freeform_handler_prefilled_entry_cleans_pending(
         "xe": 2.0,
         "dose": 5.0,
         "sugar_before": 4.5,
-        "photo_path": "photos/img.jpg",
+        "photo_path": f"{settings.photos_dir}/img.jpg",
     }
     message = DummyMessage("dose=3 carbs=30")
     update = cast(

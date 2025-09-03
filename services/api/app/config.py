@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     app_name: str = "diabetes-bot"
     debug: bool = False
 
+    photos_dir: str = Field(default="photos", alias="PHOTOS_DIR")
+
     # Database configuration
     database_url: str = Field(
         default="postgresql://diabetes_user@localhost:5432/diabetes_bot",
