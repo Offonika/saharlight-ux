@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     openai_assistant_id: Optional[str] = Field(
         default=None, alias="OPENAI_ASSISTANT_ID"
     )
+    openai_command_model: str = Field(
+        default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL"
+    )
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
     telegram_token: Optional[str] = Field(default=None, alias="TELEGRAM_TOKEN")
