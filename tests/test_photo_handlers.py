@@ -114,6 +114,7 @@ async def test_photo_handler_get_file_telegram_error(
     assert context.user_data is not None
     user_data = context.user_data
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
+    assert photo_handlers.WAITING_GPT_TIMESTAMP not in user_data
     assert "[PHOTO] Failed to save photo" in caplog.text
 
 
