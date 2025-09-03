@@ -35,7 +35,7 @@ _client: OpenAI | None = None
 _client_lock = threading.Lock()
 
 _async_client: AsyncOpenAI | None = None
-_async_client_lock = threading.Lock()
+_async_client_lock = asyncio.Lock()
 
 
 def _get_client() -> OpenAI:
@@ -47,10 +47,10 @@ def _get_client() -> OpenAI:
     return _client
 
 
-def _get_async_client() -> AsyncOpenAI:
+async def _get_async_client() -> AsyncOpenAI:
     global _async_client
     if _async_client is None:
-        with _async_client_lock:
+        async with _async_client_lock:
             if _async_client is None:
                 _async_client = get_async_openai_client()
     return _async_client
@@ -63,7 +63,7 @@ async def dispose_openai_clients() -> None:
         if _client is not None:
             _client.close()
             _client = None
-    with _async_client_lock:
+    async with _async_client_lock:
         if _async_client is not None:
             await _async_client.close()
             _async_client = None
@@ -78,7 +78,7 @@ async def create_chat_completion(
     timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
 ) -> ChatCompletion:
     """Create a chat completion with typed return value."""
-    client: AsyncOpenAI = _get_async_client()
+    client: AsyncOpenAI = await _get_async_client()
     return await client.chat.completions.create(
         model=model,
         messages=messages,
