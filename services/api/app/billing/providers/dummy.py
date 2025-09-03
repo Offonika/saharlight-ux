@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from uuid import uuid4
 
 
 @dataclass
@@ -16,3 +17,11 @@ class DummyBillingProvider:
 
         return {"status": "ok", "test_mode": self.test_mode}
 
+    async def create_subscription(self, plan: str) -> dict[str, str]:
+        """Return dummy checkout details for subscription creation."""
+
+        checkout_id = f"chk_{uuid4().hex}"
+        return {
+            "id": checkout_id,
+            "url": f"https://dummy/{plan}/{checkout_id}",
+        }

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from services.api.app.billing import (
     BillingSettings,
     create_payment,
+    create_subscription,
     get_billing_settings,
 )
 
@@ -22,7 +23,12 @@ from ..diabetes.services.db import (
     SubscriptionStatus,
     run_db,
 )
-from ..schemas.billing import BillingStatusResponse, FeatureFlags, SubscriptionSchema
+from ..schemas.billing import (
+    BillingStatusResponse,
+    CheckoutSchema,
+    FeatureFlags,
+    SubscriptionSchema,
+)
 
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
@@ -86,6 +92,59 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
 
     trial = await run_db(_create_trial, sessionmaker=SessionLocal)
     return SubscriptionSchema.model_validate(trial, from_attributes=True)
+
+
+@router.post("/subscribe", response_model=CheckoutSchema)
+async def subscribe(
+    user_id: int,
+    plan: SubscriptionPlan,
+    settings: BillingSettings = Depends(_require_billing_enabled),
+) -> CheckoutSchema:
+    """Initiate a subscription and return checkout details."""
+
+    checkout = await create_subscription(settings, plan)
+    now = datetime.now(timezone.utc)
+
+    def _create_draft(session: Session) -> None:
+        draft = Subscription(
+            user_id=user_id,
+            plan=plan,
+            status=SubscriptionStatus.PENDING,
+            provider=settings.billing_provider,
+            transaction_id=checkout["id"],
+            start_date=now,
+            end_date=None,
+        )
+        session.add(draft)
+        session.commit()
+
+    await run_db(_create_draft, sessionmaker=SessionLocal)
+    return CheckoutSchema.model_validate(checkout)
+
+
+@router.post("/mock-webhook/{checkout_id}")
+async def mock_webhook(
+    checkout_id: str,
+    settings: BillingSettings = Depends(_require_billing_enabled),
+) -> dict[str, str]:
+    """Simulate provider webhook to activate a subscription in test mode."""
+
+    if not settings.billing_test_mode:
+        raise HTTPException(status_code=403, detail="test mode disabled")
+
+    def _activate(session: Session) -> bool:
+        stmt = select(Subscription).where(Subscription.transaction_id == checkout_id)
+        sub = session.scalars(stmt).first()
+        if sub is None:
+            return False
+        sub.status = SubscriptionStatus.ACTIVE
+        session.commit()
+        return True
+
+    updated = await run_db(_activate, sessionmaker=SessionLocal)
+    if not updated:
+        raise HTTPException(status_code=404, detail="subscription not found")
+    return {"status": "ok"}
 
 
 @router.get("/status", response_model=BillingStatusResponse)

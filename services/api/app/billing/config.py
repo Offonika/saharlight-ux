@@ -32,4 +32,3 @@ def reload_billing_settings() -> BillingSettings:
     global billing_settings
     billing_settings = BillingSettings()
     return billing_settings
-
