@@ -137,9 +137,11 @@ async def _send_alert_message(
                 chat_id = contact
             elif contact.isdigit():
                 chat_id = int(contact)
+            elif contact.startswith("+") and contact.lstrip("+").isdigit():
+                chat_id = int(contact.lstrip("+"))
             else:
                 logger.info(
-                    "SOS contact '%s' is not a Telegram username or chat id; skipping",
+                    "SOS contact '%s' is not a Telegram username, chat id, or phone number; skipping",
                     contact,
                 )
                 chat_id = None
