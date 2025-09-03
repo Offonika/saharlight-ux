@@ -15,7 +15,15 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 plan_enum = sa.Enum("free", "pro", "family", name="subscription_plan")
-status_enum = sa.Enum("trial", "active", "canceled", "expired", name="subscription_status")
+status_enum = sa.Enum(
+    "trial",
+    "pending",
+    "active",
+    "canceled",
+    "expired",
+    name="subscription_status",
+    create_type=False,
+)
 
 
 def upgrade() -> None:
