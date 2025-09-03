@@ -13,9 +13,9 @@ class EntryData(TypedDict, total=False):
     event_time: datetime.datetime
     xe: float | None
     carbs_g: float | None
-    portion_g: float | None
-    proteins_g: float | None
-    fats_g: float | None
+    weight_g: float | None
+    protein_g: float | None
+    fat_g: float | None
     calories_kcal: float | None
     dose: float | None
     sugar_before: float | None
@@ -46,4 +46,3 @@ class UserData(TypedDict, total=False):
 from .dose_calc import _cancel_then  # noqa: E402
 
 __all__ = ["_cancel_then", "EntryData", "UserData"]
-

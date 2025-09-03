@@ -58,6 +58,10 @@ class EntryLike(Protocol):
     carbs_g: float | None
     xe: float | None
     dose: float | str | None
+    weight_g: float | None
+    protein_g: float | None
+    fat_g: float | None
+    calories_kcal: float | None
 
 
 def render_entry(entry: EntryLike) -> str:
@@ -77,7 +81,21 @@ def render_entry(entry: EntryLike) -> str:
     else:
         carbs_text = "—"
 
-    return f"<b>{day_str}</b>\n🍭 Сахар: <b>{sugar}</b>\n🍞 Углеводы: <b>{carbs_text}</b>\n💉 Доза: <b>{dose}</b>"
+    lines = [
+        f"<b>{day_str}</b>",
+        f"🍭 Сахар: <b>{sugar}</b>",
+        f"🍞 Углеводы: <b>{carbs_text}</b>",
+        f"💉 Доза: <b>{dose}</b>",
+    ]
+    if entry.weight_g is not None:
+        lines.append(f"⚖️ Вес: <b>{html.escape(str(entry.weight_g))} г</b>")
+    if entry.protein_g is not None:
+        lines.append(f"🥩 Белки: <b>{html.escape(str(entry.protein_g))} г</b>")
+    if entry.fat_g is not None:
+        lines.append(f"🧈 Жиры: <b>{html.escape(str(entry.fat_g))} г</b>")
+    if entry.calories_kcal is not None:
+        lines.append(f"🔥 Калории: <b>{html.escape(str(entry.calories_kcal))} ккал</b>")
+    return "\n".join(lines)
 
 
 @dataclass
@@ -90,6 +108,10 @@ class HistoryEntry(EntryLike):
     carbs_g: float | None
     xe: float | None
     dose: float | str | None
+    weight_g: float | None = None
+    protein_g: float | None = None
+    fat_g: float | None = None
+    calories_kcal: float | None = None
 
 
 def _history_record_to_entry(record: HistoryRecord) -> HistoryEntry:
@@ -103,6 +125,10 @@ def _history_record_to_entry(record: HistoryRecord) -> HistoryEntry:
         carbs_g=record.carbs,
         xe=record.bread_units,
         dose=record.insulin,
+        weight_g=None,
+        protein_g=None,
+        fat_g=None,
+        calories_kcal=None,
     )
 
 

@@ -160,7 +160,14 @@ async def test_photo_flow_saves_entry(
     monkeypatch.setattr(
         photo_handlers,
         "extract_nutrition_info",
-        lambda text: functions.NutritionInfo(carbs_g=30.0, xe=2.0),
+        lambda text: functions.NutritionInfo(
+            carbs_g=30.0,
+            xe=2.0,
+            weight_g=100.0,
+            protein_g=5.0,
+            fat_g=3.0,
+            calories_kcal=120.0,
+        ),
     )
     user_data["thread_id"] = "tid"
 
@@ -177,6 +184,11 @@ async def test_photo_flow_saves_entry(
     entry = user_data["pending_entry"]
     assert entry["carbs_g"] == 30.0
     assert entry["xe"] == 2.0
+    # new macro fields
+    assert entry["weight_g"] == 100.0
+    assert entry["protein_g"] == 5.0
+    assert entry["fat_g"] == 3.0
+    assert entry["calories_kcal"] == 120.0
     assert entry["photo_path"] is None
 
     msg_sugar = DummyMessage("5.5")
@@ -211,6 +223,10 @@ async def test_photo_flow_saves_entry(
     assert len(DummySession.added_entries) == 1
     saved = DummySession.added_entries[0]
     assert saved.carbs_g == 30.0
+    assert saved.weight_g == 100.0
+    assert saved.protein_g == 5.0
+    assert saved.fat_g == 3.0
+    assert saved.calories_kcal == 120.0
     assert saved.sugar_before == 5.5
     assert "pending_entry" not in user_data
     assert query.edited == ["✅ Запись сохранена в дневник!"]
