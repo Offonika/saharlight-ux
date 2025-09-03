@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+import html
 import logging
 import os
 from pathlib import Path
@@ -219,7 +220,7 @@ async def photo_handler(
             )
             await message.reply_text(
                 "⚠️ Не смог разобрать углеводы на фото.\n\n"
-                f"Вот полный ответ Vision:\n<pre>{vision_text}</pre>\n"
+                f"Вот полный ответ Vision:\n<pre>{html.escape(vision_text)}</pre>\n"
                 "Введите /dose и укажите их вручную.",
                 parse_mode="HTML",
                 reply_markup=menu_keyboard(),
