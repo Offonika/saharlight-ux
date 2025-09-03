@@ -61,6 +61,7 @@ async def test_photo_handler_commit_failure(
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
     monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
+
     def fail_commit(session: object) -> None:
         raise photo_handlers.CommitError
 
@@ -212,6 +213,81 @@ async def test_photo_handler_unparsed_response(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(
             bot=SimpleNamespace(get_file=fake_get_file), user_data={"thread_id": "tid"}
+        ),
+    )
+
+    monkeypatch.chdir(tmp_path)
+    result = await photo_handlers.photo_handler(update, context)
+
+    assert result == photo_handlers.END
+    assert any("Не смог разобрать" in t for t in message.texts)
+    user_data = context.user_data
+    assert user_data is not None
+    assert "pending_entry" not in user_data
+    assert photo_handlers.WAITING_GPT_FLAG not in user_data
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_unparsed_response_clears_pending_entry(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    class DummyMessage:
+        def __init__(self) -> None:
+            self.photo = (DummyPhoto(),)
+            self.texts: list[str] = []
+
+        async def reply_text(self, text: str, **kwargs: Any) -> Any:
+            self.texts.append(text)
+            if text.startswith("🔍"):
+                return SimpleNamespace()
+            return None
+
+    async def fake_get_file(file_id: str) -> Any:
+        class File:
+            async def download_to_drive(self, path: str) -> None:
+                Path(path).write_bytes(b"img")
+
+        return File()
+
+    class Run:
+        status = "completed"
+        thread_id = "tid"
+        id = "rid"
+
+    async def fake_send_message(**kwargs: Any) -> Run:
+        return Run()
+
+    class Messages:
+        data = [
+            SimpleNamespace(
+                role="assistant",
+                content=[SimpleNamespace(text=SimpleNamespace(value="text"))],
+            )
+        ]
+
+    class DummyClient:
+        beta = SimpleNamespace(
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(list=lambda thread_id: Messages())
+            )
+        )
+
+    monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(
+        photo_handlers, "extract_nutrition_info", lambda t: (None, None)
+    )
+
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            bot=SimpleNamespace(get_file=fake_get_file),
+            user_data={"thread_id": "tid", "pending_entry": {"foo": "bar"}},
         ),
     )
 

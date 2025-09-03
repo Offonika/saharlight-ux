@@ -275,6 +275,7 @@ async def photo_handler(
                 parse_mode="HTML",
                 reply_markup=menu_keyboard(),
             )
+            user_data.pop("pending_entry", None)
             return END
 
         pending_entry = cast(
