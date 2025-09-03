@@ -16,6 +16,11 @@ from ..services.reminders import (
 from ..services.audit import log_patient_access
 from ..telegram_auth import require_tg_user
 
+
+class ReminderError(Exception):
+    """Reminder notification failure."""
+
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -28,8 +33,11 @@ async def _post_job_queue_event(action: Literal["saved", "deleted"], rid: int) -
                 await reminder_events.notify_reminder_saved(rid)
             else:
                 reminder_events.notify_reminder_deleted(rid)
+        except (ReminderError, RuntimeError, httpx.HTTPError):
+            logger.exception("failed to notify job queue")
         except Exception:  # pragma: no cover - safety net
             logger.exception("failed to notify job queue")
+            raise
         return
     base = config.get_settings().api_url
     if not base:

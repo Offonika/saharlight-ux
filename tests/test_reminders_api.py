@@ -516,3 +516,37 @@ def test_post_reminder_handles_notify_error(
 
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_post_job_queue_event_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    reminder_events.register_job_queue(object())
+    called: list[int] = []
+
+    async def fake_notify(rid: int) -> None:
+        called.append(rid)
+
+    monkeypatch.setattr(reminder_events, "notify_reminder_saved", fake_notify)
+    await reminders_router._post_job_queue_event("saved", 1)
+    assert called == [1]
+    reminder_events.register_job_queue(None)
+
+
+@pytest.mark.asyncio
+async def test_post_job_queue_event_handles_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    reminder_events.register_job_queue(object())
+
+    class Boom(reminders_router.ReminderError):
+        pass
+
+    async def boom_notify(_: int) -> None:
+        raise Boom("fail")
+
+    monkeypatch.setattr(reminder_events, "notify_reminder_saved", boom_notify)
+    with caplog.at_level(logging.ERROR):
+        await reminders_router._post_job_queue_event("saved", 1)
+
+    assert "failed to notify job queue" in caplog.text
+    reminder_events.register_job_queue(None)
