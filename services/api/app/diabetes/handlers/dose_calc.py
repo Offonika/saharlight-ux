@@ -1,5 +1,6 @@
 import datetime
 import logging
+from enum import IntEnum
 from collections.abc import Awaitable, Callable, Coroutine
 from typing import TypeVar, cast
 
@@ -59,7 +60,20 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-DOSE_METHOD, DOSE_XE, DOSE_CARBS, DOSE_SUGAR = range(3, 7)
+
+class DoseState(IntEnum):
+    METHOD = 3
+    XE = 4
+    CARBS = 5
+    SUGAR = 6
+
+
+DOSE_METHOD, DOSE_XE, DOSE_CARBS, DOSE_SUGAR = (
+    DoseState.METHOD,
+    DoseState.XE,
+    DoseState.CARBS,
+    DoseState.SUGAR,
+)
 END: int = ConversationHandler.END
 
 
@@ -79,7 +93,7 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         "💉 Как рассчитать дозу? Выберите метод:",
         reply_markup=dose_keyboard,
     )
-    return DOSE_METHOD
+    return DoseState.METHOD
 
 
 async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -100,16 +114,16 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if "углев" in text:
         user_data["dose_method"] = "carbs"
         await message.reply_text("Введите количество углеводов (г).")
-        return DOSE_CARBS
+        return DoseState.CARBS
     if "xe" in text or "хе" in text:
         user_data["dose_method"] = "xe"
         await message.reply_text("Введите количество ХЕ.")
-        return DOSE_XE
+        return DoseState.XE
     await message.reply_text(
         "Пожалуйста, выберите метод: ХЕ или углеводы.",
         reply_markup=dose_keyboard,
     )
-    return DOSE_METHOD
+    return DoseState.METHOD
 
 
 async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -130,10 +144,10 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     xe = _safe_float(text)
     if xe is None:
         await message.reply_text("Введите число ХЕ.")
-        return DOSE_XE
+        return DoseState.XE
     if xe < 0:
         await message.reply_text("Количество ХЕ не может быть отрицательным.")
-        return DOSE_XE
+        return DoseState.XE
     entry: EntryData = {
         "telegram_id": user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -141,7 +155,7 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     }
     user_data["pending_entry"] = entry
     await message.reply_text("Введите текущий сахар (ммоль/л).")
-    return DOSE_SUGAR
+    return DoseState.SUGAR
 
 
 async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -162,10 +176,10 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     carbs = _safe_float(text)
     if carbs is None:
         await message.reply_text("Введите углеводы числом в граммах.")
-        return DOSE_CARBS
+        return DoseState.CARBS
     if carbs < 0:
         await message.reply_text("Количество углеводов не может быть отрицательным.")
-        return DOSE_CARBS
+        return DoseState.CARBS
     entry: EntryData = {
         "telegram_id": user.id,
         "event_time": datetime.datetime.now(datetime.timezone.utc),
@@ -173,7 +187,7 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     }
     user_data["pending_entry"] = entry
     await message.reply_text("Введите текущий сахар (ммоль/л).")
-    return DOSE_SUGAR
+    return DoseState.SUGAR
 
 
 async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -194,10 +208,10 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     sugar = _safe_float(text)
     if sugar is None:
         await message.reply_text("Введите сахар числом в ммоль/л.")
-        return DOSE_SUGAR
+        return DoseState.SUGAR
     if sugar < 0:
         await message.reply_text("Сахар не может быть отрицательным.")
-        return DOSE_SUGAR
+        return DoseState.SUGAR
 
     entry = cast(EntryData, user_data.get("pending_entry", {}))
     entry["sugar_before"] = sugar
@@ -328,10 +342,18 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex(f"^{DOSE_BUTTON_TEXT}$"), dose_start),
     ],
     states={
-        DOSE_METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
-        DOSE_XE: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)],
-        DOSE_CARBS: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)],
-        DOSE_SUGAR: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)],
+        DoseState.METHOD: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)
+        ],
+        DoseState.XE: [
+            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)
+        ],
+        DoseState.CARBS: [
+            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)
+        ],
+        DoseState.SUGAR: [
+            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)
+        ],
         PHOTO_SUGAR: [
             MessageHandler(
                 filters.Regex(r"^-?\d+(?:[.,]\d+)?$"),
@@ -369,6 +391,7 @@ prompt_dose = dose_start
 
 __all__ = [
     "SessionLocal",
+    "DoseState",
     "DOSE_METHOD",
     "DOSE_XE",
     "DOSE_CARBS",

@@ -88,7 +88,7 @@ async def test_dose_xe_valid_input() -> None:
         ),
     )
 
-    assert result == dose_calc.DOSE_SUGAR
+    assert result == dose_calc.DoseState.SUGAR
     entry = context.user_data.get("pending_entry")
     assert entry is not None and entry["xe"] == 1.5
     assert any("сахар" in reply.lower() for reply in update.message.replies)
@@ -106,7 +106,7 @@ async def test_dose_xe_rejects_non_numeric() -> None:
         ),
     )
 
-    assert result == dose_calc.DOSE_XE
+    assert result == dose_calc.DoseState.XE
     assert any("число" in reply.lower() for reply in update.message.replies)
 
 
@@ -122,7 +122,7 @@ async def test_dose_carbs_negative() -> None:
         ),
     )
 
-    assert result == dose_calc.DOSE_CARBS
+    assert result == dose_calc.DoseState.CARBS
     assert any(
         "не может быть отриц" in reply.lower() for reply in update.message.replies
     )
