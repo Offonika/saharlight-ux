@@ -8,7 +8,8 @@ source ./.env
 set +a
 
 # Конфигурация для Matplotlib
-export MPLCONFIGDIR="${MPLCONFIGDIR:-/var/cache/matplotlib}"
+export MPLCONFIGDIR="${MPLCONFIGDIR:-/var/cache/diabetes-bot/mpl}"
+mkdir -p "$MPLCONFIGDIR"
 
 # Запускаем API с авто-reload (1 процесс)
 uvicorn services.api.app.main:app \
