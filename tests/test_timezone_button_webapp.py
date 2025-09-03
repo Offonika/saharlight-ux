@@ -1,15 +1,18 @@
 import importlib
+from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 from unittest.mock import AsyncMock
 
 import pytest
-from pathlib import Path
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from telegram import InlineKeyboardButton, Update
 from telegram.ext import CallbackContext
 
 import services.api.app.config as config
 import services.api.app.diabetes.utils.ui as ui
+import services.api.app.diabetes.services.db as db
 
 handlers = importlib.import_module(
     "services.api.app.diabetes.handlers.onboarding_handlers"
@@ -50,6 +53,18 @@ def test_timezone_page_loads_sdk_and_sends_timezone() -> None:
 async def test_timezone_webapp_saves_tz_and_moves_to_reminders(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    db.Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine)
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession, raising=False)
+
+    async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        sessionmaker = kwargs.get("sessionmaker", TestSession)
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(handlers, "run_db", run_db)
+
     message = SimpleNamespace(web_app_data=SimpleNamespace(data="Asia/Tokyo"))
     update = cast(
         Update,
@@ -70,3 +85,4 @@ async def test_timezone_webapp_saves_tz_and_moves_to_reminders(
     assert state == handlers.REMINDERS
     assert context.user_data["timezone"] == "Asia/Tokyo"
     prompt.assert_awaited_once()
+    engine.dispose()

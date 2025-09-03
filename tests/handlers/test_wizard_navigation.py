@@ -1,6 +1,6 @@
 import os
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 import pytest
 from sqlalchemy import create_engine
@@ -80,6 +80,12 @@ async def test_start_triggers_onboarding(
     monkeypatch.setattr(gpt_client, "create_thread", fake_thread)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
     monkeypatch.setattr(onboarding, "commit", lambda s: None)
+    async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        sessionmaker = kwargs.get("sessionmaker", TestSession)
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(onboarding, "run_db", run_db)
 
     message = DummyMessage()
     update = cast(
@@ -94,6 +100,7 @@ async def test_start_triggers_onboarding(
     state = await onboarding.start_command(update, context)
     assert state == onboarding.ONB_PROFILE_ICR
     assert any("1/3" in text for text in message.texts)
+    engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -130,6 +137,12 @@ async def test_onboarding_skip_sends_final(
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
     monkeypatch.setattr(onboarding, "commit", lambda s: None)
     monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
+    async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        sessionmaker = kwargs.get("sessionmaker", TestSession)
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(onboarding, "run_db", run_db)
 
     message = DummyMessage()
     query = DummyQuery(message, "onb_skip")
@@ -146,6 +159,7 @@ async def test_onboarding_skip_sends_final(
     assert state == ConversationHandler.END
     assert message.polls
     assert any("Пропущено" in text for text in message.texts)
+    engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -181,6 +195,12 @@ async def test_onboarding_completion_message(
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
     monkeypatch.setattr(onboarding, "commit", lambda s: None)
     monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
+    async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        sessionmaker = kwargs.get("sessionmaker", TestSession)
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(onboarding, "run_db", run_db)
 
     message = DummyMessage()
     query = DummyQuery(message, "onb_rem_no")
@@ -196,3 +216,4 @@ async def test_onboarding_completion_message(
     state = await onboarding.onboarding_reminders(update, context)
     assert state == ConversationHandler.END
     assert any("Готово" in text for text in message.texts)
+    engine.dispose()

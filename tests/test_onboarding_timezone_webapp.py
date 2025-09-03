@@ -46,6 +46,7 @@ def session_local(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[SASession]:
     monkeypatch.setattr(db, "run_db", run_db, raising=False)
     monkeypatch.setattr(onboarding_state, "run_db", run_db, raising=False)
     monkeypatch.setattr(profile_service.db, "run_db", run_db, raising=False)
+    monkeypatch.setattr(onboarding, "run_db", run_db, raising=False)
     yield SessionLocal
     engine.dispose()
 
