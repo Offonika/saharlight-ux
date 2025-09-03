@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ci.yml'
+      - 'services/**'
+      - 'tests/**'
+  pull_request:
+    paths:
+      - '.github/workflows/ci.yml'
+      - 'services/**'
+      - 'tests/**'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r services/api/app/requirements-dev.txt
+      - name: Run ruff
+        run: ruff check .
+      - name: Run mypy
+        run: mypy --strict .
+
+  tests:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r services/api/app/requirements-dev.txt
+      - name: Run pytest
+        run: |
+          pytest --cov=services.api.app.diabetes --cov-report=term-missing --cov-report=xml --junitxml=pytest-report.xml
+      - name: Upload pytest report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report
+          path: |
+            pytest-report.xml
+            coverage.xml
