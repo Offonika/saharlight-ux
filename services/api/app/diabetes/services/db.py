@@ -7,6 +7,7 @@ import logging
 import sqlite3
 import threading
 from datetime import date, datetime, time
+from enum import Enum
 from typing import Callable, Iterable, Optional, Protocol, TypeVar
 from typing_extensions import Concatenate, ParamSpec
 
@@ -355,6 +356,48 @@ class Timezone(Base):
         sqlite_on_conflict_primary_key="REPLACE",
     )
     tz: Mapped[str] = mapped_column(String, nullable=False)
+
+
+class SubscriptionPlan(str, Enum):
+    FREE = "free"
+    PRO = "pro"
+    FAMILY = "family"
+
+
+class SubscriptionStatus(str, Enum):
+    TRIAL = "trial"
+    ACTIVE = "active"
+    CANCELED = "canceled"
+    EXPIRED = "expired"
+
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False
+    )
+    plan: Mapped[SubscriptionPlan] = mapped_column(
+        sa.Enum(SubscriptionPlan, name="subscription_plan"), nullable=False
+    )
+    status: Mapped[SubscriptionStatus] = mapped_column(
+        sa.Enum(SubscriptionStatus, name="subscription_status"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    transaction_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    start_date: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
+    end_date: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        TIMESTAMP(timezone=True), onupdate=func.now()
+    )
+
+    user: Mapped["User"] = relationship("User")
 
 
 class HistoryRecord(Base):
