@@ -6,6 +6,8 @@ import datetime
 import json
 import logging
 import re
+from dataclasses import dataclass
+from enum import Enum
 from datetime import time, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -70,6 +72,18 @@ logger = logging.getLogger(__name__)
 SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], None] = _commit
 
+class DbActionStatus(Enum):
+    NOT_FOUND = "not_found"
+    UNKNOWN = "unknown"
+    ERROR = "error"
+    DELETE = "del"
+    TOGGLE = "toggle"
+
+
+@dataclass
+class DbActionResult:
+    status: DbActionStatus
+    reminder: Reminder | None = None
 PLAN_LIMITS = {"free": 5, "pro": 10}
 
 
@@ -1144,55 +1158,48 @@ async def reminder_action_cb(
         return
     user_id = user.id
 
-    def db_action(
-        session: Session,
-    ) -> (
-        tuple[Literal["not_found"], None]
-        | tuple[Literal["unknown"], None]
-        | tuple[Literal["error"], None]
-        | tuple[Literal["del"], None]
-        | tuple[Literal["toggle"], Reminder]
-    ):
+    def db_action(session: Session) -> DbActionResult:
         rem = session.get(Reminder, rid)
         if not rem or rem.telegram_id != user_id:
-            return "not_found", None
+            return DbActionResult(DbActionStatus.NOT_FOUND)
         if action == "del":
-            session.delete(rem)  # type: ignore[no-untyped-call]
+            session.delete(rem)
         elif action == "toggle":
             rem.is_enabled = not rem.is_enabled
         else:
-            return "unknown", None
+            return DbActionResult(DbActionStatus.UNKNOWN)
         try:
             commit(session)
         except CommitError:
             logger.error(
                 "Failed to commit reminder action %s for reminder %s", action, rid
             )
-            return "error", None
+            return DbActionResult(DbActionStatus.ERROR)
         if action == "toggle":
             session.refresh(rem)
-            return "toggle", rem
-        return "del", None
+            return DbActionResult(DbActionStatus.TOGGLE, rem)
+        return DbActionResult(DbActionStatus.DELETE)
 
     if run_db is None:
         with SessionLocal() as session:
-            status, rem = db_action(session)
+            result = db_action(session)
     else:
-        status, rem = cast(
-            tuple[str, Reminder | None],
+        result = cast(
+            DbActionResult,
             await run_db(db_action, sessionmaker=SessionLocal),
         )
-    if status == "not_found":
+    if result.status is DbActionStatus.NOT_FOUND:
         await query.answer("Не найдено", show_alert=True)
         return
-    if status == "unknown":
+    if result.status is DbActionStatus.UNKNOWN:
         await query.answer("Неизвестное действие", show_alert=True)
         return
-    if status == "error":
+    if result.status is DbActionStatus.ERROR:
         return
 
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
-    if status == "toggle":
+    if result.status is DbActionStatus.TOGGLE:
+        rem = result.reminder
         if rem and rem.is_enabled:
             if job_queue is None:
                 await reminder_events.notify_reminder_saved(rid)

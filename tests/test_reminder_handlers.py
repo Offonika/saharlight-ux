@@ -852,3 +852,206 @@ def test_build_ui_url_without_origin(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(RuntimeError, match="PUBLIC_ORIGIN not configured"):
         config.build_ui_url("/reminders/new")
     sys.modules.pop("services.api.app.config", None)
+
+
+@pytest.mark.asyncio
+async def test_reminder_action_not_found(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    query = MagicMock()
+    query.data = "rem_toggle:1"
+    query.answer = AsyncMock()
+    query.edit_message_text = AsyncMock()
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=None)
+
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, *args: Any) -> None:  # pragma: no cover - no cleanup
+            pass
+
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return None
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: DummySession())
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+
+    await reminder_handlers.reminder_action_cb(update, context)
+
+    query.answer.assert_awaited_once_with("Не найдено", show_alert=True)
+
+
+@pytest.mark.asyncio
+async def test_reminder_action_unknown(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    query = MagicMock()
+    query.data = "rem_foo:1"
+    query.answer = AsyncMock()
+    query.edit_message_text = AsyncMock()
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=None)
+
+    class Rem:
+        telegram_id = 1
+
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, *args: Any) -> None:  # pragma: no cover
+            pass
+
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return Rem()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: DummySession())
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+
+    await reminder_handlers.reminder_action_cb(update, context)
+
+    query.answer.assert_awaited_once_with("Неизвестное действие", show_alert=True)
+
+
+@pytest.mark.asyncio
+async def test_reminder_action_commit_error(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    query = MagicMock()
+    query.data = "rem_toggle:1"
+    query.answer = AsyncMock()
+    query.edit_message_text = AsyncMock()
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=None)
+
+    class Rem:
+        telegram_id = 1
+        is_enabled = False
+
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, *args: Any) -> None:  # pragma: no cover
+            pass
+
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return Rem()
+
+        def refresh(self, rem: Any) -> None:  # pragma: no cover - not called on error
+            pass
+
+    def raise_commit(session: Any) -> None:
+        raise reminder_handlers.CommitError
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: DummySession())
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(reminder_handlers, "commit", raise_commit)
+
+    await reminder_handlers.reminder_action_cb(update, context)
+
+    query.answer.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_reminder_action_delete(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    query = MagicMock()
+    query.data = "rem_del:1"
+    query.answer = AsyncMock()
+    query.edit_message_text = AsyncMock()
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=None)
+
+    class Rem:
+        telegram_id = 1
+
+    class DummySession:
+        def __init__(self) -> None:
+            self.deleted = False
+
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, *args: Any) -> None:  # pragma: no cover
+            pass
+
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return Rem()
+
+        def delete(self, obj: Any) -> None:
+            self.deleted = True
+
+        def refresh(self, rem: Any) -> None:  # pragma: no cover - not used
+            pass
+
+    sessions: list[DummySession] = []
+
+    def session_factory() -> DummySession:
+        sess = DummySession()
+        sessions.append(sess)
+        return sess
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", session_factory)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(reminder_handlers, "commit", lambda s: None)
+    monkeypatch.setattr(
+        reminder_handlers.reminder_events,
+        "notify_reminder_saved",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", lambda s, u: ("ok", None))
+
+    await reminder_handlers.reminder_action_cb(update, context)
+
+    assert sessions[0].deleted is True
+    reminder_handlers.reminder_events.notify_reminder_saved.assert_awaited_once_with(1)
+    query.answer.assert_awaited_once_with("Готово ✅")
+
+
+@pytest.mark.asyncio
+async def test_reminder_action_toggle(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    query = MagicMock()
+    query.data = "rem_toggle:1"
+    query.answer = AsyncMock()
+    query.edit_message_text = AsyncMock()
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=None)
+
+    class Rem:
+        telegram_id = 1
+        is_enabled = False
+
+    rem_instance = Rem()
+
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, *args: Any) -> None:  # pragma: no cover
+            pass
+
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return rem_instance
+
+        def delete(self, obj: Any) -> None:  # pragma: no cover - not used
+            pass
+
+        def refresh(self, rem: Rem) -> None:
+            pass
+
+    def session_factory() -> DummySession:
+        return DummySession()
+
+    notify_mock = AsyncMock()
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", session_factory)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(reminder_handlers, "commit", lambda s: None)
+    monkeypatch.setattr(
+        reminder_handlers.reminder_events,
+        "notify_reminder_saved",
+        notify_mock,
+    )
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", lambda s, u: ("ok", None))
+
+    await reminder_handlers.reminder_action_cb(update, context)
+
+    assert rem_instance.is_enabled is True
+    notify_mock.assert_awaited_once_with(1)
+    query.answer.assert_awaited_once_with("Готово ✅")
