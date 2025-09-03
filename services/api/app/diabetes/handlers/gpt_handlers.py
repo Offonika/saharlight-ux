@@ -577,7 +577,7 @@ async def finalize_entry(
         "carbs_g": fields.get("carbs_g"),
         "dose": fields.get("dose"),
         "sugar_before": fields.get("sugar_before"),
-        "photo_path": None,
+        "photo_bytes": None,
     }
     pending_entry = user_data["pending_entry"]
     xe_val: float | None = pending_entry.get("xe")

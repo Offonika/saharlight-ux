@@ -1,6 +1,7 @@
 # gpt_client.py
 
 import asyncio
+import io
 import logging
 import os
 import threading
@@ -123,6 +124,7 @@ async def send_message(
     thread_id: str,
     content: str | None = None,
     image_path: str | None = None,
+    image_bytes: bytes | None = None,
     *,
     keep_image: bool = False,
 ) -> Run:
@@ -152,8 +154,8 @@ async def send_message(
 
     >>> await send_message(thread_id="abc", image_path="/tmp/photo.jpg")
     """
-    if content is None and image_path is None:
-        raise ValueError("Either 'content' or 'image_path' must be provided")
+    if content is None and image_path is None and image_bytes is None:
+        raise ValueError("Either 'content' or image data must be provided")
 
     settings = config.get_settings()
     if not settings.openai_assistant_id:
@@ -169,32 +171,43 @@ async def send_message(
         "text": content if content is not None else "Что изображено на фото?",
     }
     message_content: Iterable[ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam]
-    if image_path:
+    if image_bytes is not None or image_path is not None:
         try:
+            if image_bytes is not None:
 
-            def _upload() -> FileObject:
-                with open(image_path, "rb") as f:
-                    return client.files.create(file=f, purpose="vision")
+                def _upload() -> FileObject:
+                    return client.files.create(file=io.BytesIO(image_bytes), purpose="vision")
 
-            file = await asyncio.wait_for(asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT)
+                file = await asyncio.wait_for(
+                    asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT
+                )
+            else:
+
+                def _upload() -> FileObject:
+                    with open(image_path, "rb") as f:
+                        return client.files.create(file=f, purpose="vision")
+
+                file = await asyncio.wait_for(
+                    asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT
+                )
         except asyncio.TimeoutError:
-            logger.exception("[OpenAI] Timeout while uploading %s", image_path)
+            logger.exception("[OpenAI] Timeout while uploading image")
             raise RuntimeError("Timed out while uploading image")
         except OSError as exc:
-            logger.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
+            logger.exception("[OpenAI] Failed to read image: %s", exc)
             raise
         except OpenAIError as exc:
-            logger.exception("[OpenAI] Failed to upload %s: %s", image_path, exc)
+            logger.exception("[OpenAI] Failed to upload image: %s", exc)
             raise
         else:
-            logger.info("[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id)
+            logger.info("[OpenAI] Uploaded image, file_id=%s", file.id)
             image_block: ImageFileContentBlockParam = {
                 "type": "image_file",
                 "image_file": {"file_id": file.id},
             }
             message_content = [image_block, text_block]
         finally:
-            if not keep_image:
+            if image_path is not None and not keep_image:
                 try:
                     await asyncio.to_thread(os.remove, image_path)
                 except OSError as e:

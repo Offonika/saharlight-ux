@@ -1,4 +1,3 @@
-from pathlib import Path
 from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
@@ -12,7 +11,6 @@ from sqlalchemy.orm import Session, sessionmaker
 
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
-from services.api.app.config import settings
 
 
 class DummyMessage:
@@ -31,20 +29,20 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) -> None:
-    called = SimpleNamespace(flag=False, path=None)
+    called = SimpleNamespace(flag=False, data=None)
 
     async def fake_photo_handler(
         update: Update,
         context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        file_path: str | None = None,
+        file_bytes: bytes | None = None,
     ) -> int:
         called.flag = True
-        called.path = file_path
+        called.data = file_bytes
         return 200
 
     class DummyFile:
-        async def download_to_drive(self, path: str) -> None:
-            self.path = path
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
 
     async def fake_get_file(file_id: str) -> DummyFile:
         return DummyFile()
@@ -67,17 +65,12 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
     )
 
     monkeypatch.setattr(photo_handlers, "photo_handler", fake_photo_handler)
-    monkeypatch.setattr(
-        photo_handlers.os,
-        "makedirs",
-        lambda *args, **kwargs: None,
-    )
 
     result = await photo_handlers.doc_handler(update, context)
 
     assert result == 200
     assert called.flag
-    assert called.path == f"{settings.photos_dir}/1_uid.png"
+    assert called.data == b"img"
     assert context.user_data == {}
     assert update.message is not None
     msg = update.message
@@ -91,7 +84,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
     async def fake_photo_handler(
         update: Update,
         context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        file_path: str | None = None,
+        file_bytes: bytes | None = None,
     ) -> None:
         called.flag = True
 
@@ -117,7 +110,6 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
     assert result == photo_handlers.END
     assert not called.flag
     assert context.user_data is not None
-    assert "__file_path" not in context.user_data
 
 
 @pytest.mark.asyncio
@@ -153,7 +145,7 @@ async def test_doc_handler_get_file_error(monkeypatch: pytest.MonkeyPatch) -> No
 @pytest.mark.asyncio
 async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> None:
     class DummyFile:
-        async def download_to_drive(self, path: str) -> None:
+        async def download_as_bytearray(self) -> bytearray:
             raise OSError("disk full")
 
     document = SimpleNamespace(
@@ -170,11 +162,6 @@ async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> No
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data={}),
-    )
-    monkeypatch.setattr(
-        photo_handlers.os,
-        "makedirs",
-        lambda *args, **kwargs: None,
     )
 
     result = await photo_handlers.doc_handler(update, context)
@@ -271,9 +258,8 @@ async def test_photo_handler_handles_typeerror() -> None:
 
 @pytest.mark.asyncio
 async def test_photo_handler_removes_file(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.chdir(tmp_path)
 
     class DummyPhoto:
         file_id = "fid"
@@ -288,8 +274,8 @@ async def test_photo_handler_removes_file(
     )
 
     class DummyFile:
-        async def download_to_drive(self, path: str) -> None:
-            Path(path).write_bytes(b"img")
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
 
     async def fake_get_file(file_id: str) -> DummyFile:
         return DummyFile()
@@ -332,22 +318,17 @@ async def test_photo_handler_removes_file(
         photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0)
     )
     monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
-    monkeypatch.setattr(
-        photo_handlers.os,
-        "makedirs",
-        lambda path, **kwargs: Path(path).mkdir(parents=True, exist_ok=True),
-    )
 
     result = await photo_handlers.photo_handler(update, context)
 
     assert call["keep_image"] is True
-    assert not Path(call["image_path"]).exists()
+    assert call["image_bytes"] == b"img"
     assert result == photo_handlers.PHOTO_SUGAR
 
 
 @pytest.mark.asyncio
 async def test_photo_then_freeform_calculates_dose(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """photo_handler + freeform_handler produce dose in reply and context."""
 
@@ -356,13 +337,12 @@ async def test_photo_then_freeform_calculates_dose(
         file_unique_id = "uid"
 
     class DummyFile:
-        async def download_to_drive(self, path: str) -> None:
-            Path(path).write_bytes(b"img")
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
 
     async def fake_get_file(file_id: str) -> DummyFile:
         return DummyFile()
 
-    monkeypatch.chdir(tmp_path)
     dummy_bot = SimpleNamespace(get_file=fake_get_file)
 
     class Run:

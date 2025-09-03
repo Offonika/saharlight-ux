@@ -44,7 +44,7 @@ class DummySession:
 
 @pytest.mark.asyncio
 async def test_photo_handler_recognition_success_db_save(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
     class StatusMessage:
         def __init__(self) -> None:
@@ -67,8 +67,8 @@ async def test_photo_handler_recognition_success_db_save(
             return None
 
     class File:
-        async def download_to_drive(self, path: str) -> None:
-            Path(path).write_bytes(b"img")
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
 
     bot = SimpleNamespace(
         get_file=AsyncMock(return_value=File()),
@@ -108,10 +108,11 @@ async def test_photo_handler_recognition_success_db_save(
             )
         )
 
+    sent = {}
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: session)
     monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
     monkeypatch.setattr(photo_handlers, "commit", fake_commit)
-    monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(photo_handlers, "send_message", lambda **kw: sent.update(kw) or Run())
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(
         photo_handlers, "extract_nutrition_info", lambda text: (10, 0.5)
@@ -125,7 +126,6 @@ async def test_photo_handler_recognition_success_db_save(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data={}),
     )
-    monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.PHOTO_SUGAR
@@ -140,6 +140,7 @@ async def test_photo_handler_recognition_success_db_save(
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
     assert message.status.deleted
     assert bot.send_chat_action.called
+    assert sent["image_bytes"] == b"img"
 
 
 @pytest.mark.asyncio

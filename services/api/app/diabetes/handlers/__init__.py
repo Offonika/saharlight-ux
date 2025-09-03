@@ -15,7 +15,7 @@ class EntryData(TypedDict, total=False):
     carbs_g: float | None
     dose: float | None
     sugar_before: float | None
-    photo_path: str | None
+    photo_bytes: bytes | None
 
 
 class UserData(TypedDict, total=False):
@@ -34,7 +34,6 @@ class UserData(TypedDict, total=False):
     profile_cf: float
     profile_target: float
     profile_low: float
-    __file_path: str
     reminder_id: int
     chat_id: int
 

@@ -1,4 +1,3 @@
-from pathlib import Path
 from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
@@ -13,7 +12,6 @@ from sqlalchemy.orm import Session, sessionmaker
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 import services.api.app.diabetes.handlers.router as router
-from services.api.app.config import settings
 
 
 class DummyMessage:
@@ -80,7 +78,7 @@ class DummySession(Session):
 
 @pytest.mark.asyncio
 async def test_photo_flow_saves_entry(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def fake_parse_command(text: str) -> dict[str, object]:
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
@@ -108,8 +106,8 @@ async def test_photo_flow_saves_entry(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -123,14 +121,15 @@ async def test_photo_flow_saves_entry(
         menu_keyboard_markup=None,
     )
 
-    monkeypatch.chdir(tmp_path)
-
     class Run:
         status = "completed"
         thread_id = "tid"
         id = "runid"
 
+    sent = {}
+
     async def fake_send_message(**kwargs: Any) -> Run:
+        sent.update(kwargs)
         return Run()
 
     class DummyClient:
@@ -169,12 +168,11 @@ async def test_photo_flow_saves_entry(
     await photo_handlers.photo_handler(update_photo, context)
 
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_ref
-    assert not (Path(settings.photos_dir) / "1_uid.jpg").exists()
 
     entry = user_data["pending_entry"]
     assert entry["carbs_g"] == 30.0
     assert entry["xe"] == 2.0
-    assert entry["photo_path"].endswith("uid.jpg")
+    assert entry["photo_bytes"] == b"img"
 
     msg_sugar = DummyMessage("5.5")
     update_sugar = cast(
@@ -192,6 +190,7 @@ async def test_photo_flow_saves_entry(
         menu_keyboard_markup=None,
     )
     assert user_data["pending_entry"]["sugar_before"] == 5.5
+    assert sent["image_bytes"] == b"img"
 
     monkeypatch.setattr(router, "SessionLocal", session_factory)
     import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
@@ -215,18 +214,16 @@ async def test_photo_flow_saves_entry(
 
 @pytest.mark.asyncio
 async def test_photo_handler_removes_file_on_failure(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
-
-    monkeypatch.chdir(tmp_path)
 
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -252,4 +249,3 @@ async def test_photo_handler_removes_file_on_failure(
     await photo_handlers.photo_handler(update_photo, context)
 
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_ref
-    assert not (Path(settings.photos_dir) / "1_uid.jpg").exists()

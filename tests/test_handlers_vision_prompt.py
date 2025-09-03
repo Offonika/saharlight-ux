@@ -1,5 +1,4 @@
 import pytest
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -28,14 +27,13 @@ class DummyPhoto:
 
 @pytest.mark.asyncio
 async def test_photo_prompt_includes_dish_name(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.chdir(tmp_path)
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -61,6 +59,7 @@ async def test_photo_prompt_includes_dish_name(
 
     async def fake_send_message(**kwargs: Any) -> Run:
         captured["content"] = kwargs["content"]
+        captured["image_bytes"] = kwargs["image_bytes"]
         return Run()
 
     class DummyClient:
@@ -99,6 +98,7 @@ async def test_photo_prompt_includes_dish_name(
     await photo_handlers.photo_handler(update, context)
 
     assert "название" in captured["content"]
+    assert captured["image_bytes"] == b"img"
     # Final reply should include dish name from Vision response
     assert any("Борщ" in reply for reply in msg_photo.replies)
     assert context.user_data is not None

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -32,12 +31,12 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 async def test_photo_handler_ignores_previous_runs(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -46,7 +45,10 @@ async def test_photo_handler_ignores_previous_runs(
         thread_id = "tid"
         id = "new"
 
+    sent = {}
+
     async def fake_send_message(**kwargs: Any) -> Run:
+        sent.update(kwargs)
         return Run()
 
     captured_run_ids: list[str | None] = []
@@ -110,6 +112,7 @@ async def test_photo_handler_ignores_previous_runs(
 
     assert captured_run_ids == ["new"]
     assert extracted == ["new info"]
+    assert sent["image_bytes"] == b"img"
     entry = user_data["pending_entry"]
     assert entry["carbs_g"] == 30.0
     assert entry["xe"] == 2.0

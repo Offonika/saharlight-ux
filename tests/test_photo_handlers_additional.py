@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock
@@ -24,7 +23,7 @@ class DummyPhoto:
 
 @pytest.mark.asyncio
 async def test_photo_handler_commit_failure(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
     class DummyMessage:
         def __init__(self) -> None:
@@ -36,8 +35,8 @@ async def test_photo_handler_commit_failure(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -78,7 +77,6 @@ async def test_photo_handler_commit_failure(
         SimpleNamespace(bot=SimpleNamespace(get_file=fake_get_file), user_data={}),
     )
 
-    monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
@@ -91,7 +89,7 @@ async def test_photo_handler_commit_failure(
 
 @pytest.mark.asyncio
 async def test_photo_handler_run_failure(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
     class StatusMessage:
         def __init__(self) -> None:
@@ -115,8 +113,8 @@ async def test_photo_handler_run_failure(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -125,7 +123,10 @@ async def test_photo_handler_run_failure(
         thread_id = "tid"
         id = "rid"
 
+    sent = {}
+
     async def fake_send_message(**kwargs: Any) -> Run:
+        sent.update(kwargs)
         return Run()
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
@@ -142,7 +143,6 @@ async def test_photo_handler_run_failure(
         ),
     )
 
-    monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
@@ -151,11 +151,12 @@ async def test_photo_handler_run_failure(
     user_data = context.user_data
     assert user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
+    assert sent["image_bytes"] == b"img"
 
 
 @pytest.mark.asyncio
 async def test_photo_handler_unparsed_response(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
     class DummyMessage:
         def __init__(self) -> None:
@@ -170,8 +171,8 @@ async def test_photo_handler_unparsed_response(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -180,7 +181,10 @@ async def test_photo_handler_unparsed_response(
         thread_id = "tid"
         id = "rid"
 
+    sent = {}
+
     async def fake_send_message(**kwargs: Any) -> Run:
+        sent.update(kwargs)
         return Run()
 
     class Messages:
@@ -216,10 +220,10 @@ async def test_photo_handler_unparsed_response(
         ),
     )
 
-    monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
+    assert sent["image_bytes"] == b"img"
     assert any("Не смог разобрать" in t for t in message.texts)
     user_data = context.user_data
     assert user_data is not None
@@ -229,7 +233,7 @@ async def test_photo_handler_unparsed_response(
 
 @pytest.mark.asyncio
 async def test_photo_handler_unparsed_response_clears_pending_entry(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
     class DummyMessage:
         def __init__(self) -> None:
@@ -244,8 +248,8 @@ async def test_photo_handler_unparsed_response_clears_pending_entry(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -254,7 +258,10 @@ async def test_photo_handler_unparsed_response_clears_pending_entry(
         thread_id = "tid"
         id = "rid"
 
+    sent = {}
+
     async def fake_send_message(**kwargs: Any) -> Run:
+        sent.update(kwargs)
         return Run()
 
     class Messages:
@@ -291,7 +298,6 @@ async def test_photo_handler_unparsed_response_clears_pending_entry(
         ),
     )
 
-    monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
@@ -300,6 +306,7 @@ async def test_photo_handler_unparsed_response_clears_pending_entry(
     assert user_data is not None
     assert "pending_entry" not in user_data
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
+    assert sent["image_bytes"] == b"img"
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,5 @@
 import logging
 import datetime
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -82,7 +81,6 @@ async def test_photo_handler_clears_stale_waiting_flag(
 @pytest.mark.asyncio
 async def test_photo_handler_get_file_telegram_error(
     monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     class DummyPhoto:
@@ -104,8 +102,6 @@ async def test_photo_handler_get_file_telegram_error(
         SimpleNamespace(bot=dummy_bot, user_data={}),
     )
 
-    monkeypatch.chdir(tmp_path)
-
     with caplog.at_level(logging.ERROR):
         result = await photo_handlers.photo_handler(update, context)
 
@@ -120,7 +116,7 @@ async def test_photo_handler_get_file_telegram_error(
 
 @pytest.mark.asyncio
 async def test_photo_handler_telegram_error(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch
 ) -> None:
     class DummyPhoto:
         file_id = "fid"
@@ -136,8 +132,8 @@ async def test_photo_handler_telegram_error(
 
     async def fake_get_file(file_id: str) -> Any:
         class File:
-            async def download_to_drive(self, path: str) -> None:
-                Path(path).write_bytes(b"img")
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
 
         return File()
 
@@ -154,7 +150,6 @@ async def test_photo_handler_telegram_error(
         SimpleNamespace(bot=dummy_bot, user_data={"thread_id": "tid"}),
     )
 
-    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
 
     result = await photo_handlers.photo_handler(update, context)
