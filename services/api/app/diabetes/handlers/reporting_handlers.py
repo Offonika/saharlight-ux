@@ -206,12 +206,16 @@ async def report_period_callback(
     query = update.callback_query
     if query is None or query.data is None or query.message is None:
         return
-    await query.answer()
     message = cast(Message, query.message)
     if query.data == "report_back":
+        await query.answer()
         await message.delete()
         await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
         return
+    if ":" not in query.data:
+        await query.answer("Некорректный формат данных", show_alert=True)
+        return
+    await query.answer()
     period = query.data.split(":", 1)[1]
     now = datetime.datetime.now(datetime.timezone.utc)
     if period == "today":

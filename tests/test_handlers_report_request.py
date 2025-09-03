@@ -26,9 +26,12 @@ class DummyQuery:
         self.data = data
         self.message = message
         self.edited: list[str] = []
+        self.answers: list[tuple[str | None, bool]] = []
 
-    async def answer(self) -> None:
-        pass
+    async def answer(
+        self, text: str | None = None, show_alert: bool = False
+    ) -> None:
+        self.answers.append((text, show_alert))
 
     async def edit_message_text(self, text: str, **kwargs: Any) -> None:
         self.edited.append(text)
@@ -162,3 +165,27 @@ async def test_report_period_callback_week(
     period_label = called.get("period_label")
     assert period_label is not None
     assert period_label == "последнюю неделю"
+
+
+@pytest.mark.asyncio
+async def test_report_period_callback_invalid_data() -> None:
+    import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
+
+    query = DummyQuery(DummyMessage(), "report_period")
+    update_cb = cast(
+        Update,
+        SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+
+    await reporting_handlers.report_period_callback(update_cb, context)
+
+    assert query.answers
+    text, alert = query.answers[0]
+    assert text is not None
+    assert "некоррект" in text.lower()
+    assert alert is True
+    assert not query.edited
