@@ -1129,7 +1129,14 @@ async def reminder_action_cb(
     user = update.effective_user
     if query is None or query.data is None or user is None:
         return
-    action_raw, rid_str = query.data.split(":", 1)
+    if ":" not in query.data:
+        await query.answer("Некорректное действие", show_alert=True)
+        return
+    try:
+        action_raw, rid_str = query.data.split(":", 1)
+    except ValueError:
+        await query.answer("Некорректное действие", show_alert=True)
+        return
     if not action_raw.startswith("rem_"):
         await query.answer("Некорректное действие", show_alert=True)
         return
