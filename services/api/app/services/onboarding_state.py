@@ -21,6 +21,7 @@ class OnboardingState(Base):
     step: Mapped[int] = mapped_column(Integer, nullable=False)
     data: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     variant: Mapped[str | None] = mapped_column(String)
+    completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
@@ -65,3 +66,18 @@ async def load_state(user_id: int) -> OnboardingState | None:
         return state
 
     return await run_db(_load, sessionmaker=SessionLocal)
+
+
+async def complete_state(user_id: int) -> None:
+    """Mark onboarding as completed for ``user_id``."""
+
+    def _complete(session: SessionProtocol) -> None:
+        state = cast(OnboardingState | None, session.get(OnboardingState, user_id))
+        if state is None:
+            return
+        now = datetime.now(timezone.utc)
+        state.completed_at = now
+        state.updated_at = now
+        commit(cast(Session, session))
+
+    await run_db(_complete, sessionmaker=SessionLocal)

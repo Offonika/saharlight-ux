@@ -9,6 +9,8 @@ from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
 
 from services.api.app.diabetes.services.db import Base, User
+import services.api.app.services.onboarding_state as onboarding_state
+import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
 
 
 class DummyMessage:
@@ -39,8 +41,30 @@ class DummyQuery:
         self.answered = True
 
 
+@pytest.fixture()
+def patch_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_save_state(*args: Any, **kwargs: Any) -> None:  # pragma: no cover - no logic
+        pass
+
+    async def fake_load_state(*args: Any, **kwargs: Any) -> Any:
+        return None
+
+    async def fake_complete_state(*args: Any, **kwargs: Any) -> None:  # pragma: no cover - no logic
+        pass
+
+    monkeypatch.setattr(onboarding_state, "save_state", fake_save_state)
+    monkeypatch.setattr(onboarding_state, "load_state", fake_load_state)
+    monkeypatch.setattr(onboarding_state, "complete_state", fake_complete_state)
+    async def noop_mark(user_id: int) -> None:  # pragma: no cover - no logic
+        pass
+
+    monkeypatch.setattr(onboarding, "_mark_user_complete", noop_mark)
+
+
 @pytest.mark.asyncio
-async def test_start_triggers_onboarding(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_start_triggers_onboarding(
+    monkeypatch: pytest.MonkeyPatch, patch_state: None
+) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "x")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "y")
     import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
@@ -91,7 +115,9 @@ async def test_profile_back_returns_menu(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 @pytest.mark.asyncio
-async def test_onboarding_skip_sends_final(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_onboarding_skip_sends_final(
+    monkeypatch: pytest.MonkeyPatch, patch_state: None
+) -> None:
     import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
 
     engine = create_engine("sqlite:///:memory:")
@@ -140,7 +166,9 @@ async def test_profile_cancel_outputs_text(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 @pytest.mark.asyncio
-async def test_onboarding_completion_message(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_onboarding_completion_message(
+    monkeypatch: pytest.MonkeyPatch, patch_state: None
+) -> None:
     import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
 
     engine = create_engine("sqlite:///:memory:")

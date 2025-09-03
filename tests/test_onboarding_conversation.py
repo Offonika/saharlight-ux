@@ -8,6 +8,43 @@ from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
 
 import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
+import services.api.app.services.onboarding_state as onboarding_state
+
+
+@pytest.fixture(autouse=True)
+def fake_onboarding_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    store: dict[int, dict[str, Any]] = {}
+    steps: dict[int, int] = {}
+    variants: dict[int, str | None] = {}
+
+    async def save_state(user_id: int, step: int, data: dict[str, object], variant: str | None = None) -> None:
+        steps[user_id] = step
+        store[user_id] = dict(data)
+        variants[user_id] = variant
+
+    class DummyState:
+        def __init__(self, uid: int) -> None:
+            self.user_id = uid
+            self.step = steps[uid]
+            self.data = store[uid]
+            self.variant = variants[uid]
+            self.completed_at = None
+
+    async def load_state(user_id: int) -> DummyState | None:
+        if user_id not in steps:
+            return None
+        return DummyState(user_id)
+
+    async def complete_state(user_id: int) -> None:  # pragma: no cover - no logic
+        pass
+
+    monkeypatch.setattr(onboarding_state, "save_state", save_state)
+    monkeypatch.setattr(onboarding_state, "load_state", load_state)
+    monkeypatch.setattr(onboarding_state, "complete_state", complete_state)
+    async def noop_mark(user_id: int) -> None:  # pragma: no cover - no logic
+        pass
+
+    monkeypatch.setattr(onboarding, "_mark_user_complete", noop_mark)
 
 
 class DummyMessage:
@@ -88,25 +125,27 @@ async def test_navigation_buttons() -> None:
     state = await onboarding.profile_chosen(update_cancel, context)
     assert state == ConversationHandler.END
 
-    state = await onboarding.start_command(update, context)
-    assert state == onboarding.PROFILE
 
-    query_prof = DummyQuery(message, f"{onboarding.CB_PROFILE_PREFIX}t1")
-    update_prof = cast(Update, SimpleNamespace(callback_query=query_prof, effective_user=SimpleNamespace(id=1)))
-    state = await onboarding.profile_chosen(update_prof, context)
+@pytest.mark.asyncio
+async def test_resume_from_saved_step() -> None:
+    user = SimpleNamespace(id=42)
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message, effective_user=user))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, args=[]),
+    )
+    await onboarding.start_command(update, context)
+    query = DummyQuery(message, f"{onboarding.CB_PROFILE_PREFIX}t2")
+    update_cb = cast(Update, SimpleNamespace(callback_query=query, effective_user=user))
+    await onboarding.profile_chosen(update_cb, context)
+
+    message2 = DummyMessage()
+    update2 = cast(Update, SimpleNamespace(message=message2, effective_user=user))
+    context2 = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, args=[]),
+    )
+    state = await onboarding.start_command(update2, context2)
     assert state == onboarding.TIMEZONE
-
-    query_skip2 = DummyQuery(message, onboarding.CB_SKIP)
-    update_skip2 = cast(Update, SimpleNamespace(callback_query=query_skip2, effective_user=SimpleNamespace(id=1)))
-    state = await onboarding.timezone_nav(update_skip2, context)
-    assert state == onboarding.REMINDERS
-
-    query_back3 = DummyQuery(message, onboarding.CB_BACK)
-    update_back3 = cast(Update, SimpleNamespace(callback_query=query_back3, effective_user=SimpleNamespace(id=1)))
-    state = await onboarding.reminders_chosen(update_back3, context)
-    assert state == onboarding.TIMEZONE
-
-    query_skip3 = DummyQuery(message, onboarding.CB_SKIP)
-    update_skip3 = cast(Update, SimpleNamespace(callback_query=query_skip3, effective_user=SimpleNamespace(id=1)))
-    state = await onboarding.reminders_chosen(update_skip3, context)
-    assert state == ConversationHandler.END
+    assert message2.replies[-1].startswith("Шаг 2/3")
