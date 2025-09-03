@@ -89,7 +89,7 @@ async def test_send_alert_message_invalid_contact(
 
     assert expected in caplog.text
     assert (
-        "SOS contact 'bad_contact' is not a Telegram username or chat id; skipping"
+        "SOS contact 'bad_contact' is not a Telegram username, chat id, or phone number; skipping"
         in caplog.text
     )
     assert bot.send_message.await_count == 1

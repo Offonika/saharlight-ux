@@ -117,9 +117,11 @@ async def test_alert_notifies_user_and_contact(
 
 
 @pytest.mark.asyncio
-async def test_alert_skips_phone_contact(
+async def test_alert_notifies_plus_contact(
     test_session: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Alerts are sent to SOS contacts starting with '+'."""
+
     with test_session() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(
@@ -127,7 +129,7 @@ async def test_alert_skips_phone_contact(
                 telegram_id=1,
                 low_threshold=4,
                 high_threshold=8,
-                sos_contact="+123",
+                sos_contact="+12345678",
                 sos_alerts_enabled=True,
             )
         )
@@ -152,7 +154,10 @@ async def test_alert_skips_phone_contact(
         )
 
     msg = "⚠️ У Ivan критический сахар 3 ммоль/л. 0,0 link"
-    assert send_mock.await_args_list == [call(chat_id=1, text=msg)]
+    assert send_mock.await_args_list == [
+        call(chat_id=1, text=msg),
+        call(chat_id=12345678, text=msg),
+    ]
 
 
 @pytest.mark.asyncio
