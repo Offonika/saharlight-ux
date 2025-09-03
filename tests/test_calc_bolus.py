@@ -55,3 +55,30 @@ def test_calc_bolus_max_limit() -> None:
         max_bolus=6.0,
     )
     assert dose == 6.0
+
+
+def test_calc_bolus_iob_and_dia() -> None:
+    profile = PatientProfile(icr=10, cf=2, target_bg=6)
+    dose_no_iob = calc_bolus(
+        carbs=50,
+        current_bg=8,
+        profile=profile,
+        bolus_round_step=0.1,
+    )
+    dose_with_iob = calc_bolus(
+        carbs=50,
+        current_bg=8,
+        profile=profile,
+        bolus_round_step=0.1,
+        iob=1.0,
+    )
+    assert dose_with_iob == pytest.approx(dose_no_iob - 1.0)
+    dose_with_dia = calc_bolus(
+        carbs=50,
+        current_bg=8,
+        profile=profile,
+        bolus_round_step=0.1,
+        iob=1.0,
+        dia=8.0,
+    )
+    assert dose_with_dia == pytest.approx(dose_no_iob - 0.5)
