@@ -10,14 +10,14 @@ from services.api.app.billing.providers.dummy import DummyBillingProvider
 
 @pytest.mark.asyncio
 async def test_create_payment_unknown_provider() -> None:
-    settings = BillingSettings(BILLING_PROVIDER="other")
+    settings = BillingSettings(BILLING_PROVIDER="other", BILLING_ADMIN_TOKEN="token")
     with pytest.raises(HTTPException):
         await service.create_payment(settings)
 
 
 @pytest.mark.asyncio
 async def test_create_subscription_unknown_provider() -> None:
-    settings = BillingSettings(BILLING_PROVIDER="other")
+    settings = BillingSettings(BILLING_PROVIDER="other", BILLING_ADMIN_TOKEN="token")
     with pytest.raises(HTTPException):
         await service.create_subscription(settings, "pro")
 
@@ -28,4 +28,4 @@ async def test_dummy_provider_methods() -> None:
     payment = await provider.create_payment()
     assert payment == {"status": "ok", "test_mode": False}
     checkout = await provider.create_subscription("pro")
-    assert checkout["url"].startswith("https://dummy/pro/")
+    assert checkout["url"].startswith("https://example.com/mock-checkout")

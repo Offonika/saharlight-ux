@@ -142,9 +142,7 @@ def _reminders_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
-async def _log_event(
-    user_id: int, name: str, step: int, variant: str | None
-) -> None:
+async def _log_event(user_id: int, name: str, step: int, variant: str | None) -> None:
     def _log(session: SessionProtocol) -> None:
         log_onboarding_event(cast(Session, session), user_id, name, step, variant)
 
@@ -311,7 +309,18 @@ async def timezone_webapp(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if state.step == REMINDERS:
                 return await _prompt_reminders(message, user_id, user_data, variant)
     web_app = cast(WebAppData, message.web_app_data)
-    user_data["timezone"] = web_app.data.strip() or "Europe/Moscow"
+    raw = web_app.data.strip() or "Europe/Moscow"
+    try:
+        ZoneInfo(raw)
+    except ZoneInfoNotFoundError:
+        await message.reply_text(
+            "Некорректный часовой пояс. Пример: Europe/Moscow",
+            reply_markup=_timezone_keyboard(),
+        )
+        return TIMEZONE
+    user_data["timezone"] = raw
+    await save_timezone(user_id, raw, auto=True)
+    await onboarding_state.save_state(user_id, TIMEZONE, user_data, variant)
     step_num = _step_num(TIMEZONE, variant)
     await _log_event(user_id, f"step_completed_{step_num}", step_num, variant)
     next_step = _next_step(TIMEZONE, variant)
@@ -492,10 +501,9 @@ async def _finish(
             user_id, code, job_queue
         )
         if rem is not None:
-            action = (
-                getattr(rem, "title", None)
-                or reminder_handlers.REMINDER_ACTIONS.get(rem.type, rem.type)
-            )
+            action = getattr(
+                rem, "title", None
+            ) or reminder_handlers.REMINDER_ACTIONS.get(rem.type, rem.type)
             if action.startswith("Замерить "):
                 action = action.split(" ", 1)[1]
             time_val = getattr(rem, "time", None)

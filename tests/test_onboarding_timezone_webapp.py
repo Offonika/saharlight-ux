@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 from typing import Any, Callable, cast
+from unittest.mock import AsyncMock
 
 import pytest
 from sqlalchemy import create_engine
@@ -55,19 +56,9 @@ def session_local(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[SASession]:
 async def test_timezone_webapp_saves(
     session_local: sessionmaker[SASession], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async def fake_save_timezone(telegram_id: int, tz: str, *, auto: bool) -> bool:
-        with session_local() as session:
-            session.add(db.User(telegram_id=telegram_id, thread_id="t"))
-            session.add(
-                db.Profile(
-                    telegram_id=telegram_id, timezone=tz, timezone_auto=auto
-                )
-            )
-            session.commit()
-        return True
-
-    monkeypatch.setattr(profile_service, "save_timezone", fake_save_timezone, raising=False)
-    monkeypatch.setattr(onboarding, "save_timezone", fake_save_timezone, raising=False)
+    save_mock = AsyncMock()
+    monkeypatch.setattr(profile_service, "save_timezone", save_mock, raising=False)
+    monkeypatch.setattr(onboarding, "save_timezone", save_mock, raising=False)
 
     user_id = 1
     await onboarding_state.save_state(user_id, onboarding.TIMEZONE, {}, None)
@@ -87,8 +78,44 @@ async def test_timezone_webapp_saves(
     state = await onboarding.timezone_webapp(update, context)
     assert state == onboarding.REMINDERS
     assert context.user_data["timezone"] == "Europe/Moscow"
+    save_mock.assert_awaited_once_with(user_id, "Europe/Moscow", auto=True)
     with session_local() as session:
         st = session.get(onboarding_state.OnboardingState, user_id)
         assert st is not None
         assert st.step == onboarding.REMINDERS
         assert st.data.get("timezone") == "Europe/Moscow"
+
+
+@pytest.mark.asyncio
+async def test_timezone_webapp_rejects_invalid(
+    session_local: sessionmaker[SASession], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    save_mock = AsyncMock()
+    monkeypatch.setattr(onboarding, "save_timezone", save_mock, raising=False)
+    monkeypatch.setattr(profile_service, "save_timezone", save_mock, raising=False)
+
+    user_id = 1
+    await onboarding_state.save_state(user_id, onboarding.TIMEZONE, {}, None)
+    message = DummyMessage("Invalid/Zone")
+    update = cast(
+        Update,
+        SimpleNamespace(
+            message=message,
+            effective_message=message,
+            effective_user=SimpleNamespace(id=user_id),
+        ),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    state = await onboarding.timezone_webapp(update, context)
+    assert state == onboarding.TIMEZONE
+    assert message.replies == ["Некорректный часовой пояс. Пример: Europe/Moscow"]
+    save_mock.assert_not_called()
+    assert "timezone" not in context.user_data
+    with session_local() as session:
+        st = session.get(onboarding_state.OnboardingState, user_id)
+        assert st is not None
+        assert st.step == onboarding.TIMEZONE
+        assert st.data == {}
