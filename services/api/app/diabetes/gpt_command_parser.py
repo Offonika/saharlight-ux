@@ -103,6 +103,9 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
         if ch not in "{[":
             i += 1
             continue
+        if i > 0 and text[i - 1] not in " \t\r\n,[":
+            i += 1
+            continue
 
         start = i
         stack: list[str] = [ch]
@@ -133,7 +136,8 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
             i += 1
 
         if stack:
-            return None
+            i = start + 1
+            continue
 
         candidate = text[start:i]
         try:

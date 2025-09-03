@@ -34,7 +34,9 @@ class Settings(BaseSettings):
     app_name: str = "diabetes-bot"
     debug: bool = False
 
-    photos_dir: str = Field(default="photos", alias="PHOTOS_DIR")
+    photos_dir: str = Field(
+        default="/var/lib/diabetes-bot/photos", alias="PHOTOS_DIR"
+    )
 
     # Database configuration
     database_url: str = Field(
