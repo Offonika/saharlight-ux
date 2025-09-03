@@ -18,7 +18,11 @@ from telegram.ext import (
 from sqlalchemy.exc import SQLAlchemyError
 from typing import TYPE_CHECKING, TypeAlias
 
-from .onboarding_handlers import onboarding_conv, onboarding_poll_answer
+from .onboarding_handlers import (
+    onboarding_conv,
+    onboarding_poll_answer,
+    reset_onboarding_handler,
+)
 from .common_handlers import menu_command, help_command, smart_input_help
 from .router import callback_router
 from ..utils.ui import (
@@ -170,6 +174,7 @@ def register_handlers(
     )
 
     app.add_handler(onboarding_conv)
+    app.add_handler(reset_onboarding_handler)
     app.add_handler(CommandHandlerT("menu", menu_command))
     app.add_handler(
         CommandHandlerT(

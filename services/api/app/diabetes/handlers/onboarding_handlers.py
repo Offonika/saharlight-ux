@@ -22,6 +22,13 @@ from telegram.ext import (
     filters,
 )
 
+from services.api.app.diabetes.services.db import (
+    OnboardingState,
+    SessionLocal,
+    User,
+)
+from services.api.app.diabetes.services.repository import CommitError, commit
+
 from services.api.app.diabetes.utils.ui import (
     PHOTO_BUTTON_TEXT,
     build_timezone_webapp_button,
@@ -64,10 +71,7 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
         ("ГСД", "gdm"),
         ("Родитель", "parent"),
     ]
-    rows = [
-        [InlineKeyboardButton(text, callback_data=f"{CB_PROFILE_PREFIX}{code}")]
-        for text, code in options
-    ]
+    rows = [[InlineKeyboardButton(text, callback_data=f"{CB_PROFILE_PREFIX}{code}")] for text, code in options]
     rows.append(_nav_buttons())
     return InlineKeyboardMarkup(rows)
 
@@ -87,10 +91,7 @@ def _reminders_keyboard() -> InlineKeyboardMarkup:
         ("Длинный инсулин 22:00", "long_22"),
         ("Таблетки 09:00", "pills_09"),
     ]
-    rows = [
-        [InlineKeyboardButton(text, callback_data=f"{CB_REMINDER_PREFIX}{code}")]
-        for text, code in presets
-    ]
+    rows = [[InlineKeyboardButton(text, callback_data=f"{CB_REMINDER_PREFIX}{code}")] for text, code in presets]
     rows.append([InlineKeyboardButton("Готово", callback_data=CB_DONE)])
     rows.append(_nav_buttons(back=True))
     return InlineKeyboardMarkup(rows)
@@ -213,15 +214,11 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 
 async def _finish(message: Message) -> int:
-    await message.reply_text(
-        "🎉 Готово! Настройка завершена.", reply_markup=menu_keyboard()
-    )
+    await message.reply_text("🎉 Готово! Настройка завершена.", reply_markup=menu_keyboard())
     return ConversationHandler.END
 
 
-async def onboarding_poll_answer(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def onboarding_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Stub for backward compatibility."""
 
     return None
@@ -239,6 +236,33 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return ConversationHandler.END
 
 
+async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Reset onboarding progress for the user."""
+
+    message = update.message
+    effective_user = update.effective_user
+    if message is None or effective_user is None:
+        return
+    user_id = effective_user.id
+    with SessionLocal() as session:
+        state = session.get(OnboardingState, user_id)
+        if state is not None:
+            session.delete(state)
+        db_user = session.get(User, user_id)
+        if db_user is not None:
+            db_user.onboarding_complete = False
+        try:
+            commit(session)
+        except CommitError:
+            logger.exception("Failed to reset onboarding for %s", user_id)
+            await message.reply_text("⚠️ Не удалось сбросить онбординг.")
+            return
+    await message.reply_text(
+        "Онбординг сброшен. Отправьте /start, чтобы пройти его заново.",
+        reply_markup=menu_keyboard(),
+    )
+
+
 onboarding_conv = ConversationHandler(
     entry_points=[CommandHandler("start", start_command)],
     states={
@@ -252,10 +276,10 @@ onboarding_conv = ConversationHandler(
         ],
         REMINDERS: [CallbackQueryHandler(reminders_chosen)],
     },
-    fallbacks=[
-        MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)
-    ],
+    fallbacks=[MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)],
 )
+
+reset_onboarding_handler = CommandHandler("reset_onboarding", reset_onboarding)
 
 __all__ = [
     "PROFILE",
@@ -268,4 +292,6 @@ __all__ = [
     "reminders_chosen",
     "onboarding_poll_answer",
     "onboarding_conv",
+    "reset_onboarding",
+    "reset_onboarding_handler",
 ]

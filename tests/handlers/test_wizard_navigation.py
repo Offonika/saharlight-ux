@@ -68,8 +68,8 @@ async def test_start_triggers_onboarding(monkeypatch: pytest.MonkeyPatch) -> Non
     )
 
     state = await onboarding.start_command(update, context)
-    assert state == onboarding.ONB_PROFILE_ICR
-    assert any("1/3" in text for text in message.texts)
+    assert state == onboarding.PROFILE
+    assert any("Шаг 1/3" in text for text in message.texts)
 
 
 @pytest.mark.asyncio
@@ -106,7 +106,7 @@ async def test_onboarding_skip_sends_final(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
 
     message = DummyMessage()
-    query = DummyQuery(message, "onb_skip")
+    query = DummyQuery(message, onboarding.CB_SKIP)
     update = cast(
         Update,
         SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=2)),
@@ -116,10 +116,25 @@ async def test_onboarding_skip_sends_final(monkeypatch: pytest.MonkeyPatch) -> N
         SimpleNamespace(user_data={}, bot_data={}),
     )
 
-    state = await onboarding.onboarding_skip(update, context)
+    state = await onboarding.profile_chosen(update, context)
+    assert state == onboarding.TIMEZONE
+
+    query_tz = DummyQuery(message, onboarding.CB_SKIP)
+    update_tz = cast(
+        Update,
+        SimpleNamespace(callback_query=query_tz, effective_user=SimpleNamespace(id=2)),
+    )
+    state = await onboarding.timezone_nav(update_tz, context)
+    assert state == onboarding.REMINDERS
+
+    query_rem = DummyQuery(message, onboarding.CB_SKIP)
+    update_rem = cast(
+        Update,
+        SimpleNamespace(callback_query=query_rem, effective_user=SimpleNamespace(id=2)),
+    )
+    state = await onboarding.reminders_chosen(update_rem, context)
     assert state == ConversationHandler.END
-    assert message.polls
-    assert any("Пропущено" in text for text in message.texts)
+    assert any("Готово" in text for text in message.texts)
 
 
 @pytest.mark.asyncio
@@ -155,7 +170,7 @@ async def test_onboarding_completion_message(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
 
     message = DummyMessage()
-    query = DummyQuery(message, "onb_rem_no")
+    query = DummyQuery(message, onboarding.CB_DONE)
     update = cast(
         Update,
         SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=3)),
@@ -165,6 +180,6 @@ async def test_onboarding_completion_message(monkeypatch: pytest.MonkeyPatch) ->
         SimpleNamespace(bot_data={}, job_queue=None),
     )
 
-    state = await onboarding.onboarding_reminders(update, context)
+    state = await onboarding.reminders_chosen(update, context)
     assert state == ConversationHandler.END
     assert any("Готово" in text for text in message.texts)
