@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -148,13 +148,17 @@ async def subscribe(
 
 @router.post("/webhook")
 async def webhook(
+    request: Request,
     event: WebhookEvent,
     settings: BillingSettings = Depends(_require_billing_enabled),
 ) -> dict[str, str]:
     """Process provider webhook and activate subscription."""
 
     logger = logging.getLogger(__name__)
-    if not await verify_webhook(settings, event):
+    ip = request.headers.get("X-Forwarded-For")
+    if ip is None and request.client is not None:
+        ip = request.client.host
+    if not await verify_webhook(settings, event, request.headers, ip):
         raise HTTPException(status_code=400, detail="invalid signature")
 
     now = datetime.now(timezone.utc)
