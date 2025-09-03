@@ -36,11 +36,33 @@ class DummyContext:
 
 
 def make_update_context(text: str) -> tuple[DummyUpdate, DummyContext]:
-    update = DummyUpdate(
-        message=DummyMessage(text), effective_user=SimpleNamespace(id=1)
-    )
+    update = DummyUpdate(message=DummyMessage(text), effective_user=SimpleNamespace(id=1))
     context = DummyContext(user_data={}, chat_data={})
     return update, context
+
+
+def test_ensure_message_user_ok() -> None:
+    msg = DummyMessage("hi")
+    user = SimpleNamespace(id=1)
+    update = cast(Update, SimpleNamespace(message=msg, effective_user=user))
+
+    result = dose_calc.ensure_message_user(update)
+
+    assert result != dose_calc.END
+    message, text, user_out = result
+    assert message is msg
+    assert text == "hi"
+    assert user_out is user
+
+
+def test_ensure_message_user_missing_parts() -> None:
+    update_no_msg = cast(Update, SimpleNamespace(message=None, effective_user=SimpleNamespace()))
+    update_no_text = cast(Update, SimpleNamespace(message=SimpleNamespace(text=None), effective_user=SimpleNamespace()))
+    update_no_user = cast(Update, SimpleNamespace(message=DummyMessage("x"), effective_user=None))
+
+    assert dose_calc.ensure_message_user(update_no_msg) == dose_calc.END
+    assert dose_calc.ensure_message_user(update_no_text) == dose_calc.END
+    assert dose_calc.ensure_message_user(update_no_user) == dose_calc.END
 
 
 @pytest.mark.asyncio
@@ -123,9 +145,7 @@ async def test_dose_carbs_negative() -> None:
     )
 
     assert result == dose_calc.DOSE_CARBS
-    assert any(
-        "не может быть отриц" in reply.lower() for reply in update.message.replies
-    )
+    assert any("не может быть отриц" in reply.lower() for reply in update.message.replies)
 
 
 @dataclass

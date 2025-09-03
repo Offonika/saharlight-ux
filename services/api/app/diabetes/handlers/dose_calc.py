@@ -3,7 +3,7 @@ import logging
 from collections.abc import Awaitable, Callable, Coroutine
 from typing import TypeVar, cast
 
-from telegram import Update
+from telegram import Message, Update, User
 from telegram.ext import (
     CommandHandler,
     ContextTypes,
@@ -63,6 +63,21 @@ DOSE_METHOD, DOSE_XE, DOSE_CARBS, DOSE_SUGAR = range(3, 7)
 END: int = ConversationHandler.END
 
 
+def ensure_message_user(update: Update) -> tuple[Message, str, User] | int:
+    """Return ``message``, ``text`` and ``user`` if all are present else ``END``."""
+
+    message = update.message
+    if message is None:
+        return END
+    text = message.text
+    if text is None:
+        return END
+    user = update.effective_user
+    if user is None:
+        return END
+    return message, text, user
+
+
 async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Entry point for dose calculation conversation."""
     user_data_raw = context.user_data
@@ -118,15 +133,10 @@ async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if user_data_raw is None:
         return END
     user_data = cast(UserData, user_data_raw)
-    message = update.message
-    if message is None:
-        return END
-    text = message.text
-    if text is None:
-        return END
-    user = update.effective_user
-    if user is None:
-        return END
+    ensured = ensure_message_user(update)
+    if isinstance(ensured, int):
+        return ensured
+    message, text, user = ensured
     xe = _safe_float(text)
     if xe is None:
         await message.reply_text("Введите число ХЕ.")
@@ -150,15 +160,10 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if user_data_raw is None:
         return END
     user_data = cast(UserData, user_data_raw)
-    message = update.message
-    if message is None:
-        return END
-    text = message.text
-    if text is None:
-        return END
-    user = update.effective_user
-    if user is None:
-        return END
+    ensured = ensure_message_user(update)
+    if isinstance(ensured, int):
+        return ensured
+    message, text, user = ensured
     carbs = _safe_float(text)
     if carbs is None:
         await message.reply_text("Введите углеводы числом в граммах.")
@@ -182,15 +187,10 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if user_data_raw is None:
         return END
     user_data = cast(UserData, user_data_raw)
-    message = update.message
-    if message is None:
-        return END
-    text = message.text
-    if text is None:
-        return END
-    user = update.effective_user
-    if user is None:
-        return END
+    ensured = ensure_message_user(update)
+    if isinstance(ensured, int):
+        return ensured
+    message, text, user = ensured
     sugar = _safe_float(text)
     if sugar is None:
         await message.reply_text("Введите сахар числом в ммоль/л.")
