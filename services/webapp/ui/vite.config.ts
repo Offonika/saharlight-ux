@@ -89,9 +89,10 @@ export default defineConfig(async ({ mode, command }) => {
 
     build: {
       outDir: 'dist',
-      minify: mode === 'development' ? false : 'esbuild',
+      minify: false, // or 'esbuild'
+      cssMinify: false,
       minifyInternalExports: false,
-      sourcemap: true,
+      sourcemap: false,
       rollupOptions: {
         ...(mode === 'development' ? { treeshake: false } : {}),
         input: {
