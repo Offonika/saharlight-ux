@@ -83,6 +83,8 @@ async def test_photo_handler_not_image() -> None:
     result = await photo_handlers.photo_handler(update, context)
     assert result == photo_handlers.END
     assert message.texts == ["❗ Файл не распознан как изображение."]
+    assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
+    assert photo_handlers.WAITING_GPT_TIMESTAMP not in context.user_data
 
 
 @pytest.mark.asyncio
