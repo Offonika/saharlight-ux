@@ -272,7 +272,7 @@ async def test_photo_handler_handles_typeerror() -> None:
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_removes_file(
+async def test_photo_handler_sends_bytes(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -290,8 +290,8 @@ async def test_photo_handler_removes_file(
     )
 
     class DummyFile:
-        async def download_to_drive(self, path: str) -> None:
-            Path(path).write_bytes(b"img")
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
 
     async def fake_get_file(file_id: str) -> DummyFile:
         return DummyFile()
@@ -334,16 +334,11 @@ async def test_photo_handler_removes_file(
         photo_handlers, "extract_nutrition_info", lambda text: (10.0, 1.0)
     )
     monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
-    monkeypatch.setattr(
-        photo_handlers.os,
-        "makedirs",
-        lambda path, **kwargs: Path(path).mkdir(parents=True, exist_ok=True),
-    )
 
     result = await photo_handlers.photo_handler(update, context)
 
-    assert call["keep_image"] is True
-    assert not Path(call["image_path"]).exists()
+    assert call["image_bytes"] == b"img"
+    assert "image_path" not in call
     assert result == photo_handlers.PHOTO_SUGAR
 
 
