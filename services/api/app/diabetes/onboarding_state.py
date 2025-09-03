@@ -8,6 +8,10 @@ from typing import cast
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from services.api.app.diabetes.services.db import SessionLocal, User
+from services.api.app.diabetes.services.repository import commit
+from services.api.app.services.onboarding_state import OnboardingState
+
 logger = logging.getLogger(__name__)
 
 RESET_AFTER = timedelta(days=14)
@@ -51,28 +55,37 @@ class OnboardingStateStore:
         for uid, info in data.items():
             store._states[uid] = State(
                 step=int(info["step"]),
-                updated_at=datetime.fromtimestamp(
-                    float(info["updated_at"]), tz=UTC
-                ),
+                updated_at=datetime.fromtimestamp(float(info["updated_at"]), tz=UTC),
             )
         return store
 
 
-async def reset_onboarding(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle ``/reset_onboarding`` command."""
 
     message = update.effective_message
     user = update.effective_user
     if message is None or user is None:
         return None
+
     store = cast(
         OnboardingStateStore,
         context.application.bot_data.setdefault("onb_state", OnboardingStateStore()),
     )
     store.reset(user.id)
-    await message.reply_text("Onboarding reset.")
+
+    with SessionLocal() as session:
+        state = session.get(OnboardingState, user.id)
+        if state is not None:
+            session.delete(state)
+        db_user = session.get(User, user.id)
+        if db_user is not None:
+            db_user.onboarding_complete = False
+        commit(session)
+
+    await message.reply_text(
+        "🔄 Онбординг сброшен. Отправьте /start, чтобы пройти его заново.",
+    )
     return None
 
 

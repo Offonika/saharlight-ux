@@ -29,6 +29,7 @@ from services.api.app.diabetes.utils.ui import (
     build_timezone_webapp_button,
     menu_keyboard,
 )
+from services.api.app.diabetes.onboarding_state import reset_onboarding
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,9 @@ def _progress(step: int) -> str:
     return f"Шаг {step}/3"
 
 
-def _nav_buttons(*, back: bool = False, skip: bool = True) -> list[InlineKeyboardButton]:
+def _nav_buttons(
+    *, back: bool = False, skip: bool = True
+) -> list[InlineKeyboardButton]:
     buttons: list[InlineKeyboardButton] = []
     if back:
         buttons.append(InlineKeyboardButton("Назад", callback_data=CB_BACK))
@@ -67,7 +70,10 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
         ("ГСД", "gdm"),
         ("Родитель", "parent"),
     ]
-    rows = [[InlineKeyboardButton(text, callback_data=f"{CB_PROFILE_PREFIX}{code}")] for text, code in options]
+    rows = [
+        [InlineKeyboardButton(text, callback_data=f"{CB_PROFILE_PREFIX}{code}")]
+        for text, code in options
+    ]
     rows.append(_nav_buttons())
     return InlineKeyboardMarkup(rows)
 
@@ -87,7 +93,10 @@ def _reminders_keyboard() -> InlineKeyboardMarkup:
         ("Длинный инсулин 22:00", "long_22"),
         ("Таблетки 09:00", "pills_09"),
     ]
-    rows = [[InlineKeyboardButton(text, callback_data=f"{CB_REMINDER_PREFIX}{code}")] for text, code in presets]
+    rows = [
+        [InlineKeyboardButton(text, callback_data=f"{CB_REMINDER_PREFIX}{code}")]
+        for text, code in presets
+    ]
     rows.append([InlineKeyboardButton("Готово", callback_data=CB_DONE)])
     rows.append(_nav_buttons(back=True))
     return InlineKeyboardMarkup(rows)
@@ -222,7 +231,9 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return ConversationHandler.END
 
 
-async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def onboarding_reminders(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
     """Finish onboarding when reminders step is skipped."""
 
     query = update.callback_query
@@ -234,11 +245,15 @@ async def onboarding_reminders(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def _finish(message: Message) -> int:
-    await message.reply_text("🎉 Готово! Настройка завершена.", reply_markup=menu_keyboard())
+    await message.reply_text(
+        "🎉 Готово! Настройка завершена.", reply_markup=menu_keyboard()
+    )
     return ConversationHandler.END
 
 
-async def onboarding_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def onboarding_poll_answer(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Stub for backward compatibility."""
 
     return None
@@ -256,6 +271,8 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return ConversationHandler.END
 
 
+reset_onboarding_handler = CommandHandler("reset_onboarding", reset_onboarding)
+
 onboarding_conv = ConversationHandler(
     entry_points=[CommandHandler("start", start_command)],
     states={
@@ -269,7 +286,9 @@ onboarding_conv = ConversationHandler(
         ],
         REMINDERS: [CallbackQueryHandler(reminders_chosen)],
     },
-    fallbacks=[MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)],
+    fallbacks=[
+        MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)
+    ],
 )
 
 __all__ = [
@@ -285,5 +304,6 @@ __all__ = [
     "onboarding_skip",
     "onboarding_reminders",
     "onboarding_poll_answer",
+    "reset_onboarding_handler",
     "onboarding_conv",
 ]
