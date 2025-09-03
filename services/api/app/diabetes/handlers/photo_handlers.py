@@ -35,6 +35,11 @@ WAITING_GPT_TIMEOUT = datetime.timedelta(minutes=5)
 END = ConversationHandler.END
 
 
+def _clear_waiting_gpt(user_data: UserData) -> None:
+    user_data.pop(WAITING_GPT_FLAG, None)
+    user_data.pop(WAITING_GPT_TIMESTAMP, None)
+
+
 async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompt user to send a food photo for analysis."""
     message = update.message
@@ -68,12 +73,8 @@ async def photo_handler(
     flag_ts = user_data.get(WAITING_GPT_TIMESTAMP)
     now = datetime.datetime.now(datetime.timezone.utc)
     if user_data.get(WAITING_GPT_FLAG):
-        if (
-            isinstance(flag_ts, datetime.datetime)
-            and now - flag_ts > WAITING_GPT_TIMEOUT
-        ):
-            user_data.pop(WAITING_GPT_FLAG, None)
-            user_data.pop(WAITING_GPT_TIMESTAMP, None)
+        if isinstance(flag_ts, datetime.datetime) and now - flag_ts > WAITING_GPT_TIMEOUT:
+            _clear_waiting_gpt(user_data)
         else:
             await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
             return END
@@ -88,8 +89,7 @@ async def photo_handler(
             photo = message.photo[-1]
         except (AttributeError, IndexError, TypeError):
             await message.reply_text("❗ Файл не распознан как изображение.")
-            user_data.pop(WAITING_GPT_FLAG, None)
-            user_data.pop(WAITING_GPT_TIMESTAMP, None)
+            _clear_waiting_gpt(user_data)
             return END
 
         os.makedirs("photos", exist_ok=True)
@@ -100,8 +100,7 @@ async def photo_handler(
         except (TelegramError, OSError) as exc:
             logger.exception("[PHOTO] Failed to save photo: %s", exc)
             await message.reply_text("⚠️ Не удалось сохранить фото. Попробуйте ещё раз.")
-            user_data.pop(WAITING_GPT_FLAG, None)
-            user_data.pop(WAITING_GPT_TIMESTAMP, None)
+            _clear_waiting_gpt(user_data)
             return END
 
     logger.info("[PHOTO] Saved to %s", file_path)
@@ -137,10 +136,8 @@ async def photo_handler(
             )
         except asyncio.TimeoutError:
             logger.warning("[PHOTO] GPT request timed out")
-            await message.reply_text(
-                "⚠️ Превышено время ожидания ответа. Попробуйте ещё раз."
-            )
-            user_data.pop(WAITING_GPT_FLAG, None)
+            await message.reply_text("⚠️ Превышено время ожидания ответа. Попробуйте ещё раз.")
+            _clear_waiting_gpt(user_data)
             return END
         status_message = await message.reply_text("🔍 Анализирую фото (это займёт 5‑10 с)…")
         chat_id = getattr(message, "chat_id", None)
@@ -305,8 +302,7 @@ async def photo_handler(
         await message.reply_text("⚠️ Произошла ошибка Telegram. Попробуйте ещё раз.")
         return END
     finally:
-        user_data.pop(WAITING_GPT_FLAG, None)
-        user_data.pop(WAITING_GPT_TIMESTAMP, None)
+        _clear_waiting_gpt(user_data)
         if file_path:
             try:
                 Path(file_path).unlink()
