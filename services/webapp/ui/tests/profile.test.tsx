@@ -51,7 +51,7 @@ describe('Profile page', () => {
       dia: 4,
       preBolus: 15,
       roundStep: 0.5,
-      carbUnit: 'g',
+      carbUnits: 'g',
       gramsPerXe: 12,
       rapidInsulinType: 'aspart' as RapidInsulin,
       maxBolus: 10,
@@ -82,18 +82,18 @@ describe('Profile page', () => {
     vi.restoreAllMocks();
   });
 
-  it('displays carb unit options using localized text', () => {
+  it('displays carbUnits options using localized text', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     const { getByLabelText } = render(<Profile />);
     const { t } = useTranslation();
     const select = getByLabelText(
-      t('profileHelp.carbUnit.title'),
+      t('profileHelp.carbUnits.title'),
     ) as HTMLSelectElement;
     expect(select.options[0].text).toBe(
-      t('profileHelp.carbUnit.options.g'),
+      t('profileHelp.carbUnits.options.g'),
     );
     expect(select.options[1].text).toBe(
-      t('profileHelp.carbUnit.options.xe'),
+      t('profileHelp.carbUnits.options.xe'),
     );
   });
 
@@ -278,7 +278,7 @@ describe('Profile page', () => {
         dia: 4,
         preBolus: 15,
         roundStep: 0.5,
-        carbUnit: 'g',
+        carbUnits: 'g',
         gramsPerXe: 12,
         rapidInsulinType: 'aspart' as RapidInsulin,
         maxBolus: 10,
@@ -310,7 +310,7 @@ describe('Profile page', () => {
         low: 4,
         high: 10,
         roundStep: 1,
-        carbUnit: 'g',
+        carbUnits: 'g',
         gramsPerXe: 12,
         defaultAfterMealMinutes: 120,
         timezone: 'Europe/Moscow',
@@ -334,7 +334,7 @@ describe('Profile page', () => {
         low: 4,
         high: 10,
         roundStep: 1,
-        carbUnit: 'g',
+        carbUnits: 'g',
         gramsPerXe: 12,
         defaultAfterMealMinutes: 120,
         timezone: 'Europe/Moscow',
@@ -367,7 +367,7 @@ describe('Profile page', () => {
       dia: 4,
       preBolus: 0,
       roundStep: 0.5,
-      carbUnit: 'g',
+      carbUnits: 'g',
       gramsPerXe: 12,
       rapidInsulinType: 'aspart' as RapidInsulin,
       maxBolus: 10,
@@ -394,7 +394,7 @@ describe('Profile page', () => {
         low: 4,
         high: 10,
         roundStep: 1,
-        carbUnit: 'g',
+        carbUnits: 'g',
         gramsPerXe: 12,
         defaultAfterMealMinutes: 0,
         timezone: 'Europe/Moscow',
@@ -464,7 +464,7 @@ describe('Profile page', () => {
         dia: 5,
         preBolus: 20,
         roundStep: 1,
-        carbUnit: 'xe',
+        carbUnits: 'xe',
         gramsPerXe: 15,
         rapidInsulinType: 'lispro' as RapidInsulin,
         maxBolus: 12,
@@ -486,7 +486,7 @@ describe('Profile page', () => {
       dia: 4,
       preBolus: 15,
       roundStep: 0.5,
-      carbUnit: 'g',
+      carbUnits: 'g',
       gramsPerXe: 12,
       rapidInsulinType: 'aspart' as RapidInsulin,
       maxBolus: 10,
@@ -519,7 +519,7 @@ describe('Profile page', () => {
       dia: 4,
       preBolus: 15,
       roundStep: 0.5,
-      carbUnit: 'g',
+      carbUnits: 'g',
       gramsPerXe: 12,
       rapidInsulinType: 'aspart' as RapidInsulin,
       maxBolus: 10,
@@ -587,7 +587,7 @@ describe('Profile page', () => {
       dia: 4,
       preBolus: 15,
       roundStep: 0.5,
-      carbUnit: 'g',
+      carbUnits: 'g',
       gramsPerXe: 12,
       rapidInsulinType: 'aspart' as RapidInsulin,
       maxBolus: 10,
@@ -612,7 +612,7 @@ describe('Profile page', () => {
       dia: 4,
       preBolus: 15,
       roundStep: 0.5,
-      carbUnit: 'g',
+      carbUnits: 'g',
       gramsPerXe: 12,
       rapidInsulinType: 'aspart' as RapidInsulin,
       maxBolus: 10,
@@ -644,7 +644,7 @@ describe('Profile page', () => {
       dia: 4,
       preBolus: 15,
       roundStep: 0.5,
-      carbUnit: 'g',
+      carbUnits: 'g',
       gramsPerXe: 12,
       rapidInsulinType: 'aspart' as RapidInsulin,
       maxBolus: 10,
@@ -679,7 +679,7 @@ describe('Profile page', () => {
     ['tablets', 'g', false],
     ['tablets', 'xe', true],
   ])(
-    'handles gramsPerXe requirement for therapyType %s and carbUnit %s',
+    'handles gramsPerXe requirement for therapyType %s and carbUnits %s',
     async (
       therapyType: 'insulin' | 'tablets',
       unit: 'g' | 'xe',
@@ -696,7 +696,7 @@ describe('Profile page', () => {
         dia: 4,
         preBolus: 15,
         roundStep: 0.5,
-        carbUnit: unit,
+        carbUnits: unit,
         gramsPerXe: 0,
         rapidInsulinType: 'aspart' as RapidInsulin,
         maxBolus: 10,

@@ -131,11 +131,11 @@ const sections: HelpSection[] = [
         rangeKey: 'profileHelp.therapyType.range',
       },
       {
-        key: 'carbUnit',
-        titleKey: 'profileHelp.carbUnit.title',
-        definitionKey: 'profileHelp.carbUnit.definition',
-        unitKey: 'profileHelp.carbUnit.unit',
-        rangeKey: 'profileHelp.carbUnit.range',
+        key: 'carbUnits',
+        titleKey: 'profileHelp.carbUnits.title',
+        definitionKey: 'profileHelp.carbUnits.definition',
+        unitKey: 'profileHelp.carbUnits.unit',
+        rangeKey: 'profileHelp.carbUnits.range',
       },
       {
         key: 'gramsPerXe',

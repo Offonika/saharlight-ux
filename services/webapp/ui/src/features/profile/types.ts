@@ -6,7 +6,7 @@ export interface Profile extends ProfileSchema {
   dia?: number | null;
   preBolus?: number | null;
   roundStep?: number | null;
-  carbUnit?: "g" | "xe" | null;
+  carbUnits?: "g" | "xe" | null;
   gramsPerXe?: number | null;
   rapidInsulinType?: RapidInsulin | null;
   maxBolus?: number | null;
@@ -23,7 +23,7 @@ export type PatchProfileDto = {
   dia?: number | null;
   preBolus?: number | null;
   roundStep?: number | null;
-  carbUnit?: "g" | "xe" | null;
+  carbUnits?: "g" | "xe" | null;
   gramsPerXe?: number | null;
   rapidInsulinType?: RapidInsulin | null;
   maxBolus?: number | null;

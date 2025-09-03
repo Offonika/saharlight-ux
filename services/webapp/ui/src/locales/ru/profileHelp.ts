@@ -62,9 +62,9 @@ const profileHelp = {
     unit: 'Ед',
     range: '0.1–5',
   },
-  carbUnit: {
-    title: 'Единица углеводов',
-    definition: 'Единица измерения углеводов в расчётах',
+  carbUnits: {
+    title: 'Единицы углеводов',
+    definition: 'Единицы измерения углеводов в расчётах',
     unit: 'г или ХЕ',
     range: 'г, ХЕ',
     options: {
