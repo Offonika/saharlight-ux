@@ -1,14 +1,14 @@
-import { http } from './http';
+import { Configuration } from '@sdk/runtime.ts';
+import { DefaultApi } from '@sdk/apis';
+import type { AnalyticsPoint, DayStats } from '@sdk/models';
+import { getTelegramAuthHeaders } from '@/lib/telegram-auth';
 
-export interface AnalyticsPoint {
-  date: string;
-  sugar: number;
-}
-
-export interface DayStats {
-  sugar: number;
-  breadUnits: number;
-  insulin: number;
+function makeApi(): DefaultApi {
+  const cfg = new Configuration({
+    basePath: '/api',
+    headers: getTelegramAuthHeaders(),
+  });
+  return new DefaultApi(cfg);
 }
 
 export const fallbackAnalytics: AnalyticsPoint[] = [
@@ -26,39 +26,14 @@ export const fallbackDayStats: DayStats = {
 };
 
 export async function fetchAnalytics(telegramId: number): Promise<AnalyticsPoint[]> {
-  const data = await http.get<unknown>(`/analytics?telegramId=${telegramId}`);
-  if (!Array.isArray(data)) {
-    throw new Error('Invalid analytics data');
-  }
-  return data as AnalyticsPoint[];
+  const api = makeApi();
+  return api.getAnalyticsAnalyticsGet({ telegramId });
 }
 
 export async function fetchDayStats(
   telegramId: number,
 ): Promise<DayStats | null> {
-  const data = await http.get<unknown | null>(`/stats?telegramId=${telegramId}`);
-
-  if (data === null) {
-    return null;
-  }
-
-  if (typeof data !== 'object' || Array.isArray(data)) {
-    throw new Error('Invalid stats data');
-  }
-
-  const { sugar, breadUnits, insulin } = data as Record<string, unknown>;
-
-  if (
-    typeof sugar !== 'number' ||
-    !Number.isFinite(sugar) ||
-    typeof breadUnits !== 'number' ||
-    !Number.isFinite(breadUnits) ||
-    typeof insulin !== 'number' ||
-    !Number.isFinite(insulin)
-  ) {
-    console.error('Unexpected stats API response:', data);
-    return fallbackDayStats;
-  }
-
-  return { sugar, breadUnits, insulin };
+  const api = makeApi();
+  const data = await api.getStatsStatsGet({ telegramId });
+  return data ?? null;
 }
