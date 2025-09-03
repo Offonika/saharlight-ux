@@ -17,7 +17,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
 import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
-from services.api.app.config import settings
+import services.api.app.diabetes.utils.functions as functions
 
 
 class DummyPhoto:
@@ -114,7 +114,9 @@ async def test_photo_handler_recognition_success_db_save(
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda text: (10, 0.5)
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda text: functions.NutritionInfo(carbs_g=10, xe=0.5),
     )
 
     message = DummyMessage()
@@ -157,13 +159,18 @@ async def test_photo_handler_openai_error(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
 
+    class File:
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
+
+    bot = SimpleNamespace(get_file=AsyncMock(return_value=File()))
     message = DummyMessage()
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"thread_id": "tid"}),
+        SimpleNamespace(bot=bot, user_data={"thread_id": "tid"}),
     )
 
     result = await photo_handlers.photo_handler(update, context)
@@ -220,7 +227,9 @@ async def test_photo_handler_fallback_parse_fail(
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
     monkeypatch.setattr(
-        photo_handlers, "extract_nutrition_info", lambda t: (None, None)
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda t: functions.NutritionInfo(),
     )
 
     message = DummyMessage()
@@ -404,9 +413,7 @@ async def test_doc_handler_valid_image(
     assert result == photo_handlers.PHOTO_SUGAR
     assert context.user_data == {}
     assert message.photo is None
-    photo_mock.assert_awaited_once_with(
-        update, context, file_path=f"{settings.photos_dir}/1_uid.png"
-    )
+    photo_mock.assert_awaited_once_with(update, context, file_bytes=b"img")
 
 
 @pytest.mark.asyncio
@@ -455,7 +462,11 @@ async def test_photo_handler_typing_action_error(
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(photo_handlers, "extract_nutrition_info", lambda t: (10, 0.5))
+    monkeypatch.setattr(
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda t: functions.NutritionInfo(carbs_g=10, xe=0.5),
+    )
 
     message = DummyMessage()
     update = cast(
@@ -465,7 +476,7 @@ async def test_photo_handler_typing_action_error(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data={"thread_id": "tid"}),
     )
-    result = await photo_handlers.photo_handler(update, context)
+    result = await photo_handlers.photo_handler(update, context, file_bytes=path.read_bytes())
 
     assert result == photo_handlers.PHOTO_SUGAR
     assert any("На фото" in t for t in message.texts)
@@ -510,7 +521,7 @@ async def test_photo_handler_value_error(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
 
-    def raise_value(text: str) -> tuple[None, None]:
+    def raise_value(text: str) -> functions.NutritionInfo:
         raise ValueError("bad")
 
     monkeypatch.setattr(photo_handlers, "extract_nutrition_info", raise_value)
@@ -527,7 +538,9 @@ async def test_photo_handler_value_error(monkeypatch: pytest.MonkeyPatch) -> Non
         SimpleNamespace(user_data={"thread_id": "tid"}),
     )
 
-    result = await photo_handlers.photo_handler(update, context)
+    result = await photo_handlers.photo_handler(
+        update, context, file_bytes=path.read_bytes()
+    )
 
     assert result == photo_handlers.END
     assert message.texts[-1] == "⚠️ Не удалось распознать фото. Попробуйте ещё раз."

@@ -40,7 +40,10 @@ async def handle_confirm_entry(
         return
     entry_data: EntryData = entry_data_raw
     with SessionLocal() as session:
-        entry = Entry(**entry_data)
+        # Filter out fields not defined in the ORM model to avoid TypeError
+        allowed_keys = set(Entry.__table__.columns.keys())
+        clean_data = {k: v for k, v in entry_data.items() if k in allowed_keys}
+        entry = Entry(**clean_data)
         session.add(entry)
         try:
             commit(session)
