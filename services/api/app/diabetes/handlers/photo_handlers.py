@@ -30,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 PHOTO_SUGAR = 7
 WAITING_GPT_FLAG = "waiting_gpt_response"
+WAITING_GPT_TIMESTAMP = "waiting_gpt_response_ts"
+WAITING_GPT_TIMEOUT = datetime.timedelta(minutes=5)
 END = ConversationHandler.END
 
 
@@ -63,10 +65,20 @@ async def photo_handler(
         return END
     user_id = effective_user.id
 
+    flag_ts = user_data.get(WAITING_GPT_TIMESTAMP)
+    now = datetime.datetime.now(datetime.timezone.utc)
     if user_data.get(WAITING_GPT_FLAG):
-        await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
-        return END
+        if (
+            isinstance(flag_ts, datetime.datetime)
+            and now - flag_ts > WAITING_GPT_TIMEOUT
+        ):
+            user_data.pop(WAITING_GPT_FLAG, None)
+            user_data.pop(WAITING_GPT_TIMESTAMP, None)
+        else:
+            await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
+            return END
     user_data[WAITING_GPT_FLAG] = True
+    user_data[WAITING_GPT_TIMESTAMP] = now
 
     if file_path is None:
         file_path = user_data.pop("__file_path", None)
@@ -292,6 +304,7 @@ async def photo_handler(
         return END
     finally:
         user_data.pop(WAITING_GPT_FLAG, None)
+        user_data.pop(WAITING_GPT_TIMESTAMP, None)
         if file_path:
             try:
                 Path(file_path).unlink()
@@ -347,6 +360,8 @@ prompt_photo = photo_prompt
 __all__ = [
     "PHOTO_SUGAR",
     "WAITING_GPT_FLAG",
+    "WAITING_GPT_TIMESTAMP",
+    "WAITING_GPT_TIMEOUT",
     "photo_prompt",
     "photo_handler",
     "doc_handler",

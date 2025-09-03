@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import logging
 import re
 
@@ -263,3 +264,21 @@ def register_handlers(
         )
     )
     app.add_handler(CallbackQueryHandlerT(callback_router))
+
+    async def _clear_waiting_flags(context: ContextTypes.DEFAULT_TYPE) -> None:
+        for data in context.application.user_data.values():
+            data.pop(photo_handlers.WAITING_GPT_FLAG, None)
+            data.pop(photo_handlers.WAITING_GPT_TIMESTAMP, None)
+
+    jq = app.job_queue
+    if jq:
+        jq.run_once(
+            _clear_waiting_flags,
+            when=datetime.timedelta(seconds=0),
+            name="clear_waiting_gpt_flags",
+        )
+        jq.run_repeating(
+            _clear_waiting_flags,
+            interval=datetime.timedelta(hours=1),
+            name="clear_waiting_gpt_flags",
+        )

@@ -374,3 +374,23 @@ async def test_reminders_command_renders_list(
     kwargs = captured["kwargs"]
     assert kwargs.get("reply_markup") is keyboard
     assert kwargs.get("parse_mode") == "HTML"
+
+
+def test_register_handlers_schedules_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
+    run_once_called: dict[str, Any] = {}
+    run_repeating_called: dict[str, Any] = {}
+
+    def fake_run_once(self, callback: Any, *args: Any, **kwargs: Any) -> None:
+        run_once_called["callback"] = callback
+
+    def fake_run_repeating(self, callback: Any, *args: Any, **kwargs: Any) -> None:
+        run_repeating_called["callback"] = callback
+
+    monkeypatch.setattr(JobQueue, "run_once", fake_run_once)
+    monkeypatch.setattr(JobQueue, "run_repeating", fake_run_repeating)
+
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+    register_handlers(app)
+
+    assert run_once_called.get("callback") is not None
+    assert run_repeating_called.get("callback") is not None
