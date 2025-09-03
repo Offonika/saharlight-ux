@@ -13,6 +13,7 @@ from telegram.ext import CallbackContext
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 from services.api.app.diabetes.services.db import Base, User, Profile, dispose_engine
+from tests.utils.profile_factory import make_profile
 
 
 @contextmanager
@@ -107,6 +108,18 @@ async def test_profile_command_and_view(
 
     with no_warnings():
         await handlers.profile_command(update, context)
+        with TestSession() as session:
+            session.merge(
+                make_profile(
+                    telegram_id=123,
+                    icr=float(expected_icr),
+                    cf=float(expected_cf),
+                    target_bg=float(expected_target),
+                    low_threshold=float(expected_low),
+                    high_threshold=float(expected_high),
+                )
+            )
+            session.commit()
         await handlers.profile_view(update2, context2)
         dispose_engine(engine)
 
@@ -117,11 +130,14 @@ async def test_profile_command_and_view(
     assert f"• Низкий порог: {expected_low} ммоль/л" in message.texts[0]
     assert f"• Высокий порог: {expected_high} ммоль/л" in message.texts[0]
 
-    assert f"• ИКХ: {expected_icr} г/ед." in message2.texts[0]
-    assert f"• КЧ: {expected_cf} ммоль/л" in message2.texts[0]
-    assert f"• Целевой сахар: {expected_target} ммоль/л" in message2.texts[0]
-    assert f"• Низкий порог: {expected_low} ммоль/л" in message2.texts[0]
-    assert f"• Высокий порог: {expected_high} ммоль/л" in message2.texts[0]
+    text2 = message2.texts[0]
+    assert "💉 *Болус*" in text2
+    assert f"• ИКХ: {expected_icr} г/ед." in text2
+    assert "• ДиА: 4.0 ч" in text2
+    assert "🍽 *Углеводы*" in text2
+    assert "• Ед. углеводов: g" in text2
+    assert "🛡 *Безопасность*" in text2
+    assert "• SOS контакт: +123" in text2
     markup = message2.markups[0]
     assert isinstance(markup, InlineKeyboardMarkup)
     buttons = [b for row in markup.inline_keyboard for b in row]

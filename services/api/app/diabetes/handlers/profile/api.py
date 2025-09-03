@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import time as time_type
 from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
@@ -30,6 +31,18 @@ class LocalProfile:
     high: float | None = None
     sos_contact: str | None = None
     sos_alerts_enabled: bool = True
+    dia: float | None = None
+    round_step: float | None = None
+    carb_units: str | None = None
+    grams_per_xe: float | None = None
+    therapy_type: str | None = None
+    rapid_insulin_type: str | None = None
+    prebolus_min: int | None = None
+    max_bolus: float | None = None
+    postmeal_check_min: int | None = None
+    quiet_start: time_type | None = None
+    quiet_end: time_type | None = None
+    timezone: str | None = None
 
 
 @dataclass
@@ -68,8 +81,20 @@ class LocalProfileAPI:
                 profile.target or 0.0,
                 profile.low or 0.0,
                 profile.high or 0.0,
-                profile.sos_contact,
-                profile.sos_alerts_enabled,
+                sos_contact=profile.sos_contact,
+                sos_alerts_enabled=profile.sos_alerts_enabled,
+                dia=profile.dia,
+                round_step=profile.round_step,
+                carb_units=profile.carb_units,
+                grams_per_xe=profile.grams_per_xe,
+                therapy_type=profile.therapy_type,
+                rapid_insulin_type=profile.rapid_insulin_type,
+                prebolus_min=profile.prebolus_min,
+                max_bolus=profile.max_bolus,
+                postmeal_check_min=profile.postmeal_check_min,
+                quiet_start=profile.quiet_start,
+                quiet_end=profile.quiet_end,
+                timezone=profile.timezone,
             )
             if not ok:
                 raise ProfileSaveError("Failed to save profile")
@@ -90,6 +115,18 @@ class LocalProfileAPI:
                 high=prof.high_threshold,
                 sos_contact=prof.sos_contact,
                 sos_alerts_enabled=prof.sos_alerts_enabled,
+                dia=prof.dia,
+                round_step=prof.round_step,
+                carb_units=prof.carb_units,
+                grams_per_xe=prof.grams_per_xe,
+                therapy_type=prof.therapy_type,
+                rapid_insulin_type=prof.insulin_type,
+                prebolus_min=prof.prebolus_min,
+                max_bolus=prof.max_bolus,
+                postmeal_check_min=prof.postmeal_check_min,
+                quiet_start=prof.quiet_start,
+                quiet_end=prof.quiet_end,
+                timezone=prof.timezone,
             )
 
 
@@ -137,8 +174,21 @@ def save_profile(
     target: float,
     low: float,
     high: float,
+    *,
     sos_contact: str | None = None,
     sos_alerts_enabled: bool = True,
+    dia: float | None = None,
+    round_step: float | None = None,
+    carb_units: str | None = None,
+    grams_per_xe: float | None = None,
+    therapy_type: str | None = None,
+    rapid_insulin_type: str | None = None,
+    prebolus_min: int | None = None,
+    max_bolus: float | None = None,
+    postmeal_check_min: int | None = None,
+    quiet_start: time_type | None = None,
+    quiet_end: time_type | None = None,
+    timezone: str | None = None,
 ) -> bool:
     """Persist profile values into the local database."""
     user = session.get(User, user_id)
@@ -156,6 +206,30 @@ def save_profile(
     prof.high_threshold = high
     prof.sos_contact = sos_contact
     prof.sos_alerts_enabled = sos_alerts_enabled
+    if dia is not None:
+        prof.dia = dia
+    if round_step is not None:
+        prof.round_step = round_step
+    if carb_units is not None:
+        prof.carb_units = carb_units
+    if grams_per_xe is not None:
+        prof.grams_per_xe = grams_per_xe
+    if therapy_type is not None:
+        prof.therapy_type = therapy_type
+    if rapid_insulin_type is not None:
+        prof.insulin_type = rapid_insulin_type
+    if prebolus_min is not None:
+        prof.prebolus_min = prebolus_min
+    if max_bolus is not None:
+        prof.max_bolus = max_bolus
+    if postmeal_check_min is not None:
+        prof.postmeal_check_min = postmeal_check_min
+    if quiet_start is not None:
+        prof.quiet_start = quiet_start
+    if quiet_end is not None:
+        prof.quiet_end = quiet_end
+    if timezone is not None:
+        prof.timezone = timezone
     try:
         commit(session)
     except CommitError:
