@@ -50,9 +50,7 @@ run_db: Callable[..., Awaitable[object]] | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
-    logging.getLogger(__name__).info(
-        "run_db is unavailable; proceeding without async DB runner"
-    )
+    logging.getLogger(__name__).info("run_db is unavailable; proceeding without async DB runner")
     run_db = None
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
@@ -226,12 +224,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             sessionmaker=SessionLocal,
         )
 
-    if (
-        profile is None
-        or profile.icr is None
-        or profile.cf is None
-        or profile.target_bg is None
-    ):
+    if profile is None or profile.icr is None or profile.cf is None or profile.target_bg is None:
         await message.reply_text(
             "Профиль не настроен. Установите коэффициенты через /profile.",
             reply_markup=menu_keyboard(),
@@ -282,9 +275,7 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 
 def _cancel_then(
-    handler: Callable[
-        [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]
-    ],
+    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]],
 ) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
@@ -337,12 +328,16 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex(f"^{DOSE_BUTTON_TEXT}$"), dose_start),
     ],
     states={
-        DOSE_METHOD: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)
-        ],
+        DOSE_METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
         DOSE_XE: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)],
         DOSE_CARBS: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)],
         DOSE_SUGAR: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)],
+        PHOTO_SUGAR: [
+            MessageHandler(
+                filters.Regex(r"^-?\d+(?:[.,]\d+)?$"),
+                dose_sugar,
+            )
+        ],
     },
     fallbacks=[
         MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), dose_cancel),
