@@ -95,14 +95,14 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
 
     step_content, question_text = await db.run_db(_advance)
     if step_content is not None:
-        completion = await gpt_client.create_learning_chat_completion(
+        text = await gpt_client.create_learning_chat_completion(
             task=LLMTask.EXPLAIN_STEP,
             messages=[
                 {"role": "system", "content": SYSTEM_TUTOR_RU},
                 {"role": "user", "content": build_explain_step(step_content)},
             ],
         )
-        return completion.choices[0].message.content or ""
+        return text
     if question_text is not None:
         return question_text
     return None
@@ -140,16 +140,14 @@ async def check_answer(
         return correct, explanation
 
     correct, explanation = await db.run_db(_check)
-    completion = await gpt_client.create_learning_chat_completion(
+    message = await gpt_client.create_learning_chat_completion(
         task=LLMTask.QUIZ_CHECK,
         messages=[
             {"role": "system", "content": SYSTEM_TUTOR_RU},
             {"role": "user", "content": build_feedback(correct, explanation)},
         ],
     )
-    message = completion.choices[0].message.content or ""
     return correct, message
 
 
 __all__ = ["start_lesson", "next_step", "check_answer"]
-

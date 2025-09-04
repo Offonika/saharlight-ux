@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import types
-
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
@@ -12,7 +10,11 @@ from services.api.app.diabetes.curriculum_engine import (
     start_lesson,
 )
 from services.api.app.diabetes.learning_fixtures import load_lessons
-from services.api.app.diabetes.models_learning import Lesson, LessonProgress, QuizQuestion
+from services.api.app.diabetes.models_learning import (
+    Lesson,
+    LessonProgress,
+    QuizQuestion,
+)
 from services.api.app.diabetes.services import db, gpt_client
 
 
@@ -39,22 +41,12 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         slug = lesson.slug
         lesson_id = lesson.id
 
-    async def fake_completion(**kwargs: object) -> object:
+    async def fake_completion(**kwargs: object) -> str:
         fake_completion.calls += 1
-        return types.SimpleNamespace(
-            choices=[
-                types.SimpleNamespace(
-                    message=types.SimpleNamespace(
-                        content=f"text {fake_completion.calls}",
-                    )
-                )
-            ]
-        )
+        return f"text {fake_completion.calls}"
 
     fake_completion.calls = 0  # type: ignore[attr-defined]
-    monkeypatch.setattr(
-        gpt_client, "create_learning_chat_completion", fake_completion
-    )
+    monkeypatch.setattr(gpt_client, "create_learning_chat_completion", fake_completion)
 
     progress = await start_lesson(1, slug)
     assert progress.current_step == 0
@@ -92,4 +84,3 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         assert progress.completed is True
         assert progress.quiz_score == 100
-

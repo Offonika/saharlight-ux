@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import pytest
 
+import types
+
 from services.api.app import config
 from services.api.app.diabetes.llm_router import LLMRouter, LLMTask
 from services.api.app.diabetes.services import gpt_client
@@ -27,13 +29,15 @@ async def test_create_learning_chat_completion_uses_router(
     """gpt_client should delegate model selection to the router."""
     captured: dict[str, str] = {}
 
-    async def fake_create_chat_completion(
-        *, model: str, **kwargs: object
-    ) -> object:
+    async def fake_create_chat_completion(*, model: str, **kwargs: object) -> object:
         captured["model"] = model
-        return object()
+        return types.SimpleNamespace(
+            choices=[types.SimpleNamespace(message=types.SimpleNamespace(content="ok"))]
+        )
 
-    monkeypatch.setattr(gpt_client, "create_chat_completion", fake_create_chat_completion)
+    monkeypatch.setattr(
+        gpt_client, "create_chat_completion", fake_create_chat_completion
+    )
     monkeypatch.setattr(gpt_client, "_learning_router", LLMRouter())
 
     await gpt_client.create_learning_chat_completion(
