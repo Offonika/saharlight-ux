@@ -191,7 +191,12 @@ async def subscribe(
         )
         session.commit()
 
-    await run_db(_create_draft, sessionmaker=SessionLocal)
+    try:
+        await run_db(_create_draft, sessionmaker=SessionLocal)
+    except IntegrityError as exc:
+        raise HTTPException(
+            status_code=409, detail="subscription already exists"
+        ) from exc
     return CheckoutSchema.model_validate(checkout)
 
 
