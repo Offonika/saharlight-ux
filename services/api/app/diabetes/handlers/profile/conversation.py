@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import time as dt_time
 from collections.abc import Awaitable, Callable
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -263,6 +264,10 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     postmeal_check_min = getattr(profile, "postmeal_check_min", None)
     quiet_start = getattr(profile, "quiet_start", None)
     quiet_end = getattr(profile, "quiet_end", None)
+    if isinstance(quiet_start, dict):
+        quiet_start = dt_time(**quiet_start)
+    if isinstance(quiet_end, dict):
+        quiet_end = dt_time(**quiet_end)
     timezone = getattr(profile, "timezone", None)
     sos_contact = getattr(profile, "sos_contact", None)
     sos_alerts_enabled = getattr(profile, "sos_alerts_enabled", None)
