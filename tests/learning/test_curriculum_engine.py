@@ -16,6 +16,11 @@ from services.api.app.diabetes.models_learning import (
     LessonProgress,
     QuizQuestion,
 )
+from services.api.app.diabetes.metrics import (
+    lessons_completed,
+    lessons_started,
+    quiz_avg_score,
+)
 from services.api.app.diabetes.services import db, gpt_client
 
 
@@ -49,8 +54,14 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_completion.calls = 0  # type: ignore[attr-defined]
     monkeypatch.setattr(gpt_client, "create_learning_chat_completion", fake_completion)
 
+    base_started = lessons_started._value.get()  # type: ignore[attr-defined]
+    base_completed = lessons_completed._value.get()  # type: ignore[attr-defined]
+    base_sum = quiz_avg_score._sum.get()  # type: ignore[attr-defined]
+    base_count = quiz_avg_score._count.get()  # type: ignore[attr-defined]
+
     progress = await start_lesson(1, slug)
     assert progress.current_step == 0
+    assert lessons_started._value.get() == base_started + 1  # type: ignore[attr-defined]
 
     first = await next_step(1, lesson_id)
     assert first == f"{disclaimer()}\n\ntext 1"
@@ -90,3 +101,6 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         assert progress.completed is True
         assert progress.quiz_score == 100
+    assert lessons_completed._value.get() == base_completed + 1  # type: ignore[attr-defined]
+    assert quiz_avg_score._sum.get() == base_sum + 100  # type: ignore[attr-defined]
+    assert quiz_avg_score._count.get() == base_count + 1  # type: ignore[attr-defined]

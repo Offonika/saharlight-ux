@@ -2,7 +2,8 @@ import logging
 from datetime import datetime
 from typing import cast
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -20,6 +21,13 @@ STEP_MAP = {
     "finish": "onboarding_finished",
     "cancel": "onboarding_cancelled",
 }
+
+
+@router.get("/metrics")
+def get_metrics() -> Response:
+    """Return Prometheus metrics."""
+
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @router.get("/metrics/onboarding")
