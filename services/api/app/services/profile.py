@@ -14,6 +14,7 @@ from ..diabetes.services.repository import CommitError, commit
 from ..schemas.profile import ProfileSchema
 from ..diabetes.schemas.profile import (
     CarbUnits,
+    GlucoseUnits,
     ProfileSettingsIn,
     ProfileSettingsOut,
     TherapyType,
@@ -85,6 +86,8 @@ async def patch_user_settings(
             profile.carb_units = data.carbUnits.value
         if data.gramsPerXe is not None:
             profile.grams_per_xe = data.gramsPerXe
+        if data.glucoseUnits is not None:
+            profile.glucose_units = data.glucoseUnits.value
         if data.sosContact is not None:
             profile.sos_contact = data.sosContact
         if data.sosAlertsEnabled is not None:
@@ -115,6 +118,7 @@ async def patch_user_settings(
             roundStep=profile.round_step,
             carbUnits=CarbUnits(profile.carb_units),
             gramsPerXe=profile.grams_per_xe,
+            glucoseUnits=GlucoseUnits(profile.glucose_units),
             sosContact=profile.sos_contact,
             sosAlertsEnabled=profile.sos_alerts_enabled,
             therapyType=TherapyType(profile.therapy_type),

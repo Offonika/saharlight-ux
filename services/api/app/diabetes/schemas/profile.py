@@ -27,6 +27,13 @@ class RapidInsulinType(str, Enum):
     REGULAR = "regular"
 
 
+class GlucoseUnits(str, Enum):
+    """Available blood glucose measurement units."""
+
+    MMOL_L = "mmol/L"
+    MG_DL = "mg/dL"
+
+
 class ProfileSettingsIn(BaseModel):
     """Incoming user settings for profile configuration."""
 
@@ -51,6 +58,11 @@ class ProfileSettingsIn(BaseModel):
         default=None,
         alias="gramsPerXe",
         validation_alias=AliasChoices("gramsPerXe", "grams_per_xe"),
+    )
+    glucoseUnits: GlucoseUnits | None = Field(
+        default=None,
+        alias="glucoseUnits",
+        validation_alias=AliasChoices("glucoseUnits", "glucose_units"),
     )
     sosContact: str | None = Field(
         default=None,
@@ -121,6 +133,7 @@ class ProfileSettingsOut(ProfileSettingsIn):
     roundStep: float = Field(alias="roundStep")
     carbUnits: CarbUnits = Field(alias="carbUnits")
     gramsPerXe: float = Field(alias="gramsPerXe")
+    glucoseUnits: GlucoseUnits = Field(alias="glucoseUnits")
     sosContact: str | None = Field(default=None, alias="sosContact")
     sosAlertsEnabled: bool = Field(alias="sosAlertsEnabled")
     therapyType: TherapyType = Field(alias="therapyType")

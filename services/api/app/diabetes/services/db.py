@@ -197,18 +197,40 @@ class Profile(Base):
         nullable=False,
         server_default=sa.text("'07:00:00'"),
     )
-    timezone: Mapped[str] = mapped_column(String, default="UTC")
-    timezone_auto: Mapped[bool] = mapped_column(Boolean, default=True)
-    dia: Mapped[float] = mapped_column(Float, default=4.0)
-    round_step: Mapped[float] = mapped_column(Float, default=0.5)
-    carb_units: Mapped[str] = mapped_column(String, default="g")
-    grams_per_xe: Mapped[float] = mapped_column(Float, default=12.0)
-    therapy_type: Mapped[str] = mapped_column(String, default="insulin")
-    glucose_units: Mapped[str] = mapped_column(String, default="mmol/L")
+    timezone: Mapped[str] = mapped_column(
+        String, nullable=False, default="UTC", server_default=sa.text("'UTC'"),
+    )
+    timezone_auto: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=sa.true(),
+    )
+    dia: Mapped[float] = mapped_column(
+        Float, nullable=False, default=4.0, server_default="4.0",
+    )
+    round_step: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.5, server_default="0.5",
+    )
+    carb_units: Mapped[str] = mapped_column(
+        String, nullable=False, default="g", server_default=sa.text("'g'"),
+    )
+    grams_per_xe: Mapped[float] = mapped_column(
+        Float, nullable=False, default=12.0, server_default="12.0",
+    )
+    therapy_type: Mapped[str] = mapped_column(
+        String, nullable=False, default="insulin", server_default=sa.text("'insulin'"),
+    )
+    glucose_units: Mapped[str] = mapped_column(
+        String, nullable=False, default="mmol/L", server_default=sa.text("'mmol/L'"),
+    )
     insulin_type: Mapped[Optional[str]] = mapped_column(String)
-    prebolus_min: Mapped[int] = mapped_column(Integer, default=0)
-    max_bolus: Mapped[float] = mapped_column(Float, default=10.0)
-    postmeal_check_min: Mapped[int] = mapped_column(Integer, default=0)
+    prebolus_min: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0",
+    )
+    max_bolus: Mapped[float] = mapped_column(
+        Float, nullable=False, default=10.0, server_default="10.0",
+    )
+    postmeal_check_min: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0",
+    )
 
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     user: Mapped[User] = relationship("User", back_populates="profile")
