@@ -252,11 +252,6 @@ class Reminder(Base):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     user: Mapped[User] = relationship("User")
 
-    def set_interval_hours_if_needed(self, hours: int | None) -> None:
-        """Populate ``interval_minutes`` from hours if minutes absent."""
-        if hours is not None and self.interval_minutes is None:
-            self.interval_minutes = hours * 60
-
     @property
     def daysOfWeek(self) -> list[int] | None:  # noqa: N802  (external naming)
         mask = self.days_mask

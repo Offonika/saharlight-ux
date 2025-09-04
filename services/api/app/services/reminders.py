@@ -69,6 +69,8 @@ async def list_reminders(telegram_id: int) -> list[Reminder]:
 
 
 async def save_reminder(data: ReminderSchema) -> int:
+    data = ReminderSchema.model_validate(data.model_dump())
+
     def _save(session: SessionProtocol) -> int:
         rem: Reminder
         if data.id is not None:
@@ -90,7 +92,6 @@ async def save_reminder(data: ReminderSchema) -> int:
         rem.time = data.time
         rem.interval_hours = data.intervalHours
         rem.interval_minutes = data.intervalMinutes
-        rem.set_interval_hours_if_needed(data.intervalHours)
         rem.minutes_after = data.minutesAfter
         rem.daysOfWeek = data.daysOfWeek
         rem.is_enabled = data.isEnabled
