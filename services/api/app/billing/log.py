@@ -30,7 +30,14 @@ class BillingLog(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
-    event: Mapped[BillingEvent] = mapped_column(SAEnum(BillingEvent, name="billing_event"), nullable=False)
+    event: Mapped[BillingEvent] = mapped_column(
+        SAEnum(
+            BillingEvent,
+            name="billing_event",
+            values_callable=lambda e: [i.value for i in e],
+        ),
+        nullable=False,
+    )
     ts: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
     context: Mapped[dict[str, Any] | None] = mapped_column(JSON)
 
