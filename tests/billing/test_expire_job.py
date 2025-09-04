@@ -30,7 +30,7 @@ def _setup_db() -> sessionmaker[Session]:
 
 
 @pytest.mark.asyncio
-async def test_expire_subscriptions_marks_expired(
+async def test_expire_subscriptions_logs_event(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     session_local = _setup_db()
@@ -59,7 +59,7 @@ async def test_expire_subscriptions_marks_expired(
     with session_local() as session:
         sub = session.scalar(select(Subscription))
         assert sub is not None
-        assert sub.status == SubscriptionStatus.EXPIRED
+        assert sub.status == SubscriptionStatus.TRIAL
         log = session.scalar(
             select(BillingLog).where(
                 BillingLog.user_id == 1,
