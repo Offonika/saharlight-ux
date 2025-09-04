@@ -1,5 +1,6 @@
 [
   {
+    "slug": "basics-of-diabetes",
     "title": "Basics of Diabetes",
     "steps": [
       "Diabetes is a condition that affects how your body uses blood glucose.",
@@ -25,6 +26,7 @@
     ]
   },
   {
+    "slug": "insulin-usage",
     "title": "Insulin Usage",
     "steps": [
       "Store insulin in a cool place.",
@@ -50,6 +52,7 @@
     ]
   },
   {
+    "slug": "healthy-eating",
     "title": "Healthy Eating",
     "steps": [
       "Include vegetables in every meal.",
