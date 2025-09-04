@@ -167,6 +167,13 @@ async def subscribe(
     now = datetime.now(timezone.utc)
 
     def _create_draft(session: Session) -> None:
+        stmt = select(Subscription).where(
+            Subscription.user_id == user_id,
+            Subscription.status == SubscriptionStatus.PENDING.value,
+        )
+        if session.scalars(stmt).first() is not None:
+            raise HTTPException(status_code=409, detail="subscription already exists")
+
         draft = Subscription(
             user_id=user_id,
             plan=plan,
@@ -227,6 +234,17 @@ async def webhook(
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
+
+        conflict_stmt = select(Subscription).where(
+            Subscription.user_id == sub.user_id,
+            Subscription.status == SubscriptionStatus.ACTIVE.value,
+            Subscription.end_date.is_not(None),
+            Subscription.end_date > now,
+            Subscription.id != sub.id,
+        )
+        if session.scalars(conflict_stmt).first() is not None:
+            raise HTTPException(status_code=409, detail="subscription already active")
+
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)

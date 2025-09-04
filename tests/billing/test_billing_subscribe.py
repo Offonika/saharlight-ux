@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -138,3 +140,29 @@ def test_subscribe_duplicate(monkeypatch: pytest.MonkeyPatch) -> None:
     with session_local() as session:
         subs = session.scalars(select(Subscription)).all()
         assert len(subs) == 1
+
+
+def test_subscribe_conflict_with_existing_pending(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session_local = setup_db()
+    with session_local() as session:
+        session.add(
+            Subscription(
+                user_id=1,
+                plan=SubscriptionPlan.PRO,
+                status=SubscriptionStatus.PENDING,
+                provider="dummy",
+                transaction_id="existing",
+                start_date=datetime.now(timezone.utc),
+                end_date=None,
+            )
+        )
+        session.commit()
+    client = make_client(monkeypatch, session_local)
+    with client:
+        resp = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
+    assert resp.status_code == 409
+    assert resp.json() == {"detail": "subscription already exists"}
