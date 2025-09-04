@@ -62,7 +62,10 @@ async def pay(
 
 
 @router.post("/trial", response_model=SubscriptionSchema)
-async def start_trial(user_id: int) -> SubscriptionSchema:
+async def start_trial(
+    user_id: int,
+    settings: BillingSettings = Depends(_require_billing_enabled),
+) -> SubscriptionSchema:
     """Start a trial subscription for the user."""
 
     now = datetime.now(timezone.utc)
