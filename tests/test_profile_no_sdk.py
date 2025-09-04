@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import builtins
 import logging
- 
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -106,6 +106,7 @@ async def test_profile_command_and_view_without_sdk(
     _patch_import(monkeypatch)
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
+    monkeypatch.delenv("API_URL", raising=False)
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
     import importlib
@@ -169,6 +170,7 @@ def test_get_api_uses_local_when_no_api_url(
     """No warning when API_URL isn't configured."""
 
     _patch_import(monkeypatch)
+    monkeypatch.delenv("API_URL", raising=False)
 
     from services.api.app.diabetes.handlers.profile.api import (
         LocalProfileAPI,
@@ -177,7 +179,7 @@ def test_get_api_uses_local_when_no_api_url(
     )
 
     with caplog.at_level(logging.WARNING):
-        api, exc, model = get_api(settings=Settings())
+        api, exc, model = get_api(settings=Settings(_env_file=None))
 
     assert isinstance(api, LocalProfileAPI)
     assert exc is Exception
