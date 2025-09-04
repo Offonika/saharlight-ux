@@ -262,8 +262,8 @@ def test_webhook_accepts_first_ip(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resp.json() == {"status": "processed"}
 
 
-def test_webhook_conflict_with_existing_active(
-    monkeypatch: pytest.MonkeyPatch,
+def test_webhook_replaces_existing_active(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     session_local = setup_db()
     secret = "testsecret"
@@ -295,17 +295,20 @@ def test_webhook_conflict_with_existing_active(
         "plan": "pro",
         "signature": sig2,
     }
+    caplog.set_level(logging.WARNING)
     with client:
         resp2 = client.post(
             "/api/billing/webhook", json=event2, headers={"X-Webhook-Signature": sig2}
         )
-    assert resp2.status_code == 409
+    assert resp2.status_code == 200
+    assert resp2.json() == {"status": "processed"}
+    assert any("expiring previous" in r.getMessage() for r in caplog.records)
     with session_local() as session:
-        active = session.scalars(
-            select(Subscription).where(
-                Subscription.user_id == 1,
-                Subscription.status == SubscriptionStatus.ACTIVE,
-            )
+        subs = session.scalars(
+            select(Subscription).order_by(Subscription.start_date)
         ).all()
-        assert len(active) == 1
-        assert active[0].transaction_id == checkout1
+        assert len(subs) == 2
+        first, second = subs
+        assert first.status == SubscriptionStatus.EXPIRED
+        assert second.status == SubscriptionStatus.ACTIVE
+        assert second.transaction_id == checkout2

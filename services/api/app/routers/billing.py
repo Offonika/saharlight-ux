@@ -234,8 +234,20 @@ async def webhook(
             Subscription.end_date > now,
             Subscription.id != sub.id,
         )
-        if session.scalars(conflict_stmt).first() is not None:
-            raise HTTPException(status_code=409, detail="subscription already active")
+        conflict = session.scalars(conflict_stmt).first()
+        if conflict is not None:
+            logger.warning(
+                "active subscription exists, expiring previous",
+                extra={
+                    "user_id": sub.user_id,
+                    "transaction_id": event.transaction_id,
+                    "conflict_transaction_id": conflict.transaction_id,
+                },
+            )
+            conflict.status = cast(
+                SubscriptionStatus, SubscriptionStatus.EXPIRED.value
+            )
+            conflict.end_date = now
 
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
