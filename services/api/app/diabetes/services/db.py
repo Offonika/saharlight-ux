@@ -343,6 +343,7 @@ class Subscription(Base):
             SubscriptionStatus,
             name="subscription_status",
             create_type=False,
+            values_callable=lambda enum: [e.value for e in enum],
         ),
         nullable=False,
     )
