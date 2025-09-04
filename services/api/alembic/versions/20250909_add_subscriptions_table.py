@@ -7,11 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision: str = "20250909_add_subscriptions_table"
-down_revision: Union[str, Sequence[str], None] = (
-    "20250907_onboarding_events",
-    "20250908_add_onboarding_metrics_daily",
-    "20250907_onboarding_state",
-)
+down_revision: Union[str, Sequence[str], None] = "20250908_add_onboarding_metrics_daily"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

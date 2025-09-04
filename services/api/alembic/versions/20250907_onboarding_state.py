@@ -4,7 +4,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "20250907_onboarding_state"
-down_revision = "20250906_move_user_settings_to_profile"
+down_revision = "20250907_onboarding_events"
 branch_labels = None
 depends_on = None
 

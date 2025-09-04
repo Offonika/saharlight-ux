@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '8db592ddbe51'
-down_revision: Union[str, None] = '20250820_change_reminder_time_type'
+down_revision: Union[str, None] = '20250821_add_snooze_minutes_to_reminder_logs'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
