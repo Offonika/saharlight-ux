@@ -12,7 +12,12 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "onboarding_states",
-        sa.Column("user_id", sa.BigInteger(), sa.ForeignKey("users.telegram_id"), primary_key=True),
+        sa.Column(
+            "user_id",
+            sa.BigInteger(),
+            sa.ForeignKey("users.telegram_id"),
+            primary_key=True,
+        ),
         sa.Column("step", sa.String(), nullable=False),
         sa.Column("data_json", sa.JSON(), nullable=True),
         sa.Column(

@@ -14,7 +14,12 @@ logger = logging.getLogger(__name__)
 
 # === ЛОГИРОВАНИЕ ===
 config = context.config
-if config.config_file_name is not None:
+if hasattr(config, "set_main_option"):
+    config.set_main_option("script_location", str(Path(__file__).resolve().parent))
+    config.set_main_option(
+        "version_locations", str(Path(__file__).resolve().parent / "versions")
+    )
+if getattr(config, "config_file_name", None) is not None:
     fileConfig(config.config_file_name)
 
 # === PYTHONPATH: добавим корень репозитория, чтобы импортировать app.* ===
@@ -36,9 +41,7 @@ else:
 try:
     from services.api.app.config import settings  # FastAPI/Pydantic settings
 except ImportError:
-    logger.info(
-        "services.api.app.config not found; falling back to app.config"
-    )
+    logger.info("services.api.app.config not found; falling back to app.config")
     # альтернативный импорт, если пакетная структура другая
     from app.config import settings  # type: ignore
 
