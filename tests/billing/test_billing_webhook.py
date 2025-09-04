@@ -66,9 +66,7 @@ def _sign(secret: str, event_id: str, transaction_id: str) -> str:
     return hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
 
 
-def test_webhook_activates_subscription(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     session_local = setup_db()
     secret = "testsecret"
     client = make_client(monkeypatch, session_local, BILLING_WEBHOOK_SECRET=secret)
@@ -83,9 +81,7 @@ def test_webhook_activates_subscription(
     }
     caplog.set_level(logging.INFO)
     with client:
-        resp = client.post(
-            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig}
-        )
+        resp = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig})
     assert resp.status_code == 200
     assert resp.json() == {"status": "processed"}
     with session_local() as session:
@@ -118,9 +114,7 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
         "signature": sig,
     }
     with client:
-        first = client.post(
-            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig}
-        )
+        first = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig})
     assert first.status_code == 200
     with session_local() as session:
         sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
@@ -128,9 +122,7 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
         first_end = sub.end_date
 
     with client:
-        dup = client.post(
-            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig}
-        )
+        dup = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig})
     assert dup.status_code == 200
     assert dup.json() == {"status": "ignored"}
     with session_local() as session:
@@ -152,14 +144,12 @@ def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
         "signature": bad_sig,
     }
     with client:
-        resp = client.post(
-            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": bad_sig}
-        )
+        resp = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": bad_sig})
     assert resp.status_code == 400
     with session_local() as session:
         sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
         assert sub is not None
-        assert sub.status == SubscriptionStatus.PENDING
+        assert sub.status == SubscriptionStatus.TRIAL
         assert sub.end_date is None
 
 

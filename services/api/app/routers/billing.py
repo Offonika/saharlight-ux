@@ -121,7 +121,7 @@ async def subscribe(
         draft = Subscription(
             user_id=user_id,
             plan=plan,
-            status=SubscriptionStatus.PENDING,
+            status=SubscriptionStatus.TRIAL,
             provider=settings.billing_provider,
             transaction_id=checkout["id"],
             start_date=now,

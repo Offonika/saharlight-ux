@@ -68,7 +68,7 @@ def test_admin_mock_webhook(monkeypatch: pytest.MonkeyPatch) -> None:
             Subscription(
                 user_id=1,
                 plan=SubscriptionPlan.PRO,
-                status=SubscriptionStatus.PENDING,
+                status=SubscriptionStatus.TRIAL,
                 provider="dummy",
                 transaction_id="tx1",
                 start_date=datetime.now(timezone.utc),

@@ -312,7 +312,6 @@ class SubscriptionPlan(str, Enum):
 
 class SubscriptionStatus(str, Enum):
     TRIAL = "trial"
-    PENDING = "pending"
     ACTIVE = "active"
     CANCELED = "canceled"
     EXPIRED = "expired"
