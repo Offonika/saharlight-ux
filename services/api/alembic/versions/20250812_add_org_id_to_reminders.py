@@ -1,10 +1,11 @@
 """add org_id to reminders safely
 
 Revision ID: 20250812_add_org_id_to_reminders
-Revises: 02857aa7fc3e
+Revises: 20250807_squashed_initial
 Create Date: 2025-08-12 00:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -13,7 +14,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "20250812_add_org_id_to_reminders"
-down_revision: Union[str, None] = "02857aa7fc3e"
+down_revision: Union[str, None] = "20250807_squashed_initial"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

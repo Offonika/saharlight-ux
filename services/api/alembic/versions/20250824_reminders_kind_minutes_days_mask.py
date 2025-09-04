@@ -1,10 +1,11 @@
 """reminders: kind + minutes + days_mask
 
-Revision ID: 8db592ddbe51
-Revises: 20250820_change_reminder_time_type
+Revision ID: 20250824_reminders_kind_minutes_days_mask
+Revises: 20250821_add_snooze_minutes_to_reminder_logs
 Create Date: 2025-08-24 20:37:49.023280
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -12,8 +13,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '8db592ddbe51'
-down_revision: Union[str, None] = '20250821_add_snooze_minutes_to_reminder_logs'
+revision: str = "20250824_reminders_kind_minutes_days_mask"
+down_revision: Union[str, None] = "20250821_add_snooze_minutes_to_reminder_logs"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -38,7 +39,9 @@ def upgrade() -> None:
     if "is_enabled" not in columns:
         op.add_column(
             "reminders",
-            sa.Column("is_enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
+            sa.Column(
+                "is_enabled", sa.Boolean(), nullable=False, server_default=sa.true()
+            ),
         )
 
     indexes = [idx["name"] for idx in inspector.get_indexes("reminders")]

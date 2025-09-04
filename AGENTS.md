@@ -31,6 +31,9 @@
 - Форматируйте код Black и проверяйте `ruff check .`; строки ≤ 88 символов.
 - Импорты группируйте как stdlib → сторонние → внутренние, без неиспользуемых.
 
+### Миграции
+- Alembic: имя файла и значение `revision` в формате `YYYYMMDD_<описание>`.
+
 ### Шаблоны проекта
 - Алиас `DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]`.
 - Доступ к БД — через `services.api.app.diabetes.services.db` (`SessionLocal`, `run_db`, `commit`).
