@@ -6,7 +6,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = "20250902_drop_user_timezone"
-down_revision: Union[str, Sequence[str], None] = "20250901_profile_mvp"
+down_revision: Union[str, Sequence[str], None] = "016dca0fbac4"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
