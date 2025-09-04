@@ -16,9 +16,7 @@ class Lesson(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    is_active: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True, server_default=sa.true()
-    )
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.true())
 
     steps: Mapped[list["LessonStep"]] = relationship(
         "LessonStep",
@@ -39,13 +37,9 @@ class QuizQuestion(Base):
     __tablename__ = "quiz_questions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    lesson_id: Mapped[int] = mapped_column(
-        ForeignKey("lessons.id"), nullable=False, index=True
-    )
+    lesson_id: Mapped[int] = mapped_column(ForeignKey("lessons.id"), nullable=False, index=True)
     question: Mapped[str] = mapped_column(Text, nullable=False)
-    options: Mapped[Sequence[str]] = mapped_column(
-        sa.JSON().with_variant(JSONB, "postgresql"), nullable=False
-    )
+    options: Mapped[Sequence[str]] = mapped_column(sa.JSON().with_variant(JSONB, "postgresql"), nullable=False)
     correct_option: Mapped[int] = mapped_column(Integer, nullable=False)
 
     lesson: Mapped[Lesson] = relationship("Lesson", back_populates="questions")
@@ -55,9 +49,7 @@ class LessonStep(Base):
     __tablename__ = "lesson_steps"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    lesson_id: Mapped[int] = mapped_column(
-        ForeignKey("lessons.id"), nullable=False, index=True
-    )
+    lesson_id: Mapped[int] = mapped_column(ForeignKey("lessons.id"), nullable=False, index=True)
     step_order: Mapped[int] = mapped_column(Integer, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
 
@@ -68,13 +60,11 @@ class LessonProgress(Base):
     __tablename__ = "lesson_progress"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.telegram_id"), nullable=False, index=True
-    )
-    lesson_id: Mapped[int] = mapped_column(
-        ForeignKey("lessons.id"), nullable=False, index=True
-    )
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), nullable=False, index=True)
+    lesson_id: Mapped[int] = mapped_column(ForeignKey("lessons.id"), nullable=False, index=True)
     completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    current_step: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    current_question: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     quiz_score: Mapped[Optional[int]] = mapped_column(Integer)
 
     user: Mapped[User] = relationship("User")
