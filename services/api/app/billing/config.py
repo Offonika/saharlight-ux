@@ -2,22 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
-from pydantic import BeforeValidator, Field, model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-CommaSeparatedIPs = Annotated[
-    list[str],
-    BeforeValidator(
-        lambda v: (
-            [ip.strip() for ip in v.split(",") if ip.strip()]
-            if isinstance(v, str)
-            else (v or [])
-        )
-    ),
-]
 
 
 class BillingSettings(BaseSettings):
@@ -33,8 +19,8 @@ class BillingSettings(BaseSettings):
     billing_webhook_secret: str | None = Field(
         default=None, alias="BILLING_WEBHOOK_SECRET"
     )
-    billing_webhook_ips: CommaSeparatedIPs = Field(
-        default_factory=list, alias="BILLING_WEBHOOK_IPS"
+    billing_webhook_ips_raw: str = Field(
+        default="", validation_alias="BILLING_WEBHOOK_IPS"
     )
     billing_webhook_timeout: float = Field(default=5.0, alias="BILLING_WEBHOOK_TIMEOUT")
 
@@ -44,6 +30,13 @@ class BillingSettings(BaseSettings):
         if self.billing_provider != "dummy" and not self.billing_admin_token:
             raise ValueError("BILLING_ADMIN_TOKEN is required for non-dummy providers")
         return self
+
+    @property
+    def billing_webhook_ips(self) -> list[str]:
+        """List of allowed source IPs for billing webhooks."""
+        return [
+            ip.strip() for ip in self.billing_webhook_ips_raw.split(",") if ip.strip()
+        ]
 
 
 billing_settings = BillingSettings()
