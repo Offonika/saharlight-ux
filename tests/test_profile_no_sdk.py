@@ -60,18 +60,21 @@ def test_get_api_falls_back_to_local_client(
 
     _patch_import(monkeypatch)
 
-    from services.api.app.diabetes.handlers.profile.api import (
-        LocalProfileAPI,
-        LocalProfile,
-        get_api,
+    import importlib
+    profile_api = importlib.import_module(
+        "services.api.app.diabetes.handlers.profile.api"
     )
 
-    with caplog.at_level(logging.WARNING):
-        api, exc, model = get_api(settings=Settings(API_URL="http://example.org"))
+    monkeypatch.setattr(profile_api, "_sdk_warning_emitted", False)
 
-    assert isinstance(api, LocalProfileAPI)
+    with caplog.at_level(logging.WARNING):
+        api, exc, model = profile_api.get_api(
+            settings=Settings(API_URL="http://example.org")
+        )
+
+    assert isinstance(api, profile_api.LocalProfileAPI)
     assert exc is Exception
-    assert model is LocalProfile
+    assert model is profile_api.LocalProfile
     assert "diabetes_sdk is not installed" in caplog.text
 
 
@@ -82,19 +85,43 @@ def test_get_api_handles_runtime_error(
 
     _patch_import(monkeypatch, exc=RuntimeError)
 
-    from services.api.app.diabetes.handlers.profile.api import (
-        LocalProfileAPI,
-        LocalProfile,
-        get_api,
+    import importlib
+    profile_api = importlib.import_module(
+        "services.api.app.diabetes.handlers.profile.api"
     )
 
-    with caplog.at_level(logging.WARNING):
-        api, exc, model = get_api(settings=Settings(API_URL="http://example.org"))
+    monkeypatch.setattr(profile_api, "_sdk_warning_emitted", False)
 
-    assert isinstance(api, LocalProfileAPI)
+    with caplog.at_level(logging.WARNING):
+        api, exc, model = profile_api.get_api(
+            settings=Settings(API_URL="http://example.org")
+        )
+
+    assert isinstance(api, profile_api.LocalProfileAPI)
     assert exc is Exception
-    assert model is LocalProfile
+    assert model is profile_api.LocalProfile
     assert "could not be initialized" in caplog.text
+
+
+def test_get_api_warns_only_once(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Repeated ``get_api`` calls should log the warning only once."""
+
+    _patch_import(monkeypatch)
+
+    import importlib
+    profile_api = importlib.import_module(
+        "services.api.app.diabetes.handlers.profile.api"
+    )
+
+    monkeypatch.setattr(profile_api, "_sdk_warning_emitted", False)
+
+    with caplog.at_level(logging.WARNING):
+        profile_api.get_api(settings=Settings(API_URL="http://example.org"))
+        profile_api.get_api(settings=Settings(API_URL="http://example.org"))
+
+    assert caplog.text.count("diabetes_sdk is not installed") == 1
 
 
 @pytest.mark.asyncio
