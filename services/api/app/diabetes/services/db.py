@@ -351,7 +351,9 @@ class Subscription(Base):
         nullable=False,
     )
     provider: Mapped[str] = mapped_column(String, nullable=False)
-    transaction_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    transaction_id: Mapped[str] = mapped_column(
+        String, index=True, unique=True, nullable=False
+    )
     start_date: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     end_date: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True))
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())

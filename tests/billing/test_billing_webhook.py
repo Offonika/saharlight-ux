@@ -142,10 +142,9 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
     assert dup.status_code == 200
     assert dup.json() == {"status": "ignored"}
     with session_local() as session:
-        sub = session.scalar(
-            select(Subscription).where(Subscription.transaction_id == checkout_id)
-        )
-        assert sub.end_date == first_end
+        subs = session.scalars(select(Subscription)).all()
+        assert len(subs) == 1
+        assert subs[0].end_date == first_end
 
 
 def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
