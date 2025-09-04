@@ -9,7 +9,6 @@ from sqlalchemy import BigInteger, Integer, TIMESTAMP, Enum as SAEnum, JSON, fun
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from ..diabetes.services.db import Base
-from ..diabetes.services.repository import commit
 
 logger = logging.getLogger(__name__)
 
@@ -49,4 +48,4 @@ def log_billing_event(
 
     log = BillingLog(user_id=user_id, event=event, context=context)
     session.add(log)
-    commit(session)
+    session.flush()
