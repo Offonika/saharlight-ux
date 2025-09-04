@@ -72,6 +72,7 @@ async def test_progress_command_with_progress() -> None:
         lesson = Lesson(slug="intro", title="Intro", content="c")
         session.add_all([user, lesson])
         session.commit()
+        assert session.query(Lesson).filter_by(slug="intro").one().id == lesson.id
         progress = LessonProgress(
             user_id=user.telegram_id,
             lesson_id=lesson.id,
