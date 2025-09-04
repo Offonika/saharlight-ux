@@ -20,7 +20,7 @@ from typing import TypedDict, cast
 
 from sqlalchemy.orm import Session
 
-from .models_learning import Lesson, QuizQuestion
+from .models_learning import Lesson, LessonStep, QuizQuestion
 from .services.db import SessionLocal, SessionMaker, run_db
 from .services.repository import CommitError, commit
 
@@ -64,6 +64,10 @@ async def load_lessons(
             )
             session.add(lesson)
             session.flush()
+            for idx, step in enumerate(item["steps"], start=1):
+                session.add(
+                    LessonStep(lesson_id=lesson.id, step_order=idx, content=step)
+                )
             for q in item["quiz"]:
                 question = QuizQuestion(
                     lesson_id=lesson.id,

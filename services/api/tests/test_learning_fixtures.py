@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.diabetes.learning_fixtures import load_lessons
-from services.api.app.diabetes.models_learning import Lesson, QuizQuestion
+from services.api.app.diabetes.models_learning import Lesson, LessonStep, QuizQuestion
 from services.api.app.diabetes.services import db
 
 
@@ -47,5 +47,12 @@ async def test_load_lessons(tmp_path: Path) -> None:
         lessons = session.query(Lesson).all()
         assert len(lessons) == 1
         assert lessons[0].is_active is True
+        steps = (
+            session.query(LessonStep)
+            .filter_by(lesson_id=lessons[0].id)
+            .order_by(LessonStep.step_order)
+            .all()
+        )
+        assert [s.content for s in steps] == ["a", "b", "c"]
         questions = session.query(QuizQuestion).filter_by(lesson_id=lessons[0].id).all()
         assert len(questions) == 3
