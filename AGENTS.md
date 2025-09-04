@@ -35,6 +35,7 @@
 - Алиас `DefaultJobQueue = JobQueue[ContextTypes.DEFAULT_TYPE]`.
 - Доступ к БД — через `services.api.app.diabetes.services.db` (`SessionLocal`, `run_db`, `commit`).
 - Логгер: `logger = logging.getLogger(__name__)`.
+- Миграции Alembic именуются как `YYYYMMDD_<описание>`; `revision` совпадает с именем файла.
 
 ### Тест-утилиты
 - Для проверки «нет предупреждения» используйте `tests/utils/warn_ctx.py::warn_or_not(None)` вместо `pytest.warns`.
