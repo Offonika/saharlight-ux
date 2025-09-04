@@ -73,5 +73,31 @@
         "answer": 1
       }
     ]
+  },
+  {
+    "slug": "xe_basics",
+    "title": "XE Basics",
+    "steps": [
+      "A bread unit (XE) equals 12 grams of carbohydrates.",
+      "Count the XE in every meal to adjust insulin dosing.",
+      "Use XE tables to plan your diet."
+    ],
+    "quiz": [
+      {
+        "question": "How many grams of carbs are in one XE?",
+        "options": ["10 g", "12 g", "15 g"],
+        "answer": 1
+      },
+      {
+        "question": "Why count XE?",
+        "options": ["To decorate the plate", "To dose insulin", "To speed up metabolism"],
+        "answer": 1
+      },
+      {
+        "question": "What helps plan XE intake?",
+        "options": ["XE tables", "History books", "Calorie calculators"],
+        "answer": 0
+      }
+    ]
   }
 ]
