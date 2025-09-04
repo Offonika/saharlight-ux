@@ -64,6 +64,7 @@ def test_trial_creation(monkeypatch: pytest.MonkeyPatch) -> None:
     client = make_client(monkeypatch, session_local)
     with client:
         resp = client.post("/api/billing/trial", params={"user_id": 1})
+        status_resp = client.get("/api/billing/status", params={"user_id": 1})
     assert resp.status_code == 200
     data = resp.json()
     assert data["plan"] == "pro"
@@ -71,6 +72,13 @@ def test_trial_creation(monkeypatch: pytest.MonkeyPatch) -> None:
     start = datetime.fromisoformat(data["startDate"])
     end = datetime.fromisoformat(data["endDate"])
     assert end - start == timedelta(days=14)
+    assert status_resp.status_code == 200
+    status_data = status_resp.json()
+    sub = status_data["subscription"]
+    assert sub["plan"] == "pro"
+    assert sub["status"] == SubscriptionStatus.TRIAL.value
+    assert sub["provider"] == "trial"
+    assert sub["endDate"] == data["endDate"]
     count_stmt = select(func.count()).select_from(Subscription)
     log_stmt = (
         select(func.count())
