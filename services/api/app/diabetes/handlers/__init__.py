@@ -42,6 +42,8 @@ class UserData(TypedDict, total=False):
     profile_cf: float
     profile_target: float
     profile_low: float
+    lesson_id: int
+    lesson_slug: str
     __file_path: str
     reminder_id: int
     chat_id: int
