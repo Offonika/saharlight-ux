@@ -5,6 +5,7 @@ from datetime import datetime
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -187,3 +188,33 @@ def test_status_with_active_and_pending_subscriptions(
     assert data["subscription"]["status"] == "active"
     assert data["subscription"]["plan"] == "pro"
     assert data["subscription"]["startDate"].startswith("2024-01-01")
+
+
+def test_duplicate_status_per_user() -> None:
+    session_local = setup_db()
+    with session_local() as session:
+        session.add(
+            Subscription(
+                user_id=1,
+                plan=SubscriptionPlan.PRO,
+                status=SubscriptionStatus.ACTIVE,
+                provider="dummy",
+                transaction_id="t1",
+                start_date=datetime(2024, 1, 1),
+                end_date=None,
+            )
+        )
+        session.add(
+            Subscription(
+                user_id=1,
+                plan=SubscriptionPlan.FAMILY,
+                status=SubscriptionStatus.ACTIVE,
+                provider="dummy",
+                transaction_id="t2",
+                start_date=datetime(2024, 2, 1),
+                end_date=None,
+            )
+        )
+        with pytest.raises(IntegrityError):
+            session.commit()
+        session.rollback()
