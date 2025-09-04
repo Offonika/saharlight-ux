@@ -19,11 +19,14 @@ export interface BillingStatus {
   subscription: SubscriptionInfo | null;
 }
 
-export const getBillingStatus = () =>
-  api.get<BillingStatus>('/billing/status');
+export const getBillingStatus = (userId: string) =>
+  api.get<BillingStatus>(`/billing/status?user_id=${userId}`);
 
-export const startTrial = () =>
-  api.post<SubscriptionInfo>('/billing/trial', {});
+export const startTrial = (userId: string) =>
+  api.post<SubscriptionInfo>(`/billing/trial?user_id=${userId}`, {});
 
-export const subscribePlan = (plan: string) =>
-  api.post<{ id: string; url: string }>(`/billing/subscribe?plan=${plan}`, {});
+export const subscribePlan = (userId: string, plan: string) =>
+  api.post<{ id: string; url: string }>(
+    `/billing/subscribe?user_id=${userId}&plan=${plan}`,
+    {},
+  );

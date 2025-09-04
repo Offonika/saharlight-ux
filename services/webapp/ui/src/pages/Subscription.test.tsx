@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, it, vi, beforeEach } from 'vitest';
+import { describe, it, vi, beforeEach, expect } from 'vitest';
 import Subscription from './Subscription';
 import { getBillingStatus } from '@/api/billing';
 
@@ -10,12 +10,29 @@ vi.mock('@/api/billing', () => ({
   startTrial: vi.fn(),
   subscribePlan: vi.fn(),
 }));
+vi.mock('@/hooks/useTelegram', () => ({
+  useTelegram: () => ({ user: null }),
+}));
+vi.mock('@/hooks/useTelegramInitData', () => ({
+  useTelegramInitData: vi.fn(),
+}));
+vi.mock('./resolveTelegramId', () => ({
+  resolveTelegramId: vi.fn(),
+}));
+
+import { resolveTelegramId } from './resolveTelegramId';
+import { useTelegramInitData } from '@/hooks/useTelegramInitData';
 
 const mockedStatus = getBillingStatus as unknown as vi.Mock;
+const mockedResolveTelegramId = resolveTelegramId as unknown as vi.Mock;
+const mockedInitData = useTelegramInitData as unknown as vi.Mock;
 
 describe('Subscription states', () => {
   beforeEach(() => {
     mockedStatus.mockReset();
+    mockedResolveTelegramId.mockReset();
+    mockedResolveTelegramId.mockReturnValue(123);
+    mockedInitData.mockReturnValue(null);
   });
 
   const renderPage = async (status: unknown) => {

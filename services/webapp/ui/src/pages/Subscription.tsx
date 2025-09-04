@@ -10,6 +10,9 @@ import {
   subscribePlan,
   type BillingStatus,
 } from '@/api/billing';
+import { useTelegram } from '@/hooks/useTelegram';
+import { useTelegramInitData } from '@/hooks/useTelegramInitData';
+import { resolveTelegramId } from './resolveTelegramId';
 
 interface TariffPlan {
   id: string;
@@ -80,10 +83,14 @@ const tariffPlans: TariffPlan[] = [
 const Subscription = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useTelegram();
+  const initData = useTelegramInitData();
   const [billing, setBilling] = useState<BillingStatus | null>(null);
 
   useEffect(() => {
-    getBillingStatus()
+    const telegramId = resolveTelegramId(user, initData);
+    if (typeof telegramId !== 'number') return;
+    getBillingStatus(String(telegramId))
       .then(setBilling)
       .catch((e) =>
         toast({
@@ -92,11 +99,13 @@ const Subscription = () => {
           variant: 'destructive',
         }),
       );
-  }, [toast]);
+  }, [toast, user, initData]);
 
   const handleTrial = async () => {
+    const telegramId = resolveTelegramId(user, initData);
+    if (typeof telegramId !== 'number') return;
     try {
-      const sub = await startTrial();
+      const sub = await startTrial(String(telegramId));
       setBilling((prev) =>
         prev
           ? { ...prev, subscription: sub }
@@ -112,8 +121,10 @@ const Subscription = () => {
 
   const handleSubscribe = async (planId: string) => {
     if (!billing?.featureFlags.billingEnabled) return;
+    const telegramId = resolveTelegramId(user, initData);
+    if (typeof telegramId !== 'number') return;
     try {
-      const { url } = await subscribePlan(planId);
+      const { url } = await subscribePlan(String(telegramId), planId);
       window.open(url, '_blank');
     } catch (e) {
       toast({ title: 'Ошибка', description: String(e), variant: 'destructive' });
