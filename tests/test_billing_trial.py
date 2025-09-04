@@ -45,9 +45,7 @@ def setup_db() -> sessionmaker[Session]:
 def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
     from services.api.app.billing.config import BillingSettings
 
-    async def run_db(
-        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
-    ):
+    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
@@ -127,9 +125,38 @@ def test_trial_repeat_call(monkeypatch: pytest.MonkeyPatch) -> None:
     assert log_count == 1
 
 
-def test_trial_integrity_error(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+def test_trial_repeat_call_after_expiration(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    session_local = setup_db()
+    client = make_client(monkeypatch, session_local)
+    with client:
+        resp1 = client.post("/api/billing/trial", params={"user_id": 1})
+    assert resp1.status_code == 200
+    data1 = resp1.json()
+
+    future = parse_iso(data1["endDate"]) + timedelta(days=1)
+
+    class FakeDatetime:
+        @staticmethod
+        def now(tz: object | None = None) -> datetime:
+            return future
+
+    monkeypatch.setattr(billing, "datetime", FakeDatetime)
+    with client:
+        resp2 = client.post("/api/billing/trial", params={"user_id": 1})
+    assert resp2.status_code == 200
+    data2 = resp2.json()
+    assert data2["plan"] == "pro"
+    assert data2["status"] == SubscriptionStatus.TRIAL.value
+    assert parse_iso(data1["endDate"]) == parse_iso(data2["endDate"])
+    count_stmt = select(func.count()).select_from(Subscription)
+    with session_local() as session:
+        count = session.scalar(count_stmt)
+    assert count == 1
+
+
+def test_trial_integrity_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     calls: dict[str, int] = {"n": 0}
@@ -137,9 +164,7 @@ def test_trial_integrity_error(
     async def run_db_err(*_args: object, **_kwargs: object) -> None:
         if calls["n"] == 0:
             calls["n"] += 1
-            raise IntegrityError(
-                "", {"user_id": 1, "status": "trial", "plan": "pro"}, None
-            )
+            raise IntegrityError("", {"user_id": 1, "status": "trial", "plan": "pro"}, None)
         return None
 
     monkeypatch.setattr(billing, "run_db", run_db_err, raising=False)
@@ -156,9 +181,7 @@ def test_trial_integrity_error(
     assert record.params == {"user_id": 1, "status": "trial", "plan": "pro"}
 
 
-def test_trial_invalid_enum(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_trial_invalid_enum(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     calls: dict[str, int] = {"n": 0}
@@ -209,9 +232,7 @@ async def test_trial_parallel_requests(monkeypatch: pytest.MonkeyPatch) -> None:
         paywall_mode="soft",
     )
 
-    async with AsyncClient(
-        transport=ASGITransport(app=cast(Any, app)), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=cast(Any, app)), base_url="http://test") as ac:
         resp1, resp2 = await asyncio.gather(
             ac.post("/api/billing/trial", params={"user_id": 1}),
             ac.post("/api/billing/trial", params={"user_id": 1}),
