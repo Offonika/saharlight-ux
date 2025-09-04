@@ -38,11 +38,15 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
+    Base.metadata.create_all(
+        engine, tables=[Subscription.__table__, BillingLog.__table__]
+    )
     return sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
+def make_client(
+    monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
+) -> TestClient:
     from services.api.app.billing.config import BillingSettings
 
     async def run_db(
@@ -56,11 +60,13 @@ def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Ses
 
     from services.api.app.main import app
 
-    app.dependency_overrides[billing._require_billing_enabled] = lambda: BillingSettings(
-        billing_enabled=True,
-        billing_test_mode=True,
-        billing_provider="dummy",
-        paywall_mode="soft",
+    app.dependency_overrides[billing._require_billing_enabled] = (
+        lambda: BillingSettings(
+            billing_enabled=True,
+            billing_test_mode=True,
+            billing_provider="dummy",
+            paywall_mode="soft",
+        )
     )
 
     return TestClient(app)
@@ -183,6 +189,28 @@ def test_trial_invalid_enum(
     assert record.params is None
 
 
+def test_trial_log_failure_rolled_back(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    client = make_client(monkeypatch, session_local)
+    original = billing.log_billing_event
+
+    def failing_log(*args: object, **kwargs: object) -> None:
+        original(*args, **kwargs)
+        raise RuntimeError
+
+    monkeypatch.setattr(billing, "log_billing_event", failing_log)
+    with pytest.raises(RuntimeError):
+        with client:
+            client.post("/api/billing/trial", params={"user_id": 1})
+    count_stmt = select(func.count()).select_from(Subscription)
+    log_stmt = select(func.count()).select_from(BillingLog)
+    with session_local() as session:
+        count = session.scalar(count_stmt)
+        log_count = session.scalar(log_stmt)
+    assert count == 0
+    assert log_count == 0
+
+
 @pytest.mark.asyncio
 async def test_trial_parallel_requests(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
@@ -202,11 +230,13 @@ async def test_trial_parallel_requests(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(billing, "SessionLocal", session_local, raising=False)
     from services.api.app.main import app
 
-    app.dependency_overrides[billing._require_billing_enabled] = lambda: BillingSettings(
-        billing_enabled=True,
-        billing_test_mode=True,
-        billing_provider="dummy",
-        paywall_mode="soft",
+    app.dependency_overrides[billing._require_billing_enabled] = (
+        lambda: BillingSettings(
+            billing_enabled=True,
+            billing_test_mode=True,
+            billing_provider="dummy",
+            paywall_mode="soft",
+        )
     )
 
     async with AsyncClient(

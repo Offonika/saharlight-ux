@@ -9,7 +9,6 @@ from sqlalchemy import BigInteger, Integer, TIMESTAMP, Enum as SAEnum, JSON, fun
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from ..diabetes.services.db import Base
-from ..diabetes.services.repository import commit
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +30,12 @@ class BillingLog(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
-    event: Mapped[BillingEvent] = mapped_column(SAEnum(BillingEvent, name="billing_event"), nullable=False)
-    ts: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    event: Mapped[BillingEvent] = mapped_column(
+        SAEnum(BillingEvent, name="billing_event"), nullable=False
+    )
+    ts: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now()
+    )
     context: Mapped[dict[str, Any] | None] = mapped_column(JSON)
 
 
@@ -49,4 +52,4 @@ def log_billing_event(
 
     log = BillingLog(user_id=user_id, event=event, context=context)
     session.add(log)
-    commit(session)
+    session.flush()
