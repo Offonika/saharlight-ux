@@ -30,6 +30,7 @@ async def test_load_lessons_v0() -> None:
             lessons = session.query(Lesson).all()
             assert len(lessons) == 3
             for lesson in lessons:
+                assert lesson.slug
                 steps = lesson.content.splitlines()
                 assert len(steps) >= 3
                 quiz_count = (

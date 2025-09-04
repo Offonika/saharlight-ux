@@ -12,7 +12,7 @@ from services.api.app.diabetes.curriculum_engine import (
     start_lesson,
 )
 from services.api.app.diabetes.learning_fixtures import load_lessons
-from services.api.app.diabetes.models_learning import LessonProgress, QuizQuestion
+from services.api.app.diabetes.models_learning import Lesson, LessonProgress, QuizQuestion
 from services.api.app.diabetes.services import db, gpt_client
 
 
@@ -34,6 +34,10 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     with db.SessionLocal() as session:
         session.add(db.User(telegram_id=1, thread_id="t1"))
         session.commit()
+        lesson = session.query(Lesson).first()
+        assert lesson is not None
+        slug = lesson.slug
+        lesson_id = lesson.id
 
     async def fake_completion(**kwargs: object) -> object:
         fake_completion.calls += 1
@@ -52,33 +56,40 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         gpt_client, "create_learning_chat_completion", fake_completion
     )
 
-    text = await start_lesson(1, 1)
-    assert text
+    progress = await start_lesson(1, slug)
+    assert progress.current_step == 0
 
     for _ in range(3):
-        step = await next_step(1)
+        step = await next_step(1, lesson_id)
         assert step
 
-    with db.SessionLocal() as session:
-        answers = [
-            q.correct_option
-            for q in session.query(QuizQuestion)
-            .filter_by(lesson_id=1)
-            .order_by(QuizQuestion.id)
-        ]
+    question_text = await next_step(1, lesson_id)
+    assert question_text
 
-    score = 0
-    for ans in answers:
-        feedback = await check_answer(1, ans)
+    with db.SessionLocal() as session:
+        questions = (
+            session.query(QuizQuestion)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(QuizQuestion.id)
+            .all()
+        )
+
+    for idx, q in enumerate(questions):
+        correct, feedback = await check_answer(1, lesson_id, q.correct_option)
+        assert correct is True
         assert feedback
-        score += 1
-    expected = int(100 * score / len(answers))
+        if idx < len(questions) - 1:
+            next_q = await next_step(1, lesson_id)
+            assert next_q
+
+    assert await next_step(1, lesson_id) is None
 
     with db.SessionLocal() as session:
         progress = (
             session.query(LessonProgress)
-            .filter_by(user_id=1, lesson_id=1)
+            .filter_by(user_id=1, lesson_id=lesson_id)
             .one()
         )
         assert progress.completed is True
-        assert progress.quiz_score == expected
+        assert progress.quiz_score == 100
+

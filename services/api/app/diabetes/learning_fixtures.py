@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
+import re
 from typing import TypedDict, cast
 
 from sqlalchemy.orm import Session
@@ -35,7 +36,8 @@ class QuizDict(TypedDict):
     answer: int
 
 
-class LessonDict(TypedDict):
+class LessonDict(TypedDict, total=False):
+    slug: str
     title: str
     steps: list[str]
     quiz: list[QuizDict]
@@ -57,7 +59,9 @@ async def load_lessons(
 
     def _load(session: Session) -> None:
         for item in lessons:
+            slug = item.get("slug") or re.sub(r"[^a-z0-9]+", "-", item["title"].lower()).strip("-")
             lesson = Lesson(
+                slug=slug,
                 title=item["title"],
                 content="\n".join(item["steps"]),
                 is_active=True,
