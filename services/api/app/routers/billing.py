@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy import select
@@ -66,7 +67,7 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
             select(Subscription)
             .where(
                 Subscription.user_id == user_id,
-                Subscription.status == SubscriptionStatus.TRIAL,
+                Subscription.status == SubscriptionStatus.TRIAL.value,
                 Subscription.end_date.is_not(None),
                 Subscription.end_date > now,
             )
@@ -84,7 +85,7 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
         trial = Subscription(
             user_id=user_id,
             plan=SubscriptionPlan.PRO,
-            status=SubscriptionStatus.TRIAL,
+            status=cast(SubscriptionStatus, SubscriptionStatus.TRIAL.value),
             provider="trial",
             transaction_id=str(uuid4()),
             start_date=start,
@@ -121,7 +122,7 @@ async def subscribe(
         draft = Subscription(
             user_id=user_id,
             plan=plan,
-            status=SubscriptionStatus.PENDING,
+            status=cast(SubscriptionStatus, SubscriptionStatus.PENDING.value),
             provider=settings.billing_provider,
             transaction_id=checkout["id"],
             start_date=now,
@@ -171,11 +172,15 @@ async def webhook(
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
-        if sub.status == SubscriptionStatus.ACTIVE and sub_end is not None and sub_end > now:
+        if (
+            sub.status == SubscriptionStatus.ACTIVE.value
+            and sub_end is not None
+            and sub_end > now
+        ):
             return False
         base = sub_end if sub_end is not None and sub_end > now else now
         sub.plan = event.plan
-        sub.status = SubscriptionStatus.ACTIVE
+        sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
         sub.end_date = base + timedelta(days=30)
         session.commit()
         log_billing_event(
@@ -210,7 +215,7 @@ async def mock_webhook(
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
-        sub.status = SubscriptionStatus.ACTIVE
+        sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
         session.commit()
         log_billing_event(
             session,
@@ -244,7 +249,7 @@ async def admin_mock_webhook(
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
-        sub.status = SubscriptionStatus.ACTIVE
+        sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
         session.commit()
         log_billing_event(
             session,
