@@ -83,19 +83,30 @@ class TelegramPaymentsAdapter:
             "signature": signature,
         }
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{api_url}/billing/webhook",
-                json=event,
-                headers={"X-Webhook-Signature": signature},
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{api_url}/billing/webhook",
+                    json=event,
+                    headers={"X-Webhook-Signature": signature},
+                )
+            if resp.status_code != 200:
+                logger.error(
+                    "billing webhook %s failed: %s %s",
+                    transaction_id,
+                    resp.status_code,
+                    resp.text,
+                )
+                await msg.reply_text(
+                    "⚠️ Не удалось подтвердить платёж, попробуйте позже",
+                )
+                return
+        except httpx.HTTPError:
+            logger.exception("billing webhook %s failed", transaction_id)
+            await msg.reply_text(
+                "⚠️ Не удалось подтвердить платёж, попробуйте позже",
             )
-        if resp.status_code != 200:
-            logger.error(
-                "billing webhook %s failed: %s %s",
-                transaction_id,
-                resp.status_code,
-                resp.text,
-            )
+            return
 
         await msg.reply_text("✅ Платёж успешно получен")
 

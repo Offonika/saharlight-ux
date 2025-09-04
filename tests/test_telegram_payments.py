@@ -123,4 +123,47 @@ async def test_handle_successful_payment_logs_error(
     await adapter.handle_successful_payment(update, SimpleNamespace())
 
     assert any("billing webhook" in r.getMessage() for r in caplog.records)
-    message.reply_text.assert_called_once()
+    message.reply_text.assert_called_once_with(
+        "⚠️ Не удалось подтвердить платёж, попробуйте позже",
+    )
+
+
+@pytest.mark.asyncio
+async def test_handle_successful_payment_http_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("BILLING_WEBHOOK_SECRET", "s")
+    adapter = TelegramPaymentsAdapter()
+    message = SimpleNamespace(
+        successful_payment=SimpleNamespace(
+            invoice_payload="pro",
+            telegram_payment_charge_id="evt3",
+            provider_payment_charge_id="txn3",
+        ),
+        reply_text=AsyncMock(),
+    )
+    update = SimpleNamespace(message=message)
+
+    async def _post(url: str, json: object, headers: dict[str, str]) -> SimpleNamespace:
+        raise httpx.HTTPError("boom")
+
+    class DummyClient:
+        def __init__(self) -> None:
+            self.post = AsyncMock(side_effect=_post)
+
+        async def __aenter__(self) -> DummyClient:  # type: ignore[override]
+            return self
+
+        async def __aexit__(self, *exc: object) -> None:  # type: ignore[override]
+            return None
+
+    dummy_client = DummyClient()
+    monkeypatch.setattr(httpx, "AsyncClient", lambda: dummy_client)
+
+    caplog.set_level(logging.ERROR)
+    await adapter.handle_successful_payment(update, SimpleNamespace())
+
+    assert any("billing webhook" in r.getMessage() for r in caplog.records)
+    message.reply_text.assert_called_once_with(
+        "⚠️ Не удалось подтвердить платёж, попробуйте позже",
+    )
