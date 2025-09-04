@@ -61,6 +61,7 @@ curl -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/setChatMenuButton \
 - `TELEGRAM_TOKEN` — токен бота (обязательно);
 - `PUBLIC_ORIGIN` — публичный URL API;
 - `WEBAPP_URL` — адрес WebApp для кнопки (опционально);
+- `API_URL` — базовый URL внешнего API; требует установленный пакет `diabetes_sdk`;
 - `OPENAI_API_KEY` — ключ OpenAI для распознавания фото.
 
 Подробнее см. `infra/env/.env.example`.
