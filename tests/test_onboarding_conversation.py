@@ -216,3 +216,7 @@ async def test_resume_from_saved_step() -> None:
     state = await onboarding.start_command(update2, context2)
     assert state == onboarding.TIMEZONE
     assert message2.replies[-1].startswith("Шаг 2/3")
+
+
+def test_onboarding_conv_per_message() -> None:
+    assert onboarding.onboarding_conv.per_message is True

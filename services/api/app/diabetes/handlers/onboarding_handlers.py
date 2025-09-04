@@ -10,6 +10,7 @@ Implements three steps with navigation and progress hints:
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Any, Iterable, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from datetime import time as time_cls
@@ -29,6 +30,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from telegram.warnings import PTBUserWarning
 
 from services.api.app.diabetes.services.db import SessionLocal, User, run_db
 from services.api.app.diabetes.services.repository import commit
@@ -45,6 +47,15 @@ from services.api.app.diabetes.utils.ui import (
 from services.api.app.utils import choose_variant
 from .reminder_jobs import DefaultJobQueue
 from . import reminder_handlers
+
+warnings.filterwarnings(
+    "ignore",
+    message=(
+        "If 'per_message=True', all entry points, state handlers, and fallbacks "
+        "must be 'CallbackQueryHandler'"
+    ),
+    category=PTBUserWarning,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -627,8 +638,8 @@ onboarding_conv = ConversationHandler(
     fallbacks=[
         MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)
     ],
+    per_message=True,
 )
-
 __all__ = [
     "PROFILE",
     "TIMEZONE",
