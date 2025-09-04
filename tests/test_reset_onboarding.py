@@ -10,6 +10,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.handlers import onboarding_handlers
+from services.api.app.diabetes.onboarding_state import OnboardingStateStore
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.services import onboarding_state
@@ -29,14 +30,18 @@ def session_local(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[SASession]:
     SessionLocal = sessionmaker(bind=engine, class_=SASession)
     db.Base.metadata.create_all(bind=engine)
     monkeypatch.setattr(db, "SessionLocal", SessionLocal, raising=False)
-    monkeypatch.setattr(onboarding_handlers, "SessionLocal", SessionLocal, raising=False)
+    monkeypatch.setattr(
+        onboarding_handlers, "SessionLocal", SessionLocal, raising=False
+    )
     monkeypatch.setattr(onboarding_state, "SessionLocal", SessionLocal, raising=False)
     yield SessionLocal
     engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_reset_onboarding_keeps_profile(session_local: sessionmaker[SASession]) -> None:
+async def test_reset_onboarding_keeps_profile(
+    session_local: sessionmaker[SASession],
+) -> None:
     with session_local() as session:
         user = db.User(telegram_id=1, thread_id="t", onboarding_complete=True)
         profile = db.Profile(telegram_id=1, icr=1.23)
@@ -45,6 +50,9 @@ async def test_reset_onboarding_keeps_profile(session_local: sessionmaker[SASess
     await onboarding_state.save_state(1, 2, {"foo": "bar"})
 
     message = DummyMessage()
+    store = OnboardingStateStore()
+    store.set_step(1, 2)
+    app = SimpleNamespace(bot_data={"onb_state": store})
     update = cast(
         Update,
         SimpleNamespace(
@@ -55,10 +63,12 @@ async def test_reset_onboarding_keeps_profile(session_local: sessionmaker[SASess
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(application=app),
     )
 
     await onboarding_handlers.reset_onboarding(update, context)
+
+    assert store.get(1).step == 0
 
     with session_local() as session:
         assert session.get(onboarding_state.OnboardingState, 1) is None
@@ -70,4 +80,3 @@ async def test_reset_onboarding_keeps_profile(session_local: sessionmaker[SASess
         assert profile.icr == 1.23
 
     assert any("/start" in r for r in message.replies)
-

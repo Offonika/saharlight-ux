@@ -6,21 +6,21 @@ from typing import cast
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from .onboarding_state import OnboardingStateStore
+from .handlers.onboarding_handlers import (
+    reset_onboarding as _reset_onboarding,
+)
 
 logger = logging.getLogger(__name__)
 
-HELP_TEXT = (
-    "\n".join(
-        [
-            "Доступные команды:",
-            "/start - начать работу с ботом",
-            "/help - краткая справка",
-            "/reset_onboarding - сбросить мастер настройки",
-            "",
-            "Для работы с WebApp откройте меню и выберите нужную кнопку.",
-        ]
-    )
+HELP_TEXT = "\n".join(
+    [
+        "Доступные команды:",
+        "/start - начать работу с ботом",
+        "/help - краткая справка",
+        "/reset_onboarding - сбросить мастер настройки",
+        "",
+        "Для работы с WebApp откройте меню и выберите нужную кнопку.",
+    ]
 )
 
 
@@ -42,16 +42,7 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     user_data = cast(dict[str, object], context.user_data)
     if user_data.pop("_onb_reset_confirm", False):
-        store = cast(
-            OnboardingStateStore,
-            context.application.bot_data.setdefault(
-                "onb_state", OnboardingStateStore()
-            ),
-        )
-        store.reset(user.id)
-        await message.reply_text(
-            "Онбординг сброшен. Отправьте /start, чтобы начать заново."
-        )
+        await _reset_onboarding(update, context)
         return
 
     user_data["_onb_reset_confirm"] = True
