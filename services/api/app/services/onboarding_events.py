@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from sqlalchemy import BigInteger, Integer, String, TIMESTAMP, func
+from sqlalchemy import BigInteger, ForeignKey, Integer, String, TIMESTAMP, func
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from ..diabetes.services.db import Base
@@ -17,7 +17,12 @@ class OnboardingEvent(Base):
     __tablename__ = "onboarding_events"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, index=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
     event_name: Mapped[str] = mapped_column(String, nullable=False)
     step: Mapped[int] = mapped_column(Integer, nullable=False)
     variant: Mapped[str | None] = mapped_column(String)
