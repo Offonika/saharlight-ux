@@ -51,6 +51,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user = update.effective_user
     if message is None or user is None:
         return
+    logger.info("lesson_command_start", extra={"user_id": user.id})
     if not settings.learning_enabled:
         await message.reply_text("🚫 Обучение недоступно.")
         return
@@ -77,6 +78,10 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await message.reply_text("Урок завершён")
     else:
         await message.reply_text(text)
+    logger.info(
+        "lesson_command_complete",
+        extra={"user_id": user.id, "lesson_id": lesson_id},
+    )
 
 
 async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -165,6 +170,10 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
 
     user_data = cast(dict[str, object], context.user_data)
+    lesson_id = cast(int | None, user_data.get("lesson_id"))
+    logger.info(
+        "exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id}
+    )
     lesson_id = cast(int | None, user_data.pop("lesson_id", None))
     user_data.pop("lesson_slug", None)
     user_data.pop("lesson_step", None)
@@ -184,6 +193,10 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await run_db(_complete, user.id, lesson_id, sessionmaker=SessionLocal)
 
     await message.reply_text("Учебная сессия завершена.", reply_markup=menu_keyboard())
+    logger.info(
+        "exit_command_complete",
+        extra={"user_id": user.id, "lesson_id": lesson_id},
+    )
 
 
 __all__ = [
