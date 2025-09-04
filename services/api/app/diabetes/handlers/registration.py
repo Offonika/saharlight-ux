@@ -281,7 +281,7 @@ def register_handlers(
         jq.run_once(
             _clear_waiting_flags,
             when=datetime.timedelta(seconds=0),
-            name="clear_waiting_gpt_flags",
+            name="clear_waiting_gpt_flags_once",
         )
         jq.run_repeating(
             _clear_waiting_flags,
