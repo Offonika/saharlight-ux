@@ -5,8 +5,8 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-revision: str = "20250828_add_quiet_time"
-down_revision: Union[str, None] = "1188e4de1729"
+revision: str = "20250828_add_quiet_time_to_profiles"
+down_revision: Union[str, None] = "20250825_add_quiet_hours_to_profiles"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
