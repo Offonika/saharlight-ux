@@ -69,16 +69,19 @@ def upgrade() -> None:
         ),
     )
 
-    op.execute(
-        """
-        UPDATE profiles
-        SET timezone_auto = u.timezone_auto
-        FROM users AS u
-        WHERE profiles.telegram_id = u.telegram_id
-        """,
-    )
-
-    op.drop_column("users", "timezone_auto")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    user_columns = [col["name"] for col in inspector.get_columns("users")]
+    if "timezone_auto" in user_columns:
+        op.execute(
+            """
+            UPDATE profiles
+            SET timezone_auto = u.timezone_auto
+            FROM users AS u
+            WHERE profiles.telegram_id = u.telegram_id
+            """,
+        )
+        op.drop_column("users", "timezone_auto")
 
     op.alter_column("profiles", "timezone", server_default=None)
     op.alter_column("profiles", "timezone_auto", server_default=None)
