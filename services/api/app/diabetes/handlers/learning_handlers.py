@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 from sqlalchemy.orm import Session
 from telegram import Update
@@ -9,6 +10,8 @@ from telegram.ext import ContextTypes
 from services.api.app.config import settings
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress
 from services.api.app.diabetes.services.db import SessionLocal, run_db
+from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.utils.ui import menu_keyboard
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +57,9 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     result = await run_db(_load_progress, user_id, sessionmaker=SessionLocal)
     if result is None:
-        await message.reply_text("Вы ещё не начали обучение. Отправьте /learn чтобы начать.")
+        await message.reply_text(
+            "Вы ещё не начали обучение. Отправьте /learn чтобы начать."
+        )
         return
     title, current_step, completed, quiz_score = result
     lines = [
@@ -66,5 +71,33 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     await message.reply_text("\n".join(lines))
 
 
-__all__ = ["learn_command", "progress_command"]
+async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Exit the current lesson and reset state."""
+    message = update.message
+    user = update.effective_user
+    if message is None or user is None:
+        return
 
+    user_data = cast(dict[str, object], context.user_data)
+    lesson_id = cast(int | None, user_data.pop("lesson_id", None))
+    user_data.pop("lesson_slug", None)
+    user_data.pop("lesson_step", None)
+
+    if lesson_id is not None:
+
+        def _complete(session: Session, user_id: int, lesson_id: int) -> None:
+            progress = (
+                session.query(LessonProgress)
+                .filter_by(user_id=user_id, lesson_id=lesson_id)
+                .one_or_none()
+            )
+            if progress is not None and not progress.completed:
+                progress.completed = True
+                commit(session)
+
+        await run_db(_complete, user.id, lesson_id, sessionmaker=SessionLocal)
+
+    await message.reply_text("Учебная сессия завершена.", reply_markup=menu_keyboard())
+
+
+__all__ = ["learn_command", "progress_command", "exit_command"]
