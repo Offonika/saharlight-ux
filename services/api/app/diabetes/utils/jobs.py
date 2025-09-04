@@ -33,6 +33,29 @@ else:
 JobCallback = Callable[[CustomContext], Coroutine[Any, Any, object]]
 
 
+def _derive_timezone(
+    job_queue: DefaultJobQueue, override: tzinfo | None = None
+) -> tzinfo:
+    """Return timezone for ``job_queue``.
+
+    Priority: ``override`` → ``application.timezone`` → ``job_queue.timezone``
+    → ``application.scheduler.timezone`` → ``scheduler.timezone`` → UTC.
+    """
+    tz = (
+        override
+        or getattr(getattr(job_queue, "application", None), "timezone", None)
+        or getattr(job_queue, "timezone", None)
+        or getattr(
+            getattr(getattr(job_queue, "application", None), "scheduler", None),
+            "timezone",
+            None,
+        )
+        or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
+        or dt_timezone.utc
+    )
+    return cast(tzinfo, tz)
+
+
 def schedule_once(
     job_queue: DefaultJobQueue,
     callback: JobCallback,
@@ -53,18 +76,7 @@ def schedule_once(
     if not inspect.iscoroutinefunction(callback):
         msg = "Job callback must be async"
         raise TypeError(msg)
-    tz = (
-        timezone
-        or getattr(getattr(job_queue, "application", None), "timezone", None)
-        or getattr(job_queue, "timezone", None)
-        or getattr(
-            getattr(getattr(job_queue, "application", None), "scheduler", None),
-            "timezone",
-            None,
-        )
-        or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
-        or dt_timezone.utc
-    )
+    tz = _derive_timezone(job_queue, timezone)
 
     if isinstance(when, datetime) and when.tzinfo is None:
         when = when.replace(tzinfo=tz)
@@ -119,18 +131,7 @@ def schedule_daily(
     if not inspect.iscoroutinefunction(callback):
         msg = "Job callback must be async"
         raise TypeError(msg)
-    tz = (
-        timezone
-        or getattr(getattr(job_queue, "application", None), "timezone", None)
-        or getattr(job_queue, "timezone", None)
-        or getattr(
-            getattr(getattr(job_queue, "application", None), "scheduler", None),
-            "timezone",
-            None,
-        )
-        or getattr(getattr(job_queue, "scheduler", None), "timezone", None)
-        or dt_timezone.utc
-    )
+    tz = _derive_timezone(job_queue, timezone)
 
     if time.tzinfo is not None:
         now = datetime.now(time.tzinfo)
