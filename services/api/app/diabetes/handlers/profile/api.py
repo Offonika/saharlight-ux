@@ -14,6 +14,17 @@ from services.api.app.diabetes.services.repository import CommitError, commit
 
 logger = logging.getLogger(__name__)
 
+_sdk_warning_emitted = False
+
+
+def _warn_sdk_once(message: str) -> None:
+    """Log ``message`` only once for missing ``diabetes_sdk``."""
+
+    global _sdk_warning_emitted
+    if not _sdk_warning_emitted:
+        logger.warning(message)
+        _sdk_warning_emitted = True
+
 
 class ProfileSaveError(Exception):
     """Raised when persisting profile data fails."""
@@ -155,12 +166,12 @@ def get_api(
         from diabetes_sdk.exceptions import ApiException
         from diabetes_sdk.models.profile import Profile as ProfileModel
     except ImportError:  # pragma: no cover - import failure is tested separately
-        logger.warning(
+        _warn_sdk_once(
             "diabetes_sdk is not installed. Falling back to local profile API.",
         )
         return LocalProfileAPI(sessionmaker), Exception, LocalProfile
     except RuntimeError:  # pragma: no cover - initialization issues
-        logger.warning(
+        _warn_sdk_once(
             "diabetes_sdk could not be initialized. Falling back to local profile API.",
         )
         return LocalProfileAPI(sessionmaker), Exception, LocalProfile
