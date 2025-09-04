@@ -30,3 +30,9 @@ def test_webhook_ips_parsing(monkeypatch) -> None:
     monkeypatch.setenv("BILLING_WEBHOOK_IPS", "1.2.3.4,5.6.7.8")
     settings = BillingSettings()
     assert settings.billing_webhook_ips == ["1.2.3.4", "5.6.7.8"]
+
+
+def test_webhook_ips_from_env(monkeypatch) -> None:
+    monkeypatch.setenv("BILLING_WEBHOOK_IPS", "9.9.9.9")
+    settings = BillingSettings(_env_file=None)
+    assert settings.billing_webhook_ips == ["9.9.9.9"]

@@ -20,7 +20,7 @@ class BillingSettings(BaseSettings):
         default=None, alias="BILLING_WEBHOOK_SECRET"
     )
     billing_webhook_ips_raw: str = Field(
-        default="", validation_alias="BILLING_WEBHOOK_IPS"
+        default="", alias="BILLING_WEBHOOK_IPS"
     )
     billing_webhook_timeout: float = Field(default=5.0, alias="BILLING_WEBHOOK_TIMEOUT")
 
