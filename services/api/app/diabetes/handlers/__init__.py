@@ -1,7 +1,11 @@
 """Handlers package public exports and shared types."""
 
 import datetime
-from typing import TypedDict
+
+try:
+    from typing import TypedDict  # Python 3.12+
+except ImportError:  # Python <3.12
+    from typing_extensions import TypedDict
 
 from telegram import CallbackQuery
 
