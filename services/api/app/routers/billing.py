@@ -323,7 +323,11 @@ async def status(user_id: int, settings: BillingSettings = Depends(get_billing_s
         return session.scalars(stmt).first()
 
     subscription = await run_db(_get_subscription, sessionmaker=SessionLocal)
-    flags = FeatureFlags(billingEnabled=settings.billing_enabled, paywallMode=settings.paywall_mode)
+    flags = FeatureFlags(
+        billingEnabled=settings.billing_enabled,
+        paywallMode=settings.paywall_mode,
+        testMode=settings.billing_test_mode,
+    )
     if subscription is None:
         return BillingStatusResponse(featureFlags=flags, subscription=None)
     return BillingStatusResponse(

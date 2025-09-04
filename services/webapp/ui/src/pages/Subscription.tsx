@@ -110,7 +110,11 @@ const Subscription = () => {
         prev
           ? { ...prev, subscription: sub }
           : {
-              featureFlags: { billingEnabled: false, paywallMode: 'soft' },
+              featureFlags: {
+                billingEnabled: false,
+                paywallMode: 'soft',
+                testMode: true,
+              },
               subscription: sub,
             },
       );

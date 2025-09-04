@@ -3,7 +3,7 @@ import { api } from './index';
 export interface BillingFeatureFlags {
   billingEnabled: boolean;
   paywallMode: string;
-  testMode?: boolean;
+  testMode: boolean;
 }
 
 export interface SubscriptionInfo {
