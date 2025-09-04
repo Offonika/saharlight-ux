@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+import logging
 import pytest
 from fastapi.testclient import TestClient
+from psycopg2.errors import InvalidTextRepresentation
 from sqlalchemy import create_engine, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -12,6 +15,7 @@ from services.api.app.routers import billing
 from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
+    SubscriptionPlan,
     SubscriptionStatus,
 )
 from services.api.app.billing.log import BillingEvent, BillingLog
@@ -103,3 +107,57 @@ def test_trial_repeat_call(monkeypatch: pytest.MonkeyPatch) -> None:
         log_count = session.scalar(log_stmt)
     assert count == 1
     assert log_count == 1
+
+
+def test_trial_integrity_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    session_local = setup_db()
+    client = make_client(monkeypatch, session_local)
+    calls: dict[str, int] = {"n": 0}
+
+    async def run_db_err(*_args: object, **_kwargs: object) -> None:
+        if calls["n"] == 0:
+            calls["n"] += 1
+            return None
+        raise IntegrityError("", {"user_id": 1, "status": "trial", "plan": "pro"}, None)
+
+    monkeypatch.setattr(billing, "run_db", run_db_err, raising=False)
+    with caplog.at_level(logging.WARNING):
+        with client:
+            resp = client.post("/api/billing/trial", params={"user_id": 1})
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "trial already exists"
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.user_id == 1
+    assert record.status == SubscriptionStatus.TRIAL.value
+    assert record.plan == SubscriptionPlan.PRO.value
+    assert record.params == {"user_id": 1, "status": "trial", "plan": "pro"}
+
+
+def test_trial_invalid_enum(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    session_local = setup_db()
+    client = make_client(monkeypatch, session_local)
+    calls: dict[str, int] = {"n": 0}
+
+    async def run_db_err(*_args: object, **_kwargs: object) -> None:
+        if calls["n"] == 0:
+            calls["n"] += 1
+            return None
+        raise InvalidTextRepresentation("invalid enum")
+
+    monkeypatch.setattr(billing, "run_db", run_db_err, raising=False)
+    with caplog.at_level(logging.WARNING):
+        with client:
+            resp = client.post("/api/billing/trial", params={"user_id": 1})
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "invalid enum value"
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.user_id == 1
+    assert record.status == SubscriptionStatus.TRIAL.value
+    assert record.plan == SubscriptionPlan.PRO.value
+    assert record.params is None

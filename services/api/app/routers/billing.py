@@ -8,7 +8,10 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+from psycopg2.errors import InvalidTextRepresentation
 
 from services.api.app.billing import (
     BillingEvent,
@@ -34,6 +37,8 @@ from ..schemas.billing import (
     SubscriptionSchema,
     WebhookEvent,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
@@ -102,7 +107,34 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
         session.refresh(trial)
         return trial
 
-    trial = await run_db(_create_trial, sessionmaker=SessionLocal)
+    try:
+        trial = await run_db(_create_trial, sessionmaker=SessionLocal)
+    except InvalidTextRepresentation as exc:
+        params = getattr(exc, "params", None)
+        logger.warning(
+            "trial creation failed",
+            extra={
+                "user_id": user_id,
+                "status": SubscriptionStatus.TRIAL.value,
+                "plan": SubscriptionPlan.PRO.value,
+                "params": params,
+            },
+            exc_info=exc,
+        )
+        raise HTTPException(status_code=400, detail="invalid enum value") from exc
+    except IntegrityError as exc:
+        logger.warning(
+            "trial creation failed",
+            extra={
+                "user_id": user_id,
+                "status": SubscriptionStatus.TRIAL.value,
+                "plan": SubscriptionPlan.PRO.value,
+                "params": exc.params,
+            },
+            exc_info=exc,
+        )
+        raise HTTPException(status_code=409, detail="trial already exists") from exc
+
     return SubscriptionSchema.model_validate(trial, from_attributes=True)
 
 
@@ -154,7 +186,6 @@ async def webhook(
 ) -> dict[str, str]:
     """Process provider webhook and activate subscription."""
 
-    logger = logging.getLogger(__name__)
     ip = request.headers.get("X-Forwarded-For")
     if ip is None and request.client is not None:
         ip = request.client.host
