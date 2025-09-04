@@ -5,6 +5,7 @@ from __future__ import annotations
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from services.api.app.config import settings
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 
@@ -74,9 +75,22 @@ async def smart_input_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await message.reply_text(text, parse_mode="Markdown")
 
 
+async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Provide learning resources if the feature is enabled."""
+
+    message = update.message
+    if message is None:
+        return
+    if not settings.learning_enabled:
+        await message.reply_text("🚫 Обучение недоступно.")
+        return
+    await message.reply_text("📘 Учебный режим активен.")
+
+
 __all__ = [
     "menu_keyboard",
     "menu_command",
     "help_command",
     "smart_input_help",
+    "learn_command",
 ]
