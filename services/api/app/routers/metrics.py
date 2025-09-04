@@ -2,7 +2,8 @@ import logging
 from datetime import datetime
 from typing import cast
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,11 @@ from ..diabetes.services.db import SessionLocal, run_db
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.get("/metrics")
+async def prometheus_metrics() -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 STEP_MAP = {
     "start": "onboarding_started",

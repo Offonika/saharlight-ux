@@ -5,6 +5,7 @@ from typing import Callable, TypeVar
 
 import pytest
 from fastapi.testclient import TestClient
+from prometheus_client import CONTENT_TYPE_LATEST
 from sqlalchemy import Column, MetaData, String, Table, TIMESTAMP, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -87,3 +88,17 @@ def test_onboarding_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
             "onboarding_cancelled": 0,
         },
     }
+
+
+def test_prometheus_metrics_endpoint() -> None:
+    from services.api.app.main import app
+
+    with TestClient(app) as client:
+        resp = client.get("/api/metrics")
+
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == CONTENT_TYPE_LATEST
+    data = resp.text
+    assert "lessons_started_total" in data
+    assert "lessons_completed_total" in data
+    assert "quiz_avg_score_sum" in data

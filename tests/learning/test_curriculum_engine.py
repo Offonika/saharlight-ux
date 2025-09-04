@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
+from services.api.app.diabetes import metrics
 from services.api.app.diabetes.curriculum_engine import (
     check_answer,
     next_step,
@@ -49,8 +50,14 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_completion.calls = 0  # type: ignore[attr-defined]
     monkeypatch.setattr(gpt_client, "create_learning_chat_completion", fake_completion)
 
+    started_before = metrics.lessons_started._value.get()
+    completed_before = metrics.lessons_completed._value.get()
+    count_before = metrics.quiz_avg_score._count.get()
+    sum_before = metrics.quiz_avg_score._sum.get()
+
     progress = await start_lesson(1, slug)
     assert progress.current_step == 0
+    assert metrics.lessons_started._value.get() == started_before + 1
 
     first = await next_step(1, lesson_id)
     assert first == f"{disclaimer()}\n\ntext 1"
@@ -90,3 +97,7 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         assert progress.completed is True
         assert progress.quiz_score == 100
+
+    assert metrics.lessons_completed._value.get() == completed_before + 1
+    assert metrics.quiz_avg_score._count.get() == count_before + 1
+    assert metrics.quiz_avg_score._sum.get() == sum_before + 100

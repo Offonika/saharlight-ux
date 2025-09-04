@@ -6,6 +6,7 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from . import metrics
 from .learning_prompts import (
     SYSTEM_TUTOR_RU,
     build_explain_step,
@@ -49,7 +50,9 @@ async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
         session.refresh(progress)
         return progress
 
-    return await db.run_db(_start)
+    progress = await db.run_db(_start)
+    metrics.lessons_started.inc()
+    return progress
 
 
 async def next_step(user_id: int, lesson_id: int) -> str | None:
@@ -128,7 +131,7 @@ async def check_answer(
 ) -> tuple[bool, str]:
     """Check user's answer to current quiz question and return feedback."""
 
-    def _check(session: Session) -> tuple[bool, str]:
+    def _check(session: Session) -> tuple[bool, str, bool, int | None]:
         progress = (
             session.query(LessonProgress)
             .filter_by(user_id=user_id, lesson_id=lesson_id)
@@ -148,13 +151,21 @@ async def check_answer(
             score += 1
         progress.quiz_score = score
         progress.current_question += 1
+        completed = False
+        final_score: int | None = None
         if progress.current_question >= len(questions):
             progress.completed = True
             progress.quiz_score = int(100 * score / len(questions))
+            completed = True
+            final_score = progress.quiz_score
         commit(session)
-        return correct, explanation
+        return correct, explanation, completed, final_score
 
-    correct, explanation = await db.run_db(_check)
+    correct, explanation, completed, final_score = await db.run_db(_check)
+    if completed:
+        metrics.lessons_completed.inc()
+        if final_score is not None:
+            metrics.quiz_avg_score.observe(final_score)
     message = await gpt_client.create_learning_chat_completion(
         task=LLMTask.QUIZ_CHECK,
         messages=[
