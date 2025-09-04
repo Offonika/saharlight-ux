@@ -22,7 +22,7 @@ def test_real_provider_requires_admin_token(monkeypatch) -> None:
 
 def test_webhook_ips_empty(monkeypatch) -> None:
     monkeypatch.delenv("BILLING_WEBHOOK_IPS", raising=False)
-    settings = BillingSettings()
+    settings = BillingSettings(_env_file=None)
     assert settings.billing_webhook_ips == []
 
 
