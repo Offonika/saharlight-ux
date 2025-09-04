@@ -32,6 +32,7 @@ from telegram.ext import (
 )
 from telegram.warnings import PTBUserWarning
 
+import config
 from services.api.app.diabetes.services.db import SessionLocal, User, run_db
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.services import onboarding_state
@@ -169,6 +170,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     user = update.effective_user
     if message is None or user is None:
         return ConversationHandler.END
+    video_url = config.ONBOARDING_VIDEO_URL
+    if video_url:
+        try:
+            await message.reply_video(video_url)
+        except Exception:  # pragma: no cover - fallback
+            await message.reply_text(video_url)
     user_id = user.id
     user_data = cast(dict[str, Any], context.user_data)
     args = getattr(context, "args", [])
@@ -433,9 +440,7 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if data in {CB_SKIP, CB_DONE}:
         save_data = dict(user_data)
         if "reminders" in save_data:
-            save_data["reminders"] = list(
-                cast(Iterable[str], save_data["reminders"])
-            )
+            save_data["reminders"] = list(cast(Iterable[str], save_data["reminders"]))
         await onboarding_state.save_state(user_id, REMINDERS, save_data, variant)
         return await _finish(
             message,
@@ -463,9 +468,7 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return REMINDERS
     save_data = dict(user_data)
     if "reminders" in save_data:
-        save_data["reminders"] = list(
-            cast(Iterable[str], save_data["reminders"])
-        )
+        save_data["reminders"] = list(cast(Iterable[str], save_data["reminders"]))
     await onboarding_state.save_state(user_id, REMINDERS, save_data, variant)
     return REMINDERS
 
@@ -503,9 +506,7 @@ async def onboarding_reminders(
     variant = cast(str | None, user_data.get("variant"))
     save_data = dict(user_data)
     if "reminders" in save_data:
-        save_data["reminders"] = list(
-            cast(Iterable[str], save_data["reminders"])
-        )
+        save_data["reminders"] = list(cast(Iterable[str], save_data["reminders"]))
     await onboarding_state.save_state(user.id, REMINDERS, save_data, variant)
     return await _finish(
         message,
