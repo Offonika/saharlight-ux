@@ -3,6 +3,7 @@
 import asyncio
 import io
 import logging
+import re
 import threading
 from typing import Iterable
 
@@ -80,6 +81,29 @@ async def dispose_openai_clients() -> None:
             _async_client = None
 
 
+def format_reply(text: str, *, max_len: int = 800) -> str:
+    """Format LLM reply by splitting into paragraphs and truncating.
+
+    Parameters
+    ----------
+    text:
+        Raw text returned from the model.
+    max_len:
+        Maximum length for each paragraph.
+
+    Returns
+    -------
+    str
+        Formatted text with paragraphs truncated and separated by blank lines.
+    """
+    paragraphs = [
+        part.strip()[:max_len]
+        for part in re.split(r"\n\s*\n", text.strip())
+        if part.strip()
+    ]
+    return "\n\n".join(paragraphs)
+
+
 async def create_chat_completion(
     *,
     model: str,
@@ -107,16 +131,18 @@ async def create_learning_chat_completion(
     temperature: float | None = None,
     max_tokens: int | None = None,
     timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
-) -> ChatCompletion:
-    """Create a chat completion for learning tasks using the model router."""
+) -> str:
+    """Create and format a chat completion for learning tasks."""
     model = _learning_router.choose_model(task)
-    return await create_chat_completion(
+    completion = await create_chat_completion(
         model=model,
         messages=messages,
         temperature=temperature,
         max_tokens=max_tokens,
         timeout=timeout,
     )
+    content = completion.choices[0].message.content or ""
+    return format_reply(content)
 
 
 async def create_thread() -> str:
