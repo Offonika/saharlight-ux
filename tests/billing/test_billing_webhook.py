@@ -230,3 +230,34 @@ def test_webhook_rejects_unknown_ip(monkeypatch: pytest.MonkeyPatch) -> None:
             },
         )
     assert resp.status_code == 400
+
+
+def test_webhook_accepts_first_ip(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    secret = "testsecret"
+    client = make_client(
+        monkeypatch,
+        session_local,
+        BILLING_WEBHOOK_SECRET=secret,
+        BILLING_WEBHOOK_IPS="1.2.3.4",
+    )
+    checkout_id = create_subscription(client)
+    event_id = "evt5"
+    sig = _sign(secret, event_id, checkout_id)
+    event = {
+        "event_id": event_id,
+        "transaction_id": checkout_id,
+        "plan": "pro",
+        "signature": sig,
+    }
+    with client:
+        resp = client.post(
+            "/api/billing/webhook",
+            json=event,
+            headers={
+                "X-Webhook-Signature": sig,
+                "X-Forwarded-For": "1.2.3.4, 5.6.7.8",
+            },
+        )
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "processed"}

@@ -40,13 +40,11 @@ async def verify_webhook(
     settings: BillingSettings,
     event: WebhookEvent,
     headers: Mapping[str, str],
-    ip: str | None,
+    ip: str,
 ) -> bool:
     """Verify webhook payload using the configured provider."""
 
-    if settings.billing_webhook_ips and (
-        ip is None or ip not in settings.billing_webhook_ips
-    ):
+    if settings.billing_webhook_ips and ip not in settings.billing_webhook_ips:
         return False
     if not hmac.compare_digest(
         headers.get("X-Webhook-Signature") or "", event.signature
