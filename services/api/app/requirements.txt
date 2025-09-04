@@ -28,6 +28,7 @@ pypdf==5.9.0
 pyparsing==3.2.3
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
+prometheus-client==0.21.0
 python-telegram-bot[job-queue]>=21.1,<22
 reportlab==4.4.3
 six==1.17.0
