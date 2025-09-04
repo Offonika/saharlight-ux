@@ -16,6 +16,16 @@ class Lesson(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=sa.text("true")
+    )
+
+    steps: Mapped[list["LessonStep"]] = relationship(
+        "LessonStep",
+        back_populates="lesson",
+        cascade="all, delete-orphan",
+        order_by="LessonStep.step_number",
+    )
 
     questions: Mapped[list["QuizQuestion"]] = relationship(
         "QuizQuestion", back_populates="lesson", cascade="all, delete-orphan"
@@ -23,6 +33,19 @@ class Lesson(Base):
     progresses: Mapped[list["LessonProgress"]] = relationship(
         "LessonProgress", back_populates="lesson", cascade="all, delete-orphan"
     )
+
+
+class LessonStep(Base):
+    __tablename__ = "lesson_steps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    lesson_id: Mapped[int] = mapped_column(
+        ForeignKey("lessons.id"), nullable=False, index=True
+    )
+    step_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+
+    lesson: Mapped[Lesson] = relationship("Lesson", back_populates="steps")
 
 
 class QuizQuestion(Base):

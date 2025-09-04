@@ -7,8 +7,9 @@ from sqlalchemy.pool import StaticPool
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes.models_learning import (
     Lesson,
-    QuizQuestion,
     LessonProgress,
+    LessonStep,
+    QuizQuestion,
 )
 
 
@@ -26,7 +27,11 @@ def setup_db() -> sessionmaker[Session]:
 def test_lesson_crud() -> None:
     SessionLocal = setup_db()
     with SessionLocal() as session:
-        lesson = Lesson(title="Intro", content="Basics")
+        lesson = Lesson(
+            title="Intro",
+            content="Basics",
+            steps=[LessonStep(step_number=1, content="Step 1")],
+        )
         session.add(lesson)
         session.commit()
         session.refresh(lesson)
@@ -34,12 +39,18 @@ def test_lesson_crud() -> None:
         stored = session.get(Lesson, lesson.id)
         assert stored is not None
         assert stored.title == "Intro"
+        assert stored.is_active is True
+        assert stored.steps[0].content == "Step 1"
 
 
 def test_quiz_question_crud() -> None:
     SessionLocal = setup_db()
     with SessionLocal() as session:
-        lesson = Lesson(title="Intro", content="Basics")
+        lesson = Lesson(
+            title="Intro",
+            content="Basics",
+            steps=[LessonStep(step_number=1, content="Step 1")],
+        )
         session.add(lesson)
         session.commit()
         session.refresh(lesson)
@@ -64,7 +75,11 @@ def test_lesson_progress_crud() -> None:
     SessionLocal = setup_db()
     with SessionLocal() as session:
         user = db.User(telegram_id=1, thread_id="t1")
-        lesson = Lesson(title="Intro", content="Basics")
+        lesson = Lesson(
+            title="Intro",
+            content="Basics",
+            steps=[LessonStep(step_number=1, content="Step 1")],
+        )
         session.add_all([user, lesson])
         session.commit()
 
