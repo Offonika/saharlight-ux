@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session as SASession, sessionmaker
 from services.api.app.diabetes.services import db
 from services.api.app.management import aggregate_onboarding
 from services.api.app.models.onboarding_metrics import (
-    OnboardingEvent,
+    OnboardingMetricEvent,
     OnboardingMetricDaily,
 )
 
@@ -32,16 +32,16 @@ def test_aggregate_onboarding(session_local: sessionmaker[SASession]) -> None:
     with session_local() as session:
         session.add_all(
             [
-                OnboardingEvent(
+                OnboardingMetricEvent(
                     variant="A", step="start", created_at=datetime(2024, 1, 2, 1)
                 ),
-                OnboardingEvent(
+                OnboardingMetricEvent(
                     variant="A", step="start", created_at=datetime(2024, 1, 2, 2)
                 ),
-                OnboardingEvent(
+                OnboardingMetricEvent(
                     variant="A", step="finish", created_at=datetime(2024, 1, 2, 3)
                 ),
-                OnboardingEvent(
+                OnboardingMetricEvent(
                     variant="B", step="start", created_at=datetime(2024, 1, 3, 1)
                 ),
             ]

@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from services.api.app.diabetes.services.db import SessionLocal, SessionMaker
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.models.onboarding_metrics import (
-    OnboardingEvent,
+    OnboardingMetricEvent,
     OnboardingMetricDaily,
 )
 
@@ -33,9 +33,14 @@ def _aggregate(
 
     rows = cast(
         list[tuple[str, str, int]],
-        session.query(OnboardingEvent.variant, OnboardingEvent.step, func.count())
-        .filter(OnboardingEvent.created_at >= start, OnboardingEvent.created_at < end)
-        .group_by(OnboardingEvent.variant, OnboardingEvent.step)
+        session.query(
+            OnboardingMetricEvent.variant, OnboardingMetricEvent.step, func.count()
+        )
+        .filter(
+            OnboardingMetricEvent.created_at >= start,
+            OnboardingMetricEvent.created_at < end,
+        )
+        .group_by(OnboardingMetricEvent.variant, OnboardingMetricEvent.step)
         .all(),
     )
     return rows
@@ -44,7 +49,7 @@ def _aggregate(
 def aggregate_for_date(
     target_date: date, *, sessionmaker: SessionMaker[Session] = SessionLocal
 ) -> list[dict[str, object]]:
-    """Aggregate ``OnboardingEvent`` rows for ``target_date``.
+    """Aggregate ``OnboardingMetricEvent`` rows for ``target_date``.
 
     Parameters
     ----------

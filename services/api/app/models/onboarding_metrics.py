@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from services.api.app.diabetes.services.db import Base
 
 
-class OnboardingEvent(Base):
+class OnboardingMetricEvent(Base):
     """Raw onboarding step event for metrics."""
 
     __tablename__ = "onboarding_events_metrics"
@@ -32,4 +32,4 @@ class OnboardingMetricDaily(Base):
     count: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
-__all__ = ["OnboardingEvent", "OnboardingMetricDaily"]
+__all__ = ["OnboardingMetricEvent", "OnboardingMetricDaily"]
