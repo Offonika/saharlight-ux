@@ -46,7 +46,7 @@ class LocalProfile:
 
 
 @dataclass
-class LocalUserSettings:
+class LocalProfileSettings:
     """Local representation of profile settings when SDK is unavailable."""
 
     telegram_id: int
@@ -246,12 +246,12 @@ def set_timezone(session: Session, user_id: int, tz: str) -> tuple[bool, bool]:
     return patch_user_settings(session, user_id, ProfileSettingsIn(timezone=tz))
 
 
-def get_user_settings(session: Session, user_id: int) -> LocalUserSettings | None:
+def get_profile_settings(session: Session, user_id: int) -> LocalProfileSettings | None:
     """Fetch user settings from the database."""
     profile = session.get(Profile, user_id)
     if not profile:
         return None
-    return LocalUserSettings(
+    return LocalProfileSettings(
         telegram_id=profile.telegram_id,
         timezone=profile.timezone,
         timezone_auto=profile.timezone_auto,

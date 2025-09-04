@@ -26,18 +26,7 @@ class _DummyBaseHandler:  # pragma: no cover - minimal stub
 dummy.BaseHandler = _DummyBaseHandler
 sys.modules.setdefault("telegram.ext._basehandler", dummy)
 
-dummy_db_models = ModuleType("services.api.app.diabetes.services.db_models")
-class _DummyUserSettings:  # pragma: no cover - minimal stub
-    pass
-
-dummy_db_models.UserSettings = _DummyUserSettings
-sys.modules.setdefault(
-    "services.api.app.diabetes.services.db_models", dummy_db_models
-)
-
-warnings.filterwarnings(
-    "ignore", category=ResourceWarning, module=r"anyio\.streams\.memory"
-)
+warnings.filterwarnings("ignore", category=ResourceWarning, module=r"anyio\.streams\.memory")
 
 from services.api.app.diabetes.services import db as db_module  # noqa: E402
 
@@ -55,9 +44,7 @@ setattr(sqlite3, "connect", _tracking_sqlite_connect)
 
 
 _engines: list[sqlalchemy.engine.Engine] = []
-_original_create_engine: Callable[..., sqlalchemy.engine.Engine] = (
-    sqlalchemy.create_engine
-)
+_original_create_engine: Callable[..., sqlalchemy.engine.Engine] = sqlalchemy.create_engine
 
 
 def _tracking_create_engine(*args: Any, **kwargs: Any) -> sqlalchemy.engine.Engine:
@@ -239,4 +226,5 @@ def _dispose_openai_clients_after_test() -> Iterator[None]:
     """Dispose OpenAI clients after each test."""
     yield
     from services.api.app.diabetes.services.gpt_client import dispose_openai_clients
+
     asyncio.run(dispose_openai_clients())
