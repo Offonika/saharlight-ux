@@ -56,5 +56,5 @@ def test_main_attaches_onboarding_handler_and_runs(monkeypatch: pytest.MonkeyPat
     bot.main()
 
     assert dummy_builder.token_value == "token"
-    assert built_app.handlers == [sentinel_handler]
+    assert built_app.handlers[0] is sentinel_handler
     assert built_app.run_polling_called

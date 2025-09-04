@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 
+from prometheus_client import Counter
 from sqlalchemy.orm import Session
 
 from .learning_prompts import (
@@ -19,17 +20,17 @@ from .services.repository import commit
 
 logger = logging.getLogger(__name__)
 
+lessons_started: Counter = Counter("lessons_started", "Number of lessons started by users")
+lessons_completed: Counter = Counter("lessons_completed", "Number of lessons completed by users")
+quiz_avg_score: Counter = Counter("quiz_avg_score", "Accumulated quiz score across completed lessons")
+
 
 async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
     """Start or reset a lesson for a user and return progress."""
 
     def _start(session: Session) -> LessonProgress:
         lesson = session.query(Lesson).filter_by(slug=lesson_slug).one()
-        progress = (
-            session.query(LessonProgress)
-            .filter_by(user_id=user_id, lesson_id=lesson.id)
-            .one_or_none()
-        )
+        progress = session.query(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson.id).one_or_none()
         if progress is None:
             progress = LessonProgress(
                 user_id=user_id,
@@ -49,7 +50,10 @@ async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
         session.refresh(progress)
         return progress
 
-    return await db.run_db(_start)
+    progress = await db.run_db(_start)
+    lessons_started.inc()
+    logger.info("Lesson started: user=%s slug=%s", user_id, lesson_slug)
+    return progress
 
 
 async def next_step(user_id: int, lesson_id: int) -> str | None:
@@ -72,29 +76,15 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
     def _advance(
         session: Session,
     ) -> tuple[str | None, str | None, bool, bool]:
-        progress = (
-            session.query(LessonProgress)
-            .filter_by(user_id=user_id, lesson_id=lesson_id)
-            .one()
-        )
-        steps = (
-            session.query(LessonStep)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(LessonStep.step_order)
-            .all()
-        )
+        progress = session.query(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id).one()
+        steps = session.query(LessonStep).filter_by(lesson_id=lesson_id).order_by(LessonStep.step_order).all()
         if progress.current_step < len(steps):
             step = steps[progress.current_step]
             first_step = progress.current_step == 0
             progress.current_step += 1
             commit(session)
             return step.content, None, first_step, False
-        questions = (
-            session.query(QuizQuestion)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(QuizQuestion.id)
-            .all()
-        )
+        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
         if progress.current_question < len(questions):
             q = questions[progress.current_question]
             first_question = progress.current_question == 0
@@ -102,9 +92,7 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
             return None, f"{q.question}\n{opts}", False, first_question
         return None, None, False, False
 
-    step_content, question_text, first_step, first_question = await db.run_db(
-        _advance
-    )
+    step_content, question_text, first_step, first_question = await db.run_db(_advance)
     if step_content is not None:
         text = await gpt_client.create_learning_chat_completion(
             task=LLMTask.EXPLAIN_STEP,
@@ -123,23 +111,12 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
     return None
 
 
-async def check_answer(
-    user_id: int, lesson_id: int, answer_index: int
-) -> tuple[bool, str]:
+async def check_answer(user_id: int, lesson_id: int, answer_index: int) -> tuple[bool, str]:
     """Check user's answer to current quiz question and return feedback."""
 
-    def _check(session: Session) -> tuple[bool, str]:
-        progress = (
-            session.query(LessonProgress)
-            .filter_by(user_id=user_id, lesson_id=lesson_id)
-            .one()
-        )
-        questions = (
-            session.query(QuizQuestion)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(QuizQuestion.id)
-            .all()
-        )
+    def _check(session: Session) -> tuple[bool, str, bool, int | None]:
+        progress = session.query(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id).one()
+        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
         question = questions[progress.current_question]
         correct = answer_index == question.correct_option
         explanation = question.options[question.correct_option]
@@ -148,13 +125,15 @@ async def check_answer(
             score += 1
         progress.quiz_score = score
         progress.current_question += 1
+        completed = False
         if progress.current_question >= len(questions):
             progress.completed = True
             progress.quiz_score = int(100 * score / len(questions))
+            completed = True
         commit(session)
-        return correct, explanation
+        return correct, explanation, completed, progress.quiz_score
 
-    correct, explanation = await db.run_db(_check)
+    correct, explanation, completed, quiz_score = await db.run_db(_check)
     message = await gpt_client.create_learning_chat_completion(
         task=LLMTask.QUIZ_CHECK,
         messages=[
@@ -162,7 +141,24 @@ async def check_answer(
             {"role": "user", "content": build_feedback(correct, explanation)},
         ],
     )
+    if completed:
+        lessons_completed.inc()
+        if quiz_score is not None:
+            quiz_avg_score.inc(quiz_score)
+        logger.info(
+            "Lesson completed: user=%s lesson_id=%s score=%s",
+            user_id,
+            lesson_id,
+            quiz_score,
+        )
     return correct, message
 
 
-__all__ = ["start_lesson", "next_step", "check_answer"]
+__all__ = [
+    "start_lesson",
+    "next_step",
+    "check_answer",
+    "lessons_started",
+    "lessons_completed",
+    "quiz_avg_score",
+]
