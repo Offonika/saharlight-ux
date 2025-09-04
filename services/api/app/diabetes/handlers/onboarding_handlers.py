@@ -35,6 +35,7 @@ from telegram.warnings import PTBUserWarning
 from services.api.app.diabetes.services.db import SessionLocal, User, run_db
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.services import onboarding_state
+from ..onboarding_state import OnboardingStateStore
 from services.api.app.services.onboarding_events import log_onboarding_event
 from services.api.app.services.profile import save_timezone
 from services.api.app.types import SessionProtocol
@@ -433,9 +434,7 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if data in {CB_SKIP, CB_DONE}:
         save_data = dict(user_data)
         if "reminders" in save_data:
-            save_data["reminders"] = list(
-                cast(Iterable[str], save_data["reminders"])
-            )
+            save_data["reminders"] = list(cast(Iterable[str], save_data["reminders"]))
         await onboarding_state.save_state(user_id, REMINDERS, save_data, variant)
         return await _finish(
             message,
@@ -463,9 +462,7 @@ async def reminders_chosen(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return REMINDERS
     save_data = dict(user_data)
     if "reminders" in save_data:
-        save_data["reminders"] = list(
-            cast(Iterable[str], save_data["reminders"])
-        )
+        save_data["reminders"] = list(cast(Iterable[str], save_data["reminders"]))
     await onboarding_state.save_state(user_id, REMINDERS, save_data, variant)
     return REMINDERS
 
@@ -503,9 +500,7 @@ async def onboarding_reminders(
     variant = cast(str | None, user_data.get("variant"))
     save_data = dict(user_data)
     if "reminders" in save_data:
-        save_data["reminders"] = list(
-            cast(Iterable[str], save_data["reminders"])
-        )
+        save_data["reminders"] = list(cast(Iterable[str], save_data["reminders"]))
     await onboarding_state.save_state(user.id, REMINDERS, save_data, variant)
     return await _finish(
         message,
@@ -593,6 +588,12 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     user = update.effective_user
     if message is None or user is None:
         return ConversationHandler.END
+
+    store = cast(
+        OnboardingStateStore,
+        context.application.bot_data.setdefault("onb_state", OnboardingStateStore()),
+    )
+    store.reset(user.id)
 
     def _reset(session: SessionProtocol) -> None:
         state = cast(

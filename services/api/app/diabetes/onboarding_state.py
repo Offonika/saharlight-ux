@@ -1,14 +1,7 @@
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import cast
-
-from telegram import Update
-from telegram.ext import ContextTypes
-
-logger = logging.getLogger(__name__)
 
 RESET_AFTER = timedelta(days=14)
 
@@ -51,29 +44,9 @@ class OnboardingStateStore:
         for uid, info in data.items():
             store._states[uid] = State(
                 step=int(info["step"]),
-                updated_at=datetime.fromtimestamp(
-                    float(info["updated_at"]), tz=UTC
-                ),
+                updated_at=datetime.fromtimestamp(float(info["updated_at"]), tz=UTC),
             )
         return store
 
 
-async def reset_onboarding(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
-    """Handle ``/reset_onboarding`` command."""
-
-    message = update.effective_message
-    user = update.effective_user
-    if message is None or user is None:
-        return None
-    store = cast(
-        OnboardingStateStore,
-        context.application.bot_data.setdefault("onb_state", OnboardingStateStore()),
-    )
-    store.reset(user.id)
-    await message.reply_text("Onboarding reset.")
-    return None
-
-
-__all__ = ["OnboardingStateStore", "reset_onboarding"]
+__all__ = ["OnboardingStateStore"]

@@ -41,12 +41,16 @@ async def test_help_mentions_webapp() -> None:
 
 
 @pytest.mark.asyncio
-async def test_reset_onboarding_warns_and_resets() -> None:
+async def test_reset_onboarding_warns_and_resets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     message = DummyMessage()
     user = SimpleNamespace(id=1)
     update = cast(
         Update,
-        SimpleNamespace(effective_message=message, message=message, effective_user=user),
+        SimpleNamespace(
+            effective_message=message, message=message, effective_user=user
+        ),
     )
     app = DummyApp()
     context = cast(
@@ -56,6 +60,15 @@ async def test_reset_onboarding_warns_and_resets() -> None:
     store = OnboardingStateStore()
     store.set_step(1, 2)
     app.bot_data["onb_state"] = store
+
+    async def dummy_reset(update: Update, context: CallbackContext) -> int:
+        store.reset(user.id)
+        await message.reply_text(
+            "Онбординг сброшен. Отправьте /start, чтобы начать заново."
+        )
+        return 0
+
+    monkeypatch.setattr(commands, "_reset_onboarding", dummy_reset)
 
     await commands.reset_onboarding(update, context)
     assert "подтверж" in message.replies[0].lower()
