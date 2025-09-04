@@ -19,6 +19,8 @@ Telegram WebApp. Обёртка `tgFetch` добавляет его автома
 - `QA_Test_Plan.md` — план тестирования
 - `PERSONAS.md` — пользовательские сегменты
 - `assets/` — медиафайлы для документации и примеров
+- `deploy/` — примеры конфигураций для развёртывания, например systemd unit
+  `diabetes-bot.service` и `diabetes-assistant.service`
 
 > **Примечание.** API WebApp требует заголовок `X-Telegram-Init-Data` с данными
 > инициализации Telegram. Хелпер `tgFetch` добавляет его автоматически;
