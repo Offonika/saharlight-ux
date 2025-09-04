@@ -62,7 +62,10 @@ async def pay(
 
 
 @router.post("/trial", response_model=SubscriptionSchema)
-async def start_trial(user_id: int) -> SubscriptionSchema:
+async def start_trial(
+    user_id: int,
+    _settings: BillingSettings = Depends(_require_billing_enabled),
+) -> SubscriptionSchema:
     """Start a trial subscription for the user."""
 
     now = datetime.now(timezone.utc)
@@ -140,6 +143,7 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
             },
             exc_info=exc,
         )
+
         def _get_existing(session: Session) -> Subscription:
             existing = _get_active_trial(session)
             if existing is None:
@@ -210,14 +214,20 @@ async def webhook(
     now = datetime.now(timezone.utc)
 
     def _activate(session: Session) -> bool:
-        stmt = select(Subscription).where(Subscription.transaction_id == event.transaction_id)
+        stmt = select(Subscription).where(
+            Subscription.transaction_id == event.transaction_id
+        )
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
-        if sub.status == SubscriptionStatus.ACTIVE.value and sub_end is not None and sub_end > now:
+        if (
+            sub.status == SubscriptionStatus.ACTIVE.value
+            and sub_end is not None
+            and sub_end > now
+        ):
             return False
         base = sub_end if sub_end is not None and sub_end > now else now
         sub.plan = event.plan
@@ -310,7 +320,9 @@ async def admin_mock_webhook(
 
 
 @router.get("/status", response_model=BillingStatusResponse)
-async def status(user_id: int, settings: BillingSettings = Depends(get_billing_settings)) -> BillingStatusResponse:
+async def status(
+    user_id: int, settings: BillingSettings = Depends(get_billing_settings)
+) -> BillingStatusResponse:
     """Return billing feature flags and the latest subscription for a user."""
 
     def _get_subscription(session: Session) -> Subscription | None:
@@ -332,5 +344,7 @@ async def status(user_id: int, settings: BillingSettings = Depends(get_billing_s
         return BillingStatusResponse(featureFlags=flags, subscription=None)
     return BillingStatusResponse(
         featureFlags=flags,
-        subscription=SubscriptionSchema.model_validate(subscription, from_attributes=True),
+        subscription=SubscriptionSchema.model_validate(
+            subscription, from_attributes=True
+        ),
     )

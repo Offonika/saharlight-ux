@@ -38,32 +38,36 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
+    Base.metadata.create_all(
+        engine, tables=[Subscription.__table__, BillingLog.__table__]
+    )
     return sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
+def make_client(
+    monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
+) -> TestClient:
     from services.api.app.billing.config import BillingSettings
 
-    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
+    async def run_db(
+        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
+    ):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
     monkeypatch.setattr(billing, "run_db", run_db, raising=False)
     monkeypatch.setattr(billing, "SessionLocal", session_local, raising=False)
-    monkeypatch.setattr(
-        billing,
-        "get_billing_settings",
+
+    from services.api.app.main import app
+
+    app.dependency_overrides[billing._require_billing_enabled] = (
         lambda: BillingSettings(
-            billing_enabled=False,
+            billing_enabled=True,
             billing_test_mode=True,
             billing_provider="dummy",
             paywall_mode="soft",
-        ),
-        raising=False,
+        )
     )
-
-    from services.api.app.main import app
 
     return TestClient(app)
 
@@ -202,19 +206,17 @@ async def test_trial_parallel_requests(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(billing, "run_db", run_db, raising=False)
     monkeypatch.setattr(billing, "SessionLocal", session_local, raising=False)
-    monkeypatch.setattr(
-        billing,
-        "get_billing_settings",
+
+    from services.api.app.main import app
+
+    app.dependency_overrides[billing._require_billing_enabled] = (
         lambda: BillingSettings(
-            billing_enabled=False,
+            billing_enabled=True,
             billing_test_mode=True,
             billing_provider="dummy",
             paywall_mode="soft",
-        ),
-        raising=False,
+        )
     )
-
-    from services.api.app.main import app
 
     async with AsyncClient(
         transport=ASGITransport(app=cast(Any, app)), base_url="http://test"
