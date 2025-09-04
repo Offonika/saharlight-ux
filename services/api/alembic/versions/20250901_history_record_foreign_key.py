@@ -7,7 +7,7 @@ import sqlalchemy as sa
 
 
 revision: str = "20250901_history_record_foreign_key"
-down_revision: Union[str, Sequence[str], None] = "20250828_add_quiet_time"
+down_revision: Union[str, Sequence[str], None] = "20250828_add_quiet_time_to_profiles"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

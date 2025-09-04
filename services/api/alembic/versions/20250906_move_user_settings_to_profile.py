@@ -1,7 +1,7 @@
 """move user settings to profile
 
 Revision ID: 20250906_move_user_settings_to_profile
-Revises: 20250904_billing_log
+Revises: ("20250904_billing_log", "20250904_change_description")
 Create Date: 2025-09-06
 """
 
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 revision = "20250906_move_user_settings_to_profile"
-down_revision = "20250904_billing_log"
+down_revision = ("20250904_billing_log", "20250904_change_description")
 branch_labels = None
 depends_on = None
 
