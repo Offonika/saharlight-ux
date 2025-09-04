@@ -23,9 +23,7 @@ from services.api.app.diabetes.services import db, gpt_client
 @pytest.mark.asyncio
 async def test_lesson_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     """Complete a lesson and ensure Prometheus counters track activity."""
-    engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     db.SessionLocal.configure(bind=engine)
     db.Base.metadata.create_all(bind=engine)
 
@@ -41,15 +39,8 @@ async def test_lesson_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
         assert lesson is not None
         slug = lesson.slug
         lesson_id = lesson.id
-        step_count = (
-            session.query(LessonStep).filter_by(lesson_id=lesson_id).count()
-        )
-        questions = (
-            session.query(QuizQuestion)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(QuizQuestion.id)
-            .all()
-        )
+        step_count = session.query(LessonStep).filter_by(lesson_id=lesson_id).count()
+        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
 
     async def fake_completion(**kwargs: object) -> str:
         return "text"
@@ -69,18 +60,14 @@ async def test_lesson_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     await next_step(1, lesson_id)
 
     for q in questions:
-        await check_answer(1, lesson_id, q.correct_option)
+        await check_answer(1, lesson_id, q.correct_option + 1)
         await next_step(1, lesson_id)
 
     assert await next_step(1, lesson_id) is None
     lessons_completed.inc()
 
     with db.SessionLocal() as session:
-        progress = (
-            session.query(LessonProgress)
-            .filter_by(user_id=1, lesson_id=lesson_id)
-            .one()
-        )
+        progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
     quiz_avg_score.observe(progress.quiz_score or 0)
 
     assert registry.get_sample_value("lessons_started_total") == 1.0
