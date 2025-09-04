@@ -16,7 +16,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import TypedDict, cast
+from typing import NotRequired, TypedDict, cast
 
 from sqlalchemy.orm import Session
 
@@ -39,6 +39,7 @@ class LessonDict(TypedDict):
     title: str
     steps: list[str]
     quiz: list[QuizDict]
+    slug: NotRequired[str]
 
 
 DEFAULT_CONTENT_FILE = Path(__file__).parent / "content" / "lessons_v0.json"
@@ -57,8 +58,10 @@ async def load_lessons(
 
     def _load(session: Session) -> None:
         for item in lessons:
+            slug = item.get("slug") or item["title"].lower().replace(" ", "-")
             lesson = Lesson(
                 title=item["title"],
+                slug=slug,
                 content="\n".join(item["steps"]),
                 is_active=True,
             )

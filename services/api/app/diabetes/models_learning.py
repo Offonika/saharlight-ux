@@ -15,6 +15,7 @@ class Lesson(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
+    slug: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default=sa.true()
@@ -74,6 +75,8 @@ class LessonProgress(Base):
     lesson_id: Mapped[int] = mapped_column(
         ForeignKey("lessons.id"), nullable=False, index=True
     )
+    current_step: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    current_question: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     quiz_score: Mapped[Optional[int]] = mapped_column(Integer)
 
