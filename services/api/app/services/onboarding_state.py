@@ -6,6 +6,7 @@ from typing import cast
 
 from sqlalchemy import BigInteger, Integer, String, JSON, TIMESTAMP, func, ForeignKey
 from sqlalchemy.orm import Mapped, Session, mapped_column
+from sqlalchemy.ext.mutable import MutableDict
 
 from ..diabetes.services.db import Base, SessionLocal, run_db
 from ..diabetes.services.repository import commit
@@ -23,7 +24,7 @@ class OnboardingState(Base):
         primary_key=True,
     )
     step: Mapped[int] = mapped_column(Integer, nullable=False)
-    data: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    data: Mapped[dict[str, object]] = mapped_column(MutableDict.as_mutable(JSON), nullable=False)
     variant: Mapped[str | None] = mapped_column(String)
     completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(
