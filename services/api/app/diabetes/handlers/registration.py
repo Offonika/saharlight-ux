@@ -37,7 +37,9 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     CommandHandlerT: TypeAlias = CommandHandler[ContextTypes.DEFAULT_TYPE, object]
     MessageHandlerT: TypeAlias = MessageHandler[ContextTypes.DEFAULT_TYPE, object]
-    CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[ContextTypes.DEFAULT_TYPE, object]
+    CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[
+        ContextTypes.DEFAULT_TYPE, object
+    ]
     PollAnswerHandlerT: TypeAlias = PollAnswerHandler[ContextTypes.DEFAULT_TYPE, object]
 else:
     CommandHandlerT = CommandHandler
@@ -68,14 +70,10 @@ def register_profile_handlers(
         )
     )
     app.add_handler(
-        CallbackQueryHandlerT(
-            profile.profile_security, pattern="^profile_security"
-        )
+        CallbackQueryHandlerT(profile.profile_security, pattern="^profile_security")
     )
     app.add_handler(
-        CallbackQueryHandlerT(
-            profile.profile_back, pattern="^profile_back$"
-        )
+        CallbackQueryHandlerT(profile.profile_back, pattern="^profile_back$")
     )
 
 
@@ -93,23 +91,11 @@ def register_reminder_handlers(
 
     from . import reminder_handlers
 
-    app.add_handler(
-        CommandHandlerT(
-            "reminders", reminder_handlers.reminders_list
-        )
-    )
-    app.add_handler(
-        CommandHandlerT(
-            "addreminder", reminder_handlers.add_reminder
-        )
-    )
+    app.add_handler(CommandHandlerT("reminders", reminder_handlers.reminders_list))
+    app.add_handler(CommandHandlerT("addreminder", reminder_handlers.add_reminder))
     app.add_handler(reminder_handlers.reminder_action_handler)
     app.add_handler(reminder_handlers.reminder_webapp_handler)
-    app.add_handler(
-        CommandHandlerT(
-            "delreminder", reminder_handlers.delete_reminder
-        )
-    )
+    app.add_handler(CommandHandlerT("delreminder", reminder_handlers.delete_reminder))
     app.add_handler(
         MessageHandlerT(
             filters.Regex(re.escape(REMINDERS_BUTTON_TEXT)),
@@ -117,9 +103,7 @@ def register_reminder_handlers(
         )
     )
     app.add_handler(
-        CallbackQueryHandlerT(
-            reminder_handlers.reminder_callback, pattern="^remind_"
-        )
+        CallbackQueryHandlerT(reminder_handlers.reminder_callback, pattern="^remind_")
     )
 
     # --- DEBUG HANDLERS ---
@@ -127,6 +111,7 @@ def register_reminder_handlers(
         from services.api.app.diabetes.handlers.reminder_debug import (
             register_debug_reminder_handlers,
         )
+
         register_debug_reminder_handlers(app)
     except ImportError as e:
         logger.warning("⚠️ Could not load debug reminder handlers: %s", e)
@@ -141,7 +126,6 @@ def register_reminder_handlers(
             reminder_handlers.schedule_all(job_queue)
         except SQLAlchemyError:
             logger.exception("Failed to schedule reminders")
-
 
 
 def register_handlers(
@@ -167,50 +151,30 @@ def register_handlers(
         photo_handlers,
         sugar_handlers,
         gpt_handlers,
+        learn_handlers,
         billing_handlers,
     )
 
     app.add_handler(onboarding_conv)
     app.add_handler(CommandHandlerT("menu", menu_command))
-    app.add_handler(
-        CommandHandlerT(
-            "report", reporting_handlers.report_request
-        )
-    )
-    app.add_handler(
-        CommandHandlerT(
-            "history", reporting_handlers.history_view
-        )
-    )
+    app.add_handler(CommandHandlerT("report", reporting_handlers.report_request))
+    app.add_handler(CommandHandlerT("history", reporting_handlers.history_view))
     app.add_handler(dose_calc.dose_conv)
     # Register profile conversation before sugar conversation so that numeric
     # inputs for profile aren't captured by sugar logging
     register_profile_handlers(app)
     app.add_handler(sugar_handlers.sugar_conv)
     app.add_handler(sos_handlers.sos_contact_conv)
-    app.add_handler(
-        CommandHandlerT("cancel", dose_calc.dose_cancel)
-    )
+    app.add_handler(CommandHandlerT("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandlerT("help", help_command))
-    app.add_handler(
-        CommandHandlerT("gpt", gpt_handlers.chat_with_gpt)
-    )
+    app.add_handler(CommandHandlerT("learn", learn_handlers.learn_command))
+    app.add_handler(CommandHandlerT("gpt", gpt_handlers.chat_with_gpt))
     app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
     app.add_handler(CommandHandlerT("upgrade", billing_handlers.upgrade_command))
     register_reminder_handlers(app)
-    app.add_handler(
-        CommandHandlerT(
-            "alertstats", alert_handlers.alert_stats
-        )
-    )
-    app.add_handler(
-        CommandHandlerT(
-            "hypoalert", security_handlers.hypo_alert_faq
-        )
-    )
-    app.add_handler(
-        PollAnswerHandlerT(onboarding_poll_answer)
-    )
+    app.add_handler(CommandHandlerT("alertstats", alert_handlers.alert_stats))
+    app.add_handler(CommandHandlerT("hypoalert", security_handlers.hypo_alert_faq))
+    app.add_handler(PollAnswerHandlerT(onboarding_poll_answer))
     app.add_handler(
         MessageHandlerT(
             filters.Regex(re.escape(REPORT_BUTTON_TEXT)),
@@ -234,9 +198,7 @@ def register_handlers(
         )
     )
     app.add_handler(
-        MessageHandlerT(
-            filters.Regex(re.escape(HELP_BUTTON_TEXT)), help_command
-        )
+        MessageHandlerT(filters.Regex(re.escape(HELP_BUTTON_TEXT)), help_command)
     )
     app.add_handler(
         MessageHandlerT(
@@ -245,20 +207,10 @@ def register_handlers(
         )
     )
     app.add_handler(
-        MessageHandlerT(
-            filters.TEXT & ~filters.COMMAND, gpt_handlers.freeform_handler
-        )
+        MessageHandlerT(filters.TEXT & ~filters.COMMAND, gpt_handlers.freeform_handler)
     )
-    app.add_handler(
-        MessageHandlerT(
-            filters.PHOTO, photo_handlers.photo_handler
-        )
-    )
-    app.add_handler(
-        MessageHandlerT(
-            filters.Document.IMAGE, photo_handlers.doc_handler
-        )
-    )
+    app.add_handler(MessageHandlerT(filters.PHOTO, photo_handlers.photo_handler))
+    app.add_handler(MessageHandlerT(filters.Document.IMAGE, photo_handlers.doc_handler))
     app.add_handler(
         CallbackQueryHandlerT(
             reporting_handlers.report_period_callback, pattern="^report_back$"

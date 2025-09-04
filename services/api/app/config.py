@@ -72,6 +72,10 @@ class Settings(BaseSettings):
         default=None, alias="TELEGRAM_PAYMENTS_PROVIDER_TOKEN"
     )
     admin_id: Optional[int] = Field(default=None, alias="ADMIN_ID")
+    learning_mode_enabled: bool = Field(default=False, alias="LEARNING_MODE_ENABLED")
+    learning_model_default: str = Field(
+        default="gpt-4o-mini", alias="LEARNING_MODEL_DEFAULT"
+    )
 
     @field_validator("log_level", mode="before")
     @classmethod
