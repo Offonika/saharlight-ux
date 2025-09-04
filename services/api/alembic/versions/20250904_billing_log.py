@@ -28,7 +28,12 @@ def upgrade() -> None:
             ),
             nullable=False,
         ),
-        sa.Column("ts", sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "ts",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("context", sa.JSON(), nullable=True),
     )
     op.create_index("ix_billing_logs_user_id", "billing_logs", ["user_id"])
