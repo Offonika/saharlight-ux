@@ -146,6 +146,8 @@ def get_api(
     rest of the code can operate without having to handle ``None`` values.
     """
     settings = settings or config.get_settings()
+    if not settings.api_url:
+        return LocalProfileAPI(sessionmaker), Exception, LocalProfile
     try:  # pragma: no cover - exercised in tests but flagged for clarity
         from diabetes_sdk.api.default_api import DefaultApi
         from diabetes_sdk.api_client import ApiClient
