@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+
+def disclaimer() -> str:
+    """Return the standard medical warning."""
+    return "Проконсультируйтесь с врачом."
+
+
 SYSTEM_TUTOR_RU = (
     "Ты — репетитор по диабету. "
     "Говори короткими предложениями. "
     "Сначала спрашивай, потом объясняй. "
     "Не давай советов по терапии. "
-    "Всегда добавляй предупреждение: 'Проконсультируйтесь с врачом.'"
+    f"Всегда добавляй предупреждение: '{disclaimer()}'"
 )
-
-_DISCLAIMER_RU = "Проконсультируйтесь с врачом."
 
 
 def _with_disclaimer(text: str) -> str:
@@ -22,7 +26,8 @@ def _with_disclaimer(text: str) -> str:
         Base text that requires the disclaimer.
     """
     base = text.strip()
-    return f"{base} {_DISCLAIMER_RU}" if base else _DISCLAIMER_RU
+    tail = disclaimer()
+    return f"{base} {tail}" if base else tail
 
 
 def build_explain_step(step: str) -> str:
