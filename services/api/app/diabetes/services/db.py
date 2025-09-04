@@ -39,6 +39,7 @@ from sqlalchemy.orm import (
 )
 
 from services.api.app.config import get_db_password, settings
+from services.api.app.diabetes.schemas.reminders import ReminderType, ScheduleKind
 
 logger = logging.getLogger(__name__)
 
@@ -238,18 +239,38 @@ class Alert(Base):
 class Reminder(Base):
     __tablename__ = "reminders"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
+    telegram_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id")
+    )
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
-    type: Mapped[str] = mapped_column(String, nullable=False)
+    type: Mapped[ReminderType] = mapped_column(
+        sa.Enum(
+            ReminderType,
+            name="reminder_type",
+            create_type=False,
+            validate_strings=True,
+        ),
+        nullable=False,
+    )
     title: Mapped[Optional[str]] = mapped_column(String)
-    kind: Mapped[Optional[str]] = mapped_column(String)
+    kind: Mapped[ScheduleKind | None] = mapped_column(
+        sa.Enum(
+            ScheduleKind,
+            name="schedule_kind",
+            create_type=False,
+            validate_strings=True,
+        ),
+        nullable=True,
+    )
     time: Mapped[Optional[time]] = mapped_column(Time)
     interval_hours: Mapped[Optional[int]] = mapped_column(Integer)
     interval_minutes: Mapped[Optional[int]] = mapped_column(Integer)
     minutes_after: Mapped[Optional[int]] = mapped_column(Integer)
     days_mask: Mapped[Optional[int]] = mapped_column(Integer)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
     user: Mapped[User] = relationship("User")
 
     def set_interval_hours_if_needed(self, hours: int | None) -> None:
