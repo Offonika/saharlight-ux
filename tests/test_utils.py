@@ -64,6 +64,23 @@ def test_split_text_by_width_unknown_font() -> None:
 
 
 @pytest.mark.parametrize(
+    ("font_size", "max_width"),
+    [
+        (0, 50),
+        (12, 0),
+        (-1, 50),
+        (12, -5),
+    ],
+)
+def test_split_text_by_width_invalid_params(font_size: float, max_width: float) -> None:
+    pdfmetrics.registerFont(
+        TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    )
+    with pytest.raises(ValueError, match="must be positive"):
+        split_text_by_width("text", "DejaVuSans", font_size, max_width)
+
+
+@pytest.mark.parametrize(
     "text",
     [
         "Supercalifragilisticexpialidocious",
