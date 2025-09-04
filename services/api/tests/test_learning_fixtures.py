@@ -46,6 +46,7 @@ async def test_load_lessons(tmp_path: Path) -> None:
     with SessionLocal() as session:
         lessons = session.query(Lesson).all()
         assert len(lessons) == 1
+        assert lessons[0].slug == "sample"
         assert lessons[0].is_active is True
         steps = (
             session.query(LessonStep)
