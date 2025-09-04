@@ -54,6 +54,11 @@ class QuizQuestion(Base):
 
 class LessonStep(Base):
     __tablename__ = "lesson_steps"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "lesson_id", "step_order", name="lesson_steps_lesson_order_key"
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     lesson_id: Mapped[int] = mapped_column(
