@@ -25,11 +25,7 @@ async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
 
     def _start(session: Session) -> LessonProgress:
         lesson = session.query(Lesson).filter_by(slug=lesson_slug).one()
-        progress = (
-            session.query(LessonProgress)
-            .filter_by(user_id=user_id, lesson_id=lesson.id)
-            .one_or_none()
-        )
+        progress = session.query(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson.id).one_or_none()
         if progress is None:
             progress = LessonProgress(
                 user_id=user_id,
@@ -74,17 +70,8 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
     def _advance(
         session: Session,
     ) -> tuple[str | None, str | None, bool, bool, int | None]:
-        progress = (
-            session.query(LessonProgress)
-            .filter_by(user_id=user_id, lesson_id=lesson_id)
-            .one()
-        )
-        steps = (
-            session.query(LessonStep)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(LessonStep.step_order)
-            .all()
-        )
+        progress = session.query(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id).one()
+        steps = session.query(LessonStep).filter_by(lesson_id=lesson_id).order_by(LessonStep.step_order).all()
         if progress.current_step < len(steps):
             step = steps[progress.current_step]
             first_step = progress.current_step == 0
@@ -92,16 +79,11 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
             step_idx = progress.current_step
             commit(session)
             return step.content, None, first_step, False, step_idx
-        questions = (
-            session.query(QuizQuestion)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(QuizQuestion.id)
-            .all()
-        )
+        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
         if progress.current_question < len(questions):
             q = questions[progress.current_question]
             first_question = progress.current_question == 0
-            opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(q.options))
+            opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(q.options, start=1))
             return None, f"{q.question}\n{opts}", False, first_question, None
         return None, None, False, False, None
 
@@ -141,23 +123,14 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
     return None
 
 
-async def check_answer(
-    user_id: int, lesson_id: int, answer_index: int
-) -> tuple[bool, str]:
+async def check_answer(user_id: int, lesson_id: int, answer_index: int) -> tuple[bool, str]:
     """Check user's answer to current quiz question and return feedback."""
 
+    answer_index -= 1
+
     def _check(session: Session) -> tuple[bool, str, int, bool, int | None]:
-        progress = (
-            session.query(LessonProgress)
-            .filter_by(user_id=user_id, lesson_id=lesson_id)
-            .one()
-        )
-        questions = (
-            session.query(QuizQuestion)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(QuizQuestion.id)
-            .all()
-        )
+        progress = session.query(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id).one()
+        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
         question = questions[progress.current_question]
         correct = answer_index == question.correct_option
         explanation = question.options[question.correct_option]
@@ -175,9 +148,7 @@ async def check_answer(
         commit(session)
         return correct, explanation, question_idx, completed, final_score
 
-    correct, explanation, question_idx, completed, final_score = await db.run_db(
-        _check
-    )
+    correct, explanation, question_idx, completed, final_score = await db.run_db(_check)
     if completed and final_score is not None:
         lessons_completed.inc()
         quiz_avg_score.observe(float(final_score))

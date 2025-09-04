@@ -116,16 +116,15 @@ async def test_quiz_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     assert msg1.replies == ["Q1"]
 
     upd2 = make_update()
-    ctx2 = make_context(user_data=user_data, args=["0"])
+    ctx2 = make_context(user_data=user_data, args=["1"])
     await learning_handlers.quiz_command(upd2, ctx2)
     msg2 = cast(DummyMessage, upd2.message)
     assert msg2.replies == [learning_handlers.RATE_LIMIT_MESSAGE]
     assert answers == []
 
     upd3 = make_update()
-    ctx3 = make_context(user_data=user_data, args=["0"])
+    ctx3 = make_context(user_data=user_data, args=["1"])
     await learning_handlers.quiz_command(upd3, ctx3)
     msg3 = cast(DummyMessage, upd3.message)
     assert msg3.replies == ["ok", "Q2"]
-    assert answers == [0]
-
+    assert answers == [1]

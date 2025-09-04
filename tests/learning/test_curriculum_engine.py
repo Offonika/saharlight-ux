@@ -76,15 +76,13 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert question_text.startswith(disclaimer())
 
     with db.SessionLocal() as session:
-        questions = (
-            session.query(QuizQuestion)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(QuizQuestion.id)
-            .all()
-        )
+        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
+
+    first_opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(questions[0].options, start=1))
+    assert question_text.endswith(first_opts)
 
     for idx, q in enumerate(questions):
-        correct, feedback = await check_answer(1, lesson_id, q.correct_option)
+        correct, feedback = await check_answer(1, lesson_id, q.correct_option + 1)
         assert correct is True
         assert feedback
         if idx < len(questions) - 1:
@@ -94,11 +92,7 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert await next_step(1, lesson_id) is None
 
     with db.SessionLocal() as session:
-        progress = (
-            session.query(LessonProgress)
-            .filter_by(user_id=1, lesson_id=lesson_id)
-            .one()
-        )
+        progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
         assert progress.completed is True
         assert progress.quiz_score == 100
     assert lessons_completed._value.get() == base_completed + 1  # type: ignore[attr-defined]

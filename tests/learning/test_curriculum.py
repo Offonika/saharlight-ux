@@ -58,8 +58,11 @@ async def test_happy_path_one_lesson(monkeypatch: pytest.MonkeyPatch) -> None:
     with db.SessionLocal() as session:
         questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).all()
 
+    first_opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(questions[0].options, start=1))
+    assert question_text.endswith(first_opts)
+
     for q in questions:
-        correct, feedback = await check_answer(1, lesson_id, q.correct_option)
+        correct, feedback = await check_answer(1, lesson_id, q.correct_option + 1)
         assert correct is True
         assert feedback
         await next_step(1, lesson_id)
@@ -67,10 +70,6 @@ async def test_happy_path_one_lesson(monkeypatch: pytest.MonkeyPatch) -> None:
     assert await next_step(1, lesson_id) is None
 
     with db.SessionLocal() as session:
-        prog = (
-            session.query(LessonProgress)
-            .filter_by(user_id=1, lesson_id=lesson_id)
-            .one()
-        )
+        prog = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
         assert prog.completed is True
         assert prog.quiz_score == 100
