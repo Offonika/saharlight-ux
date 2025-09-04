@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import logging
 from collections.abc import Mapping
 
@@ -43,9 +44,13 @@ async def verify_webhook(
 ) -> bool:
     """Verify webhook payload using the configured provider."""
 
-    if settings.billing_webhook_ips and (ip is None or ip not in settings.billing_webhook_ips):
+    if settings.billing_webhook_ips and (
+        ip is None or ip not in settings.billing_webhook_ips
+    ):
         return False
-    if headers.get("X-Webhook-Signature") != event.signature:
+    if not hmac.compare_digest(
+        headers.get("X-Webhook-Signature") or "", event.signature
+    ):
         return False
     if settings.billing_provider == "dummy":
         provider = DummyBillingProvider(
