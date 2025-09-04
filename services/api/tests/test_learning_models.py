@@ -29,6 +29,7 @@ def test_lesson_crud() -> None:
     with SessionLocal() as session:
         lesson = Lesson(
             title="Intro",
+            slug="intro",
             content="Basics",
             steps=[
                 LessonStep(step_order=1, content="s1"),
@@ -42,6 +43,7 @@ def test_lesson_crud() -> None:
         stored = session.get(Lesson, lesson.id)
         assert stored is not None
         assert stored.title == "Intro"
+        assert stored.slug == "intro"
         assert stored.is_active is True
         assert [s.content for s in stored.steps] == ["s1", "s2"]
 
@@ -49,7 +51,7 @@ def test_lesson_crud() -> None:
 def test_quiz_question_crud() -> None:
     SessionLocal = setup_db()
     with SessionLocal() as session:
-        lesson = Lesson(title="Intro", content="Basics")
+        lesson = Lesson(title="Intro", slug="intro", content="Basics")
         session.add(lesson)
         session.commit()
         session.refresh(lesson)
@@ -74,7 +76,7 @@ def test_lesson_progress_crud() -> None:
     SessionLocal = setup_db()
     with SessionLocal() as session:
         user = db.User(telegram_id=1, thread_id="t1")
-        lesson = Lesson(title="Intro", content="Basics")
+        lesson = Lesson(title="Intro", slug="intro", content="Basics")
         session.add_all([user, lesson])
         session.commit()
 

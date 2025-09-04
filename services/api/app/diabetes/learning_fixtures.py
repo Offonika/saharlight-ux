@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import TypedDict, cast
 
@@ -55,10 +56,14 @@ async def load_lessons(
     raw = json.loads(path.read_text(encoding="utf-8"))
     lessons = cast(list[LessonDict], raw)
 
+    def _slugify(text: str) -> str:
+        return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
     def _load(session: Session) -> None:
         for item in lessons:
             lesson = Lesson(
                 title=item["title"],
+                slug=_slugify(item["title"]),
                 content="\n".join(item["steps"]),
                 is_active=True,
             )

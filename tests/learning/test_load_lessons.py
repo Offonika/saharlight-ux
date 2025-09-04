@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 import pytest
 from sqlalchemy import create_engine
@@ -30,6 +31,9 @@ async def test_load_lessons_v0() -> None:
             lessons = session.query(Lesson).all()
             assert len(lessons) == 3
             for lesson in lessons:
+                assert lesson.slug == re.sub(
+                    r"[^a-z0-9]+", "-", lesson.title.lower()
+                ).strip("-")
                 steps = lesson.content.splitlines()
                 assert len(steps) >= 3
                 quiz_count = (
