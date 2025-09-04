@@ -12,6 +12,7 @@ from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from services.api.app.diabetes.services.db import Reminder, User
+from services.api.app.diabetes.schemas.reminders import ScheduleKind
 
 logger = logging.getLogger(__name__)
 
@@ -67,15 +68,16 @@ def schedule_reminder(
     if kind is None:
         if interval_minutes is None and rem.interval_hours is not None:
             interval_minutes = rem.interval_hours * 60
-            kind = "every"
+            kind = ScheduleKind.every
         elif rem.minutes_after is not None:
-            kind = "after_event"
+            kind = ScheduleKind.after_event
         elif interval_minutes:
-            kind = "every"
+            kind = ScheduleKind.every
         else:
-            kind = "at_time"
+            kind = ScheduleKind.at_time
+    assert kind is not None
 
-    name = f"{base_name}_after" if kind == "after_event" else base_name
+    name = f"{base_name}_after" if kind is ScheduleKind.after_event else base_name
 
     logger.info(
         "PLAN %s kind=%s time=%s interval_min=%s after_min=%s tz=%s",
@@ -97,10 +99,10 @@ def schedule_reminder(
     call_job_kwargs = dict(job_kwargs)
     call_job_kwargs.pop("name", None)
 
-    if kind == "after_event":
+    if kind is ScheduleKind.after_event:
         logger.info("SKIP %s kind=%s", name, kind)
         return
-    if kind == "at_time" and rem.time is not None:
+    if kind is ScheduleKind.at_time and rem.time is not None:
         run_daily_sig = inspect.signature(job_queue.run_daily)
         run_daily_fn = cast(Any, job_queue.run_daily)
         run_daily_kwargs: dict[str, object] = {
@@ -113,7 +115,9 @@ def schedule_reminder(
         if "days" in run_daily_sig.parameters:
             mask = getattr(rem, "days_mask", 0) or 0
             days = (
-                tuple(i for i in range(7) if mask & (1 << i)) if mask else tuple(range(7))
+                tuple(i for i in range(7) if mask & (1 << i))
+                if mask
+                else tuple(range(7))
             )
             run_daily_kwargs["days"] = days
 

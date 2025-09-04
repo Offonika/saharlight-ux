@@ -17,6 +17,7 @@ from ..diabetes.services.db import (
     Profile,
     run_db,
 )
+from ..diabetes.schemas.reminders import ReminderType, ScheduleKind
 from ..diabetes.services.reminders_schedule import compute_next
 from ..diabetes.services.repository import CommitError, commit
 from ..schemas.reminders import ReminderSchema
@@ -44,9 +45,11 @@ async def list_reminders(telegram_id: int) -> list[Reminder]:
         reminders_ = session.query(Reminder).filter_by(telegram_id=telegram_id).all()
         if not reminders_:
             return []
-        sql = resources.files("services.api.app.diabetes.sql").joinpath(
-            "reminders_stats.sql"
-        ).read_text()
+        sql = (
+            resources.files("services.api.app.diabetes.sql")
+            .joinpath("reminders_stats.sql")
+            .read_text()
+        )
         since = datetime.now(timezone.utc) - timedelta(days=7)
         rows = session.execute(
             text(sql), {"telegram_id": telegram_id, "since": since}
@@ -60,7 +63,7 @@ async def list_reminders(telegram_id: int) -> list[Reminder]:
                 last = datetime.fromisoformat(last)
             setattr(rem, "last_fired_at", last)
             setattr(rem, "fires7d", st["fires7d"] if st else 0)
-            rem.kind = rem.kind or "at_time"
+            rem.kind = rem.kind or ScheduleKind.at_time
             next_ = compute_next(rem, tz)
             setattr(rem, "next_at", next_)
         return reminders_
@@ -83,7 +86,7 @@ async def save_reminder(data: ReminderSchema) -> int:
             cast(Session, session).add(rem)
         if data.orgId is not None:
             rem.org_id = data.orgId
-        rem.type = data.type
+        rem.type = ReminderType(data.type)
         rem.kind = data.kind
         if data.title is not None:
             rem.title = data.title

@@ -1,8 +1,8 @@
-from services.api.app.diabetes.services.db import Reminder
+from services.api.app.diabetes.services.db import Reminder, ReminderType
 
 
 def test_days_of_week_roundtrip() -> None:
-    reminder = Reminder(type="sugar")
+    reminder = Reminder(type=ReminderType.sugar)
     assert reminder.days_mask is None
     assert reminder.daysOfWeek is None
 
