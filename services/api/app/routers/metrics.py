@@ -33,7 +33,7 @@ async def get_onboarding_metrics(
                 """
                 SELECT variant, step, count(*) AS cnt
                 FROM onboarding_events
-                WHERE event_time >= :from AND event_time <= :to
+                WHERE created_at >= :from AND created_at <= :to
                 GROUP BY variant, step
                 """
             ),

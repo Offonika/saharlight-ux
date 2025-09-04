@@ -24,7 +24,7 @@ def setup_db() -> tuple[sessionmaker[Session], datetime]:
         metadata,
         Column("variant", String),
         Column("step", String),
-        Column("event_time", TIMESTAMP(timezone=True)),
+        Column("created_at", TIMESTAMP(timezone=True)),
     )
     metadata.create_all(engine)
     session_local = sessionmaker(bind=engine)
@@ -33,10 +33,10 @@ def setup_db() -> tuple[sessionmaker[Session], datetime]:
         conn.execute(
             events.insert(),
             [
-                {"variant": "A", "step": "start", "event_time": now},
-                {"variant": "A", "step": "step1", "event_time": now},
-                {"variant": "A", "step": "finish", "event_time": now},
-                {"variant": "B", "step": "start", "event_time": now},
+                {"variant": "A", "step": "start", "created_at": now},
+                {"variant": "A", "step": "step1", "created_at": now},
+                {"variant": "A", "step": "finish", "created_at": now},
+                {"variant": "B", "step": "start", "created_at": now},
             ],
         )
     return session_local, now
