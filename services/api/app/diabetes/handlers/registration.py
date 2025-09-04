@@ -153,7 +153,7 @@ def register_handlers(
         gpt_handlers,
         billing_handlers,
     )
-    from .. import learning_handlers
+    from . import learning_handlers
 
     app.add_handler(onboarding_conv)
     app.add_handler(CommandHandlerT("menu", menu_command))

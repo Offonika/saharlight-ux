@@ -31,8 +31,8 @@ from services.api.app.diabetes.handlers import (
     security_handlers,
     reminder_handlers,
     billing_handlers,
+    learning_handlers,
 )
-from services.api.app.diabetes import learning_handlers
 
 
 def test_register_handlers_attaches_expected_handlers(
