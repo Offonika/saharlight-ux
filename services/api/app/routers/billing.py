@@ -269,7 +269,10 @@ async def mock_webhook(
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
+        end_date = datetime.now(timezone.utc) + timedelta(days=30)
+        # keep existing plan, set status and end date only
         sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
+        sub.end_date = end_date
         session.commit()
         log_billing_event(
             session,
@@ -303,7 +306,10 @@ async def admin_mock_webhook(
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
+        end_date = datetime.now(timezone.utc) + timedelta(days=30)
+        # keep existing plan, set status and end date only
         sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
+        sub.end_date = end_date
         session.commit()
         log_billing_event(
             session,
