@@ -25,6 +25,7 @@ def make_profile(telegram_id: int = 1, **overrides: object) -> Profile:
         "grams_per_xe": 12.0,
         "therapy_type": "insulin",
         "insulin_type": "rapid",
+        "glucose_units": "mmol/L",
         "prebolus_min": 15,
         "max_bolus": 10.0,
         "postmeal_check_min": 120,

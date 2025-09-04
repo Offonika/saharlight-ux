@@ -46,6 +46,7 @@ class LocalProfile:
     round_step: float | None = None
     carb_units: str | None = None
     grams_per_xe: float | None = None
+    glucose_units: str | None = None
     therapy_type: str | None = None
     rapid_insulin_type: str | None = None
     prebolus_min: int | None = None
@@ -67,6 +68,7 @@ class LocalProfileSettings:
     round_step: float = 0.5
     carb_units: str = "g"
     grams_per_xe: float = 12.0
+    glucose_units: str = "mmol/L"
 
 
 class LocalProfileAPI:
@@ -98,6 +100,7 @@ class LocalProfileAPI:
                 round_step=profile.round_step,
                 carb_units=profile.carb_units,
                 grams_per_xe=profile.grams_per_xe,
+                glucose_units=profile.glucose_units,
                 therapy_type=profile.therapy_type,
                 rapid_insulin_type=profile.rapid_insulin_type,
                 prebolus_min=profile.prebolus_min,
@@ -130,6 +133,7 @@ class LocalProfileAPI:
                 round_step=prof.round_step,
                 carb_units=prof.carb_units,
                 grams_per_xe=prof.grams_per_xe,
+                glucose_units=prof.glucose_units,
                 therapy_type=prof.therapy_type,
                 rapid_insulin_type=prof.insulin_type,
                 prebolus_min=prof.prebolus_min,
@@ -194,6 +198,7 @@ def save_profile(
     round_step: float | None = None,
     carb_units: str | None = None,
     grams_per_xe: float | None = None,
+    glucose_units: str | None = None,
     therapy_type: str | None = None,
     rapid_insulin_type: str | None = None,
     prebolus_min: int | None = None,
@@ -227,6 +232,8 @@ def save_profile(
         prof.carb_units = carb_units
     if grams_per_xe is not None:
         prof.grams_per_xe = grams_per_xe
+    if glucose_units is not None:
+        prof.glucose_units = glucose_units
     if therapy_type is not None:
         prof.therapy_type = therapy_type
     if rapid_insulin_type is not None:
@@ -272,6 +279,7 @@ def get_profile_settings(session: Session, user_id: int) -> LocalProfileSettings
         round_step=profile.round_step,
         carb_units=profile.carb_units,
         grams_per_xe=profile.grams_per_xe,
+        glucose_units=profile.glucose_units,
     )
 
 
