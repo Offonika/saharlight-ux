@@ -1127,10 +1127,13 @@ async def reminder_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         base_url = (getattr(settings, "ui_base_url", "") or "").strip("/")
         url = f"{origin}/{base_url}/sugar" if base_url else f"{origin}/sugar"
         keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Открыть", web_app=WebAppInfo(url))]])
-        try:
-            await query.message.reply_text("Введите уровень сахара (ммоль/л).", reply_markup=keyboard)
-        except AttributeError:
-            pass
+        if query.message:
+            await query.message.reply_text(
+                "Введите уровень сахара (ммоль/л).",
+                reply_markup=keyboard,
+            )
+        else:
+            await query.answer("Нет сообщения для ответа", show_alert=True)
     else:
         try:
             await query.edit_message_text("❌ Напоминание отменено")
