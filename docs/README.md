@@ -18,6 +18,7 @@ Telegram WebApp. Обёртка `tgFetch` добавляет его автома
 - `METRICS.md` — метрики продукта и бизнеса
 - `QA_Test_Plan.md` — план тестирования
 - `PERSONAS.md` — пользовательские сегменты
+- `learn_mode.md` — описание режима обучения
 - `assets/` — медиафайлы для документации и примеров
 - `deploy/` — примеры конфигураций для развёртывания, например systemd unit
   `diabetes-bot.service` и `diabetes-assistant.service`
