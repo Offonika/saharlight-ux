@@ -3,12 +3,14 @@ from typing import Any, cast
 
 import builtins
 import logging
+ 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from telegram import Update
 from telegram.ext import CallbackContext
 
+from services.api.app.config import Settings
 from services.api.app.diabetes.services.db import Base, User, Profile
 
 
@@ -65,7 +67,7 @@ def test_get_api_falls_back_to_local_client(
     )
 
     with caplog.at_level(logging.WARNING):
-        api, exc, model = get_api()
+        api, exc, model = get_api(settings=Settings(API_URL="http://example.org"))
 
     assert isinstance(api, LocalProfileAPI)
     assert exc is Exception
@@ -87,7 +89,7 @@ def test_get_api_handles_runtime_error(
     )
 
     with caplog.at_level(logging.WARNING):
-        api, exc, model = get_api()
+        api, exc, model = get_api(settings=Settings(API_URL="http://example.org"))
 
     assert isinstance(api, LocalProfileAPI)
     assert exc is Exception
@@ -158,4 +160,26 @@ async def test_profile_command_and_view_without_sdk(
 
     assert msg2.texts and "ИКХ: 8.0 г/ед." in msg2.texts[0]
     assert all("Функции профиля недоступны" not in t for t in msg2.texts)
-    assert "diabetes_sdk is not installed" in caplog.text
+    assert "diabetes_sdk is not installed" not in caplog.text
+
+
+def test_get_api_uses_local_when_no_api_url(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """No warning when API_URL isn't configured."""
+
+    _patch_import(monkeypatch)
+
+    from services.api.app.diabetes.handlers.profile.api import (
+        LocalProfileAPI,
+        LocalProfile,
+        get_api,
+    )
+
+    with caplog.at_level(logging.WARNING):
+        api, exc, model = get_api(settings=Settings())
+
+    assert isinstance(api, LocalProfileAPI)
+    assert exc is Exception
+    assert model is LocalProfile
+    assert "diabetes_sdk is not installed" not in caplog.text
