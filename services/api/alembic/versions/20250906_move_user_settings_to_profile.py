@@ -1,7 +1,7 @@
 """move user settings to profile
 
 Revision ID: 20250906_move_user_settings_to_profile
-Revises: 20250905_add_round_step_carb_units_to_users
+Revises: 20250904_billing_log
 Create Date: 2025-09-06
 """
 
@@ -10,43 +10,75 @@ import sqlalchemy as sa
 
 
 revision = "20250906_move_user_settings_to_profile"
-down_revision = "20250905_add_round_step_carb_units_to_users"
+down_revision = "20250904_billing_log"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("profiles", sa.Column("timezone", sa.String(), nullable=False, server_default="UTC"))
-    op.add_column("profiles", sa.Column("timezone_auto", sa.Boolean(), nullable=False, server_default=sa.true()))
-    op.add_column("profiles", sa.Column("dia", sa.Float(), nullable=False, server_default="4.0"))
-    op.add_column("profiles", sa.Column("round_step", sa.Float(), nullable=False, server_default="0.5"))
-    op.add_column("profiles", sa.Column("carb_units", sa.String(), nullable=False, server_default="g"))
-    op.add_column("profiles", sa.Column("grams_per_xe", sa.Float(), nullable=False, server_default="12.0"))
-    op.add_column("profiles", sa.Column("therapy_type", sa.String(), nullable=False, server_default="insulin"))
-    op.add_column("profiles", sa.Column("glucose_units", sa.String(), nullable=False, server_default="mmol/L"))
+    op.add_column(
+        "profiles",
+        sa.Column("timezone", sa.String(), nullable=False, server_default="UTC"),
+    )
+    op.add_column(
+        "profiles",
+        sa.Column(
+            "timezone_auto", sa.Boolean(), nullable=False, server_default=sa.true()
+        ),
+    )
+    op.add_column(
+        "profiles", sa.Column("dia", sa.Float(), nullable=False, server_default="4.0")
+    )
+    op.add_column(
+        "profiles",
+        sa.Column("round_step", sa.Float(), nullable=False, server_default="0.5"),
+    )
+    op.add_column(
+        "profiles",
+        sa.Column("carb_units", sa.String(), nullable=False, server_default="g"),
+    )
+    op.add_column(
+        "profiles",
+        sa.Column("grams_per_xe", sa.Float(), nullable=False, server_default="12.0"),
+    )
+    op.add_column(
+        "profiles",
+        sa.Column(
+            "therapy_type", sa.String(), nullable=False, server_default="insulin"
+        ),
+    )
+    op.add_column(
+        "profiles",
+        sa.Column(
+            "glucose_units", sa.String(), nullable=False, server_default="mmol/L"
+        ),
+    )
     op.add_column("profiles", sa.Column("insulin_type", sa.String(), nullable=True))
-    op.add_column("profiles", sa.Column("prebolus_min", sa.Integer(), nullable=False, server_default="0"))
-    op.add_column("profiles", sa.Column("max_bolus", sa.Float(), nullable=False, server_default="10.0"))
-    op.add_column("profiles", sa.Column("postmeal_check_min", sa.Integer(), nullable=False, server_default="0"))
+    op.add_column(
+        "profiles",
+        sa.Column("prebolus_min", sa.Integer(), nullable=False, server_default="0"),
+    )
+    op.add_column(
+        "profiles",
+        sa.Column("max_bolus", sa.Float(), nullable=False, server_default="10.0"),
+    )
+    op.add_column(
+        "profiles",
+        sa.Column(
+            "postmeal_check_min", sa.Integer(), nullable=False, server_default="0"
+        ),
+    )
 
     op.execute(
         """
         UPDATE profiles
-        SET timezone = u.timezone,
-            timezone_auto = u.timezone_auto,
-            dia = u.dia,
-            round_step = u.round_step,
-            carb_units = u.carb_units
+        SET timezone_auto = u.timezone_auto
         FROM users AS u
         WHERE profiles.telegram_id = u.telegram_id
-        """
+        """,
     )
 
-    op.drop_column("users", "timezone")
     op.drop_column("users", "timezone_auto")
-    op.drop_column("users", "dia")
-    op.drop_column("users", "round_step")
-    op.drop_column("users", "carb_units")
 
     op.alter_column("profiles", "timezone", server_default=None)
     op.alter_column("profiles", "timezone_auto", server_default=None)
@@ -62,23 +94,20 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.add_column("users", sa.Column("carb_units", sa.String(), nullable=False, server_default="g"))
-    op.add_column("users", sa.Column("round_step", sa.Float(), nullable=False, server_default="0.5"))
-    op.add_column("users", sa.Column("dia", sa.Float(), nullable=False, server_default="4.0"))
-    op.add_column("users", sa.Column("timezone_auto", sa.Boolean(), nullable=False, server_default=sa.true()))
-    op.add_column("users", sa.Column("timezone", sa.String(), nullable=False, server_default="UTC"))
+    op.add_column(
+        "users",
+        sa.Column(
+            "timezone_auto", sa.Boolean(), nullable=False, server_default=sa.true()
+        ),
+    )
 
     op.execute(
         """
         UPDATE users
-        SET timezone = p.timezone,
-            timezone_auto = p.timezone_auto,
-            dia = p.dia,
-            round_step = p.round_step,
-            carb_units = p.carb_units
+        SET timezone_auto = p.timezone_auto
         FROM profiles AS p
         WHERE users.telegram_id = p.telegram_id
-        """
+        """,
     )
 
     op.drop_column("profiles", "postmeal_check_min")
@@ -94,8 +123,4 @@ def downgrade() -> None:
     op.drop_column("profiles", "timezone_auto")
     op.drop_column("profiles", "timezone")
 
-    op.alter_column("users", "carb_units", server_default=None)
-    op.alter_column("users", "round_step", server_default=None)
-    op.alter_column("users", "dia", server_default=None)
     op.alter_column("users", "timezone_auto", server_default=None)
-    op.alter_column("users", "timezone", server_default=None)
