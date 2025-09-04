@@ -4,6 +4,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 revision: str = "20250909_add_subscriptions_table"
 down_revision: Union[str, Sequence[str], None] = (
@@ -14,14 +15,14 @@ down_revision: Union[str, Sequence[str], None] = (
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-plan_enum = sa.Enum(
+plan_enum = postgresql.ENUM(
     "free",
     "pro",
     "family",
     name="subscription_plan",
     create_type=False,
 )
-status_enum = sa.Enum(
+status_enum = postgresql.ENUM(
     "trial",
     "pending",
     "active",
@@ -35,32 +36,8 @@ status_enum = sa.Enum(
 def upgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        op.execute(
-            """
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM pg_type WHERE typname = 'subscription_plan'
-                ) THEN
-                    CREATE TYPE subscription_plan AS ENUM ('free', 'pro', 'family');
-                END IF;
-            END $$;
-            """
-        )
-        op.execute(
-            """
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM pg_type WHERE typname = 'subscription_status'
-                ) THEN
-                    CREATE TYPE subscription_status AS ENUM (
-                        'trial', 'pending', 'active', 'canceled', 'expired'
-                    );
-                END IF;
-            END $$;
-            """
-        )
+        plan_enum.create(bind, checkfirst=True)
+        status_enum.create(bind, checkfirst=True)
     op.create_table(
         "subscriptions",
         sa.Column("id", sa.Integer(), primary_key=True),
