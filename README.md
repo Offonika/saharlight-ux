@@ -33,6 +33,20 @@ cp infra/env/.env.example .env
 ```
 Заполните `.env` своими значениями.
 
+### Установка `diabetes_sdk`
+Для доступа к внешнему API нужен приватный пакет `diabetes_sdk`. 
+Получите доступ у мейнтейнеров и установите его вручную, например:
+
+```bash
+# через приватный репозиторий
+pip install git+https://github.com/Offonika/diabetes_sdk.git
+
+# либо из локальной сборки SDK
+pip install -r libs/py-sdk/requirements.txt
+pip install -e libs/py-sdk
+```
+Если SDK не установлен, функциональность, требующая внешнего API, будет недоступна.
+
 ## Запуск API
 ```bash
 uvicorn services.api.app.main:app --host 0.0.0.0 --port 8000

@@ -1,4 +1,4 @@
-diabetes_sdk
+# diabetes_sdk  # Private SDK, see README for installation instructions
 
 # Optional: use local SDK for development
 # -e ../../libs/py-sdk
