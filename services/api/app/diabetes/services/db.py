@@ -201,7 +201,7 @@ class Profile(Base):
 
 class Entry(Base):
     __tablename__ = "entries"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
 
@@ -223,7 +223,7 @@ class Entry(Base):
 
 class Alert(Base):
     __tablename__ = "alerts"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     sugar: Mapped[Optional[float]] = mapped_column(Float)
@@ -237,7 +237,7 @@ class Alert(Base):
 
 class Reminder(Base):
     __tablename__ = "reminders"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     type: Mapped[str] = mapped_column(String, nullable=False)
@@ -279,7 +279,7 @@ class Reminder(Base):
 
 class ReminderLog(Base):
     __tablename__ = "reminder_logs"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     reminder_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("reminders.id"))
     telegram_id: Mapped[Optional[int]] = mapped_column(
         BigInteger,
@@ -298,7 +298,6 @@ class Timezone(Base):
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
-        index=True,
         sqlite_on_conflict_primary_key="REPLACE",
     )
     tz: Mapped[str] = mapped_column(String, nullable=False)
@@ -364,7 +363,7 @@ class Subscription(Base):
 
 class HistoryRecord(Base):
     __tablename__ = "history_records"
-    id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
     telegram_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False)
     date: Mapped[date] = mapped_column(Date, nullable=False)
     time: Mapped[time] = mapped_column(Time, nullable=False)
