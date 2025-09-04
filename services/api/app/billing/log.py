@@ -8,7 +8,6 @@ from typing import Any
 from sqlalchemy import BigInteger, Integer, TIMESTAMP, Enum as SAEnum, JSON, func
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from ..diabetes.services import repository
 from ..diabetes.services.db import Base
 
 logger = logging.getLogger(__name__)
@@ -49,8 +48,4 @@ def log_billing_event(
 
     log = BillingLog(user_id=user_id, event=event, context=context)
     session.add(log)
-    try:
-        repository.commit(session)
-    except repository.CommitError:  # pragma: no cover - logging only
-        logger.exception("Failed to persist billing event %s for user %s", event.value, user_id)
-        raise
+    session.flush()
