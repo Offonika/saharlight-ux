@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import (
-    HistoryRecord as HistoryRecordDB,
+    Entry as EntryDB,
     SessionLocal,
     run_db,
 )
@@ -17,19 +17,23 @@ async def get_day_stats(
     date: datetime.date | None = None,
     tz: datetime.tzinfo | None = None,
 ) -> DayStats | None:
-    """Return aggregated stats for a given user's day."""
+    """Return aggregated stats for a given user's day.
+
+    Data is calculated from :class:`~diabetes.services.db.Entry` records which
+    store the canonical diary information.
+    """
     day = date or datetime.datetime.now(tz or datetime.timezone.utc).date()
 
     def _query(session: Session) -> DayStats | None:
         avg_sugar, sum_bu, sum_insulin = (
             session.query(
-                func.avg(HistoryRecordDB.sugar),
-                func.sum(HistoryRecordDB.bread_units),
-                func.sum(HistoryRecordDB.insulin),
+                func.avg(EntryDB.sugar_before),
+                func.sum(EntryDB.xe),
+                func.sum(EntryDB.dose),
             )
             .filter(
-                HistoryRecordDB.telegram_id == telegram_id,
-                HistoryRecordDB.date == day,
+                EntryDB.telegram_id == telegram_id,
+                func.date(EntryDB.event_time) == day,
             )
             .one()
         )

@@ -200,6 +200,11 @@ class Profile(Base):
 
 
 class Entry(Base):
+    """Primary diary entry with detailed nutrition information.
+
+    Records created by the bot and used for statistics and reports.
+    """
+
     __tablename__ = "entries"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
@@ -357,6 +362,12 @@ class Subscription(Base):
 
 
 class HistoryRecord(Base):
+    """User-maintained history record for the Web UI.
+
+    Separate from :class:`Entry` to allow manual editing without affecting
+    statistics. Contains overlapping columns but serves a distinct purpose.
+    """
+
     __tablename__ = "history_records"
     id: Mapped[str] = mapped_column(String, primary_key=True)
     telegram_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False)
