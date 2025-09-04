@@ -219,4 +219,4 @@ async def test_resume_from_saved_step() -> None:
 
 
 def test_onboarding_conv_per_message() -> None:
-    assert onboarding.onboarding_conv.per_message is True
+    assert onboarding.onboarding_conv.per_message is False

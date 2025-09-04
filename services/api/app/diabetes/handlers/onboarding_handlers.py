@@ -641,7 +641,6 @@ onboarding_conv = ConversationHandler(
     fallbacks=[
         MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)
     ],
-    per_message=True,
 )
 __all__ = [
     "PROFILE",
