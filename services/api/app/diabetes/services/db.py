@@ -373,6 +373,13 @@ class SubscriptionStatus(str, Enum):
 
 
 class Subscription(Base):
+    """Subscription record for a user.
+
+    Enum types for ``plan`` and ``status`` are created and managed exclusively via
+    Alembic migrations. ``create_type=False`` in column definitions prevents
+    SQLAlchemy from attempting to re-create existing enums at runtime.
+    """
+
     __tablename__ = "subscriptions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -380,10 +387,20 @@ class Subscription(Base):
         BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False
     )
     plan: Mapped[SubscriptionPlan] = mapped_column(
-        sa.Enum(SubscriptionPlan, name="subscription_plan"), nullable=False
+        sa.Enum(
+            SubscriptionPlan,
+            name="subscription_plan",
+            create_type=False,
+        ),
+        nullable=False,
     )
     status: Mapped[SubscriptionStatus] = mapped_column(
-        sa.Enum(SubscriptionStatus, name="subscription_status"), nullable=False
+        sa.Enum(
+            SubscriptionStatus,
+            name="subscription_status",
+            create_type=False,
+        ),
+        nullable=False,
     )
     provider: Mapped[str] = mapped_column(String, nullable=False)
     transaction_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
