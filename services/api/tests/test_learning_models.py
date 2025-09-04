@@ -79,7 +79,12 @@ def test_lesson_progress_crud() -> None:
         session.commit()
 
         progress = LessonProgress(
-            user_id=user.telegram_id, lesson_id=lesson.id, completed=True, quiz_score=80
+            user_id=user.telegram_id,
+            lesson_id=lesson.id,
+            completed=True,
+            current_step=0,
+            current_question=0,
+            quiz_score=80,
         )
         session.add(progress)
         session.commit()
