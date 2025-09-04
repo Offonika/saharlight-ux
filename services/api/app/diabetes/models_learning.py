@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+from typing import Optional, Sequence
+
+import sqlalchemy as sa
+from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .services.db import Base, User
+
+
+class Lesson(Base):
+    __tablename__ = "lessons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+
+    questions: Mapped[list["QuizQuestion"]] = relationship(
+        "QuizQuestion", back_populates="lesson", cascade="all, delete-orphan"
+    )
+    progresses: Mapped[list["LessonProgress"]] = relationship(
+        "LessonProgress", back_populates="lesson", cascade="all, delete-orphan"
+    )
+
+
+class QuizQuestion(Base):
+    __tablename__ = "quiz_questions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    lesson_id: Mapped[int] = mapped_column(
+        ForeignKey("lessons.id"), nullable=False, index=True
+    )
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    options: Mapped[Sequence[str]] = mapped_column(
+        sa.JSON().with_variant(JSONB, "postgresql"), nullable=False
+    )
+    correct_option: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    lesson: Mapped[Lesson] = relationship("Lesson", back_populates="questions")
+
+
+class LessonProgress(Base):
+    __tablename__ = "lesson_progress"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id"), nullable=False, index=True
+    )
+    lesson_id: Mapped[int] = mapped_column(
+        ForeignKey("lessons.id"), nullable=False, index=True
+    )
+    completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    quiz_score: Mapped[Optional[int]] = mapped_column(Integer)
+
+    user: Mapped[User] = relationship("User")
+    lesson: Mapped[Lesson] = relationship("Lesson", back_populates="progresses")
