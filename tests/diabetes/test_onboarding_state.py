@@ -61,3 +61,16 @@ async def test_complete_state_sets_timestamp(session_local: sessionmaker[SASessi
     state = await onboarding_state.load_state(1)
     assert state is not None
     assert state.completed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_mutate_data_in_place(session_local: sessionmaker[SASession]) -> None:
+    await onboarding_state.save_state(1, 1, {"foo": "bar"})
+    with session_local() as session:
+        st = session.get(onboarding_state.OnboardingState, 1)
+        assert st is not None
+        st.data["foo"] = "baz"
+        session.commit()
+    state = await onboarding_state.load_state(1)
+    assert state is not None
+    assert state.data == {"foo": "baz"}
