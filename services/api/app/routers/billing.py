@@ -140,13 +140,13 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
             },
             exc_info=exc,
         )
-        def _get_existing(session: Session) -> Subscription:
-            existing = _get_active_trial(session)
-            if existing is None:
-                raise RuntimeError("trial missing")
-            return existing
+
+        def _get_existing(session: Session) -> Subscription | None:
+            return _get_active_trial(session)
 
         trial = await run_db(_get_existing, sessionmaker=SessionLocal)
+        if trial is None:
+            raise HTTPException(status_code=409, detail="trial already exists")
     if trial is None:
         raise HTTPException(status_code=500, detail="trial retrieval failed")
 
@@ -201,23 +201,33 @@ async def webhook(
 ) -> dict[str, str]:
     """Process provider webhook and activate subscription."""
 
-    ip = request.headers.get("X-Forwarded-For")
-    if ip is None and request.client is not None:
+    ip_header = request.headers.get("X-Forwarded-For")
+    if ip_header is not None:
+        ip = ip_header.split(",")[0].strip()
+    elif request.client is not None:
         ip = request.client.host
+    else:
+        ip = ""
     if not await verify_webhook(settings, event, request.headers, ip):
         raise HTTPException(status_code=400, detail="invalid signature")
 
     now = datetime.now(timezone.utc)
 
     def _activate(session: Session) -> bool:
-        stmt = select(Subscription).where(Subscription.transaction_id == event.transaction_id)
+        stmt = select(Subscription).where(
+            Subscription.transaction_id == event.transaction_id
+        )
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
-        if sub.status == SubscriptionStatus.ACTIVE.value and sub_end is not None and sub_end > now:
+        if (
+            sub.status == SubscriptionStatus.ACTIVE.value
+            and sub_end is not None
+            and sub_end > now
+        ):
             return False
         base = sub_end if sub_end is not None and sub_end > now else now
         sub.plan = event.plan
@@ -310,7 +320,9 @@ async def admin_mock_webhook(
 
 
 @router.get("/status", response_model=BillingStatusResponse)
-async def status(user_id: int, settings: BillingSettings = Depends(get_billing_settings)) -> BillingStatusResponse:
+async def status(
+    user_id: int, settings: BillingSettings = Depends(get_billing_settings)
+) -> BillingStatusResponse:
     """Return billing feature flags and the latest subscription for a user."""
 
     def _get_subscription(session: Session) -> Subscription | None:
@@ -332,5 +344,7 @@ async def status(user_id: int, settings: BillingSettings = Depends(get_billing_s
         return BillingStatusResponse(featureFlags=flags, subscription=None)
     return BillingStatusResponse(
         featureFlags=flags,
-        subscription=SubscriptionSchema.model_validate(subscription, from_attributes=True),
+        subscription=SubscriptionSchema.model_validate(
+            subscription, from_attributes=True
+        ),
     )
