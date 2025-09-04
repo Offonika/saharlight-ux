@@ -90,6 +90,46 @@ async def test_trial_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("payload", [{}, {"endDate": "oops"}, {"endDate": 123}])
+async def test_trial_command_bad_end_date(
+    monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]
+) -> None:
+    monkeypatch.setenv("API_URL", "http://api.test/api")
+    config.reload_settings()
+
+    class DummyClient:
+        async def __aenter__(self) -> "DummyClient":
+            return self
+
+        async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
+            pass
+
+        async def post(
+            self, url: str, params: dict[str, int], timeout: float
+        ) -> httpx.Response:
+            req = httpx.Request("POST", url)
+            return httpx.Response(200, request=req, json=payload)
+
+    monkeypatch.setattr(billing_handlers.httpx, "AsyncClient", lambda: DummyClient())
+
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    await billing_handlers.trial_command(update, context)
+
+    assert message.texts == ["❌ Ошибка сервера: неверный формат даты trial."]
+    monkeypatch.delenv("API_URL")
+    config.reload_settings()
+
+
+@pytest.mark.asyncio
 async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
     config.reload_settings()
