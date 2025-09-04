@@ -37,13 +37,19 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )
         return
 
-    end_raw = data.get("endDate")
     try:
+        end_raw = data["endDate"]
+        if not isinstance(end_raw, str):
+            raise TypeError("endDate must be str")
         end_dt = datetime.fromisoformat(end_raw)
-    except Exception:  # pragma: no cover - defensive
+    except (KeyError, TypeError, ValueError):
         await message.reply_text(
             "❌ Ошибка сервера: неверный формат даты trial."
         )
+        return
+    except Exception:  # pragma: no cover - unexpected
+        logger.exception("unexpected error parsing trial end date")
+        await message.reply_text("❌ Ошибка сервера.")
         return
     end_str = end_dt.strftime("%d.%m.%Y")
     await message.reply_text(f"🎉 Пробный период активирован до {end_str}")
