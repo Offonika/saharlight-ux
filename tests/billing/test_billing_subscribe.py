@@ -44,6 +44,7 @@ def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Ses
         billing_test_mode=True,
         billing_provider="dummy",
         paywall_mode="soft",
+        BILLING_ADMIN_TOKEN="secret",
     )
     client = TestClient(app)
     client.app.dependency_overrides[billing._require_billing_enabled] = lambda: settings
@@ -72,7 +73,10 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "mock-checkout" in data["url"]
 
     with client:
-        webhook = client.post(f"/api/billing/mock-webhook/{data['id']}")
+        webhook = client.post(
+            f"/api/billing/mock-webhook/{data['id']}",
+            headers={"X-Admin-Token": "secret"},
+        )
     assert webhook.status_code == 200
 
     with session_local() as session:
@@ -80,3 +84,16 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
         assert sub is not None
         assert sub.status == SubscriptionStatus.ACTIVE
         assert sub.plan == SubscriptionPlan.PRO
+
+
+def test_mock_webhook_requires_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    client = make_client(monkeypatch, session_local)
+    with client:
+        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
+    assert resp.status_code == 200
+    data = resp.json()
+
+    with client:
+        webhook = client.post(f"/api/billing/mock-webhook/{data['id']}")
+    assert webhook.status_code == 403

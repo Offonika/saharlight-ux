@@ -203,11 +203,7 @@ async def webhook(
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
-        if (
-            sub.status == SubscriptionStatus.ACTIVE.value
-            and sub_end is not None
-            and sub_end > now
-        ):
+        if sub.status == SubscriptionStatus.ACTIVE.value and sub_end is not None and sub_end > now:
             return False
         base = sub_end if sub_end is not None and sub_end > now else now
         sub.plan = event.plan
@@ -234,12 +230,15 @@ async def webhook(
 @router.post("/mock-webhook/{checkout_id}")
 async def mock_webhook(
     checkout_id: str,
+    x_token: str | None = Header(default=None, alias="X-Admin-Token"),
     settings: BillingSettings = Depends(_require_billing_enabled),
 ) -> dict[str, str]:
     """Simulate provider webhook to activate a subscription in test mode."""
 
     if not settings.billing_test_mode:
         raise HTTPException(status_code=403, detail="test mode disabled")
+    if settings.billing_admin_token is None or x_token != settings.billing_admin_token:
+        raise HTTPException(status_code=403, detail="forbidden")
 
     def _activate(session: Session) -> bool:
         stmt = select(Subscription).where(Subscription.transaction_id == checkout_id)
