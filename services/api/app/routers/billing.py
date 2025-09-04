@@ -162,24 +162,29 @@ async def subscribe(
     checkout = await create_checkout(settings, plan.value)
     now = datetime.now(timezone.utc)
 
-    def _create_draft(session: Session) -> None:
+    def _create_subscription(session: Session) -> None:
         stmt = select(Subscription).where(
             Subscription.user_id == user_id,
-            Subscription.status == SubscriptionStatus.PENDING.value,
+            Subscription.status.in_(
+                [
+                    SubscriptionStatus.TRIAL.value,
+                    SubscriptionStatus.ACTIVE.value,
+                ]
+            ),
         )
         if session.scalars(stmt).first() is not None:
             raise HTTPException(status_code=409, detail="subscription already exists")
 
-        draft = Subscription(
+        sub = Subscription(
             user_id=user_id,
             plan=plan,
-            status=cast(SubscriptionStatus, SubscriptionStatus.PENDING.value),
+            status=cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value),
             provider=settings.billing_provider.value,
             transaction_id=checkout["id"],
             start_date=now,
             end_date=None,
         )
-        session.add(draft)
+        session.add(sub)
         log_billing_event(
             session,
             user_id,
@@ -195,7 +200,7 @@ async def subscribe(
         session.commit()
 
     try:
-        await run_db(_create_draft, sessionmaker=SessionLocal)
+        await run_db(_create_subscription, sessionmaker=SessionLocal)
     except IntegrityError as exc:
         raise HTTPException(status_code=409, detail="subscription already exists") from exc
     return CheckoutSchema.model_validate(checkout)

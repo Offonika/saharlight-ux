@@ -28,14 +28,10 @@ def setup_db() -> sessionmaker[Session]:
     return sessionmaker(bind=engine)
 
 
-def make_client(
-    monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
-) -> TestClient:
+def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
     from services.api.app.billing.config import BillingSettings
 
-    async def run_db(
-        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
-    ):
+    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
@@ -151,7 +147,7 @@ def test_status_with_multiple_subscriptions(
     assert data["subscription"]["startDate"].startswith("2024-03-01")
 
 
-def test_status_with_active_and_pending_subscriptions(
+def test_status_with_active_and_trial_subscriptions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session_local = setup_db()
@@ -170,7 +166,7 @@ def test_status_with_active_and_pending_subscriptions(
                 Subscription(
                     user_id=1,
                     plan=SubscriptionPlan.FAMILY,
-                    status=SubscriptionStatus.PENDING,
+                    status=SubscriptionStatus.TRIAL,
                     provider="dummy",
                     transaction_id="t2",
                     start_date=datetime(2024, 4, 1),

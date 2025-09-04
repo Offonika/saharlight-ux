@@ -396,7 +396,6 @@ class Timezone(Base):
 
 class SubscriptionStatus(str, Enum):
     TRIAL = "trial"
-    PENDING = "pending"
     ACTIVE = "active"
     CANCELED = "canceled"
     EXPIRED = "expired"
