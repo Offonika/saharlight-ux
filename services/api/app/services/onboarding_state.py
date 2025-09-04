@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import cast
 
 from sqlalchemy import BigInteger, Integer, String, JSON, TIMESTAMP, func
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from ..diabetes.services.db import Base, SessionLocal, run_db
@@ -19,7 +20,9 @@ class OnboardingState(Base):
 
     user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     step: Mapped[int] = mapped_column(Integer, nullable=False)
-    data: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    data: Mapped[dict[str, object]] = mapped_column(
+        MutableDict.as_mutable(JSON), nullable=False
+    )
     variant: Mapped[str | None] = mapped_column(String)
     completed_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(
@@ -35,10 +38,12 @@ async def save_state(user_id: int, step: int, data: dict[str, object], variant: 
     def _save(session: SessionProtocol) -> None:
         state = cast(OnboardingState | None, session.get(OnboardingState, user_id))
         if state is None:
-            state = OnboardingState(user_id=user_id)
+            state = OnboardingState(user_id=user_id, step=step, data=dict(data))
             cast(Session, session).add(state)
-        state.step = step
-        state.data = dict(data)
+        else:
+            state.step = step
+            state.data.clear()
+            state.data.update(dict(data))
         if variant is not None:
             state.variant = variant
         state.updated_at = datetime.now(timezone.utc)
