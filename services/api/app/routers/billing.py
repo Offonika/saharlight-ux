@@ -174,7 +174,7 @@ async def subscribe(
             user_id=user_id,
             plan=plan,
             status=cast(SubscriptionStatus, SubscriptionStatus.PENDING.value),
-            provider=settings.billing_provider,
+            provider=settings.billing_provider.value,
             transaction_id=checkout["id"],
             start_date=now,
             end_date=None,
@@ -244,9 +244,7 @@ async def webhook(
                     "conflict_transaction_id": conflict.transaction_id,
                 },
             )
-            conflict.status = cast(
-                SubscriptionStatus, SubscriptionStatus.EXPIRED.value
-            )
+            conflict.status = cast(SubscriptionStatus, SubscriptionStatus.EXPIRED.value)
             conflict.end_date = now
 
         sub_end = sub.end_date
@@ -382,7 +380,7 @@ async def status(user_id: int, settings: BillingSettings = Depends(get_billing_s
     subscription = await run_db(_get_subscription, sessionmaker=SessionLocal)
     flags = FeatureFlags(
         billingEnabled=settings.billing_enabled,
-        paywallMode=settings.paywall_mode,
+        paywallMode=settings.paywall_mode.value,
         testMode=settings.billing_test_mode,
     )
     if subscription is None:

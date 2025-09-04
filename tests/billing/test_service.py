@@ -10,14 +10,14 @@ from services.api.app.billing.providers.dummy import DummyBillingProvider
 
 @pytest.mark.asyncio
 async def test_create_payment_unknown_provider() -> None:
-    settings = BillingSettings(BILLING_PROVIDER="other", BILLING_ADMIN_TOKEN="token")
+    settings = BillingSettings(BILLING_PROVIDER="stripe", BILLING_ADMIN_TOKEN="token")
     with pytest.raises(HTTPException):
         await service.create_payment(settings)
 
 
 @pytest.mark.asyncio
 async def test_create_subscription_unknown_provider() -> None:
-    settings = BillingSettings(BILLING_PROVIDER="other", BILLING_ADMIN_TOKEN="token")
+    settings = BillingSettings(BILLING_PROVIDER="stripe", BILLING_ADMIN_TOKEN="token")
     with pytest.raises(HTTPException):
         await service.create_subscription(settings, "pro")
 
