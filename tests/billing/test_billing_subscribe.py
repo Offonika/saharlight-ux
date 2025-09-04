@@ -110,14 +110,10 @@ def test_provider_gets_plan_str(monkeypatch: pytest.MonkeyPatch) -> None:
         captured["plan"] = plan
         return {"id": "test", "url": "https://example.com/mock-checkout"}
 
-    monkeypatch.setattr(
-        DummyBillingProvider, "create_checkout", fake_create_checkout, raising=False
-    )
+    monkeypatch.setattr(DummyBillingProvider, "create_checkout", fake_create_checkout, raising=False)
     client = make_client(monkeypatch, session_local)
     with client:
-        resp = client.post(
-            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
-        )
+        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
     assert resp.status_code == 200
     assert captured["plan"] == "pro"
     assert isinstance(captured["plan"], str)
@@ -127,14 +123,10 @@ def test_subscribe_duplicate(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     with client:
-        first = client.post(
-            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
-        )
+        first = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
     assert first.status_code == 200
     with client:
-        second = client.post(
-            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
-        )
+        second = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
     assert second.status_code == 409
     assert second.json() == {"detail": "subscription already exists"}
     with session_local() as session:
@@ -142,7 +134,7 @@ def test_subscribe_duplicate(monkeypatch: pytest.MonkeyPatch) -> None:
         assert len(subs) == 1
 
 
-def test_subscribe_conflict_with_existing_pending(
+def test_subscribe_conflict_with_existing_active(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     session_local = setup_db()
@@ -151,7 +143,7 @@ def test_subscribe_conflict_with_existing_pending(
             Subscription(
                 user_id=1,
                 plan=SubscriptionPlan.PRO,
-                status=SubscriptionStatus.PENDING,
+                status=SubscriptionStatus.ACTIVE,
                 provider="dummy",
                 transaction_id="existing",
                 start_date=datetime.now(timezone.utc),
@@ -161,8 +153,6 @@ def test_subscribe_conflict_with_existing_pending(
         session.commit()
     client = make_client(monkeypatch, session_local)
     with client:
-        resp = client.post(
-            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
-        )
+        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
     assert resp.status_code == 409
     assert resp.json() == {"detail": "subscription already exists"}

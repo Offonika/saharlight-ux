@@ -36,7 +36,7 @@ async def test_subscription_creation_atomicity() -> None:
             draft = Subscription(
                 user_id=1,
                 plan=SubscriptionPlan.PRO,
-                status=SubscriptionStatus.PENDING,
+                status=SubscriptionStatus.ACTIVE,
                 provider="dummy",
                 transaction_id="tx",
             )
