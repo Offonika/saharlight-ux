@@ -1,8 +1,8 @@
 """change description
 
-Revision ID: 016dca0fbac4
+Revision ID: 20250904_change_description
 Revises: 20250903_add_timezone_auto_to_users
-Create Date: 2025-08-31 10:37:36.590628
+Create Date: 2025-09-04 10:37:36.590628
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '016dca0fbac4'
-down_revision: Union[str, None] = '20250903_add_timezone_auto_to_users'
+revision: str = "20250904_change_description"
+down_revision: Union[str, None] = "20250903_add_timezone_auto_to_users"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
