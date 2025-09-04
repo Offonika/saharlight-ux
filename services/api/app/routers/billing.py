@@ -140,6 +140,7 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
             },
             exc_info=exc,
         )
+
         def _get_existing(session: Session) -> Subscription:
             existing = _get_active_trial(session)
             if existing is None:
@@ -210,14 +211,20 @@ async def webhook(
     now = datetime.now(timezone.utc)
 
     def _activate(session: Session) -> bool:
-        stmt = select(Subscription).where(Subscription.transaction_id == event.transaction_id)
+        stmt = select(Subscription).where(
+            Subscription.transaction_id == event.transaction_id
+        )
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
-        if sub.status == SubscriptionStatus.ACTIVE.value and sub_end is not None and sub_end > now:
+        if (
+            sub.status == SubscriptionStatus.ACTIVE.value
+            and sub_end is not None
+            and sub_end > now
+        ):
             return False
         base = sub_end if sub_end is not None and sub_end > now else now
         sub.plan = event.plan
@@ -259,13 +266,16 @@ async def mock_webhook(
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
+        end_date = datetime.now(timezone.utc) + timedelta(days=30)
+        sub.plan = SubscriptionPlan.PRO
         sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
+        sub.end_date = end_date
         session.commit()
         log_billing_event(
             session,
             sub.user_id,
             BillingEvent.WEBHOOK_OK,
-            {"transaction_id": checkout_id},
+            {"transaction_id": checkout_id, "plan": sub.plan.value},
         )
         return True
 
@@ -293,13 +303,16 @@ async def admin_mock_webhook(
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
+        end_date = datetime.now(timezone.utc) + timedelta(days=30)
+        sub.plan = SubscriptionPlan.PRO
         sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
+        sub.end_date = end_date
         session.commit()
         log_billing_event(
             session,
             sub.user_id,
             BillingEvent.WEBHOOK_OK,
-            {"transaction_id": transaction_id},
+            {"transaction_id": transaction_id, "plan": sub.plan.value},
         )
         return True
 
@@ -310,7 +323,9 @@ async def admin_mock_webhook(
 
 
 @router.get("/status", response_model=BillingStatusResponse)
-async def status(user_id: int, settings: BillingSettings = Depends(get_billing_settings)) -> BillingStatusResponse:
+async def status(
+    user_id: int, settings: BillingSettings = Depends(get_billing_settings)
+) -> BillingStatusResponse:
     """Return billing feature flags and the latest subscription for a user."""
 
     def _get_subscription(session: Session) -> Subscription | None:
@@ -332,5 +347,7 @@ async def status(user_id: int, settings: BillingSettings = Depends(get_billing_s
         return BillingStatusResponse(featureFlags=flags, subscription=None)
     return BillingStatusResponse(
         featureFlags=flags,
-        subscription=SubscriptionSchema.model_validate(subscription, from_attributes=True),
+        subscription=SubscriptionSchema.model_validate(
+            subscription, from_attributes=True
+        ),
     )
