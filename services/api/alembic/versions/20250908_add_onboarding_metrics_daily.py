@@ -4,9 +4,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = "20250908_add_onboarding_metrics_daily"
-down_revision: Union[str, Sequence[str], None] = (
-    "20250906_move_user_settings_to_profile"
-)
+down_revision: Union[str, Sequence[str], None] = "20250907_onboarding_state"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
