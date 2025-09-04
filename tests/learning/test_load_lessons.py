@@ -28,7 +28,8 @@ async def test_load_lessons_v0() -> None:
         await learning_fixtures.load_lessons(path, sessionmaker=db.SessionLocal)
         with db.SessionLocal() as session:
             lessons = session.query(Lesson).all()
-            assert len(lessons) == 3
+            assert len(lessons) == 4
+            assert any(lesson.slug == "xe_basics" for lesson in lessons)
             for lesson in lessons:
                 assert lesson.slug
                 steps = lesson.content.splitlines()
