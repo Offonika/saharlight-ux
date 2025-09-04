@@ -15,12 +15,16 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "lessons",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("title", sa.String(), nullable=False),
-        sa.Column("content", sa.Text(), nullable=False),
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    if not inspector.has_table("lessons"):
+        op.create_table(
+            "lessons",
+            sa.Column("id", sa.Integer(), primary_key=True),
+            sa.Column("title", sa.String(), nullable=False),
+            sa.Column("content", sa.Text(), nullable=False),
+        )
     op.create_table(
         "quiz_questions",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -69,9 +73,29 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_lesson_progress_lesson_id", table_name="lesson_progress")
-    op.drop_index("ix_lesson_progress_user_id", table_name="lesson_progress")
-    op.drop_table("lesson_progress")
-    op.drop_index("ix_quiz_questions_lesson_id", table_name="quiz_questions")
-    op.drop_table("quiz_questions")
-    op.drop_table("lessons")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    if inspector.has_table("lesson_progress"):
+        op.drop_index(
+            "ix_lesson_progress_lesson_id",
+            table_name="lesson_progress",
+            postgresql_if_exists=True,
+        )
+        op.drop_index(
+            "ix_lesson_progress_user_id",
+            table_name="lesson_progress",
+            postgresql_if_exists=True,
+        )
+        op.drop_table("lesson_progress")
+
+    if inspector.has_table("quiz_questions"):
+        op.drop_index(
+            "ix_quiz_questions_lesson_id",
+            table_name="quiz_questions",
+            postgresql_if_exists=True,
+        )
+        op.drop_table("quiz_questions")
+
+    if inspector.has_table("lessons"):
+        op.drop_table("lessons")
