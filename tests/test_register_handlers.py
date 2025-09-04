@@ -32,6 +32,7 @@ from services.api.app.diabetes.handlers import (
     reminder_handlers,
     billing_handlers,
 )
+from services.api.app.diabetes import learning_handlers
 
 
 def test_register_handlers_attaches_expected_handlers(
@@ -77,6 +78,30 @@ def test_register_handlers_attaches_expected_handlers(
     assert security_handlers.hypo_alert_faq in callbacks
     assert billing_handlers.trial_command in callbacks
     assert billing_handlers.upgrade_command in callbacks
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is learning_handlers.lesson_command
+        and "lesson" in h.commands
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is learning_handlers.quiz_command
+        and "quiz" in h.commands
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is learning_handlers.progress_command
+        and "progress" in h.commands
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is learning_handlers.exit_command
+        and "exit" in h.commands
+        for h in handlers
+    )
     # Reminder handlers should be registered
     assert any(
         isinstance(h, CallbackQueryHandler)
