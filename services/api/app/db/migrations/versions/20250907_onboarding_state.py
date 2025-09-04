@@ -12,18 +12,22 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "onboarding_states",
-        sa.Column("user_id", sa.BigInteger(), sa.ForeignKey("users.telegram_id"), primary_key=True),
-        sa.Column("step", sa.String(), nullable=False),
-        sa.Column("data_json", sa.JSON(), nullable=True),
         sa.Column(
-            "started_at",
+            "user_id",
+            sa.BigInteger(),
+            sa.ForeignKey("users.telegram_id"),
+            primary_key=True,
+        ),
+        sa.Column("step", sa.Integer(), nullable=False),
+        sa.Column("data", sa.JSON(), nullable=False),
+        sa.Column("variant", sa.String(), nullable=True),
+        sa.Column("completed_at", sa.TIMESTAMP(timezone=True), nullable=True),
+        sa.Column(
+            "updated_at",
             sa.TIMESTAMP(timezone=True),
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), onupdate=sa.func.now()),
-        sa.Column("completed_at", sa.TIMESTAMP(timezone=True)),
-        sa.Column("variant", sa.String(), nullable=True),
     )
 
 
