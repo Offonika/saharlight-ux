@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+import hashlib
+import hmac
 from typing import Any
 
 import httpx
@@ -18,6 +20,7 @@ from telegram.ext import (
 )
 
 from services.api.app.config import settings
+from services.api.app.billing.config import BillingSettings
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +31,9 @@ class TelegramPaymentsAdapter:
 
     provider_token: str = settings.telegram_payments_provider_token or ""
 
-    async def create_invoice(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def create_invoice(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Send an invoice to the user."""
 
         chat = update.effective_chat
@@ -45,24 +50,58 @@ class TelegramPaymentsAdapter:
             prices=prices,
         )
 
-    async def handle_pre_checkout_query(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def handle_pre_checkout_query(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Confirm pre checkout query."""
 
         query = update.pre_checkout_query
         assert query is not None
         await query.answer(ok=True)
 
-    async def handle_successful_payment(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def handle_successful_payment(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Notify backend about successful payment."""
 
         msg = update.message
         assert msg is not None
         payment = msg.successful_payment
         assert payment is not None
+
         api_url = settings.api_url or "http://localhost:8000"
-        payload = payment.invoice_payload
+        event_id = payment.telegram_payment_charge_id
+        transaction_id = payment.provider_payment_charge_id
+        plan = payment.invoice_payload
+
+        secret = BillingSettings().billing_webhook_secret
+        payload = f"{event_id}:{transaction_id}".encode()
+        if secret:
+            signature = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+        else:
+            signature = payload.decode()
+
+        event = {
+            "event_id": event_id,
+            "transaction_id": transaction_id,
+            "plan": plan,
+            "signature": signature,
+        }
+
         async with httpx.AsyncClient() as client:
-            await client.post(f"{api_url}/billing/webhook", json={"payload": payload})
+            resp = await client.post(
+                f"{api_url}/billing/webhook",
+                json=event,
+                headers={"X-Webhook-Signature": signature},
+            )
+        if resp.status_code != 200:
+            logger.error(
+                "billing webhook %s failed: %s %s",
+                transaction_id,
+                resp.status_code,
+                resp.text,
+            )
+
         await msg.reply_text("✅ Платёж успешно получен")
 
 
@@ -76,4 +115,6 @@ def register_billing_handlers(
         adapter = TelegramPaymentsAdapter()
     app.add_handler(CommandHandler("subscribe", adapter.create_invoice))
     app.add_handler(PreCheckoutQueryHandler(adapter.handle_pre_checkout_query))
-    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, adapter.handle_successful_payment))
+    app.add_handler(
+        MessageHandler(filters.SUCCESSFUL_PAYMENT, adapter.handle_successful_payment)
+    )
