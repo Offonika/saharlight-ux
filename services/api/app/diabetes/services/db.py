@@ -223,12 +223,12 @@ class Entry(Base):
     __tablename__ = "entries"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     telegram_id: Mapped[Optional[int]] = mapped_column(
-        BigInteger, ForeignKey("users.telegram_id")
+        BigInteger, ForeignKey("users.telegram_id"), index=True
     )
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
 
     event_time: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False
+        TIMESTAMP(timezone=True), nullable=False, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now()
