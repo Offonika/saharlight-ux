@@ -261,3 +261,52 @@ def test_webhook_accepts_first_ip(monkeypatch: pytest.MonkeyPatch) -> None:
         )
     assert resp.status_code == 200
     assert resp.json() == {"status": "processed"}
+
+
+def test_webhook_conflict_with_existing_active(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session_local = setup_db()
+    secret = "testsecret"
+    client = make_client(monkeypatch, session_local, BILLING_WEBHOOK_SECRET=secret)
+
+    # first subscription activated
+    checkout1 = create_subscription(client)
+    event_id1 = "evt_active_first"
+    sig1 = _sign(secret, event_id1, checkout1)
+    event1 = {
+        "event_id": event_id1,
+        "transaction_id": checkout1,
+        "plan": "pro",
+        "signature": sig1,
+    }
+    with client:
+        resp1 = client.post(
+            "/api/billing/webhook", json=event1, headers={"X-Webhook-Signature": sig1}
+        )
+    assert resp1.status_code == 200
+
+    # second subscription pending
+    checkout2 = create_subscription(client)
+    event_id2 = "evt_conflict"
+    sig2 = _sign(secret, event_id2, checkout2)
+    event2 = {
+        "event_id": event_id2,
+        "transaction_id": checkout2,
+        "plan": "pro",
+        "signature": sig2,
+    }
+    with client:
+        resp2 = client.post(
+            "/api/billing/webhook", json=event2, headers={"X-Webhook-Signature": sig2}
+        )
+    assert resp2.status_code == 409
+    with session_local() as session:
+        active = session.scalars(
+            select(Subscription).where(
+                Subscription.user_id == 1,
+                Subscription.status == SubscriptionStatus.ACTIVE,
+            )
+        ).all()
+        assert len(active) == 1
+        assert active[0].transaction_id == checkout1
