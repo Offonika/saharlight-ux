@@ -16,6 +16,7 @@ class Lesson(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     questions: Mapped[list["QuizQuestion"]] = relationship(
         "QuizQuestion", back_populates="lesson", cascade="all, delete-orphan"

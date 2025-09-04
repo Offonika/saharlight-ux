@@ -34,6 +34,7 @@ def test_lesson_crud() -> None:
         stored = session.get(Lesson, lesson.id)
         assert stored is not None
         assert stored.title == "Intro"
+        assert stored.is_active is True
 
 
 def test_quiz_question_crud() -> None:
