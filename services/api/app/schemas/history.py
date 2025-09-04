@@ -14,7 +14,12 @@ ALLOWED_HISTORY_TYPES: set[HistoryType] = cast(
 
 
 class HistoryRecordSchema(BaseModel):
-    """Schema for user history records."""
+    """Schema for user-maintained history records in the Web UI.
+
+    These records are stored separately from :class:`~diabetes.services.db.Entry`
+    and do not affect statistics or reporting. They allow manual edits without
+    mutating the canonical diary entries.
+    """
 
     id: str
     date: date

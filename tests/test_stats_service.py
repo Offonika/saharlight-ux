@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session as SASession, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from services.api.app.diabetes.services.db import Base, HistoryRecord, SessionMaker
+from services.api.app.diabetes.services.db import Base, Entry, SessionMaker
 from services.api.app.services import stats
 
 
@@ -34,27 +34,25 @@ async def test_get_day_stats(
     today = datetime.date.today()
     with cast(ContextManager[SASession], session_factory()) as session:
         session.add(
-            HistoryRecord(
-                id="1",
+            Entry(
                 telegram_id=1,
-                date=today,
-                time=datetime.time(8, 0),
-                sugar=5.0,
-                bread_units=1.0,
-                insulin=2.0,
-                type="sugar",
+                event_time=datetime.datetime.combine(
+                    today, datetime.time(8, 0), tzinfo=datetime.timezone.utc
+                ),
+                sugar_before=5.0,
+                xe=1.0,
+                dose=2.0,
             )
         )
         session.add(
-            HistoryRecord(
-                id="2",
+            Entry(
                 telegram_id=1,
-                date=today,
-                time=datetime.time(12, 0),
-                sugar=7.0,
-                bread_units=2.0,
-                insulin=3.0,
-                type="sugar",
+                event_time=datetime.datetime.combine(
+                    today, datetime.time(12, 0), tzinfo=datetime.timezone.utc
+                ),
+                sugar_before=7.0,
+                xe=2.0,
+                dose=3.0,
             )
         )
         session.commit()
@@ -88,15 +86,14 @@ async def test_get_day_stats_tz_ahead(
 
     with cast(ContextManager[SASession], session_factory()) as session:
         session.add(
-            HistoryRecord(
-                id="1",
+            Entry(
                 telegram_id=1,
-                date=day,
-                time=datetime.time(8, 0),
-                sugar=5.0,
-                bread_units=1.0,
-                insulin=2.0,
-                type="sugar",
+                event_time=datetime.datetime.combine(
+                    day, datetime.time(8, 0), tzinfo=datetime.timezone.utc
+                ),
+                sugar_before=5.0,
+                xe=1.0,
+                dose=2.0,
             )
         )
         session.commit()
@@ -128,15 +125,14 @@ async def test_get_day_stats_tz_behind(
 
     with cast(ContextManager[SASession], session_factory()) as session:
         session.add(
-            HistoryRecord(
-                id="1",
+            Entry(
                 telegram_id=1,
-                date=day,
-                time=datetime.time(8, 0),
-                sugar=5.0,
-                bread_units=1.0,
-                insulin=2.0,
-                type="sugar",
+                event_time=datetime.datetime.combine(
+                    day, datetime.time(8, 0), tzinfo=datetime.timezone.utc
+                ),
+                sugar_before=5.0,
+                xe=1.0,
+                dose=2.0,
             )
         )
         session.commit()
