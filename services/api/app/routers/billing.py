@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from psycopg2.errors import InvalidTextRepresentation  # type: ignore[import-untyped]
+from psycopg2.errors import InvalidTextRepresentation
 
 from services.api.app.billing import (
     BillingEvent,
