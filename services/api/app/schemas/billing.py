@@ -11,6 +11,7 @@ class FeatureFlags(BaseModel):
 
     billingEnabled: bool = Field(alias="billingEnabled")
     paywallMode: str = Field(alias="paywallMode")
+    testMode: bool = Field(alias="testMode")
 
     model_config = ConfigDict(populate_by_name=True)
 

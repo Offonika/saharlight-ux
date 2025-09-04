@@ -64,7 +64,11 @@ def test_status_without_subscription(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get("/api/billing/status", params={"user_id": 1})
     assert resp.status_code == 200
     assert resp.json() == {
-        "featureFlags": {"billingEnabled": False, "paywallMode": "soft"},
+        "featureFlags": {
+            "billingEnabled": False,
+            "paywallMode": "soft",
+            "testMode": True,
+        },
         "subscription": None,
     }
 
@@ -90,7 +94,11 @@ def test_status_with_subscription(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get("/api/billing/status", params={"user_id": 1})
     assert resp.status_code == 200
     data = resp.json()
-    assert data["featureFlags"] == {"billingEnabled": False, "paywallMode": "soft"}
+    assert data["featureFlags"] == {
+        "billingEnabled": False,
+        "paywallMode": "soft",
+        "testMode": True,
+    }
     assert data["subscription"]["plan"] == "pro"
     assert data["subscription"]["status"] == "active"
     assert data["subscription"]["provider"] == "dummy"
@@ -132,6 +140,11 @@ def test_status_with_multiple_subscriptions(
         resp = client.get("/api/billing/status", params={"user_id": 1})
     assert resp.status_code == 200
     data = resp.json()
+    assert data["featureFlags"] == {
+        "billingEnabled": False,
+        "paywallMode": "soft",
+        "testMode": True,
+    }
     assert data["subscription"]["plan"] == "family"
     assert data["subscription"]["status"] == "active"
     assert data["subscription"]["startDate"].startswith("2024-03-01")

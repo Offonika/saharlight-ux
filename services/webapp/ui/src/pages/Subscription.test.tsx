@@ -40,7 +40,7 @@ describe('Subscription states', () => {
 
   it('renders trial subscription', async () => {
     await renderPage({
-      featureFlags: { billingEnabled: true, paywallMode: 'soft' },
+      featureFlags: { billingEnabled: true, paywallMode: 'soft', testMode: false },
       subscription: {
         plan: 'pro',
         status: 'trial',
@@ -55,7 +55,7 @@ describe('Subscription states', () => {
 
   it('renders active subscription', async () => {
     await renderPage({
-      featureFlags: { billingEnabled: true, paywallMode: 'soft' },
+      featureFlags: { billingEnabled: true, paywallMode: 'soft', testMode: false },
       subscription: {
         plan: 'pro',
         status: 'active',
@@ -69,7 +69,7 @@ describe('Subscription states', () => {
 
   it('renders expired subscription', async () => {
     await renderPage({
-      featureFlags: { billingEnabled: true, paywallMode: 'soft' },
+      featureFlags: { billingEnabled: true, paywallMode: 'soft', testMode: false },
       subscription: {
         plan: 'pro',
         status: 'expired',
