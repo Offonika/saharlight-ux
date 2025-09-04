@@ -148,7 +148,7 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
 
         trial = await run_db(_get_existing, sessionmaker=SessionLocal)
     if trial is None:
-        raise HTTPException(status_code=500, detail="trial retrieval failed")
+        raise HTTPException(status_code=409, detail="trial already exists")
 
     return SubscriptionSchema.model_validate(trial, from_attributes=True)
 
