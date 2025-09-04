@@ -38,16 +38,18 @@ async def _fetch_active_lessons() -> list[Lesson]:
     return await db.run_db(_query)
 
 
-async def _fetch_progress(user_id: int, lesson_id: int) -> tuple[LessonProgress, Lesson]:
+async def _fetch_progress(
+    user_id: int, lesson_id: int
+) -> tuple[LessonProgress | None, Lesson | None]:
     """Return progress and related lesson for a user."""
 
-    def _query(session: Session) -> tuple[LessonProgress, Lesson]:
+    def _query(session: Session) -> tuple[LessonProgress | None, Lesson | None]:
         progress = (
             session.query(LessonProgress)
             .filter_by(user_id=user_id, lesson_id=lesson_id)
-            .one()
+            .one_or_none()
         )
-        lesson = session.query(Lesson).filter_by(id=lesson_id).one()
+        lesson = session.query(Lesson).filter_by(id=lesson_id).one_or_none()
         return progress, lesson
 
     return await db.run_db(_query)
@@ -96,9 +98,15 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if lesson_slug is None:
             await message.reply_text("Сначала выберите урок командой /learn")
             return
-        progress = await curriculum_engine.start_lesson(user.id, lesson_slug)
-        lesson_id = progress.lesson_id
+        started = await curriculum_engine.start_lesson(user.id, lesson_slug)
+        lesson_id = started.lesson_id
         user_data["lesson_id"] = lesson_id
+    else:
+        lesson_id = int(lesson_id)
+        progress, lesson = await _fetch_progress(user.id, lesson_id)
+        if progress is None or lesson is None:
+            await message.reply_text("Урок не найден")
+            return
     text = await curriculum_engine.next_step(user.id, int(lesson_id))
     if text is None:
         await message.reply_text("Урок завершён")
@@ -153,7 +161,11 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if lesson_id is None:
         await message.reply_text("Урок не выбран")
         return
-    progress, lesson = await _fetch_progress(user.id, int(lesson_id))
+    lesson_id = int(lesson_id)
+    progress, lesson = await _fetch_progress(user.id, lesson_id)
+    if progress is None or lesson is None:
+        await message.reply_text("Урок не найден")
+        return
     score = progress.quiz_score or 0
     await message.reply_text(
         f"Урок: {lesson.title}\nШаг: {progress.current_step}\nБаллы: {score}"
