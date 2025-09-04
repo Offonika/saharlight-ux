@@ -7,6 +7,7 @@ from sqlalchemy.pool import StaticPool
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes.models_learning import (
     Lesson,
+    LessonStep,
     QuizQuestion,
     LessonProgress,
 )
@@ -26,7 +27,14 @@ def setup_db() -> sessionmaker[Session]:
 def test_lesson_crud() -> None:
     SessionLocal = setup_db()
     with SessionLocal() as session:
-        lesson = Lesson(title="Intro", content="Basics")
+        lesson = Lesson(
+            title="Intro",
+            content="Basics",
+            steps=[
+                LessonStep(step_order=1, content="s1"),
+                LessonStep(step_order=2, content="s2"),
+            ],
+        )
         session.add(lesson)
         session.commit()
         session.refresh(lesson)
@@ -35,6 +43,7 @@ def test_lesson_crud() -> None:
         assert stored is not None
         assert stored.title == "Intro"
         assert stored.is_active is True
+        assert [s.content for s in stored.steps] == ["s1", "s2"]
 
 
 def test_quiz_question_crud() -> None:
