@@ -47,6 +47,7 @@ def make_client(
         BILLING_TEST_MODE=True,
         BILLING_PROVIDER="dummy",
         PAYWALL_MODE="soft",
+        _env_file=None,
         **settings_kwargs,
     )
     client = TestClient(app)
