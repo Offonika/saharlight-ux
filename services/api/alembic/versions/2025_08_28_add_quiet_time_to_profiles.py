@@ -10,7 +10,7 @@ from sqlalchemy.engine import Connection
 
 # ID предыдущей и текущей миграции
 revision = '20250828_add_quiet_time'
-down_revision = '1188e4de1729'
+down_revision = '20250825_add_quiet_hours_to_profiles'
 branch_labels = None
 depends_on = None
 

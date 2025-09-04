@@ -1,6 +1,6 @@
 """squashed initial
 
-Revision ID: 02857aa7fc3e
+Revision ID: 20250807_squashed_initial
 Revises:
 Create Date: 2025-08-07 09:15:17.518654
 
@@ -14,7 +14,7 @@ from typing import Any, cast
 
 
 # revision identifiers, used by Alembic.
-revision: str = "02857aa7fc3e"
+revision: str = "20250807_squashed_initial"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

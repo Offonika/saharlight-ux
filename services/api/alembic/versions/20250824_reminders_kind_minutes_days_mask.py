@@ -1,6 +1,6 @@
 """reminders: kind + minutes + days_mask
 
-Revision ID: 8db592ddbe51
+Revision ID: 20250824_reminders_kind_minutes_days_mask
 Revises: 20250820_change_reminder_time_type
 Create Date: 2025-08-24 20:37:49.023280
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '8db592ddbe51'
+revision: str = '20250824_reminders_kind_minutes_days_mask'
 down_revision: Union[str, None] = '20250820_change_reminder_time_type'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

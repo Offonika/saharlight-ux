@@ -36,6 +36,9 @@
 - Доступ к БД — через `services.api.app.diabetes.services.db` (`SessionLocal`, `run_db`, `commit`).
 - Логгер: `logger = logging.getLogger(__name__)`.
 
+### Миграции
+- Файлы Alembic и идентификаторы `revision`/`down_revision` именуем в формате `YYYYMMDD_<описание>` (дата + snake_case).
+
 ### Тест-утилиты
 - Для проверки «нет предупреждения» используйте `tests/utils/warn_ctx.py::warn_or_not(None)` вместо `pytest.warns`.
 - Временный `xfail` допускается только с причиной и TODO-сроком.
