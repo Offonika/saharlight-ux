@@ -327,6 +327,9 @@ class Subscription(Base):
     """
 
     __tablename__ = "subscriptions"
+    __table_args__ = (
+        sa.UniqueConstraint("user_id", "status", name="subscriptions_user_status_key"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False)

@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+import asyncio
 import logging
+from typing import Any, Callable, cast
+
 import pytest
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 from psycopg2.errors import InvalidTextRepresentation
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.exc import IntegrityError
@@ -21,6 +25,10 @@ from services.api.app.diabetes.services.db import (
 from services.api.app.billing.log import BillingEvent, BillingLog
 
 
+def parse_iso(dt: str) -> datetime:
+    return datetime.fromisoformat(dt.replace("Z", "+00:00")).replace(tzinfo=None)
+
+
 # --- helpers -----------------------------------------------------------------
 
 
@@ -31,7 +39,7 @@ def setup_db() -> sessionmaker[Session]:
         poolclass=StaticPool,
     )
     Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
-    return sessionmaker(bind=engine)
+    return sessionmaker(bind=engine, expire_on_commit=False)
 
 
 def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
@@ -82,7 +90,7 @@ def test_trial_creation(monkeypatch: pytest.MonkeyPatch) -> None:
     assert sub["plan"] == "pro"
     assert sub["status"] == SubscriptionStatus.TRIAL.value
     assert sub["provider"] == "trial"
-    assert sub["endDate"] == data["endDate"]
+    assert parse_iso(sub["endDate"]) == parse_iso(data["endDate"])
     count_stmt = select(func.count()).select_from(Subscription)
     log_stmt = (
         select(func.count())
@@ -103,7 +111,11 @@ def test_trial_repeat_call(monkeypatch: pytest.MonkeyPatch) -> None:
         resp1 = client.post("/api/billing/trial", params={"user_id": 1})
         resp2 = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp1.status_code == 200
-    assert resp1.json() == resp2.json()
+    data1 = resp1.json()
+    data2 = resp2.json()
+    assert data1["plan"] == data2["plan"] == "pro"
+    assert data1["status"] == data2["status"] == SubscriptionStatus.TRIAL.value
+    assert parse_iso(data1["endDate"]) == parse_iso(data2["endDate"])
     count_stmt = select(func.count()).select_from(Subscription)
     log_stmt = (
         select(func.count())
@@ -127,8 +139,10 @@ def test_trial_integrity_error(
     async def run_db_err(*_args: object, **_kwargs: object) -> None:
         if calls["n"] == 0:
             calls["n"] += 1
-            return None
-        raise IntegrityError("", {"user_id": 1, "status": "trial", "plan": "pro"}, None)
+            raise IntegrityError(
+                "", {"user_id": 1, "status": "trial", "plan": "pro"}, None
+            )
+        return None
 
     monkeypatch.setattr(billing, "run_db", run_db_err, raising=False)
     with caplog.at_level(logging.WARNING):
@@ -154,8 +168,8 @@ def test_trial_invalid_enum(
     async def run_db_err(*_args: object, **_kwargs: object) -> None:
         if calls["n"] == 0:
             calls["n"] += 1
-            return None
-        raise InvalidTextRepresentation("invalid enum")
+            raise InvalidTextRepresentation("invalid enum")
+        return None
 
     monkeypatch.setattr(billing, "run_db", run_db_err, raising=False)
     with caplog.at_level(logging.WARNING):
@@ -169,3 +183,54 @@ def test_trial_invalid_enum(
     assert record.status == SubscriptionStatus.TRIAL.value
     assert record.plan == SubscriptionPlan.PRO.value
     assert record.params is None
+
+
+@pytest.mark.asyncio
+async def test_trial_parallel_requests(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+
+    from services.api.app.billing.config import BillingSettings
+
+    async def run_db(
+        fn: Callable[..., Any],
+        *args: Any,
+        sessionmaker: sessionmaker[Session] = session_local,
+        **kwargs: Any,
+    ) -> Any:
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(billing, "run_db", run_db, raising=False)
+    monkeypatch.setattr(billing, "SessionLocal", session_local, raising=False)
+    monkeypatch.setattr(
+        billing,
+        "get_billing_settings",
+        lambda: BillingSettings(
+            billing_enabled=False,
+            billing_test_mode=True,
+            billing_provider="dummy",
+            paywall_mode="soft",
+        ),
+        raising=False,
+    )
+
+    from services.api.app.main import app
+
+    async with AsyncClient(
+        transport=ASGITransport(app=cast(Any, app)), base_url="http://test"
+    ) as ac:
+        resp1, resp2 = await asyncio.gather(
+            ac.post("/api/billing/trial", params={"user_id": 1}),
+            ac.post("/api/billing/trial", params={"user_id": 1}),
+        )
+
+    assert resp1.status_code == 200
+    data1 = resp1.json()
+    data2 = resp2.json()
+    assert data1["plan"] == data2["plan"] == "pro"
+    assert data1["status"] == data2["status"] == SubscriptionStatus.TRIAL.value
+    assert parse_iso(data1["endDate"]) == parse_iso(data2["endDate"])
+    count_stmt = select(func.count()).select_from(Subscription)
+    with session_local() as session:
+        count = session.scalar(count_stmt)
+    assert count == 1
