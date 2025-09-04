@@ -20,6 +20,18 @@ def test_real_provider_requires_admin_token(monkeypatch) -> None:
         BillingSettings(_env_file=None)
 
 
+def test_invalid_billing_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("BILLING_PROVIDER", raising=False)
+    with pytest.raises(ValidationError):
+        BillingSettings(BILLING_PROVIDER="unknown", _env_file=None)
+
+
+def test_invalid_paywall_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("PAYWALL_MODE", raising=False)
+    with pytest.raises(ValidationError):
+        BillingSettings(PAYWALL_MODE="invalid", _env_file=None)
+
+
 def test_webhook_ips_empty(monkeypatch) -> None:
     monkeypatch.delenv("BILLING_WEBHOOK_IPS", raising=False)
     settings = BillingSettings(_env_file=None)
