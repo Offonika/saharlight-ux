@@ -7,7 +7,7 @@ import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
 
-import services.api.app.diabetes.handlers.common_handlers as handlers
+import services.api.app.diabetes.handlers.learning_handlers as handlers
 from services.api.app.config import Settings
 
 
@@ -41,7 +41,9 @@ async def test_learn_command_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """With flag enabled the command should return training info."""
 
     monkeypatch.setattr(
-        handlers, "settings", Settings(LEARNING_ENABLED="1", _env_file=None)
+        handlers,
+        "settings",
+        Settings(LEARNING_ENABLED="1", LEARNING_COMMAND_MODEL="test-model", _env_file=None),
     )
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
@@ -52,4 +54,4 @@ async def test_learn_command_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await handlers.learn_command(update, context)
 
-    assert message.replies == ["📘 Учебный режим активен."]
+    assert message.replies == ["🤖 Учебный режим активирован. Модель: test-model"]

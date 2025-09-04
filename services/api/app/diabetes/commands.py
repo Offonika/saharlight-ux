@@ -6,7 +6,7 @@ from typing import cast
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from .handlers.learn_handlers import learn_command
+from .handlers.learning_handlers import learn_command
 from .handlers.onboarding_handlers import (
     reset_onboarding as _reset_onboarding,
 )
