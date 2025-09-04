@@ -84,6 +84,13 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start)
     monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next)
+    progress = SimpleNamespace(current_step=1, quiz_score=0)
+    lesson = SimpleNamespace(title="L1")
+
+    async def fake_fetch(user_id: int, lesson_id: int) -> tuple[Any, Any]:
+        return progress, lesson
+
+    monkeypatch.setattr(learning_handlers, "_fetch_progress", fake_fetch)
 
     upd = make_update()
     ctx = make_context(args=["l1"])
@@ -145,6 +152,36 @@ async def test_progress(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "L1" in msg.replies[0]
     assert "2" in msg.replies[0]
     assert "50" in msg.replies[0]
+
+
+@pytest.mark.asyncio
+async def test_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+
+    async def fake_fetch(user_id: int, lesson_id: int) -> tuple[Any | None, Any | None]:
+        return None, None
+
+    monkeypatch.setattr(learning_handlers, "_fetch_progress", fake_fetch)
+    upd = make_update()
+    ctx = make_context(user_data={"lesson_id": 1})
+    await learning_handlers.lesson_command(upd, ctx)
+    msg = cast(DummyMessage, upd.message)
+    assert msg.replies == ["Урок не найден"]
+
+
+@pytest.mark.asyncio
+async def test_progress_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+
+    async def fake_fetch(user_id: int, lesson_id: int) -> tuple[Any | None, Any | None]:
+        return None, None
+
+    monkeypatch.setattr(learning_handlers, "_fetch_progress", fake_fetch)
+    upd = make_update()
+    ctx = make_context(user_data={"lesson_id": 1})
+    await learning_handlers.progress_command(upd, ctx)
+    msg = cast(DummyMessage, upd.message)
+    assert msg.replies == ["Урок не найден"]
 
 
 @pytest.mark.asyncio
