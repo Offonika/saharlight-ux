@@ -40,9 +40,9 @@ def test_lesson_crud() -> None:
         session.commit()
         session.refresh(lesson)
 
-        stored = session.get(Lesson, lesson.id)
-        assert stored is not None
+        stored = session.query(Lesson).filter_by(slug="intro").one()
         assert stored.title == "Intro"
+        assert stored.slug == "intro"
         assert stored.is_active is True
         assert [s.content for s in stored.steps] == ["s1", "s2"]
 
