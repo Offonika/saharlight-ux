@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     openai_command_model: str = Field(
         default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL"
     )
+    learning_mode_enabled: bool = Field(default=True, alias="LEARNING_MODE_ENABLED")
+    learning_model_default: str = Field(
+        default="gpt-4o-mini", alias="LEARNING_MODEL_DEFAULT"
+    )
+    learning_prompt_cache: bool = Field(default=True, alias="LEARNING_PROMPT_CACHE")
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
     onboarding_video_url: Optional[str] = Field(
