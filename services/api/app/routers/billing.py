@@ -164,7 +164,7 @@ async def subscribe(
 ) -> CheckoutSchema:
     """Initiate a subscription and return checkout details."""
 
-    checkout = await create_checkout(settings, plan)
+    checkout = await create_checkout(settings, plan.value)
     now = datetime.now(timezone.utc)
 
     def _create_draft(session: Session) -> None:

@@ -7,6 +7,7 @@ from sqlalchemy.pool import StaticPool
 import pytest
 
 from services.api.app.billing import reload_billing_settings
+from services.api.app.billing.providers.dummy import DummyBillingProvider
 from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
@@ -97,3 +98,24 @@ def test_mock_webhook_requires_token(monkeypatch: pytest.MonkeyPatch) -> None:
     with client:
         webhook = client.post(f"/api/billing/mock-webhook/{data['id']}")
     assert webhook.status_code == 403
+
+
+def test_provider_gets_plan_str(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    captured: dict[str, object] = {}
+
+    async def fake_create_checkout(self, plan: str) -> dict[str, str]:
+        captured["plan"] = plan
+        return {"id": "test", "url": "https://example.com/mock-checkout"}
+
+    monkeypatch.setattr(
+        DummyBillingProvider, "create_checkout", fake_create_checkout, raising=False
+    )
+    client = make_client(monkeypatch, session_local)
+    with client:
+        resp = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
+    assert resp.status_code == 200
+    assert captured["plan"] == "pro"
+    assert isinstance(captured["plan"], str)
