@@ -2,14 +2,45 @@
 
 from __future__ import annotations
 
-from pydantic import Field, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from ipaddress import ip_address
+from typing import Any
+
+from pydantic import Field, IPvAnyAddress, field_validator, model_validator
+from pydantic_settings import (
+    BaseSettings,
+    EnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
+
+
+class CommaSeparatedEnvSettingsSource(EnvSettingsSource):
+    def decode_complex_value(
+        self, field_name: str, field: Any, value: str
+    ) -> str:
+        return value
 
 
 class BillingSettings(BaseSettings):
     """Runtime billing configuration."""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (
+            init_settings,
+            CommaSeparatedEnvSettingsSource(settings_cls),
+            dotenv_settings,
+            file_secret_settings,
+        )
 
     billing_enabled: bool = Field(default=False, alias="BILLING_ENABLED")
     billing_test_mode: bool = Field(default=True, alias="BILLING_TEST_MODE")
@@ -19,8 +50,8 @@ class BillingSettings(BaseSettings):
     billing_webhook_secret: str | None = Field(
         default=None, alias="BILLING_WEBHOOK_SECRET"
     )
-    billing_webhook_ips_raw: str = Field(
-        default="", alias="BILLING_WEBHOOK_IPS"
+    billing_webhook_ips: list[IPvAnyAddress] = Field(
+        default_factory=list, alias="BILLING_WEBHOOK_IPS"
     )
     billing_webhook_timeout: float = Field(default=5.0, alias="BILLING_WEBHOOK_TIMEOUT")
 
@@ -31,12 +62,15 @@ class BillingSettings(BaseSettings):
             raise ValueError("BILLING_ADMIN_TOKEN is required for non-dummy providers")
         return self
 
-    @property
-    def billing_webhook_ips(self) -> list[str]:
-        """List of allowed source IPs for billing webhooks."""
-        return [
-            ip.strip() for ip in self.billing_webhook_ips_raw.split(",") if ip.strip()
-        ]
+    @field_validator("billing_webhook_ips", mode="before")
+    @classmethod
+    def _parse_webhook_ips(
+        cls, value: str | list[str] | list[IPvAnyAddress]
+    ) -> list[IPvAnyAddress]:
+        """Split comma-separated IPs and parse each entry."""
+        if isinstance(value, str):
+            value = [v.strip() for v in value.split(",") if v.strip()]
+        return [ip_address(v) for v in value]
 
 
 billing_settings = BillingSettings()

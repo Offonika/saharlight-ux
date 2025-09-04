@@ -6,6 +6,7 @@ import asyncio
 import hmac
 import logging
 from collections.abc import Mapping
+from ipaddress import ip_address
 
 from fastapi import HTTPException
 
@@ -44,7 +45,7 @@ async def verify_webhook(
 ) -> bool:
     """Verify webhook payload using the configured provider."""
 
-    if settings.billing_webhook_ips and ip not in settings.billing_webhook_ips:
+    if settings.billing_webhook_ips and ip_address(ip) not in settings.billing_webhook_ips:
         return False
     if not hmac.compare_digest(
         headers.get("X-Webhook-Signature") or "", event.signature

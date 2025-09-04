@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
+from pydantic import IPvAnyAddress, ValidationError
 
 from services.api.app.billing.config import BillingSettings
 
@@ -29,10 +29,19 @@ def test_webhook_ips_empty(monkeypatch) -> None:
 def test_webhook_ips_parsing(monkeypatch) -> None:
     monkeypatch.setenv("BILLING_WEBHOOK_IPS", "1.2.3.4,5.6.7.8")
     settings = BillingSettings()
-    assert settings.billing_webhook_ips == ["1.2.3.4", "5.6.7.8"]
+    assert settings.billing_webhook_ips == [
+        IPvAnyAddress("1.2.3.4"),
+        IPvAnyAddress("5.6.7.8"),
+    ]
 
 
 def test_webhook_ips_from_env(monkeypatch) -> None:
     monkeypatch.setenv("BILLING_WEBHOOK_IPS", "9.9.9.9")
     settings = BillingSettings(_env_file=None)
-    assert settings.billing_webhook_ips == ["9.9.9.9"]
+    assert settings.billing_webhook_ips == [IPvAnyAddress("9.9.9.9")]
+
+
+def test_webhook_ips_invalid(monkeypatch) -> None:
+    monkeypatch.setenv("BILLING_WEBHOOK_IPS", "1.2.3.4,invalid")
+    with pytest.raises(ValidationError):
+        BillingSettings()
