@@ -151,9 +151,9 @@ def register_handlers(
         photo_handlers,
         sugar_handlers,
         gpt_handlers,
-        learn_handlers,
         billing_handlers,
     )
+    from .. import learning_handlers
 
     app.add_handler(onboarding_conv)
     app.add_handler(CommandHandlerT("menu", menu_command))
@@ -167,7 +167,10 @@ def register_handlers(
     app.add_handler(sos_handlers.sos_contact_conv)
     app.add_handler(CommandHandlerT("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandlerT("help", help_command))
-    app.add_handler(CommandHandlerT("learn", learn_handlers.learn_command))
+    app.add_handler(CommandHandlerT("lesson", learning_handlers.lesson_command))
+    app.add_handler(CommandHandlerT("quiz", learning_handlers.quiz_command))
+    app.add_handler(CommandHandlerT("progress", learning_handlers.progress_command))
+    app.add_handler(CommandHandlerT("exit", learning_handlers.exit_command))
     app.add_handler(CommandHandlerT("gpt", gpt_handlers.chat_with_gpt))
     app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
     app.add_handler(CommandHandlerT("upgrade", billing_handlers.upgrade_command))

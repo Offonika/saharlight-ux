@@ -6,7 +6,6 @@ from typing import cast
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from .handlers.learn_handlers import learn_command
 from .handlers.onboarding_handlers import (
     reset_onboarding as _reset_onboarding,
 )
@@ -18,7 +17,6 @@ HELP_TEXT = "\n".join(
         "Доступные команды:",
         "/start - начать работу с ботом",
         "/help - краткая справка",
-        "/learn - режим обучения",
         "/reset_onboarding - сбросить мастер настройки",
         "",
         "Для работы с WebApp откройте меню и выберите нужную кнопку.",
@@ -54,4 +52,4 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     )
 
 
-__all__ = ["help_command", "reset_onboarding", "learn_command"]
+__all__ = ["help_command", "reset_onboarding"]
