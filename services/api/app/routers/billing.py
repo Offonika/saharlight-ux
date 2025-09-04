@@ -343,6 +343,22 @@ async def status(user_id: int, settings: BillingSettings = Depends(get_billing_s
     """Return billing feature flags and the latest subscription for a user."""
 
     def _get_subscription(session: Session) -> Subscription | None:
+        for status in (
+            SubscriptionStatus.ACTIVE.value,
+            SubscriptionStatus.TRIAL.value,
+        ):
+            stmt = (
+                select(Subscription)
+                .where(
+                    Subscription.user_id == user_id,
+                    Subscription.status == status,
+                )
+                .order_by(Subscription.start_date.desc())
+                .limit(1)
+            )
+            sub = session.scalars(stmt).first()
+            if sub is not None:
+                return sub
         stmt = (
             select(Subscription)
             .where(Subscription.user_id == user_id)

@@ -148,3 +148,42 @@ def test_status_with_multiple_subscriptions(
     assert data["subscription"]["plan"] == "family"
     assert data["subscription"]["status"] == "active"
     assert data["subscription"]["startDate"].startswith("2024-03-01")
+
+
+def test_status_with_active_and_pending_subscriptions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session_local = setup_db()
+    with session_local() as session:
+        session.add_all(
+            [
+                Subscription(
+                    user_id=1,
+                    plan=SubscriptionPlan.PRO,
+                    status=SubscriptionStatus.ACTIVE,
+                    provider="dummy",
+                    transaction_id="t1",
+                    start_date=datetime(2024, 1, 1),
+                    end_date=None,
+                ),
+                Subscription(
+                    user_id=1,
+                    plan=SubscriptionPlan.FAMILY,
+                    status=SubscriptionStatus.PENDING,
+                    provider="dummy",
+                    transaction_id="t2",
+                    start_date=datetime(2024, 4, 1),
+                    end_date=None,
+                ),
+            ]
+        )
+        session.commit()
+
+    client = make_client(monkeypatch, session_local)
+    with client:
+        resp = client.get("/api/billing/status", params={"user_id": 1})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["subscription"]["status"] == "active"
+    assert data["subscription"]["plan"] == "pro"
+    assert data["subscription"]["startDate"].startswith("2024-01-01")
