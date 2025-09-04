@@ -19,6 +19,7 @@ from openai.types.beta.threads import (
 )
 
 from services.api.app import config
+from services.api.app.diabetes.llm_router import LLMRouter, LLMTask
 from services.api.app.diabetes.utils.openai_utils import (
     get_async_openai_client,
     get_openai_client,
@@ -36,6 +37,8 @@ _client_lock = threading.Lock()
 
 _async_client: AsyncOpenAI | None = None
 _async_client_lock: asyncio.Lock | None = None
+
+_learning_router = LLMRouter()
 
 
 def _get_client() -> OpenAI:
@@ -94,6 +97,25 @@ async def create_chat_completion(
         max_tokens=max_tokens,
         timeout=timeout,
         stream=False,
+    )
+
+
+async def create_learning_chat_completion(
+    *,
+    task: LLMTask,
+    messages: Iterable[ChatCompletionMessageParam],
+    temperature: float | None = None,
+    max_tokens: int | None = None,
+    timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+) -> ChatCompletion:
+    """Create a chat completion for learning tasks using the model router."""
+    model = _learning_router.choose_model(task)
+    return await create_chat_completion(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        timeout=timeout,
     )
 
 
