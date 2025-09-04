@@ -8,7 +8,7 @@ from uuid import uuid4
 from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -220,6 +220,12 @@ async def webhook(
 
     now = datetime.now(timezone.utc)
 
+    class ActiveSubscriptionExistsError(Exception):
+        def __init__(self, user_id: int, transaction_id: str) -> None:
+            self.user_id = user_id
+            self.transaction_id = transaction_id
+            super().__init__("active subscription exists")
+
     def _activate(session: Session) -> bool:
         stmt = select(Subscription).where(
             Subscription.transaction_id == event.transaction_id
@@ -227,6 +233,15 @@ async def webhook(
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
+        existing_stmt = select(Subscription).where(
+            Subscription.user_id == sub.user_id,
+            Subscription.status == SubscriptionStatus.ACTIVE.value,
+            Subscription.id != sub.id,
+            or_(Subscription.end_date.is_(None), Subscription.end_date > now),
+        )
+        existing = session.scalars(existing_stmt).first()
+        if existing is not None:
+            raise ActiveSubscriptionExistsError(sub.user_id, existing.transaction_id)
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
@@ -252,7 +267,17 @@ async def webhook(
         session.commit()
         return True
 
-    updated = await run_db(_activate, sessionmaker=SessionLocal)
+    try:
+        updated = await run_db(_activate, sessionmaker=SessionLocal)
+    except ActiveSubscriptionExistsError as exc:
+        logger.warning(
+            "active subscription conflict",
+            extra={"user_id": exc.user_id, "transaction_id": exc.transaction_id},
+            exc_info=exc,
+        )
+        raise HTTPException(
+            status_code=409, detail="active subscription exists"
+        ) from exc
     status = "processed" if updated else "ignored"
     logger.info("webhook %s %s", event.transaction_id, status)
     return {"status": status}

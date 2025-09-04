@@ -261,3 +261,56 @@ def test_webhook_accepts_first_ip(monkeypatch: pytest.MonkeyPatch) -> None:
         )
     assert resp.status_code == 200
     assert resp.json() == {"status": "processed"}
+
+
+def test_webhook_second_payment_conflict(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    session_local = setup_db()
+    secret = "testsecret"
+    client = make_client(monkeypatch, session_local, BILLING_WEBHOOK_SECRET=secret)
+
+    checkout1 = create_subscription(client)
+    sig1 = _sign(secret, "evt_first", checkout1)
+    event1 = {
+        "event_id": "evt_first",
+        "transaction_id": checkout1,
+        "plan": "pro",
+        "signature": sig1,
+    }
+    with client:
+        client.post(
+            "/api/billing/webhook",
+            json=event1,
+            headers={"X-Webhook-Signature": sig1},
+        )
+
+    checkout2 = create_subscription(client)
+    sig2 = _sign(secret, "evt_second", checkout2)
+    event2 = {
+        "event_id": "evt_second",
+        "transaction_id": checkout2,
+        "plan": "pro",
+        "signature": sig2,
+    }
+    caplog.set_level(logging.WARNING)
+    with client:
+        resp = client.post(
+            "/api/billing/webhook",
+            json=event2,
+            headers={"X-Webhook-Signature": sig2},
+        )
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "active subscription exists"
+    assert any(
+        "active subscription conflict" in r.getMessage() for r in caplog.records
+    )
+    with session_local() as session:
+        first = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout1)
+        )
+        second = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout2)
+        )
+        assert first is not None and first.status == SubscriptionStatus.ACTIVE
+        assert second is not None and second.status == SubscriptionStatus.PENDING
