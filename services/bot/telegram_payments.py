@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import logging
-from dataclasses import dataclass
 import hashlib
 import hmac
+import logging
+from dataclasses import dataclass
+from functools import partial
 from typing import Any
 
 import httpx
@@ -31,9 +32,7 @@ class TelegramPaymentsAdapter:
 
     provider_token: str = settings.telegram_payments_provider_token or ""
 
-    async def create_invoice(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ) -> None:
+    async def create_invoice(self, update: Update, context: ContextTypes.DEFAULT_TYPE, plan: str) -> None:
         """Send an invoice to the user."""
 
         chat = update.effective_chat
@@ -44,24 +43,20 @@ class TelegramPaymentsAdapter:
             chat_id=chat_id,
             title="Subscription",
             description="Monthly subscription",
-            payload="subscription",
+            payload=plan,
             provider_token=self.provider_token,
             currency="RUB",
             prices=prices,
         )
 
-    async def handle_pre_checkout_query(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ) -> None:
+    async def handle_pre_checkout_query(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Confirm pre checkout query."""
 
         query = update.pre_checkout_query
         assert query is not None
         await query.answer(ok=True)
 
-    async def handle_successful_payment(
-        self, update: Update, context: ContextTypes.DEFAULT_TYPE
-    ) -> None:
+    async def handle_successful_payment(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Notify backend about successful payment."""
 
         msg = update.message
@@ -113,8 +108,6 @@ def register_billing_handlers(
 
     if adapter is None:
         adapter = TelegramPaymentsAdapter()
-    app.add_handler(CommandHandler("subscribe", adapter.create_invoice))
+    app.add_handler(CommandHandler("subscribe", partial(adapter.create_invoice, plan="pro")))
     app.add_handler(PreCheckoutQueryHandler(adapter.handle_pre_checkout_query))
-    app.add_handler(
-        MessageHandler(filters.SUCCESSFUL_PAYMENT, adapter.handle_successful_payment)
-    )
+    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, adapter.handle_successful_payment))

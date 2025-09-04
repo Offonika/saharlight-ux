@@ -20,9 +20,10 @@ async def test_create_invoice(monkeypatch: pytest.MonkeyPatch) -> None:
     chat = SimpleNamespace(id=1)
     update = SimpleNamespace(effective_chat=chat)
 
-    await adapter.create_invoice(update, context)
+    await adapter.create_invoice(update, context, plan="pro")
 
     bot.send_invoice.assert_called_once()
+    assert bot.send_invoice.call_args.kwargs["payload"] == "pro"
 
 
 @pytest.mark.asyncio
