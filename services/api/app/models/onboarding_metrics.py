@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from sqlalchemy import Date, Integer, String, TIMESTAMP, func
+from sqlalchemy import Date, Integer, String, TIMESTAMP, func, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from services.api.app.diabetes.services.db import Base
@@ -20,6 +20,15 @@ class OnboardingMetricEvent(Base):
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
     )
 
+    __table_args__ = (
+        Index(
+            "ix_onboarding_events_metrics_variant_step_created_at",
+            "variant",
+            "step",
+            "created_at",
+        ),
+    )
+
 
 class OnboardingMetricDaily(Base):
     """Aggregated onboarding metrics per day."""
@@ -30,6 +39,15 @@ class OnboardingMetricDaily(Base):
     variant: Mapped[str] = mapped_column(String, primary_key=True)
     step: Mapped[str] = mapped_column(String, primary_key=True)
     count: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    __table_args__ = (
+        Index(
+            "ix_onboarding_metrics_daily_date_variant_step",
+            "date",
+            "variant",
+            "step",
+        ),
+    )
 
 
 __all__ = ["OnboardingMetricEvent", "OnboardingMetricDaily"]
