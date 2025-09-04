@@ -53,6 +53,15 @@ except ImportError:
     )
     from app.diabetes.services.db import Base  # type: ignore
 
+# Ensure models are imported so Alembic's autogenerate can discover them
+try:
+    import services.api.app.diabetes.models  # noqa: F401
+except ImportError:
+    logger.info(
+        "services.api.app.diabetes.models not found; falling back to app.diabetes.models"
+    )
+    import app.diabetes.models  # type: ignore  # noqa: F401
+
 target_metadata = Base.metadata
 
 
