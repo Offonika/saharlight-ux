@@ -33,7 +33,8 @@ def test_entry_indexes_usage() -> None:
     SessionLocal = setup_db()
 
     with SessionLocal() as session:
-        session.add(db.User(telegram_id=1))
+        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.flush()
         session.add(db.Entry(telegram_id=1, event_time=datetime.utcnow()))
         session.commit()
 

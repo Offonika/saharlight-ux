@@ -22,6 +22,7 @@ def test_log_billing_event_persists() -> None:
     session_local = _session_local()
     with session_local() as session:
         log_billing_event(session, 1, BillingEvent.INIT, {"foo": "bar"})
+        session.commit()
     with session_local() as session:
         logs = session.scalars(select(BillingLog)).all()
         assert len(logs) == 1

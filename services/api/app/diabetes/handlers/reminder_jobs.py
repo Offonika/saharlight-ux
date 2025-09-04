@@ -75,14 +75,16 @@ def schedule_reminder(
             kind = ScheduleKind.every
         else:
             kind = ScheduleKind.at_time
+    elif isinstance(kind, str):
+        kind = ScheduleKind(kind)
     assert kind is not None
 
-    name = f"{base_name}_after" if kind is ScheduleKind.after_event else base_name
+    name = f"{base_name}_after" if kind == ScheduleKind.after_event else base_name
 
     logger.info(
         "PLAN %s kind=%s time=%s interval_min=%s after_min=%s tz=%s",
         name,
-        kind,
+        kind.value,
         rem.time,
         interval_minutes,
         rem.minutes_after,
@@ -99,10 +101,10 @@ def schedule_reminder(
     call_job_kwargs = dict(job_kwargs)
     call_job_kwargs.pop("name", None)
 
-    if kind is ScheduleKind.after_event:
-        logger.info("SKIP %s kind=%s", name, kind)
+    if kind == ScheduleKind.after_event:
+        logger.info("SKIP %s kind=%s", name, kind.value)
         return
-    if kind is ScheduleKind.at_time and rem.time is not None:
+    if kind == ScheduleKind.at_time and rem.time is not None:
         run_daily_sig = inspect.signature(job_queue.run_daily)
         run_daily_fn = cast(Any, job_queue.run_daily)
         run_daily_kwargs: dict[str, object] = {
@@ -127,12 +129,12 @@ def schedule_reminder(
             run_daily_kwargs["time"] = rem.time.replace(tzinfo=tz)
 
         run_daily_fn(reminder_job, **run_daily_kwargs)
-    elif kind == "every" and interval_minutes is not None:
+    elif kind == ScheduleKind.every and interval_minutes is not None:
         if interval_minutes <= 0:
             logger.warning(
                 "SKIP %s kind=%s interval_min=%s",
                 name,
-                kind,
+                kind.value,
                 interval_minutes,
             )
             return
@@ -153,7 +155,7 @@ def schedule_reminder(
             or getattr(job, "when", None)
             or getattr(job, "run_time", None)
         )
-    logger.info("SET %s kind=%s next_run=%s", name, kind, next_run)
+    logger.info("SET %s kind=%s next_run=%s", name, kind.value, next_run)
 
 
 __all__ = ["DefaultJobQueue", "schedule_reminder"]
