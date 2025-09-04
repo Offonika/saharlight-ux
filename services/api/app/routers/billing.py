@@ -103,7 +103,6 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
             BillingEvent.INIT,
             {"plan": SubscriptionPlan.PRO.value, "source": "trial"},
         )
-        session.flush()
         return trial
 
     def _get_or_create(session: Session) -> Subscription:
@@ -175,7 +174,6 @@ async def subscribe(
             end_date=None,
         )
         session.add(draft)
-        session.commit()
         log_billing_event(
             session,
             user_id,
@@ -188,6 +186,7 @@ async def subscribe(
             BillingEvent.CHECKOUT_CREATED,
             {"plan": plan.value, "checkout_id": checkout["id"]},
         )
+        session.commit()
 
     await run_db(_create_draft, sessionmaker=SessionLocal)
     return CheckoutSchema.model_validate(checkout)
@@ -233,7 +232,6 @@ async def webhook(
         sub.plan = event.plan
         sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
         sub.end_date = base + timedelta(days=30)
-        session.commit()
         log_billing_event(
             session,
             sub.user_id,
@@ -243,6 +241,7 @@ async def webhook(
                 "plan": event.plan,
             },
         )
+        session.commit()
         return True
 
     updated = await run_db(_activate, sessionmaker=SessionLocal)
@@ -270,13 +269,13 @@ async def mock_webhook(
         if sub is None:
             return False
         sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
-        session.commit()
         log_billing_event(
             session,
             sub.user_id,
             BillingEvent.WEBHOOK_OK,
             {"transaction_id": checkout_id},
         )
+        session.commit()
         return True
 
     updated = await run_db(_activate, sessionmaker=SessionLocal)
@@ -304,13 +303,13 @@ async def admin_mock_webhook(
         if sub is None:
             return False
         sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
-        session.commit()
         log_billing_event(
             session,
             sub.user_id,
             BillingEvent.WEBHOOK_OK,
             {"transaction_id": transaction_id},
         )
+        session.commit()
         return True
 
     updated = await run_db(_activate, sessionmaker=SessionLocal)
