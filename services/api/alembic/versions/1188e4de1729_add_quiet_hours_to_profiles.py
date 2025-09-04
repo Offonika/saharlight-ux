@@ -29,8 +29,8 @@ def upgrade() -> None:
             sa.Column(
                 "quiet_start",
                 sa.Time(),
-                nullable=True,
-                server_default=sa.text("'23:00'"),
+                nullable=False,
+                server_default=sa.text("'23:00:00'"),
             ),
         )
     if "quiet_end" not in columns:
@@ -39,8 +39,8 @@ def upgrade() -> None:
             sa.Column(
                 "quiet_end",
                 sa.Time(),
-                nullable=True,
-                server_default=sa.text("'07:00'"),
+                nullable=False,
+                server_default=sa.text("'07:00:00'"),
             ),
         )
 

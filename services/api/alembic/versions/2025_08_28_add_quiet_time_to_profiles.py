@@ -24,19 +24,57 @@ def column_exists(conn: Connection, table_name: str, column_name: str) -> bool:
 def upgrade() -> None:
     bind: Connection = op.get_bind()
     
-    if not column_exists(bind, "profiles", "quiet_start"):
+    if column_exists(bind, "profiles", "quiet_start"):
+        op.alter_column(
+            "profiles",
+            "quiet_start",
+            existing_type=sa.Time(),
+            nullable=False,
+            server_default=sa.text("'23:00:00'"),
+        )
+    else:
         op.add_column(
             "profiles",
-            sa.Column("quiet_start", sa.Time(), nullable=False, server_default="23:00:00"),
+            sa.Column(
+                "quiet_start",
+                sa.Time(),
+                nullable=False,
+                server_default=sa.text("'23:00:00'"),
+            ),
         )
 
-    if not column_exists(bind, "profiles", "quiet_end"):
+    if column_exists(bind, "profiles", "quiet_end"):
+        op.alter_column(
+            "profiles",
+            "quiet_end",
+            existing_type=sa.Time(),
+            nullable=False,
+            server_default=sa.text("'07:00:00'"),
+        )
+    else:
         op.add_column(
             "profiles",
-            sa.Column("quiet_end", sa.Time(), nullable=False, server_default="07:00:00"),
+            sa.Column(
+                "quiet_end",
+                sa.Time(),
+                nullable=False,
+                server_default=sa.text("'07:00:00'"),
+            ),
         )
 
 
 def downgrade() -> None:
-    op.drop_column("profiles", "quiet_end")
-    op.drop_column("profiles", "quiet_start")
+    op.alter_column(
+        "profiles",
+        "quiet_end",
+        existing_type=sa.Time(),
+        nullable=True,
+        server_default=sa.text("'07:00'"),
+    )
+    op.alter_column(
+        "profiles",
+        "quiet_start",
+        existing_type=sa.Time(),
+        nullable=True,
+        server_default=sa.text("'23:00'"),
+    )
