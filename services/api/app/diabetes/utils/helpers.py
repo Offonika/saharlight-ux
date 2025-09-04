@@ -112,8 +112,12 @@ def split_text_by_width(
     Разбивает строку так, чтобы она не выходила за max_width_mm по ширине в PDF (мм).
 
     Raises:
-        ValueError: если ``font_name`` не зарегистрирован в ReportLab.
+        ValueError: если ``font_name`` не зарегистрирован в ReportLab или
+            ``font_size``/``max_width_mm`` неположительны.
     """
+    if font_size <= 0 or max_width_mm <= 0:
+        raise ValueError("font_size and max_width_mm must be positive")
+
     words = text.split()
     lines: list[str] = []
     current_line = ""
