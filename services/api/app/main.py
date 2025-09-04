@@ -347,6 +347,7 @@ async def delete_history(
 
 # ────────── include router ──────────
 app.include_router(internal_reminders_router)
+app.include_router(metrics.router)
 app.include_router(api_router, prefix="/api")
 
 # ────────── run (for local testing) ──────────

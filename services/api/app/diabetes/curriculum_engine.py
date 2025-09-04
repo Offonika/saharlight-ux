@@ -12,6 +12,7 @@ from .learning_prompts import (
     disclaimer,
 )
 from .llm_router import LLMTask
+from .metrics import lessons_completed, lessons_started, quiz_avg_score
 from .models_learning import Lesson, LessonProgress, LessonStep, QuizQuestion
 from .services import db, gpt_client
 from .services.repository import commit
@@ -48,7 +49,9 @@ async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
         session.refresh(progress)
         return progress
 
-    return await db.run_db(_start)
+    progress = await db.run_db(_start)
+    lessons_started.inc()
+    return progress
 
 
 async def next_step(user_id: int, lesson_id: int) -> str | None:
@@ -143,7 +146,7 @@ async def check_answer(
 ) -> tuple[bool, str]:
     """Check user's answer to current quiz question and return feedback."""
 
-    def _check(session: Session) -> tuple[bool, str, int]:
+    def _check(session: Session) -> tuple[bool, str, int, bool, int | None]:
         progress = (
             session.query(LessonProgress)
             .filter_by(user_id=user_id, lesson_id=lesson_id)
@@ -167,10 +170,17 @@ async def check_answer(
         if progress.current_question >= len(questions):
             progress.completed = True
             progress.quiz_score = int(100 * score / len(questions))
+        completed = progress.completed
+        final_score = progress.quiz_score
         commit(session)
-        return correct, explanation, question_idx
+        return correct, explanation, question_idx, completed, final_score
 
-    correct, explanation, question_idx = await db.run_db(_check)
+    correct, explanation, question_idx, completed, final_score = await db.run_db(
+        _check
+    )
+    if completed and final_score is not None:
+        lessons_completed.inc()
+        quiz_avg_score.observe(float(final_score))
     start = time.monotonic()
     message = await gpt_client.create_learning_chat_completion(
         task=LLMTask.QUIZ_CHECK,
