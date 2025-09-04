@@ -119,3 +119,22 @@ def test_provider_gets_plan_str(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resp.status_code == 200
     assert captured["plan"] == "pro"
     assert isinstance(captured["plan"], str)
+
+
+def test_subscribe_duplicate(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    client = make_client(monkeypatch, session_local)
+    with client:
+        first = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
+    assert first.status_code == 200
+    with client:
+        second = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
+    assert second.status_code == 409
+    assert second.json() == {"detail": "subscription already exists"}
+    with session_local() as session:
+        subs = session.scalars(select(Subscription)).all()
+        assert len(subs) == 1
