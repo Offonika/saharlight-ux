@@ -28,12 +28,18 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
+    Base.metadata.create_all(
+        engine, tables=[Subscription.__table__, BillingLog.__table__]
+    )
     return sessionmaker(bind=engine)
 
 
-def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
-    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
+def make_client(
+    monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
+) -> TestClient:
+    async def run_db(
+        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
+    ):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
@@ -58,7 +64,9 @@ def test_subscribe_billing_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("BILLING_ENABLED", "false")
     reload_billing_settings()
     with TestClient(app) as client:
-        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
+        resp = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
     assert resp.status_code == 503
 
 
@@ -66,7 +74,9 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     with client:
-        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
+        resp = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
     assert resp.status_code == 200
     data = resp.json()
     assert set(data) == {"id", "url"}
@@ -80,7 +90,9 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     assert webhook.status_code == 200
 
     with session_local() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == data["id"]))
+        sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == data["id"])
+        )
         assert sub is not None
         assert sub.status == SubscriptionStatus.ACTIVE
         assert sub.plan == SubscriptionPlan.PRO
@@ -90,10 +102,34 @@ def test_mock_webhook_requires_token(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     with client:
-        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
+        resp = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
     assert resp.status_code == 200
     data = resp.json()
 
     with client:
         webhook = client.post(f"/api/billing/mock-webhook/{data['id']}")
     assert webhook.status_code == 403
+
+
+def test_subscribe_duplicate(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    client = make_client(monkeypatch, session_local)
+
+    with client:
+        resp1 = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
+    assert resp1.status_code == 200
+
+    with client:
+        resp2 = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
+    assert resp2.status_code == 409
+    assert resp2.json() == {"detail": "subscription already exists"}
+
+    with session_local() as session:
+        subs = session.scalars(select(Subscription)).all()
+        assert len(subs) == 1

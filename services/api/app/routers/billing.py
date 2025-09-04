@@ -192,7 +192,24 @@ async def subscribe(
             {"plan": plan.value, "checkout_id": checkout["id"]},
         )
 
-    await run_db(_create_draft, sessionmaker=SessionLocal)
+    try:
+        await run_db(_create_draft, sessionmaker=SessionLocal)
+    except IntegrityError as exc:
+        logger.warning(
+            "subscription draft creation failed",
+            extra={
+                "user_id": user_id,
+                "status": SubscriptionStatus.PENDING.value,
+                "plan": plan.value,
+                "provider": settings.billing_provider,
+                "transaction_id": checkout["id"],
+                "params": getattr(exc, "params", None),
+            },
+            exc_info=exc,
+        )
+        raise HTTPException(
+            status_code=409, detail="subscription already exists"
+        ) from exc
     return CheckoutSchema.model_validate(checkout)
 
 
