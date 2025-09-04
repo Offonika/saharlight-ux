@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from psycopg2.errors import InvalidTextRepresentation
+from psycopg2.errors import InvalidTextRepresentation  # type: ignore[import-untyped]
 
 from services.api.app.billing import (
     BillingEvent,
@@ -67,7 +67,9 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
 
     now = datetime.now(timezone.utc)
 
-    def _get_active_trial(session: Session) -> Subscription | None:
+    def _get_active_trial(
+        session: Session, *, for_update: bool = False
+    ) -> Subscription | None:
         stmt = (
             select(Subscription)
             .where(
@@ -79,11 +81,9 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
             .order_by(Subscription.start_date.desc())
             .limit(1)
         )
+        if for_update:
+            stmt = stmt.with_for_update()
         return session.scalars(stmt).first()
-
-    trial = await run_db(_get_active_trial, sessionmaker=SessionLocal)
-    if trial is not None:
-        return SubscriptionSchema.model_validate(trial, from_attributes=True)
 
     def _create_trial(session: Session) -> Subscription:
         start = now
@@ -97,19 +97,25 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
             end_date=start + timedelta(days=14),
         )
         session.add(trial)
-        session.commit()
-        session.refresh(trial)
         log_billing_event(
             session,
             user_id,
             BillingEvent.INIT,
             {"plan": SubscriptionPlan.PRO.value, "source": "trial"},
         )
-        session.refresh(trial)
+        session.flush()
         return trial
 
+    def _get_or_create(session: Session) -> Subscription:
+        with session.begin():
+            trial = _get_active_trial(session, for_update=True)
+            if trial is not None:
+                return trial
+            return _create_trial(session)
+
+    trial: Subscription | None
     try:
-        trial = await run_db(_create_trial, sessionmaker=SessionLocal)
+        trial = await run_db(_get_or_create, sessionmaker=SessionLocal)
     except InvalidTextRepresentation as exc:
         params = getattr(exc, "params", None)
         logger.warning(
@@ -134,7 +140,15 @@ async def start_trial(user_id: int) -> SubscriptionSchema:
             },
             exc_info=exc,
         )
-        raise HTTPException(status_code=409, detail="trial already exists") from exc
+        def _get_existing(session: Session) -> Subscription:
+            existing = _get_active_trial(session)
+            if existing is None:
+                raise RuntimeError("trial missing")
+            return existing
+
+        trial = await run_db(_get_existing, sessionmaker=SessionLocal)
+    if trial is None:
+        raise HTTPException(status_code=500, detail="trial retrieval failed")
 
     return SubscriptionSchema.model_validate(trial, from_attributes=True)
 
