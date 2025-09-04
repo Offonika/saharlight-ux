@@ -14,15 +14,29 @@ ALLOWED_HISTORY_TYPES: set[HistoryType] = cast(
 
 
 class HistoryRecordSchema(BaseModel):
-    """Schema for user history records."""
+    """Public API schema for :class:`~services.api.app.diabetes.services.db.HistoryRecord`.
+
+    The web application uses this lightweight structure to display a user's
+    history of measurements, meals and insulin doses. It intentionally mirrors
+    only a subset of the fields stored in :class:`Entry` and omits Telegram
+    specific metadata such as photos or macronutrients.
+    """
 
     id: str
     date: date
     time: str = Field(pattern=r"^\d{2}:\d{2}$")
-    sugar: Optional[float] = None
-    carbs: Optional[float] = None
-    breadUnits: Optional[float] = None
-    insulin: Optional[float] = None
+    sugar: Optional[float] = Field(
+        default=None, description="Blood glucose level before the event"
+    )
+    carbs: Optional[float] = Field(
+        default=None, description="Consumed carbohydrates in grams"
+    )
+    breadUnits: Optional[float] = Field(
+        default=None, description="Carbohydrates converted to bread units (XE)"
+    )
+    insulin: Optional[float] = Field(
+        default=None, description="Injected insulin dose in units"
+    )
     notes: Optional[str] = None
     type: HistoryType
 

@@ -200,6 +200,13 @@ class Profile(Base):
 
 
 class Entry(Base):
+    """Full diary entry recorded from the Telegram bot.
+
+    Stores detailed nutritional information, pre-meal sugar and insulin dose.
+    Separate from :class:`HistoryRecord` which keeps a simplified user history
+    for the public API and web interface.
+    """
+
     __tablename__ = "entries"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
@@ -363,6 +370,12 @@ class Subscription(Base):
 
 
 class HistoryRecord(Base):
+    """Simplified history item exposed via the public API and web app.
+
+    Represents sugar measurements, meals or insulin injections without the
+    extra metadata kept in :class:`Entry` (photos, macronutrients, etc.).
+    """
+
     __tablename__ = "history_records"
     id: Mapped[str] = mapped_column(String, primary_key=True, index=True)
     telegram_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False)
