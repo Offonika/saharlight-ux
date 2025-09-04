@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from itertools import count
 from typing import Any, cast
 
 import pytest
@@ -10,7 +11,7 @@ from telegram import InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
 from services.api.app.config import settings
-from services.api.app.diabetes import learning_handlers
+from services.api.app.diabetes.handlers import learning_handlers
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.models_learning import Lesson, QuizQuestion
 from services.api.app.diabetes.services import db, gpt_client
@@ -66,7 +67,8 @@ async def test_handler_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         slug = lesson.slug
         lesson_id = lesson.id
 
-    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_enabled", True)
+    monkeypatch.setattr(settings, "learning_command_model", "test-model")
 
     async def fake_completion(**kwargs: object) -> str:
         fake_completion.calls += 1
@@ -74,14 +76,14 @@ async def test_handler_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     fake_completion.calls = 0  # type: ignore[attr-defined]
     monkeypatch.setattr(gpt_client, "create_learning_chat_completion", fake_completion)
+    times = count(0, 10)
+    monkeypatch.setattr(learning_handlers.time, "monotonic", lambda: next(times))
 
     ctx = make_context()
     upd = make_update()
     await learning_handlers.learn_command(upd, ctx)
     msg = cast(DummyMessage, upd.message)
-    assert msg.reply_markup is not None
-    button = msg.reply_markup.inline_keyboard[0][0]
-    assert button.callback_data == slug
+    assert "Учебный режим активирован" in msg.replies[0]
 
     ctx.args = [slug]
     upd = make_update()

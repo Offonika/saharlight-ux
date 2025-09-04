@@ -1,3 +1,4 @@
+from itertools import count
 from types import SimpleNamespace
 from typing import Any, cast
 
@@ -6,7 +7,7 @@ from telegram import InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
 from services.api.app.config import settings
-from services.api.app.diabetes import learning_handlers
+from services.api.app.diabetes.handlers import learning_handlers
 
 
 class DummyMessage:
@@ -34,42 +35,33 @@ def make_context(**kwargs: Any) -> CallbackContext[Any, Any, Any, Any]:
 
 @pytest.mark.asyncio
 async def test_disabled_commands(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "learning_mode_enabled", False)
+    monkeypatch.setattr(settings, "learning_enabled", False)
     for handler in [
         learning_handlers.learn_command,
         learning_handlers.lesson_command,
         learning_handlers.quiz_command,
-        learning_handlers.progress_command,
-        learning_handlers.exit_command,
     ]:
         upd = make_update()
         ctx = make_context()
         await handler(upd, ctx)
         msg = cast(DummyMessage, upd.message)
-        assert msg.replies == [learning_handlers.DISABLED_TEXT]
+        assert msg.replies == ["🚫 Обучение недоступно."]
 
 
 @pytest.mark.asyncio
-async def test_learn_lists_lessons(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "learning_mode_enabled", True)
-    lessons = [SimpleNamespace(title=f"L{i}", slug=f"l{i}") for i in range(1, 4)]
-
-    async def fake_run_db(fn: Any, *a: Any, **kw: Any) -> list[Any]:
-        return lessons
-
-    monkeypatch.setattr(learning_handlers.db, "run_db", fake_run_db)
+async def test_learn_shows_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_enabled", True)
+    monkeypatch.setattr(settings, "learning_command_model", "demo-model")
     upd = make_update()
     ctx = make_context()
     await learning_handlers.learn_command(upd, ctx)
     msg = cast(DummyMessage, upd.message)
-    assert msg.reply_markup is not None
-    buttons = [b.text for row in msg.reply_markup.inline_keyboard for b in row]
-    assert buttons == ["L1", "L2", "L3"]
+    assert msg.replies == ["🤖 Учебный режим активирован. Модель: demo-model"]
 
 
 @pytest.mark.asyncio
 async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_enabled", True)
     calls: list[str] = []
 
     async def fake_start(user_id: int, slug: str) -> SimpleNamespace:
@@ -84,6 +76,8 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start)
     monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next)
+    times = count(0, 10)
+    monkeypatch.setattr(learning_handlers.time, "monotonic", lambda: next(times))
 
     upd = make_update()
     ctx = make_context(args=["l1"])
@@ -103,7 +97,7 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_quiz(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_enabled", True)
     questions = iter(["Q1", None])
 
     async def fake_next(user_id: int, lesson_id: int) -> str | None:
@@ -130,14 +124,13 @@ async def test_quiz(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_progress(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "learning_mode_enabled", True)
-    progress = SimpleNamespace(current_step=2, quiz_score=50)
-    lesson = SimpleNamespace(title="L1")
+    monkeypatch.setattr(settings, "learning_enabled", True)
+    async def fake_run_db(
+        fn: Any, *a: Any, **kw: Any
+    ) -> tuple[str, int, bool, int]:
+        return ("L1", 2, False, 50)
 
-    async def fake_run_db(fn: Any, *a: Any, **kw: Any) -> tuple[Any, Any]:
-        return progress, lesson
-
-    monkeypatch.setattr(learning_handlers.db, "run_db", fake_run_db)
+    monkeypatch.setattr(learning_handlers, "run_db", fake_run_db)
     upd = make_update()
     ctx = make_context(user_data={"lesson_id": 1})
     await learning_handlers.progress_command(upd, ctx)
@@ -149,10 +142,14 @@ async def test_progress(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_exit(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_enabled", True)
+    async def fake_run_db_exit(*args: Any, **kwargs: Any) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "run_db", fake_run_db_exit)
     upd = make_update()
     ctx = make_context(user_data={"lesson_id": 1})
     await learning_handlers.exit_command(upd, ctx)
     msg = cast(DummyMessage, upd.message)
-    assert msg.replies == ["Вы вышли из учебного режима"]
+    assert msg.replies == ["Учебная сессия завершена."]
     assert ctx.user_data == {}
