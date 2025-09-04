@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     openai_command_model: str = Field(
         default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL"
     )
+    api_key_min_length: int = Field(
+        default=32, alias="API_KEY_MIN_LENGTH"
+    )
     learning_mode_enabled: bool = Field(default=True, alias="LEARNING_MODE_ENABLED")
     learning_model_default: str = Field(
         default="gpt-4o-mini", alias="LEARNING_MODEL_DEFAULT"
