@@ -444,6 +444,7 @@ async def test_parse_command_propagates_unexpected_exception(
     [
         "sk-" + "A1b2_" * 8 + "Z9",
         "ghp_" + "A1b2" * 9 + "Cd",
+        "sk-" + "A1b2" * 7 + "C",
     ],
 )
 def test_sanitize_masks_api_like_tokens(token: Any) -> None:
@@ -467,6 +468,12 @@ def test_sanitize_masks_multiple_tokens() -> None:
         gpt_command_parser._sanitize_sensitive_data(text)
         == "[REDACTED] middle [REDACTED]"
     )
+
+
+def test_sanitize_leaves_short_api_like_token() -> None:
+    token = "sk-" + "A1b2" * 7
+    text = f"before {token} after"
+    assert gpt_command_parser._sanitize_sensitive_data(text) == text
 
 
 def test_extract_first_json_array_single_object() -> None:

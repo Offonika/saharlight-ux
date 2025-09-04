@@ -55,11 +55,13 @@ SYSTEM_PROMPT = (
 )
 
 
+API_KEY_MIN_LENGTH = config.get_settings().api_key_min_length
+
 API_KEY_RE = re.compile(
     r"\b(?=[A-Za-z0-9_-]*[a-z])"
     r"(?=[A-Za-z0-9_-]*[A-Z])"
     r"(?=[A-Za-z0-9_-]*\d)"
-    r"[A-Za-z0-9_-]{40,}\b"
+    rf"[A-Za-z0-9_-]{{{API_KEY_MIN_LENGTH},}}\b"
 )
 
 
