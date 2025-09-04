@@ -1,0 +1,77 @@
+[
+  {
+    "title": "Basics of Diabetes",
+    "steps": [
+      "Diabetes is a condition that affects how your body uses blood glucose.",
+      "Monitor your blood sugar daily to keep levels in check.",
+      "Contact your healthcare provider for unusual readings."
+    ],
+    "quiz": [
+      {
+        "question": "What is diabetes primarily related to?",
+        "options": ["Blood glucose", "Blood pressure", "Cholesterol"],
+        "answer": 0
+      },
+      {
+        "question": "How often should you check your blood sugar?",
+        "options": ["Never", "Once a week", "Regularly as advised"],
+        "answer": 2
+      },
+      {
+        "question": "Who should you contact for treatment advice?",
+        "options": ["Internet forums", "Your healthcare provider", "No one"],
+        "answer": 1
+      }
+    ]
+  },
+  {
+    "title": "Insulin Usage",
+    "steps": [
+      "Store insulin in a cool place.",
+      "Use clean syringes for each injection.",
+      "Rotate injection sites to avoid skin issues."
+    ],
+    "quiz": [
+      {
+        "question": "Where should insulin be stored?",
+        "options": ["Hot car", "Cool place", "Sunlight"],
+        "answer": 1
+      },
+      {
+        "question": "What should be clean for each injection?",
+        "options": ["Syringes", "Hands", "Shoes"],
+        "answer": 0
+      },
+      {
+        "question": "Why rotate injection sites?",
+        "options": ["To avoid skin issues", "For fun", "No reason"],
+        "answer": 0
+      }
+    ]
+  },
+  {
+    "title": "Healthy Eating",
+    "steps": [
+      "Include vegetables in every meal.",
+      "Limit sugary drinks.",
+      "Balance carbohydrates, proteins, and fats."
+    ],
+    "quiz": [
+      {
+        "question": "What should be limited?",
+        "options": ["Sugary drinks", "Water", "Vegetables"],
+        "answer": 0
+      },
+      {
+        "question": "What should meals include?",
+        "options": ["Only carbs", "Vegetables", "Only fats"],
+        "answer": 1
+      },
+      {
+        "question": "How to balance diet?",
+        "options": ["Skip meals", "Balance carbs, proteins, and fats", "Eat only sweets"],
+        "answer": 1
+      }
+    ]
+  }
+]
