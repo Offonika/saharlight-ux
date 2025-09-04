@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import cast
 
-from sqlalchemy import BigInteger, Integer, String, JSON, TIMESTAMP, func
+from sqlalchemy import BigInteger, Integer, String, JSON, TIMESTAMP, func, ForeignKey
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from ..diabetes.services.db import Base, SessionLocal, run_db
@@ -17,7 +17,11 @@ logger = logging.getLogger(__name__)
 class OnboardingState(Base):
     __tablename__ = "onboarding_states"
 
-    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
     step: Mapped[int] = mapped_column(Integer, nullable=False)
     data: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     variant: Mapped[str | None] = mapped_column(String)
