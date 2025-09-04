@@ -12,6 +12,7 @@ from services.api.app.diabetes.curriculum_engine import (
     start_lesson,
 )
 from services.api.app.diabetes.learning_fixtures import load_lessons
+from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress, QuizQuestion
 from services.api.app.diabetes.services import db, gpt_client
 
@@ -59,12 +60,16 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     progress = await start_lesson(1, slug)
     assert progress.current_step == 0
 
-    for _ in range(3):
+    step = await next_step(1, lesson_id)
+    assert step.startswith(disclaimer())
+
+    for _ in range(2):
         step = await next_step(1, lesson_id)
         assert step
+        assert not step.startswith(disclaimer())
 
     question_text = await next_step(1, lesson_id)
-    assert question_text
+    assert question_text.startswith(disclaimer())
 
     with db.SessionLocal() as session:
         questions = (
@@ -81,6 +86,7 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         if idx < len(questions) - 1:
             next_q = await next_step(1, lesson_id)
             assert next_q
+            assert not next_q.startswith(disclaimer())
 
     assert await next_step(1, lesson_id) is None
 
