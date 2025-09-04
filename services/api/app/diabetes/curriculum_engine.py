@@ -6,7 +6,12 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from .learning_prompts import SYSTEM_TUTOR_RU, build_explain_step, build_feedback
+from .learning_prompts import (
+    SYSTEM_TUTOR_RU,
+    build_explain_step,
+    build_feedback,
+    disclaimer,
+)
 from .llm_router import LLMTask
 from .models_learning import Lesson, LessonProgress, LessonStep, QuizQuestion
 from .services import db, gpt_client
@@ -64,7 +69,9 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
         or ``None`` when the lesson is fully complete.
     """
 
-    def _advance(session: Session) -> tuple[str | None, str | None]:
+    def _advance(
+        session: Session,
+    ) -> tuple[str | None, str | None, bool, bool]:
         progress = (
             session.query(LessonProgress)
             .filter_by(user_id=user_id, lesson_id=lesson_id)
@@ -78,9 +85,10 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
         )
         if progress.current_step < len(steps):
             step = steps[progress.current_step]
+            first_step = progress.current_step == 0
             progress.current_step += 1
             commit(session)
-            return step.content, None
+            return step.content, None, first_step, False
         questions = (
             session.query(QuizQuestion)
             .filter_by(lesson_id=lesson_id)
@@ -89,11 +97,14 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
         )
         if progress.current_question < len(questions):
             q = questions[progress.current_question]
+            first_question = progress.current_question == 0
             opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(q.options))
-            return None, f"{q.question}\n{opts}"
-        return None, None
+            return None, f"{q.question}\n{opts}", False, first_question
+        return None, None, False, False
 
-    step_content, question_text = await db.run_db(_advance)
+    step_content, question_text, first_step, first_question = await db.run_db(
+        _advance
+    )
     if step_content is not None:
         text = await gpt_client.create_learning_chat_completion(
             task=LLMTask.EXPLAIN_STEP,
@@ -102,8 +113,12 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
                 {"role": "user", "content": build_explain_step(step_content)},
             ],
         )
+        if first_step:
+            return f"{disclaimer()}\n\n{text}"
         return text
     if question_text is not None:
+        if first_question:
+            return f"{disclaimer()}\n\n{question_text}"
         return question_text
     return None
 
