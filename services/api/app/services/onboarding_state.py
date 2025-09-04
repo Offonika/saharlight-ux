@@ -39,7 +39,8 @@ async def save_state(user_id: int, step: int, data: dict[str, object], variant: 
             cast(Session, session).add(state)
         state.step = step
         state.data = dict(data)
-        state.variant = variant
+        if variant is not None:
+            state.variant = variant
         state.updated_at = datetime.now(timezone.utc)
         commit(cast(Session, session))
 

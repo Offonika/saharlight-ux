@@ -32,6 +32,15 @@ async def test_save_and_load(session_local: sessionmaker[SASession]) -> None:
 
 
 @pytest.mark.asyncio
+async def test_save_state_preserves_variant(session_local: sessionmaker[SASession]) -> None:
+    await onboarding_state.save_state(1, 1, {}, "v1")
+    await onboarding_state.save_state(1, 2, {})
+    state = await onboarding_state.load_state(1)
+    assert state is not None
+    assert state.variant == "v1"
+
+
+@pytest.mark.asyncio
 async def test_expired_state_removed(session_local: sessionmaker[SASession]) -> None:
     await onboarding_state.save_state(1, 1, {})
     with session_local() as session:
