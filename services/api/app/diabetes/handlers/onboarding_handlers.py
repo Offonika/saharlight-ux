@@ -32,6 +32,7 @@ from telegram.ext import (
 )
 from telegram.warnings import PTBUserWarning
 
+import config
 from services.api.app.diabetes.services.db import SessionLocal, User, run_db
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.services import onboarding_state
@@ -170,6 +171,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     user = update.effective_user
     if message is None or user is None:
         return ConversationHandler.END
+    video_url = config.ONBOARDING_VIDEO_URL
+    if video_url:
+        try:
+            await message.reply_video(video_url)
+        except Exception:  # pragma: no cover - fallback
+            await message.reply_text(video_url)
     user_id = user.id
     user_data = cast(dict[str, Any], context.user_data)
     args = getattr(context, "args", [])

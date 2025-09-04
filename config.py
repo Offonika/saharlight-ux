@@ -23,6 +23,7 @@ from services.api.app.config import settings
 # reference them directly if needed.  Values default to ``None`` when not
 # provided which is convenient for tests where most variables are unset.
 TELEGRAM_TOKEN = settings.telegram_token
+ONBOARDING_VIDEO_URL = settings.onboarding_video_url
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
@@ -56,4 +57,6 @@ def validate_tokens(required: Iterable[str] | None = None) -> None:
         elif not os.getenv(var):
             missing.append(var)
     if missing:
-        raise RuntimeError("Missing required environment variables: " + ", ".join(missing))
+        raise RuntimeError(
+            "Missing required environment variables: " + ", ".join(missing)
+        )
