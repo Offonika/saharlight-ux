@@ -120,12 +120,7 @@ def _profile_keyboard(*, back: bool = False) -> InlineKeyboardMarkup:
 def _timezone_keyboard(*, back: bool = True) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     auto_btn = build_timezone_webapp_button()
-    if auto_btn:
-        auto_btn = InlineKeyboardButton(
-            text="Автоопределить (WebApp)",
-            callback_data=auto_btn.callback_data,
-            web_app=auto_btn.web_app,
-        )
+    if auto_btn is not None:
         rows.append([auto_btn])
     rows.append(_nav_buttons(back=back))
     return InlineKeyboardMarkup(rows)
