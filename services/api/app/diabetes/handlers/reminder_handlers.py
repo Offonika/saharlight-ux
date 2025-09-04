@@ -38,6 +38,7 @@ from services.api.app.diabetes.services.db import (
     Reminder,
     ReminderLog,
     SessionLocal as _SessionLocal,
+    SubscriptionPlan,
     User,
     Profile,
 )
@@ -86,7 +87,10 @@ class DbActionResult:
     reminder: Reminder | None = None
 
 
-PLAN_LIMITS = {"free": 5, "pro": 10}
+PLAN_LIMITS = {
+    SubscriptionPlan.FREE: 5,
+    SubscriptionPlan.PRO: 10,
+}
 
 
 # Map reminder type codes to display names
@@ -114,8 +118,8 @@ REMINDER_ACTIONS = {
 
 
 def _limit_for(user: User | None) -> int:
-    plan = getattr(user, "plan", "free")
-    return PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
+    plan = getattr(user, "plan", SubscriptionPlan.FREE)
+    return PLAN_LIMITS.get(plan, PLAN_LIMITS[SubscriptionPlan.FREE])
 
 
 def _describe(rem: Reminder, user: User | None = None) -> str:
@@ -861,10 +865,10 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         else:
             count = session.query(Reminder).filter_by(telegram_id=user_id, is_enabled=True).count()
             user = session.get(User, user_id)
-            plan = getattr(user, "plan", "free").lower()
-            limit = PLAN_LIMITS.get(plan, PLAN_LIMITS["free"])
+            user_plan = getattr(user, "plan", SubscriptionPlan.FREE)
+            limit = PLAN_LIMITS.get(user_plan, PLAN_LIMITS[SubscriptionPlan.FREE])
             if count >= limit:
-                return "limit", None, plan, limit
+                return "limit", None, user_plan.value, limit
             rem = Reminder(telegram_id=user_id, type=rtype, is_enabled=True)
             session.add(rem)
 
