@@ -35,19 +35,58 @@ status_enum = sa.Enum(
 def upgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        plan_enum.create(bind, checkfirst=True)
-        status_enum.create(bind, checkfirst=True)
+        op.execute(
+            """
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_type WHERE typname = 'subscription_plan'
+                ) THEN
+                    CREATE TYPE subscription_plan AS ENUM ('free', 'pro', 'family');
+                END IF;
+            END $$;
+            """
+        )
+        op.execute(
+            """
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_type WHERE typname = 'subscription_status'
+                ) THEN
+                    CREATE TYPE subscription_status AS ENUM (
+                        'trial', 'pending', 'active', 'canceled', 'expired'
+                    );
+                END IF;
+            END $$;
+            """
+        )
     op.create_table(
         "subscriptions",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("user_id", sa.BigInteger(), sa.ForeignKey("users.telegram_id"), nullable=False),
+        sa.Column(
+            "user_id",
+            sa.BigInteger(),
+            sa.ForeignKey("users.telegram_id"),
+            nullable=False,
+        ),
         sa.Column("plan", plan_enum, nullable=False),
         sa.Column("status", status_enum, nullable=False),
         sa.Column("provider", sa.String(), nullable=False),
         sa.Column("transaction_id", sa.String(), nullable=False),
-        sa.Column("start_date", sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "start_date",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("end_date", sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=True),
     )
     op.create_index("ix_subscriptions_user_id", "subscriptions", ["user_id"])
