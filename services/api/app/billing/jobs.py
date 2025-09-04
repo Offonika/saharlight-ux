@@ -62,7 +62,6 @@ async def expire_subscriptions(_context: ContextTypes.DEFAULT_TYPE) -> None:
         for sub in subs:
             sub.status = cast(SubscriptionStatus, SubscriptionStatus.EXPIRED.value)
         if subs:
-            commit(session)
             for sub in subs:
                 log_billing_event(
                     session,
@@ -70,6 +69,7 @@ async def expire_subscriptions(_context: ContextTypes.DEFAULT_TYPE) -> None:
                     BillingEvent.EXPIRED,
                     {"subscription_id": sub.id},
                 )
+            commit(session)
         return [sub.user_id for sub in subs]
 
     user_ids = await run_db(_expire)
