@@ -37,4 +37,6 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_billing_logs_user_id", table_name="billing_logs")
     op.drop_table("billing_logs")
-    op.execute("DROP TYPE billing_event")
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute("DROP TYPE billing_event")
