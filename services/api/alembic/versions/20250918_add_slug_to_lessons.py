@@ -46,7 +46,8 @@ def upgrade() -> None:
             .where(lessons_table.c.id == lesson_id)
             .values(slug=slug)
         )
-    op.alter_column("lessons", "slug", existing_type=sa.String(), nullable=False)
+    if bind.dialect.name == "postgresql":
+        op.alter_column("lessons", "slug", existing_type=sa.String(), nullable=False)
     op.create_index("ix_lessons_slug", "lessons", ["slug"], unique=True)
 
 

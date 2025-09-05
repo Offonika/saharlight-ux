@@ -41,8 +41,6 @@ def upgrade() -> None:
             )
         op.execute("DROP TYPE subscription_status")
         op.execute("ALTER TYPE subscription_status_new RENAME TO subscription_status")
-    else:
-        op.alter_column("subscriptions", "status", type_=sa.String())
 
 
 def downgrade() -> None:
@@ -57,5 +55,3 @@ def downgrade() -> None:
             )
         op.execute("DROP TYPE subscription_status")
         op.execute("ALTER TYPE subscription_status_old RENAME TO subscription_status")
-    else:
-        op.alter_column("subscriptions", "status", type_=sa.String())

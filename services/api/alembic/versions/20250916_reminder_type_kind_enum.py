@@ -41,20 +41,10 @@ def upgrade() -> None:
             batch_op.alter_column("type", type_=reminder_type_enum)
             batch_op.alter_column("kind", type_=schedule_kind_enum)
     else:
-        inspector = sa.inspect(bind)
-        constraints = {c["name"] for c in inspector.get_check_constraints("reminders")}
-        if "reminders_type_check" not in constraints:
-            op.create_check_constraint(
-                "reminders_type_check",
-                "reminders",
-                "type IN ('sugar','insulin_short','insulin_long','after_meal','meal','sensor_change','injection_site','custom')",
-            )
-        if "reminders_kind_check" not in constraints:
-            op.create_check_constraint(
-                "reminders_kind_check",
-                "reminders",
-                "(kind IS NULL) OR kind IN ('at_time','every','after_event')",
-            )
+        # SQLite lacks support for adding check constraints via ALTER TABLE.
+        # The table already stores plain text values, so no additional
+        # constraints are enforced in tests.
+        return
 
 
 def downgrade() -> None:
@@ -66,9 +56,4 @@ def downgrade() -> None:
         schedule_kind_enum.drop(bind, checkfirst=True)
         reminder_type_enum.drop(bind, checkfirst=True)
     else:
-        inspector = sa.inspect(bind)
-        constraints = {c["name"] for c in inspector.get_check_constraints("reminders")}
-        if "reminders_kind_check" in constraints:
-            op.drop_constraint("reminders_kind_check", "reminders", type_="check")
-        if "reminders_type_check" in constraints:
-            op.drop_constraint("reminders_type_check", "reminders", type_="check")
+        return

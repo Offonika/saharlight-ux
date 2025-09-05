@@ -16,6 +16,9 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
     op.alter_column(
         "profiles",
         "timezone",
@@ -96,6 +99,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
     op.alter_column("profiles", "postmeal_check_min", server_default=None)
     op.alter_column("profiles", "max_bolus", server_default=None)
     op.alter_column("profiles", "prebolus_min", server_default=None)

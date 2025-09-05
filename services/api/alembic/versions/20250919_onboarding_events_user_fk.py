@@ -18,6 +18,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
     inspector = sa.inspect(bind)
     fks = inspector.get_foreign_keys("onboarding_events")
     has_fk = any(
@@ -37,6 +39,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
     inspector = sa.inspect(bind)
     fks = [fk["name"] for fk in inspector.get_foreign_keys("onboarding_events")]
     if "onboarding_events_user_id_fkey" in fks:

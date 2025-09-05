@@ -31,6 +31,9 @@ status_enum = postgresql.ENUM(
 
 def upgrade() -> None:
     bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "subscriptions" in inspector.get_table_names():
+        return
     if bind.dialect.name == "postgresql":
         plan_enum.create(bind, checkfirst=True)
         status_enum.create(bind, checkfirst=True)
@@ -69,10 +72,13 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "subscriptions" not in inspector.get_table_names():
+        return
     op.drop_index("ix_subscriptions_transaction_id", table_name="subscriptions")
     op.drop_index("ix_subscriptions_user_id", table_name="subscriptions")
     op.drop_table("subscriptions")
-    bind = op.get_bind()
     if bind.dialect.name == "postgresql":
         status_enum.drop(bind, checkfirst=True)
         plan_enum.drop(bind, checkfirst=True)

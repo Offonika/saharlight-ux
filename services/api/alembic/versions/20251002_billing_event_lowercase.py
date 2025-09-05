@@ -43,7 +43,7 @@ def upgrade() -> None:
         op.execute("DROP TYPE billing_event")
         op.execute("ALTER TYPE billing_event_new RENAME TO billing_event")
     else:
-        op.alter_column("billing_logs", "event", type_=sa.String())
+        return
 
 
 def downgrade() -> None:
@@ -59,5 +59,5 @@ def downgrade() -> None:
         op.execute("DROP TYPE billing_event")
         op.execute("ALTER TYPE billing_event_old RENAME TO billing_event")
     else:
-        op.alter_column("billing_logs", "event", type_=sa.String())
+        return
 
