@@ -107,14 +107,26 @@ def upgrade() -> None:
         )
 
     if "timezone_auto" in user_columns:
-        op.execute(
-            """
-            UPDATE profiles
-            SET timezone_auto = u.timezone_auto
-            FROM users AS u
-            WHERE profiles.telegram_id = u.telegram_id
-            """,
-        )
+        if bind.dialect.name == "sqlite":
+            op.execute(
+                """
+                UPDATE profiles
+                SET timezone_auto = (
+                    SELECT u.timezone_auto
+                    FROM users AS u
+                    WHERE profiles.telegram_id = u.telegram_id
+                )
+                """,
+            )
+        else:
+            op.execute(
+                """
+                UPDATE profiles
+                SET timezone_auto = u.timezone_auto
+                FROM users AS u
+                WHERE profiles.telegram_id = u.telegram_id
+                """,
+            )
         op.drop_column("users", "timezone_auto")
 
     with op.batch_alter_table("profiles") as batch_op:
@@ -171,14 +183,26 @@ def downgrade() -> None:
         user_columns.add("timezone_auto")
 
     if "timezone_auto" in profile_columns:
-        op.execute(
-            """
-            UPDATE users
-            SET timezone_auto = p.timezone_auto
-            FROM profiles AS p
-            WHERE users.telegram_id = p.telegram_id
-            """,
-        )
+        if bind.dialect.name == "sqlite":
+            op.execute(
+                """
+                UPDATE users
+                SET timezone_auto = (
+                    SELECT p.timezone_auto
+                    FROM profiles AS p
+                    WHERE users.telegram_id = p.telegram_id
+                )
+                """,
+            )
+        else:
+            op.execute(
+                """
+                UPDATE users
+                SET timezone_auto = p.timezone_auto
+                FROM profiles AS p
+                WHERE users.telegram_id = p.telegram_id
+                """,
+            )
 
     if "postmeal_check_min" in profile_columns:
         op.drop_column("profiles", "postmeal_check_min")
