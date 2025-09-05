@@ -15,7 +15,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-BASE_DIR = Path(__file__).resolve().parents[2] / "webapp"
+# The web application lives in the top-level ``services/webapp`` directory.
+# ``__file__`` resolves to ``services/api/app/routers/webapp.py`` and we need to
+# go three levels up (to ``services``) before appending ``webapp``. Previously we
+# used ``parents[2]`` which pointed to ``services/api`` and resulted in resolving
+# the UI path to ``services/api/webapp``. That directory does not contain the
+# built UI assets, so tests looking for ``index.html`` failed. Using
+# ``parents[3]`` correctly points to ``services/webapp``.
+BASE_DIR = Path(__file__).resolve().parents[3] / "webapp"
 DIST_DIR = BASE_DIR / "ui" / "dist"
 UI_DIR = DIST_DIR if (DIST_DIR / "index.html").exists() else BASE_DIR / "ui"
 UI_DIR = UI_DIR.resolve()
