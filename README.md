@@ -77,6 +77,21 @@ curl -H 'X-Telegram-Init-Data: <init-data>' \
   http://localhost:8000/api/onboarding/status
 ```
 
+### Получение `X-Telegram-Init-Data` в WebApp
+Внутри Telegram Web App доступ к токену инициализации предоставляет объект
+`Telegram.WebApp`. Его значение необходимо передавать в заголовке
+`X-Telegram-Init-Data` при обращении к API:
+
+```ts
+const tg = window.Telegram.WebApp;
+tg.ready();
+const initData = tg.initData;
+
+fetch('http://localhost:8000/api/onboarding/status', {
+  headers: { 'X-Telegram-Init-Data': initData },
+});
+```
+
 ### События онбординга
 - `onboarding_started` — WebApp открыт в режиме онбординга;
 - `profile_saved` — профиль сохранён и валиден;
@@ -86,6 +101,21 @@ curl -H 'X-Telegram-Init-Data: <init-data>' \
 
 Онбординг считается завершённым, когда профиль заполнен и есть хотя бы одно
 напоминание или получено событие `onboarding_completed` с `skippedReminders`.
+
+## Работа с профилем
+После онбординга профиль можно создавать и получать через REST API.
+
+### Создание профиля
+```bash
+curl -X POST http://localhost:8000/api/profiles \
+  -H 'Content-Type: application/json' \
+  -d '{"telegramId":777,"icr":1.0,"cf":1.0,"target":5.0,"low":4.0,"high":6.0}'
+```
+
+### Получение профиля
+```bash
+curl http://localhost:8000/api/profiles?telegramId=777
+```
 
 ## Переменные окружения
 Основные параметры указываются в `.env`:
