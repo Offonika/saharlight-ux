@@ -58,23 +58,40 @@ scripts/run_bot.sh
 ```
 Скрипт подгружает `.env` и запускает `services.api.app.bot`.
 
-## Настройка WebApp-кнопки в меню
-После деплоя WebApp укажите его адрес в `WEBAPP_URL` и выполните:
+## Онбординг через WebApp
+Первичная настройка пользователя проходит в WebApp. Отдельной страницы
+`timezone.html` и кнопки в меню больше нет — бот присылает ссылку на WebApp
+после `/start`.
+
+### Пример `/start`
 ```bash
-curl -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/setChatMenuButton \
-  -d '{"menu_button":{"type":"web_app","text":"Open WebApp","web_app":{"url":"'"${WEBAPP_URL}"'"}}}'
+curl -X POST http://localhost:8000/api/onboarding/events \
+  -H 'Content-Type: application/json' \
+  -H 'X-Telegram-Init-Data: <init-data>' \
+  -d '{"event":"onboarding_started","step":0}'
 ```
-Вернуть стандартное меню:
+
+### Пример `/status`
 ```bash
-curl -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/setChatMenuButton \
-  -d '{"menu_button":{"type":"default"}}'
+curl -H 'X-Telegram-Init-Data: <init-data>' \
+  http://localhost:8000/api/onboarding/status
 ```
+
+### События онбординга
+- `onboarding_started` — WebApp открыт в режиме онбординга;
+- `profile_saved` — профиль сохранён и валиден;
+- `first_reminder_created` — создано первое напоминание;
+- `onboarding_completed` — финальное событие (если пользователь пропустил
+  напоминания, добавляется `skippedReminders: true`).
+
+Онбординг считается завершённым, когда профиль заполнен и есть хотя бы одно
+напоминание или получено событие `onboarding_completed` с `skippedReminders`.
 
 ## Переменные окружения
 Основные параметры указываются в `.env`:
 - `TELEGRAM_TOKEN` — токен бота (обязательно);
 - `PUBLIC_ORIGIN` — публичный URL API;
-- `WEBAPP_URL` — адрес WebApp для кнопки (опционально);
+- `WEBAPP_URL` — адрес WebApp для онбординга;
 - `API_URL` — базовый URL внешнего API; требует установленный пакет `diabetes_sdk`;
 - `OPENAI_API_KEY` — ключ OpenAI для распознавания фото.
 
