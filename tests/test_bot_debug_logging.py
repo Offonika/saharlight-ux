@@ -66,7 +66,9 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
         ) -> None:
             return None
 
-        def add_handler(self, _: object) -> None:
+        def add_handler(
+            self, handler: object, *, group: int | None = None
+        ) -> None:  # pragma: no cover - compatibility
             return None
 
         def run_polling(self) -> None:
