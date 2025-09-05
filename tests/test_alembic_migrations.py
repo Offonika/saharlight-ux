@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-import logging.config as logging_config
+import logging
+import logging.config
 
 from alembic import command
 from alembic.config import Config
@@ -21,13 +22,15 @@ def test_alembic_migrations(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     # by default disables any loggers that already exist.  That side effect
     # leaks into the remainder of the test suite and breaks ``caplog`` based
     # assertions.  Ensure existing loggers remain enabled during this test.
-    original_file_config = logging_config.fileConfig
+    original_file_config = logging.config.fileConfig
 
     def _safe_file_config(fname: str, *args: object, **kwargs: object) -> None:
         kwargs.setdefault("disable_existing_loggers", False)
         original_file_config(fname, *args, **kwargs)
 
-    monkeypatch.setattr(logging_config, "fileConfig", _safe_file_config)
+    monkeypatch.setattr(logging.config, "fileConfig", _safe_file_config)
 
     config = Config("services/api/alembic.ini")
     command.upgrade(config, "head")
+    logging.config.dictConfig({"version": 1, "disable_existing_loggers": False})
+    assert logging.getLogger(__name__).disabled is False
