@@ -6,6 +6,7 @@ from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import Profile, User
@@ -232,7 +233,12 @@ async def get_profile(telegram_id: int) -> Profile:
 
     try:
         profile = await db.run_db(_get, sessionmaker=db.SessionLocal)
-    except Exception as exc:  # pragma: no cover - unexpected DB error
+    except (OperationalError, ConnectionError) as exc:
+        logger.exception("failed to fetch profile %s", telegram_id)
+        raise HTTPException(
+            status_code=503, detail="database temporarily unavailable"
+        ) from exc
+    except Exception as exc:
         logger.exception("failed to fetch profile %s", telegram_id)
         raise HTTPException(status_code=500, detail="db error") from exc
 
