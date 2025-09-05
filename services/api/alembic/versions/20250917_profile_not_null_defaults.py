@@ -16,95 +16,86 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.alter_column(
-        "profiles",
-        "timezone",
-        existing_type=sa.String(),
-        nullable=False,
-        server_default="UTC",
-    )
-    op.alter_column(
-        "profiles",
-        "timezone_auto",
-        existing_type=sa.Boolean(),
-        nullable=False,
-        server_default=sa.true(),
-    )
-    op.alter_column(
-        "profiles",
-        "dia",
-        existing_type=sa.Float(),
-        nullable=False,
-        server_default="4.0",
-    )
-    op.alter_column(
-        "profiles",
-        "round_step",
-        existing_type=sa.Float(),
-        nullable=False,
-        server_default="0.5",
-    )
-    op.alter_column(
-        "profiles",
-        "carb_units",
-        existing_type=sa.String(),
-        nullable=False,
-        server_default="g",
-    )
-    op.alter_column(
-        "profiles",
-        "grams_per_xe",
-        existing_type=sa.Float(),
-        nullable=False,
-        server_default="12.0",
-    )
-    op.alter_column(
-        "profiles",
-        "therapy_type",
-        existing_type=sa.String(),
-        nullable=False,
-        server_default="insulin",
-    )
-    op.alter_column(
-        "profiles",
-        "glucose_units",
-        existing_type=sa.String(),
-        nullable=False,
-        server_default="mmol/L",
-    )
-    op.alter_column(
-        "profiles",
-        "prebolus_min",
-        existing_type=sa.Integer(),
-        nullable=False,
-        server_default="0",
-    )
-    op.alter_column(
-        "profiles",
-        "max_bolus",
-        existing_type=sa.Float(),
-        nullable=False,
-        server_default="10.0",
-    )
-    op.alter_column(
-        "profiles",
-        "postmeal_check_min",
-        existing_type=sa.Integer(),
-        nullable=False,
-        server_default="0",
-    )
+    with op.batch_alter_table("profiles") as batch_op:
+        batch_op.alter_column(
+            "timezone",
+            existing_type=sa.String(),
+            nullable=False,
+            server_default="UTC",
+        )
+        batch_op.alter_column(
+            "timezone_auto",
+            existing_type=sa.Boolean(),
+            nullable=False,
+            server_default=sa.true(),
+        )
+        batch_op.alter_column(
+            "dia",
+            existing_type=sa.Float(),
+            nullable=False,
+            server_default="4.0",
+        )
+        batch_op.alter_column(
+            "round_step",
+            existing_type=sa.Float(),
+            nullable=False,
+            server_default="0.5",
+        )
+        batch_op.alter_column(
+            "carb_units",
+            existing_type=sa.String(),
+            nullable=False,
+            server_default="g",
+        )
+        batch_op.alter_column(
+            "grams_per_xe",
+            existing_type=sa.Float(),
+            nullable=False,
+            server_default="12.0",
+        )
+        batch_op.alter_column(
+            "therapy_type",
+            existing_type=sa.String(),
+            nullable=False,
+            server_default="insulin",
+        )
+        batch_op.alter_column(
+            "glucose_units",
+            existing_type=sa.String(),
+            nullable=False,
+            server_default="mmol/L",
+        )
+        batch_op.alter_column(
+            "prebolus_min",
+            existing_type=sa.Integer(),
+            nullable=False,
+            server_default="0",
+        )
+        batch_op.alter_column(
+            "max_bolus",
+            existing_type=sa.Float(),
+            nullable=False,
+            server_default="10.0",
+        )
+        batch_op.alter_column(
+            "postmeal_check_min",
+            existing_type=sa.Integer(),
+            nullable=False,
+            server_default="0",
+        )
 
 
 def downgrade() -> None:
-    op.alter_column("profiles", "postmeal_check_min", server_default=None)
-    op.alter_column("profiles", "max_bolus", server_default=None)
-    op.alter_column("profiles", "prebolus_min", server_default=None)
-    op.alter_column("profiles", "glucose_units", server_default=None)
-    op.alter_column("profiles", "therapy_type", server_default=None)
-    op.alter_column("profiles", "grams_per_xe", server_default=None)
-    op.alter_column("profiles", "carb_units", server_default=None)
-    op.alter_column("profiles", "round_step", server_default=None)
-    op.alter_column("profiles", "dia", server_default=None)
-    op.alter_column("profiles", "timezone_auto", server_default=None)
-    op.alter_column("profiles", "timezone", server_default=None)
+    with op.batch_alter_table("profiles") as batch_op:
+        batch_op.alter_column("postmeal_check_min", server_default=None)
+        batch_op.alter_column("max_bolus", server_default=None)
+        batch_op.alter_column("prebolus_min", server_default=None)
+        batch_op.alter_column("glucose_units", server_default=None)
+        batch_op.alter_column("therapy_type", server_default=None)
+        batch_op.alter_column("grams_per_xe", server_default=None)
+        batch_op.alter_column("carb_units", server_default=None)
+        batch_op.alter_column("round_step", server_default=None)
+        batch_op.alter_column("dia", server_default=None)
+        batch_op.alter_column("timezone_auto", server_default=None)
+        batch_op.alter_column("timezone", server_default=None)
 

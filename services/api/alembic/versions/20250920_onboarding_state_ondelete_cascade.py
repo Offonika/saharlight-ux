@@ -13,31 +13,41 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_constraint(
-        "onboarding_states_user_id_fkey",
-        "onboarding_states",
-        type_="foreignkey",
-    )
-    op.create_foreign_key(
-        "onboarding_states_user_id_fkey",
-        "onboarding_states",
-        "users",
-        ["user_id"],
-        ["telegram_id"],
-        ondelete="CASCADE",
-    )
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.drop_constraint(
+            "onboarding_states_user_id_fkey",
+            "onboarding_states",
+            type_="foreignkey",
+        )
+        op.create_foreign_key(
+            "onboarding_states_user_id_fkey",
+            "onboarding_states",
+            "users",
+            ["user_id"],
+            ["telegram_id"],
+            ondelete="CASCADE",
+        )
+    else:
+        # SQLite cannot alter constraints; skip.
+        pass
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        "onboarding_states_user_id_fkey",
-        "onboarding_states",
-        type_="foreignkey",
-    )
-    op.create_foreign_key(
-        "onboarding_states_user_id_fkey",
-        "onboarding_states",
-        "users",
-        ["user_id"],
-        ["telegram_id"],
-    )
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.drop_constraint(
+            "onboarding_states_user_id_fkey",
+            "onboarding_states",
+            type_="foreignkey",
+        )
+        op.create_foreign_key(
+            "onboarding_states_user_id_fkey",
+            "onboarding_states",
+            "users",
+            ["user_id"],
+            ["telegram_id"],
+        )
+    else:
+        # SQLite: nothing to revert.
+        pass

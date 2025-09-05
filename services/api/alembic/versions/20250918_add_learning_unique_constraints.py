@@ -13,26 +13,30 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_unique_constraint(
-        "lesson_steps_lesson_order_key",
-        "lesson_steps",
-        ["lesson_id", "step_order"],
-    )
-    op.create_unique_constraint(
-        "lesson_progress_user_lesson_key",
-        "lesson_progress",
-        ["user_id", "lesson_id"],
-    )
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.create_unique_constraint(
+            "lesson_steps_lesson_order_key",
+            "lesson_steps",
+            ["lesson_id", "step_order"],
+        )
+        op.create_unique_constraint(
+            "lesson_progress_user_lesson_key",
+            "lesson_progress",
+            ["user_id", "lesson_id"],
+        )
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        "lesson_progress_user_lesson_key",
-        table_name="lesson_progress",
-        type_="unique",
-    )
-    op.drop_constraint(
-        "lesson_steps_lesson_order_key",
-        table_name="lesson_steps",
-        type_="unique",
-    )
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.drop_constraint(
+            "lesson_progress_user_lesson_key",
+            table_name="lesson_progress",
+            type_="unique",
+        )
+        op.drop_constraint(
+            "lesson_steps_lesson_order_key",
+            table_name="lesson_steps",
+            type_="unique",
+        )

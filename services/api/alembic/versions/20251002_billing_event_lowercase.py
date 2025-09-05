@@ -43,7 +43,8 @@ def upgrade() -> None:
         op.execute("DROP TYPE billing_event")
         op.execute("ALTER TYPE billing_event_new RENAME TO billing_event")
     else:
-        op.alter_column("billing_logs", "event", type_=sa.String())
+        with op.batch_alter_table("billing_logs") as batch_op:
+            batch_op.alter_column("event", type_=sa.String())
 
 
 def downgrade() -> None:
@@ -59,5 +60,6 @@ def downgrade() -> None:
         op.execute("DROP TYPE billing_event")
         op.execute("ALTER TYPE billing_event_old RENAME TO billing_event")
     else:
-        op.alter_column("billing_logs", "event", type_=sa.String())
+        with op.batch_alter_table("billing_logs") as batch_op:
+            batch_op.alter_column("event", type_=sa.String())
 

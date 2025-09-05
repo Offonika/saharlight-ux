@@ -18,30 +18,32 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     bind = op.get_bind()
-    inspector = sa.inspect(bind)
-    fks = inspector.get_foreign_keys("onboarding_events")
-    has_fk = any(
-        fk["referred_table"] == "users" and fk["constrained_columns"] == ["user_id"]
-        for fk in fks
-    )
-    if not has_fk:
-        op.create_foreign_key(
-            "onboarding_events_user_id_fkey",
-            "onboarding_events",
-            "users",
-            ["user_id"],
-            ["telegram_id"],
-            ondelete="CASCADE",
+    if bind.dialect.name == "postgresql":
+        inspector = sa.inspect(bind)
+        fks = inspector.get_foreign_keys("onboarding_events")
+        has_fk = any(
+            fk["referred_table"] == "users" and fk["constrained_columns"] == ["user_id"]
+            for fk in fks
         )
+        if not has_fk:
+            op.create_foreign_key(
+                "onboarding_events_user_id_fkey",
+                "onboarding_events",
+                "users",
+                ["user_id"],
+                ["telegram_id"],
+                ondelete="CASCADE",
+            )
 
 
 def downgrade() -> None:
     bind = op.get_bind()
-    inspector = sa.inspect(bind)
-    fks = [fk["name"] for fk in inspector.get_foreign_keys("onboarding_events")]
-    if "onboarding_events_user_id_fkey" in fks:
-        op.drop_constraint(
-            "onboarding_events_user_id_fkey",
-            "onboarding_events",
-            type_="foreignkey",
-        )
+    if bind.dialect.name == "postgresql":
+        inspector = sa.inspect(bind)
+        fks = [fk["name"] for fk in inspector.get_foreign_keys("onboarding_events")]
+        if "onboarding_events_user_id_fkey" in fks:
+            op.drop_constraint(
+                "onboarding_events_user_id_fkey",
+                "onboarding_events",
+                type_="foreignkey",
+            )

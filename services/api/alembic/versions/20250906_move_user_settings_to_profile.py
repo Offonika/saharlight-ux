@@ -115,19 +115,21 @@ def upgrade() -> None:
             WHERE profiles.telegram_id = u.telegram_id
             """,
         )
-        op.drop_column("users", "timezone_auto")
+        with op.batch_alter_table("users") as batch_op:
+            batch_op.drop_column("timezone_auto")
 
-    op.alter_column("profiles", "timezone", server_default=None)
-    op.alter_column("profiles", "timezone_auto", server_default=None)
-    op.alter_column("profiles", "dia", server_default=None)
-    op.alter_column("profiles", "round_step", server_default=None)
-    op.alter_column("profiles", "carb_units", server_default=None)
-    op.alter_column("profiles", "grams_per_xe", server_default=None)
-    op.alter_column("profiles", "therapy_type", server_default=None)
-    op.alter_column("profiles", "glucose_units", server_default=None)
-    op.alter_column("profiles", "prebolus_min", server_default=None)
-    op.alter_column("profiles", "max_bolus", server_default=None)
-    op.alter_column("profiles", "postmeal_check_min", server_default=None)
+    with op.batch_alter_table("profiles") as batch_op:
+        batch_op.alter_column("timezone", server_default=None)
+        batch_op.alter_column("timezone_auto", server_default=None)
+        batch_op.alter_column("dia", server_default=None)
+        batch_op.alter_column("round_step", server_default=None)
+        batch_op.alter_column("carb_units", server_default=None)
+        batch_op.alter_column("grams_per_xe", server_default=None)
+        batch_op.alter_column("therapy_type", server_default=None)
+        batch_op.alter_column("glucose_units", server_default=None)
+        batch_op.alter_column("prebolus_min", server_default=None)
+        batch_op.alter_column("max_bolus", server_default=None)
+        batch_op.alter_column("postmeal_check_min", server_default=None)
 
 
 def downgrade() -> None:
@@ -185,4 +187,5 @@ def downgrade() -> None:
         op.drop_column("profiles", "timezone")
 
     if "timezone_auto" in user_columns:
-        op.alter_column("users", "timezone_auto", server_default=None)
+        with op.batch_alter_table("users") as batch_op:
+            batch_op.alter_column("timezone_auto", server_default=None)

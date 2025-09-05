@@ -15,15 +15,16 @@ def upgrade() -> None:
     inspector = sa.inspect(op.get_bind())
     cols = [c["name"] for c in inspector.get_columns("users")]
     if "timezone" in cols:
-        op.drop_column("users", "timezone")
+        with op.batch_alter_table("users") as batch_op:
+            batch_op.drop_column("timezone")
 
 
 def downgrade() -> None:
     inspector = sa.inspect(op.get_bind())
     cols = [c["name"] for c in inspector.get_columns("users")]
     if "timezone" not in cols:
-        op.add_column(
-            "users",
-            sa.Column("timezone", sa.String(), nullable=False, server_default="UTC"),
-        )
-        op.alter_column("users", "timezone", server_default=None)
+        with op.batch_alter_table("users") as batch_op:
+            batch_op.add_column(
+                sa.Column("timezone", sa.String(), nullable=False, server_default="UTC"),
+            )
+            batch_op.alter_column("timezone", server_default=None)

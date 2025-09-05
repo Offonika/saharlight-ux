@@ -31,6 +31,9 @@ status_enum = postgresql.ENUM(
 
 def upgrade() -> None:
     bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "subscriptions" in inspector.get_table_names():
+        return
     if bind.dialect.name == "postgresql":
         plan_enum.create(bind, checkfirst=True)
         status_enum.create(bind, checkfirst=True)
