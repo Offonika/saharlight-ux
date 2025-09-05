@@ -16,62 +16,96 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "profiles",
-        sa.Column("timezone", sa.String(), nullable=False, server_default="UTC"),
-    )
-    op.add_column(
-        "profiles",
-        sa.Column(
-            "timezone_auto", sa.Boolean(), nullable=False, server_default=sa.true()
-        ),
-    )
-    op.add_column(
-        "profiles", sa.Column("dia", sa.Float(), nullable=False, server_default="4.0")
-    )
-    op.add_column(
-        "profiles",
-        sa.Column("round_step", sa.Float(), nullable=False, server_default="0.5"),
-    )
-    op.add_column(
-        "profiles",
-        sa.Column("carb_units", sa.String(), nullable=False, server_default="g"),
-    )
-    op.add_column(
-        "profiles",
-        sa.Column("grams_per_xe", sa.Float(), nullable=False, server_default="12.0"),
-    )
-    op.add_column(
-        "profiles",
-        sa.Column(
-            "therapy_type", sa.String(), nullable=False, server_default="insulin"
-        ),
-    )
-    op.add_column(
-        "profiles",
-        sa.Column(
-            "glucose_units", sa.String(), nullable=False, server_default="mmol/L"
-        ),
-    )
-    op.add_column("profiles", sa.Column("insulin_type", sa.String(), nullable=True))
-    op.add_column(
-        "profiles",
-        sa.Column("prebolus_min", sa.Integer(), nullable=False, server_default="0"),
-    )
-    op.add_column(
-        "profiles",
-        sa.Column("max_bolus", sa.Float(), nullable=False, server_default="10.0"),
-    )
-    op.add_column(
-        "profiles",
-        sa.Column(
-            "postmeal_check_min", sa.Integer(), nullable=False, server_default="0"
-        ),
-    )
-
     bind = op.get_bind()
     inspector = sa.inspect(bind)
-    user_columns = [col["name"] for col in inspector.get_columns("users")]
+    profile_columns = {
+        col["name"] for col in inspector.get_columns("profiles")
+    }
+    user_columns = {col["name"] for col in inspector.get_columns("users")}
+
+    if "timezone" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column("timezone", sa.String(), nullable=False, server_default="UTC"),
+        )
+    if "timezone_auto" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column(
+                "timezone_auto", sa.Boolean(), nullable=False, server_default=sa.true()
+            ),
+        )
+    if "dia" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column("dia", sa.Float(), nullable=False, server_default="4.0"),
+        )
+    if "round_step" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column(
+                "round_step", sa.Float(), nullable=False, server_default="0.5"
+            ),
+        )
+    if "carb_units" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column("carb_units", sa.String(), nullable=False, server_default="g"),
+        )
+    if "grams_per_xe" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column(
+                "grams_per_xe",
+                sa.Float(),
+                nullable=False,
+                server_default="12.0",
+            ),
+        )
+    if "therapy_type" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column(
+                "therapy_type", sa.String(), nullable=False, server_default="insulin"
+            ),
+        )
+    if "glucose_units" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column(
+                "glucose_units",
+                sa.String(),
+                nullable=False,
+                server_default="mmol/L",
+            ),
+        )
+    if "insulin_type" not in profile_columns:
+        op.add_column(
+            "profiles", sa.Column("insulin_type", sa.String(), nullable=True)
+        )
+    if "prebolus_min" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column(
+                "prebolus_min", sa.Integer(), nullable=False, server_default="0"
+            ),
+        )
+    if "max_bolus" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column("max_bolus", sa.Float(), nullable=False, server_default="10.0"),
+        )
+    if "postmeal_check_min" not in profile_columns:
+        op.add_column(
+            "profiles",
+            sa.Column(
+                "postmeal_check_min",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            ),
+        )
+
     if "timezone_auto" in user_columns:
         op.execute(
             """
@@ -97,33 +131,58 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.add_column(
-        "users",
-        sa.Column(
-            "timezone_auto", sa.Boolean(), nullable=False, server_default=sa.true()
-        ),
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    user_columns = {
+        col["name"] for col in inspector.get_columns("users")
+    }
+    profile_columns = {
+        col["name"] for col in inspector.get_columns("profiles")
+    }
 
-    op.execute(
-        """
-        UPDATE users
-        SET timezone_auto = p.timezone_auto
-        FROM profiles AS p
-        WHERE users.telegram_id = p.telegram_id
-        """,
-    )
+    if "timezone_auto" not in user_columns:
+        op.add_column(
+            "users",
+            sa.Column(
+                "timezone_auto", sa.Boolean(), nullable=False, server_default=sa.true()
+            ),
+        )
+        user_columns.add("timezone_auto")
 
-    op.drop_column("profiles", "postmeal_check_min")
-    op.drop_column("profiles", "max_bolus")
-    op.drop_column("profiles", "prebolus_min")
-    op.drop_column("profiles", "insulin_type")
-    op.drop_column("profiles", "glucose_units")
-    op.drop_column("profiles", "therapy_type")
-    op.drop_column("profiles", "grams_per_xe")
-    op.drop_column("profiles", "carb_units")
-    op.drop_column("profiles", "round_step")
-    op.drop_column("profiles", "dia")
-    op.drop_column("profiles", "timezone_auto")
-    op.drop_column("profiles", "timezone")
+    if "timezone_auto" in profile_columns:
+        op.execute(
+            """
+            UPDATE users
+            SET timezone_auto = p.timezone_auto
+            FROM profiles AS p
+            WHERE users.telegram_id = p.telegram_id
+            """,
+        )
 
-    op.alter_column("users", "timezone_auto", server_default=None)
+    if "postmeal_check_min" in profile_columns:
+        op.drop_column("profiles", "postmeal_check_min")
+    if "max_bolus" in profile_columns:
+        op.drop_column("profiles", "max_bolus")
+    if "prebolus_min" in profile_columns:
+        op.drop_column("profiles", "prebolus_min")
+    if "insulin_type" in profile_columns:
+        op.drop_column("profiles", "insulin_type")
+    if "glucose_units" in profile_columns:
+        op.drop_column("profiles", "glucose_units")
+    if "therapy_type" in profile_columns:
+        op.drop_column("profiles", "therapy_type")
+    if "grams_per_xe" in profile_columns:
+        op.drop_column("profiles", "grams_per_xe")
+    if "carb_units" in profile_columns:
+        op.drop_column("profiles", "carb_units")
+    if "round_step" in profile_columns:
+        op.drop_column("profiles", "round_step")
+    if "dia" in profile_columns:
+        op.drop_column("profiles", "dia")
+    if "timezone_auto" in profile_columns:
+        op.drop_column("profiles", "timezone_auto")
+    if "timezone" in profile_columns:
+        op.drop_column("profiles", "timezone")
+
+    if "timezone_auto" in user_columns:
+        op.alter_column("users", "timezone_auto", server_default=None)
