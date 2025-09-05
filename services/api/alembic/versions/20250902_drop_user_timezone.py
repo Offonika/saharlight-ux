@@ -12,12 +12,18 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_column("users", "timezone")
+    inspector = sa.inspect(op.get_bind())
+    cols = [c["name"] for c in inspector.get_columns("users")]
+    if "timezone" in cols:
+        op.drop_column("users", "timezone")
 
 
 def downgrade() -> None:
-    op.add_column(
-        "users",
-        sa.Column("timezone", sa.String(), nullable=False, server_default="UTC"),
-    )
-    op.alter_column("users", "timezone", server_default=None)
+    inspector = sa.inspect(op.get_bind())
+    cols = [c["name"] for c in inspector.get_columns("users")]
+    if "timezone" not in cols:
+        op.add_column(
+            "users",
+            sa.Column("timezone", sa.String(), nullable=False, server_default="UTC"),
+        )
+        op.alter_column("users", "timezone", server_default=None)
