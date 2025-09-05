@@ -27,13 +27,6 @@ def upgrade() -> None:
         )
     )
 
-    op.alter_column(
-        "reminder_logs",
-        "telegram_id",
-        existing_type=sa.BigInteger(),
-        nullable=True,
-    )
-
     indexes = [idx["name"] for idx in inspector.get_indexes("reminder_logs")]
     if "ix_reminder_logs_telegram_id" not in indexes:
         op.create_index(
