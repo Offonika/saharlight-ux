@@ -471,28 +471,33 @@ def init_db() -> None:
     global engine
 
     url = sa.engine.make_url(settings.database_url)
-    if SessionLocal.kw.get("bind") is not None and engine is not None and engine.url == url:
-        return
-    if url.drivername.startswith("sqlite"):
-        database_url = url
-    else:
-        password = get_db_password()
-        if not password:
-            raise ValueError("DB_PASSWORD environment variable must be set")
-        database_url = URL.create(
-            "postgresql",
-            username=settings.db_user,
-            password=password,
-            host=settings.db_host,
-            port=int(settings.db_port),
-            database=settings.db_name,
-        )
+    verified_engine: Engine | None = None
 
     with engine_lock:
-        if engine is None or engine.url != database_url:
+        if engine is not None and engine.url == url:
+            verified_engine = engine
+        else:
+            if url.drivername.startswith("sqlite"):
+                database_url = url
+            else:
+                password = get_db_password()
+                if not password:
+                    raise ValueError("DB_PASSWORD environment variable must be set")
+                database_url = URL.create(
+                    "postgresql",
+                    username=settings.db_user,
+                    password=password,
+                    host=settings.db_host,
+                    port=int(settings.db_port),
+                    database=settings.db_name,
+                )
             if engine is not None:
                 engine.dispose()
             engine = create_engine(database_url)
             SessionLocal.configure(bind=engine)
+            verified_engine = engine
 
-    Base.metadata.create_all(bind=engine)
+    if verified_engine is None:
+        raise RuntimeError("Database engine is not configured")
+
+    Base.metadata.create_all(bind=verified_engine)
