@@ -140,6 +140,7 @@ def register_handlers(
     # (for example OpenAI client initialization).
     from . import (
         dose_calc,
+        onboarding_handlers,
         reporting_handlers,
         alert_handlers,
         sos_handlers,
@@ -150,10 +151,14 @@ def register_handlers(
         billing_handlers,
     )
     from . import learning_handlers
+
     app.add_handler(CommandHandlerT("menu", menu_command))
     app.add_handler(CommandHandlerT("report", reporting_handlers.report_request))
     app.add_handler(CommandHandlerT("history", reporting_handlers.history_view))
     app.add_handler(dose_calc.dose_conv)
+    # Register onboarding before profile and sugar conversations to ensure
+    # proper routing of the /start command and initial inputs
+    app.add_handler(onboarding_handlers.onboarding_conv)
     # Register profile conversation before sugar conversation so that numeric
     # inputs for profile aren't captured by sugar logging
     register_profile_handlers(app)
