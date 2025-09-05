@@ -29,6 +29,25 @@ describe('profile api', () => {
     );
   });
 
+  it('returns null when profile not found', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ detail: 'missing' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await getProfile(1);
+    expect(result).toBeNull();
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/profiles?telegramId=1',
+      expect.any(Object),
+    );
+  });
+
   it('throws error when getProfile returns invalid JSON', async () => {
     const mockFetch = vi
       .fn()
@@ -41,7 +60,7 @@ describe('profile api', () => {
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(getProfile(1)).rejects.toThrow(
-      'Не удалось получить профиль: некорректный ответ сервера',
+      'Не удалось получить профиль: Некорректный ответ сервера',
     );
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profiles?telegramId=1',

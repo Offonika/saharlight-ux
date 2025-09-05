@@ -288,7 +288,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
 
     getProfile(telegramId)
       .then((data) => {
-        if (cancelled) return;
+        if (cancelled || !data) return;
 
         const icr =
           typeof data.icr === "number" && data.icr > 0

@@ -13,6 +13,7 @@ describe('tgFetch', () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
     localStorage.clear();
+    delete (window as any).Telegram;
   });
 
   it('prefixes base url and adds telegram header', async () => {
@@ -84,7 +85,7 @@ describe('tgFetch', () => {
     expect(init.body).toBe(form);
   });
 
-  it('throws error on failed response', async () => {
+  it('throws FetchError on failed response', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(
@@ -94,8 +95,12 @@ describe('tgFetch', () => {
         }),
       );
     vi.stubGlobal('fetch', fetchMock);
-    const { tgFetch } = await import('../src/lib/tgFetch');
-    await expect(tgFetch('/boom')).rejects.toThrow('fail');
+    const { tgFetch, FetchError } = await import('../src/lib/tgFetch');
+    const promise = tgFetch('/boom');
+    await expect(promise).rejects.toBeInstanceOf(FetchError);
+    await promise.catch((err) => {
+      expect(err).toMatchObject({ message: 'fail', status: 400 });
+    });
   });
 
   it('api.delete uses DELETE method', async () => {

@@ -43,6 +43,15 @@ function buildHeaders(init: RequestInit): Headers {
   return headers;
 }
 
+class FetchError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
 async function tgFetch<T>(
   path: string,
   init: RequestInit = {},
@@ -73,11 +82,11 @@ async function tgFetch<T>(
   if (!res.ok) {
     const msg =
       typeof (data as Record<string, unknown> | undefined)?.detail === 'string'
-        ? ((data as Record<string, string>).detail)
+        ? (data as Record<string, string>).detail
         : typeof data === 'string'
           ? data
           : 'Request failed';
-    throw new Error(msg);
+    throw new FetchError(res.status, msg);
   }
 
   return data as T;
@@ -94,4 +103,4 @@ export const api = {
   delete: <T>(path: string) => tgFetch<T>(path, { method: 'DELETE' }),
 };
 
-export { tgFetch };
+export { tgFetch, FetchError };
