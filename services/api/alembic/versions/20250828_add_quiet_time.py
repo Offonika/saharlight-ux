@@ -19,12 +19,16 @@ def upgrade() -> None:
         nullable=False,
         server_default=sa.text("'23:00:00'"),
     )
+    op.execute(
+        "UPDATE profiles SET quiet_end = '07:00:00' "
+        "WHERE quiet_end IS NULL OR quiet_end = '23:00:00'"
+    )
     op.alter_column(
         "profiles",
         "quiet_end",
         existing_type=sa.Time(),
         nullable=False,
-        server_default=sa.text("'23:00:00'"),
+        server_default=sa.text("'07:00:00'"),
     )
 
 
@@ -41,5 +45,5 @@ def downgrade() -> None:
         "quiet_end",
         existing_type=sa.Time(),
         nullable=True,
-        server_default=sa.text("'23:00:00'"),
+        server_default=sa.text("'07:00:00'"),
     )
