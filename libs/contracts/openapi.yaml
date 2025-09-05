@@ -8,6 +8,7 @@ tags:
 - name: Profiles
 - name: History
 - name: Reminders
+- name: Onboarding
 paths:
   /health:
     get:
@@ -569,6 +570,61 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /onboarding/events:
+    post:
+      tags:
+      - Onboarding
+      summary: Onboarding Events Post
+      operationId: onboardingEventsPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventPayload'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    title: Ok
+                required:
+                - ok
+                title: Response Onboarding Events Post
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /onboarding/status:
+    get:
+      tags:
+      - Onboarding
+      summary: Onboarding Status Get
+      operationId: onboardingStatusGet
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnboardingStatusResponse'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
     AnalyticsPoint:
@@ -1062,6 +1118,47 @@ components:
       required:
       - telegramId
       title: WebUser
+    EventPayload:
+      properties:
+        event:
+          type: string
+          title: Event
+        step:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Step
+        meta:
+          anyOf:
+          - type: object
+            additionalProperties: true
+          - type: 'null'
+          title: Meta
+      type: object
+      required:
+      - event
+      title: EventPayload
+    OnboardingStatusResponse:
+      properties:
+        completed:
+          type: boolean
+          title: Completed
+        step:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Step
+        missing:
+          items:
+            type: string
+          type: array
+          title: Missing
+      type: object
+      required:
+      - completed
+      - step
+      - missing
+      title: OnboardingStatusResponse
   securitySchemes:
     telegramInitData:
       type: apiKey
