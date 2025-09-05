@@ -34,10 +34,12 @@ def upgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
         billing_event_enum_new.create(bind, checkfirst=True)
-        op.execute(
-            "ALTER TABLE billing_logs ALTER COLUMN event TYPE billing_event_new "
-            "USING lower(event::text)::billing_event_new"
-        )
+        with op.batch_alter_table("billing_logs") as batch_op:
+            batch_op.alter_column(
+                "event",
+                type_=billing_event_enum_new,
+                postgresql_using="lower(event::text)::billing_event_new",
+            )
         op.execute("DROP TYPE billing_event")
         op.execute("ALTER TYPE billing_event_new RENAME TO billing_event")
     else:
@@ -48,10 +50,12 @@ def downgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
         billing_event_enum_old.create(bind, checkfirst=True)
-        op.execute(
-            "ALTER TABLE billing_logs ALTER COLUMN event TYPE billing_event_old "
-            "USING upper(event::text)::billing_event_old"
-        )
+        with op.batch_alter_table("billing_logs") as batch_op:
+            batch_op.alter_column(
+                "event",
+                type_=billing_event_enum_old,
+                postgresql_using="upper(event::text)::billing_event_old",
+            )
         op.execute("DROP TYPE billing_event")
         op.execute("ALTER TYPE billing_event_old RENAME TO billing_event")
     else:
