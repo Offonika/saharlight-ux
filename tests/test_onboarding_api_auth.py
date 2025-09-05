@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.config import settings
-from services.api.app.diabetes.services.db import Base, User
+from services.api.app.diabetes.services.db import Base, Profile, Reminder, User
+from services.api.app.diabetes.schemas.reminders import ReminderType, ScheduleKind
 from services.api.app.main import app
 from services.api.app.routers import onboarding as onboarding_router
 from services.api.app.services import onboarding_state
@@ -35,6 +36,8 @@ def setup_db() -> sessionmaker[Session]:
             User.__table__,
             onboarding_state.OnboardingState.__table__,
             OnboardingEvent.__table__,
+            Profile.__table__,
+            Reminder.__table__,
         ],
     )
     return sessionmaker(bind=engine, class_=Session)
@@ -109,6 +112,25 @@ def test_status_completed(monkeypatch: pytest.MonkeyPatch) -> None:
                 data={},
                 variant=None,
                 completed_at=datetime.now(timezone.utc),
+            )
+        )
+        session.add(
+            Profile(
+                telegram_id=1,
+                icr=1,
+                cf=1,
+                target_bg=5.5,
+                low_threshold=4.0,
+                high_threshold=8.0,
+                timezone="UTC",
+            )
+        )
+        session.add(
+            Reminder(
+                telegram_id=1,
+                type=ReminderType.custom,
+                kind=ScheduleKind.every,
+                interval_minutes=60,
             )
         )
         session.commit()
