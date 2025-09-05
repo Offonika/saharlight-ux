@@ -33,9 +33,12 @@ def upgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
         status_enum_new.create(bind, checkfirst=True)
-        op.execute(
-            "ALTER TABLE subscriptions ALTER COLUMN status TYPE subscription_status_new USING lower(status::text)::subscription_status_new"
-        )
+        with op.batch_alter_table("subscriptions") as batch_op:
+            batch_op.alter_column(
+                "status",
+                type_=status_enum_new,
+                postgresql_using="lower(status::text)::subscription_status_new",
+            )
         op.execute("DROP TYPE subscription_status")
         op.execute("ALTER TYPE subscription_status_new RENAME TO subscription_status")
     else:
@@ -46,9 +49,12 @@ def downgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
         status_enum_old.create(bind, checkfirst=True)
-        op.execute(
-            "ALTER TABLE subscriptions ALTER COLUMN status TYPE subscription_status_old USING status::text::subscription_status_old"
-        )
+        with op.batch_alter_table("subscriptions") as batch_op:
+            batch_op.alter_column(
+                "status",
+                type_=status_enum_old,
+                postgresql_using="status::text::subscription_status_old",
+            )
         op.execute("DROP TYPE subscription_status")
         op.execute("ALTER TYPE subscription_status_old RENAME TO subscription_status")
     else:
