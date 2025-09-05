@@ -12,12 +12,12 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("history_records") as batch:
-        batch.alter_column("date", existing_type=sa.String(), type_=sa.Date())
-        batch.alter_column("time", existing_type=sa.String(), type_=sa.Time())
+    with op.batch_alter_table("history_records") as batch_op:
+        batch_op.alter_column("date", existing_type=sa.String(), type_=sa.Date())
+        batch_op.alter_column("time", existing_type=sa.String(), type_=sa.Time())
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("history_records") as batch:
-        batch.alter_column("date", existing_type=sa.Date(), type_=sa.String())
-        batch.alter_column("time", existing_type=sa.Time(), type_=sa.String())
+    with op.batch_alter_table("history_records") as batch_op:
+        batch_op.alter_column("date", existing_type=sa.Date(), type_=sa.String())
+        batch_op.alter_column("time", existing_type=sa.Time(), type_=sa.String())
