@@ -1,36 +1,28 @@
 import { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { useTranslation } from "@/i18n";
 import { getProfile } from "./api";
+
+const DEFAULT_AFTER_MEAL_MINUTES = 120;
 
 export function useDefaultAfterMealMinutes(
   telegramId: number | null | undefined,
 ) {
-  const [value, setValue] = useState<number | null>(null);
-  const { toast } = useToast();
-  const { t } = useTranslation("profile");
+  const [value, setValue] = useState<number>(DEFAULT_AFTER_MEAL_MINUTES);
 
   useEffect(() => {
     if (!telegramId) return;
     getProfile(telegramId)
       .then((profile) => {
-        if (!profile) {
-          toast({
-            title: t("error"),
-            description: t("notFound"),
-            variant: "destructive",
-          });
-          return;
-        }
-        const minutes = profile.afterMealMinutes;
-        if (typeof minutes === "number") {
-          setValue(minutes);
-        }
+        const minutes = profile?.afterMealMinutes;
+        setValue(
+          typeof minutes === "number"
+            ? minutes
+            : DEFAULT_AFTER_MEAL_MINUTES,
+        );
       })
-      .catch((err) => {
-        console.warn("Failed to load profile:", err);
+      .catch(() => {
+        setValue(DEFAULT_AFTER_MEAL_MINUTES);
       });
-  }, [telegramId, toast, t]);
+  }, [telegramId]);
 
   return value;
 }

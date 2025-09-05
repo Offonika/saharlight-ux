@@ -37,6 +37,7 @@ vi.mock('../src/features/profile/api', async () => {
     ...actual,
     saveProfile: vi.fn(),
     patchProfile: vi.fn(),
+    getProfile: vi.fn().mockResolvedValue(null),
   };
 });
 
@@ -73,23 +74,12 @@ describe('Profile onboarding', () => {
   });
 
   it('renders empty form when profile is missing (404)', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ detail: 'not found' }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      );
-    vi.stubGlobal('fetch', fetchMock);
-
     const { getByPlaceholderText } = render(<Profile />);
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalled();
+      expect(toast).not.toHaveBeenCalled();
     });
 
     expect((getByPlaceholderText('6.0') as HTMLInputElement).value).toBe('');
-    expect(toast).not.toHaveBeenCalled();
   });
 });
