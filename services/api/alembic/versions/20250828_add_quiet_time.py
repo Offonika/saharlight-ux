@@ -12,38 +12,33 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.alter_column(
-        "profiles",
-        "quiet_start",
-        existing_type=sa.Time(),
-        nullable=False,
-        server_default=sa.text("'23:00:00'"),
-    )
-    op.execute(
-        "UPDATE profiles SET quiet_end = '07:00:00' "
-        "WHERE quiet_end IS NULL OR quiet_end = '23:00:00'"
-    )
-    op.alter_column(
-        "profiles",
-        "quiet_end",
-        existing_type=sa.Time(),
-        nullable=False,
-        server_default=sa.text("'07:00:00'"),
-    )
+    op.execute("UPDATE profiles SET quiet_end = '07:00:00' WHERE quiet_end IS NULL OR quiet_end = '23:00:00'")
+    with op.batch_alter_table("profiles") as batch_op:
+        batch_op.alter_column(
+            "quiet_start",
+            existing_type=sa.Time(),
+            nullable=False,
+            server_default=sa.text("'23:00:00'"),
+        )
+        batch_op.alter_column(
+            "quiet_end",
+            existing_type=sa.Time(),
+            nullable=False,
+            server_default=sa.text("'07:00:00'"),
+        )
 
 
 def downgrade() -> None:
-    op.alter_column(
-        "profiles",
-        "quiet_start",
-        existing_type=sa.Time(),
-        nullable=True,
-        server_default=sa.text("'23:00:00'"),
-    )
-    op.alter_column(
-        "profiles",
-        "quiet_end",
-        existing_type=sa.Time(),
-        nullable=True,
-        server_default=sa.text("'07:00:00'"),
-    )
+    with op.batch_alter_table("profiles") as batch_op:
+        batch_op.alter_column(
+            "quiet_start",
+            existing_type=sa.Time(),
+            nullable=True,
+            server_default=sa.text("'23:00:00'"),
+        )
+        batch_op.alter_column(
+            "quiet_end",
+            existing_type=sa.Time(),
+            nullable=True,
+            server_default=sa.text("'07:00:00'"),
+        )
