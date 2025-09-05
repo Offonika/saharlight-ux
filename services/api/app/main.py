@@ -38,6 +38,7 @@ from .routers.internal_reminders import router as internal_reminders_router
 from .routers.stats import router as stats_router
 from .routers import metrics
 from .routers.billing import router as billing_router
+from .routers.onboarding import router as onboarding_router
 from .schemas.history import ALLOWED_HISTORY_TYPES, HistoryRecordSchema, HistoryType
 from .schemas.role import RoleSchema
 from .services.profile import patch_user_settings
@@ -348,6 +349,7 @@ async def delete_history(
 # ────────── include router ──────────
 app.include_router(internal_reminders_router)
 app.include_router(metrics.router)
+app.include_router(onboarding_router)
 app.include_router(api_router, prefix="/api")
 
 # ────────── run (for local testing) ──────────
