@@ -85,7 +85,7 @@ class SessionMaker(Protocol[S]):
 async def run_db(
     fn: Callable[Concatenate[S, P], T],
     *args: P.args,
-    sessionmaker: SessionMaker[S] = SessionLocal,
+    sessionmaker: SessionMaker[S] | None = None,
     **kwargs: P.kwargs,
 ) -> T:
     """Execute blocking DB work in a thread and return the result.
@@ -100,6 +100,9 @@ async def run_db(
     *args, **kwargs:
         Additional arguments forwarded to ``fn``.
     """
+
+    if sessionmaker is None:
+        sessionmaker = SessionLocal
 
     def wrapper() -> T:
         with sessionmaker() as session:
@@ -465,17 +468,25 @@ class HistoryRecord(Base):
 # ────────────────────── инициализация ────────────────────────
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
-    password = get_db_password()
-    if not password:
-        raise ValueError("DB_PASSWORD environment variable must be set")
-    database_url = URL.create(
-        "postgresql",
-        username=settings.db_user,
-        password=password,
-        host=settings.db_host,
-        port=int(settings.db_port),
-        database=settings.db_name,
-    )
+
+    if SessionLocal.bind is not None:
+        return
+
+    url = sa.engine.make_url(settings.database_url)
+    if url.drivername.startswith("sqlite"):
+        database_url = url
+    else:
+        password = get_db_password()
+        if not password:
+            raise ValueError("DB_PASSWORD environment variable must be set")
+        database_url = URL.create(
+            "postgresql",
+            username=settings.db_user,
+            password=password,
+            host=settings.db_host,
+            port=int(settings.db_port),
+            database=settings.db_name,
+        )
 
     global engine
     with engine_lock:
