@@ -13,12 +13,19 @@ def test_main_attaches_onboarding_handler_and_runs(monkeypatch: pytest.MonkeyPat
 
     monkeypatch.setenv("DB_PASSWORD", "pwd")
     monkeypatch.setenv("TELEGRAM_TOKEN", "token")
+    monkeypatch.setenv("UI_BASE_URL", "https://ui")
 
     sys.modules.pop("services.api.app.bot", None)
     bot = importlib.import_module("services.api.app.bot")
 
     sentinel_handler = object()
-    monkeypatch.setattr(bot, "onboarding_conv", sentinel_handler)
+    captured: dict[str, str] = {}
+
+    def fake_build_start_handler(url: str) -> object:
+        captured["url"] = url
+        return sentinel_handler
+
+    monkeypatch.setattr(bot, "build_start_handler", fake_build_start_handler)
 
     class DummyApp:
         def __init__(self) -> None:
@@ -58,3 +65,4 @@ def test_main_attaches_onboarding_handler_and_runs(monkeypatch: pytest.MonkeyPat
     assert dummy_builder.token_value == "token"
     assert sentinel_handler in built_app.handlers
     assert built_app.run_polling_called
+    assert captured["url"] == "https://ui"
