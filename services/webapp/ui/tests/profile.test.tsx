@@ -3,6 +3,7 @@ import { render, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const toast = vi.fn();
+let searchParams = new URLSearchParams();
 
 vi.mock('../src/features/profile/api', () => ({
   saveProfile: vi.fn(),
@@ -22,8 +23,13 @@ vi.mock('../src/hooks/useTelegramInitData', () => ({
   useTelegramInitData: vi.fn(),
 }));
 
+vi.mock('@/shared/api/onboarding', () => ({
+  postOnboardingEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
+  useSearchParams: () => [searchParams, vi.fn()],
 }));
 
 vi.mock('../src/pages/resolveTelegramId', () => ({
@@ -80,6 +86,7 @@ describe('Profile page', () => {
     cleanup();
     (Intl as any).supportedValuesOf = originalSupportedValuesOf;
     vi.restoreAllMocks();
+    searchParams = new URLSearchParams();
   });
 
   it('displays carbUnits options using localized text', () => {
@@ -799,6 +806,7 @@ describe('Profile page', () => {
       );
     });
   });
+
 });
 
 describe('resolveTelegramId', () => {
