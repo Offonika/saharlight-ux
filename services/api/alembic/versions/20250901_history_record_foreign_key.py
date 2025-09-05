@@ -16,13 +16,6 @@ def upgrade() -> None:
     bind = op.get_bind()
     inspector = sa.inspect(bind)
 
-    op.alter_column(
-        "history_records",
-        "telegram_id",
-        existing_type=sa.BigInteger(),
-        nullable=False,
-    )
-
     fks = inspector.get_foreign_keys("history_records")
     has_fk = any(
         fk["referred_table"] == "users" and fk["constrained_columns"] == ["telegram_id"]
