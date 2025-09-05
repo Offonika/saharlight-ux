@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import TypeAlias
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
@@ -11,8 +12,13 @@ logger = logging.getLogger(__name__)
 CommandHandlerT: TypeAlias = CommandHandler[ContextTypes.DEFAULT_TYPE, object]
 
 
-def build_start_handler(ui_base_url: str) -> CommandHandlerT:
+def build_start_handler() -> CommandHandlerT:
     """Return a ``/start`` handler that links to the WebApp onboarding."""
+
+    ui_base_url = os.getenv("UI_BASE_URL", "/ui")
+    if ui_base_url.startswith("/"):
+        public_origin = os.getenv("PUBLIC_ORIGIN", "")
+        ui_base_url = f"{public_origin.rstrip('/')}{ui_base_url}"
 
     async def _start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         profile_url = f"{ui_base_url.rstrip('/')}/profile?flow=onboarding&step=profile"

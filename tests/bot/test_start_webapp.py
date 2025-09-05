@@ -21,8 +21,9 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_start_webapp_buttons() -> None:
-    handler = build_start_handler("https://ui.example")
+async def test_start_webapp_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("UI_BASE_URL", "https://ui.example")
+    handler = build_start_handler()
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
     context = cast(
@@ -39,3 +40,20 @@ async def test_start_webapp_buttons() -> None:
     assert buttons[1][0].web_app.url.endswith(
         "/reminders?flow=onboarding&step=reminders"
     )
+
+
+@pytest.mark.asyncio
+async def test_start_webapp_relative(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("UI_BASE_URL", "/ui")
+    monkeypatch.setenv("PUBLIC_ORIGIN", "https://bot.example")
+    handler = build_start_handler()
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], SimpleNamespace()
+    )
+
+    await handler.callback(update, context)
+
+    buttons = message.kwargs[0]["reply_markup"].inline_keyboard
+    assert buttons[0][0].web_app.url.startswith("https://bot.example/ui/")
