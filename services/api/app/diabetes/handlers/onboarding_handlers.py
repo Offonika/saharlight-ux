@@ -157,7 +157,9 @@ def _reminders_keyboard() -> InlineKeyboardMarkup:
 
 async def _log_event(user_id: int, name: str, step: int, variant: str | None) -> None:
     def _log(session: SessionProtocol) -> None:
-        log_onboarding_event(cast(Session, session), user_id, name, step, variant)
+        log_onboarding_event(
+            cast(Session, session), user_id, name, step=str(step), variant=variant
+        )
 
     try:
         await run_db(_log, sessionmaker=SessionLocal)
