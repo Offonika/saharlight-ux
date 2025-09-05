@@ -7,4 +7,3 @@ mypy
 playwright
 attrs>=22.0.0
 types-reportlab
-types-aiohttp
