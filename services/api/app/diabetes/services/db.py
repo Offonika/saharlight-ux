@@ -469,9 +469,6 @@ class HistoryRecord(Base):
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
 
-    if SessionLocal.bind is not None:
-        return
-
     url = sa.engine.make_url(settings.database_url)
     if url.drivername.startswith("sqlite"):
         database_url = url
@@ -495,5 +492,9 @@ def init_db() -> None:
                 engine.dispose()
             engine = create_engine(database_url)
             SessionLocal.configure(bind=engine)
+        current_engine = engine
 
-    Base.metadata.create_all(bind=engine)
+    if current_engine is None:
+        raise RuntimeError("Database engine is not configured. Call init_db() to configure it.")
+
+    Base.metadata.create_all(bind=current_engine)
