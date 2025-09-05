@@ -400,17 +400,21 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       .catch((error) => {
         if (cancelled) return;
         const message = error instanceof Error ? error.message : String(error);
+        if (/not found/i.test(message) || message.includes("не найден")) {
+          toast({ title: t('profile.notFound'), variant: "destructive" });
+          return;
+        }
         toast({
           title: t('profile.error'),
           description: message,
-          variant: "destructive",
+          variant: 'destructive',
         });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [user, initData, toast]);
+  }, [user, initData, toast, t]);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
     if (field === "timezone") {
