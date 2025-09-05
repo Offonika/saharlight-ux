@@ -296,11 +296,6 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       .then((data) => {
         if (cancelled) return;
         if (!data) {
-          toast({
-            title: t('profile.error'),
-            description: t('profile.notFound'),
-            variant: 'destructive',
-          });
           return;
         }
 
