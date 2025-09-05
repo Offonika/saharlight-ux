@@ -20,3 +20,16 @@ def test_log_onboarding_event_persists_event() -> None:
         assert ev.event_name == "onboarding_started"
         assert ev.step == 0
         assert ev.variant == "v1"
+
+
+def test_log_onboarding_event_persists_optional_fields() -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+
+    with Session() as session:
+        log_onboarding_event(session, 2, "step_completed_1", 1, None)
+        ev = session.query(OnboardingEvent).one()
+        assert ev.user_id == 2
+        assert ev.variant is None
+        assert ev.created_at is not None
