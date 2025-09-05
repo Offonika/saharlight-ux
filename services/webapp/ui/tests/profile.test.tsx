@@ -751,6 +751,24 @@ describe('Profile page', () => {
     expect(patchProfile).not.toHaveBeenCalled();
   });
 
+  it('shows toast when profile is missing', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (getProfile as vi.Mock).mockResolvedValue(null);
+
+    render(<Profile />);
+    await waitFor(() => {
+      expect(getProfile).toHaveBeenCalledWith(123);
+    });
+    const { t } = useTranslation();
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: t('profile.error'),
+        description: t('profile.notFound'),
+        variant: 'destructive',
+      }),
+    );
+  });
+
   it('shows warning modal and blocks save until confirmation', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     const { getByText, getByPlaceholderText } = render(<Profile />);
