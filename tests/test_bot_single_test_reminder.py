@@ -68,7 +68,7 @@ def test_single_test_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
             return None
 
         def add_handler(
-            self, handler: object
+            self, handler: object, *, group: int | None = None
         ) -> None:  # pragma: no cover - compatibility
             return None
 
