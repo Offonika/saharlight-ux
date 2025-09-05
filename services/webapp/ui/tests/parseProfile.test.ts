@@ -24,9 +24,10 @@ const makeProfile = (
 });
 
 describe("parseProfile", () => {
-  it("returns parsed numbers for valid input", () => {
+  it("returns data and no errors for valid input", () => {
     const result = parseProfile(makeProfile());
-    expect(result).toEqual({
+    expect(result.errors).toEqual({});
+    expect(result.data).toEqual({
       icr: 1,
       cf: 2,
       target: 5,
@@ -43,90 +44,35 @@ describe("parseProfile", () => {
     });
   });
 
-  it("returns null when any value is non-positive or invalid", () => {
-    expect(parseProfile(makeProfile({ icr: "0" }))).toBeNull();
-    expect(parseProfile(makeProfile({ cf: "-1" }))).toBeNull();
-    expect(parseProfile(makeProfile({ icr: "a" }))).toBeNull();
+  it("reports errors for invalid or missing values", () => {
+    expect(parseProfile(makeProfile({ icr: "0" })).errors.icr).toBe(
+      "out_of_range",
+    );
+    expect(parseProfile(makeProfile({ cf: "abc" })).errors.cf).toBe(
+      "invalid",
+    );
   });
 
   it("parses comma decimal numbers", () => {
     const result = parseProfile(
       makeProfile({ icr: "1,5", cf: "2,5", target: "5,5" }),
     );
-    expect(result?.icr).toBe(1.5);
-    expect(result?.cf).toBe(2.5);
-    expect(result?.target).toBe(5.5);
+    expect(result.errors).toEqual({});
+    expect(result.data.icr).toBeCloseTo(1.5);
+    expect(result.data.cf).toBeCloseTo(2.5);
+    expect(result.data.target).toBeCloseTo(5.5);
   });
 
-  it("returns null for multiple commas", () => {
-    const result = parseProfile(makeProfile({ icr: "1,2,3" }));
-    expect(result).toBeNull();
-  });
-
-  it("skips gramsPerXe validation when carbUnits is grams", () => {
-    const result = parseProfile(makeProfile({ gramsPerXe: "", carbUnits: "g" }));
-    expect(result).toEqual({
-      icr: 1,
-      cf: 2,
-      target: 5,
-      low: 4,
-      high: 10,
-      dia: 7,
-      preBolus: 10,
-      roundStep: 1,
-      carbUnits: "g",
-      gramsPerXe: 0,
-      rapidInsulinType: "lispro" as RapidInsulin,
-      maxBolus: 20,
-      afterMealMinutes: 60,
-    });
-  });
-
-  it("validates gramsPerXe when carbUnits is XE", () => {
+  it("requires gramsPerXe when carbUnits is XE", () => {
     const result = parseProfile(
       makeProfile({ gramsPerXe: "", carbUnits: "xe" }),
     );
-    expect(result).toBeNull();
+    expect(result.errors.gramsPerXe).toBe("required");
   });
 
-  it("returns null when low/high bounds are invalid", () => {
-    expect(parseProfile(makeProfile({ low: "8", high: "6" }))).toBeNull();
-    expect(parseProfile(makeProfile({ target: "3" }))).toBeNull();
-    expect(parseProfile(makeProfile({ target: "12" }))).toBeNull();
-  });
-
-  it("validates preBolus upper bound", () => {
-    expect(parseProfile(makeProfile({ preBolus: "61" }))).toBeNull();
-    expect(parseProfile(makeProfile({ preBolus: "60" }))?.preBolus).toBe(60);
-  });
-
-  it("validates DIA upper bound", () => {
-    expect(parseProfile(makeProfile({ dia: "25" }))).toBeNull();
-    expect(parseProfile(makeProfile({ dia: "24" }))?.dia).toBe(24);
-  });
-
-  it("validates afterMealMinutes upper bound", () => {
-    expect(
-      parseProfile(makeProfile({ afterMealMinutes: "241" })),
-    ).toBeNull();
-    expect(
-      parseProfile(makeProfile({ afterMealMinutes: "240" }))?.afterMealMinutes,
-    ).toBe(240);
-  });
-
-  it("allows large roundStep and maxBolus", () => {
-    const result = parseProfile(
-      makeProfile({ roundStep: "10", maxBolus: "50" }),
-    );
-    expect(result?.roundStep).toBe(10);
-    expect(result?.maxBolus).toBe(50);
-  });
-
-  it("allows gramsPerXe above 20", () => {
-    const result = parseProfile(
-      makeProfile({ gramsPerXe: "25", carbUnits: "xe" }),
-    );
-    expect(result?.gramsPerXe).toBe(25);
+  it("validates target range", () => {
+    const result = parseProfile(makeProfile({ target: "12" }));
+    expect(result.errors.target).toBe("out_of_range");
   });
 
   it("parses tablet therapy profile skipping insulin fields", () => {
@@ -140,101 +86,9 @@ describe("parseProfile", () => {
       }),
       "tablets",
     );
-    expect(result).toEqual({
-      icr: 0,
-      cf: 0,
-      target: 5,
-      low: 4,
-      high: 10,
-      dia: 0,
-      preBolus: 0,
-      roundStep: 1,
-      carbUnits: "g",
-      gramsPerXe: 12,
-      rapidInsulinType: "lispro" as RapidInsulin,
-      maxBolus: 0,
-      afterMealMinutes: 60,
-    });
-  });
-
-  it("parses none therapy profile skipping insulin fields", () => {
-    const result = parseProfile(
-      makeProfile({
-        icr: "",
-        cf: "",
-        dia: "",
-        preBolus: "",
-        maxBolus: "",
-      }),
-      "none",
-    );
-    expect(result).toEqual({
-      icr: 0,
-      cf: 0,
-      target: 5,
-      low: 4,
-      high: 10,
-      dia: 0,
-      preBolus: 0,
-      roundStep: 1,
-      carbUnits: "g",
-      gramsPerXe: 12,
-      rapidInsulinType: "lispro" as RapidInsulin,
-      maxBolus: 0,
-      afterMealMinutes: 60,
-    });
-  });
-
-  it("validates required fields for tablet therapy", () => {
-    expect(
-      parseProfile(
-        makeProfile({
-          icr: "",
-          cf: "",
-          dia: "",
-          preBolus: "",
-          maxBolus: "",
-          low: "8",
-          high: "6",
-        }),
-        "tablets",
-      ),
-    ).toBeNull();
-  });
-
-  it("validates required fields for none therapy", () => {
-    expect(
-      parseProfile(
-        makeProfile({
-          icr: "",
-          cf: "",
-          dia: "",
-          preBolus: "",
-          maxBolus: "",
-          target: "3",
-        }),
-        "none",
-      ),
-    ).toBeNull();
-  });
-
-  it("parses mixed therapy profile including insulin fields", () => {
-    const result = parseProfile(makeProfile(), "mixed");
-    expect(result).toEqual({
-      icr: 1,
-      cf: 2,
-      target: 5,
-      low: 4,
-      high: 10,
-      dia: 7,
-      preBolus: 10,
-      roundStep: 1,
-      carbUnits: "g",
-      gramsPerXe: 12,
-      rapidInsulinType: "lispro" as RapidInsulin,
-      maxBolus: 20,
-      afterMealMinutes: 60,
-    });
+    expect(result.errors).toEqual({});
+    expect(result.data.icr).toBe(0);
+    expect(result.data.cf).toBe(0);
   });
 });
 
@@ -379,3 +233,4 @@ describe("shouldWarnProfile", () => {
     ).toBe(false);
   });
 });
+

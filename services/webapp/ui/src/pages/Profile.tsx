@@ -61,109 +61,111 @@ type ParsedProfile = {
   maxBolus: number;
   afterMealMinutes: number;
 };
+type FieldErrors = Partial<Record<keyof ProfileForm, string>>;
 
 export const parseProfile = (
   profile: ProfileForm,
   therapyType?: TherapyType,
-): ParsedProfile | null => {
-  if (therapyType === 'tablets' || therapyType === 'none') {
-    const gramsPerXe = Number(profile.gramsPerXe.replace(/,/g, '.'));
-    const parsed = {
-      icr: 0,
-      cf: 0,
-      target: Number(profile.target.replace(/,/g, '.')),
-      low: Number(profile.low.replace(/,/g, '.')),
-      high: Number(profile.high.replace(/,/g, '.')),
-      dia: 0,
-      preBolus: 0,
-      roundStep: Number(profile.roundStep.replace(/,/g, '.')),
-      carbUnits: profile.carbUnits,
-      gramsPerXe: Number.isFinite(gramsPerXe) ? gramsPerXe : 0,
-      rapidInsulinType: profile.rapidInsulinType,
-      maxBolus: 0,
-      afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, '.')),
-    } satisfies ParsedProfile;
-    const validateGrams = parsed.carbUnits === 'xe';
-    const numbersValid =
-      [
-        parsed.target,
-        parsed.low,
-        parsed.high,
-        parsed.roundStep,
-        parsed.afterMealMinutes,
-        ...(validateGrams ? [parsed.gramsPerXe] : []),
-      ].every((v) => Number.isFinite(v));
-    const positiveValid =
-      parsed.target > 0 &&
-      parsed.low > 0 &&
-      parsed.high > 0 &&
-      parsed.roundStep > 0 &&
-      parsed.afterMealMinutes >= 0 &&
-      (!validateGrams || parsed.gramsPerXe > 0);
-    const rangeValid =
-      parsed.low < parsed.high &&
-      parsed.low < parsed.target &&
-      parsed.target < parsed.high &&
-      parsed.afterMealMinutes <= 240 &&
-      (parsed.carbUnits === 'g' || parsed.carbUnits === 'xe') &&
-      (!validateGrams || parsed.gramsPerXe > 0);
-    return numbersValid && positiveValid && rangeValid ? parsed : null;
+): { data: ParsedProfile; errors: FieldErrors } => {
+  const errors: FieldErrors = {};
+  const isNonInsulin = therapyType === 'tablets' || therapyType === 'none';
+
+  const parseNumber = (
+    field: keyof ProfileForm,
+    value: string,
+    {
+      required = true,
+      min,
+      max,
+      allowZero = false,
+    }: {
+      required?: boolean;
+      min?: number;
+      max?: number;
+      allowZero?: boolean;
+    } = {},
+  ): number => {
+    if (value.trim() === '') {
+      if (required) errors[field] = 'required';
+      return 0;
+    }
+    const num = Number(value.replace(/,/g, '.'));
+    if (!Number.isFinite(num)) {
+      errors[field] = 'invalid';
+      return 0;
+    }
+    if (
+      (!allowZero && num <= 0) ||
+      (allowZero && num < 0) ||
+      (min !== undefined && num < min) ||
+      (max !== undefined && num > max)
+    ) {
+      errors[field] = 'out_of_range';
+    }
+    return num;
+  };
+
+  const icr = isNonInsulin ? 0 : parseNumber('icr', profile.icr);
+  const cf = isNonInsulin ? 0 : parseNumber('cf', profile.cf);
+  const target = parseNumber('target', profile.target);
+  const low = parseNumber('low', profile.low);
+  const high = parseNumber('high', profile.high);
+  const dia = isNonInsulin
+    ? 0
+    : parseNumber('dia', profile.dia, { min: 1, max: 24 });
+  const preBolus = isNonInsulin
+    ? 0
+    : parseNumber('preBolus', profile.preBolus, {
+        allowZero: true,
+        max: 60,
+      });
+  const roundStep = parseNumber('roundStep', profile.roundStep);
+
+  const carbUnits = profile.carbUnits;
+  if (carbUnits !== 'g' && carbUnits !== 'xe') {
+    errors.carbUnits = 'invalid';
   }
 
-  const gramsPerXe = Number(profile.gramsPerXe.replace(/,/g, '.'));
-  const parsed = {
-    icr: Number(profile.icr.replace(/,/g, '.')),
-    cf: Number(profile.cf.replace(/,/g, '.')),
-    target: Number(profile.target.replace(/,/g, '.')),
-    low: Number(profile.low.replace(/,/g, '.')),
-    high: Number(profile.high.replace(/,/g, '.')),
-    dia: Number(profile.dia.replace(/,/g, '.')),
-    preBolus: Number(profile.preBolus.replace(/,/g, '.')),
-    roundStep: Number(profile.roundStep.replace(/,/g, '.')),
-    carbUnits: profile.carbUnits,
-    gramsPerXe: Number.isFinite(gramsPerXe) ? gramsPerXe : 0,
-    rapidInsulinType: profile.rapidInsulinType,
-    maxBolus: Number(profile.maxBolus.replace(/,/g, '.')),
-    afterMealMinutes: Number(profile.afterMealMinutes.replace(/,/g, '.')),
-  } satisfies ParsedProfile;
-  const validateGrams = parsed.carbUnits === 'xe';
-  const numbersValid =
-    [
-      parsed.icr,
-      parsed.cf,
-      parsed.target,
-      parsed.low,
-      parsed.high,
-      parsed.dia,
-      parsed.preBolus,
-      parsed.roundStep,
-      parsed.maxBolus,
-      parsed.afterMealMinutes,
-      ...(validateGrams ? [parsed.gramsPerXe] : []),
-    ].every((v) => Number.isFinite(v));
-  const positiveValid =
-    parsed.icr > 0 &&
-    parsed.cf > 0 &&
-    parsed.target > 0 &&
-    parsed.low > 0 &&
-    parsed.high > 0 &&
-    parsed.dia >= 1 &&
-    parsed.preBolus >= 0 &&
-    parsed.roundStep > 0 &&
-    parsed.maxBolus > 0 &&
-    parsed.afterMealMinutes >= 0 &&
-    (!validateGrams || parsed.gramsPerXe > 0);
-  const rangeValid =
-    parsed.low < parsed.high &&
-    parsed.low < parsed.target &&
-    parsed.target < parsed.high &&
-    parsed.dia <= 24 &&
-    parsed.preBolus <= 60 &&
-    parsed.afterMealMinutes <= 240 &&
-    (parsed.carbUnits === 'g' || parsed.carbUnits === 'xe') &&
-    parsed.rapidInsulinType.length > 0 &&
-    (!validateGrams || parsed.gramsPerXe > 0);
-  return numbersValid && positiveValid && rangeValid ? parsed : null;
+  const gramsPerXe = parseNumber('gramsPerXe', profile.gramsPerXe, {
+    required: carbUnits === 'xe',
+  });
+
+  const rapidInsulinType = profile.rapidInsulinType;
+  if (!isNonInsulin && !rapidInsulinType) {
+    errors.rapidInsulinType = 'required';
+  }
+
+  const maxBolus = isNonInsulin ? 0 : parseNumber('maxBolus', profile.maxBolus);
+  const afterMealMinutes = parseNumber(
+    'afterMealMinutes',
+    profile.afterMealMinutes,
+    { allowZero: true, max: 240 },
+  );
+
+  if (low >= high || low >= target || target >= high) {
+    if (!errors.low) errors.low = 'out_of_range';
+    if (!errors.high) errors.high = 'out_of_range';
+    if (!errors.target) errors.target = 'out_of_range';
+  }
+
+  return {
+    data: {
+      icr,
+      cf,
+      target,
+      low,
+      high,
+      dia,
+      preBolus,
+      roundStep,
+      carbUnits,
+      gramsPerXe: Number.isFinite(gramsPerXe) ? gramsPerXe : 0,
+      rapidInsulinType,
+      maxBolus,
+      afterMealMinutes,
+    },
+    errors,
+  };
 };
 
 export const shouldWarnProfile = (
@@ -246,6 +248,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   const [originalTherapyType, setOriginalTherapyType] = useState<TherapyType>(
     therapyTypeProp ?? 'none',
   );
+
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<keyof ProfileForm, string>>
+  >({});
 
   const isInsulinTherapy =
     therapyType === 'insulin' || therapyType === 'mixed';
@@ -421,6 +427,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   }, [user, initData, toast, t]);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
     if (field === "timezone") {
       setProfile((prev) => ({ ...prev, timezone: value }));
       return;
@@ -531,8 +538,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       return;
     }
 
-    const parsed = parseProfile(profile, therapyType);
-    if (!parsed) {
+    const { data: parsed, errors } = parseProfile(profile, therapyType);
+    if (Object.keys(errors).length) {
+      setFieldErrors(errors);
       toast({
         title: t('profile.error'),
         description: t('profile.invalidValues'),
@@ -540,9 +548,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       });
       return;
     }
+    setFieldErrors({});
 
     const originalParsed = original
-      ? parseProfile(original, therapyType) || undefined
+      ? parseProfile(original, therapyType).data
       : undefined;
 
     if (shouldWarnProfile(parsed, originalParsed)) {
@@ -656,13 +665,20 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       pattern="^\\d*(?:[.,]\\d*)?$"
                       value={profile.icr}
                       onChange={(e) => handleInputChange("icr", e.target.value)}
-                      className="medical-input"
+                      className={`medical-input ${fieldErrors.icr ? 'border-destructive' : ''}`}
                       placeholder="12"
+                      required={isInsulinTherapy}
+                      aria-invalid={!!fieldErrors.icr}
                     />
                     <span className="absolute right-3 top-3 text-muted-foreground text-sm">
                       {t('profileHelp.icr.unit')}
                     </span>
                   </div>
+                  {fieldErrors.icr && (
+                    <p className="text-sm text-destructive mt-1">
+                      {t(`profile.errors.${fieldErrors.icr}`)}
+                    </p>
+                  )}
                 </div>
 
                 {/* Коэффициент коррекции */}
@@ -684,13 +700,20 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       pattern="^\\d*(?:[.,]\\д*)?$"
                       value={profile.cf}
                       onChange={(e) => handleInputChange("cf", e.target.value)}
-                      className="medical-input"
+                      className={`medical-input ${fieldErrors.cf ? 'border-destructive' : ''}`}
                       placeholder="2.5"
+                      required={isInsulinTherapy}
+                      aria-invalid={!!fieldErrors.cf}
                     />
                     <span className="absolute right-3 top-3 text-muted-foreground text-sm">
                       {t('profileHelp.cf.unit')}
                     </span>
                   </div>
+                  {fieldErrors.cf && (
+                    <p className="text-sm text-destructive mt-1">
+                      {t(`profile.errors.${fieldErrors.cf}`)}
+                    </p>
+                  )}
                 </div>
               </>
             )}
@@ -714,13 +737,20 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   pattern="^\\d*(?:[.,]\\d*)?$"
                   value={profile.target}
                   onChange={(e) => handleInputChange("target", e.target.value)}
-                  className="medical-input"
+                  className={`medical-input ${fieldErrors.target ? 'border-destructive' : ''}`}
                   placeholder="6.0"
+                  required
+                  aria-invalid={!!fieldErrors.target}
                 />
                 <span className="absolute right-3 top-3 text-muted-foreground text-sm">
                   {t('profileHelp.target.unit')}
                 </span>
               </div>
+              {fieldErrors.target && (
+                <p className="text-sm text-destructive mt-1">
+                  {t(`profile.errors.${fieldErrors.target}`)}
+                </p>
+              )}
             </div>
 
             {/* Пороги */}
@@ -743,13 +773,20 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                     pattern="^\\d*(?:[.,]\\d*)?$"
                     value={profile.low}
                     onChange={(e) => handleInputChange("low", e.target.value)}
-                    className="medical-input"
+                    className={`medical-input ${fieldErrors.low ? 'border-destructive' : ''}`}
                     placeholder="4.0"
+                    required
+                    aria-invalid={!!fieldErrors.low}
                   />
                   <span className="absolute right-3 top-3 text-muted-foreground text-xs">
                     {t('profileHelp.low.unit')}
                   </span>
                 </div>
+                {fieldErrors.low && (
+                  <p className="text-sm text-destructive mt-1">
+                    {t(`profile.errors.${fieldErrors.low}`)}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -770,13 +807,20 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                     pattern="^\\d*(?:[.,]\\d*)?$"
                     value={profile.high}
                     onChange={(e) => handleInputChange("high", e.target.value)}
-                    className="medical-input"
+                    className={`medical-input ${fieldErrors.high ? 'border-destructive' : ''}`}
                     placeholder="10.0"
+                    required
+                    aria-invalid={!!fieldErrors.high}
                   />
                   <span className="absolute right-3 top-3 text-muted-foreground text-xs">
                     {t('profileHelp.high.unit')}
                   </span>
                 </div>
+                {fieldErrors.high && (
+                  <p className="text-sm text-destructive mt-1">
+                    {t(`profile.errors.${fieldErrors.high}`)}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -805,9 +849,16 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       pattern="^\\d*(?:[.,]\\d*)?$"
                       value={profile.dia}
                       onChange={(e) => handleInputChange('dia', e.target.value)}
-                      className="medical-input"
+                      className={`medical-input ${fieldErrors.dia ? 'border-destructive' : ''}`}
                       placeholder="4"
+                      required={isInsulinTherapy}
+                      aria-invalid={!!fieldErrors.dia}
                     />
+                    {fieldErrors.dia && (
+                      <p className="text-sm text-destructive mt-1">
+                        {t(`profile.errors.${fieldErrors.dia}`)}
+                      </p>
+                    )}
                   </div>
                   {/* Pre-bolus */}
                   <div>
@@ -827,9 +878,16 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       pattern="^\\d*(?:[.,]\\d*)?$"
                       value={profile.preBolus}
                       onChange={(e) => handleInputChange('preBolus', e.target.value)}
-                      className="medical-input"
+                      className={`medical-input ${fieldErrors.preBolus ? 'border-destructive' : ''}`}
                       placeholder="15"
+                      required={isInsulinTherapy}
+                      aria-invalid={!!fieldErrors.preBolus}
                     />
+                    {fieldErrors.preBolus && (
+                      <p className="text-sm text-destructive mt-1">
+                        {t(`profile.errors.${fieldErrors.preBolus}`)}
+                      </p>
+                    )}
                   </div>
                 </>
               )}
@@ -851,9 +909,16 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   pattern="^\\d*(?:[.,]\\d*)?$"
                   value={profile.roundStep}
                   onChange={(e) => handleInputChange('roundStep', e.target.value)}
-                  className="medical-input"
+                  className={`medical-input ${fieldErrors.roundStep ? 'border-destructive' : ''}`}
                   placeholder="0.5"
+                  required
+                  aria-invalid={!!fieldErrors.roundStep}
                 />
+                {fieldErrors.roundStep && (
+                  <p className="text-sm text-destructive mt-1">
+                    {t(`profile.errors.${fieldErrors.roundStep}`)}
+                  </p>
+                )}
               </div>
               {/* Carb unit and grams per XE */}
               <div>
@@ -868,13 +933,20 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                 </label>
                 <select
                   id="carbUnits"
-                  className="medical-input"
+                  className={`medical-input ${fieldErrors.carbUnits ? 'border-destructive' : ''}`}
                   value={profile.carbUnits}
                   onChange={(e) => handleInputChange('carbUnits', e.target.value)}
+                  required
+                  aria-invalid={!!fieldErrors.carbUnits}
                 >
                   <option value="g">{t('profileHelp.carbUnits.options.g')}</option>
                   <option value="xe">{t('profileHelp.carbUnits.options.xe')}</option>
                 </select>
+                {fieldErrors.carbUnits && (
+                  <p className="text-sm text-destructive mt-1">
+                    {t(`profile.errors.${fieldErrors.carbUnits}`)}
+                  </p>
+                )}
               </div>
               {profile.carbUnits === 'xe' && (
                 <div>
@@ -894,9 +966,16 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                     pattern="^\\d*(?:[.,]\\d*)?$"
                     value={profile.gramsPerXe}
                     onChange={(e) => handleInputChange('gramsPerXe', e.target.value)}
-                    className="medical-input"
+                    className={`medical-input ${fieldErrors.gramsPerXe ? 'border-destructive' : ''}`}
                     placeholder="12"
+                    required
+                    aria-invalid={!!fieldErrors.gramsPerXe}
                   />
+                  {fieldErrors.gramsPerXe && (
+                    <p className="text-sm text-destructive mt-1">
+                      {t(`profile.errors.${fieldErrors.gramsPerXe}`)}
+                    </p>
+                  )}
                 </div>
               )}
               {isInsulinTherapy && (
@@ -914,7 +993,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                     </label>
                     <select
                       id="rapidInsulinType"
-                      className="medical-input"
+                      className={`medical-input ${fieldErrors.rapidInsulinType ? 'border-destructive' : ''}`}
                       value={profile.rapidInsulinType}
                       onChange={(e) =>
                         handleInputChange(
@@ -922,6 +1001,8 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                           e.target.value as RapidInsulin,
                         )
                       }
+                      required={isInsulinTherapy}
+                      aria-invalid={!!fieldErrors.rapidInsulinType}
                     >
                       {rapidInsulinTypes.map((type) => (
                         <option key={type} value={type}>
@@ -929,6 +1010,11 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                         </option>
                       ))}
                     </select>
+                    {fieldErrors.rapidInsulinType && (
+                      <p className="text-sm text-destructive mt-1">
+                        {t(`profile.errors.${fieldErrors.rapidInsulinType}`)}
+                      </p>
+                    )}
                   </div>
                   {/* Max bolus */}
                   <div>
@@ -948,9 +1034,16 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       pattern="^\\d*(?:[.,]\\d*)?$"
                       value={profile.maxBolus}
                       onChange={(e) => handleInputChange('maxBolus', e.target.value)}
-                      className="medical-input"
+                      className={`medical-input ${fieldErrors.maxBolus ? 'border-destructive' : ''}`}
                       placeholder="10"
+                      required={isInsulinTherapy}
+                      aria-invalid={!!fieldErrors.maxBolus}
                     />
+                    {fieldErrors.maxBolus && (
+                      <p className="text-sm text-destructive mt-1">
+                        {t(`profile.errors.${fieldErrors.maxBolus}`)}
+                      </p>
+                    )}
                   </div>
                 </>
               )}
@@ -969,12 +1062,19 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                   id="afterMealMinutes"
                   type="text"
                   inputMode="decimal"
-                  pattern="^\\d*(?:[.,]\\д*)?$"
+                  pattern="^\\d*(?:[.,]\\d*)?$"
                   value={profile.afterMealMinutes}
                   onChange={(e) => handleInputChange('afterMealMinutes', e.target.value)}
-                  className="medical-input"
+                  className={`medical-input ${fieldErrors.afterMealMinutes ? 'border-destructive' : ''}`}
                   placeholder="120"
+                  required
+                  aria-invalid={!!fieldErrors.afterMealMinutes}
                 />
+                {fieldErrors.afterMealMinutes && (
+                  <p className="text-sm text-destructive mt-1">
+                    {t(`profile.errors.${fieldErrors.afterMealMinutes}`)}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -995,9 +1095,16 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                 list="timezone-list"
                 value={profile.timezone}
                 onChange={(e) => handleInputChange("timezone", e.target.value)}
-                className="medical-input"
+                className={`medical-input ${fieldErrors.timezone ? 'border-destructive' : ''}`}
                 disabled={profile.timezoneAuto}
+                required
+                aria-invalid={!!fieldErrors.timezone}
               />
+              {fieldErrors.timezone && (
+                <p className="text-sm text-destructive mt-1">
+                  {t(`profile.errors.${fieldErrors.timezone}`)}
+                </p>
+              )}
               <datalist id="timezone-list">
                 {timezones.map((tz) => {
                   let label = tz;

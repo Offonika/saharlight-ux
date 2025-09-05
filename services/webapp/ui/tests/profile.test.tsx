@@ -165,7 +165,7 @@ describe('Profile page', () => {
     expect(options).toEqual(['Аспарт', 'Лиспро', 'Глулизин', 'Регуляр']);
   });
 
-  it('blocks save with invalid numeric input and shows toast', () => {
+  it('blocks save with invalid numeric input and shows field error', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
 
     const { getByText, getByPlaceholderText } = render(<Profile />);
@@ -175,15 +175,20 @@ describe('Profile page', () => {
     fireEvent.click(getByText('Сохранить настройки'));
     expect(saveProfile).not.toHaveBeenCalled();
     expect(patchProfile).not.toHaveBeenCalled();
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: 'Ошибка',
-        description:
-          'Проверьте, что все значения положительны, нижний порог меньше' +
-          ' верхнего, а целевой уровень между ними',
-        variant: 'destructive',
-      }),
-    );
+    expect(icrInput.className).toContain('border-destructive');
+    expect(icrInput).toHaveAttribute('aria-invalid', 'true');
+    expect(getByText('Значение вне допустимого диапазона')).toBeTruthy();
+  });
+
+  it('shows required error for empty field', () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const icrInput = getByPlaceholderText('12');
+    fireEvent.change(icrInput, { target: { value: '' } });
+    fireEvent.click(getByText('Сохранить настройки'));
+    expect(icrInput.className).toContain('border-destructive');
+    expect(icrInput).toHaveAttribute('aria-invalid', 'true');
+    expect(getByText('Обязательное поле')).toBeTruthy();
   });
 
   it('toggles grams per XE input with carb unit', async () => {
