@@ -1,7 +1,7 @@
 """add timezone and history tables
 
 Revision ID: 20250817_add_timezone_and_history_tables
-Revises: 20250816_expand_alembic_version_len
+Revises: 20250816_expand_alembic_version_len_batch_op
 Create Date: 2025-08-17 00:00:00.000000
 
 """
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "20250817_add_timezone_and_history_tables"
-down_revision: Union[str, None] = "20250816_expand_alembic_version_len"
+down_revision: Union[str, None] = "20250816_expand_alembic_version_len_batch_op"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
