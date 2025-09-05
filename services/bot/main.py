@@ -16,6 +16,7 @@ from services.api.app.config import settings
 from services.api.app.diabetes.handlers.registration import register_handlers
 from services.api.app.diabetes.services.db import init_db
 from services.api.app.menu_button import post_init as menu_button_post_init
+from services.bot.handlers.start_webapp import build_start_handler
 from services.bot.ptb_patches import apply_jobqueue_stop_workaround  # 👈 добавили
 from services.bot.telegram_payments import register_billing_handlers
 
@@ -95,6 +96,9 @@ def main() -> None:  # pragma: no cover
         dict[str, object],
         DefaultJobQueue,
     ] = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+
+    application.add_handler(build_start_handler(settings.ui_base_url), group=0)
+    logger.info("✅ /start → WebApp CTA mode enabled")
 
     # ---- Configure APScheduler timezone BEFORE any scheduling
     tz_msk = ZoneInfo("Europe/Moscow")
