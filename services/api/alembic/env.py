@@ -132,18 +132,29 @@ def run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = _get_database_url()
 
-    connectable = engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-        future=True,
-    )
-    with connectable.connect() as connection:
+    connectable = config.attributes.get("connection")
+    if connectable is None:
+        connectable = engine_from_config(
+            configuration,
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
+            future=True,
+        )
+        connection = connectable.connect()
+    else:
+        connection = connectable
+
+    with connection:
+        is_sqlite = connection.dialect.name == "sqlite"
+        # SQLite lacks many ALTER TABLE features; Alembic's "batch mode" rewrites
+        # migrations by creating a new table and copying data so that schema
+        # changes (like renaming or dropping columns) succeed.
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
             compare_server_default=True,
+            render_as_batch=is_sqlite,
         )
         with context.begin_transaction():
             context.run_migrations()
