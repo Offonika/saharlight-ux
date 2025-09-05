@@ -97,7 +97,7 @@ def main() -> None:  # pragma: no cover
         DefaultJobQueue,
     ] = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
 
-    application.add_handler(build_start_handler(settings.ui_base_url), group=0)
+    application.add_handler(build_start_handler(), group=0)
     logger.info("✅ /start → WebApp CTA mode enabled")
 
     # ---- Configure APScheduler timezone BEFORE any scheduling

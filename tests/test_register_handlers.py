@@ -26,10 +26,9 @@ from services.api.app.diabetes.handlers.registration import (
     register_reminder_handlers,
 )
 from services.api.app.diabetes.handlers.router import callback_router
-from services.api.app.diabetes.handlers.onboarding_handlers import start_command
 from services.api.app.diabetes.handlers import (
     security_handlers,
-    reminder_handlers,
+    reminder_handlers as rh,
     billing_handlers,
     learning_handlers,
 )
@@ -105,16 +104,16 @@ def test_register_handlers_attaches_expected_handlers(
     # Reminder handlers should be registered
     assert any(
         isinstance(h, CallbackQueryHandler)
-        and h.callback is reminder_handlers.reminder_action_cb
+        and h.callback is rh.reminder_action_cb
         for h in handlers
     )
     assert any(
         isinstance(h, MessageHandler)
-        and h.callback is reminder_handlers.reminder_webapp_save
+        and h.callback is rh.reminder_webapp_save
         for h in handlers
     )
     assert any(
-        isinstance(h, CommandHandler) and h.callback is reminder_handlers.add_reminder
+        isinstance(h, CommandHandler) and h.callback is rh.add_reminder
         for h in handlers
     )
 
@@ -124,18 +123,16 @@ def test_register_handlers_attaches_expected_handlers(
         if isinstance(h, ConversationHandler)
         and any(
             isinstance(ep, CommandHandler)
-            and ep.callback is start_command
             and "start" in ep.commands
             for ep in h.entry_points
         )
     ]
-    assert onb_conv
+    assert onb_conv == []
 
     conv_handlers = [h for h in handlers if isinstance(h, ConversationHandler)]
     assert dose_calc.dose_conv in conv_handlers
     assert sugar_handlers.sugar_conv in conv_handlers
     assert profile_handlers.profile_conv in conv_handlers
-    assert onb_conv[0] in conv_handlers
     conv_cmds = [
         ep for ep in dose_calc.dose_conv.entry_points if isinstance(ep, CommandHandler)
     ]
@@ -377,7 +374,7 @@ async def test_reminders_command_renders_list(
         if isinstance(h, CommandHandler) and "reminders" in h.commands
     )
 
-    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(rh, "run_db", None)
 
     session_obj = object()
 
@@ -388,7 +385,7 @@ async def test_reminders_command_renders_list(
         def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
             return None
 
-    monkeypatch.setattr(reminder_handlers, "SessionLocal", lambda: DummySessionCtx())
+    monkeypatch.setattr(rh, "SessionLocal", lambda: DummySessionCtx())
 
     keyboard = InlineKeyboardMarkup(
         [[InlineKeyboardButton("btn", callback_data="1")]]
@@ -401,7 +398,7 @@ async def test_reminders_command_renders_list(
         assert user_id == 1
         return "rendered", keyboard
 
-    monkeypatch.setattr(reminder_handlers, "_render_reminders", fake_render)
+    monkeypatch.setattr(rh, "_render_reminders", fake_render)
 
     captured: dict[str, Any] = {}
 
