@@ -37,12 +37,9 @@ def upgrade() -> None:
     if bind.dialect.name == "postgresql":
         reminder_type_enum.create(bind, checkfirst=True)
         schedule_kind_enum.create(bind, checkfirst=True)
-        op.execute(
-            "ALTER TABLE reminders ALTER COLUMN type TYPE reminder_type USING type::text::reminder_type"
-        )
-        op.execute(
-            "ALTER TABLE reminders ALTER COLUMN kind TYPE schedule_kind USING kind::text::schedule_kind"
-        )
+        with op.batch_alter_table("reminders") as batch_op:
+            batch_op.alter_column("type", type_=reminder_type_enum)
+            batch_op.alter_column("kind", type_=schedule_kind_enum)
     else:
         inspector = sa.inspect(bind)
         constraints = {c["name"] for c in inspector.get_check_constraints("reminders")}
@@ -63,12 +60,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        op.execute(
-            "ALTER TABLE reminders ALTER COLUMN kind TYPE VARCHAR USING kind::text"
-        )
-        op.execute(
-            "ALTER TABLE reminders ALTER COLUMN type TYPE VARCHAR USING type::text"
-        )
+        with op.batch_alter_table("reminders") as batch_op:
+            batch_op.alter_column("kind", type_=sa.String())
+            batch_op.alter_column("type", type_=sa.String())
         schedule_kind_enum.drop(bind, checkfirst=True)
         reminder_type_enum.drop(bind, checkfirst=True)
     else:
