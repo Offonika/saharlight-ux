@@ -468,11 +468,11 @@ class HistoryRecord(Base):
 # ────────────────────── инициализация ────────────────────────
 def init_db() -> None:
     """Создать таблицы, если их ещё нет (для локального запуска)."""
-
-    if SessionLocal.bind is not None:
-        return
+    global engine
 
     url = sa.engine.make_url(settings.database_url)
+    if SessionLocal.kw.get("bind") is not None and engine is not None and engine.url == url:
+        return
     if url.drivername.startswith("sqlite"):
         database_url = url
     else:
@@ -488,7 +488,6 @@ def init_db() -> None:
             database=settings.db_name,
         )
 
-    global engine
     with engine_lock:
         if engine is None or engine.url != database_url:
             if engine is not None:
