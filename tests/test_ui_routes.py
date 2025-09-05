@@ -5,7 +5,8 @@ from collections.abc import Iterator
 import pytest
 from fastapi.testclient import TestClient
 
-from services.api.app.main import UI_DIR, app
+from services.api.app.main import app
+from services.api.app.routers.webapp import UI_DIR
 
 
 @pytest.fixture()
