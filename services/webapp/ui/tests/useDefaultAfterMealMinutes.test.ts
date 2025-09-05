@@ -28,5 +28,16 @@ describe('useDefaultAfterMealMinutes', () => {
       expect(result.current).toBeNull();
     });
   });
+
+  it('does not warn when profile is null', async () => {
+    (getProfile as vi.Mock).mockResolvedValue(null);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderHook(() => useDefaultAfterMealMinutes(1));
+    await waitFor(() => {
+      expect(getProfile).toHaveBeenCalled();
+    });
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
 });
 

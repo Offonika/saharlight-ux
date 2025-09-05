@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { getProfile } from "./api";
-import type { Profile } from "./types";
 
 export function useDefaultAfterMealMinutes(telegramId: number | null | undefined) {
   const [value, setValue] = useState<number | null>(null);
@@ -8,7 +7,8 @@ export function useDefaultAfterMealMinutes(telegramId: number | null | undefined
   useEffect(() => {
     if (!telegramId) return;
     getProfile(telegramId)
-      .then((profile: Profile) => {
+      .then((profile) => {
+        if (!profile) return;
         const minutes = profile.afterMealMinutes;
         if (typeof minutes === "number") {
           setValue(minutes);
