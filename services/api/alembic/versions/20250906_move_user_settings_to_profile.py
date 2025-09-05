@@ -117,17 +117,38 @@ def upgrade() -> None:
         )
         op.drop_column("users", "timezone_auto")
 
-    op.alter_column("profiles", "timezone", server_default=None)
-    op.alter_column("profiles", "timezone_auto", server_default=None)
-    op.alter_column("profiles", "dia", server_default=None)
-    op.alter_column("profiles", "round_step", server_default=None)
-    op.alter_column("profiles", "carb_units", server_default=None)
-    op.alter_column("profiles", "grams_per_xe", server_default=None)
-    op.alter_column("profiles", "therapy_type", server_default=None)
-    op.alter_column("profiles", "glucose_units", server_default=None)
-    op.alter_column("profiles", "prebolus_min", server_default=None)
-    op.alter_column("profiles", "max_bolus", server_default=None)
-    op.alter_column("profiles", "postmeal_check_min", server_default=None)
+    with op.batch_alter_table("profiles") as batch_op:
+        batch_op.alter_column(
+            "timezone", existing_type=sa.String(), server_default=None
+        )
+        batch_op.alter_column(
+            "timezone_auto", existing_type=sa.Boolean(), server_default=None
+        )
+        batch_op.alter_column("dia", existing_type=sa.Float(), server_default=None)
+        batch_op.alter_column(
+            "round_step", existing_type=sa.Float(), server_default=None
+        )
+        batch_op.alter_column(
+            "carb_units", existing_type=sa.String(), server_default=None
+        )
+        batch_op.alter_column(
+            "grams_per_xe", existing_type=sa.Float(), server_default=None
+        )
+        batch_op.alter_column(
+            "therapy_type", existing_type=sa.String(), server_default=None
+        )
+        batch_op.alter_column(
+            "glucose_units", existing_type=sa.String(), server_default=None
+        )
+        batch_op.alter_column(
+            "prebolus_min", existing_type=sa.Integer(), server_default=None
+        )
+        batch_op.alter_column(
+            "max_bolus", existing_type=sa.Float(), server_default=None
+        )
+        batch_op.alter_column(
+            "postmeal_check_min", existing_type=sa.Integer(), server_default=None
+        )
 
 
 def downgrade() -> None:
