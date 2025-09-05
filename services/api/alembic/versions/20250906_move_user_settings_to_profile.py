@@ -127,7 +127,11 @@ def upgrade() -> None:
                 WHERE profiles.telegram_id = u.telegram_id
                 """,
             )
-        op.drop_column("users", "timezone_auto")
+        if bind.dialect.name == "postgresql":
+            op.drop_column("users", "timezone_auto")
+        else:
+            with op.batch_alter_table("users") as batch_op:
+                batch_op.drop_column("timezone_auto")
 
     with op.batch_alter_table("profiles") as batch_op:
         batch_op.alter_column(
@@ -204,30 +208,57 @@ def downgrade() -> None:
                 """,
             )
 
-    if "postmeal_check_min" in profile_columns:
-        op.drop_column("profiles", "postmeal_check_min")
-    if "max_bolus" in profile_columns:
-        op.drop_column("profiles", "max_bolus")
-    if "prebolus_min" in profile_columns:
-        op.drop_column("profiles", "prebolus_min")
-    if "insulin_type" in profile_columns:
-        op.drop_column("profiles", "insulin_type")
-    if "glucose_units" in profile_columns:
-        op.drop_column("profiles", "glucose_units")
-    if "therapy_type" in profile_columns:
-        op.drop_column("profiles", "therapy_type")
-    if "grams_per_xe" in profile_columns:
-        op.drop_column("profiles", "grams_per_xe")
-    if "carb_units" in profile_columns:
-        op.drop_column("profiles", "carb_units")
-    if "round_step" in profile_columns:
-        op.drop_column("profiles", "round_step")
-    if "dia" in profile_columns:
-        op.drop_column("profiles", "dia")
-    if "timezone_auto" in profile_columns:
-        op.drop_column("profiles", "timezone_auto")
-    if "timezone" in profile_columns:
-        op.drop_column("profiles", "timezone")
+    if bind.dialect.name == "postgresql":
+        if "postmeal_check_min" in profile_columns:
+            op.drop_column("profiles", "postmeal_check_min")
+        if "max_bolus" in profile_columns:
+            op.drop_column("profiles", "max_bolus")
+        if "prebolus_min" in profile_columns:
+            op.drop_column("profiles", "prebolus_min")
+        if "insulin_type" in profile_columns:
+            op.drop_column("profiles", "insulin_type")
+        if "glucose_units" in profile_columns:
+            op.drop_column("profiles", "glucose_units")
+        if "therapy_type" in profile_columns:
+            op.drop_column("profiles", "therapy_type")
+        if "grams_per_xe" in profile_columns:
+            op.drop_column("profiles", "grams_per_xe")
+        if "carb_units" in profile_columns:
+            op.drop_column("profiles", "carb_units")
+        if "round_step" in profile_columns:
+            op.drop_column("profiles", "round_step")
+        if "dia" in profile_columns:
+            op.drop_column("profiles", "dia")
+        if "timezone_auto" in profile_columns:
+            op.drop_column("profiles", "timezone_auto")
+        if "timezone" in profile_columns:
+            op.drop_column("profiles", "timezone")
+    else:
+        with op.batch_alter_table("profiles") as batch_op:
+            if "postmeal_check_min" in profile_columns:
+                batch_op.drop_column("postmeal_check_min")
+            if "max_bolus" in profile_columns:
+                batch_op.drop_column("max_bolus")
+            if "prebolus_min" in profile_columns:
+                batch_op.drop_column("prebolus_min")
+            if "insulin_type" in profile_columns:
+                batch_op.drop_column("insulin_type")
+            if "glucose_units" in profile_columns:
+                batch_op.drop_column("glucose_units")
+            if "therapy_type" in profile_columns:
+                batch_op.drop_column("therapy_type")
+            if "grams_per_xe" in profile_columns:
+                batch_op.drop_column("grams_per_xe")
+            if "carb_units" in profile_columns:
+                batch_op.drop_column("carb_units")
+            if "round_step" in profile_columns:
+                batch_op.drop_column("round_step")
+            if "dia" in profile_columns:
+                batch_op.drop_column("dia")
+            if "timezone_auto" in profile_columns:
+                batch_op.drop_column("timezone_auto")
+            if "timezone" in profile_columns:
+                batch_op.drop_column("timezone")
 
     if "timezone_auto" in user_columns:
         op.alter_column("users", "timezone_auto", server_default=None)

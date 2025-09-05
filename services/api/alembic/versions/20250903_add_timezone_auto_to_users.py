@@ -25,4 +25,8 @@ def downgrade() -> None:
     inspector = sa.inspect(bind)
     columns = [col["name"] for col in inspector.get_columns("users")]
     if "timezone_auto" in columns:
-        op.drop_column("users", "timezone_auto")
+        if bind.dialect.name == "postgresql":
+            op.drop_column("users", "timezone_auto")
+        else:
+            with op.batch_alter_table("users") as batch_op:
+                batch_op.drop_column("timezone_auto")
