@@ -46,6 +46,9 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
 
+    # Ensure application code uses the in-memory sessionmaker
+    monkeypatch.setattr(db, "SessionLocal", SessionLocal)
+
     async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
