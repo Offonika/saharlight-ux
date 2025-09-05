@@ -47,10 +47,11 @@ def upgrade() -> None:
 
     bind = op.get_bind()
     inspector = sa.inspect(bind)
+    columns = {col['name'] for col in inspector.get_columns('reminder_logs')}
+    if 'org_id' not in columns:
+        op.add_column('reminder_logs', sa.Column('org_id', sa.Integer(), nullable=True))
+
     with op.batch_alter_table('reminder_logs') as batch_op:
-        columns = {col['name'] for col in inspector.get_columns('reminder_logs')}
-        if 'org_id' not in columns:
-            batch_op.add_column(sa.Column('org_id', sa.Integer(), nullable=True))
         batch_op.alter_column(
             'event_time',
             existing_type=postgresql.TIMESTAMP(timezone=True),
@@ -172,9 +173,9 @@ def downgrade() -> None:
             nullable=True,
             existing_server_default=sa.text('now()'),
         )
-        columns = {col['name'] for col in inspector.get_columns('reminder_logs')}
-        if 'org_id' in columns:
-            batch_op.drop_column('org_id')
+    columns = {col['name'] for col in inspector.get_columns('reminder_logs')}
+    if 'org_id' in columns:
+        op.drop_column('reminder_logs', 'org_id')
     op.create_index('ix_profiles_org_id', 'profiles', ['org_id'], unique=False)
     with op.batch_alter_table('profiles') as batch_op:
         batch_op.alter_column(
