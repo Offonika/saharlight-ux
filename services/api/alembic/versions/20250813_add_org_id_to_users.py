@@ -41,4 +41,8 @@ def downgrade() -> None:
 
     columns = [col["name"] for col in inspector.get_columns("users")]
     if "org_id" in columns:
-        op.drop_column("users", "org_id")
+        if bind.dialect.name == "postgresql":
+            op.drop_column("users", "org_id")
+        else:
+            with op.batch_alter_table("users") as batch_op:
+                batch_op.drop_column("org_id")

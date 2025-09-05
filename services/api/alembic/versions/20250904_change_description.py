@@ -175,7 +175,11 @@ def downgrade() -> None:
         )
     columns = {col['name'] for col in inspector.get_columns('reminder_logs')}
     if 'org_id' in columns:
-        op.drop_column('reminder_logs', 'org_id')
+        if bind.dialect.name == 'postgresql':
+            op.drop_column('reminder_logs', 'org_id')
+        else:
+            with op.batch_alter_table('reminder_logs') as batch_op:
+                batch_op.drop_column('org_id')
     op.create_index('ix_profiles_org_id', 'profiles', ['org_id'], unique=False)
     with op.batch_alter_table('profiles') as batch_op:
         batch_op.alter_column(

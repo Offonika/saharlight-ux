@@ -41,5 +41,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_column("lesson_progress", "current_question")
-    op.drop_column("lesson_progress", "current_step")
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.drop_column("lesson_progress", "current_question")
+        op.drop_column("lesson_progress", "current_step")
+    else:
+        with op.batch_alter_table("lesson_progress") as batch_op:
+            batch_op.drop_column("current_question")
+            batch_op.drop_column("current_step")

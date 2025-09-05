@@ -29,9 +29,18 @@ def downgrade() -> None:
     inspector = sa.inspect(bind)
 
     columns = [col["name"] for col in inspector.get_columns("users")]
-    if "username" in columns:
-        op.drop_column("users", "username")
-    if "last_name" in columns:
-        op.drop_column("users", "last_name")
-    if "first_name" in columns:
-        op.drop_column("users", "first_name")
+    if bind.dialect.name == "postgresql":
+        if "username" in columns:
+            op.drop_column("users", "username")
+        if "last_name" in columns:
+            op.drop_column("users", "last_name")
+        if "first_name" in columns:
+            op.drop_column("users", "first_name")
+    else:
+        with op.batch_alter_table("users") as batch_op:
+            if "username" in columns:
+                batch_op.drop_column("username")
+            if "last_name" in columns:
+                batch_op.drop_column("last_name")
+            if "first_name" in columns:
+                batch_op.drop_column("first_name")

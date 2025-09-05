@@ -27,4 +27,8 @@ def downgrade() -> None:
     inspector = sa.inspect(bind)
     columns = [col["name"] for col in inspector.get_columns("reminder_logs")]
     if "snooze_minutes" in columns:
-        op.drop_column("reminder_logs", "snooze_minutes")
+        if bind.dialect.name == "postgresql":
+            op.drop_column("reminder_logs", "snooze_minutes")
+        else:
+            with op.batch_alter_table("reminder_logs") as batch_op:
+                batch_op.drop_column("snooze_minutes")

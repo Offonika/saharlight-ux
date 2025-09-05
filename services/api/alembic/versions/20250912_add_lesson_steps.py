@@ -40,4 +40,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_lesson_steps_lesson_id", table_name="lesson_steps")
     op.drop_table("lesson_steps")
-    op.drop_column("lessons", "is_active")
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.drop_column("lessons", "is_active")
+    else:
+        with op.batch_alter_table("lessons") as batch_op:
+            batch_op.drop_column("is_active")

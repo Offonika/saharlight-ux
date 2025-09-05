@@ -59,13 +59,26 @@ def downgrade() -> None:
         op.drop_index("ix_reminders_owner_enabled", table_name="reminders")
 
     columns = [col["name"] for col in inspector.get_columns("reminders")]
-    if "is_enabled" in columns:
-        op.drop_column("reminders", "is_enabled")
-    if "days_mask" in columns:
-        op.drop_column("reminders", "days_mask")
-    if "minutes_after" in columns:
-        op.drop_column("reminders", "minutes_after")
-    if "interval_minutes" in columns:
-        op.drop_column("reminders", "interval_minutes")
-    if "kind" in columns:
-        op.drop_column("reminders", "kind")
+    if bind.dialect.name == "postgresql":
+        if "is_enabled" in columns:
+            op.drop_column("reminders", "is_enabled")
+        if "days_mask" in columns:
+            op.drop_column("reminders", "days_mask")
+        if "minutes_after" in columns:
+            op.drop_column("reminders", "minutes_after")
+        if "interval_minutes" in columns:
+            op.drop_column("reminders", "interval_minutes")
+        if "kind" in columns:
+            op.drop_column("reminders", "kind")
+    else:
+        with op.batch_alter_table("reminders") as batch_op:
+            if "is_enabled" in columns:
+                batch_op.drop_column("is_enabled")
+            if "days_mask" in columns:
+                batch_op.drop_column("days_mask")
+            if "minutes_after" in columns:
+                batch_op.drop_column("minutes_after")
+            if "interval_minutes" in columns:
+                batch_op.drop_column("interval_minutes")
+            if "kind" in columns:
+                batch_op.drop_column("kind")

@@ -12,10 +12,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    inspector = sa.inspect(op.get_bind())
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
     cols = [c["name"] for c in inspector.get_columns("users")]
     if "timezone" in cols:
-        op.drop_column("users", "timezone")
+        if bind.dialect.name == "postgresql":
+            op.drop_column("users", "timezone")
+        else:
+            with op.batch_alter_table("users") as batch_op:
+                batch_op.drop_column("timezone")
 
 
 def downgrade() -> None:

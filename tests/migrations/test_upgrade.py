@@ -38,6 +38,9 @@ class _DummyBatchOp:
     def alter_column(self, *args: object, **kwargs: object) -> None:
         return None
 
+    def drop_column(self, *args: object, **kwargs: object) -> None:
+        return None
+
 
 class _DummyInspector:
     def __init__(self) -> None:
