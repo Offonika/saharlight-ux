@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ThemeToggle from '@/components/ThemeToggle';
+import OnboardingProgress from '@/components/OnboardingProgress';
 
 interface MedicalHeaderProps {
   title: string;
@@ -27,10 +28,11 @@ export const MedicalHeader = ({ title, showBack, onBack, children }: MedicalHead
             )}
             <h1 className="text-xl font-semibold text-foreground">{title}</h1>
           </div>
-          <div className="flex items-center gap-2">
-            {children}
-            <ThemeToggle />
-          </div>
+            <div className="flex items-center gap-2">
+              <OnboardingProgress />
+              {children}
+              <ThemeToggle />
+            </div>
         </div>
       </div>
     </header>
