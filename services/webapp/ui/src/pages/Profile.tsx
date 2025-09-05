@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Save } from "lucide-react";
 import { MedicalHeader } from "@/components/MedicalHeader";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,7 @@ import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
 import { resolveTelegramId } from "./resolveTelegramId";
+import { postOnboardingEvent } from "@/shared/api/onboarding";
 
 type TherapyType = 'insulin' | 'tablets' | 'none' | 'mixed';
 
@@ -212,6 +213,9 @@ interface ProfileProps {
 
 const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const onboardingStep = searchParams.get("step") || undefined;
+  const isOnboardingFlow = searchParams.get("flow") === "onboarding";
   const { toast } = useToast();
   const { user } = useTelegram();
   const initData = useTelegramInitData();
@@ -256,6 +260,14 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       }
     ) | null
   >(null);
+
+  useEffect(() => {
+    if (isOnboardingFlow) {
+      postOnboardingEvent("onboarding_started", onboardingStep).catch(() =>
+        undefined,
+      );
+    }
+  }, [isOnboardingFlow, onboardingStep]);
 
   useEffect(() => {
     try {
@@ -486,6 +498,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         title: t('profile.saved'),
         description: t('profile.settingsUpdated'),
       });
+      postOnboardingEvent('profile_saved', onboardingStep, {
+        timezone_set: Boolean(profile.timezone),
+      }).catch(() => undefined);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       toast({
