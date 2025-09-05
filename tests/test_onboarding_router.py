@@ -1,4 +1,6 @@
-from datetime import datetime, timedelta, timezone
+from __future__ import annotations
+
+from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,16 +8,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from services.api.app.diabetes.services.db import Base, User
-from services.api.app.routers import onboarding as onboarding_router
-from services.api.app.services import onboarding_state
+import services.api.app.routers.onboarding as onboarding_router
 import services.api.app.services.onboarding_events as onboarding_events
-from services.api.app.services.onboarding_events import OnboardingEvent
+from services.api.app.diabetes.services.db import Base, Profile, Reminder, User
+from services.api.app.models.onboarding_event import OnboardingEvent
 from services.api.app.telegram_auth import require_tg_user
 from services.api.app.main import app
-
-
-_PROFILE, _TIMEZONE, REMINDERS = range(3)
 
 
 def setup_db() -> sessionmaker[Session]:
@@ -24,11 +22,7 @@ def setup_db() -> sessionmaker[Session]:
     )
     Base.metadata.create_all(
         engine,
-        tables=[
-            User.__table__,
-            onboarding_state.OnboardingState.__table__,
-            OnboardingEvent.__table__,
-        ],
+        tables=[User.__table__, Profile.__table__, Reminder.__table__, OnboardingEvent.__table__],
     )
     return sessionmaker(bind=engine, class_=Session)
 
@@ -40,8 +34,6 @@ def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Ses
 
     monkeypatch.setattr(onboarding_router, "run_db", run_db, raising=False)
     monkeypatch.setattr(onboarding_router, "SessionLocal", session_local, raising=False)
-    monkeypatch.setattr(onboarding_state, "run_db", run_db, raising=False)
-    monkeypatch.setattr(onboarding_state, "SessionLocal", session_local, raising=False)
     monkeypatch.setattr(onboarding_events, "run_db", run_db, raising=False)
     monkeypatch.setattr(onboarding_events, "SessionLocal", session_local, raising=False)
 
@@ -56,6 +48,22 @@ def teardown_client() -> None:
 def add_user(session_local: sessionmaker[Session]) -> None:
     with session_local() as session:
         session.add(User(telegram_id=1, thread_id="webapp"))
+        session.commit()
+
+
+def add_profile(session_local: sessionmaker[Session]) -> None:
+    with session_local() as session:
+        session.add(
+            Profile(
+                telegram_id=1,
+                icr=1.0,
+                cf=1.0,
+                target_bg=5.5,
+                low_threshold=4.0,
+                high_threshold=8.0,
+                timezone="UTC",
+            )
+        )
         session.commit()
 
 
@@ -91,12 +99,8 @@ def test_status_initial(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_status_reminders_step(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
-    with session_local() as session:
-        session.add(User(telegram_id=1, thread_id="webapp"))
-        session.add(
-            onboarding_state.OnboardingState(user_id=1, step=REMINDERS, data={}, variant=None)
-        )
-        session.commit()
+    add_user(session_local)
+    add_profile(session_local)
     client = make_client(monkeypatch, session_local)
     with client:
         resp = client.get("/api/onboarding/status")
@@ -105,17 +109,35 @@ def test_status_reminders_step(monkeypatch: pytest.MonkeyPatch) -> None:
     teardown_client()
 
 
-def test_status_completed(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_status_completed_with_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
+    add_user(session_local)
+    add_profile(session_local)
     with session_local() as session:
-        session.add(User(telegram_id=1, thread_id="webapp"))
+        session.add(Reminder(telegram_id=1, type="sugar", title="t"))
+        session.commit()
+    client = make_client(monkeypatch, session_local)
+    with client:
+        resp = client.get("/api/onboarding/status")
+    assert resp.status_code == 200
+    assert resp.json() == {"completed": True, "step": None, "missing": []}
+    with session_local() as session:
+        ev = session.query(OnboardingEvent).filter_by(event="onboarding_completed").one()
+        assert ev.user_id == 1
+    teardown_client()
+
+
+def test_status_skipped_reminders(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    add_user(session_local)
+    add_profile(session_local)
+    with session_local() as session:
         session.add(
-            onboarding_state.OnboardingState(
+            OnboardingEvent(
                 user_id=1,
-                step=REMINDERS,
-                data={},
-                variant=None,
-                completed_at=datetime.now(timezone.utc),
+                event="onboarding_completed",
+                meta_json={"skippedReminders": True},
+                ts=datetime.now(timezone.utc),
             )
         )
         session.commit()
@@ -124,86 +146,4 @@ def test_status_completed(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get("/api/onboarding/status")
     assert resp.status_code == 200
     assert resp.json() == {"completed": True, "step": None, "missing": []}
-    teardown_client()
-
-
-def test_status_completed_by_event(monkeypatch: pytest.MonkeyPatch) -> None:
-    session_local = setup_db()
-    with session_local() as session:
-        session.add(User(telegram_id=1, thread_id="webapp"))
-        session.add(OnboardingEvent(user_id=1, event="onboarding_completed"))
-        session.commit()
-    client = make_client(monkeypatch, session_local)
-    with client:
-        resp = client.get("/api/onboarding/status")
-    assert resp.status_code == 200
-    assert resp.json() == {"completed": True, "step": None, "missing": []}
-    teardown_client()
-
-
-def test_status_canceled(monkeypatch: pytest.MonkeyPatch) -> None:
-    session_local = setup_db()
-    with session_local() as session:
-        session.add(User(telegram_id=1, thread_id="webapp"))
-        session.add(
-            onboarding_state.OnboardingState(
-                user_id=1,
-                step=REMINDERS,
-                data={},
-                variant=None,
-                completed_at=datetime.now(timezone.utc),
-            )
-        )
-        session.add(OnboardingEvent(user_id=1, event="onboarding_completed", ts=datetime.now(timezone.utc) - timedelta(days=1)))
-        session.add(OnboardingEvent(user_id=1, event="onboarding_canceled"))
-        session.commit()
-    client = make_client(monkeypatch, session_local)
-    with client:
-        resp = client.get("/api/onboarding/status")
-    assert resp.status_code == 200
-    assert resp.json() == {
-        "completed": False,
-        "step": "profile",
-        "missing": ["profile", "reminders"],
-    }
-    teardown_client()
-
-
-def test_status_stale_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    session_local = setup_db()
-    with session_local() as session:
-        session.add(User(telegram_id=1, thread_id="webapp"))
-        st = onboarding_state.OnboardingState(user_id=1, step=REMINDERS, data={}, variant=None)
-        session.add(st)
-        session.commit()
-        st.updated_at = datetime.now(timezone.utc) - timedelta(days=15)
-        session.commit()
-    client = make_client(monkeypatch, session_local)
-    with client:
-        resp = client.get("/api/onboarding/status")
-    assert resp.status_code == 200
-    assert resp.json() == {
-        "completed": False,
-        "step": "profile",
-        "missing": ["profile", "reminders"],
-    }
-    teardown_client()
-
-
-def test_status_completed_event_stale(monkeypatch: pytest.MonkeyPatch) -> None:
-    session_local = setup_db()
-    with session_local() as session:
-        session.add(User(telegram_id=1, thread_id="webapp"))
-        old_ts = datetime.now(timezone.utc) - timedelta(days=15)
-        session.add(OnboardingEvent(user_id=1, event="onboarding_completed", ts=old_ts))
-        session.commit()
-    client = make_client(monkeypatch, session_local)
-    with client:
-        resp = client.get("/api/onboarding/status")
-    assert resp.status_code == 200
-    assert resp.json() == {
-        "completed": False,
-        "step": "profile",
-        "missing": ["profile", "reminders"],
-    }
     teardown_client()

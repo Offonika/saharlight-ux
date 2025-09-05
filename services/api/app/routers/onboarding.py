@@ -9,8 +9,14 @@ from sqlalchemy.orm import Session
 
 from ..schemas.user import UserContext
 from ..telegram_auth import require_tg_user
-from ..services.onboarding_events import log_onboarding_event, onboarding_status
-from ..diabetes.services.db import SessionLocal, run_db
+from ..services.onboarding_events import log_onboarding_event
+from ..diabetes.services.db import (
+    Profile,
+    Reminder,
+    SessionLocal,
+    run_db,
+)
+from ..models.onboarding_event import OnboardingEvent
 
 logger = logging.getLogger(__name__)
 
@@ -49,5 +55,54 @@ class StatusResponse(BaseModel):
 
 @router.get("/status", response_model=StatusResponse)
 async def get_status(user: UserContext = Depends(require_tg_user)) -> StatusResponse:
-    completed, step, missing = await onboarding_status(user["id"])
-    return StatusResponse(completed=completed, step=step, missing=missing)
+    user_id = user["id"]
+
+    def _load(session: Session) -> tuple[Profile | None, int, OnboardingEvent | None]:
+        profile = session.get(Profile, user_id)
+        reminders = (
+            session.query(Reminder)
+            .filter(Reminder.telegram_id == user_id, Reminder.is_enabled)
+            .count()
+        )
+        last_event = (
+            session.query(OnboardingEvent)
+            .filter(OnboardingEvent.user_id == user_id)
+            .order_by(OnboardingEvent.ts.desc())
+            .first()
+        )
+        return profile, reminders, last_event
+
+    profile, reminders, last_event = await run_db(_load, sessionmaker=SessionLocal)
+
+    profile_valid = (
+        profile is not None
+        and profile.timezone is not None
+        and profile.icr is not None
+        and profile.cf is not None
+        and profile.target_bg is not None
+        and profile.low_threshold is not None
+        and profile.high_threshold is not None
+    )
+
+    skipped = bool(
+        last_event
+        and last_event.event == "onboarding_completed"
+        and isinstance(last_event.meta_json, dict)
+        and last_event.meta_json.get("skippedReminders")
+    )
+
+    completed = profile_valid and (reminders > 0 or skipped)
+
+    if completed and (not last_event or last_event.event != "onboarding_completed"):
+        def _log(session: Session) -> None:
+            log_onboarding_event(session, user_id, "onboarding_completed", str(REMINDERS))
+
+        await run_db(_log, sessionmaker=SessionLocal)
+
+    if completed:
+        return StatusResponse(completed=True, step=None, missing=[])
+
+    if not profile_valid:
+        return StatusResponse(completed=False, step="profile", missing=["profile", "reminders"])
+
+    return StatusResponse(completed=False, step="reminders", missing=["reminders"])
