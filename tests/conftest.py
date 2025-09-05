@@ -11,6 +11,7 @@ from types import ModuleType
 
 import pytest
 import sqlalchemy
+from sqlalchemy.orm import Session, sessionmaker
 
 dummy = ModuleType("telegram.ext._basehandler")
 
@@ -201,6 +202,22 @@ def _close_sqlite_connections() -> Iterator[None]:
         setattr(sqlalchemy, "create_engine", _original_create_engine)
         for engine in _engines:
             engine.dispose()
+
+
+@pytest.fixture()
+def in_memory_db(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Iterator[sessionmaker[Session]]:
+    """Provide an in-memory SQLite database for tests."""
+
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+    db_module.Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(db_module, "SessionLocal", TestSession)
+    try:
+        yield TestSession
+    finally:
+        engine.dispose()
 
 
 @pytest.fixture(autouse=True, scope="session")
