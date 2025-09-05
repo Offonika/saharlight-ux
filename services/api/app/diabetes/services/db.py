@@ -142,8 +142,6 @@ def dispose_engine(target: Engine | None = None) -> None:
         if target is None and eng is engine:
             engine = None
             SessionLocal.configure(bind=None)
-            # SQLAlchemy 2 keeps configuration in ``kw`` so drop the key as well
-            SessionLocal.kw.pop("bind", None)
 
 
 # ───────────────────────── модели ────────────────────────────
@@ -474,34 +472,29 @@ def init_db() -> None:
 
     url = sa.engine.make_url(settings.database_url)
 
-    try:
-        existing_engine = SessionLocal().get_bind()
-    except UnboundExecutionError:
-        existing_engine = None
-
-    if existing_engine is not None and existing_engine.url == url:
-        engine = existing_engine
+    if url.drivername.startswith("sqlite"):
+        database_url = url
     else:
-        if url.drivername.startswith("sqlite"):
-            database_url = url
-        else:
-            password = get_db_password()
-            if not password:
-                raise ValueError("DB_PASSWORD environment variable must be set")
-            database_url = URL.create(
-                "postgresql",
-                username=settings.db_user,
-                password=password,
-                host=settings.db_host,
-                port=int(settings.db_port),
-                database=settings.db_name,
-            )
+        password = get_db_password()
+        if not password:
+            raise ValueError("DB_PASSWORD environment variable must be set")
+        database_url = URL.create(
+            "postgresql",
+            username=settings.db_user,
+            password=password,
+            host=settings.db_host,
+            port=int(settings.db_port),
+            database=settings.db_name,
+        )
 
-        with engine_lock:
-            if engine is None or engine.url != database_url:
-                if engine is not None:
-                    engine.dispose()
-                engine = create_engine(database_url)
-                SessionLocal.configure(bind=engine)
+    with engine_lock:
+        if engine is None or engine.url != database_url:
+            if engine is not None:
+                engine.dispose()
+            engine = create_engine(database_url)
+            SessionLocal.configure(bind=engine)
+
+    if engine is None:
+        raise RuntimeError("Database engine is not configured; call init_db()")
 
     Base.metadata.create_all(bind=engine)
