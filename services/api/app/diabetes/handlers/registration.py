@@ -12,13 +12,11 @@ from telegram.ext import (
     ExtBot,
     JobQueue,
     MessageHandler,
-    PollAnswerHandler,
     filters,
 )
 from sqlalchemy.exc import SQLAlchemyError
 from typing import TYPE_CHECKING, TypeAlias
 
-from .onboarding_handlers import onboarding_conv, onboarding_poll_answer
 from .common_handlers import menu_command, help_command, smart_input_help
 from .router import callback_router
 from ..utils.ui import (
@@ -40,12 +38,10 @@ if TYPE_CHECKING:
     CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[
         ContextTypes.DEFAULT_TYPE, object
     ]
-    PollAnswerHandlerT: TypeAlias = PollAnswerHandler[ContextTypes.DEFAULT_TYPE, object]
 else:
     CommandHandlerT = CommandHandler
     MessageHandlerT = MessageHandler
     CallbackQueryHandlerT = CallbackQueryHandler
-    PollAnswerHandlerT = PollAnswerHandler
 
 
 def register_profile_handlers(
@@ -154,8 +150,6 @@ def register_handlers(
         billing_handlers,
     )
     from . import learning_handlers
-
-    app.add_handler(onboarding_conv)
     app.add_handler(CommandHandlerT("menu", menu_command))
     app.add_handler(CommandHandlerT("report", reporting_handlers.report_request))
     app.add_handler(CommandHandlerT("history", reporting_handlers.history_view))
@@ -178,7 +172,6 @@ def register_handlers(
     register_reminder_handlers(app)
     app.add_handler(CommandHandlerT("alertstats", alert_handlers.alert_stats))
     app.add_handler(CommandHandlerT("hypoalert", security_handlers.hypo_alert_faq))
-    app.add_handler(PollAnswerHandlerT(onboarding_poll_answer))
     app.add_handler(
         MessageHandlerT(
             filters.Regex(re.escape(REPORT_BUTTON_TEXT)),
