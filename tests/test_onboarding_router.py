@@ -82,6 +82,22 @@ def test_post_event_persists(monkeypatch: pytest.MonkeyPatch) -> None:
     teardown_client()
 
 
+def test_post_event_with_variant(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    add_user(session_local)
+    client = make_client(monkeypatch, session_local)
+    with client:
+        resp = client.post(
+            "/api/onboarding/events",
+            json={"event": "onboarding_started", "meta": {"variant": "B"}},
+        )
+    assert resp.status_code == 200
+    with session_local() as session:
+        ev = session.query(OnboardingEvent).one()
+        assert ev.variant == "B"
+    teardown_client()
+
+
 def test_status_initial(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
     add_user(session_local)
