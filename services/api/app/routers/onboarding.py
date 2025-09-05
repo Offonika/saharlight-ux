@@ -41,7 +41,9 @@ async def post_event(
     step = str(payload.step or 0)
 
     def _log(session: Session) -> None:
-        log_onboarding_event(session, user["id"], payload.event, step, variant)
+        log_onboarding_event(
+            session, user["id"], payload.event, step, variant=variant
+        )
 
     await run_db(_log, sessionmaker=SessionLocal)
     return {"ok": True}
