@@ -35,6 +35,7 @@ from telegram.warnings import PTBUserWarning
 import config
 from services.api.app.diabetes.services.db import SessionLocal, User, run_db
 from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.users import ensure_user_exists
 from services.api.app.services import onboarding_state
 from ..onboarding_state import OnboardingStateStore
 from services.api.app.services.onboarding_events import log_onboarding_event
@@ -178,6 +179,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         except Exception:  # pragma: no cover - fallback
             await message.reply_text(video_url)
     user_id = user.id
+    await ensure_user_exists(user_id)
     user_data = cast(dict[str, Any], context.user_data)
     args = getattr(context, "args", [])
     variant = args[0] if args else None
