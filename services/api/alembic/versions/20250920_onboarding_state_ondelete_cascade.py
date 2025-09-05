@@ -13,6 +13,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
     op.drop_constraint(
         "onboarding_states_user_id_fkey",
         "onboarding_states",
@@ -29,6 +32,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
     op.drop_constraint(
         "onboarding_states_user_id_fkey",
         "onboarding_states",

@@ -13,6 +13,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
     op.create_unique_constraint(
         "lesson_steps_lesson_order_key",
         "lesson_steps",
@@ -26,6 +29,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
     op.drop_constraint(
         "lesson_progress_user_lesson_key",
         table_name="lesson_progress",
