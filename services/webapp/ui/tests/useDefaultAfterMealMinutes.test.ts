@@ -5,8 +5,14 @@ vi.mock('../src/features/profile/api', () => ({
   getProfile: vi.fn(),
 }));
 
+const toast = vi.fn();
+vi.mock('../src/hooks/use-toast', () => ({
+  useToast: () => ({ toast }),
+}));
+
 import { useDefaultAfterMealMinutes } from '../src/features/profile/hooks';
 import { getProfile } from '../src/features/profile/api';
+import { useTranslation } from '../src/i18n';
 
 describe('useDefaultAfterMealMinutes', () => {
   afterEach(() => {
@@ -29,15 +35,20 @@ describe('useDefaultAfterMealMinutes', () => {
     });
   });
 
-  it('does not warn when profile is null', async () => {
+  it('shows toast when profile is null', async () => {
     (getProfile as vi.Mock).mockResolvedValue(null);
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = useTranslation('profile');
     renderHook(() => useDefaultAfterMealMinutes(1));
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalled();
     });
-    expect(warn).not.toHaveBeenCalled();
-    warn.mockRestore();
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: t('error'),
+        description: t('notFound'),
+        variant: 'destructive',
+      }),
+    );
   });
 });
 

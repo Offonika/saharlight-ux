@@ -288,7 +288,15 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
 
     getProfile(telegramId)
       .then((data) => {
-        if (cancelled || !data) return;
+        if (cancelled) return;
+        if (!data) {
+          toast({
+            title: t('profile.error'),
+            description: t('profile.notFound'),
+            variant: 'destructive',
+          });
+          return;
+        }
 
         const icr =
           typeof data.icr === "number" && data.icr > 0
@@ -410,7 +418,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     return () => {
       cancelled = true;
     };
-  }, [user, initData, toast]);
+  }, [user, initData, toast, t]);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
     if (field === "timezone") {
