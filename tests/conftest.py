@@ -173,7 +173,7 @@ def _reset_init_db() -> Iterator[None]:
 @pytest.fixture(autouse=True, scope="session")
 def _build_ui_assets() -> Iterator[None]:
     """Build webapp UI if static assets are missing."""
-    from services.api.app.main import BASE_DIR, UI_DIR
+    from services.api.app.routers.webapp import BASE_DIR, UI_DIR
 
     repo_root = BASE_DIR.parent
 
