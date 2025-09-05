@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import date
 from typing import cast
 
 from fastapi import APIRouter, Query, Response
@@ -13,15 +13,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-STEP_MAP = {
-    "start": "onboarding_started",
-    "step1": "step_completed_1",
-    "step2": "step_completed_2",
-    "step3": "step_completed_3",
-    "finish": "onboarding_finished",
-    "cancel": "onboarding_cancelled",
-}
-
 
 @router.get("/metrics")
 def get_metrics() -> Response:
@@ -32,31 +23,52 @@ def get_metrics() -> Response:
 
 @router.get("/metrics/onboarding")
 async def get_onboarding_metrics(
-    from_: datetime = Query(alias="from"),
-    to: datetime = Query(alias="to"),
-) -> dict[str, dict[str, int]]:
-    def _query(session: Session) -> dict[str, dict[str, int]]:
-        rows = session.execute(
-            text(
-                """
-                SELECT variant, step, count(*) AS cnt
-                FROM onboarding_events
-                WHERE created_at >= :from AND created_at <= :to
-                GROUP BY variant, step
-                """
-            ),
-            {"from": from_, "to": to},
-        ).all()
-        result: dict[str, dict[str, int]] = {}
+    from_: date = Query(alias="from"),
+    to: date = Query(alias="to"),
+    variant: str | None = None,
+) -> dict[str, dict[str, dict[str, float]]]:
+    """Return onboarding conversion metrics by day and variant."""
+
+    def _query(session: Session) -> dict[str, dict[str, dict[str, float]]]:
+        query = """
+            SELECT date, variant, step, count
+            FROM onboarding_metrics_daily
+            WHERE date >= :from AND date <= :to
+            """
+        params: dict[str, object] = {"from": from_, "to": to}
+        if variant is not None:
+            query += " AND variant = :variant"
+            params["variant"] = variant
+        rows = session.execute(text(query), params).all()
+        raw: dict[str, dict[str, dict[str, int]]] = {}
         for row in rows:
-            variant = cast(str, row[0])
-            step = cast(str, row[1])
-            cnt = cast(int, row[2])
-            key = STEP_MAP.get(step)
-            if key is None:
-                continue
-            counts = result.setdefault(variant, {k: 0 for k in STEP_MAP.values()})
-            counts[key] = cnt
+            day = str(row[0])
+            var = cast(str, row[1])
+            step = cast(str, row[2])
+            cnt = cast(int, row[3])
+            day_map = raw.setdefault(day, {})
+            counts = day_map.setdefault(
+                var,
+                {"start": 0, "step1": 0, "step2": 0, "step3": 0, "finish": 0},
+            )
+            if step in counts:
+                counts[step] = cnt
+        result: dict[str, dict[str, dict[str, float]]] = {}
+        for day, variants in raw.items():
+            day_res: dict[str, dict[str, float]] = {}
+            for var, counts in variants.items():
+                start = counts["start"]
+                if start == 0:
+                    conv = {k: 0.0 for k in ("step1", "step2", "step3", "completed")}
+                else:
+                    conv = {
+                        "step1": counts["step1"] / start,
+                        "step2": counts["step2"] / start,
+                        "step3": counts["step3"] / start,
+                        "completed": counts["finish"] / start,
+                    }
+                day_res[var] = conv
+            result[day] = day_res
         return result
 
     return await run_db(_query, sessionmaker=SessionLocal)
