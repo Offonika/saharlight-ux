@@ -16,19 +16,13 @@ from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .services.gpt_client import format_reply
 from .services.lesson_log import add_lesson_log
+from . import curriculum_engine
+from .learning_topics import TOPICS_RU, choose_initial_topic
 
 logger = logging.getLogger(__name__)
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
-
-TOPICS: list[tuple[str, str]] = [
-    ("xe_basics", "Хлебные единицы"),
-    ("healthy-eating", "Здоровое питание"),
-    ("basics-of-diabetes", "Основы диабета"),
-    ("insulin-usage", "Инсулин"),
-]
-
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
     """Return ``True`` if action identified by ``key`` is too frequent."""
@@ -62,14 +56,28 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     if not await ensure_overrides(update, context):
         return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    if settings.learning_ui_show_topics:
+        await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
+        await topics_command(update, context)
+        return
+    profile = _get_profile(user_data)
+    topic_slug = await choose_initial_topic(profile)
+    await _start_lesson(message, user_data, profile, topic_slug)
+
+
+async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send an inline keyboard with available learning topics."""
+
+    message = update.effective_message
+    if message is None:
+        return
     keyboard = InlineKeyboardMarkup(
         [
             [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
-            for slug, title in TOPICS
+            for slug, title in TOPICS_RU.items()
         ]
     )
-    # Show the persistent main keyboard alongside topic selection buttons
-    await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
 
 
@@ -84,9 +92,12 @@ async def _start_lesson(
     if message.from_user is None:
         return
     telegram_id = message.from_user.id
-    text = await generate_step_text(profile, topic_slug, 1, None)
+    progress = await curriculum_engine.start_lesson(telegram_id, topic_slug)
+    text, _completed = await curriculum_engine.next_step(telegram_id, progress.lesson_id)
+    if text is None:
+        return
     text = format_reply(text)
-    await message.reply_text(text)
+    await message.reply_text(text, reply_markup=build_main_keyboard())
     await add_lesson_log(telegram_id, topic_slug, "assistant", 1, text)
     state = LearnState(
         topic=topic_slug,
@@ -189,7 +200,7 @@ async def lesson_answer_handler(
         profile, state.topic, state.step + 1, feedback
     )
     next_text = format_reply(next_text)
-    await message.reply_text(next_text)
+    await message.reply_text(next_text, reply_markup=build_main_keyboard())
     await add_lesson_log(
         telegram_id, state.topic, "assistant", state.step + 1, next_text
     )
@@ -221,6 +232,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 __all__ = [
     "learn_command",
+    "topics_command",
     "lesson_command",
     "lesson_callback",
     "lesson_answer_handler",

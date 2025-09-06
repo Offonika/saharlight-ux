@@ -21,6 +21,7 @@ class DummyMessage:
     def __init__(self, text: str | None = None) -> None:
         self.text = text
         self.replies: list[str] = []
+        self.from_user = SimpleNamespace(id=1)
 
     async def reply_text(
         self, text: str, **kwargs: Any

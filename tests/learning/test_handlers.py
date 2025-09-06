@@ -24,7 +24,7 @@ from telegram.ext import (
 )
 
 from services.api.app.config import settings
-from services.api.app.diabetes import learning_handlers
+from services.api.app.diabetes import learning_handlers, learning_topics
 
 
 class DummyBot(Bot):
@@ -64,20 +64,29 @@ class DummyBot(Bot):
 @pytest.mark.asyncio
 async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
-    steps = iter(["step1", "step2"])
+    monkeypatch.setattr(learning_topics, "TOPICS_RU", {"xe_basics": "Topic"})
+
+    async def fake_start_lesson(*args: object, **kwargs: object) -> object:
+        return SimpleNamespace(lesson_id=1)
+
+    async def fake_next_step(*args: object, **kwargs: object) -> tuple[str, bool]:
+        return "step1", False
 
     async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
-        return next(steps)
+        return "step2"
 
     async def fake_check_user_answer(*args: object, **kwargs: object) -> str:
         return "feedback"
 
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     async def fake_ensure_overrides(*args: object, **kwargs: object) -> bool:
         return True

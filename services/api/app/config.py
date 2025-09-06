@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     learning_content_mode: Literal["dynamic", "static"] = Field(
         default="dynamic", alias="LEARNING_CONTENT_MODE"
     )
+    learning_ui_show_topics: bool = Field(
+        default=True, alias="LEARNING_UI_SHOW_TOPICS"
+    )
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     learning_assistant_id: Optional[str] = Field(default=None, alias="LEARNING_ASSISTANT_ID")
     learning_command_model: str = Field(default="gpt-4o-mini", alias="LEARNING_COMMAND_MODEL")
