@@ -139,7 +139,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         progress = await curriculum_engine.start_lesson(user.id, lesson_slug)
         lesson_id = progress.lesson_id
         user_data["lesson_id"] = lesson_id
-    text, completed = await curriculum_engine.next_step(user.id, lesson_id)
+    text, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
     if text is None and completed:
         await message.reply_text("Урок завершён")
         clear_state(user_data)
@@ -191,7 +191,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             user.id, lesson_id, answer
         )
         await message.reply_text(feedback)
-        question, completed = await curriculum_engine.next_step(user.id, lesson_id)
+        question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
         if question is None and completed:
             await message.reply_text("Опрос завершён")
             clear_state(user_data)
@@ -204,7 +204,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             state.awaiting_answer = True
             set_state(user_data, state)
         return
-    question, completed = await curriculum_engine.next_step(user.id, lesson_id)
+    question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
     if question is None and completed:
         await message.reply_text("Опрос завершён")
         clear_state(user_data)
@@ -246,7 +246,7 @@ async def quiz_answer_handler(
         user.id, lesson_id, answer
     )
     await message.reply_text(feedback)
-    question, completed = await curriculum_engine.next_step(user.id, lesson_id)
+    question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
     if question is None and completed:
         await message.reply_text("Опрос завершён")
         clear_state(user_data)

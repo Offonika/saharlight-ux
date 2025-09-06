@@ -100,7 +100,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     profile = _get_profile(user_data)
     slug = choose_initial_topic(profile)
     progress = await curriculum_engine.start_lesson(user.id, slug)
-    text, _ = await curriculum_engine.next_step(user.id, progress.lesson_id)
+    text, _ = await curriculum_engine.next_step(user.id, progress.lesson_id, profile)
     if text is None:
         return
     text = format_reply(text)
