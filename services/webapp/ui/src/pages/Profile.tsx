@@ -422,6 +422,20 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           patchProfileMutation
             .mutateAsync({ timezone: deviceTz, timezoneAuto: true })
             .then(() => {
+              setProfile((prev) => ({
+                ...prev,
+                timezone: deviceTz,
+                timezoneAuto: true,
+              }));
+              setOriginal((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      timezone: deviceTz,
+                      timezoneAuto: true,
+                    }
+                  : prev,
+              );
               toast({
                 title: t('profile.updated'),
                 description: t('profile.timezoneUpdated'),
@@ -436,7 +450,6 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                 variant: "destructive",
               });
             });
-          setProfile((prev) => ({ ...prev, timezone: deviceTz }));
         }
 
       })
@@ -454,6 +467,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, initData]);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
