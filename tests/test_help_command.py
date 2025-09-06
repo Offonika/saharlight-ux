@@ -98,3 +98,20 @@ async def test_help_lists_sos_contact_command() -> None:
 
     text = message.replies[0]
     assert "/soscontact — настроить контакт для SOS-уведомлений\n" in text
+
+
+@pytest.mark.asyncio
+async def test_help_lists_topics_command() -> None:
+    """Ensure /help documents the topics command."""
+
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    await handlers.help_command(update, context)
+
+    text = message.replies[0]
+    assert "/topics - темы обучения\n" in text

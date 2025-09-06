@@ -62,6 +62,25 @@ class DummyBot(Bot):
 
 
 @pytest.mark.asyncio
+async def test_cmd_topics_proxies_learn(monkeypatch: pytest.MonkeyPatch) -> None:
+    called = {"v": False}
+
+    async def fake_learn(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        called["v"] = True
+
+    monkeypatch.setattr(learning_handlers, "learn_command", fake_learn)
+    update = cast(Update, SimpleNamespace(message=None))
+    context = cast(
+        ContextTypes.DEFAULT_TYPE,  # type: ignore[assignment]
+        SimpleNamespace(),
+    )
+
+    await learning_handlers.cmd_topics(update, context)
+
+    assert called["v"] is True
+
+
+@pytest.mark.asyncio
 async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     steps = iter(["step1", "step2"])

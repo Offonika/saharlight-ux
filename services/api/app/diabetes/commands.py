@@ -19,6 +19,7 @@ HELP_TEXT = "\n".join(
         "/start - начать работу с ботом",
         "/help - краткая справка",
         "/learn - режим обучения",
+        "/topics - темы обучения",
         "/reset_onboarding - сбросить мастер настройки",
         "/trial - Включить trial",
         "/upgrade - Оформить PRO",

@@ -68,6 +68,12 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
 
 
+async def cmd_topics(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Explicit command to list available learning topics."""
+
+    await learn_command(update, context)
+
+
 async def _start_lesson(
     message: Message,
     user_data: MutableMapping[str, Any],
@@ -222,6 +228,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 __all__ = [
     "learn_command",
+    "cmd_topics",
     "lesson_command",
     "lesson_callback",
     "lesson_answer_handler",

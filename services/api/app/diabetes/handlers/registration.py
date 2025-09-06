@@ -22,7 +22,8 @@ from telegram import BotCommand
 
 from .common_handlers import help_command, smart_input_help
 from .router import callback_router
-from . import learning_handlers
+from . import learning_handlers as legacy_learning_handlers
+from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
 from ..utils.ui import (
     PROFILE_BUTTON_TEXT,
     REMINDERS_BUTTON_TEXT,
@@ -163,11 +164,11 @@ def register_handlers(
     else:
         learning_enabled = settings.learning_mode_enabled
 
-    app.add_handler(CommandHandlerT("menu", learning_handlers.cmd_menu))
+    app.add_handler(CommandHandlerT("menu", legacy_learning_handlers.cmd_menu))
     app.add_handler(
         MessageHandlerT(
             filters.TEXT & filters.Regex(rf"^{re.escape(LEARN_BUTTON_TEXT)}$"),
-            learning_handlers.on_learn_button,
+            legacy_learning_handlers.on_learn_button,
         )
     )
     app.add_handler(CommandHandlerT("report", reporting_handlers.report_request))
@@ -181,7 +182,20 @@ def register_handlers(
     app.add_handler(CommandHandlerT("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandlerT("help", help_command))
     if learning_enabled:
-        learning_handlers.register_handlers(app)
+        legacy_learning_handlers.register_handlers(app)
+        app.add_handler(CommandHandlerT("topics", dynamic_learning_handlers.cmd_topics))
+        app.add_handler(
+            CallbackQueryHandlerT(
+                dynamic_learning_handlers.lesson_callback, pattern="^lesson:"
+            )
+        )
+        app.add_handler(
+            MessageHandlerT(
+                filters.TEXT & ~filters.COMMAND,
+                dynamic_learning_handlers.lesson_answer_handler,
+                block=False,
+            )
+        )
     app.add_handler(CommandHandlerT("gpt", gpt_handlers.chat_with_gpt))
     app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
     app.add_handler(CommandHandlerT("upgrade", billing_handlers.upgrade_command))
@@ -251,6 +265,7 @@ def register_handlers(
                 [
                     BotCommand("learn", "Учебный режим"),
                     BotCommand("menu", "Показать нижнее меню"),
+                    BotCommand("topics", "Список тем обучения"),
                 ]
             )
         )
