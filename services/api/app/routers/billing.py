@@ -44,6 +44,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
 
+def _get_active_trial(
+    session: Session,
+    *,
+    user_id: int,
+    for_update: bool = False,
+) -> Subscription | None:
+    stmt = (
+        select(Subscription)
+        .where(
+            Subscription.user_id == user_id,
+            Subscription.status == SubStatus.trial.value,
+        )
+        .order_by(Subscription.start_date.desc())
+        .limit(1)
+    )
+    if for_update:
+        stmt = stmt.with_for_update()
+    return session.scalars(stmt).first()
+
+
 def _require_billing_enabled(
     settings: BillingSettings = Depends(get_billing_settings),
 ) -> BillingSettings:
@@ -70,20 +90,6 @@ async def start_trial(
 
     now = datetime.now(timezone.utc)
 
-    def _get_trial(session: Session, *, for_update: bool = False) -> Subscription | None:
-        stmt = (
-            select(Subscription)
-            .where(
-                Subscription.user_id == user_id,
-                Subscription.status == SubStatus.trial.value,
-            )
-            .order_by(Subscription.start_date.desc())
-            .limit(1)
-        )
-        if for_update:
-            stmt = stmt.with_for_update()
-        return session.scalars(stmt).first()
-
     def _create_trial(session: Session) -> Subscription:
         start = now
         trial = Subscription(
@@ -106,7 +112,7 @@ async def start_trial(
 
     def _get_or_create(session: Session) -> Subscription:
         with session.begin():
-            trial = _get_trial(session, for_update=True)
+            trial = _get_active_trial(session, user_id=user_id, for_update=True)
             if trial is not None:
                 raise HTTPException(status_code=409, detail="Trial already active")
             return _create_trial(session)
