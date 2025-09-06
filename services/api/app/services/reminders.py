@@ -7,6 +7,7 @@ from typing import Callable, cast
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
+import sqlalchemy as sa
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -42,18 +43,12 @@ def _default_title(rem_type: str, rem_time: time_ | None) -> str | None:
 async def list_reminders(telegram_id: int) -> list[Reminder]:
     def _list(session: Session) -> list[Reminder]:
         profile = cast(Profile | None, session.get(Profile, telegram_id))
-        reminders_ = session.query(Reminder).filter_by(telegram_id=telegram_id).all()
+        reminders_ = session.scalars(sa.select(Reminder).filter_by(telegram_id=telegram_id)).all()
         if not reminders_:
             return []
-        sql = (
-            resources.files("services.api.app.diabetes.sql")
-            .joinpath("reminders_stats.sql")
-            .read_text()
-        )
+        sql = resources.files("services.api.app.diabetes.sql").joinpath("reminders_stats.sql").read_text()
         since = datetime.now(timezone.utc) - timedelta(days=7)
-        rows = session.execute(
-            text(sql), {"telegram_id": telegram_id, "since": since}
-        ).mappings()
+        rows = session.execute(text(sql), {"telegram_id": telegram_id, "since": since}).mappings()
         stats = {row["reminder_id"]: row for row in rows}
         tz = ZoneInfo(profile.timezone if profile else "UTC")
         for rem in reminders_:
@@ -109,9 +104,7 @@ async def save_reminder(data: ReminderSchema) -> int:
     try:
         return cast(
             int,
-            await run_db(
-                cast(Callable[[Session], int], _save), sessionmaker=SessionLocal
-            ),
+            await run_db(cast(Callable[[Session], int], _save), sessionmaker=SessionLocal),
         )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
@@ -122,9 +115,9 @@ async def delete_reminder(telegram_id: int, reminder_id: int) -> None:
         rem = cast(Reminder | None, session.get(Reminder, reminder_id))
         if rem is None or rem.telegram_id != telegram_id:
             raise HTTPException(status_code=404, detail="reminder not found")
-        cast(Session, session).query(ReminderLog).filter_by(
-            reminder_id=reminder_id
-        ).update({"reminder_id": None}, synchronize_session=False)
+        cast(Session, session).execute(
+            sa.update(ReminderLog).where(ReminderLog.reminder_id == reminder_id).values(reminder_id=None)
+        )
         session.delete(rem)
         try:
             commit(cast(Session, session))

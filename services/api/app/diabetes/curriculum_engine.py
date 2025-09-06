@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import time
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from .learning_prompts import (
@@ -24,8 +25,10 @@ async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
     """Start or reset a lesson for a user and return progress."""
 
     def _start(session: Session) -> LessonProgress:
-        lesson = session.query(Lesson).filter_by(slug=lesson_slug).one()
-        progress = session.query(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson.id).one_or_none()
+        lesson = session.execute(sa.select(Lesson).filter_by(slug=lesson_slug)).scalar_one()
+        progress = session.execute(
+            sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson.id)
+        ).scalar_one_or_none()
         if progress is None:
             progress = LessonProgress(
                 user_id=user_id,
@@ -70,8 +73,12 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
     def _advance(
         session: Session,
     ) -> tuple[str | None, str | None, bool, bool, int | None]:
-        progress = session.query(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id).one()
-        steps = session.query(LessonStep).filter_by(lesson_id=lesson_id).order_by(LessonStep.step_order).all()
+        progress = session.execute(
+            sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+        ).scalar_one()
+        steps = session.scalars(
+            sa.select(LessonStep).filter_by(lesson_id=lesson_id).order_by(LessonStep.step_order)
+        ).all()
         if progress.current_step < len(steps):
             step = steps[progress.current_step]
             first_step = progress.current_step == 0
@@ -79,7 +86,9 @@ async def next_step(user_id: int, lesson_id: int) -> str | None:
             step_idx = progress.current_step
             commit(session)
             return step.content, None, first_step, False, step_idx
-        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
+        questions = session.scalars(
+            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
+        ).all()
         if progress.current_question < len(questions):
             q = questions[progress.current_question]
             first_question = progress.current_question == 0
@@ -129,8 +138,12 @@ async def check_answer(user_id: int, lesson_id: int, answer_index: int) -> tuple
     answer_index -= 1
 
     def _check(session: Session) -> tuple[bool, str, int, bool, int | None]:
-        progress = session.query(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id).one()
-        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
+        progress = session.execute(
+            sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+        ).scalar_one()
+        questions = session.scalars(
+            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
+        ).all()
         question = questions[progress.current_question]
         correct = answer_index == question.correct_option
         explanation = question.options[question.correct_option]

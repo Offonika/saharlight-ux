@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import SessionLocal, run_db
@@ -53,18 +54,19 @@ async def onboarding_status(user_id: int) -> tuple[bool, str | None, list[str]]:
     def _last_event(session: Session) -> str | None:
         cutoff = datetime.now(timezone.utc) - timedelta(days=14)
         row = (
-            session.query(OnboardingEvent.event)
-            .filter(
-                OnboardingEvent.user_id == user_id,
-                OnboardingEvent.event.in_(
-                    ["onboarding_completed", "onboarding_canceled"]
-                ),
-                OnboardingEvent.ts >= cutoff,
+            session.execute(
+                sa.select(OnboardingEvent.event)
+                .where(
+                    OnboardingEvent.user_id == user_id,
+                    OnboardingEvent.event.in_(["onboarding_completed", "onboarding_canceled"]),
+                    OnboardingEvent.ts >= cutoff,
+                )
+                .order_by(OnboardingEvent.ts.desc())
             )
-            .order_by(OnboardingEvent.ts.desc())
+            .scalars()
             .first()
         )
-        return row[0] if row is not None else None
+        return row
 
     last_event = await run_db(_last_event, sessionmaker=SessionLocal)
 

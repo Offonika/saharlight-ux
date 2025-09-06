@@ -5,6 +5,7 @@ import logging
 import re
 from datetime import timedelta
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker, selectinload
 from telegram.ext import ContextTypes
 
@@ -34,12 +35,11 @@ async def _reminders_gc(_context: ContextTypes.DEFAULT_TYPE) -> None:
 
     def load_active() -> list[Reminder]:
         with session_factory() as session:
-            return (
-                session.query(Reminder)
+            return session.scalars(
+                sa.select(Reminder)
                 .options(selectinload(Reminder.user).selectinload(User.profile))
-                .filter(Reminder.is_enabled == True)  # noqa: E712
-                .all()
-            )
+                .where(Reminder.is_enabled == True)  # noqa: E712
+            ).all()
 
     reminders = await asyncio.to_thread(load_active)
     active_ids = {rem.id for rem in reminders}

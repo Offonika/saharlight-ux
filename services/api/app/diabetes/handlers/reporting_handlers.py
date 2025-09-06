@@ -31,6 +31,7 @@ from services.api.app.diabetes.services.db import (
     User,
     HistoryRecord,
 )
+import sqlalchemy as sa
 from services.api.app.diabetes.services.gpt_client import (
     send_message,
     _get_client,
@@ -67,9 +68,7 @@ class EntryLike(Protocol):
 def render_entry(entry: EntryLike) -> str:
     """Render a single diary entry as HTML-formatted text."""
     day_str = html.escape(entry.event_time.strftime("%d.%m %H:%M"))
-    sugar = (
-        html.escape(str(entry.sugar_before)) if entry.sugar_before is not None else "—"
-    )
+    sugar = html.escape(str(entry.sugar_before)) if entry.sugar_before is not None else "—"
     dose = html.escape(str(entry.dose)) if entry.dose is not None else "—"
 
     if entry.carbs_g is not None:
@@ -168,13 +167,12 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     def _fetch_entries() -> list[HistoryRecord]:
         with SessionLocal() as session:
-            return (
-                session.query(HistoryRecord)
-                .filter(HistoryRecord.telegram_id == user_id)
+            return session.scalars(
+                sa.select(HistoryRecord)
+                .where(HistoryRecord.telegram_id == user_id)
                 .order_by(HistoryRecord.date.desc(), HistoryRecord.time.desc())
                 .limit(limit)
-                .all()
-            )
+            ).all()
 
     # Run DB work in a thread to keep the event loop responsive.
     records = await asyncio.to_thread(_fetch_entries)
@@ -193,16 +191,12 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 [
                     InlineKeyboardButton(
                         "🌐 Открыть историю в WebApp",
-                        web_app=WebAppInfo(
-                            config.build_ui_url(f"/history?limit={limit}")
-                        ),
+                        web_app=WebAppInfo(config.build_ui_url(f"/history?limit={limit}")),
                     )
                 ]
             ]
         )
-        await message.reply_text(
-            "История также доступна в WebApp:", reply_markup=open_markup
-        )
+        await message.reply_text("История также доступна в WebApp:", reply_markup=open_markup)
 
     entries = [_history_record_to_entry(r) for r in records]
     for entry in entries:
@@ -210,24 +204,18 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         markup = InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton(
-                        "✏️ Изменить", callback_data=f"edit:{entry.id}"
-                    ),
+                    InlineKeyboardButton("✏️ Изменить", callback_data=f"edit:{entry.id}"),
                     InlineKeyboardButton("🗑 Удалить", callback_data=f"del:{entry.id}"),
                 ]
             ]
         )
         await message.reply_text(text, parse_mode="HTML", reply_markup=markup)
 
-    back_markup = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🔙 Назад", callback_data="report_back")]]
-    )
+    back_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Назад", callback_data="report_back")]])
     await message.reply_text("Готово.", reply_markup=back_markup)
 
 
-async def report_period_callback(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle report period selection via inline buttons."""
     query = update.callback_query
     if query is None or query.data is None or query.message is None:
@@ -248,14 +236,10 @@ async def report_period_callback(
         date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
         await send_report(update, context, date_from, "сегодня", query=query)
     elif period == "week":
-        date_from = (now - datetime.timedelta(days=7)).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
+        date_from = (now - datetime.timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
         await send_report(update, context, date_from, "последнюю неделю", query=query)
     elif period == "month":
-        date_from = (now - datetime.timedelta(days=30)).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
+        date_from = (now - datetime.timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
         await send_report(update, context, date_from, "последний месяц", query=query)
     elif period == "custom":
         user_data_raw = context.user_data
@@ -265,9 +249,7 @@ async def report_period_callback(
         assert user_data_raw is not None
         user_data = cast(UserData, user_data_raw)
         user_data["awaiting_report_date"] = True
-        await query.edit_message_text(
-            "Введите дату начала отчёта в формате YYYY-MM-DD\nОтправьте «назад» для отмены."
-        )
+        await query.edit_message_text("Введите дату начала отчёта в формате YYYY-MM-DD\nОтправьте «назад» для отмены.")
         await message.reply_text(
             "Ожидаю дату…",
             reply_markup=ReplyKeyboardMarkup(
@@ -296,13 +278,12 @@ async def send_report(
 
     def _fetch_entries() -> list[Entry]:
         with SessionLocal() as session:
-            return (
-                session.query(Entry)
-                .filter(Entry.telegram_id == user_id)
-                .filter(Entry.event_time >= date_from)
+            return session.scalars(
+                sa.select(Entry)
+                .where(Entry.telegram_id == user_id)
+                .where(Entry.event_time >= date_from)
                 .order_by(Entry.event_time)
-                .all()
-            )
+            ).all()
 
     # Run blocking DB calls in a thread to avoid freezing the event loop.
     entries = await asyncio.to_thread(_fetch_entries)
@@ -416,9 +397,7 @@ async def send_report(
     report_msg = "<b>Отчёт сформирован</b>\n\n" + "\n".join(summary_lines + day_lines)
 
     plot_buf = make_sugar_plot(entries, period_label)
-    pdf_buf = generate_pdf_report(
-        summary_lines, errors, day_lines, gpt_text or default_gpt_text, plot_buf
-    )
+    pdf_buf = generate_pdf_report(summary_lines, errors, day_lines, gpt_text or default_gpt_text, plot_buf)
     plot_buf.seek(0)
     pdf_buf.seek(0)
     if query is not None:

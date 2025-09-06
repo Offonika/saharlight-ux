@@ -5,6 +5,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, TypedDict, cast
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 from telegram import Update
 from telegram.error import TelegramError
@@ -23,9 +24,7 @@ run_db: Callable[..., Awaitable[object]] | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
-    logging.getLogger(__name__).info(
-        "run_db is unavailable; proceeding without async DB runner"
-    )
+    logging.getLogger(__name__).info("run_db is unavailable; proceeding without async DB runner")
     run_db = None
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
@@ -196,7 +195,7 @@ async def evaluate_sugar(
         low = profile.low_threshold
         high = profile.high_threshold
 
-        active = session.query(Alert).filter_by(user_id=user_id, resolved=False).all()
+        active = session.scalars(sa.select(Alert).filter_by(user_id=user_id, resolved=False)).all()
 
         if (low is not None and sugar < low) or (high is not None and sugar > high):
             atype = "hypo" if low is not None and sugar < low else "hyper"
@@ -207,13 +206,9 @@ async def evaluate_sugar(
             except CommitError:
                 logger.error("Failed to commit new alert for user %s", user_id)
                 return False, None
-            alerts = (
-                session.query(Alert)
-                .filter_by(user_id=user_id, resolved=False)
-                .order_by(Alert.ts.desc())
-                .limit(3)
-                .all()
-            )
+            alerts = session.scalars(
+                sa.select(Alert).filter_by(user_id=user_id, resolved=False).order_by(Alert.ts.desc()).limit(3)
+            ).all()
             notify = len(alerts) == 3 and all(a.type == atype for a in alerts)
             if notify:
                 for a in alerts:
@@ -221,9 +216,7 @@ async def evaluate_sugar(
                 try:
                     commit(session)
                 except CommitError:
-                    logger.error(
-                        "Failed to commit resolved alerts for user %s", user_id
-                    )
+                    logger.error("Failed to commit resolved alerts for user %s", user_id)
                     return False, None
             return True, {
                 "action": "schedule",
@@ -277,13 +270,9 @@ async def evaluate_sugar(
         )
 
 
-async def check_alert(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, sugar: float
-) -> None:
+async def check_alert(update: Update, context: ContextTypes.DEFAULT_TYPE, sugar: float) -> None:
     """Wrapper to evaluate sugar using :func:`evaluate_sugar`."""
-    job_queue: DefaultJobQueue | None = cast(
-        DefaultJobQueue | None, getattr(context, "job_queue", None)
-    )
+    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, getattr(context, "job_queue", None))
     if job_queue is None:
         job_queue = cast(
             DefaultJobQueue | None,
@@ -330,16 +319,14 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     profile: dict[str, object] = data.get("profile", {})
     first_name = data.get("first_name", "")
     with SessionLocal() as session:
-        active = session.query(Alert).filter_by(user_id=user_id, resolved=False).first()
+        active = session.scalars(sa.select(Alert).filter_by(user_id=user_id, resolved=False)).first()
         if not active:
             job.schedule_removal()
             return
     await _send_alert_message(user_id, sugar, profile, context, first_name)
     if count >= MAX_REPEATS:
         with SessionLocal() as session:
-            alerts = (
-                session.query(Alert).filter_by(user_id=user_id, resolved=False).all()
-            )
+            alerts = session.scalars(sa.select(Alert).filter_by(user_id=user_id, resolved=False)).all()
             for a in alerts:
                 a.resolved = True
             try:
@@ -372,11 +359,7 @@ async def alert_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     week_ago = now - datetime.timedelta(days=7)
 
     with SessionLocal() as session:
-        alerts = (
-            session.query(Alert)
-            .filter(Alert.user_id == user_id, Alert.ts >= week_ago)
-            .all()
-        )
+        alerts = session.scalars(sa.select(Alert).where(Alert.user_id == user_id, Alert.ts >= week_ago)).all()
 
     hypo = sum(1 for a in alerts if a.type == "hypo")
     hyper = sum(1 for a in alerts if a.type == "hyper")

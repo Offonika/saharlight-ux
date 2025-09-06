@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import os
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from services.api.app import config
@@ -24,8 +25,12 @@ async def _fetch_lesson_data(
     """Return number of steps and list of questions for a lesson."""
 
     def _query(session: Session) -> tuple[int, list[QuizQuestion]]:
-        step_count = session.query(LessonStep).filter_by(lesson_id=lesson_id).count()
-        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
+        step_count = session.execute(
+            sa.select(sa.func.count()).select_from(LessonStep).filter_by(lesson_id=lesson_id)
+        ).scalar_one()
+        questions = session.scalars(
+            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
+        ).all()
         return step_count, list(questions)
 
     return await db.run_db(_query)
@@ -35,7 +40,7 @@ async def _get_progress(user_id: int, lesson_id: int) -> LessonProgress:
     """Fetch lesson progress for a user."""
 
     def _query(session: Session) -> LessonProgress:
-        return session.query(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id).one()
+        return session.execute(sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)).scalar_one()
 
     return await db.run_db(_query)
 
