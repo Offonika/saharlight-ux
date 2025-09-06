@@ -10,8 +10,10 @@ export function useDefaultAfterMealMinutes(
 
   useEffect(() => {
     if (!telegramId) return;
+    let cancelled = false;
     getProfile(telegramId)
       .then((profile) => {
+        if (cancelled) return;
         const minutes = profile?.afterMealMinutes;
         setValue(
           typeof minutes === "number"
@@ -20,8 +22,12 @@ export function useDefaultAfterMealMinutes(
         );
       })
       .catch(() => {
+        if (cancelled) return;
         setValue(DEFAULT_AFTER_MEAL_MINUTES);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [telegramId]);
 
   return value;
