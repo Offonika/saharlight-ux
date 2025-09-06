@@ -115,6 +115,54 @@ describe('profile api', () => {
     );
   });
 
+  it('sends additional profile settings when provided', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ telegramId: 1, target: 5, low: 4, high: 10 }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      );
+    vi.stubGlobal('fetch', mockFetch);
+
+    await saveProfile({
+      telegramId: 1,
+      target: 5,
+      low: 4,
+      high: 10,
+      quietStart: '22:00',
+      quietEnd: '06:00',
+      timezone: 'Europe/Moscow',
+      timezoneAuto: false,
+      sosContact: '123',
+      sosAlertsEnabled: true,
+      therapyType: 'insulin',
+    });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/profiles',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    const body = JSON.parse((mockFetch.mock.calls[0][1] as any).body);
+    expect(body).toMatchObject({
+      telegramId: 1,
+      target: 5,
+      low: 4,
+      high: 10,
+      quietStart: '22:00',
+      quietEnd: '06:00',
+      timezone: 'Europe/Moscow',
+      timezoneAuto: false,
+      sosContact: '123',
+      sosAlertsEnabled: true,
+      therapyType: 'insulin',
+    });
+  });
+
   it('throws error when patchProfile request fails', async () => {
     const mockFetch = vi
       .fn()

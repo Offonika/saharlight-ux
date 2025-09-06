@@ -22,6 +22,8 @@ export type PatchProfileDto = Partial<
     | "maxBolus"
     | "afterMealMinutes"
     | "therapyType"
+    | "sosContact"
+    | "sosAlertsEnabled"
   >
 >;
 

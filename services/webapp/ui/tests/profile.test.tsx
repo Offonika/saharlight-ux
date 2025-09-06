@@ -69,6 +69,8 @@ describe('Profile page', () => {
       therapyType: 'insulin',
       sosAlertsEnabled: true,
       sosContact: null,
+      quietStart: '22:00',
+      quietEnd: '06:00',
       glucoseUnits: 'mmol/L',
     });
     const realDTF = Intl.DateTimeFormat;
@@ -267,14 +269,16 @@ describe('Profile page', () => {
     fireEvent.click(getByText('Сохранить настройки'));
 
     await waitFor(() => {
-      expect(saveProfile).toHaveBeenCalledWith({
-        telegramId: 123,
-        icr: 1.5,
-        cf: 2.5,
-        target: 5.5,
-        low: 4,
-        high: 10,
-      });
+      expect(saveProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          telegramId: 123,
+          icr: 1.5,
+          cf: 2.5,
+          target: 5.5,
+          low: 4,
+          high: 10,
+        }),
+      );
       expect(patchProfile).not.toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Профиль сохранен' }),
@@ -817,18 +821,83 @@ describe('Profile page', () => {
     fireEvent.click(getByText('Продолжить'));
 
     await waitFor(() => {
-      expect(saveProfile).toHaveBeenCalledWith({
-        telegramId: 123,
-        icr: 12,
-        cf: 2.5,
-        target: 6,
-        low: 4,
-        high: 10,
-      });
+      expect(saveProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          telegramId: 123,
+          icr: 12,
+          cf: 2.5,
+          target: 6,
+          low: 4,
+          high: 10,
+        }),
+      );
       expect(patchProfile).not.toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Профиль сохранен' }),
       );
+    });
+  });
+
+  it('preserves other settings when updating cf', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (saveProfile as vi.Mock).mockResolvedValue(undefined);
+    (getProfile as vi.Mock).mockResolvedValue({
+      telegramId: 123,
+      icr: 12,
+      cf: 2.5,
+      target: 6,
+      low: 4,
+      high: 10,
+      dia: 4,
+      preBolus: 15,
+      roundStep: 0.5,
+      carbUnits: 'g',
+      gramsPerXe: 12,
+      rapidInsulinType: 'aspart' as RapidInsulin,
+      maxBolus: 10,
+      afterMealMinutes: 120,
+      timezone: 'Europe/Moscow',
+      timezoneAuto: false,
+      therapyType: 'insulin',
+      sosAlertsEnabled: true,
+      sosContact: '123',
+      quietStart: '22:00',
+      quietEnd: '06:00',
+      glucoseUnits: 'mmol/L',
+    });
+
+    const { getByPlaceholderText, getByText } = render(<Profile />);
+
+    await waitFor(() => {
+      expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe(
+        '2.5',
+      );
+    });
+
+    fireEvent.change(getByPlaceholderText('2.5'), {
+      target: { value: '3.5' },
+    });
+    fireEvent.click(getByText('Сохранить настройки'));
+
+    await waitFor(() => {
+      expect(saveProfile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          telegramId: 123,
+          icr: 12,
+          cf: 3.5,
+          target: 6,
+          low: 4,
+          high: 10,
+          timezone: 'Europe/Moscow',
+          timezoneAuto: false,
+          sosAlertsEnabled: true,
+          sosContact: '123',
+          quietStart: '22:00',
+          quietEnd: '06:00',
+          therapyType: 'insulin',
+        }),
+      );
+      expect(patchProfile).not.toHaveBeenCalled();
     });
   });
 

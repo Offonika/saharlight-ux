@@ -11,7 +11,12 @@ import HelpHint from "@/components/HelpHint";
 import ProfileHelpSheet from "@/components/ProfileHelpSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "@/i18n";
-import { saveProfile, getProfile, patchProfile } from "@/features/profile/api";
+import {
+  saveProfile,
+  getProfile,
+  patchProfile,
+  type SaveProfileDto,
+} from "@/features/profile/api";
 import type { PatchProfileDto, RapidInsulin } from "@/features/profile/types";
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
@@ -34,7 +39,7 @@ type ProfileForm = {
   target: string;
   low: string;
   high: string;
-  timezone: string;
+  timezone: string | null;
   timezoneAuto: boolean;
   dia: string;
   preBolus: string;
@@ -44,6 +49,10 @@ type ProfileForm = {
   rapidInsulinType: RapidInsulin;
   maxBolus: string;
   afterMealMinutes: string;
+  quietStart: string | null;
+  quietEnd: string | null;
+  sosContact: string | null;
+  sosAlertsEnabled: boolean;
 };
 
 type ParsedProfile = {
@@ -239,6 +248,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     rapidInsulinType: 'aspart',
     maxBolus: "",
     afterMealMinutes: "",
+    quietStart: null,
+    quietEnd: null,
+    sosContact: null,
+    sosAlertsEnabled: false,
   });
   const [original, setOriginal] = useState<ProfileForm | null>(null);
   const [timezones, setTimezones] = useState<string[]>([]);
@@ -360,6 +373,13 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
             : deviceTz;
         const timezoneAuto = data.timezoneAuto === true;
         const therapyType = data.therapyType ?? 'none';
+        const sosContact =
+          typeof data.sosContact === "string" ? data.sosContact : null;
+        const sosAlertsEnabled = data.sosAlertsEnabled === true;
+        const quietStart =
+          typeof data.quietStart === "string" ? data.quietStart : null;
+        const quietEnd =
+          typeof data.quietEnd === "string" ? data.quietEnd : null;
 
         const loadedProfile: ProfileForm = {
           icr,
@@ -377,6 +397,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           rapidInsulinType,
           maxBolus,
           afterMealMinutes,
+          quietStart,
+          quietEnd,
+          sosContact,
+          sosAlertsEnabled,
         };
 
         setProfile(loadedProfile);
@@ -470,6 +494,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     if (profile.maxBolus !== original.maxBolus) patch.maxBolus = parsed.maxBolus;
     if (profile.afterMealMinutes !== original.afterMealMinutes)
       patch.afterMealMinutes = parsed.afterMealMinutes;
+    if (profile.sosContact !== original.sosContact)
+      patch.sosContact = profile.sosContact;
+    if (profile.sosAlertsEnabled !== original.sosAlertsEnabled)
+      patch.sosAlertsEnabled = profile.sosAlertsEnabled;
     return patch;
   };
 
@@ -485,18 +513,26 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         await patchProfile(data.patch);
       }
 
-      const payload = {
+      const payload: SaveProfileDto = {
         telegramId: data.telegramId,
         target: data.target,
         low: data.low,
         high: data.high,
-      } as {
-        telegramId: number;
-        target: number;
-        low: number;
-        high: number;
-        icr?: number;
-        cf?: number;
+        timezone: profile.timezone,
+        timezoneAuto: profile.timezoneAuto,
+        dia: parsed.dia,
+        preBolus: parsed.preBolus,
+        roundStep: parsed.roundStep,
+        carbUnits: parsed.carbUnits,
+        gramsPerXe: parsed.gramsPerXe,
+        rapidInsulinType: parsed.rapidInsulinType,
+        maxBolus: parsed.maxBolus,
+        afterMealMinutes: parsed.afterMealMinutes,
+        quietStart: profile.quietStart,
+        quietEnd: profile.quietEnd,
+        sosContact: profile.sosContact,
+        sosAlertsEnabled: profile.sosAlertsEnabled,
+        therapyType: data.therapyType,
       };
 
       if (data.therapyType !== 'tablets' && data.therapyType !== 'none') {
