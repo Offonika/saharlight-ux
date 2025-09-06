@@ -32,6 +32,7 @@ from services.api.app.diabetes.handlers import (
     billing_handlers,
     learning_handlers,
 )
+from services.api.app.config import reload_settings
 
 
 def test_register_handlers_attaches_expected_handlers(
@@ -193,6 +194,23 @@ def test_register_handlers_attaches_expected_handlers(
         h for h in handlers if isinstance(h, CallbackQueryHandler) and h.callback is profile_handlers.profile_back
     ]
     assert profile_back_handlers
+
+
+def test_register_handlers_skips_learning_handlers_when_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("LEARNING_MODE_ENABLED", "0")
+    reload_settings()
+
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+    register_handlers(app)
+
+    handlers = app.handlers[0]
+    commands = [cmd for h in handlers if isinstance(h, CommandHandler) for cmd in h.commands]
+    for name in ["learn", "lesson", "quiz", "progress", "exit"]:
+        assert name not in commands
+    monkeypatch.setenv("LEARNING_MODE_ENABLED", "1")
+    reload_settings()
 
 
 def test_register_profile_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
