@@ -71,7 +71,12 @@ def _sign(secret: str, event_id: str, transaction_id: str) -> str:
 def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     session_local = setup_db()
     secret = "testsecret"
-    client = make_client(monkeypatch, session_local, BILLING_WEBHOOK_SECRET=secret)
+    monkeypatch.setenv("BILLING_WEBHOOK_IPS", "")
+    client = make_client(
+        monkeypatch,
+        session_local,
+        BILLING_WEBHOOK_SECRET=secret,
+    )
     checkout_id = create_subscription(client)
     event_id = "evt1"
     sig = _sign(secret, event_id, checkout_id)
@@ -105,7 +110,12 @@ def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog:
 def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
     secret = "testsecret"
-    client = make_client(monkeypatch, session_local, BILLING_WEBHOOK_SECRET=secret)
+    monkeypatch.setenv("BILLING_WEBHOOK_IPS", "")
+    client = make_client(
+        monkeypatch,
+        session_local,
+        BILLING_WEBHOOK_SECRET=secret,
+    )
     checkout_id = create_subscription(client)
     event_id = "evt2"
     sig = _sign(secret, event_id, checkout_id)
