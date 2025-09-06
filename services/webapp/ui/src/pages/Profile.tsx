@@ -504,21 +504,36 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   ): PatchProfileDto => {
     if (!original) return {};
     const patch: PatchProfileDto = {};
+
+    const profileDia = Number(profile.dia);
+    const originalDia = Number(original.dia);
+    const profilePreBolus = Number(profile.preBolus);
+    const originalPreBolus = Number(original.preBolus);
+    const profileRoundStep = Number(profile.roundStep);
+    const originalRoundStep = Number(original.roundStep);
+    const profileGramsPerXe = Number(profile.gramsPerXe);
+    const originalGramsPerXe = Number(original.gramsPerXe);
+    const profileMaxBolus = Number(profile.maxBolus);
+    const originalMaxBolus = Number(original.maxBolus);
+    const profileAfterMealMinutes = Number(profile.afterMealMinutes);
+    const originalAfterMealMinutes = Number(original.afterMealMinutes);
+
     if (therapyTypeValue !== originalTherapyType)
       patch.therapyType = therapyTypeValue;
-    if (profile.timezone !== original.timezone) patch.timezone = profile.timezone;
+    if (profile.timezone !== original.timezone)
+      patch.timezone = profile.timezone;
     if (profile.timezoneAuto !== original.timezoneAuto)
       patch.timezoneAuto = profile.timezoneAuto;
-    if (profile.dia !== original.dia && parsed.dia !== undefined)
+    if (profileDia !== originalDia && parsed.dia !== undefined)
       patch.dia = parsed.dia;
-    if (profile.preBolus !== original.preBolus && parsed.preBolus !== undefined)
+    if (profilePreBolus !== originalPreBolus && parsed.preBolus !== undefined)
       patch.preBolus = parsed.preBolus;
-    if (profile.roundStep !== original.roundStep && parsed.roundStep !== undefined)
+    if (profileRoundStep !== originalRoundStep && parsed.roundStep !== undefined)
       patch.roundStep = parsed.roundStep;
     if (profile.carbUnits !== original.carbUnits)
       patch.carbUnits = parsed.carbUnits;
     if (
-      profile.gramsPerXe !== original.gramsPerXe &&
+      profileGramsPerXe !== originalGramsPerXe &&
       parsed.gramsPerXe !== undefined
     )
       patch.gramsPerXe = parsed.gramsPerXe;
@@ -527,10 +542,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       parsed.rapidInsulinType !== undefined
     )
       patch.rapidInsulinType = parsed.rapidInsulinType;
-    if (profile.maxBolus !== original.maxBolus && parsed.maxBolus !== undefined)
+    if (profileMaxBolus !== originalMaxBolus && parsed.maxBolus !== undefined)
       patch.maxBolus = parsed.maxBolus;
     if (
-      profile.afterMealMinutes !== original.afterMealMinutes &&
+      profileAfterMealMinutes !== originalAfterMealMinutes &&
       parsed.afterMealMinutes !== undefined
     )
       patch.afterMealMinutes = parsed.afterMealMinutes;
