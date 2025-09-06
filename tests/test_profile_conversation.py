@@ -120,7 +120,7 @@ async def test_profile_timezone_save_profile_missing(
     )
     state = await handlers.profile_timezone_save(update, context)
     assert state == handlers.END
-    assert any("Профиль не найден" in r for r in message.replies)
+    assert message.replies == ["✅ Профиль создан. Часовой пояс сохранён."]
     run_db_mock.assert_awaited_once()
 
 
