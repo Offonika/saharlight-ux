@@ -10,6 +10,7 @@ from telegram.ext import ContextTypes
 
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
+from . import curriculum_engine
 from .dynamic_tutor import check_user_answer, generate_step_text
 from .handlers import learning_handlers as legacy_handlers
 from .learning_onboarding import ensure_overrides
@@ -22,7 +23,15 @@ logger = logging.getLogger(__name__)
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
 
-TOPICS: list[tuple[str, str]] = list(TOPICS_RU.items())
+
+def choose_initial_topic(profile: Mapping[str, str | None]) -> str:
+    """Pick an initial topic slug based on ``profile``.
+
+    Currently this is a simple heuristic that returns the first available
+    topic.  More sophisticated logic can be implemented later.
+    """
+
+    return next(iter(TOPICS_RU))
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
@@ -43,8 +52,8 @@ def _get_profile(user_data: MutableMapping[str, Any]) -> Mapping[str, str | None
     return {}
 
 
-async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a menu with available learning topics."""
+async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show an inline keyboard with available learning topics."""
 
     message = update.message
     if message is None:
@@ -60,12 +69,50 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     keyboard = InlineKeyboardMarkup(
         [
             [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
-            for slug, title in TOPICS
+            for slug, title in TOPICS_RU.items()
         ]
     )
-    # Show the persistent main keyboard alongside topic selection buttons
     await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
+
+
+async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Start learning or display topics depending on configuration."""
+
+    message = update.message
+    if message is None:
+        return
+    if not settings.learning_mode_enabled:
+        await message.reply_text("режим обучения отключён")
+        return
+    if settings.learning_content_mode == "static":
+        await legacy_handlers.learn_command(update, context)
+        return
+    if settings.learning_ui_show_topics:
+        await topics_command(update, context)
+        return
+    if not await ensure_overrides(update, context):
+        return
+    user = update.effective_user
+    if user is None:
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    profile = _get_profile(user_data)
+    slug = choose_initial_topic(profile)
+    progress = await curriculum_engine.start_lesson(user.id, slug)
+    text, _ = await curriculum_engine.next_step(user.id, progress.lesson_id)
+    if text is None:
+        return
+    text = format_reply(text)
+    await message.reply_text(text, reply_markup=build_main_keyboard())
+    await add_lesson_log(user.id, slug, "assistant", 1, text)
+    state = LearnState(
+        topic=slug,
+        step=1,
+        awaiting_answer=True,
+        last_step_text=text,
+    )
+    set_state(user_data, state)
 
 
 async def _start_lesson(
@@ -80,7 +127,7 @@ async def _start_lesson(
     telegram_id = from_user.id if from_user else None
     text = await generate_step_text(profile, topic_slug, 1, None)
     text = format_reply(text)
-    await message.reply_text(text)
+    await message.reply_text(text, reply_markup=build_main_keyboard())
     if telegram_id is not None:
         await add_lesson_log(telegram_id, topic_slug, "assistant", 1, text)
     state = LearnState(
@@ -180,7 +227,7 @@ async def lesson_answer_handler(
         profile, state.topic, user_text, state.last_step_text or ""
     )
     feedback = format_reply(feedback)
-    await message.reply_text(feedback)
+    await message.reply_text(feedback, reply_markup=build_main_keyboard())
     if telegram_id is not None:
         await add_lesson_log(
             telegram_id, state.topic, "assistant", state.step, feedback
@@ -189,7 +236,7 @@ async def lesson_answer_handler(
         profile, state.topic, state.step + 1, feedback
     )
     next_text = format_reply(next_text)
-    await message.reply_text(next_text)
+    await message.reply_text(next_text, reply_markup=build_main_keyboard())
     if telegram_id is not None:
         await add_lesson_log(
             telegram_id, state.topic, "assistant", state.step + 1, next_text
@@ -221,6 +268,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 __all__ = [
+    "topics_command",
     "learn_command",
     "lesson_command",
     "lesson_callback",

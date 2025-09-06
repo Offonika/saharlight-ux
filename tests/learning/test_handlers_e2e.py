@@ -52,6 +52,7 @@ class DummyBot(Bot):
 @pytest.mark.asyncio
 async def test_keyboard_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+    monkeypatch.setattr(settings, "learning_ui_show_topics", True)
     async def fake_ensure_overrides(*_args: object, **_kwargs: object) -> bool:
         return True
 
