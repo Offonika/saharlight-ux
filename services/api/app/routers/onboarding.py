@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from ..schemas.user import UserContext
@@ -32,18 +33,14 @@ class EventPayload(BaseModel):
 
 
 @router.post("/events")
-async def post_event(
-    payload: EventPayload, user: UserContext = Depends(require_tg_user)
-) -> dict[str, bool]:
+async def post_event(payload: EventPayload, user: UserContext = Depends(require_tg_user)) -> dict[str, bool]:
     variant = None
     if payload.meta and isinstance(payload.meta.get("variant"), str):
         variant = payload.meta["variant"]
     step = str(payload.step or 0)
 
     def _log(session: Session) -> None:
-        log_onboarding_event(
-            session, user["id"], payload.event, step, variant=variant
-        )
+        log_onboarding_event(session, user["id"], payload.event, step, variant=variant)
 
     await run_db(_log, sessionmaker=SessionLocal)
     return {"ok": True}
@@ -61,17 +58,12 @@ async def get_status(user: UserContext = Depends(require_tg_user)) -> StatusResp
 
     def _load(session: Session) -> tuple[Profile | None, int, OnboardingEvent | None]:
         profile = session.get(Profile, user_id)
-        reminders = (
-            session.query(Reminder)
-            .filter(Reminder.telegram_id == user_id, Reminder.is_enabled)
-            .count()
-        )
-        last_event = (
-            session.query(OnboardingEvent)
-            .filter(OnboardingEvent.user_id == user_id)
-            .order_by(OnboardingEvent.ts.desc())
-            .first()
-        )
+        reminders = session.execute(
+            sa.select(sa.func.count()).select_from(Reminder).where(Reminder.telegram_id == user_id, Reminder.is_enabled)
+        ).scalar_one()
+        last_event = session.scalars(
+            sa.select(OnboardingEvent).where(OnboardingEvent.user_id == user_id).order_by(OnboardingEvent.ts.desc())
+        ).first()
         return profile, reminders, last_event
 
     profile, reminders, last_event = await run_db(_load, sessionmaker=SessionLocal)
@@ -96,6 +88,7 @@ async def get_status(user: UserContext = Depends(require_tg_user)) -> StatusResp
     completed = profile_valid and (reminders > 0 or skipped)
 
     if completed and (not last_event or last_event.event != "onboarding_completed"):
+
         def _log(session: Session) -> None:
             log_onboarding_event(session, user_id, "onboarding_completed", str(REMINDERS))
 

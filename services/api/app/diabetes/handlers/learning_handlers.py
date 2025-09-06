@@ -4,6 +4,7 @@ import logging
 import time
 from typing import Any, MutableMapping, cast
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -45,12 +46,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     model = settings.learning_command_model
 
     def _list(session: Session) -> list[tuple[str, str]]:
-        lessons = (
-            session.query(Lesson)
-            .filter_by(is_active=True)
-            .order_by(Lesson.id)
-            .all()
-        )
+        lessons = session.scalars(sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)).all()
         return [(lesson.title, lesson.slug) for lesson in lessons]
 
     lessons = await run_db(_list, sessionmaker=SessionLocal)
@@ -134,9 +130,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         except ValueError:
             await message.reply_text("Ответ должен быть числом")
             return
-        _correct, feedback = await curriculum_engine.check_answer(
-            user.id, lesson_id, answer
-        )
+        _correct, feedback = await curriculum_engine.check_answer(user.id, lesson_id, answer)
         await message.reply_text(feedback)
     question = await curriculum_engine.next_step(user.id, lesson_id)
     if question is None:
@@ -153,16 +147,13 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     user_id = user.id
 
-    def _load_progress(
-        session: Session, user_id: int
-    ) -> tuple[str, int, bool, int | None] | None:
-        progress = (
-            session.query(LessonProgress)
+    def _load_progress(session: Session, user_id: int) -> tuple[str, int, bool, int | None] | None:
+        progress = session.scalars(
+            sa.select(LessonProgress)
             .join(Lesson)
-            .filter(LessonProgress.user_id == user_id)
+            .where(LessonProgress.user_id == user_id)
             .order_by(LessonProgress.id.desc())
-            .first()
-        )
+        ).first()
         if progress is None:
             return None
         return (
@@ -174,9 +165,7 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     result = await run_db(_load_progress, user_id, sessionmaker=SessionLocal)
     if result is None:
-        await message.reply_text(
-            "Вы ещё не начали обучение. Отправьте /learn чтобы начать."
-        )
+        await message.reply_text("Вы ещё не начали обучение. Отправьте /learn чтобы начать.")
         return
     title, current_step, completed, quiz_score = result
     lines = [
@@ -197,9 +186,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     user_data = cast(dict[str, object], context.user_data)
     lesson_id = cast(int | None, user_data.get("lesson_id"))
-    logger.info(
-        "exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id}
-    )
+    logger.info("exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id})
     lesson_id = cast(int | None, user_data.pop("lesson_id", None))
     user_data.pop("lesson_slug", None)
     user_data.pop("lesson_step", None)
@@ -207,11 +194,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if lesson_id is not None:
 
         def _complete(session: Session, user_id: int, lesson_id: int) -> None:
-            progress = (
-                session.query(LessonProgress)
-                .filter_by(user_id=user_id, lesson_id=lesson_id)
-                .one_or_none()
-            )
+            progress = session.execute(
+                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+            ).scalar_one_or_none()
             if progress is not None and not progress.completed:
                 progress.completed = True
                 commit(session)

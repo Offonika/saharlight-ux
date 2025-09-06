@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable, Literal, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import parse_qsl
 
-import sqlalchemy
+import sqlalchemy as sa
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker, selectinload
 from sqlalchemy.orm.exc import DetachedInstanceError
@@ -199,8 +199,8 @@ def _schedule_with_next(rem: Reminder, user: User | None = None) -> tuple[str, s
 
 def _render_reminders(session: Session, user_id: int) -> tuple[str, InlineKeyboardMarkup | None]:
     settings = config.get_settings()
-    rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
-    user = session.query(User).filter_by(telegram_id=user_id).first()
+    rems = session.scalars(sa.select(Reminder).filter_by(telegram_id=user_id)).all()
+    user = session.scalars(sa.select(User).filter_by(telegram_id=user_id)).first()
     limit = _limit_for(user)
     active_count = sum(1 for r in rems if r.is_enabled)
     header = f"Ваши напоминания ({active_count} / {limit} 🔔)"
@@ -312,7 +312,9 @@ def schedule_all(job_queue: DefaultJobQueue | None) -> None:
         logger.warning("schedule_all called without job_queue")
         return
     with SessionLocal() as session:
-        reminders = session.query(Reminder).options(selectinload(Reminder.user).joinedload(User.profile)).all()
+        reminders = session.scalars(
+            sa.select(Reminder).options(selectinload(Reminder.user).joinedload(User.profile))
+        ).all()
         count = len(reminders)
         logger.debug("Found %d reminders to schedule", count)
         for rem in reminders:
@@ -370,15 +372,13 @@ async def create_reminder_from_preset(user_id: int, code: str, job_queue: Defaul
 
     def db_save(session: Session) -> tuple[Reminder | None, User | None]:
         user = session.get(User, user_id)
-        exists = (
-            session.query(Reminder)
-            .filter_by(
+        exists = session.scalars(
+            sa.select(Reminder).filter_by(
                 telegram_id=user_id,
                 type=reminder.type,
                 time=reminder.time,
             )
-            .first()
-        )
+        ).first()
         if exists is not None:
             return None, user
         session.add(reminder)
@@ -410,7 +410,7 @@ async def create_reminder_from_preset(user_id: int, code: str, job_queue: Defaul
     )
     if job_queue is not None and db_user is not None:
         user_to_schedule = db_user
-        if sqlalchemy.inspect(db_user).detached:
+        if sa.inspect(db_user).detached:
             user_to_schedule = None
         schedule_reminder(saved, job_queue, user_to_schedule)
         logger.info("Scheduled preset reminder %s", saved.id)
@@ -553,7 +553,9 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         reminder.kind = ScheduleKind.after_event.value
 
     def db_add(session: Session) -> tuple[str, User | None, int, int]:
-        count = session.query(Reminder).filter_by(telegram_id=user_id, is_enabled=True).count()
+        count = session.execute(
+            sa.select(sa.func.count()).select_from(Reminder).filter_by(telegram_id=user_id, is_enabled=True)
+        ).scalar_one()
         db_user = session.get(User, user_id)
         limit = _limit_for(db_user)
         if count >= limit:
@@ -863,7 +865,9 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
             if not rem or rem.telegram_id != user_id:
                 return "not_found", None, None, None
         else:
-            count = session.query(Reminder).filter_by(telegram_id=user_id, is_enabled=True).count()
+            count = session.execute(
+                sa.select(sa.func.count()).select_from(Reminder).filter_by(telegram_id=user_id, is_enabled=True)
+            ).scalar_one()
             user = session.get(User, user_id)
             user_plan = getattr(user, "plan", SubscriptionPlan.FREE)
             limit = PLAN_LIMITS.get(user_plan, PLAN_LIMITS[SubscriptionPlan.FREE])
@@ -1282,7 +1286,9 @@ def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None
         logger.warning("schedule_after_meal called without job_queue")
         return
     with SessionLocal() as session:
-        rems = session.query(Reminder).filter_by(telegram_id=user_id, type="after_meal", is_enabled=True).all()
+        rems = session.scalars(
+            sa.select(Reminder).filter_by(telegram_id=user_id, type="after_meal", is_enabled=True)
+        ).all()
     for rem in rems:
         minutes_after = rem.minutes_after
         if minutes_after is None:

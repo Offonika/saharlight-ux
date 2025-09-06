@@ -13,6 +13,7 @@ import logging
 from datetime import date, datetime, timedelta
 from typing import Iterable, Sequence, cast
 
+import sqlalchemy as sa
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -26,22 +27,23 @@ from services.api.app.models.onboarding_metrics import (
 logger = logging.getLogger(__name__)
 
 
-def _aggregate(
-    session: Session, start: datetime, end: datetime
-) -> Sequence[tuple[str, str, int]]:
+def _aggregate(session: Session, start: datetime, end: datetime) -> Sequence[tuple[str, str, int]]:
     """Return counts of onboarding events grouped by variant and step."""
 
     rows = cast(
         list[tuple[str, str, int]],
-        session.query(
-            OnboardingMetricEvent.variant, OnboardingMetricEvent.step, func.count()
-        )
-        .filter(
-            OnboardingMetricEvent.created_at >= start,
-            OnboardingMetricEvent.created_at < end,
-        )
-        .group_by(OnboardingMetricEvent.variant, OnboardingMetricEvent.step)
-        .all(),
+        session.execute(
+            sa.select(
+                OnboardingMetricEvent.variant,
+                OnboardingMetricEvent.step,
+                func.count(),
+            )
+            .where(
+                OnboardingMetricEvent.created_at >= start,
+                OnboardingMetricEvent.created_at < end,
+            )
+            .group_by(OnboardingMetricEvent.variant, OnboardingMetricEvent.step)
+        ).all(),
     )
     return rows
 
@@ -66,27 +68,16 @@ def aggregate_for_date(
     with sessionmaker() as session:
         rows = _aggregate(session, start, end)
 
-        session.query(OnboardingMetricDaily).filter(
-            OnboardingMetricDaily.date == target_date
-        ).delete()
+        session.execute(sa.delete(OnboardingMetricDaily).where(OnboardingMetricDaily.date == target_date))
         for variant, step, count in rows:
-            session.add(
-                OnboardingMetricDaily(
-                    date=target_date, variant=variant, step=step, count=count
-                )
-            )
+            session.add(OnboardingMetricDaily(date=target_date, variant=variant, step=step, count=count))
         commit(session)
 
-    return [
-        {"variant": variant, "step": step, "count": count}
-        for variant, step, count in rows
-    ]
+    return [{"variant": variant, "step": step, "count": count} for variant, step, count in rows]
 
 
 def main(argv: Iterable[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Aggregate onboarding events into daily metrics"
-    )
+    parser = argparse.ArgumentParser(description="Aggregate onboarding events into daily metrics")
     parser.add_argument(
         "--date",
         type=date.fromisoformat,

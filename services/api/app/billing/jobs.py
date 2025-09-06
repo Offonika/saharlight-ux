@@ -6,6 +6,7 @@ import logging
 from datetime import datetime, time as dt_time, timezone
 from typing import cast
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 from telegram.ext import ContextTypes
 
@@ -48,13 +49,13 @@ async def expire_subscriptions(_context: ContextTypes.DEFAULT_TYPE) -> None:
 
     def _expire(session: Session) -> list[int]:
         now = _utcnow()
-        subs = (
-            session.query(Subscription)
-            .filter(Subscription.status.in_([SubscriptionStatus.TRIAL.value, SubscriptionStatus.ACTIVE.value]))
-            .filter(Subscription.end_date != None)  # noqa: E711
-            .filter(Subscription.end_date < now)
-            .all()
-        )
+        subs = session.scalars(
+            sa.select(Subscription).where(
+                Subscription.status.in_([SubscriptionStatus.TRIAL.value, SubscriptionStatus.ACTIVE.value]),
+                Subscription.end_date != None,  # noqa: E711
+                Subscription.end_date < now,
+            )
+        ).all()
         for sub in subs:
             if sub.status == SubscriptionStatus.ACTIVE.value:
                 sub.status = cast(SubscriptionStatus, SubscriptionStatus.EXPIRED.value)

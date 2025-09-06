@@ -7,6 +7,7 @@ from datetime import time as dt_time
 from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import HistoryRecord as HistoryRecordDB, run_db
@@ -32,9 +33,7 @@ def _validate_history_type(value: str, status_code: int = 400) -> HistoryType:
 
 
 @router.post("/history", operation_id="historyPost", tags=["History"])
-async def post_history(
-    data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def post_history(data: HistoryRecordSchema, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     """Create or update a history record."""
 
     validated_type = _validate_history_type(data.type)
@@ -71,14 +70,14 @@ async def get_history(
     """Return list of history records."""
 
     def _query(session: Session) -> list[HistoryRecordDB]:
-        query = (
-            session.query(HistoryRecordDB)
-            .filter(HistoryRecordDB.telegram_id == user["id"])
+        stmt = (
+            sa.select(HistoryRecordDB)
+            .where(HistoryRecordDB.telegram_id == user["id"])
             .order_by(HistoryRecordDB.date.desc(), HistoryRecordDB.time.desc())
         )
         if limit is not None:
-            query = query.limit(limit)
-        return query.all()
+            stmt = stmt.limit(limit)
+        return session.scalars(stmt).all()
 
     records = await run_db(_query)
 
@@ -102,9 +101,7 @@ async def get_history(
 
 
 @router.delete("/history/{id}", operation_id="historyIdDelete", tags=["History"])
-async def delete_history(
-    id: str, user: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
+async def delete_history(id: str, user: UserContext = Depends(require_tg_user)) -> dict[str, str]:
     """Delete history record by id."""
 
     def _get(session: Session) -> HistoryRecordDB | None:
@@ -125,4 +122,3 @@ async def delete_history(
 
     await run_db(_delete)
     return {"status": "ok"}
-

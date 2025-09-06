@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import sqlalchemy as sa
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -25,18 +26,16 @@ async def get_day_stats(
     day = date or datetime.datetime.now(tz or datetime.timezone.utc).date()
 
     def _query(session: Session) -> DayStats | None:
-        avg_sugar, sum_bu, sum_insulin = (
-            session.query(
+        avg_sugar, sum_bu, sum_insulin = session.execute(
+            sa.select(
                 func.avg(EntryDB.sugar_before),
                 func.sum(EntryDB.xe),
                 func.sum(EntryDB.dose),
-            )
-            .filter(
+            ).where(
                 EntryDB.telegram_id == telegram_id,
                 func.date(EntryDB.event_time) == day,
             )
-            .one()
-        )
+        ).one()
         if avg_sugar is None and sum_bu is None and sum_insulin is None:
             return None
         return DayStats(
