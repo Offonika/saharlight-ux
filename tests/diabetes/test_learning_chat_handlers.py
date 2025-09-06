@@ -2,6 +2,8 @@
 from types import SimpleNamespace
 from typing import Any, cast
 
+import asyncio
+
 import pytest
 from telegram import InlineKeyboardMarkup
 
@@ -10,8 +12,9 @@ from services.api.app.diabetes.learning_state import LearnState, get_state, set_
 
 
 class DummyMessage:
-    def __init__(self, text: str | None = None) -> None:
+    def __init__(self, text: str | None = None, user_id: int = 1) -> None:
         self.text = text
+        self.from_user = SimpleNamespace(id=user_id)
         self.replies: list[str] = []
         self.markups: list[InlineKeyboardMarkup | None] = []
 
@@ -40,6 +43,7 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
         return "step1?"
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(learning_handlers, "log_lesson_turn", lambda *a, **k: asyncio.sleep(0))
 
     msg = DummyMessage()
     update = cast(object, SimpleNamespace(message=msg))
@@ -63,18 +67,16 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
 
 @pytest.mark.asyncio
 async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def fake_generate_step_text(
-        profile: object, topic: str, step_idx: int, prev: object
-    ) -> str:
+    async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
+        step_idx = args[3] if len(args) > 3 else kwargs.get("step_idx", 0)
         return f"step{step_idx}?"
 
-    async def fake_check_user_answer(
-        profile: object, topic: str, answer: str, last: str
-    ) -> str:
+    async def fake_check_user_answer(*args: object, **kwargs: object) -> str:
         return "feedback"
 
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+    monkeypatch.setattr(learning_handlers, "log_lesson_turn", lambda *a, **k: asyncio.sleep(0))
 
     msg = DummyMessage()
     update = cast(object, SimpleNamespace(message=msg))

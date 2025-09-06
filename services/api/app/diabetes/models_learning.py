@@ -2,8 +2,19 @@ from __future__ import annotations
 
 from typing import Optional, Sequence
 
+from datetime import datetime
+
 import sqlalchemy as sa
-from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    TIMESTAMP,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -92,3 +103,19 @@ class LessonProgress(Base):
 
     user: Mapped[User] = relationship("User")
     lesson: Mapped[Lesson] = relationship("Lesson", back_populates="progresses")
+
+
+class LessonLog(Base):
+    __tablename__ = "lesson_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    telegram_id: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, index=True
+    )
+    topic_slug: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    role: Mapped[str] = mapped_column(String, nullable=False)
+    step_idx: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
+    )

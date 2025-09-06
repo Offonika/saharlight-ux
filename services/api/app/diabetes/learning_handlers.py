@@ -8,7 +8,7 @@ from typing import Any, Mapping, MutableMapping, cast
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
 
-from .dynamic_tutor import check_user_answer, generate_step_text
+from .dynamic_tutor import check_user_answer, generate_step_text, log_lesson_turn
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .services.gpt_client import format_reply
@@ -69,7 +69,10 @@ async def _start_lesson(
 ) -> None:
     """Generate and send the first learning step."""
 
-    text = await generate_step_text(profile, topic_slug, 1, None)
+    if message.from_user is None:
+        return
+    user_id = message.from_user.id
+    text = await generate_step_text(user_id, profile, topic_slug, 1, None)
     text = format_reply(text)
     await message.reply_text(text)
     state = LearnState(
@@ -137,14 +140,25 @@ async def lesson_answer_handler(
     if _rate_limited(user_data, "_answer_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
         return
+    if message.from_user is None:
+        return
+    user_id = message.from_user.id
     profile = _get_profile(user_data)
+    await log_lesson_turn(
+        user_id, state.topic, "user", state.step, message.text.strip()
+    )
     feedback = await check_user_answer(
-        profile, state.topic, message.text.strip(), state.last_step_text or ""
+        user_id,
+        profile,
+        state.topic,
+        state.step,
+        message.text.strip(),
+        state.last_step_text or "",
     )
     feedback = format_reply(feedback)
     await message.reply_text(feedback)
     next_text = await generate_step_text(
-        profile, state.topic, state.step + 1, feedback
+        user_id, profile, state.topic, state.step + 1, feedback
     )
     next_text = format_reply(next_text)
     await message.reply_text(next_text)

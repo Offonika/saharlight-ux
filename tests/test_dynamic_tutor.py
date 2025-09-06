@@ -1,3 +1,4 @@
+import asyncio
 import types
 
 import pytest
@@ -23,8 +24,9 @@ async def test_generate_step_text_formats_reply(
         dynamic_tutor, "create_chat_completion", fake_create_chat_completion
     )
     monkeypatch.setattr(dynamic_tutor.LLMRouter, "choose_model", lambda self, task: "m")
+    monkeypatch.setattr(dynamic_tutor, "log_lesson_turn", lambda *a, **k: asyncio.sleep(0))
 
-    result = await dynamic_tutor.generate_step_text({}, "t", 1, None)
+    result = await dynamic_tutor.generate_step_text(1, {}, "t", 1, None)
 
     assert result == "a" * 800 + "\n\n" + "b" * 800
 
@@ -36,8 +38,9 @@ async def test_generate_step_text_runtime(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(dynamic_tutor, "create_chat_completion", raise_error)
     monkeypatch.setattr(dynamic_tutor.LLMRouter, "choose_model", lambda self, task: "m")
+    monkeypatch.setattr(dynamic_tutor, "log_lesson_turn", lambda *a, **k: asyncio.sleep(0))
 
-    result = await dynamic_tutor.generate_step_text({}, "t", 1, None)
+    result = await dynamic_tutor.generate_step_text(1, {}, "t", 1, None)
 
     assert result == "сервер занят, попробуйте позже"
 
@@ -56,8 +59,9 @@ async def test_check_user_answer_uses_max_tokens(
         dynamic_tutor, "create_chat_completion", fake_create_chat_completion
     )
     monkeypatch.setattr(dynamic_tutor.LLMRouter, "choose_model", lambda self, task: "m")
+    monkeypatch.setattr(dynamic_tutor, "log_lesson_turn", lambda *a, **k: asyncio.sleep(0))
 
-    result = await dynamic_tutor.check_user_answer({}, "topic", "ans", "text")
+    result = await dynamic_tutor.check_user_answer(1, {}, "topic", 1, "ans", "text")
 
     assert result == "ok"
     assert captured["max_tokens"] == 250
@@ -70,7 +74,8 @@ async def test_check_user_answer_runtime(monkeypatch: pytest.MonkeyPatch) -> Non
 
     monkeypatch.setattr(dynamic_tutor, "create_chat_completion", raise_error)
     monkeypatch.setattr(dynamic_tutor.LLMRouter, "choose_model", lambda self, task: "m")
+    monkeypatch.setattr(dynamic_tutor, "log_lesson_turn", lambda *a, **k: asyncio.sleep(0))
 
-    result = await dynamic_tutor.check_user_answer({}, "topic", "ans", "text")
+    result = await dynamic_tutor.check_user_answer(1, {}, "topic", 1, "ans", "text")
 
     assert result == "сервер занят, попробуйте позже"
