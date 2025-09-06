@@ -9,6 +9,7 @@ describe('onboarding api', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     delete (window as any).Telegram;
+    localStorage.clear();
   });
 
   it('throws error when postOnboardingEvent request fails', async () => {
@@ -23,7 +24,7 @@ describe('onboarding api', () => {
       '/api/onboarding/events',
       expect.objectContaining({
         method: 'POST',
-        headers: expect.objectContaining({ 'X-Telegram-Init-Data': 'init' }),
+        headers: expect.objectContaining({ Authorization: 'tg init' }),
       }),
     );
   });
@@ -39,7 +40,7 @@ describe('onboarding api', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/onboarding/status',
       expect.objectContaining({
-        headers: expect.objectContaining({ 'X-Telegram-Init-Data': 'init' }),
+        headers: expect.objectContaining({ Authorization: 'tg init' }),
       }),
     );
   });
@@ -82,7 +83,7 @@ describe('onboarding api', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/onboarding/events',
       expect.objectContaining({
-        headers: expect.objectContaining({ 'X-Telegram-Init-Data': 'from-url' }),
+        headers: expect.objectContaining({ Authorization: 'tg from-url' }),
       }),
     );
   });
