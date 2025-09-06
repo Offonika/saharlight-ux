@@ -143,8 +143,32 @@ async def patch_user_settings(
 
 async def get_profile_settings(telegram_id: int) -> ProfileSettingsOut:
     """Return current profile settings for ``telegram_id``."""
+    profile = await get_profile(telegram_id)
+    tz = profile.timezone or "UTC"
+    tz_auto = profile.timezone_auto if profile.timezone_auto is not None else True
 
-    return await patch_user_settings(telegram_id, ProfileSettingsIn())
+    return ProfileSettingsOut(
+        timezone=tz,
+        timezoneAuto=tz_auto,
+        dia=profile.dia,
+        roundStep=profile.round_step,
+        carbUnits=CarbUnits(profile.carb_units),
+        gramsPerXe=profile.grams_per_xe,
+        glucoseUnits=GlucoseUnits(profile.glucose_units),
+        sosContact=profile.sos_contact,
+        sosAlertsEnabled=(
+            profile.sos_alerts_enabled
+            if profile.sos_alerts_enabled is not None
+            else True
+        ),
+        therapyType=TherapyType(profile.therapy_type),
+        rapidInsulinType=(
+            RapidInsulinType(profile.insulin_type) if profile.insulin_type else None
+        ),
+        maxBolus=profile.max_bolus,
+        preBolus=profile.prebolus_min,
+        afterMealMinutes=profile.postmeal_check_min,
+    )
 
 
 async def save_timezone(telegram_id: int, tz: str, *, auto: bool) -> bool:
