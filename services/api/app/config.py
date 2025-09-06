@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import AliasChoices, Field, field_validator
 
@@ -62,6 +62,10 @@ class Settings(BaseSettings):
         default=True,
         alias="LEARNING_MODE_ENABLED",
         validation_alias=AliasChoices("LEARNING_MODE_ENABLED", "LEARNING_ENABLED"),
+    )
+    learning_content_mode: Literal["static", "dynamic"] = Field(
+        default="static",
+        alias="LEARNING_CONTENT_MODE",
     )
     learning_model_default: str = Field(default="gpt-4o-mini", alias="LEARNING_MODEL_DEFAULT")
     learning_prompt_cache: bool = Field(default=True, alias="LEARNING_PROMPT_CACHE")
