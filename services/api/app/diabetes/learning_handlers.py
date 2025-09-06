@@ -223,7 +223,7 @@ async def lesson_answer_handler(
     user_text = message.text.strip()
     if telegram_id is not None:
         await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
-    feedback = await check_user_answer(
+    _correct, feedback = await check_user_answer(
         profile, state.topic, user_text, state.last_step_text or ""
     )
     feedback = format_reply(feedback)

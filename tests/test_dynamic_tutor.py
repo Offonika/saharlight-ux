@@ -50,16 +50,17 @@ async def test_check_user_answer_uses_max_tokens(
 
     async def fake_create_chat_completion(**kwargs: object) -> _FakeCompletion:
         captured.update(kwargs)
-        return _FakeCompletion("ok")
+        return _FakeCompletion("Верно. Всё отлично")
 
     monkeypatch.setattr(
         dynamic_tutor, "create_chat_completion", fake_create_chat_completion
     )
     monkeypatch.setattr(dynamic_tutor.LLMRouter, "choose_model", lambda self, task: "m")
 
-    result = await dynamic_tutor.check_user_answer({}, "topic", "ans", "text")
+    correct, result = await dynamic_tutor.check_user_answer({}, "topic", "ans", "text")
 
-    assert result == "ok"
+    assert correct is True
+    assert result == "Верно. Всё отлично"
     assert captured["max_tokens"] == 250
 
 
@@ -71,6 +72,7 @@ async def test_check_user_answer_runtime(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(dynamic_tutor, "create_chat_completion", raise_error)
     monkeypatch.setattr(dynamic_tutor.LLMRouter, "choose_model", lambda self, task: "m")
 
-    result = await dynamic_tutor.check_user_answer({}, "topic", "ans", "text")
+    correct, result = await dynamic_tutor.check_user_answer({}, "topic", "ans", "text")
 
+    assert correct is False
     assert result == "сервер занят, попробуйте позже"

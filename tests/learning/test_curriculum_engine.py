@@ -180,8 +180,8 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     async def fake_check(
         profile: object, slug: str, answer: str, last: str
-    ) -> str:
-        return f"fb {answer}"
+    ) -> tuple[bool, str]:
+        return True, f"fb {answer}"
 
     monkeypatch.setattr(curriculum_engine, "generate_step_text", fake_generate)
     monkeypatch.setattr(curriculum_engine, "check_user_answer", fake_check)

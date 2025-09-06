@@ -46,8 +46,14 @@ async def check_user_answer(
     topic_slug: str,
     user_answer: str,
     last_step_text: str,
-) -> str:
-    """Evaluate user's quiz answer and provide feedback."""
+    ) -> tuple[bool, str]:
+    """Evaluate user's quiz answer and provide feedback.
+
+    The LLM is instructed to classify the answer as ``верно`` (correct),
+    ``почти`` or ``неверно``.  To make downstream logic aware of the
+    correctness we attempt to parse the returned text and extract a boolean
+    flag.  The raw feedback text is returned alongside the flag.
+    """
     model = LLMRouter().choose_model(LLMTask.QUIZ_CHECK)
     system = build_system_prompt(profile)
     user = (
@@ -55,10 +61,20 @@ async def check_user_answer(
         f"Ответ пользователя: «{user_answer}». Оцени кратко (верно/почти/неверно), "
         "объясни в 1–2 предложениях и дай мягкий совет, что повторить."
     )
+
+    def _parse_correctness(text: str) -> bool:
+        lowered = text.strip().lower()
+        if lowered.startswith("неверно") or lowered.startswith("почти"):
+            return False
+        if lowered.startswith("верно") or lowered.startswith("правильно"):
+            return True
+        return False
+
     try:
-        return await _chat(model, system, user, max_tokens=250)
+        reply = await _chat(model, system, user, max_tokens=250)
+        return _parse_correctness(reply), reply
     except RuntimeError:
-        return "сервер занят, попробуйте позже"
+        return False, "сервер занят, попробуйте позже"
 
 
 __all__ = ["generate_step_text", "check_user_answer"]
