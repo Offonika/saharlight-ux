@@ -2,13 +2,21 @@ from __future__ import annotations
 
 import json
 import importlib
+from datetime import time as dt_time
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from telegram import Update
 from telegram.ext import CallbackContext
+
+import services.api.app.diabetes.services.db as db
+from services.api.app.diabetes.services.db import Base, User
+import services.api.app.services.profile as profile_service
+from services.api.app.schemas.profile import ProfileSchema
 
 handlers = importlib.import_module(
     "services.api.app.diabetes.handlers.profile.conversation"
@@ -118,3 +126,50 @@ def test_parse_profile_values_invalid_number() -> None:
         handlers.parse_profile_values(
             {"icr": "x", "cf": "3", "target": "6", "low": "4", "high": "9"}
         )
+
+
+@pytest.mark.asyncio
+async def test_save_profile_partial_icr_cf(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    initial = ProfileSchema(
+        telegramId=1,
+        icr=1.0,
+        cf=1.0,
+        target=5.0,
+        low=4.0,
+        high=6.0,
+        quietStart=dt_time(1, 0),
+        quietEnd=dt_time(2, 0),
+        timezone="Europe/Moscow",
+        timezoneAuto=False,
+        sosAlertsEnabled=False,
+    )
+    await profile_service.save_profile(initial)
+
+    update = ProfileSchema(
+        telegramId=1,
+        icr=2.0,
+        cf=2.0,
+        target=5.0,
+        low=4.0,
+        high=6.0,
+    )
+    await profile_service.save_profile(update)
+
+    prof = await profile_service.get_profile(1)
+    assert prof.icr == 2.0
+    assert prof.cf == 2.0
+    assert prof.quiet_start == dt_time(1, 0)
+    assert prof.quiet_end == dt_time(2, 0)
+    assert prof.timezone == "Europe/Moscow"
+    assert prof.timezone_auto is False
+    assert prof.sos_alerts_enabled is False
+    engine.dispose()

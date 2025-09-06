@@ -190,31 +190,36 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
             user = User(telegram_id=data.telegramId, thread_id="api")
             cast(Session, session).add(user)
 
+        profile = cast(Profile | None, session.get(Profile, data.telegramId))
+
+        field_map = {
+            "orgId": "org_id",
+            "icr": "icr",
+            "cf": "cf",
+            "target": "target_bg",
+            "low": "low_threshold",
+            "high": "high_threshold",
+            "quietStart": "quiet_start",
+            "quietEnd": "quiet_end",
+            "sosContact": "sos_contact",
+            "sosAlertsEnabled": "sos_alerts_enabled",
+            "timezone": "timezone",
+            "timezoneAuto": "timezone_auto",
+        }
+
         profile_data: dict[str, object] = {"telegram_id": data.telegramId}
-        if data.orgId is not None:
-            profile_data["org_id"] = data.orgId
-        if data.icr is not None:
-            profile_data["icr"] = data.icr
-        if data.cf is not None:
-            profile_data["cf"] = data.cf
-        if data.target is not None:
-            profile_data["target_bg"] = data.target
-        if data.low is not None:
-            profile_data["low_threshold"] = data.low
-        if data.high is not None:
-            profile_data["high_threshold"] = data.high
-        if data.quietStart is not None:
-            profile_data["quiet_start"] = data.quietStart
-        if data.quietEnd is not None:
-            profile_data["quiet_end"] = data.quietEnd
-        if data.sosContact is not None:
-            profile_data["sos_contact"] = data.sosContact
-        if data.sosAlertsEnabled is not None:
-            profile_data["sos_alerts_enabled"] = data.sosAlertsEnabled
-        if data.timezone is not None:
-            profile_data["timezone"] = data.timezone
-        if data.timezoneAuto is not None:
-            profile_data["timezone_auto"] = data.timezoneAuto
+        fields_set: set[str] = getattr(data, "model_fields_set", set())
+
+        for field, column in field_map.items():
+            if field in fields_set:
+                value = getattr(data, field)
+            else:
+                if profile is not None:
+                    value = getattr(profile, column)
+                else:
+                    value = getattr(data, field)
+            if value is not None:
+                profile_data[column] = value
 
         stmt = insert(Profile).values(**profile_data)
         update_values = {
