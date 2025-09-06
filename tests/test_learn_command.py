@@ -9,14 +9,15 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-from telegram import Update
+from telegram import Update, KeyboardButton
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.learning_handlers as handlers
 from services.api.app.config import Settings
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
-from services.api.app.ui.keyboard import build_main_keyboard
+from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -140,7 +141,9 @@ async def test_cmd_menu_shows_keyboard() -> None:
     assert message.replies == ["Главное меню:"]
     keyboard = message.kwargs[0].get("reply_markup")
     assert keyboard is not None
-    assert keyboard.keyboard == build_main_keyboard().keyboard
+    expected_layout = list(menu_keyboard().keyboard)
+    expected_layout.append((KeyboardButton(LEARN_BUTTON_TEXT),))
+    assert list(keyboard.keyboard) == expected_layout
 
 
 @pytest.mark.asyncio
