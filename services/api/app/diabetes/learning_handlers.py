@@ -81,13 +81,13 @@ async def _start_lesson(
 ) -> None:
     """Generate and send the first learning step."""
 
-    if message.from_user is None:
-        return
-    telegram_id = message.from_user.id
+    from_user = getattr(message, "from_user", None)
+    telegram_id = from_user.id if from_user else None
     text = await generate_step_text(profile, topic_slug, 1, None)
     text = format_reply(text)
     await message.reply_text(text)
-    await add_lesson_log(telegram_id, topic_slug, "assistant", 1, text)
+    if telegram_id is not None:
+        await add_lesson_log(telegram_id, topic_slug, "assistant", 1, text)
     state = LearnState(
         topic=topic_slug,
         step=1,
@@ -160,11 +160,12 @@ async def lesson_answer_handler(
     """Process user's answer and move to the next step."""
 
     message = update.message
-    if message is None or not message.text or message.from_user is None:
+    if message is None or not message.text:
         return
     if not settings.learning_mode_enabled:
         await message.reply_text("режим обучения отключён")
         return
+    from_user = getattr(message, "from_user", None)
     if settings.learning_content_mode == "static":
         await legacy_handlers.quiz_answer_handler(update, context)
         return
@@ -176,23 +177,28 @@ async def lesson_answer_handler(
         await message.reply_text(RATE_LIMIT_MESSAGE)
         return
     profile = _get_profile(user_data)
-    telegram_id = message.from_user.id
+    telegram_id = from_user.id if from_user else None
     user_text = message.text.strip()
-    await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
+    if telegram_id is not None:
+        await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
     feedback = await check_user_answer(
         profile, state.topic, user_text, state.last_step_text or ""
     )
     feedback = format_reply(feedback)
     await message.reply_text(feedback)
-    await add_lesson_log(telegram_id, state.topic, "assistant", state.step, feedback)
+    if telegram_id is not None:
+        await add_lesson_log(
+            telegram_id, state.topic, "assistant", state.step, feedback
+        )
     next_text = await generate_step_text(
         profile, state.topic, state.step + 1, feedback
     )
     next_text = format_reply(next_text)
     await message.reply_text(next_text)
-    await add_lesson_log(
-        telegram_id, state.topic, "assistant", state.step + 1, next_text
-    )
+    if telegram_id is not None:
+        await add_lesson_log(
+            telegram_id, state.topic, "assistant", state.step + 1, next_text
+        )
     state.step += 1
     state.last_step_text = next_text
     state.prev_summary = feedback

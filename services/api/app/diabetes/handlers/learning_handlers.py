@@ -347,7 +347,7 @@ def register_handlers(app: App) -> None:
     app.add_handler(CommandHandler("quiz", quiz_command))
     app.add_handler(CommandHandler("progress", progress_command))
     app.add_handler(CommandHandler("exit", exit_command))
-    app.add_handler(CommandHandler("learn_reset", onboarding.learn_reset))  # type: ignore[attr-defined]
+    app.add_handler(CommandHandler("learn_reset", onboarding.learn_reset))
     app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding.onboarding_reply)
     )
