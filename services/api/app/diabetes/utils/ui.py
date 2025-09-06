@@ -125,7 +125,6 @@ def subscription_keyboard(trial_available: bool) -> InlineKeyboardMarkup:
     """Build inline keyboard for subscription actions."""
     from services.api.app import config
 
-    config.reload_settings()
     buttons: list[InlineKeyboardButton] = []
     if trial_available:
         buttons.append(InlineKeyboardButton("🎁 Trial", callback_data="trial"))
