@@ -31,6 +31,7 @@ from services.api.app.diabetes.handlers import (
     reminder_handlers as rh,
     billing_handlers,
     learning_handlers,
+    learning_onboarding,
 )
 from services.api.app.config import reload_settings
 
@@ -91,6 +92,16 @@ def test_register_handlers_attaches_expected_handlers(
     )
     assert any(
         isinstance(h, CommandHandler) and h.callback is learning_handlers.exit_command and "exit" in h.commands
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is learning_onboarding.learn_reset
+        and "learn_reset" in h.commands
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, MessageHandler) and h.callback is learning_onboarding.onboarding_reply
         for h in handlers
     )
     # Reminder handlers should be registered
@@ -207,10 +218,27 @@ def test_register_handlers_skips_learning_handlers_when_disabled(
 
     handlers = app.handlers[0]
     commands = [cmd for h in handlers if isinstance(h, CommandHandler) for cmd in h.commands]
-    for name in ["learn", "lesson", "quiz", "progress", "exit"]:
+    for name in ["learn", "lesson", "quiz", "progress", "exit", "learn_reset"]:
         assert name not in commands
     monkeypatch.setenv("LEARNING_MODE_ENABLED", "1")
     reload_settings()
+
+
+def test_register_learning_onboarding_handlers() -> None:
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+    learning_onboarding.register_handlers(app)
+
+    handlers = app.handlers[0]
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is learning_onboarding.learn_reset
+        and "learn_reset" in h.commands
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, MessageHandler) and h.callback is learning_onboarding.onboarding_reply
+        for h in handlers
+    )
 
 
 def test_register_profile_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
