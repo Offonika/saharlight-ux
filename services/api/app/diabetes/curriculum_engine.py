@@ -6,6 +6,8 @@ import time
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
+from ..config import settings
+from .dynamic_tutor import check_user_answer, generate_step_text
 from .learning_prompts import (
     SYSTEM_TUTOR_RU,
     build_explain_step,
@@ -54,25 +56,32 @@ async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
 
 
 async def next_step(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
-    """Advance the lesson and return either step text or quiz question.
+    """Advance the lesson and return the next piece of content.
 
-    Parameters
-    ----------
-    user_id:
-        Telegram identifier of the user.
-    lesson_id:
-        Identifier of the lesson to continue.
+    Behaviour is determined by ``settings.learning_content_mode``:
 
-    Returns
-    -------
-    tuple[str | None, bool]
-        Tuple of generated text (either a lesson step, a quiz question with options
-        or ``None`` when the lesson is complete) and a completion flag.
+    * "dynamic" - generate step text on the fly.
+    * "static" - use predefined steps and quiz questions from the database.
     """
 
-    def _advance(
+    if settings.learning_content_mode == "dynamic":
+        def _advance_dynamic(session: Session) -> tuple[int, str]:
+            progress = session.execute(
+                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+            ).scalar_one()
+            lesson = session.execute(
+                sa.select(Lesson).filter_by(id=lesson_id)
+            ).scalar_one()
+            progress.current_step += 1
+            commit(session)
+            return progress.current_step, lesson.slug
+        step_idx, slug = await db.run_db(_advance_dynamic)
+        text = await generate_step_text({}, slug, step_idx, None)
+        return text, False
+
+    def _advance_static(
         session: Session,
-    ) -> tuple[str | None, str | None, bool, bool, int | None, bool]:
+    ) -> tuple[str | None, str | None, bool, bool, int, bool]:
         progress = session.execute(
             sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
         ).scalar_one()
@@ -93,11 +102,11 @@ async def next_step(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
             q = questions[progress.current_question]
             first_question = progress.current_question == 0
             opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(q.options, start=1))
-            return None, f"{q.question}\n{opts}", False, first_question, None, False
+            return None, f"{q.question}\n{opts}", False, first_question, progress.current_step, False
         if not progress.completed:
             progress.completed = True
             commit(session)
-        return None, None, False, False, None, True
+        return None, None, False, False, progress.current_step, True
 
     (
         step_content,
@@ -106,7 +115,7 @@ async def next_step(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
         first_question,
         step_idx,
         completed,
-    ) = await db.run_db(_advance)
+    ) = await db.run_db(_advance_static)
     if step_content is not None and step_idx is not None:
         start = time.monotonic()
         text = await gpt_client.create_learning_chat_completion(
@@ -136,10 +145,26 @@ async def next_step(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
     return None, completed
 
 
-async def check_answer(user_id: int, lesson_id: int, answer_index: int) -> tuple[bool, str]:
-    """Check user's answer to current quiz question and return feedback."""
+async def check_answer(
+    user_id: int,
+    lesson_id: int,
+    answer: int | str,
+    last_step_text: str | None = None,
+) -> tuple[bool, str]:
+    """Check user's answer and return feedback."""
 
-    answer_index -= 1
+    if settings.learning_content_mode == "dynamic":
+        def _get_slug(session: Session) -> str:
+            lesson = session.execute(
+                sa.select(Lesson).filter_by(id=lesson_id)
+            ).scalar_one()
+            return lesson.slug
+
+        slug = await db.run_db(_get_slug)
+        feedback = await check_user_answer({}, slug, str(answer), last_step_text or "")
+        return True, feedback
+
+    answer_index = int(answer) - 1
 
     def _check(session: Session) -> tuple[bool, str, int, bool, int | None]:
         progress = session.execute(
@@ -188,6 +213,4 @@ async def check_answer(user_id: int, lesson_id: int, answer_index: int) -> tuple
         },
     )
     return correct, message
-
-
 __all__ = ["start_lesson", "next_step", "check_answer"]

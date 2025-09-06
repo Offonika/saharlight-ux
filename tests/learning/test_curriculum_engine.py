@@ -4,6 +4,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
+from services.api.app.config import settings
+from services.api.app.diabetes import curriculum_engine
 from services.api.app.diabetes.curriculum_engine import (
     check_answer,
     next_step,
@@ -146,3 +148,49 @@ async def test_lesson_without_quiz(monkeypatch: pytest.MonkeyPatch) -> None:
         progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
         assert progress.completed is True
         assert progress.quiz_score is None
+
+
+@pytest.mark.asyncio()
+async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    db.SessionLocal.configure(bind=engine)
+    db.Base.metadata.create_all(bind=engine)
+
+    with db.SessionLocal() as session:
+        session.add(db.User(telegram_id=1, thread_id="t1"))
+        lesson = Lesson(title="t", slug="s", content="", is_active=True)
+        session.add(lesson)
+        session.commit()
+        lesson_id = lesson.id
+
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    async def fake_generate(
+        profile: object, slug: str, step_idx: int, prev: object
+    ) -> str:
+        return f"step {step_idx}"
+
+    async def fake_check(
+        profile: object, slug: str, answer: str, last: str
+    ) -> str:
+        return f"fb {answer}"
+
+    monkeypatch.setattr(curriculum_engine, "generate_step_text", fake_generate)
+    monkeypatch.setattr(curriculum_engine, "check_user_answer", fake_check)
+
+    await start_lesson(1, "s")
+    text, completed = await next_step(1, lesson_id)
+    assert text == "step 1"
+    assert completed is False
+
+    correct, feedback = await check_answer(1, lesson_id, "42")
+    assert correct is True
+    assert feedback == "fb 42"
+
+    text, completed = await next_step(1, lesson_id)
+    assert text == "step 2"
+    assert completed is False
