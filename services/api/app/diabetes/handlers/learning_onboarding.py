@@ -14,7 +14,7 @@ from telegram.ext import (
     filters,
 )
 
-from ..learning_onboarding import learn_reset
+from ..learning_onboarding import ONBOARDING_PROMPT, learn_reset
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,10 @@ async def onboarding_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     user_data = cast(dict[str, object], context.user_data)
     if not user_data.get("learning_waiting"):
+        return
+    text = (message.text or "").strip().lower()
+    if text != "да":
+        await message.reply_text(ONBOARDING_PROMPT)
         return
     user_data.pop("learning_waiting", None)
     user_data["learning_onboarded"] = True
