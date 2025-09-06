@@ -617,6 +617,18 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     }
 
     const { data: parsed, errors } = parseProfile(profile, therapyType);
+    let timezoneValid = timezones.includes(profile.timezone);
+    if (!timezoneValid) {
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: profile.timezone });
+        timezoneValid = true;
+      } catch {
+        timezoneValid = false;
+      }
+    }
+    if (!timezoneValid) {
+      errors.timezone = "invalid";
+    }
     if (Object.keys(errors).length) {
       setFieldErrors(errors);
       toast({
