@@ -62,7 +62,7 @@ def menu_keyboard() -> ReplyKeyboardMarkup:
             [KeyboardButton(PHOTO_BUTTON_TEXT), KeyboardButton(SUGAR_BUTTON_TEXT)],
             [KeyboardButton(DOSE_BUTTON_TEXT), KeyboardButton(REPORT_BUTTON_TEXT)],
             [KeyboardButton(QUICK_INPUT_BUTTON_TEXT), KeyboardButton(HELP_BUTTON_TEXT)],
-            [KeyboardButton(SUBSCRIPTION_BUTTON_TEXT), KeyboardButton(SOS_BUTTON_TEXT)],
+            [KeyboardButton(SOS_BUTTON_TEXT)],
         ],
         resize_keyboard=True,
         one_time_keyboard=False,
