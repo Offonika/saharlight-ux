@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Mapping, cast
 
 import pytest
 from telegram import Update
@@ -40,8 +40,11 @@ async def test_lesson_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 
     steps = iter([("step1", False), ("step2", False), (None, True)])
 
-    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+    async def fake_next(
+        user_id: int, lesson_id: int, profile: Mapping[str, str | None]
+    ) -> tuple[str | None, bool]:
         calls.append("next")
+        assert profile == {}
         return next(steps)
 
     monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start)
@@ -85,7 +88,10 @@ async def test_quiz_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 
     questions = iter([("Q1", False), ("Q2", False), (None, True)])
 
-    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+    async def fake_next(
+        user_id: int, lesson_id: int, profile: Mapping[str, str | None]
+    ) -> tuple[str | None, bool]:
+        assert profile == {}
         return next(questions)
 
     answers: list[int] = []

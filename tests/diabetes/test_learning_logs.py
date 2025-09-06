@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Mapping, cast
 
 import logging
 import pytest
@@ -39,7 +39,10 @@ async def test_lesson_start_logging(monkeypatch: pytest.MonkeyPatch, caplog: pyt
     async def fake_start(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
 
-    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+    async def fake_next(
+        user_id: int, lesson_id: int, profile: Mapping[str, str | None]
+    ) -> tuple[str | None, bool]:
+        assert profile == {}
         return None, True
 
     monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start)

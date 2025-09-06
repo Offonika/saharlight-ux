@@ -138,7 +138,9 @@ async def test_learn_command_autostarts_when_topics_hidden(
         return True
 
     monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
-    monkeypatch.setattr(learning_handlers, "choose_initial_topic", lambda _: "slug")
+    monkeypatch.setattr(
+        learning_handlers, "choose_initial_topic", lambda _: ("slug", "t")
+    )
 
     progress = SimpleNamespace(lesson_id=1)
     async def fake_start_lesson(user_id: int, slug: str) -> object:

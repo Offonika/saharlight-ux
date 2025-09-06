@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Mapping, cast
 
 import pytest
 from telegram import Update
@@ -40,7 +40,10 @@ async def test_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
 
     questions = iter([("Q1", False), (None, True)])
 
-    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+    async def fake_next(
+        user_id: int, lesson_id: int, profile: Mapping[str, str | None]
+    ) -> tuple[str | None, bool]:
+        assert profile == {}
         return next(questions)
 
     async def fake_check(user_id: int, lesson_id: int, answer: int) -> tuple[bool, str]:
