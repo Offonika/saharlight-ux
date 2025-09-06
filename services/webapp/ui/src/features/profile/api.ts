@@ -1,6 +1,10 @@
-import type { ProfileSchema } from '@sdk';
 import { tgFetch, FetchError } from '@/lib/tgFetch';
-import type { Profile, PatchProfileDto, RapidInsulin } from './types';
+import type {
+  Profile,
+  PatchProfileDto,
+  ProfilePatchSchema,
+  RapidInsulin,
+} from './types';
 
 export async function getProfile(telegramId: number): Promise<Profile | null> {
   try {
@@ -50,7 +54,7 @@ export async function saveProfile({
   sosContact?: string | null;
   sosAlertsEnabled?: boolean;
   therapyType?: string | null;
-}) {
+}): Promise<ProfilePatchSchema> {
   try {
     const body: Record<string, unknown> = {
       telegramId,
@@ -95,7 +99,7 @@ export async function saveProfile({
       body.therapyType = therapyType;
     }
 
-    return await tgFetch<ProfileSchema>('/profile', {
+    return await tgFetch<ProfilePatchSchema>('/profile', {
       method: 'POST',
       body,
     });
