@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
+from types import SimpleNamespace
+from typing import cast
 
 import pytest
 from telegram import (
@@ -17,6 +19,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
     MessageHandler,
+    ContextTypes,
     filters,
 )
 
@@ -117,3 +120,22 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert bot.sent == ["Выберите тему:", "step1", "feedback", "step2"]
 
     await app.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_static_mode_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
+    called: list[tuple[object, object]] = []
+
+    async def fake_learn_command(update: object, context: object) -> None:
+        called.append((update, context))
+
+    monkeypatch.setattr(
+        learning_handlers, "settings", SimpleNamespace(learning_content_mode="static")
+    )
+    monkeypatch.setattr(learning_handlers.legacy_handlers, "learn_command", fake_learn_command)
+
+    upd = cast(Update, SimpleNamespace(message=object()))
+    ctx = cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace())
+    await learning_handlers.learn_command(upd, ctx)
+
+    assert called == [(upd, ctx)]
