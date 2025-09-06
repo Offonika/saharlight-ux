@@ -1,0 +1,175 @@
+
+from __future__ import annotations
+
+import logging
+import time
+from typing import Any, Mapping, MutableMapping, cast
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
+from telegram.ext import ContextTypes
+
+from .dynamic_tutor import check_user_answer, generate_step_text
+from .learning_onboarding import ensure_overrides
+from .learning_state import LearnState, clear_state, get_state, set_state
+from .services.gpt_client import format_reply
+
+logger = logging.getLogger(__name__)
+
+RATE_LIMIT_SECONDS = 3.0
+RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
+
+TOPICS: list[tuple[str, str]] = [
+    ("xe_basics", "Хлебные единицы"),
+    ("healthy-eating", "Здоровое питание"),
+    ("basics-of-diabetes", "Основы диабета"),
+    ("insulin-usage", "Инсулин"),
+]
+
+
+def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
+    """Return ``True`` if action identified by ``key`` is too frequent."""
+
+    now = time.monotonic()
+    last = cast(float | None, user_data.get(key))
+    if last is not None and now - last < RATE_LIMIT_SECONDS:
+        return True
+    user_data[key] = now
+    return False
+
+
+def _get_profile(user_data: MutableMapping[str, Any]) -> Mapping[str, str | None]:
+    raw = user_data.get("learn_profile_overrides")
+    if isinstance(raw, Mapping):
+        return raw
+    return {}
+
+
+async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a menu with available learning topics."""
+
+    message = update.message
+    if message is None:
+        return
+    if not await ensure_overrides(update, context):
+        return
+    keyboard = InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
+            for slug, title in TOPICS
+        ]
+    )
+    await message.reply_text("Выберите тему:", reply_markup=keyboard)
+
+
+async def _start_lesson(
+    message: Message,
+    user_data: MutableMapping[str, Any],
+    profile: Mapping[str, str | None],
+    topic_slug: str,
+) -> None:
+    """Generate and send the first learning step."""
+
+    text = await generate_step_text(profile, topic_slug, 1, None)
+    text = format_reply(text)
+    await message.reply_text(text)
+    state = LearnState(
+        topic=topic_slug,
+        step=1,
+        awaiting_answer=True,
+        last_step_text=text,
+    )
+    set_state(user_data, state)
+
+
+async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Start a lesson by topic slug passed as an argument."""
+
+    message = update.message
+    if message is None:
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    if _rate_limited(user_data, "_lesson_ts"):
+        await message.reply_text(RATE_LIMIT_MESSAGE)
+        return
+    topic_slug = context.args[0] if context.args else None
+    if topic_slug is None:
+        await message.reply_text(
+            "Сначала выберите тему командой /learn"
+        )
+        return
+    profile = _get_profile(user_data)
+    await _start_lesson(message, user_data, profile, topic_slug)
+
+
+async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle topic selection from inline keyboard."""
+
+    query = update.callback_query
+    if query is None:
+        return
+    await query.answer()
+    raw_message = query.message
+    if raw_message is None or not hasattr(raw_message, "reply_text"):
+        return
+    message = cast(Message, raw_message)
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    if _rate_limited(user_data, "_lesson_ts"):
+        await message.reply_text(RATE_LIMIT_MESSAGE)
+        return
+    data = query.data or ""
+    slug = data.split(":", 1)[1] if ":" in data else ""
+    profile = _get_profile(user_data)
+    await _start_lesson(message, user_data, profile, slug)
+
+
+async def lesson_answer_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Process user's answer and move to the next step."""
+
+    message = update.message
+    if message is None or not message.text:
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    state = get_state(user_data)
+    if state is None or not state.awaiting_answer:
+        return
+    if _rate_limited(user_data, "_answer_ts"):
+        await message.reply_text(RATE_LIMIT_MESSAGE)
+        return
+    profile = _get_profile(user_data)
+    feedback = await check_user_answer(
+        profile, state.topic, message.text.strip(), state.last_step_text or ""
+    )
+    feedback = format_reply(feedback)
+    await message.reply_text(feedback)
+    next_text = await generate_step_text(
+        profile, state.topic, state.step + 1, feedback
+    )
+    next_text = format_reply(next_text)
+    await message.reply_text(next_text)
+    state.step += 1
+    state.last_step_text = next_text
+    state.prev_summary = feedback
+    state.awaiting_answer = True
+    set_state(user_data, state)
+
+
+async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Exit the current lesson and clear stored state."""
+
+    message = update.message
+    if message is None:
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    clear_state(user_data)
+    await message.reply_text("Учебная сессия завершена.")
+
+
+__all__ = [
+    "learn_command",
+    "lesson_command",
+    "lesson_callback",
+    "lesson_answer_handler",
+    "exit_command",
+]
