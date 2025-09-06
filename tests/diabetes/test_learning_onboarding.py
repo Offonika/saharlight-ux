@@ -92,3 +92,23 @@ async def test_learning_onboarding_flow(
     finally:
         engine.dispose()
 
+
+@pytest.mark.asyncio
+async def test_onboarding_reply_requires_yes() -> None:
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={"learning_waiting": True}),
+    )
+    message1 = DummyMessage("нет")
+    update1 = cast(Update, SimpleNamespace(message=message1, effective_user=None))
+    await learning_onboarding.onboarding_reply(update1, context)
+    assert message1.replies == [onboarding_utils.ONBOARDING_PROMPT]
+    assert context.user_data.get("learning_onboarded") is None
+    assert context.user_data.get("learning_waiting") is True
+
+    message2 = DummyMessage("Да")
+    update2 = cast(Update, SimpleNamespace(message=message2, effective_user=None))
+    await learning_onboarding.onboarding_reply(update2, context)
+    assert context.user_data.get("learning_onboarded") is True
+    assert "learning_waiting" not in context.user_data
+
