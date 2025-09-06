@@ -17,8 +17,6 @@ from ..diabetes.schemas.profile import (
     CarbUnits,
     GlucoseUnits,
     ProfileSettingsIn,
-    ProfileSettingsOut,
-    TherapyType,
     RapidInsulinType,
 )
 from ..types import SessionProtocol
@@ -49,7 +47,7 @@ async def patch_user_settings(
     telegram_id: int,
     data: ProfileSettingsIn,
     device_tz: str | None = None,
-) -> ProfileSettingsOut:
+) -> ProfileSchema:
     """Persist user settings, updating only provided fields."""
 
     if data.timezone is not None:
@@ -65,7 +63,7 @@ async def patch_user_settings(
                 status_code=400, detail="invalid device timezone"
             ) from exc
 
-    def _patch(session: SessionProtocol) -> ProfileSettingsOut:
+    def _patch(session: SessionProtocol) -> ProfileSchema:
         user = cast(User | None, session.get(User, telegram_id))
         if user is None:
             user = User(telegram_id=telegram_id, thread_id="api")
@@ -80,6 +78,20 @@ async def patch_user_settings(
             profile.timezone = data.timezone
         if data.timezoneAuto is not None:
             profile.timezone_auto = data.timezoneAuto
+        if data.icr is not None:
+            profile.icr = data.icr
+        if data.cf is not None:
+            profile.cf = data.cf
+        if data.target is not None:
+            profile.target_bg = data.target
+        if data.low is not None:
+            profile.low_threshold = data.low
+        if data.high is not None:
+            profile.high_threshold = data.high
+        if data.quietStart is not None:
+            profile.quiet_start = data.quietStart
+        if data.quietEnd is not None:
+            profile.quiet_end = data.quietEnd
         if data.dia is not None:
             profile.dia = data.dia
         if data.roundStep is not None:
@@ -119,17 +131,25 @@ async def patch_user_settings(
         except CommitError:  # pragma: no cover
             raise HTTPException(status_code=500, detail="db commit failed")
 
-        return ProfileSettingsOut(
+        return ProfileSchema(
+            telegramId=profile.telegram_id,
+            icr=profile.icr,
+            cf=profile.cf,
+            target=profile.target_bg,
+            low=profile.low_threshold,
+            high=profile.high_threshold,
+            quietStart=profile.quiet_start,
+            quietEnd=profile.quiet_end,
+            sosContact=profile.sos_contact,
+            sosAlertsEnabled=profile.sos_alerts_enabled,
             timezone=profile.timezone,
             timezoneAuto=profile.timezone_auto,
+            therapyType=profile.therapy_type,
             dia=profile.dia,
             roundStep=profile.round_step,
             carbUnits=CarbUnits(profile.carb_units),
             gramsPerXe=profile.grams_per_xe,
             glucoseUnits=GlucoseUnits(profile.glucose_units),
-            sosContact=profile.sos_contact,
-            sosAlertsEnabled=profile.sos_alerts_enabled,
-            therapyType=TherapyType(profile.therapy_type),
             rapidInsulinType=(
                 RapidInsulinType(profile.insulin_type) if profile.insulin_type else None
             ),
@@ -141,27 +161,29 @@ async def patch_user_settings(
     return await db.run_db(_patch, sessionmaker=db.SessionLocal)
 
 
-async def get_profile_settings(telegram_id: int) -> ProfileSettingsOut:
+async def get_profile_settings(telegram_id: int) -> ProfileSchema:
     """Return current profile settings for ``telegram_id``."""
     profile = await get_profile(telegram_id)
-    tz = profile.timezone or "UTC"
-    tz_auto = profile.timezone_auto if profile.timezone_auto is not None else True
 
-    return ProfileSettingsOut(
-        timezone=tz,
-        timezoneAuto=tz_auto,
+    return ProfileSchema(
+        telegramId=profile.telegram_id,
+        icr=profile.icr,
+        cf=profile.cf,
+        target=profile.target_bg,
+        low=profile.low_threshold,
+        high=profile.high_threshold,
+        quietStart=profile.quiet_start,
+        quietEnd=profile.quiet_end,
+        sosContact=profile.sos_contact,
+        sosAlertsEnabled=profile.sos_alerts_enabled,
+        timezone=profile.timezone,
+        timezoneAuto=profile.timezone_auto,
+        therapyType=profile.therapy_type,
         dia=profile.dia,
         roundStep=profile.round_step,
         carbUnits=CarbUnits(profile.carb_units),
         gramsPerXe=profile.grams_per_xe,
         glucoseUnits=GlucoseUnits(profile.glucose_units),
-        sosContact=profile.sos_contact,
-        sosAlertsEnabled=(
-            profile.sos_alerts_enabled
-            if profile.sos_alerts_enabled is not None
-            else True
-        ),
-        therapyType=TherapyType(profile.therapy_type),
         rapidInsulinType=(
             RapidInsulinType(profile.insulin_type) if profile.insulin_type else None
         ),

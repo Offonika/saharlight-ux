@@ -245,3 +245,40 @@ def test_profile_get_returns_saved_settings(
         assert prof.dia == 6
         assert prof.round_step == 1
         assert prof.carb_units == "xe"
+
+
+def test_profile_patch_returns_full_profile(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    SessionLocal = setup_db(monkeypatch)
+    with TestClient(server.app) as client:
+        resp = client.patch(
+            "/api/profile",
+            json={"icr": 8, "cf": 3, "target": 6, "low": 4, "high": 9},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["icr"] == 8
+        assert data["cf"] == 3
+        assert data["target"] == 6
+        assert data["low"] == 4
+        assert data["high"] == 9
+
+        resp = client.get("/api/profile", headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["icr"] == 8
+        assert data["cf"] == 3
+        assert data["target"] == 6
+        assert data["low"] == 4
+        assert data["high"] == 9
+
+    with SessionLocal() as session:
+        prof = session.get(db.Profile, 1)
+        assert prof is not None
+        assert prof.icr == 8
+        assert prof.cf == 3
+        assert prof.target_bg == 6
+        assert prof.low_threshold == 4
+        assert prof.high_threshold == 9
