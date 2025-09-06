@@ -33,6 +33,7 @@ def get_api() -> tuple[object, type[Exception], type]:
 __all__ = [
     "profile_command",
     "profile_view",
+    "profile_view_formatter",
     "profile_cancel",
     "profile_back",
     "profile_security",
