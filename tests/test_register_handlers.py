@@ -33,6 +33,7 @@ from services.api.app.diabetes.handlers import (
     learning_handlers,
     learning_onboarding,
 )
+from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
 from services.api.app.config import reload_settings
 
 
@@ -113,6 +114,22 @@ def test_register_handlers_attaches_expected_handlers(
         isinstance(h, CommandHandler)
         and h.callback is learning_handlers.exit_command
         and "exit" in h.commands
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is dynamic_learning_handlers.topics_command
+        and "topics" in h.commands
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CallbackQueryHandler)
+        and h.callback is dynamic_learning_handlers.lesson_callback
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, MessageHandler)
+        and h.callback is dynamic_learning_handlers.lesson_answer_handler
         for h in handlers
     )
     assert any(

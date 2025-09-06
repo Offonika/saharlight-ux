@@ -11,6 +11,7 @@ from telegram.ext import (
     Application,
     ApplicationHandlerStop,
     CommandHandler,
+    CallbackQueryHandler,
     ContextTypes,
     ExtBot,
     JobQueue,
@@ -341,10 +342,14 @@ def register_handlers(app: App) -> None:
     """Register learning-related handlers on the application."""
 
     from . import learning_onboarding as onboarding
-    from ..learning_handlers import topics_command
+    from ..learning_handlers import (
+        lesson_answer_handler,
+        lesson_callback,
+        topics_command as cmd_topics,
+    )
 
     app.add_handler(CommandHandler("learn", learn_command))
-    app.add_handler(CommandHandler("topics", topics_command))
+    app.add_handler(CommandHandler("topics", cmd_topics))
     app.add_handler(CommandHandler("lesson", lesson_command))
     app.add_handler(CommandHandler("quiz", quiz_command))
     app.add_handler(CommandHandler("progress", progress_command))
@@ -356,6 +361,12 @@ def register_handlers(app: App) -> None:
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False
+        )
+    )
+    app.add_handler(CallbackQueryHandler(lesson_callback, pattern="^lesson:"))
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False
         )
     )
 

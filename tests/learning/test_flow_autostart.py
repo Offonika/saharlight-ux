@@ -10,7 +10,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.handlers import learning_onboarding
-from services.api.app.diabetes.learning_handlers import TOPICS as TOPICS_RU
+from services.api.app.config import TOPICS_RU
 
 
 class DummyBot(Bot):
@@ -58,21 +58,27 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(
+        learning_handlers, "generate_step_text", fake_generate_step_text
+    )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
     app.add_handler(CommandHandler("learn", learning_handlers.learn_command))
     app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, learning_onboarding.onboarding_reply)
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND, learning_onboarding.onboarding_reply
+        )
     )
     await app.initialize()
 
     user = User(id=1, is_bot=False, first_name="T")
     chat = Chat(id=1, type="private")
 
-    def _msg(mid: int, text: str, *, entities: list[MessageEntity] | None = None) -> Message:
+    def _msg(
+        mid: int, text: str, *, entities: list[MessageEntity] | None = None
+    ) -> Message:
         msg = Message(
             message_id=mid,
             date=datetime.now(),
@@ -86,7 +92,10 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # start onboarding
     await app.process_update(
-        Update(update_id=1, message=_msg(1, "/learn", entities=[MessageEntity("bot_command", 0, 6)]))
+        Update(
+            update_id=1,
+            message=_msg(1, "/learn", entities=[MessageEntity("bot_command", 0, 6)]),
+        )
     )
     await app.process_update(Update(update_id=2, message=_msg(2, "49")))
     await app.process_update(Update(update_id=3, message=_msg(3, "2")))
@@ -94,7 +103,10 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # call /learn again - should autostart first topic
     await app.process_update(
-        Update(update_id=5, message=_msg(5, "/learn", entities=[MessageEntity("bot_command", 0, 6)]))
+        Update(
+            update_id=5,
+            message=_msg(5, "/learn", entities=[MessageEntity("bot_command", 0, 6)]),
+        )
     )
 
     title = TOPICS_RU[0][1]

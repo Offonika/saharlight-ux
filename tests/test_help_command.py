@@ -32,8 +32,7 @@ async def test_help_includes_new_features() -> None:
     await handlers.help_command(update, context)
 
     assert (
-        message.kwargs[0]["reply_markup"].keyboard
-        == handlers.menu_keyboard().keyboard
+        message.kwargs[0]["reply_markup"].keyboard == handlers.menu_keyboard().keyboard
     )
     text = message.replies[0]
     assert "🆕 Новые возможности:\n" in text
@@ -98,3 +97,20 @@ async def test_help_lists_sos_contact_command() -> None:
 
     text = message.replies[0]
     assert "/soscontact — настроить контакт для SOS-уведомлений\n" in text
+
+
+@pytest.mark.asyncio
+async def test_help_lists_topics_command() -> None:
+    """Ensure /help documents topics command."""
+
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    await handlers.help_command(update, context)
+
+    text = message.replies[0]
+    assert "/topics - список тем\n" in text
