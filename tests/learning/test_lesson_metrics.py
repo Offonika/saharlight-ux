@@ -28,7 +28,7 @@ async def test_lesson_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     db.Base.metadata.create_all(bind=engine)
 
     await load_lessons(
-        "services/api/app/diabetes/content/lessons_v0.json",
+        "content/lessons_v0.json",
         sessionmaker=db.SessionLocal,
     )
 

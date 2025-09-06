@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from telegram import ReplyKeyboardMarkup, KeyboardButton
+
 from services.api.app.config import settings
 from services.api.app.diabetes import curriculum_engine
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress
@@ -41,7 +43,31 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await message.reply_text("🚫 Обучение недоступно.")
         return
     model = settings.learning_command_model
-    await message.reply_text(f"🤖 Учебный режим активирован. Модель: {model}")
+
+    def _list(session: Session) -> list[tuple[str, str]]:
+        lessons = (
+            session.query(Lesson)
+            .filter_by(is_active=True)
+            .order_by(Lesson.id)
+            .all()
+        )
+        return [(lesson.title, lesson.slug) for lesson in lessons]
+
+    lessons = await run_db(_list, sessionmaker=SessionLocal)
+    if not lessons:
+        await message.reply_text("Уроки не найдены. Загрузите уроки: make load-lessons")
+        return
+
+    keyboard = ReplyKeyboardMarkup(
+        [[KeyboardButton(f"/lesson {slug}")] for _, slug in lessons],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+    titles = "\n".join(f"/lesson {slug} — {title}" for title, slug in lessons)
+    await message.reply_text(
+        f"🤖 Учебный режим активирован. Модель: {model}\n\nДоступные уроки:\n{titles}",
+        reply_markup=keyboard,
+    )
 
 
 async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
