@@ -21,10 +21,7 @@ async def test_load_lessons_v0() -> None:
     db.SessionLocal.configure(bind=engine)
     db.Base.metadata.create_all(bind=engine)
     try:
-        path = (
-            Path(__file__).resolve().parents[2]
-            / "services/api/app/diabetes/content/lessons_v0.json"
-        )
+        path = Path(__file__).resolve().parents[2] / "content/lessons_v0.json"
         await learning_fixtures.load_lessons(path, sessionmaker=db.SessionLocal)
         with db.SessionLocal() as session:
             lessons = session.query(Lesson).all()

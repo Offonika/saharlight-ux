@@ -19,7 +19,12 @@ LEARNING_MODE_ENABLED=true
 
 ```bash
 alembic upgrade head
-python -m services.api.app.diabetes.learning_fixtures
+```
+
+## Как загрузить уроки
+
+```bash
+make load-lessons
 ```
 
 ## Ручная проверка
@@ -28,6 +33,8 @@ python -m services.api.app.diabetes.learning_fixtures
 python services/api/app/bot.py
 python scripts/probe_learn.py --user 123 --lesson xe_basics
 ```
+
+В Telegram отправьте команду `/learn` и убедитесь, что бот показывает кнопки с уроками.
 
 ## Схема базы данных
 
@@ -64,7 +71,7 @@ python scripts/probe_learn.py --user 123 --lesson xe_basics
 
 1. В `.env` включить `LEARNING_MODE_ENABLED=true`.
 2. Выполнить `alembic upgrade head`.
-3. Загрузить данные: `python -m services.api.app.diabetes.learning_fixtures`.
+3. Загрузить данные: `make load-lessons`.
 4. Запустить бота `python services/api/app/bot.py` и пройти урок `xe_basics`.
 5. Убедиться, что `scripts/probe_learn.py --user 123 --lesson xe_basics`
    возвращает корректные данные.

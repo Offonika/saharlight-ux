@@ -28,4 +28,4 @@ show:
 
 # === DATA ===
 load-lessons:
-	$(PYTHONPATH) python services/api/app/diabetes/learning_fixtures.py services/api/app/diabetes/content/lessons_v0.json
+        $(PYTHONPATH) python -m services.api.app.diabetes.learning_fixtures --reset
