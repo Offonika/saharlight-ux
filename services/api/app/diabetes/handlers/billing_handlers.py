@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 
 import httpx
-from telegram import Message, Update
+from telegram import KeyboardButton, Message, ReplyKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import ContextTypes
 
 from ... import config
@@ -77,16 +77,17 @@ async def upgrade_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     message = update.message
     if message is None:
         return
-    try:
-        url = config.build_ui_url("/subscription")
-    except RuntimeError:
+    url = config.get_settings().subscription_url
+    if not url:
         await message.reply_text("❌ Не настроена ссылка на оплату.")
         logger.info(
             "billing_action=user_id:%s action=upgrade result=error",
             update.effective_user.id if update.effective_user else "?",
         )
         return
-    await message.reply_text(f"💳 Оформить PRO: {url}")
+    button = KeyboardButton("💳 Оформить PRO", web_app=WebAppInfo(url))
+    kb = ReplyKeyboardMarkup([[button]], resize_keyboard=True, one_time_keyboard=True)
+    await message.reply_text("💳 Оформить PRO", reply_markup=kb)
     if update.effective_user:
         logger.info(
             "billing_action=user_id:%s action=upgrade result=ok",

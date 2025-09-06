@@ -143,7 +143,7 @@ async def test_trial_command_bad_end_date(monkeypatch: pytest.MonkeyPatch, paylo
 
 @pytest.mark.asyncio
 async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
+    monkeypatch.setenv("SUBSCRIPTION_URL", "https://pay.example/sub")
     config.reload_settings()
 
     message = DummyMessage()
@@ -158,8 +158,12 @@ async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await billing_handlers.upgrade_command(update, context)
 
-    assert message.texts == ["💳 Оформить PRO: http://example.org/ui/subscription"]
-    monkeypatch.delenv("PUBLIC_ORIGIN")
+    assert message.texts == ["💳 Оформить PRO"]
+    markup = message.markups[0]
+    button = markup.keyboard[0][0]
+    assert button.text == "💳 Оформить PRO"
+    assert button.web_app and button.web_app.url == "https://pay.example/sub"
+    monkeypatch.delenv("SUBSCRIPTION_URL")
     config.reload_settings()
 
 

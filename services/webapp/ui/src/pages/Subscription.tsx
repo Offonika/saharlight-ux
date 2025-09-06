@@ -84,7 +84,9 @@ const Subscription = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useTelegram();
-  const initData = useTelegramInitData();
+  const storedInitData = useTelegramInitData();
+  const initData =
+    (window as any)?.Telegram?.WebApp?.initData ?? storedInitData;
   const [billing, setBilling] = useState<BillingStatus | null>(null);
 
   useEffect(() => {
