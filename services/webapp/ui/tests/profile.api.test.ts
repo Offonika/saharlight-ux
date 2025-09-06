@@ -104,7 +104,7 @@ describe('profile api', () => {
       );
     vi.stubGlobal('fetch', mockFetch);
 
-    await saveProfile({
+    const result = await saveProfile({
       telegramId: 1,
       target: 5,
       low: 4,
@@ -136,6 +136,7 @@ describe('profile api', () => {
       sosContact: null,
       therapyType: 'none',
     });
+    expect(result).toEqual({ telegramId: 1, target: 5, low: 4, high: 10 });
   });
 
   it('throws error when patchProfile request fails', async () => {

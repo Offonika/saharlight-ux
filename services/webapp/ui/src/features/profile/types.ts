@@ -25,3 +25,7 @@ export type PatchProfileDto = Partial<
   >
 >;
 
+export type ProfilePatchSchema = {
+  telegramId: number;
+} & Partial<Omit<ProfileSchema, "telegramId">> & ProfileSettingsIn;
+
