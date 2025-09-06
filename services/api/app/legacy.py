@@ -2,20 +2,18 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import exc as sqlalchemy_exc
-from sqlalchemy.orm import Session
 
 from .routers.reminders import router as reminders_router
-from .schemas.profile import ProfileSchema
-from .services.profile import get_profile, save_profile
+from .schemas.profile import ProfilePatchSchema
+from .services.profile import get_profile, save_profile, patch_user_settings
 from .diabetes.schemas.profile import (
     CarbUnits,
     GlucoseUnits,
+    ProfileSettingsIn,
     ProfileSettingsOut,
     RapidInsulinType,
     TherapyType,
 )
-from .diabetes.services.db import Profile, run_db
-from .diabetes.services.repository import CommitError, commit
 
 logger = logging.getLogger(__name__)
 
@@ -24,28 +22,21 @@ router.include_router(reminders_router)
 
 
 @router.post("/profiles", operation_id="profilesPost", tags=["profiles"])
-async def profiles_post(data: ProfileSchema) -> ProfileSchema:
+async def profiles_post(data: ProfilePatchSchema) -> ProfilePatchSchema:
     try:
         await save_profile(data)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    def _save_profile_settings(session: Session) -> None:
-        profile = session.get(Profile, data.telegramId)
-        if profile is None:
-            profile = Profile(telegram_id=data.telegramId)
-            session.add(profile)
-        profile.timezone = data.timezone
-        profile.timezone_auto = data.timezoneAuto
-        if data.therapyType is not None:
-            profile.therapy_type = data.therapyType
-        try:
-            commit(session)
-        except CommitError:
-            raise HTTPException(status_code=500, detail="db commit failed")
-
-    await run_db(_save_profile_settings)
+    settings = ProfileSettingsIn.model_validate(data.model_dump(exclude_unset=True))
+    if settings.model_fields_set:
+        await patch_user_settings(data.telegramId, settings)
     return data
+
+
+@router.patch("/profiles", operation_id="profilesPatch", tags=["profiles"])
+async def profiles_patch(data: ProfilePatchSchema) -> ProfilePatchSchema:
+    return await profiles_post(data)
 
 
 @router.get("/profiles", operation_id="profilesGet", tags=["profiles"])
