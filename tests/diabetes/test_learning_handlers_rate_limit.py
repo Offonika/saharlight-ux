@@ -30,7 +30,7 @@ def make_context(**kwargs: Any) -> CallbackContext[Any, Any, Any, Any]:
 
 @pytest.mark.asyncio
 async def test_lesson_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "learning_enabled", True)
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
 
     calls: list[str] = []
 
@@ -81,7 +81,7 @@ async def test_lesson_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_quiz_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "learning_enabled", True)
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
 
     questions = iter(["Q1", "Q2"])
 

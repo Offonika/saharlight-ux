@@ -43,7 +43,7 @@ def setup_db() -> sessionmaker[Session]:
 async def test_learn_command_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """When flag is disabled the command should warn the user."""
 
-    monkeypatch.setattr(handlers, "settings", Settings(_env_file=None))
+    monkeypatch.setattr(handlers, "settings", Settings(LEARNING_MODE_ENABLED="0", _env_file=None))
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
     context = cast(
@@ -65,7 +65,7 @@ async def test_learn_command_no_lessons(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(
         handlers,
         "settings",
-        Settings(LEARNING_ENABLED="1", LEARNING_COMMAND_MODEL="m", _env_file=None),
+        Settings(LEARNING_MODE_ENABLED="1", LEARNING_COMMAND_MODEL="m", _env_file=None),
     )
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
@@ -104,7 +104,7 @@ async def test_learn_command_lists_lessons(monkeypatch: pytest.MonkeyPatch, tmp_
     monkeypatch.setattr(
         handlers,
         "settings",
-        Settings(LEARNING_ENABLED="1", LEARNING_COMMAND_MODEL="m", _env_file=None),
+        Settings(LEARNING_MODE_ENABLED="1", LEARNING_COMMAND_MODEL="m", _env_file=None),
     )
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))

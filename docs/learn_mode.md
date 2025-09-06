@@ -7,9 +7,8 @@
 
 ## Включение
 
-В файле `.env` установите переменную окружения `LEARNING_MODE_ENABLED` (или
-устаревший вариант `LEARNING_ENABLED`) в `true`. Отсутствие или значение
-`false` выключает режим обучения.
+В файле `.env` установите переменную окружения `LEARNING_MODE_ENABLED` в `true`.
+Переменная `LEARNING_ENABLED` остаётся как устаревший алиас.
 
 ```bash
 LEARNING_MODE_ENABLED=true
