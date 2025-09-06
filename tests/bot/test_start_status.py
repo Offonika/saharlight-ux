@@ -41,6 +41,7 @@ class DummyResponse:
 class DummySession:
     def __init__(self, data: dict[str, Any]) -> None:
         self._data = data
+        self.timeout: aiohttp.ClientTimeout | None = None
 
     async def __aenter__(self) -> DummySession:
         return self
@@ -48,7 +49,14 @@ class DummySession:
     async def __aexit__(self, exc_type, exc, tb) -> None:
         return None
 
-    def get(self, url: str, headers: dict[str, str] | None = None) -> DummyResponse:
+    def get(
+        self,
+        url: str,
+        headers: dict[str, str] | None = None,
+        *,
+        timeout: aiohttp.ClientTimeout | None = None,
+    ) -> DummyResponse:
+        self.timeout = timeout
         return DummyResponse(self._data)
 
 

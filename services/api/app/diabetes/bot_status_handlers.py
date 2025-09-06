@@ -1,18 +1,25 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
+import logging
 import os
 import time
 import urllib.parse
 from typing import Any, TypeAlias
 
 import aiohttp
+from aiohttp.client import ClientTimeout
+from aiohttp.client_exceptions import ClientError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import CommandHandler, ContextTypes
 
 from ..telegram_auth import TG_INIT_DATA_HEADER
+
+
+logger = logging.getLogger(__name__)
 
 
 CommandHandlerT: TypeAlias = CommandHandler[ContextTypes.DEFAULT_TYPE, object]
@@ -47,11 +54,22 @@ def build_status_handler(ui_base_url: str, api_base: str = "/api") -> CommandHan
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(
-                    url, headers={TG_INIT_DATA_HEADER: init_data}
+                    url,
+                    headers={TG_INIT_DATA_HEADER: init_data},
+                    timeout=ClientTimeout(total=5),
                 ) as resp:
                     data: dict[str, Any] = await resp.json()
-        except Exception:
-            await update.message.reply_text("Не удалось получить статус онбординга")
+        except asyncio.TimeoutError:
+            logger.exception("Status request timed out")
+            await update.message.reply_text(
+                "Не удалось получить статус онбординга"
+            )
+            return
+        except ClientError:
+            logger.exception("Status request failed")
+            await update.message.reply_text(
+                "Не удалось получить статус онбординга"
+            )
             return
 
         completed = bool(data.get("completed"))
