@@ -39,6 +39,7 @@ const HelpHint = ({
         <TooltipTrigger asChild>
           <button
             type="button"
+            onClick={() => setOpen((prev) => !prev)}
             onKeyDown={handleKeyDown}
             className={cn(
               'flex h-4 w-4 items-center justify-center text-muted-foreground',
