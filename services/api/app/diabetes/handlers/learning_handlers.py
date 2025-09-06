@@ -17,6 +17,7 @@ from services.api.app.diabetes.models_learning import Lesson, LessonProgress
 from services.api.app.diabetes.services.db import SessionLocal, run_db
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.ui import menu_keyboard
+from ..learning_onboarding import ensure_overrides
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,8 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Reply with learning mode status or greeting."""
     message = update.message
     if message is None:
+        return
+    if not await ensure_overrides(update, context):
         return
     if not settings.learning_mode_enabled:
         await message.reply_text("🚫 Обучение недоступно.")
