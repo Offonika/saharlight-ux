@@ -178,20 +178,33 @@ def _safe_remove(job: object) -> bool:
     ``scheduler.remove_job(job_id=job.id)`` and ``job.schedule_removal()``.
     It returns ``True`` as soon as any of the attempts succeeds.
     """
+    job_id = cast(str | None, getattr(job, "id", None))
+    job_name = cast(str | None, getattr(job, "name", None))
     remover = cast(Callable[[], None] | None, getattr(job, "remove", None))
     if remover is not None:
         try:
             remover()
             return True
-        except Exception:  # pragma: no cover - defensive
-            pass
+        except (AttributeError, RuntimeError) as exc:  # pragma: no cover - defensive
+            logger.warning(
+                "remove() failed for job id=%s name=%s: %s",
+                job_id,
+                job_name,
+                exc,
+            )  # pragma: no cover - defensive
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning(
+                "remove() raised unexpected error for job id=%s name=%s: %s",
+                job_id,
+                job_name,
+                exc,
+            )  # pragma: no cover - defensive
 
     queue = getattr(job, "queue", None)
     scheduler = getattr(queue, "scheduler", None)
     remove_job = cast(
         Callable[..., None] | None, getattr(scheduler, "remove_job", None)
     )
-    job_id = getattr(job, "id", None)
     if remove_job is not None and job_id is not None:
         try:
             remove_job(job_id=job_id)
@@ -200,10 +213,33 @@ def _safe_remove(job: object) -> bool:
             try:
                 remove_job(job_id)
                 return True
-            except Exception:  # pragma: no cover - defensive
-                pass
-        except Exception:  # pragma: no cover - defensive
-            pass
+            except (
+                AttributeError,
+                RuntimeError,
+            ) as exc:  # pragma: no cover - defensive
+                logger.warning(
+                    "remove_job(%s) failed: %s",
+                    job_id,
+                    exc,
+                )  # pragma: no cover - defensive
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.warning(
+                    "remove_job(%s) raised unexpected error: %s",
+                    job_id,
+                    exc,
+                )  # pragma: no cover - defensive
+        except (AttributeError, RuntimeError) as exc:  # pragma: no cover - defensive
+            logger.warning(
+                "remove_job(job_id=%s) failed: %s",
+                job_id,
+                exc,
+            )  # pragma: no cover - defensive
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning(
+                "remove_job(job_id=%s) raised unexpected error: %s",
+                job_id,
+                exc,
+            )  # pragma: no cover - defensive
 
     schedule_removal = cast(
         Callable[[], None] | None, getattr(job, "schedule_removal", None)
@@ -212,8 +248,20 @@ def _safe_remove(job: object) -> bool:
         try:
             schedule_removal()
             return True
-        except Exception:  # pragma: no cover - defensive
-            pass
+        except (AttributeError, RuntimeError) as exc:  # pragma: no cover - defensive
+            logger.warning(
+                "schedule_removal() failed for job id=%s name=%s: %s",
+                job_id,
+                job_name,
+                exc,
+            )  # pragma: no cover - defensive
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning(
+                "schedule_removal() raised unexpected error for job id=%s name=%s: %s",
+                job_id,
+                job_name,
+                exc,
+            )  # pragma: no cover - defensive
     return False
 
 
@@ -239,18 +287,42 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
 
     if remove_job_direct is not None:
         for name in names:
-            existed = (
-                get_job_direct is not None and get_job_direct(name) is not None
-            )
+            existed = get_job_direct is not None and get_job_direct(name) is not None
             try:
                 remove_job_direct(job_id=name)
             except TypeError:  # pragma: no cover - APScheduler compatibility
                 try:
                     remove_job_direct(name)
-                except Exception:  # pragma: no cover - defensive
-                    pass
-            except Exception:  # pragma: no cover - defensive
-                pass
+                except (
+                    AttributeError,
+                    RuntimeError,
+                ) as exc:  # pragma: no cover - defensive
+                    logger.warning(
+                        "remove_job_direct(%s) failed: %s",
+                        name,
+                        exc,
+                    )  # pragma: no cover - defensive
+                except Exception as exc:  # pragma: no cover - defensive
+                    logger.warning(
+                        "remove_job_direct(%s) raised unexpected error: %s",
+                        name,
+                        exc,
+                    )  # pragma: no cover - defensive
+            except (
+                AttributeError,
+                RuntimeError,
+            ) as exc:  # pragma: no cover - defensive
+                logger.warning(
+                    "remove_job_direct(job_id=%s) failed: %s",
+                    name,
+                    exc,
+                )  # pragma: no cover - defensive
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.warning(
+                    "remove_job_direct(job_id=%s) raised unexpected error: %s",
+                    name,
+                    exc,
+                )  # pragma: no cover - defensive
             if existed:
                 removed += 1
 
@@ -267,12 +339,8 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
             jname = getattr(any_job, "name", None)
             jid = getattr(any_job, "id", None)
             if any(
-                (
-                    isinstance(jname, str) and (jname == n or jname.startswith(n))
-                )
-                or (
-                    isinstance(jid, str) and (jid == n or jid.startswith(n))
-                )
+                (isinstance(jname, str) and (jname == n or jname.startswith(n)))
+                or (isinstance(jid, str) and (jid == n or jid.startswith(n)))
                 for n in names
             ):
                 if _safe_remove(any_job):
