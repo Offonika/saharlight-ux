@@ -76,7 +76,7 @@ async def test_handle_successful_payment(monkeypatch: pytest.MonkeyPatch) -> Non
 
     await adapter.handle_successful_payment(update, SimpleNamespace())
 
-    sig = hmac.new(secret.encode(), b"evt1:txn1", hashlib.sha256).hexdigest()
+    sig = hmac.new(secret.encode(), b"evt1:txn1:pro", hashlib.sha256).hexdigest()
     assert captured["json"] == {
         "event_id": "evt1",
         "transaction_id": "txn1",
