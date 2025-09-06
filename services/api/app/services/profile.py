@@ -5,7 +5,6 @@ from fastapi import HTTPException
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
@@ -153,29 +152,33 @@ async def save_timezone(telegram_id: int, tz: str, *, auto: bool) -> bool:
 
 
 def _validate_profile(data: ProfileSchema) -> None:
-    """Validate business rules for a patient profile."""
-    required = {
-        "target": data.target,
-        "low": data.low,
-        "high": data.high,
-    }
-    if data.therapyType in {"insulin", "mixed"}:
-        required["icr"] = data.icr
-        required["cf"] = data.cf
-    for name, value in required.items():
+    """Validate business rules for a patient profile.
+
+    Only fields present in ``data`` are validated, allowing partial updates.
+    """
+
+    def _check_positive(name: str, value: float | None) -> None:
         if value is None:
-            raise ValueError(f"{name} is required")  # pragma: no cover
+            return
         if value <= 0:
             raise ValueError(f"{name} must be greater than 0")  # pragma: no cover
 
-    low = cast(float, data.low)
-    high = cast(float, data.high)
-    target = cast(float, data.target)
+    for name in ("target", "low", "high"):
+        _check_positive(name, cast(float | None, getattr(data, name)))
 
-    if low >= high:
+    if data.therapyType in {"insulin", "mixed"}:
+        _check_positive("icr", data.icr)
+        _check_positive("cf", data.cf)
+
+    if data.low is not None and data.high is not None and data.low >= data.high:
         raise ValueError("low must be less than high")  # pragma: no cover
 
-    if not (low < target < high):
+    if (
+        data.target is not None
+        and data.low is not None
+        and data.high is not None
+        and not (data.low < data.target < data.high)
+    ):
         raise ValueError("target must be between low and high")  # pragma: no cover
 
     # quiet times are validated by Pydantic; no additional checks required
@@ -190,36 +193,39 @@ async def save_profile(data: ProfileSchema) -> None:
             user = User(telegram_id=data.telegramId, thread_id="api")
             cast(Session, session).add(user)
 
-        profile_data = {
-            "telegram_id": data.telegramId,
-            "org_id": data.orgId,
-            "icr": data.icr,
-            "cf": data.cf,
-            "target_bg": data.target,
-            "low_threshold": data.low,
-            "high_threshold": data.high,
-            "quiet_start": data.quietStart,
-            "quiet_end": data.quietEnd,
-            "sos_contact": data.sosContact,
-            "sos_alerts_enabled": (
-                data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
-            ),
-            "timezone": data.timezone,
-            "timezone_auto": data.timezoneAuto,
-        }
+        profile = cast(Profile | None, session.get(Profile, data.telegramId))
+        if profile is None:
+            profile = Profile(telegram_id=data.telegramId)
+            cast(Session, session).add(profile)
 
-        stmt = insert(Profile).values(**profile_data)
-        update_values = {
-            key: getattr(stmt.excluded, key)
-            for key in profile_data.keys()
-            if key != "telegram_id"
-        }
-        session.execute(
-            stmt.on_conflict_do_update(
-                index_elements=[Profile.telegram_id],
-                set_=update_values,
-            )
-        )
+        fields_set = data.model_fields_set
+
+        if "orgId" in fields_set:
+            profile.org_id = data.orgId
+        if "icr" in fields_set:
+            profile.icr = data.icr
+        if "cf" in fields_set:
+            profile.cf = data.cf
+        if "target" in fields_set:
+            profile.target_bg = data.target
+        if "low" in fields_set:
+            profile.low_threshold = data.low
+        if "high" in fields_set:
+            profile.high_threshold = data.high
+        if "quietStart" in fields_set:
+            profile.quiet_start = data.quietStart
+        if "quietEnd" in fields_set:
+            profile.quiet_end = data.quietEnd
+        if "sosContact" in fields_set:
+            profile.sos_contact = data.sosContact
+        if "sosAlertsEnabled" in fields_set:
+            profile.sos_alerts_enabled = data.sosAlertsEnabled
+        if "timezone" in fields_set:
+            profile.timezone = data.timezone
+        if "timezoneAuto" in fields_set:
+            profile.timezone_auto = data.timezoneAuto
+        if "therapyType" in fields_set and data.therapyType is not None:
+            profile.therapy_type = data.therapyType
 
         try:
             commit(cast(Session, session))

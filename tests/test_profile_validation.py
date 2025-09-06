@@ -69,16 +69,8 @@ def test_validate_profile_rejects_invalid_values(
     assert str(exc.value) == message
 
 
-@pytest.mark.parametrize(
-    "field,message",
-    [
-        ("icr", "icr is required"),
-        ("cf", "cf is required"),
-        ("low", "target is required"),
-        ("high", "target is required"),
-    ],
-)
-def test_validate_profile_rejects_missing_fields(field: str, message: str) -> None:
+@pytest.mark.parametrize("field", ["icr", "cf", "low", "high"])
+def test_validate_profile_allows_missing_fields(field: str) -> None:
     kwargs = {
         "telegramId": 1,
         "icr": 1.0,
@@ -89,9 +81,7 @@ def test_validate_profile_rejects_missing_fields(field: str, message: str) -> No
     }
     kwargs.pop(field)
     data = ProfileSchema(**kwargs)
-    with pytest.raises(ValueError) as exc:
-        _validate_profile(data)
-    assert str(exc.value) == message
+    _validate_profile(data)
 
 
 @pytest.mark.parametrize(
