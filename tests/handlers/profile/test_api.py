@@ -349,3 +349,43 @@ def test_profiles_get_returns_timezone(
         data = resp.json()
         assert data["timezone"] == "Europe/Moscow"
         assert data["timezoneAuto"] is False
+
+
+def test_profiles_get_returns_settings_fields(
+    session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app = _build_app(session_factory, monkeypatch)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(
+            Profile(
+                telegram_id=1,
+                timezone="UTC",
+                timezone_auto=True,
+                dia=5.5,
+                round_step=0.1,
+                carb_units="xe",
+                grams_per_xe=15.0,
+                therapy_type="mixed",
+                glucose_units="mg/dL",
+                insulin_type="aspart",
+                max_bolus=8.0,
+                prebolus_min=10,
+                postmeal_check_min=120,
+            )
+        )
+        session.commit()
+    with TestClient(app) as client:
+        resp = client.get("/api/profiles", params={"telegramId": 1})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["dia"] == 5.5
+        assert data["roundStep"] == 0.1
+        assert data["carbUnits"] == "xe"
+        assert data["gramsPerXe"] == 15.0
+        assert data["therapyType"] == "mixed"
+        assert data["glucoseUnits"] == "mg/dL"
+        assert data["rapidInsulinType"] == "aspart"
+        assert data["maxBolus"] == 8.0
+        assert data["preBolus"] == 10
+        assert data["afterMealMinutes"] == 120

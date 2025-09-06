@@ -1,5 +1,4 @@
 import logging
-from datetime import time
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import exc as sqlalchemy_exc
@@ -8,6 +7,13 @@ from sqlalchemy.orm import Session
 from .routers.reminders import router as reminders_router
 from .schemas.profile import ProfileSchema
 from .services.profile import get_profile, save_profile
+from .diabetes.schemas.profile import (
+    CarbUnits,
+    GlucoseUnits,
+    ProfileSettingsOut,
+    RapidInsulinType,
+    TherapyType,
+)
 from .diabetes.services.db import Profile, run_db
 from .diabetes.services.repository import CommitError, commit
 
@@ -46,7 +52,7 @@ async def profiles_post(data: ProfileSchema) -> ProfileSchema:
 async def profiles_get(
     telegramId: int | None = Query(None),
     telegram_id: int | None = Query(None, alias="telegram_id"),
-) -> ProfileSchema:
+) -> ProfileSettingsOut:
     tid = telegramId or telegram_id
     if tid is None:
         raise HTTPException(status_code=422, detail="telegramId is required")
@@ -67,25 +73,27 @@ async def profiles_get(
     tz = profile.timezone if profile.timezone else "UTC"
     tz_auto = profile.timezone_auto if profile.timezone_auto is not None else True
 
-    icr: float | None = profile.icr
-    cf: float | None = profile.cf
-    target_bg: float | None = profile.target_bg
-    low_threshold: float | None = profile.low_threshold
-    high_threshold: float | None = profile.high_threshold
-
-    return ProfileSchema(
-        telegramId=profile.telegram_id,
-        icr=float(icr) if icr is not None else 0.0,
-        cf=float(cf) if cf is not None else 0.0,
-        target=float(target_bg) if target_bg is not None else 0.0,
-        low=float(low_threshold) if low_threshold is not None else 0.0,
-        high=float(high_threshold) if high_threshold is not None else 0.0,
-        quietStart=profile.quiet_start or time(23, 0),
-        quietEnd=profile.quiet_end or time(7, 0),
-        orgId=profile.org_id,
-        sosContact=profile.sos_contact or "",
-        sosAlertsEnabled=(profile.sos_alerts_enabled if profile.sos_alerts_enabled is not None else True),
+    return ProfileSettingsOut(
         timezone=tz,
         timezoneAuto=tz_auto,
-        therapyType=profile.therapy_type,
+        dia=profile.dia,
+        roundStep=profile.round_step,
+        carbUnits=CarbUnits(profile.carb_units),
+        gramsPerXe=profile.grams_per_xe,
+        glucoseUnits=GlucoseUnits(profile.glucose_units),
+        sosContact=profile.sos_contact,
+        sosAlertsEnabled=(
+            profile.sos_alerts_enabled
+            if profile.sos_alerts_enabled is not None
+            else True
+        ),
+        therapyType=TherapyType(profile.therapy_type),
+        rapidInsulinType=(
+            RapidInsulinType(profile.insulin_type)
+            if profile.insulin_type
+            else None
+        ),
+        maxBolus=profile.max_bolus,
+        preBolus=profile.prebolus_min,
+        afterMealMinutes=profile.postmeal_check_min,
     )

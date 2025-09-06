@@ -66,11 +66,11 @@ paths:
           title: Telegram Id
       responses:
         '200':
-          description: Successful Response. Returns profile.
+          description: Successful Response. Returns profile settings.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProfileSchema'
+                $ref: '#/components/schemas/ProfileSettingsOut'
         '422':
           description: Validation Error
           content:
