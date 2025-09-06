@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, Mock
 
+import httpx
 import pytest
 from openai import OpenAIError
 
@@ -275,3 +276,91 @@ async def test_upload_image_bytes() -> None:
     file = await gpt_client._upload_image_bytes(fake_client, b"payload")
     assert file.id == "f2"
     assert captured == {"name": "image.jpg", "data": b"payload"}
+
+
+@pytest.mark.asyncio
+async def test_create_chat_completion_uses_default_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    async def fake_create(
+        *,
+        model: str,
+        messages: list[object],
+        temperature: float | None,
+        max_tokens: int | None,
+        timeout: object,
+        stream: bool,
+    ) -> object:
+        captured["timeout"] = timeout
+        return SimpleNamespace()
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create))
+    )
+
+    async def fake_get_async_client() -> SimpleNamespace:
+        return fake_client
+
+    monkeypatch.setattr(gpt_client, "_get_async_client", fake_get_async_client)
+
+    await gpt_client.create_chat_completion(model="gpt", messages=[])
+
+    assert isinstance(captured["timeout"], httpx.Timeout)
+
+
+@pytest.mark.asyncio
+async def test_create_chat_completion_timeout_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_create(**_: object) -> None:
+        raise httpx.TimeoutException("boom")
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create))
+    )
+
+    async def fake_get_async_client() -> SimpleNamespace:
+        return fake_client
+
+    monkeypatch.setattr(gpt_client, "_get_async_client", fake_get_async_client)
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError):
+            await gpt_client.create_chat_completion(model="m", messages=[])
+
+    assert any(
+        "Chat completion request timed out" in record.message
+        for record in caplog.records
+    )
+
+
+@pytest.mark.asyncio
+async def test_create_chat_completion_retry(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = 0
+
+    async def fake_create(**_: object) -> object:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            request = httpx.Request("POST", "https://api.openai.com/")
+            response = httpx.Response(429, request=request)
+            raise httpx.HTTPStatusError(
+                "rate limit", request=request, response=response
+            )
+        return SimpleNamespace()
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create))
+    )
+
+    async def fake_get_async_client() -> SimpleNamespace:
+        return fake_client
+
+    monkeypatch.setattr(gpt_client, "_get_async_client", fake_get_async_client)
+
+    await gpt_client.create_chat_completion(model="m", messages=[])
+
+    assert calls == 2
+

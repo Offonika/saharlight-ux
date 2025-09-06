@@ -8,7 +8,7 @@ import threading
 from typing import Iterable
 
 import httpx
-from openai import AsyncOpenAI, NOT_GIVEN, NotGiven, OpenAI, OpenAIError
+from openai import AsyncOpenAI, OpenAI, OpenAIError
 from openai.types.chat import ChatCompletion, ChatCompletionMessageParam
 from openai.types.file_object import FileObject
 from openai.types.beta import Thread
@@ -32,6 +32,8 @@ FILE_UPLOAD_TIMEOUT = 30.0
 THREAD_CREATION_TIMEOUT = 30.0
 MESSAGE_CREATION_TIMEOUT = 30.0
 RUN_CREATION_TIMEOUT = 30.0
+CHAT_COMPLETION_TIMEOUT = 30.0
+CHAT_COMPLETION_MAX_RETRIES = 2
 
 _client: OpenAI | None = None
 _client_lock = threading.Lock()
@@ -110,18 +112,47 @@ async def create_chat_completion(
     messages: Iterable[ChatCompletionMessageParam],
     temperature: float | None = None,
     max_tokens: int | None = None,
-    timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+    timeout: float | httpx.Timeout | None = None,
 ) -> ChatCompletion:
     """Create a chat completion with typed return value."""
     client: AsyncOpenAI = await _get_async_client()
-    return await client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        timeout=timeout,
-        stream=False,
-    )
+    timeout_param: float | httpx.Timeout
+    if timeout is None:
+        timeout_param = httpx.Timeout(CHAT_COMPLETION_TIMEOUT)
+    else:
+        timeout_param = timeout
+
+    for attempt in range(CHAT_COMPLETION_MAX_RETRIES + 1):
+        try:
+            return await client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                timeout=timeout_param,
+                stream=False,
+            )
+        except httpx.TimeoutException as exc:
+            message = "Chat completion request timed out"
+            logger.exception("[OpenAI] %s", message)
+            raise RuntimeError(message) from exc
+        except (OpenAIError, httpx.HTTPError) as exc:
+            status_code = getattr(exc, "status_code", None)
+            if isinstance(exc, httpx.HTTPStatusError):
+                status_code = exc.response.status_code
+            if status_code in {429, 500, 502, 503, 504} and attempt < CHAT_COMPLETION_MAX_RETRIES:
+                backoff = 2 ** attempt
+                logger.warning(
+                    "[OpenAI] transient error (status %s), retrying in %s s",
+                    status_code,
+                    backoff,
+                )
+                await asyncio.sleep(backoff)
+                continue
+            logger.exception(
+                "[OpenAI] Failed to create chat completion: %s", exc
+            )
+            raise
 
 
 async def create_learning_chat_completion(
@@ -130,7 +161,7 @@ async def create_learning_chat_completion(
     messages: Iterable[ChatCompletionMessageParam],
     temperature: float | None = None,
     max_tokens: int | None = None,
-    timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+    timeout: float | httpx.Timeout | None = None,
 ) -> str:
     """Create and format a chat completion for learning tasks."""
     model = _learning_router.choose_model(task)
