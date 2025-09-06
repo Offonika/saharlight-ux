@@ -96,6 +96,52 @@ class ProfileSchema(_ProfileBase):
         alias="timezoneAuto",
         validation_alias=AliasChoices("timezoneAuto", "timezone_auto"),
     )
+    dia: float = 4.0
+    roundStep: float = Field(
+        default=0.5,
+        alias="roundStep",
+        validation_alias=AliasChoices("roundStep", "round_step"),
+    )
+    carbUnits: CarbUnits = Field(
+        default=CarbUnits.GRAMS,
+        alias="carbUnits",
+        validation_alias=AliasChoices("carbUnits", "carb_units"),
+    )
+    gramsPerXe: float = Field(
+        default=12.0,
+        alias="gramsPerXe",
+        validation_alias=AliasChoices("gramsPerXe", "grams_per_xe"),
+    )
+    glucoseUnits: GlucoseUnits = Field(
+        default=GlucoseUnits.MMOL_L,
+        alias="glucoseUnits",
+        validation_alias=AliasChoices("glucoseUnits", "glucose_units"),
+    )
+    rapidInsulinType: RapidInsulinType | None = Field(
+        default=None,
+        alias="rapidInsulinType",
+        validation_alias=AliasChoices("rapidInsulinType", "rapid_insulin_type"),
+    )
+    maxBolus: float = Field(
+        default=10.0,
+        alias="maxBolus",
+        validation_alias=AliasChoices("maxBolus", "max_bolus"),
+    )
+    preBolus: int = Field(
+        default=0,
+        alias="preBolus",
+        validation_alias=AliasChoices("preBolus", "pre_bolus", "prebolus_min"),
+    )
+    afterMealMinutes: int = Field(
+        default=0,
+        alias="afterMealMinutes",
+        validation_alias=AliasChoices(
+            "afterMealMinutes",
+            "after_meal_minutes",
+            "postMealCheckMin",
+            "postmeal_check_min",
+        ),
+    )
 
 
 class ProfileUpdateSchema(_ProfileBase):

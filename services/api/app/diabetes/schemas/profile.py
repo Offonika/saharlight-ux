@@ -1,4 +1,5 @@
 from enum import Enum
+from datetime import time
 from pydantic import BaseModel, Field, AliasChoices, ConfigDict, model_validator
 
 
@@ -37,6 +38,29 @@ class GlucoseUnits(str, Enum):
 class ProfileSettingsIn(BaseModel):
     """Incoming user settings for profile configuration."""
 
+    icr: float | None = None
+    cf: float | None = None
+    target: float | None = None
+    low: float | None = Field(
+        default=None,
+        alias="low",
+        validation_alias=AliasChoices("low", "targetLow"),
+    )
+    high: float | None = Field(
+        default=None,
+        alias="high",
+        validation_alias=AliasChoices("high", "targetHigh"),
+    )
+    quietStart: time | None = Field(
+        default=None,
+        alias="quietStart",
+        validation_alias=AliasChoices("quietStart", "quiet_start"),
+    )
+    quietEnd: time | None = Field(
+        default=None,
+        alias="quietEnd",
+        validation_alias=AliasChoices("quietEnd", "quiet_end"),
+    )
     timezone: str | None = None
     timezoneAuto: bool | None = Field(
         default=None,
