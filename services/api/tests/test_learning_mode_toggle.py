@@ -78,10 +78,10 @@ async def test_learning_mode_enabled_lists_lessons(
     monkeypatch.setattr(learning_handlers, "settings", settings)
 
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(user_data={"learning_onboarded": True}),
     )
 
     await learning_handlers.learn_command(update, context)
@@ -103,10 +103,10 @@ async def test_learning_mode_disabled_denies_access(
     monkeypatch.setattr(learning_handlers, "settings", settings)
 
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(user_data={"learning_onboarded": True}),
     )
 
     with caplog.at_level(

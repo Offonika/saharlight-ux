@@ -1,0 +1,90 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, cast
+
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+from telegram import Update
+from telegram.ext import CallbackContext
+
+from services.api.app.config import settings
+from services.api.app.diabetes import learning_onboarding as onboarding_utils
+from services.api.app.diabetes.handlers import learning_handlers, learning_onboarding
+from services.api.app.diabetes.learning_fixtures import load_lessons
+from services.api.app.diabetes.services import db
+
+
+class DummyMessage:
+    def __init__(self, text: str | None = None) -> None:
+        self.text = text
+        self.replies: list[str] = []
+
+    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
+        self.replies.append(text)
+
+
+def setup_db() -> tuple[sessionmaker[Session], Engine]:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    SessionLocal = sessionmaker(bind=engine, class_=Session)
+    db.Base.metadata.create_all(bind=engine)
+    return SessionLocal, engine
+
+
+@pytest.mark.asyncio
+async def test_learning_onboarding_flow(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_command_model", "test-model")
+
+    sample = [{"title": "Sample", "steps": ["s1"], "quiz": []}]
+    path = tmp_path / "lessons.json"
+    path.write_text(json.dumps(sample), encoding="utf-8")
+
+    SessionLocal, engine = setup_db()
+    await load_lessons(path, sessionmaker=SessionLocal)
+    monkeypatch.setattr(learning_handlers, "SessionLocal", SessionLocal)
+
+    try:
+        message1 = DummyMessage()
+        update1 = cast(Update, SimpleNamespace(message=message1, effective_user=None))
+        context = cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            SimpleNamespace(user_data={}),
+        )
+
+        await learning_handlers.learn_command(update1, context)
+        assert message1.replies == [onboarding_utils.ONBOARDING_PROMPT]
+
+        message2 = DummyMessage("да")
+        update2 = cast(Update, SimpleNamespace(message=message2, effective_user=None))
+        await learning_onboarding.onboarding_reply(update2, context)
+
+        message3 = DummyMessage()
+        update3 = cast(Update, SimpleNamespace(message=message3, effective_user=None))
+        await learning_handlers.learn_command(update3, context)
+        assert any(
+            "Учебный режим" in text or "Урок" in text for text in message3.replies
+        )
+
+        message_reset = DummyMessage()
+        update_reset = cast(Update, SimpleNamespace(message=message_reset, effective_user=None))
+        await learning_onboarding.learn_reset(update_reset, context)
+
+        message4 = DummyMessage()
+        update4 = cast(Update, SimpleNamespace(message=message4, effective_user=None))
+        await learning_handlers.learn_command(update4, context)
+        assert message4.replies == [onboarding_utils.ONBOARDING_PROMPT]
+    finally:
+        engine.dispose()
+

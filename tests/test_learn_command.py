@@ -45,10 +45,10 @@ async def test_learn_command_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(handlers, "settings", Settings(LEARNING_MODE_ENABLED="0", _env_file=None))
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(user_data={}),
     )
 
     await handlers.learn_command(update, context)
@@ -68,10 +68,10 @@ async def test_learn_command_no_lessons(monkeypatch: pytest.MonkeyPatch) -> None
         Settings(LEARNING_MODE_ENABLED="1", LEARNING_COMMAND_MODEL="m", _env_file=None),
     )
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(user_data={"learning_onboarded": True}),
     )
 
     await handlers.learn_command(update, context)
@@ -107,10 +107,10 @@ async def test_learn_command_lists_lessons(monkeypatch: pytest.MonkeyPatch, tmp_
         Settings(LEARNING_MODE_ENABLED="1", LEARNING_COMMAND_MODEL="m", _env_file=None),
     )
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(user_data={"learning_onboarded": True}),
     )
 
     await handlers.learn_command(update, context)
