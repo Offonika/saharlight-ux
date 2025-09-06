@@ -68,19 +68,19 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert progress.current_step == 0
     assert lessons_started._value.get() == base_started + 1  # type: ignore[attr-defined]
 
-    first, completed = await next_step(1, lesson_id)
+    first, completed = await next_step(1, lesson_id, {})
     assert completed is False
     assert first == f"{disclaimer()}\n\ntext 1"
 
-    second, completed = await next_step(1, lesson_id)
+    second, completed = await next_step(1, lesson_id, {})
     assert completed is False
     assert second == "text 2"
 
-    third, completed = await next_step(1, lesson_id)
+    third, completed = await next_step(1, lesson_id, {})
     assert completed is False
     assert third == "text 3"
 
-    question_text, completed = await next_step(1, lesson_id)
+    question_text, completed = await next_step(1, lesson_id, {})
     assert completed is False
     assert question_text.startswith(disclaimer())
 
@@ -95,11 +95,11 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         assert correct is True
         assert feedback
         if idx < len(questions) - 1:
-            next_q, completed = await next_step(1, lesson_id)
+            next_q, completed = await next_step(1, lesson_id, {})
             assert next_q
             assert completed is False
 
-    text, completed = await next_step(1, lesson_id)
+    text, completed = await next_step(1, lesson_id, {})
     assert text is None
     assert completed is True
 
@@ -140,11 +140,11 @@ async def test_lesson_without_quiz(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await start_lesson(1, "s")
 
-    first, completed = await next_step(1, lesson_id)
+    first, completed = await next_step(1, lesson_id, {})
     assert first == f"{disclaimer()}\n\ntext"
     assert completed is False
 
-    text, completed = await next_step(1, lesson_id)
+    text, completed = await next_step(1, lesson_id, {})
     assert text is None
     assert completed is True
 
@@ -176,7 +176,10 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_generate(
         profile: object, slug: str, step_idx: int, prev: object
     ) -> str:
+        fake_generate.calls.append(profile)
         return f"step {step_idx}"
+
+    fake_generate.calls = []  # type: ignore[attr-defined]
 
     async def fake_check(
         profile: object, slug: str, answer: str, last: str
@@ -186,15 +189,17 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(curriculum_engine, "generate_step_text", fake_generate)
     monkeypatch.setattr(curriculum_engine, "check_user_answer", fake_check)
 
+    profile: dict[str, str] = {"age": "30"}
     await start_lesson(1, "s")
-    text, completed = await next_step(1, lesson_id)
+    text, completed = await next_step(1, lesson_id, profile)
     assert text == "step 1"
     assert completed is False
+    assert fake_generate.calls[0] is profile
 
     correct, feedback = await check_answer(1, lesson_id, "42")
     assert correct is True
     assert feedback == "fb 42"
 
-    text, completed = await next_step(1, lesson_id)
+    text, completed = await next_step(1, lesson_id, profile)
     assert text == "step 2"
     assert completed is False

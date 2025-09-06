@@ -51,17 +51,17 @@ async def test_happy_path_one_lesson(monkeypatch: pytest.MonkeyPatch) -> None:
     progress = await start_lesson(1, slug)
     assert progress.current_step == 0
 
-    text, completed = await next_step(1, lesson_id)
+    text, completed = await next_step(1, lesson_id, {})
     assert text == f"{disclaimer()}\n\ntext 1"
     assert completed is False
-    text, completed = await next_step(1, lesson_id)
+    text, completed = await next_step(1, lesson_id, {})
     assert text == "text 2"
     assert completed is False
-    text, completed = await next_step(1, lesson_id)
+    text, completed = await next_step(1, lesson_id, {})
     assert text == "text 3"
     assert completed is False
 
-    question_text, completed = await next_step(1, lesson_id)
+    question_text, completed = await next_step(1, lesson_id, {})
     assert completed is False
     assert question_text and question_text.startswith(disclaimer())
 
@@ -75,12 +75,12 @@ async def test_happy_path_one_lesson(monkeypatch: pytest.MonkeyPatch) -> None:
         correct, feedback = await check_answer(1, lesson_id, q.correct_option + 1)
         assert correct is True
         assert feedback
-        text, completed = await next_step(1, lesson_id)
+        text, completed = await next_step(1, lesson_id, {})
         if idx < len(questions) - 1:
             assert text
             assert completed is False
 
-    text, completed = await next_step(1, lesson_id)
+    text, completed = await next_step(1, lesson_id, {})
     assert text is None
     assert completed is True
 

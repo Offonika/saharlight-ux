@@ -1,6 +1,6 @@
 
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Mapping, cast
 
 import pytest
 from telegram import InlineKeyboardMarkup, ReplyKeyboardMarkup
@@ -145,8 +145,15 @@ async def test_learn_command_autostarts_when_topics_hidden(
         assert slug == "slug"
         return progress
 
-    async def fake_next_step(user_id: int, lesson_id: int) -> tuple[str, bool]:
+    async def fake_next_step(
+        user_id: int,
+        lesson_id: int,
+        profile: Mapping[str, str | None],
+        prev_summary: str | None = None,
+    ) -> tuple[str, bool]:
         assert lesson_id == 1
+        assert profile == {}
+        assert prev_summary is None
         return "first", False
 
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)

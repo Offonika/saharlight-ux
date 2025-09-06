@@ -59,7 +59,7 @@ async def main(user_id: int, lesson_slug: str) -> None:
     quiz_index = 0
 
     while True:
-        text, completed = await curriculum_engine.next_step(user_id, lesson_id)
+        text, completed = await curriculum_engine.next_step(user_id, lesson_id, {})
         if text is None and completed:
             break
         print(text)

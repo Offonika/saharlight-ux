@@ -61,21 +61,21 @@ async def test_lesson_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     await start_lesson(1, slug)
 
     for _ in range(step_count):
-        text, completed = await next_step(1, lesson_id)
+        text, completed = await next_step(1, lesson_id, {})
         assert text is not None
         assert completed is False
-    text, completed = await next_step(1, lesson_id)
+    text, completed = await next_step(1, lesson_id, {})
     assert text is not None
     assert completed is False
 
     for idx, q in enumerate(questions):
         await check_answer(1, lesson_id, q.correct_option + 1)
-        text, completed = await next_step(1, lesson_id)
+        text, completed = await next_step(1, lesson_id, {})
         if idx < len(questions) - 1:
             assert text is not None
             assert completed is False
 
-    text, completed = await next_step(1, lesson_id)
+    text, completed = await next_step(1, lesson_id, {})
     assert text is None
     assert completed is True
     lessons_completed.inc()
