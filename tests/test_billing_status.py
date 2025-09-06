@@ -14,7 +14,7 @@ from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
     SubscriptionPlan,
-    SubscriptionStatus,
+    SubStatus,
 )
 
 
@@ -77,7 +77,7 @@ def test_status_with_subscription(monkeypatch: pytest.MonkeyPatch) -> None:
             Subscription(
                 user_id=1,
                 plan=SubscriptionPlan.PRO,
-                status=SubscriptionStatus.ACTIVE,
+                status=SubStatus.active,
                 provider="dummy",
                 transaction_id="t1",
                 start_date=datetime(2024, 1, 1),
@@ -97,7 +97,7 @@ def test_status_with_subscription(monkeypatch: pytest.MonkeyPatch) -> None:
         "testMode": True,
     }
     assert data["subscription"]["plan"] == "pro"
-    assert data["subscription"]["status"] == "active"
+    assert data["subscription"]["status"] == SubStatus.active.value
     assert data["subscription"]["provider"] == "dummy"
     assert data["subscription"]["startDate"].startswith("2024-01-01")
     assert data["subscription"]["endDate"] is None
@@ -113,7 +113,7 @@ def test_status_with_multiple_subscriptions(
                 Subscription(
                     user_id=1,
                     plan=SubscriptionPlan.PRO,
-                    status=SubscriptionStatus.CANCELED,
+                    status=SubStatus.canceled,
                     provider="dummy",
                     transaction_id="t1",
                     start_date=datetime(2024, 1, 1),
@@ -122,7 +122,7 @@ def test_status_with_multiple_subscriptions(
                 Subscription(
                     user_id=1,
                     plan=SubscriptionPlan.FAMILY,
-                    status=SubscriptionStatus.ACTIVE,
+                    status=SubStatus.active,
                     provider="dummy",
                     transaction_id="t2",
                     start_date=datetime(2024, 3, 1),
@@ -143,7 +143,7 @@ def test_status_with_multiple_subscriptions(
         "testMode": True,
     }
     assert data["subscription"]["plan"] == "family"
-    assert data["subscription"]["status"] == "active"
+    assert data["subscription"]["status"] == SubStatus.active.value
     assert data["subscription"]["startDate"].startswith("2024-03-01")
 
 
@@ -157,7 +157,7 @@ def test_status_with_active_and_trial_subscriptions(
                 Subscription(
                     user_id=1,
                     plan=SubscriptionPlan.PRO,
-                    status=SubscriptionStatus.ACTIVE,
+                    status=SubStatus.active,
                     provider="dummy",
                     transaction_id="t1",
                     start_date=datetime(2024, 1, 1),
@@ -166,7 +166,7 @@ def test_status_with_active_and_trial_subscriptions(
                 Subscription(
                     user_id=1,
                     plan=SubscriptionPlan.FAMILY,
-                    status=SubscriptionStatus.TRIAL,
+                    status=SubStatus.trial,
                     provider="dummy",
                     transaction_id="t2",
                     start_date=datetime(2024, 4, 1),
@@ -181,7 +181,7 @@ def test_status_with_active_and_trial_subscriptions(
         resp = client.get("/api/billing/status", params={"user_id": 1})
     assert resp.status_code == 200
     data = resp.json()
-    assert data["subscription"]["status"] == "active"
+    assert data["subscription"]["status"] == SubStatus.active.value
     assert data["subscription"]["plan"] == "pro"
     assert data["subscription"]["startDate"].startswith("2024-01-01")
 
@@ -193,7 +193,7 @@ def test_duplicate_status_per_user() -> None:
             Subscription(
                 user_id=1,
                 plan=SubscriptionPlan.PRO,
-                status=SubscriptionStatus.ACTIVE,
+                status=SubStatus.active,
                 provider="dummy",
                 transaction_id="t1",
                 start_date=datetime(2024, 1, 1),
@@ -204,7 +204,7 @@ def test_duplicate_status_per_user() -> None:
             Subscription(
                 user_id=1,
                 plan=SubscriptionPlan.FAMILY,
-                status=SubscriptionStatus.ACTIVE,
+                status=SubStatus.active,
                 provider="dummy",
                 transaction_id="t2",
                 start_date=datetime(2024, 2, 1),

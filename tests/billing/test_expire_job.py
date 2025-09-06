@@ -13,7 +13,7 @@ from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
     SubscriptionPlan,
-    SubscriptionStatus,
+    SubStatus,
 )
 from services.api.app.billing.log import BillingEvent, BillingLog
 from services.api.app.billing import jobs
@@ -38,7 +38,7 @@ async def test_expire_subscriptions_logs_event(
         sub = Subscription(
             user_id=1,
             plan=SubscriptionPlan.PRO,
-            status=SubscriptionStatus.TRIAL,
+            status=SubStatus.trial,
             provider="dummy",
             transaction_id="tx1",
             end_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
@@ -59,7 +59,7 @@ async def test_expire_subscriptions_logs_event(
     with session_local() as session:
         sub = session.scalar(select(Subscription))
         assert sub is not None
-        assert sub.status == SubscriptionStatus.TRIAL
+        assert sub.status == SubStatus.trial
         log = session.scalar(
             select(BillingLog).where(
                 BillingLog.user_id == 1,

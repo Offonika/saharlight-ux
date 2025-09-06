@@ -13,7 +13,7 @@ from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
     SubscriptionPlan,
-    SubscriptionStatus,
+    SubStatus,
 )
 from services.api.app.billing.log import BillingLog
 from services.api.app.main import app
@@ -68,7 +68,7 @@ def test_admin_mock_webhook(monkeypatch: pytest.MonkeyPatch) -> None:
             Subscription(
                 user_id=1,
                 plan=SubscriptionPlan.PRO,
-                status=SubscriptionStatus.CANCELED,
+                status=SubStatus.canceled,
                 provider="dummy",
                 transaction_id="tx1",
                 start_date=datetime.now(timezone.utc),
@@ -88,7 +88,7 @@ def test_admin_mock_webhook(monkeypatch: pytest.MonkeyPatch) -> None:
     with session_local() as session:
         sub = session.scalar(select(Subscription).where(Subscription.transaction_id == "tx1"))
         assert sub is not None
-        assert sub.status == SubscriptionStatus.ACTIVE
+        assert sub.status == SubStatus.active
 
 
 def test_admin_mock_webhook_requires_token(monkeypatch: pytest.MonkeyPatch) -> None:

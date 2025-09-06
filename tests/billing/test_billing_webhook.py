@@ -14,7 +14,7 @@ from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
     SubscriptionPlan,
-    SubscriptionStatus,
+    SubStatus,
 )
 from services.api.app.billing.log import BillingEvent, BillingLog
 from services.api.app.routers import billing
@@ -87,7 +87,7 @@ def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog:
     with session_local() as session:
         sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
         assert sub is not None
-        assert sub.status == SubscriptionStatus.ACTIVE
+        assert sub.status == SubStatus.active
         assert sub.plan == SubscriptionPlan.PRO
         assert sub.end_date is not None
         log = session.scalar(
@@ -150,7 +150,7 @@ def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
     with session_local() as session:
         sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
         assert sub is not None
-        assert sub.status == SubscriptionStatus.ACTIVE
+        assert sub.status == SubStatus.active
         assert sub.end_date is None
 
 
@@ -173,7 +173,7 @@ def test_webhook_signature_header_mismatch(monkeypatch: pytest.MonkeyPatch) -> N
     with session_local() as session:
         sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
         assert sub is not None
-        assert sub.status == SubscriptionStatus.ACTIVE
+        assert sub.status == SubStatus.active
         assert sub.end_date is None
 
 

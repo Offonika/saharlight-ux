@@ -14,7 +14,7 @@ from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
     SubscriptionPlan,
-    SubscriptionStatus,
+    SubStatus,
 )
 from services.api.app.billing.log import BillingLog
 from services.api.app.routers import billing
@@ -85,7 +85,7 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     with session_local() as session:
         sub = session.scalar(select(Subscription).where(Subscription.transaction_id == data["id"]))
         assert sub is not None
-        assert sub.status == SubscriptionStatus.ACTIVE
+        assert sub.status == SubStatus.active
         assert sub.plan == SubscriptionPlan.PRO
 
 
@@ -143,7 +143,7 @@ def test_subscribe_conflict_with_existing_active(
             Subscription(
                 user_id=1,
                 plan=SubscriptionPlan.PRO,
-                status=SubscriptionStatus.ACTIVE,
+                status=SubStatus.active,
                 provider="dummy",
                 transaction_id="existing",
                 start_date=datetime.now(timezone.utc),

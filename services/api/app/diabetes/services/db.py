@@ -397,11 +397,11 @@ class Timezone(Base):
     tz: Mapped[str] = mapped_column(String, nullable=False)
 
 
-class SubscriptionStatus(str, Enum):
-    TRIAL = "trial"
-    ACTIVE = "active"
-    CANCELED = "canceled"
-    EXPIRED = "expired"
+class SubStatus(str, Enum):
+    trial = "trial"
+    active = "active"
+    canceled = "canceled"
+    expired = "expired"
 
 
 class Subscription(Base):
@@ -426,9 +426,9 @@ class Subscription(Base):
         ),
         nullable=False,
     )
-    status: Mapped[SubscriptionStatus] = mapped_column(
+    status: Mapped[SubStatus] = mapped_column(
         sa.Enum(
-            SubscriptionStatus,
+            SubStatus,
             name="subscription_status",
             create_type=False,
             values_callable=lambda enum: [e.value for e in enum],
