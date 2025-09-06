@@ -45,10 +45,15 @@ def setup_db() -> sessionmaker[Session]:
 async def test_learn_command_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """When flag is disabled the command should warn the user."""
 
-    monkeypatch.setattr(handlers, "settings", Settings(LEARNING_MODE_ENABLED="0", _env_file=None))
+    monkeypatch.setattr(
+        handlers, "settings", Settings(LEARNING_MODE_ENABLED="0", _env_file=None)
+    )
     message = DummyMessage()
     update = cast(
-        Update, SimpleNamespace(message=message, effective_message=message, effective_user=None)
+        Update,
+        SimpleNamespace(
+            message=message, effective_message=message, effective_user=None
+        ),
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -75,7 +80,16 @@ async def test_learn_command_no_lessons(monkeypatch: pytest.MonkeyPatch) -> None
     update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"learning_onboarded": True}),
+        SimpleNamespace(
+            user_data={
+                "learning_onboarded": True,
+                "learn_profile_overrides": {
+                    "age_group": "a",
+                    "diabetes_type": "b",
+                    "learning_level": "c",
+                },
+            }
+        ),
     )
 
     await handlers.learn_command(update, context)
@@ -84,7 +98,9 @@ async def test_learn_command_no_lessons(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 @pytest.mark.asyncio
-async def test_learn_command_lists_lessons(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+async def test_learn_command_lists_lessons(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """After loading fixtures /learn should show at least one button."""
 
     sample = [
@@ -114,7 +130,16 @@ async def test_learn_command_lists_lessons(monkeypatch: pytest.MonkeyPatch, tmp_
     update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"learning_onboarded": True}),
+        SimpleNamespace(
+            user_data={
+                "learning_onboarded": True,
+                "learn_profile_overrides": {
+                    "age_group": "a",
+                    "diabetes_type": "b",
+                    "learning_level": "c",
+                },
+            }
+        ),
     )
 
     await handlers.learn_command(update, context)
@@ -129,7 +154,10 @@ async def test_learn_command_lists_lessons(monkeypatch: pytest.MonkeyPatch, tmp_
 async def test_cmd_menu_shows_keyboard() -> None:
     message = DummyMessage()
     update = cast(
-        Update, SimpleNamespace(message=message, effective_message=message, effective_user=None)
+        Update,
+        SimpleNamespace(
+            message=message, effective_message=message, effective_user=None
+        ),
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],

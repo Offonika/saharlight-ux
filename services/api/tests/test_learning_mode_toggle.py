@@ -63,6 +63,7 @@ async def test_learning_mode_enabled_lists_lessons(
 
     SessionLocal = setup_db()
     import services.api.app.diabetes.learning_fixtures as lf
+
     monkeypatch.setattr(lf, "init_db", lambda: None)
     monkeypatch.setattr(
         lf,
@@ -81,7 +82,16 @@ async def test_learning_mode_enabled_lists_lessons(
     update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"learning_onboarded": True}),
+        SimpleNamespace(
+            user_data={
+                "learning_onboarded": True,
+                "learn_profile_overrides": {
+                    "age_group": "a",
+                    "diabetes_type": "b",
+                    "learning_level": "c",
+                },
+            }
+        ),
     )
 
     await learning_handlers.learn_command(update, context)
@@ -106,7 +116,16 @@ async def test_learning_mode_disabled_denies_access(
     update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"learning_onboarded": True}),
+        SimpleNamespace(
+            user_data={
+                "learning_onboarded": True,
+                "learn_profile_overrides": {
+                    "age_group": "a",
+                    "diabetes_type": "b",
+                    "learning_level": "c",
+                },
+            }
+        ),
     )
 
     with caplog.at_level(

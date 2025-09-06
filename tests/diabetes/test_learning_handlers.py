@@ -20,7 +20,9 @@ class DummyMessage:
     def __init__(self) -> None:
         self.replies: list[str] = []
 
-    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
+    async def reply_text(
+        self, text: str, **kwargs: Any
+    ) -> None:  # pragma: no cover - helper
         self.replies.append(text)
 
 
@@ -56,9 +58,7 @@ async def test_learn_enabled(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
         {
             "title": "Sample",
             "steps": ["s1"],
-            "quiz": [
-                {"question": "q1", "options": ["1", "2", "3"], "answer": 1}
-            ],
+            "quiz": [{"question": "q1", "options": ["1", "2", "3"], "answer": 1}],
         }
     ]
     path = tmp_path / "lessons.json"
@@ -70,7 +70,16 @@ async def test_learn_enabled(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"learning_onboarded": True}),
+        SimpleNamespace(
+            user_data={
+                "learning_onboarded": True,
+                "learn_profile_overrides": {
+                    "age_group": "a",
+                    "diabetes_type": "b",
+                    "learning_level": "c",
+                },
+            }
+        ),
     )
     await learning_handlers.learn_command(update, context)
     assert "super-model" in message.replies[0]

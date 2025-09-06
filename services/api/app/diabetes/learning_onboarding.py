@@ -11,30 +11,42 @@ from telegram.ext import ContextTypes
 logger = logging.getLogger(__name__)
 
 
-ONBOARDING_PROMPT = "Перед началом ответьте 'да' чтобы продолжить обучение."
+# Questions asked during the onboarding flow.
+AGE_PROMPT = "Укажите вашу возрастную группу."
+DIABETES_TYPE_PROMPT = "Укажите тип диабета."
+LEARNING_LEVEL_PROMPT = "Укажите ваш уровень знаний."
+
+_ORDER = [
+    ("age_group", AGE_PROMPT),
+    ("diabetes_type", DIABETES_TYPE_PROMPT),
+    ("learning_level", LEARNING_LEVEL_PROMPT),
+]
 
 
-async def ensure_overrides(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> bool:
+async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """Ensure learning mode prerequisites are satisfied.
 
-    If the user has not yet answered the onboarding question, send it and
-    return ``False`` so that the calling handler can stop further processing.
-    ``True`` is returned once the onboarding question has been answered.
+    Sequentially ask the user for ``age_group``, ``diabetes_type`` and
+    ``learning_level``. Answers are stored in
+    ``ctx.user_data['learn_profile_overrides']``. While onboarding is in
+    progress the function returns ``False`` so that callers can stop further
+    processing. ``True`` is returned once all fields are collected.
     """
 
-    user_data = cast(dict[str, object] | None, getattr(context, "user_data", None))
-    if user_data is None:
-        user_data = {}
-        setattr(context, "user_data", user_data)
-    if user_data.get("learning_onboarded"):
-        return True
-    message = update.message
-    if message is not None:
-        await message.reply_text(ONBOARDING_PROMPT)
-    user_data["learning_waiting"] = True
-    return False
+    user_data = cast(dict[str, object], context.user_data)
+    overrides = cast(
+        dict[str, str], user_data.setdefault("learn_profile_overrides", {})
+    )
+    for key, prompt in _ORDER:
+        if not overrides.get(key):
+            message = update.message
+            if message is not None:
+                await message.reply_text(prompt)
+            user_data["learn_onboarding_stage"] = key
+            return False
+    user_data.pop("learn_onboarding_stage", None)
+    user_data["learning_onboarded"] = True
+    return True
 
 
 async def learn_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -44,7 +56,6 @@ async def learn_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     user_data = cast(dict[str, object], context.user_data)
     for key in [
         "learning_onboarded",
-        "learning_waiting",
         "learn_profile_overrides",
         "learn_onboarding_stage",
     ]:
@@ -52,4 +63,3 @@ async def learn_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     message = update.message
     if message is not None:
         await message.reply_text("Learning onboarding reset. Отправьте /learn.")
-
