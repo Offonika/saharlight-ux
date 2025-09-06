@@ -130,7 +130,9 @@ async def test_static_mode_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
         called.append((update, context))
 
     monkeypatch.setattr(
-        learning_handlers, "settings", SimpleNamespace(learning_content_mode="static")
+        learning_handlers,
+        "settings",
+        SimpleNamespace(learning_content_mode="static", learning_mode_enabled=True),
     )
     monkeypatch.setattr(learning_handlers.legacy_handlers, "learn_command", fake_learn_command)
 
