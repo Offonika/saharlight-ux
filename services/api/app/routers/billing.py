@@ -108,12 +108,23 @@ async def start_trial(
         with session.begin():
             trial = _get_trial(session, for_update=True)
             if trial is not None:
-                return trial
+                raise HTTPException(status_code=409, detail="Trial already active")
             return _create_trial(session)
 
     trial: Subscription | None
     try:
         trial = await run_db(_get_or_create, sessionmaker=SessionLocal)
+    except HTTPException as exc:
+        if exc.status_code == 409:
+            logger.info(
+                "trial already active",
+                extra={
+                    "user_id": user_id,
+                    "status": SubStatus.trial.value,
+                    "plan": SubscriptionPlan.PRO.value,
+                },
+            )
+        raise
     except InvalidTextRepresentation as exc:
         params = getattr(exc, "params", None)
         logger.warning(
@@ -138,13 +149,7 @@ async def start_trial(
             },
             exc_info=exc,
         )
-
-        def _get_existing(session: Session) -> Subscription | None:
-            return _get_trial(session)
-
-        trial = await run_db(_get_existing, sessionmaker=SessionLocal)
-        if trial is None:
-            raise HTTPException(status_code=409, detail="trial already exists")
+        raise HTTPException(status_code=409, detail="Trial already active") from exc
     if trial is None:
         raise HTTPException(status_code=500, detail="trial retrieval failed")
 

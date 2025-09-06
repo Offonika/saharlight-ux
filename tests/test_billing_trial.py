@@ -108,10 +108,10 @@ def test_trial_repeat_call(monkeypatch: pytest.MonkeyPatch) -> None:
         resp2 = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp1.status_code == 200
     data1 = resp1.json()
-    data2 = resp2.json()
-    assert data1["plan"] == data2["plan"] == "pro"
-    assert data1["status"] == data2["status"] == SubStatus.trial.value
-    assert parse_iso(data1["endDate"]) == parse_iso(data2["endDate"])
+    assert resp2.status_code == 409
+    assert resp2.json()["detail"] == "Trial already active"
+    assert data1["plan"] == "pro"
+    assert data1["status"] == SubStatus.trial.value
     count_stmt = select(func.count()).select_from(Subscription)
     log_stmt = (
         select(func.count())
@@ -133,9 +133,8 @@ def test_trial_repeat_call_after_expiration(
     with client:
         resp1 = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp1.status_code == 200
-    data1 = resp1.json()
 
-    future = parse_iso(data1["endDate"]) + timedelta(days=1)
+    future = parse_iso(resp1.json()["endDate"]) + timedelta(days=1)
 
     class FakeDatetime:
         @staticmethod
@@ -145,11 +144,8 @@ def test_trial_repeat_call_after_expiration(
     monkeypatch.setattr(billing, "datetime", FakeDatetime)
     with client:
         resp2 = client.post("/api/billing/trial", params={"user_id": 1})
-    assert resp2.status_code == 200
-    data2 = resp2.json()
-    assert data2["plan"] == "pro"
-    assert data2["status"] == SubStatus.trial.value
-    assert parse_iso(data1["endDate"]) == parse_iso(data2["endDate"])
+    assert resp2.status_code == 409
+    assert resp2.json()["detail"] == "Trial already active"
     count_stmt = select(func.count()).select_from(Subscription)
     with session_local() as session:
         count = session.scalar(count_stmt)
@@ -176,7 +172,7 @@ def test_trial_integrity_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.L
         with client:
             resp = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp.status_code == 409
-    assert resp.json()["detail"] == "trial already exists"
+    assert resp.json()["detail"] == "Trial already active"
     assert len(caplog.records) == 1
     record = caplog.records[0]
     assert record.user_id == 1
@@ -246,12 +242,11 @@ async def test_trial_parallel_requests(monkeypatch: pytest.MonkeyPatch) -> None:
             ac.post("/api/billing/trial", params={"user_id": 1}),
         )
 
-    assert resp1.status_code == 200
-    data1 = resp1.json()
-    data2 = resp2.json()
-    assert data1["plan"] == data2["plan"] == "pro"
-    assert data1["status"] == data2["status"] == SubStatus.trial.value
-    assert parse_iso(data1["endDate"]) == parse_iso(data2["endDate"])
+    statuses = {resp1.status_code, resp2.status_code}
+    assert statuses == {200, 409}
+    data = resp1.json() if resp1.status_code == 200 else resp2.json()
+    assert data["plan"] == "pro"
+    assert data["status"] == SubStatus.trial.value
     count_stmt = select(func.count()).select_from(Subscription)
     with session_local() as session:
         count = session.scalar(count_stmt)
