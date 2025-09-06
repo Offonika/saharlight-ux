@@ -70,6 +70,12 @@ async def cmd_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         await message.reply_text("Главное меню:", reply_markup=build_main_keyboard())
 
 
+async def cmd_topics(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    """List available learning topics via :func:`learn_command`."""
+
+    await learn_command(update, ctx)
+
+
 async def on_learn_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     """Proxy button presses to :func:`learn_command`."""
 
@@ -343,11 +349,12 @@ def register_handlers(app: App) -> None:
     from . import learning_onboarding as onboarding
 
     app.add_handler(CommandHandler("learn", learn_command))
+    app.add_handler(CommandHandler("topics", cmd_topics))
     app.add_handler(CommandHandler("lesson", lesson_command))
     app.add_handler(CommandHandler("quiz", quiz_command))
     app.add_handler(CommandHandler("progress", progress_command))
     app.add_handler(CommandHandler("exit", exit_command))
-    app.add_handler(CommandHandler("learn_reset", onboarding.learn_reset))  # type: ignore[attr-defined]
+    app.add_handler(CommandHandler("learn_reset", onboarding.learn_reset))
     app.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding.onboarding_reply)
     )
@@ -360,6 +367,7 @@ def register_handlers(app: App) -> None:
 
 __all__ = [
     "cmd_menu",
+    "cmd_topics",
     "on_learn_button",
     "learn_command",
     "lesson_command",

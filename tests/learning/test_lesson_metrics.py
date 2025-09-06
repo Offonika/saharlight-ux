@@ -19,7 +19,6 @@ from services.api.app.diabetes.models_learning import (
     QuizQuestion,
 )
 from services.api.app.diabetes.services import db, gpt_client
-from services.api.app.config import settings
 
 
 @pytest.mark.asyncio

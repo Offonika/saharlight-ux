@@ -194,3 +194,28 @@ async def test_on_learn_button_calls_learn(monkeypatch: pytest.MonkeyPatch) -> N
     await handlers.on_learn_button(update, context)
 
     assert called["v"] is True
+
+
+@pytest.mark.asyncio
+async def test_cmd_topics_delegates_to_learn(monkeypatch: pytest.MonkeyPatch) -> None:
+    """/topics proxies to :func:`learn_command`."""
+
+    called = {"v": False}
+
+    async def fake_learn(
+        update: Update,
+        context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+    ) -> None:
+        called["v"] = True
+
+    monkeypatch.setattr(handlers, "learn_command", fake_learn)
+
+    update = cast(Update, SimpleNamespace())
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    await handlers.cmd_topics(update, context)
+
+    assert called["v"] is True

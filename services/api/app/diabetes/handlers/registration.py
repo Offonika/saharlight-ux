@@ -250,6 +250,7 @@ def register_handlers(
             app.bot.set_my_commands(
                 [
                     BotCommand("learn", "Учебный режим"),
+                    BotCommand("topics", "Темы обучения"),
                     BotCommand("menu", "Показать нижнее меню"),
                 ]
             )

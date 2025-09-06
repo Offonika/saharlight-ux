@@ -13,6 +13,7 @@ def test_commands_include_emojis() -> None:
         ("history", "📚 История записей"),
         ("sugar", "🩸 Расчёт сахара"),
         ("gpt", "🤖 Чат с GPT"),
+        ("topics", "📚 Темы обучения"),
         ("reminders", "⏰ Список напоминаний"),
         ("help", "❓ Справка"),
         ("trial", "🎁 Trial"),

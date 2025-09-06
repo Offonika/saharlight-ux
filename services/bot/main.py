@@ -36,6 +36,7 @@ commands = [
     BotCommand("history", "📚 История записей"),
     BotCommand("sugar", "🩸 Расчёт сахара"),
     BotCommand("gpt", "🤖 Чат с GPT"),
+    BotCommand("topics", "📚 Темы обучения"),
     BotCommand("reminders", "⏰ Список напоминаний"),
     BotCommand("help", "❓ Справка"),
     BotCommand("trial", "🎁 Trial"),

@@ -87,6 +87,12 @@ def test_register_handlers_attaches_expected_handlers(
         for h in handlers
     )
     assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is learning_handlers.cmd_topics
+        and "topics" in h.commands
+        for h in handlers
+    )
+    assert any(
         isinstance(h, MessageHandler)
         and h.callback is learning_handlers.on_learn_button
         for h in handlers
@@ -309,7 +315,7 @@ def test_register_handlers_skips_learning_handlers_when_disabled(
     commands = [
         cmd for h in handlers if isinstance(h, CommandHandler) for cmd in h.commands
     ]
-    for name in ["learn", "lesson", "quiz", "progress", "exit", "learn_reset"]:
+    for name in ["learn", "topics", "lesson", "quiz", "progress", "exit", "learn_reset"]:
         assert name not in commands
     monkeypatch.setenv("LEARNING_MODE_ENABLED", "1")
     reload_settings()
