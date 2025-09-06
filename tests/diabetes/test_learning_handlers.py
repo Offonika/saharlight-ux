@@ -28,10 +28,10 @@ class DummyMessage:
 async def test_learn_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", False)
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(user_data={}),
     )
     await learning_handlers.learn_command(update, context)
     assert message.replies == ["🚫 Обучение недоступно."]
@@ -67,10 +67,10 @@ async def test_learn_enabled(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
     await load_lessons(path, sessionmaker=SessionLocal)
     monkeypatch.setattr(learning_handlers, "SessionLocal", SessionLocal)
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(user_data={"learning_onboarded": True}),
     )
     await learning_handlers.learn_command(update, context)
     assert "super-model" in message.replies[0]

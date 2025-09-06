@@ -41,10 +41,10 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     message = update.message
     if message is None:
         return
-    if not await ensure_overrides(update, context):
-        return
     if not settings.learning_mode_enabled:
         await message.reply_text("🚫 Обучение недоступно.")
+        return
+    if not await ensure_overrides(update, context):
         return
     model = settings.learning_command_model
 
