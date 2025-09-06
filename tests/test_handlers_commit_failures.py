@@ -105,9 +105,7 @@ async def test_profile_command_saves_locally(
 
     dummy_api = MagicMock()
     dummy_api.profiles_post = MagicMock()
-    monkeypatch.setattr(
-        profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock)
-    )
+    monkeypatch.setattr(profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock))
 
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
@@ -142,9 +140,7 @@ async def test_profile_command_db_error(
 
     dummy_api = MagicMock()
     dummy_api.profiles_post = MagicMock()
-    monkeypatch.setattr(
-        profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock)
-    )
+    monkeypatch.setattr(profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock))
 
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
@@ -193,9 +189,7 @@ async def test_callback_router_commit_failure(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_commit_failure(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_add_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -205,6 +199,7 @@ async def test_add_reminder_commit_failure(
     filter_mock.count.return_value = 0
     query_mock.filter_by.return_value = filter_mock
     session.query.return_value = query_mock
+    session.execute.return_value.scalar_one.return_value = 0
     session.commit.side_effect = SQLAlchemyError("fail")
     session.rollback = MagicMock()
 
@@ -255,9 +250,7 @@ async def test_reminder_webapp_save_commit_failure(
     render_mock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "_render_reminders", render_mock)
 
-    message = DummyWebAppMessage(
-        json.dumps({"type": "sugar", "value": "23:00", "id": 1})
-    )
+    message = DummyWebAppMessage(json.dumps({"type": "sugar", "value": "23:00", "id": 1}))
     update = make_update(effective_message=message, effective_user=make_user(1))
     job_queue = MagicMock(spec=JobQueue)
     job_queue.run_once = MagicMock()
@@ -305,9 +298,7 @@ async def test_delete_reminder_commit_failure(
 
 
 @pytest.mark.asyncio
-async def test_reminder_job_commit_failure(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_reminder_job_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None

@@ -35,15 +35,15 @@ async def test_history_view_does_not_block_event_loop(
             def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> None:
                 pass
 
-            def query(self, *args: Any, **kwargs: Any) -> Any:
+            def scalars(self, *args: Any, **kwargs: Any) -> Any:
                 class Q:
-                    def filter(self, *args: Any, **kwargs: Any) -> "Q":
+                    def where(self, *a: Any, **kw: Any) -> "Q":
                         return self
 
-                    def order_by(self, *args: Any, **kwargs: Any) -> "Q":
+                    def order_by(self, *a: Any, **kw: Any) -> "Q":
                         return self
 
-                    def limit(self, *args: Any, **kwargs: Any) -> "Q":
+                    def limit(self, *a: Any, **kw: Any) -> "Q":
                         return self
 
                     def all(self) -> list[Any]:

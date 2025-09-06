@@ -199,7 +199,7 @@ async def test_after_meal_reminder_respects_timezone(queue_cls: QueueType) -> No
         def __exit__(self, *exc: object) -> None:
             return None
 
-        def query(self, model: object) -> "Session":
+        def scalars(self, *args: object, **kwargs: object) -> "Session":
             return self
 
         def filter_by(self, **kwargs: object) -> "Session":

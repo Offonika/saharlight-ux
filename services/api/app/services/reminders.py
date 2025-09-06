@@ -43,7 +43,7 @@ def _default_title(rem_type: str, rem_time: time_ | None) -> str | None:
 async def list_reminders(telegram_id: int) -> list[Reminder]:
     def _list(session: Session) -> list[Reminder]:
         profile = cast(Profile | None, session.get(Profile, telegram_id))
-        reminders_ = session.scalars(sa.select(Reminder).filter_by(telegram_id=telegram_id)).all()
+        reminders_ = list(session.scalars(sa.select(Reminder).filter_by(telegram_id=telegram_id)).all())
         if not reminders_:
             return []
         sql = resources.files("services.api.app.diabetes.sql").joinpath("reminders_stats.sql").read_text()
@@ -63,7 +63,7 @@ async def list_reminders(telegram_id: int) -> list[Reminder]:
             setattr(rem, "next_at", next_)
         return reminders_
 
-    return await run_db(_list, sessionmaker=SessionLocal)
+    return cast(list[Reminder], await run_db(_list, sessionmaker=SessionLocal))
 
 
 async def save_reminder(data: ReminderSchema) -> int:

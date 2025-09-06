@@ -58,6 +58,15 @@ scripts/run_bot.sh
 ```
 Скрипт подгружает `.env` и запускает `services.api.app.bot`.
 
+### Команды BotFather
+
+Зарегистрируйте дополнительные команды в BotFather:
+
+```
+/trial - Включить 14-дневный PRO
+/upgrade - Оформить подписку
+```
+
 ## Онбординг через WebApp
 Первичная настройка пользователя проходит в WebApp. Отдельной страницы
 `timezone.html` и кнопки в меню больше нет — бот присылает ссылку на WebApp
@@ -122,6 +131,7 @@ curl http://localhost:8000/api/profiles?telegramId=777
 - `TELEGRAM_TOKEN` — токен бота (обязательно);
 - `PUBLIC_ORIGIN` — публичный URL API;
 - `WEBAPP_URL` — адрес WebApp для онбординга;
+- `SUBSCRIPTION_URL` — адрес WebApp для оформления подписки;
 - `API_URL` — базовый URL внешнего API; требует установленный пакет `diabetes_sdk`;
 - `OPENAI_API_KEY` — ключ OpenAI для распознавания фото.
 
