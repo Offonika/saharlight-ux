@@ -26,7 +26,7 @@ class DummyMessage:
 
 @pytest.mark.asyncio
 async def test_learn_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "learning_enabled", False)
+    monkeypatch.setattr(settings, "learning_mode_enabled", False)
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
     context = cast(
@@ -50,7 +50,7 @@ def setup_db() -> sessionmaker[Session]:
 
 @pytest.mark.asyncio
 async def test_learn_enabled(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr(settings, "learning_enabled", True)
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
     monkeypatch.setattr(settings, "learning_command_model", "super-model")
     sample = [
         {

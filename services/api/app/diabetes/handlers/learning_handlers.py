@@ -40,7 +40,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     message = update.message
     if message is None:
         return
-    if not settings.learning_enabled:
+    if not settings.learning_mode_enabled:
         await message.reply_text("🚫 Обучение недоступно.")
         return
     model = settings.learning_command_model
@@ -74,7 +74,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if message is None or user is None:
         return
     logger.info("lesson_command_start", extra={"user_id": user.id})
-    if not settings.learning_enabled:
+    if not settings.learning_mode_enabled:
         await message.reply_text("🚫 Обучение недоступно.")
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
@@ -113,7 +113,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     if message is None or user is None:
         return
-    if not settings.learning_enabled:
+    if not settings.learning_mode_enabled:
         await message.reply_text("🚫 Обучение недоступно.")
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)

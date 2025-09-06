@@ -34,7 +34,7 @@ def make_context(**kwargs: Any) -> CallbackContext[Any, Any, Any, Any]:
 @pytest.mark.asyncio
 async def test_lesson_start_logging(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     """Ensure starting a lesson logs start and completion events."""
-    monkeypatch.setattr(settings, "learning_enabled", True)
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
 
     async def fake_start(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
@@ -58,7 +58,7 @@ async def test_lesson_start_logging(monkeypatch: pytest.MonkeyPatch, caplog: pyt
 @pytest.mark.asyncio
 async def test_exit_logging(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     """Ensure exiting a lesson logs start and completion events."""
-    monkeypatch.setattr(settings, "learning_enabled", True)
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
     async def fake_run_db(*args: Any, **kwargs: Any) -> None:  # pragma: no cover - simple stub
         return None
 

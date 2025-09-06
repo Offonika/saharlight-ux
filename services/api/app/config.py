@@ -6,7 +6,7 @@ import logging
 import os
 from typing import Optional
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 
 try:  # pragma: no cover - import guard
     from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -58,11 +58,14 @@ class Settings(BaseSettings):
     openai_assistant_id: Optional[str] = Field(default=None, alias="OPENAI_ASSISTANT_ID")
     openai_command_model: str = Field(default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL")
     api_key_min_length: int = Field(default=32, alias="API_KEY_MIN_LENGTH")
-    learning_mode_enabled: bool = Field(default=True, alias="LEARNING_MODE_ENABLED")
+    learning_mode_enabled: bool = Field(
+        default=True,
+        alias="LEARNING_MODE_ENABLED",
+        validation_alias=AliasChoices("LEARNING_MODE_ENABLED", "LEARNING_ENABLED"),
+    )
     learning_model_default: str = Field(default="gpt-4o-mini", alias="LEARNING_MODEL_DEFAULT")
     learning_prompt_cache: bool = Field(default=True, alias="LEARNING_PROMPT_CACHE")
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
-    learning_enabled: bool = Field(default=False, alias="LEARNING_ENABLED")
     learning_assistant_id: Optional[str] = Field(default=None, alias="LEARNING_ASSISTANT_ID")
     learning_command_model: str = Field(default="gpt-4o-mini", alias="LEARNING_COMMAND_MODEL")
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
@@ -95,6 +98,12 @@ class Settings(BaseSettings):
         if isinstance(v, int):
             return v
         return logging.INFO
+
+    @property
+    def learning_enabled(self) -> bool:
+        """Backward compatibility alias for ``learning_mode_enabled``."""
+
+        return self.learning_mode_enabled
 
 
 # Instantiate settings for external use
