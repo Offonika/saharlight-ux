@@ -90,6 +90,29 @@ def test_profile_patch_returns_settings(
         assert prof.sos_contact is None
 
 
+def test_profile_patch_ignores_device_tz(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    SessionLocal = setup_db(monkeypatch)
+    with TestClient(server.app) as client:
+        resp = client.patch(
+            "/api/profile",
+            params={"deviceTz": "Europe/Moscow"},
+            json={"timezone": "Asia/Tbilisi", "timezoneAuto": True},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["timezone"] == "Asia/Tbilisi"
+        assert data["timezoneAuto"] is True
+
+    with SessionLocal() as session:
+        prof = session.get(db.Profile, 1)
+        assert prof is not None
+        assert prof.timezone == "Asia/Tbilisi"
+        assert prof.timezone_auto is True
+
+
 def test_profile_patch_partial_update(
     monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
 ) -> None:

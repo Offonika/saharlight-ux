@@ -257,6 +257,30 @@ def test_set_timezone_user_missing(
         commit_mock.assert_called_once()
 
 
+def test_patch_user_settings_keeps_user_timezone(
+    session_factory: sessionmaker[Session],
+) -> None:
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(Profile(telegram_id=1, timezone="UTC", timezone_auto=True))
+        session.commit()
+        existed, ok = profile_api.patch_user_settings(
+            session,
+            1,
+            profile_api.ProfileSettingsIn(
+                timezone="Asia/Tbilisi", timezoneAuto=True
+            ),
+            device_tz="Europe/Moscow",
+        )
+        assert (existed, ok) == (True, True)
+
+    with session_factory() as session:
+        prof = session.get(Profile, 1)
+        assert prof is not None
+        assert prof.timezone == "Asia/Tbilisi"
+        assert prof.timezone_auto is True
+
+
 def _build_app(
     session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
 ) -> FastAPI:
