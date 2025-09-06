@@ -14,11 +14,23 @@ from .diabetes.schemas.profile import (
     RapidInsulinType,
     TherapyType,
 )
+from collections.abc import Callable
+from typing import Any, TypeVar
+
+from .diabetes.services import db
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 router.include_router(reminders_router)
+
+
+T = TypeVar("T")
+
+
+async def run_db(fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
+    """Proxy to diabetes.services.db.run_db for legacy tests."""
+    return await db.run_db(fn, *args, **kwargs)
 
 
 @router.post("/profiles", operation_id="profilesPost", tags=["profiles"])
