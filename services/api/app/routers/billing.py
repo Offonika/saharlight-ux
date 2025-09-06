@@ -28,7 +28,7 @@ from ..diabetes.services.db import (
     SessionLocal,
     Subscription,
     SubscriptionPlan,
-    SubscriptionStatus,
+    SubStatus,
     run_db,
 )
 from ..schemas.billing import (
@@ -75,7 +75,7 @@ async def start_trial(
             select(Subscription)
             .where(
                 Subscription.user_id == user_id,
-                Subscription.status == SubscriptionStatus.TRIAL.value,
+                Subscription.status == SubStatus.trial.value,
             )
             .order_by(Subscription.start_date.desc())
             .limit(1)
@@ -89,7 +89,7 @@ async def start_trial(
         trial = Subscription(
             user_id=user_id,
             plan=SubscriptionPlan.PRO,
-            status=cast(SubscriptionStatus, SubscriptionStatus.TRIAL.value),
+            status=cast(SubStatus, SubStatus.trial.value),
             provider="trial",
             transaction_id=str(uuid4()),
             start_date=start,
@@ -120,7 +120,7 @@ async def start_trial(
             "trial creation failed",
             extra={
                 "user_id": user_id,
-                "status": SubscriptionStatus.TRIAL.value,
+                "status": SubStatus.trial.value,
                 "plan": SubscriptionPlan.PRO.value,
                 "params": params,
             },
@@ -132,7 +132,7 @@ async def start_trial(
             "trial creation failed",
             extra={
                 "user_id": user_id,
-                "status": SubscriptionStatus.TRIAL.value,
+                "status": SubStatus.trial.value,
                 "plan": SubscriptionPlan.PRO.value,
                 "params": exc.params,
             },
@@ -167,8 +167,8 @@ async def subscribe(
             Subscription.user_id == user_id,
             Subscription.status.in_(
                 [
-                    SubscriptionStatus.TRIAL.value,
-                    SubscriptionStatus.ACTIVE.value,
+                    SubStatus.trial.value,
+                    SubStatus.active.value,
                 ]
             ),
         )
@@ -178,7 +178,7 @@ async def subscribe(
         sub = Subscription(
             user_id=user_id,
             plan=plan,
-            status=cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value),
+            status=cast(SubStatus, SubStatus.active.value),
             provider=settings.billing_provider.value,
             transaction_id=checkout["id"],
             start_date=now,
@@ -234,7 +234,7 @@ async def webhook(
 
         conflict_stmt = select(Subscription).where(
             Subscription.user_id == sub.user_id,
-            Subscription.status == SubscriptionStatus.ACTIVE.value,
+            Subscription.status == SubStatus.active.value,
             Subscription.end_date.is_not(None),
             Subscription.end_date > now,
             Subscription.id != sub.id,
@@ -249,17 +249,17 @@ async def webhook(
                     "conflict_transaction_id": conflict.transaction_id,
                 },
             )
-            conflict.status = cast(SubscriptionStatus, SubscriptionStatus.EXPIRED.value)
+            conflict.status = cast(SubStatus, SubStatus.expired.value)
             conflict.end_date = now
 
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
-        if sub.status == SubscriptionStatus.ACTIVE.value and sub_end is not None and sub_end > now:
+        if sub.status == SubStatus.active.value and sub_end is not None and sub_end > now:
             return False
         base = sub_end if sub_end is not None and sub_end > now else now
         sub.plan = event.plan
-        sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
+        sub.status = cast(SubStatus, SubStatus.active.value)
         sub.end_date = base + timedelta(days=30)
         log_billing_event(
             session,
@@ -299,7 +299,7 @@ async def mock_webhook(
             return False
         end_date = datetime.now(timezone.utc) + timedelta(days=30)
         # keep existing plan, set status and end date only
-        sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
+        sub.status = cast(SubStatus, SubStatus.active.value)
         sub.end_date = end_date
         log_billing_event(
             session,
@@ -336,7 +336,7 @@ async def admin_mock_webhook(
             return False
         end_date = datetime.now(timezone.utc) + timedelta(days=30)
         # keep existing plan, set status and end date only
-        sub.status = cast(SubscriptionStatus, SubscriptionStatus.ACTIVE.value)
+        sub.status = cast(SubStatus, SubStatus.active.value)
         sub.end_date = end_date
         log_billing_event(
             session,
@@ -359,8 +359,8 @@ async def status(user_id: int, settings: BillingSettings = Depends(get_billing_s
 
     def _get_subscription(session: Session) -> Subscription | None:
         for status in (
-            SubscriptionStatus.ACTIVE.value,
-            SubscriptionStatus.TRIAL.value,
+            SubStatus.active.value,
+            SubStatus.trial.value,
         ):
             stmt = (
                 select(Subscription)

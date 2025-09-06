@@ -20,7 +20,7 @@ from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
     SubscriptionPlan,
-    SubscriptionStatus,
+    SubStatus,
 )
 from services.api.app.billing.log import BillingEvent, BillingLog
 
@@ -76,7 +76,7 @@ def test_trial_creation(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert data["plan"] == "pro"
-    assert data["status"] == SubscriptionStatus.TRIAL.value
+    assert data["status"] == SubStatus.trial.value
     start = datetime.fromisoformat(data["startDate"])
     end = datetime.fromisoformat(data["endDate"])
     assert end - start == timedelta(days=14)
@@ -84,7 +84,7 @@ def test_trial_creation(monkeypatch: pytest.MonkeyPatch) -> None:
     status_data = status_resp.json()
     sub = status_data["subscription"]
     assert sub["plan"] == "pro"
-    assert sub["status"] == SubscriptionStatus.TRIAL.value
+    assert sub["status"] == SubStatus.trial.value
     assert sub["provider"] == "trial"
     assert parse_iso(sub["endDate"]) == parse_iso(data["endDate"])
     count_stmt = select(func.count()).select_from(Subscription)
@@ -110,7 +110,7 @@ def test_trial_repeat_call(monkeypatch: pytest.MonkeyPatch) -> None:
     data1 = resp1.json()
     data2 = resp2.json()
     assert data1["plan"] == data2["plan"] == "pro"
-    assert data1["status"] == data2["status"] == SubscriptionStatus.TRIAL.value
+    assert data1["status"] == data2["status"] == SubStatus.trial.value
     assert parse_iso(data1["endDate"]) == parse_iso(data2["endDate"])
     count_stmt = select(func.count()).select_from(Subscription)
     log_stmt = (
@@ -148,7 +148,7 @@ def test_trial_repeat_call_after_expiration(
     assert resp2.status_code == 200
     data2 = resp2.json()
     assert data2["plan"] == "pro"
-    assert data2["status"] == SubscriptionStatus.TRIAL.value
+    assert data2["status"] == SubStatus.trial.value
     assert parse_iso(data1["endDate"]) == parse_iso(data2["endDate"])
     count_stmt = select(func.count()).select_from(Subscription)
     with session_local() as session:
@@ -164,7 +164,11 @@ def test_trial_integrity_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.L
     async def run_db_err(*_args: object, **_kwargs: object) -> None:
         if calls["n"] == 0:
             calls["n"] += 1
-            raise IntegrityError("", {"user_id": 1, "status": "trial", "plan": "pro"}, None)
+            raise IntegrityError(
+                "",
+                {"user_id": 1, "status": SubStatus.trial.value, "plan": "pro"},
+                None,
+            )
         return None
 
     monkeypatch.setattr(billing, "run_db", run_db_err, raising=False)
@@ -176,9 +180,13 @@ def test_trial_integrity_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.L
     assert len(caplog.records) == 1
     record = caplog.records[0]
     assert record.user_id == 1
-    assert record.status == SubscriptionStatus.TRIAL.value
+    assert record.status == SubStatus.trial.value
     assert record.plan == SubscriptionPlan.PRO.value
-    assert record.params == {"user_id": 1, "status": "trial", "plan": "pro"}
+    assert record.params == {
+        "user_id": 1,
+        "status": SubStatus.trial.value,
+        "plan": "pro",
+    }
 
 
 def test_trial_invalid_enum(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
@@ -201,7 +209,7 @@ def test_trial_invalid_enum(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogC
     assert len(caplog.records) == 1
     record = caplog.records[0]
     assert record.user_id == 1
-    assert record.status == SubscriptionStatus.TRIAL.value
+    assert record.status == SubStatus.trial.value
     assert record.plan == SubscriptionPlan.PRO.value
     assert record.params is None
 
@@ -242,7 +250,7 @@ async def test_trial_parallel_requests(monkeypatch: pytest.MonkeyPatch) -> None:
     data1 = resp1.json()
     data2 = resp2.json()
     assert data1["plan"] == data2["plan"] == "pro"
-    assert data1["status"] == data2["status"] == SubscriptionStatus.TRIAL.value
+    assert data1["status"] == data2["status"] == SubStatus.trial.value
     assert parse_iso(data1["endDate"]) == parse_iso(data2["endDate"])
     count_stmt = select(func.count()).select_from(Subscription)
     with session_local() as session:

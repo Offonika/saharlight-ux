@@ -13,7 +13,7 @@ from telegram.ext import ContextTypes
 from services.api.app.diabetes.handlers.reminder_jobs import DefaultJobQueue
 from services.api.app.diabetes.services.db import (
     Subscription,
-    SubscriptionStatus,
+    SubStatus,
     run_db,
 )
 from services.api.app.diabetes.services.repository import commit
@@ -51,14 +51,14 @@ async def expire_subscriptions(_context: ContextTypes.DEFAULT_TYPE) -> None:
         now = _utcnow()
         subs = session.scalars(
             sa.select(Subscription).where(
-                Subscription.status.in_([SubscriptionStatus.TRIAL.value, SubscriptionStatus.ACTIVE.value]),
+                Subscription.status.in_([SubStatus.trial.value, SubStatus.active.value]),
                 Subscription.end_date != None,  # noqa: E711
                 Subscription.end_date < now,
             )
         ).all()
         for sub in subs:
-            if sub.status == SubscriptionStatus.ACTIVE.value:
-                sub.status = cast(SubscriptionStatus, SubscriptionStatus.EXPIRED.value)
+            if sub.status == SubStatus.active.value:
+                sub.status = cast(SubStatus, SubStatus.expired.value)
             log_billing_event(
                 session,
                 sub.user_id,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
-from services.api.app.diabetes.services.db import SubscriptionPlan, SubscriptionStatus
+from services.api.app.diabetes.services.db import SubscriptionPlan, SubStatus
 
 
 class FeatureFlags(BaseModel):
@@ -38,7 +38,7 @@ class SubscriptionSchema(BaseModel):
     """Information about a user subscription."""
 
     plan: SubscriptionPlan
-    status: SubscriptionStatus
+    status: SubStatus
     provider: str
     startDate: datetime = Field(
         alias="startDate", validation_alias=AliasChoices("startDate", "start_date")

@@ -10,7 +10,7 @@ from services.api.app.diabetes.services.db import (
     Base,
     Subscription,
     SubscriptionPlan,
-    SubscriptionStatus,
+    SubStatus,
     run_db,
 )
 
@@ -36,7 +36,7 @@ async def test_subscription_creation_atomicity() -> None:
             draft = Subscription(
                 user_id=1,
                 plan=SubscriptionPlan.PRO,
-                status=SubscriptionStatus.ACTIVE,
+                status=SubStatus.active,
                 provider="dummy",
                 transaction_id="tx",
             )
