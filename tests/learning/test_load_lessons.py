@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
+import logging
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
@@ -42,7 +43,9 @@ async def test_load_lessons_v0() -> None:
 
 
 @pytest.mark.asyncio()
-async def test_main_loads_lessons() -> None:
+async def test_main_loads_lessons(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -56,12 +59,13 @@ async def test_main_loads_lessons() -> None:
     path = Path(__file__).resolve().parents[2] / "content/lessons_v0.json"
     with patch(
         "services.api.app.diabetes.learning_fixtures.init_db", side_effect=fake_init_db
-    ) as init_db_mock:
+    ) as init_db_mock, caplog.at_level(logging.INFO):
         await learning_fixtures.main([str(path)])
         init_db_mock.assert_called_once()
         with db.SessionLocal() as session:
             lessons = session.query(Lesson).all()
             assert len(lessons) > 0
+    assert "OK: lessons loaded" in caplog.text
 
     db.dispose_engine(engine)
     db.SessionLocal.configure(bind=None)

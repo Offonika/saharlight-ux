@@ -30,6 +30,8 @@ make migrate
 make load-lessons
 ```
 
+Если фикстуры не загружены — используйте `make seed-l1`.
+
 ## Ручная проверка
 
 ```bash
@@ -75,7 +77,8 @@ python scripts/probe_learn.py --user 123 --lesson xe_basics
 1. В `.env` включить `LEARNING_MODE_ENABLED=true`.
 2. Выполнить `alembic upgrade head`.
 3. Загрузить данные: `make load-lessons`.
-4. Запустить бота `python services/api/app/bot.py` и пройти урок `xe_basics`.
-5. Убедиться, что `scripts/probe_learn.py --user 123 --lesson xe_basics`
+4. Проверить содержимое БД: `make db-check`.
+5. Запустить бота `python services/api/app/bot.py` и пройти урок `xe_basics`.
+6. Убедиться, что `scripts/probe_learn.py --user 123 --lesson xe_basics`
    возвращает корректные данные.
-6. Проверить, что в таблице `lesson_progress` появилась запись с `completed=true`.
+7. Проверить, что в таблице `lesson_progress` появилась запись с `completed=true`.

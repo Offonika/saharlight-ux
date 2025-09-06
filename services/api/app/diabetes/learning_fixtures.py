@@ -128,6 +128,7 @@ async def main(argv: list[str] | None = None) -> None:
     if args.reset:
         await reset_lessons()
     await load_lessons(args.path)
+    logger.info("OK: lessons loaded")
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI utility

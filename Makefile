@@ -1,6 +1,12 @@
+VENV?=venv
+PY=$(VENV)/bin/python
+ALEMBIC=$(PY) -m alembic -c services/api/alembic.ini
+DB_NAME?=diabetes_bot
+DB_URL?=postgresql://postgres@localhost/$(DB_NAME)
+RUN_AS_POSTGRES?=sudo -u postgres
+PYTHONPATH?=PYTHONPATH=/opt/saharlight-ux
+
 # === MIGRATIONS ===
-ALEMBIC=alembic -c services/api/alembic.ini
-PYTHONPATH=PYTHONPATH=/opt/saharlight-ux
 
 migrate:
 	$(PYTHONPATH) $(ALEMBIC) upgrade head
@@ -27,5 +33,12 @@ show:
 	$(PYTHONPATH) $(ALEMBIC) show head
 
 # === DATA ===
+
 load-lessons:
-        $(PYTHONPATH) python -m services.api.app.diabetes.learning_fixtures --reset
+	$(PYTHONPATH) $(PY) -m services.api.app.diabetes.learning_fixtures --reset
+
+seed-l1:
+	$(RUN_AS_POSTGRES) psql -d $(DB_NAME) -v ON_ERROR_STOP=1 -f scripts/seed_lesson_l1.sql
+
+db-check:
+	$(RUN_AS_POSTGRES) env DATABASE_URL="$(DB_URL)" $(PY) scripts/check_learning_db.py
