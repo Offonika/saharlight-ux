@@ -2,11 +2,9 @@ import type { ProfileSchema } from '@sdk';
 import { tgFetch, FetchError } from '@/lib/tgFetch';
 import type { Profile, PatchProfileDto, RapidInsulin } from './types';
 
-export async function getProfile(
-  telegramId: number,
-): Promise<Profile | null> {
+export async function getProfile(): Promise<Profile | null> {
   try {
-    return await tgFetch<Profile>(`/profiles?telegramId=${telegramId}`);
+    return await tgFetch<Profile>(`/profile`);
   } catch (error) {
     if (error instanceof FetchError) {
       if (error.status === 404) {

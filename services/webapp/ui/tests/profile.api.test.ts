@@ -22,11 +22,8 @@ describe('profile api', () => {
       );
     vi.stubGlobal('fetch', mockFetch);
 
-    await expect(getProfile(1)).rejects.toThrow('Не удалось получить профиль: boom');
-    expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profiles?telegramId=1',
-      expect.any(Object),
-    );
+    await expect(getProfile()).rejects.toThrow('Не удалось получить профиль: boom');
+    expect(mockFetch).toHaveBeenCalledWith('/api/profile', expect.any(Object));
   });
 
   it('returns null when profile not found', async () => {
@@ -40,12 +37,9 @@ describe('profile api', () => {
       );
     vi.stubGlobal('fetch', mockFetch);
 
-    const result = await getProfile(1);
+    const result = await getProfile();
     expect(result).toBeNull();
-    expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profiles?telegramId=1',
-      expect.any(Object),
-    );
+    expect(mockFetch).toHaveBeenCalledWith('/api/profile', expect.any(Object));
   });
 
   it('throws error when getProfile returns invalid JSON', async () => {
@@ -59,13 +53,10 @@ describe('profile api', () => {
       );
     vi.stubGlobal('fetch', mockFetch);
 
-    await expect(getProfile(1)).rejects.toThrow(
+    await expect(getProfile()).rejects.toThrow(
       'Не удалось получить профиль: Некорректный ответ сервера',
     );
-    expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profiles?telegramId=1',
-      expect.any(Object),
-    );
+    expect(mockFetch).toHaveBeenCalledWith('/api/profile', expect.any(Object));
   });
 
   it('throws error when saveProfile request fails', async () => {
