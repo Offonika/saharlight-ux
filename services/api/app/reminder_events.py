@@ -35,11 +35,13 @@ async def _reminders_gc(_context: ContextTypes.DEFAULT_TYPE) -> None:
 
     def load_active() -> list[Reminder]:
         with session_factory() as session:
-            return session.scalars(
-                sa.select(Reminder)
-                .options(selectinload(Reminder.user).selectinload(User.profile))
-                .where(Reminder.is_enabled == True)  # noqa: E712
-            ).all()
+            return list(
+                session.scalars(
+                    sa.select(Reminder)
+                    .options(selectinload(Reminder.user).selectinload(User.profile))
+                    .where(Reminder.is_enabled == True)  # noqa: E712
+                ).all()
+            )
 
     reminders = await asyncio.to_thread(load_active)
     active_ids = {rem.id for rem in reminders}

@@ -77,9 +77,9 @@ async def get_history(
         )
         if limit is not None:
             stmt = stmt.limit(limit)
-        return session.scalars(stmt).all()
+        return list(session.scalars(stmt).all())
 
-    records = await run_db(_query)
+    records = cast(list[HistoryRecordDB], await run_db(_query))
 
     result: list[HistoryRecordSchema] = []
     for r in records:

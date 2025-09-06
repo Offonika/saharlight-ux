@@ -11,9 +11,7 @@ from pydantic import Field, field_validator
 try:  # pragma: no cover - import guard
     from pydantic_settings import BaseSettings, SettingsConfigDict
 except ModuleNotFoundError as exc:  # pragma: no cover - executed at import time
-    raise ImportError(
-        "`pydantic-settings` is required. Install it with `pip install pydantic-settings`."
-    ) from exc
+    raise ImportError("`pydantic-settings` is required. Install it with `pip install pydantic-settings`.") from exc
 
 
 logger = logging.getLogger(__name__)
@@ -55,44 +53,27 @@ class Settings(BaseSettings):
     public_origin: str = Field(default="", alias="PUBLIC_ORIGIN")
     ui_base_url: str = Field(default="/ui", alias="UI_BASE_URL")
     api_url: Optional[str] = Field(default=None, alias="API_URL")
+    subscription_url: Optional[str] = Field(default=None, alias="SUBSCRIPTION_URL")
     openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
-    openai_assistant_id: Optional[str] = Field(
-        default=None, alias="OPENAI_ASSISTANT_ID"
-    )
-    openai_command_model: str = Field(
-        default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL"
-    )
-    api_key_min_length: int = Field(
-        default=32, alias="API_KEY_MIN_LENGTH"
-    )
+    openai_assistant_id: Optional[str] = Field(default=None, alias="OPENAI_ASSISTANT_ID")
+    openai_command_model: str = Field(default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL")
+    api_key_min_length: int = Field(default=32, alias="API_KEY_MIN_LENGTH")
     learning_mode_enabled: bool = Field(default=True, alias="LEARNING_MODE_ENABLED")
-    learning_model_default: str = Field(
-        default="gpt-4o-mini", alias="LEARNING_MODEL_DEFAULT"
-    )
+    learning_model_default: str = Field(default="gpt-4o-mini", alias="LEARNING_MODEL_DEFAULT")
     learning_prompt_cache: bool = Field(default=True, alias="LEARNING_PROMPT_CACHE")
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     learning_enabled: bool = Field(default=False, alias="LEARNING_ENABLED")
-    learning_assistant_id: Optional[str] = Field(
-        default=None, alias="LEARNING_ASSISTANT_ID"
-    )
-    learning_command_model: str = Field(
-        default="gpt-4o-mini", alias="LEARNING_COMMAND_MODEL"
-    )
+    learning_assistant_id: Optional[str] = Field(default=None, alias="LEARNING_ASSISTANT_ID")
+    learning_command_model: str = Field(default="gpt-4o-mini", alias="LEARNING_COMMAND_MODEL")
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
-    onboarding_video_url: Optional[str] = Field(
-        default=None, alias="ONBOARDING_VIDEO_URL"
-    )
+    onboarding_video_url: Optional[str] = Field(default=None, alias="ONBOARDING_VIDEO_URL")
     telegram_token: Optional[str] = Field(default=None, alias="TELEGRAM_TOKEN")
-    telegram_payments_provider_token: Optional[str] = Field(
-        default=None, alias="TELEGRAM_PAYMENTS_PROVIDER_TOKEN"
-    )
+    telegram_payments_provider_token: Optional[str] = Field(default=None, alias="TELEGRAM_PAYMENTS_PROVIDER_TOKEN")
     admin_id: Optional[int] = Field(default=None, alias="ADMIN_ID")
 
     @field_validator("log_level", mode="before")
     @classmethod
-    def parse_log_level(
-        cls, v: int | str | None
-    ) -> int:  # pragma: no cover - simple parsing
+    def parse_log_level(cls, v: int | str | None) -> int:  # pragma: no cover - simple parsing
         if isinstance(v, str):
             v_lower = v.lower()
             level_map: dict[str, int] = {

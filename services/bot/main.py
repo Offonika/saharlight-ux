@@ -38,6 +38,8 @@ commands = [
     BotCommand("gpt", "🤖 Чат с GPT"),
     BotCommand("reminders", "⏰ Список напоминаний"),
     BotCommand("help", "❓ Справка"),
+    BotCommand("trial", "🎁 14 дней PRO"),
+    BotCommand("upgrade", "💳 Оформить подписку"),
 ]
 
 

@@ -8,5 +8,5 @@ def test_menu_keyboard_webapp_layout() -> None:
         [ui.PHOTO_BUTTON_TEXT, ui.SUGAR_BUTTON_TEXT],
         [ui.DOSE_BUTTON_TEXT, ui.REPORT_BUTTON_TEXT],
         [ui.QUICK_INPUT_BUTTON_TEXT, ui.HELP_BUTTON_TEXT],
-        [ui.SOS_BUTTON_TEXT],
+        [ui.SUBSCRIPTION_BUTTON_TEXT, ui.SOS_BUTTON_TEXT],
     ]

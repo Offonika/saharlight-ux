@@ -25,6 +25,7 @@ REPORT_BUTTON_TEXT = "📈 Отчёт"
 QUICK_INPUT_BUTTON_TEXT = "🕹 Быстрый ввод"
 HELP_BUTTON_TEXT = "ℹ️ Помощь"
 SOS_BUTTON_TEXT = "🆘 SOS контакт"
+SUBSCRIPTION_BUTTON_TEXT = "💳 Подписка"
 BACK_BUTTON_TEXT = "↩️ Назад"
 XE_BUTTON_TEXT = "ХЕ"
 CARBS_BUTTON_TEXT = "Углеводы"
@@ -46,9 +47,11 @@ __all__ = (
     "QUICK_INPUT_BUTTON_TEXT",
     "HELP_BUTTON_TEXT",
     "SOS_BUTTON_TEXT",
+    "SUBSCRIPTION_BUTTON_TEXT",
     "BACK_BUTTON_TEXT",
     "XE_BUTTON_TEXT",
     "CARBS_BUTTON_TEXT",
+    "subscription_keyboard",
 )
 
 
@@ -59,7 +62,7 @@ def menu_keyboard() -> ReplyKeyboardMarkup:
             [KeyboardButton(PHOTO_BUTTON_TEXT), KeyboardButton(SUGAR_BUTTON_TEXT)],
             [KeyboardButton(DOSE_BUTTON_TEXT), KeyboardButton(REPORT_BUTTON_TEXT)],
             [KeyboardButton(QUICK_INPUT_BUTTON_TEXT), KeyboardButton(HELP_BUTTON_TEXT)],
-            [KeyboardButton(SOS_BUTTON_TEXT)],
+            [KeyboardButton(SUBSCRIPTION_BUTTON_TEXT), KeyboardButton(SOS_BUTTON_TEXT)],
         ],
         resize_keyboard=True,
         one_time_keyboard=False,
@@ -116,6 +119,25 @@ def confirm_keyboard(back_cb: str | None = None) -> InlineKeyboardMarkup:
     if back_cb:
         rows.append([InlineKeyboardButton("🔙 Назад", callback_data=back_cb)])
     return InlineKeyboardMarkup(rows)
+
+
+def subscription_keyboard(trial_available: bool) -> InlineKeyboardMarkup:
+    """Build inline keyboard for subscription actions."""
+    from services.api.app import config
+
+    config.reload_settings()
+    settings = config.get_settings()
+    buttons: list[InlineKeyboardButton] = []
+    if trial_available:
+        buttons.append(InlineKeyboardButton("🎁 14 дней PRO (Trial)", callback_data="trial"))
+    if settings.subscription_url:
+        buttons.append(
+            InlineKeyboardButton(
+                "💳 Оформить PRO",
+                web_app=WebAppInfo(settings.subscription_url),
+            )
+        )
+    return InlineKeyboardMarkup([buttons] if buttons else [])
 
 
 def build_timezone_webapp_button() -> InlineKeyboardButton | None:
