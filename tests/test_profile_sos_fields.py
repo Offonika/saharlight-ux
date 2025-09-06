@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 import services.api.app.diabetes.services.db as db
 from services.api.app.diabetes.services.db import Base, User
-from services.api.app.schemas.profile import ProfileSchema
+from services.api.app.schemas.profile import ProfileUpdateSchema
 from services.api.app.services import profile as profile_service
 
 
@@ -19,7 +19,7 @@ async def test_save_profile_stores_sos_fields(monkeypatch: pytest.MonkeyPatch) -
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
-    data = ProfileSchema(
+    data = ProfileUpdateSchema(
         telegramId=1,
         icr=1.0,
         cf=1.0,
@@ -48,7 +48,7 @@ async def test_save_profile_defaults_sos_fields(
     with TestSession() as session:
         session.add(User(telegram_id=2, thread_id="t"))
         session.commit()
-    data = ProfileSchema(
+    data = ProfileUpdateSchema(
         telegramId=2,
         icr=1.0,
         cf=1.0,
@@ -75,7 +75,7 @@ async def test_save_profile_persists_quiet_hours(
     with TestSession() as session:
         session.add(User(telegram_id=3, thread_id="t"))
         session.commit()
-    data = ProfileSchema(
+    data = ProfileUpdateSchema(
         telegramId=3,
         icr=1.0,
         cf=1.0,
@@ -104,7 +104,7 @@ async def test_save_profile_defaults_quiet_hours(
     with TestSession() as session:
         session.add(User(telegram_id=4, thread_id="t"))
         session.commit()
-    data = ProfileSchema(
+    data = ProfileUpdateSchema(
         telegramId=4,
         icr=1.0,
         cf=1.0,

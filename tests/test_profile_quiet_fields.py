@@ -5,12 +5,14 @@ from datetime import time as dt_time
 
 import services.api.app.diabetes.services.db as db
 from services.api.app.diabetes.services.db import Base, User
-from services.api.app.schemas.profile import ProfileSchema
+from services.api.app.schemas.profile import ProfileUpdateSchema
 from services.api.app.services import profile as profile_service
 
 
 @pytest.mark.asyncio
-async def test_save_profile_stores_quiet_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_save_profile_stores_quiet_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -18,7 +20,7 @@ async def test_save_profile_stores_quiet_fields(monkeypatch: pytest.MonkeyPatch)
     with TestSession() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
-    data = ProfileSchema(
+    data = ProfileUpdateSchema(
         telegramId=1,
         icr=1.0,
         cf=1.0,
@@ -37,7 +39,9 @@ async def test_save_profile_stores_quiet_fields(monkeypatch: pytest.MonkeyPatch)
 
 
 @pytest.mark.asyncio
-async def test_save_profile_defaults_quiet_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_save_profile_defaults_quiet_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -45,7 +49,7 @@ async def test_save_profile_defaults_quiet_fields(monkeypatch: pytest.MonkeyPatc
     with TestSession() as session:
         session.add(User(telegram_id=2, thread_id="t"))
         session.commit()
-    data = ProfileSchema(
+    data = ProfileUpdateSchema(
         telegramId=2,
         icr=1.0,
         cf=1.0,
