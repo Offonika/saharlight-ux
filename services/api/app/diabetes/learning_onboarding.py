@@ -3,12 +3,59 @@
 from __future__ import annotations
 
 import logging
-from typing import cast
+from typing import Callable, cast
 
-from telegram import Update
+from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 logger = logging.getLogger(__name__)
+
+
+def _norm_age_group(text: str) -> str | None:
+    """Normalize *text* to a known age group."""
+
+    t = text.strip().lower()
+    if t.isdigit():
+        age = int(t)
+        if age < 18:
+            return "teen"
+        if age >= 60:
+            return "60+"
+        return "adult"
+    mapping = {
+        "teen": "teen",
+        "adult": "adult",
+        "60+": "60+",
+    }
+    return mapping.get(t)
+
+
+def _norm_diabetes_type(text: str) -> str | None:
+    """Normalize *text* to a diabetes type code."""
+
+    t = text.strip().lower().replace(" ", "")
+    if t in {"1", "t1", "type1", "i"}:
+        return "T1"
+    if t in {"2", "t2", "type2", "ii"}:
+        return "T2"
+    return None
+
+
+def _norm_level(text: str) -> str | None:
+    """Normalize *text* to a learning level."""
+
+    t = text.strip().lower()
+    if t.isdigit():
+        num_map: dict[int, str] = {0: "novice", 1: "intermediate", 2: "expert"}
+        return num_map.get(int(t))
+    str_map: dict[str, str] = {
+        "novice": "novice",
+        "beginner": "novice",
+        "intermediate": "intermediate",
+        "advanced": "expert",
+        "expert": "expert",
+    }
+    return str_map.get(t)
 
 
 # Questions asked during the onboarding flow.
@@ -16,10 +63,33 @@ AGE_PROMPT = "Укажите вашу возрастную группу."
 DIABETES_TYPE_PROMPT = "Укажите тип диабета."
 LEARNING_LEVEL_PROMPT = "Укажите ваш уровень знаний."
 
-_ORDER = [
-    ("age_group", AGE_PROMPT),
-    ("diabetes_type", DIABETES_TYPE_PROMPT),
-    ("learning_level", LEARNING_LEVEL_PROMPT),
+
+_ORDER: list[
+    tuple[
+        str,
+        str,
+        Callable[[str], str | None],
+        ReplyKeyboardMarkup,
+    ]
+] = [
+    (
+        "age_group",
+        AGE_PROMPT,
+        _norm_age_group,
+        ReplyKeyboardMarkup([["teen", "adult", "60+"]], one_time_keyboard=True),
+    ),
+    (
+        "diabetes_type",
+        DIABETES_TYPE_PROMPT,
+        _norm_diabetes_type,
+        ReplyKeyboardMarkup([["T1", "T2"]], one_time_keyboard=True),
+    ),
+    (
+        "learning_level",
+        LEARNING_LEVEL_PROMPT,
+        _norm_level,
+        ReplyKeyboardMarkup([["novice", "expert"]], one_time_keyboard=True),
+    ),
 ]
 
 
@@ -37,13 +107,19 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     overrides = cast(
         dict[str, str], user_data.setdefault("learn_profile_overrides", {})
     )
-    for key, prompt in _ORDER:
-        if not overrides.get(key):
-            message = update.message
-            if message is not None:
-                await message.reply_text(prompt)
-            user_data["learn_onboarding_stage"] = key
-            return False
+    message = update.message
+    for key, prompt, norm, keyboard in _ORDER:
+        raw = overrides.get(key)
+        if raw is not None:
+            normalized = norm(raw)
+            if normalized is not None:
+                overrides[key] = normalized
+                continue
+            overrides.pop(key, None)
+        if message is not None:
+            await message.reply_text(prompt, reply_markup=keyboard)
+        user_data["learn_onboarding_stage"] = key
+        return False
     user_data.pop("learn_onboarding_stage", None)
     user_data["learning_onboarded"] = True
     return True

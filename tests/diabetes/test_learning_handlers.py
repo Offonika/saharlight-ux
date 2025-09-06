@@ -86,9 +86,9 @@ async def test_learn_enabled(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) ->
             user_data={
                 "learning_onboarded": True,
                 "learn_profile_overrides": {
-                    "age_group": "a",
-                    "diabetes_type": "b",
-                    "learning_level": "c",
+                    "age_group": "adult",
+                    "diabetes_type": "T1",
+                    "learning_level": "novice",
                 },
             }
         ),
