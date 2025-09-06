@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 from services.api.app.diabetes.services.db import SubscriptionPlan, SubStatus
 
@@ -52,6 +52,14 @@ class SubscriptionSchema(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True, from_attributes=True, use_enum_values=True
     )
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def _normalize_status(cls, value: str | SubStatus) -> str | SubStatus:
+        """Allow case-insensitive status values from billing API."""
+        if isinstance(value, str):
+            return value.lower()
+        return value
 
 
 class BillingStatusResponse(BaseModel):

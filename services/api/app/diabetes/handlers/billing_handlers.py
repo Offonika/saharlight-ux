@@ -86,7 +86,7 @@ async def upgrade_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             update.effective_user.id if update.effective_user else "?",
         )
         return
-    await message.reply_text(f"💳 Оформить подписку: {url}")
+    await message.reply_text(f"💳 Оформить PRO: {url}")
     if update.effective_user:
         logger.info(
             "billing_action=user_id:%s action=upgrade result=ok",

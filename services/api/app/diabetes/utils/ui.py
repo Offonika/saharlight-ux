@@ -126,15 +126,18 @@ def subscription_keyboard(trial_available: bool) -> InlineKeyboardMarkup:
     from services.api.app import config
 
     config.reload_settings()
-    settings = config.get_settings()
     buttons: list[InlineKeyboardButton] = []
     if trial_available:
-        buttons.append(InlineKeyboardButton("🎁 14 дней PRO (Trial)", callback_data="trial"))
-    if settings.subscription_url:
+        buttons.append(InlineKeyboardButton("🎁 Trial", callback_data="trial"))
+    try:
+        url = config.build_ui_url("/subscription")
+    except RuntimeError:
+        url = None
+    if url:
         buttons.append(
             InlineKeyboardButton(
                 "💳 Оформить PRO",
-                web_app=WebAppInfo(settings.subscription_url),
+                web_app=WebAppInfo(url),
             )
         )
     return InlineKeyboardMarkup([buttons] if buttons else [])
