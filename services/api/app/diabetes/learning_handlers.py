@@ -8,6 +8,8 @@ from typing import Any, Mapping, MutableMapping, cast
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
 
+from services.api.app.config import settings
+from .handlers import learning_handlers as legacy_handlers
 from .dynamic_tutor import check_user_answer, generate_step_text
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
@@ -50,6 +52,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     message = update.message
     if message is None:
         return
+    if settings.learning_content_mode == "static":
+        await legacy_handlers.learn_command(update, context)
+        return
     if not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
@@ -87,6 +92,9 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     message = update.message
     if message is None:
         return
+    if settings.learning_content_mode == "static":
+        await legacy_handlers.lesson_command(update, context)
+        return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     if _rate_limited(user_data, "_lesson_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
@@ -106,6 +114,9 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     query = update.callback_query
     if query is None:
+        return
+    if settings.learning_content_mode == "static":
+        await legacy_handlers.lesson_command(update, context)
         return
     await query.answer()
     raw_message = query.message
@@ -129,6 +140,9 @@ async def lesson_answer_handler(
 
     message = update.message
     if message is None or not message.text:
+        return
+    if settings.learning_content_mode == "static":
+        await legacy_handlers.quiz_answer_handler(update, context)
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
@@ -160,6 +174,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     message = update.message
     if message is None:
+        return
+    if settings.learning_content_mode == "static":
+        await legacy_handlers.exit_command(update, context)
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     clear_state(user_data)
