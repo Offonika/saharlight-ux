@@ -306,6 +306,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     const telegramId = resolveTelegramId(user, initData);
 
     if (typeof telegramId !== "number") {
+      setLoaded(true);
       return;
     }
 
@@ -448,7 +449,6 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   }, [user, initData, toast, t]);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
-    if (!loaded) return;
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
     if (field === "timezone") {
       setProfile((prev) => ({ ...prev, timezone: value }));
@@ -747,7 +747,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       id="cf"
                       type="text"
                       inputMode="decimal"
-                      pattern="^\\d*(?:[.,]\\д*)?$"
+                      pattern="^\\d*(?:[.,]\\d*)?$"
                       value={profile.cf}
                       onChange={(e) => handleInputChange("cf", e.target.value)}
                       className={`medical-input ${fieldErrors.cf ? 'border-destructive' : ''}`}
