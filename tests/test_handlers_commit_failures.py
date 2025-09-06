@@ -3,17 +3,19 @@ import json
 import logging
 from dataclasses import dataclass
 from typing import Any, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 from telegram import Bot, Update, User
 from telegram.ext import CallbackContext, ConversationHandler, Job, JobQueue
 from services.api.app.diabetes.handlers import profile as profile_handlers
 import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
+from services.api.app.diabetes.services.db import Base, Profile, dispose_engine
 
 
 class DummyMessage:
@@ -87,16 +89,19 @@ def make_context(
 
 
 @pytest.mark.asyncio
-async def test_profile_command_no_local_session(
+async def test_profile_command_saves_locally(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Profile command should not touch the local DB session."""
+    """Profile command persists profile to local DB."""
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
 
-    session_factory = MagicMock()
-    monkeypatch.setattr(profile_handlers, "SessionLocal", session_factory)
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(profile_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(profile_handlers, "run_db", None)
 
     dummy_api = MagicMock()
     dummy_api.profiles_post = MagicMock()
@@ -110,9 +115,46 @@ async def test_profile_command_no_local_session(
 
     result = await profile_handlers.profile_command(update, context)
 
-    assert not session_factory.called
+    with TestSession() as session:
+        prof = session.get(Profile, 1)
+        assert prof is not None
+        assert prof.icr == 10.0
+        assert prof.cf == 2.0
+        assert prof.target_bg == 6.0
+        assert prof.low_threshold == 4.0
+        assert prof.high_threshold == 9.0
+    dispose_engine(engine)
+
     assert message.texts[0].startswith("✅ Профиль обновлён")
     assert result == ConversationHandler.END
+
+
+@pytest.mark.asyncio
+async def test_profile_command_db_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
+    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
+
+    run_db = AsyncMock(return_value=False)
+    monkeypatch.setattr(profile_handlers, "run_db", run_db)
+
+    dummy_api = MagicMock()
+    dummy_api.profiles_post = MagicMock()
+    monkeypatch.setattr(
+        profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock)
+    )
+
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["10", "2", "6", "4", "9"], user_data={})
+
+    result = await profile_handlers.profile_command(update, context)
+
+    assert message.texts == ["⚠️ Не удалось сохранить профиль."]
+    assert result == ConversationHandler.END
+    run_db.assert_awaited_once()
 
 
 @pytest.mark.asyncio
