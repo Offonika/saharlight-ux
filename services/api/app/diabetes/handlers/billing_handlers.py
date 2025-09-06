@@ -4,7 +4,12 @@ import logging
 from datetime import datetime
 
 import httpx
-from telegram import KeyboardButton, Message, ReplyKeyboardMarkup, Update, WebAppInfo
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    Update,
+)
 from telegram.ext import ContextTypes
 
 from ... import config
@@ -32,10 +37,10 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await message.reply_text("❌ Не настроен API_URL")
         logger.info("billing_action=user_id:%s action=trial result=no_api_url", user.id)
         return
-    url = f"{base.rstrip('/')}/billing/trial"
+    trial_url = f"{base.rstrip('/')}/billing/trial"
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(url, params={"user_id": user.id}, timeout=10.0)
+            resp = await client.post(trial_url, params={"user_id": user.id}, timeout=10.0)
             resp.raise_for_status()
             data = resp.json()
     except httpx.HTTPStatusError as exc:
@@ -95,11 +100,24 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     end_str = end_dt.strftime("%d.%m.%Y")
     await message.reply_text(f"🎉 Активирован trial до {end_str}")
+    sub_url = config.get_settings().subscription_url
+    if sub_url:
+        text = (
+            "🟢 Подписка PRO даёт расширенные функции:\n"
+            "• Распознавание блюд по фото\n"
+            "• Чат с GPT\n"
+            "• Расширенные напоминания\n\n"
+            "👉 Чтобы оформить подписку, нажмите кнопку ниже:"
+        )
+        kb = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Оформить PRO", url=sub_url)]]
+        )
+        await message.reply_text(text, reply_markup=kb)
     logger.info("billing_action=user_id:%s action=trial result=ok", user.id)
 
 
 async def upgrade_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send a link to the subscription page."""
+    """Send information about PRO subscription with upgrade link."""
 
     message = update.message
     if message is None:
@@ -112,9 +130,15 @@ async def upgrade_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             update.effective_user.id if update.effective_user else "?",
         )
         return
-    button = KeyboardButton("💳 Оформить PRO", web_app=WebAppInfo(url))
-    kb = ReplyKeyboardMarkup([[button]], resize_keyboard=True, one_time_keyboard=True)
-    await message.reply_text("💳 Оформить PRO", reply_markup=kb)
+    text = (
+        "🟢 Подписка PRO даёт расширенные функции:\n"
+        "• Распознавание блюд по фото\n"
+        "• Чат с GPT\n"
+        "• Расширенные напоминания\n\n"
+        "👉 Чтобы оформить подписку, нажмите кнопку ниже:"
+    )
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton("Оформить PRO", url=url)]])
+    await message.reply_text(text, reply_markup=kb)
     if update.effective_user:
         logger.info(
             "billing_action=user_id:%s action=upgrade result=ok",

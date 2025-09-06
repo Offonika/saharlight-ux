@@ -23,6 +23,7 @@ class DummyMessage:
 @pytest.mark.asyncio
 async def test_trial_command_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
+    monkeypatch.setenv("SUBSCRIPTION_URL", "https://pay.example/sub")
     config.reload_settings()
 
     end_date = "2025-01-15T00:00:00+00:00"
@@ -58,8 +59,22 @@ async def test_trial_command_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await billing_handlers.trial_command(update, context)
 
-    assert message.texts == ["🎉 Активирован trial до 15.01.2025"]
+    assert message.texts == [
+        "🎉 Активирован trial до 15.01.2025",
+        (
+            "🟢 Подписка PRO даёт расширенные функции:\n"
+            "• Распознавание блюд по фото\n"
+            "• Чат с GPT\n"
+            "• Расширенные напоминания\n\n"
+            "👉 Чтобы оформить подписку, нажмите кнопку ниже:"
+        ),
+    ]
+    markup = message.markups[1]
+    button = markup.inline_keyboard[0][0]
+    assert button.text == "Оформить PRO"
+    assert button.url == "https://pay.example/sub"
     monkeypatch.delenv("API_URL")
+    monkeypatch.delenv("SUBSCRIPTION_URL")
     config.reload_settings()
 
 
@@ -203,11 +218,19 @@ async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await billing_handlers.upgrade_command(update, context)
 
-    assert message.texts == ["💳 Оформить PRO"]
+    assert message.texts == [
+        (
+            "🟢 Подписка PRO даёт расширенные функции:\n"
+            "• Распознавание блюд по фото\n"
+            "• Чат с GPT\n"
+            "• Расширенные напоминания\n\n"
+            "👉 Чтобы оформить подписку, нажмите кнопку ниже:"
+        )
+    ]
     markup = message.markups[0]
-    button = markup.keyboard[0][0]
-    assert button.text == "💳 Оформить PRO"
-    assert button.web_app and button.web_app.url == "https://pay.example/sub"
+    button = markup.inline_keyboard[0][0]
+    assert button.text == "Оформить PRO"
+    assert button.url == "https://pay.example/sub"
     monkeypatch.delenv("SUBSCRIPTION_URL")
     config.reload_settings()
 
