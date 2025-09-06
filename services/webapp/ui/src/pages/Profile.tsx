@@ -13,6 +13,7 @@ import ProfileHelpSheet from "@/components/ProfileHelpSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "@/i18n";
 import { saveProfile, getProfile, patchProfile } from "@/features/profile/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PatchProfileDto, RapidInsulin } from "@/features/profile/types";
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
@@ -294,6 +295,13 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   >(null);
   const [loaded, setLoaded] = useState(false);
 
+  const queryClient = useQueryClient();
+  const patchProfileMutation = useMutation({
+    mutationFn: patchProfile,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['profile'] }),
+  });
+
   useEffect(() => {
     if (isOnboardingFlow) {
       postOnboardingEvent("onboarding_started", onboardingStep).catch(() =>
@@ -417,16 +425,15 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         setLoaded(true);
 
         if (timezoneAuto && timezone !== deviceTz) {
-          patchProfile({
-            timezone: deviceTz ?? null,
-            timezoneAuto: true,
-          })
-            .then(() =>
+          // используем ту же мутацию, что и при ручных изменениях
+          patchProfileMutation
+            .mutateAsync({ timezone: deviceTz, timezoneAuto: true })
+            .then(() => {
               toast({
                 title: t('profile.updated'),
                 description: t('profile.timezoneUpdated'),
-              }),
-            )
+              });
+            })
             .catch((error) => {
               const message =
                 error instanceof Error ? error.message : String(error);
@@ -454,7 +461,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     return () => {
       cancelled = true;
     };
-  }, [user, initData, toast, t]);
+  }, [user, initData, toast, t]); // при желании можно сузить зависимости до [user, initData]
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
