@@ -12,6 +12,7 @@ import {
 } from '@/api/billing';
 import { useTelegram } from '@/hooks/useTelegram';
 import { useTelegramInitData } from '@/hooks/useTelegramInitData';
+import { setTelegramInitData } from '@/lib/telegram-auth';
 import { resolveTelegramId } from './resolveTelegramId';
 
 interface TariffPlan {
@@ -91,10 +92,7 @@ const Subscription = () => {
 
   useEffect(() => {
     if (initData) {
-      const w = window as any;
-      w.Telegram = w.Telegram || {};
-      w.Telegram.WebApp = w.Telegram.WebApp || {};
-      w.Telegram.WebApp.initData = initData;
+      setTelegramInitData(initData);
     }
   }, [initData]);
 

@@ -1,3 +1,5 @@
+import { getTelegramAuthHeaders, setTelegramInitData } from '@/lib/telegram-auth';
+
 export function getInitDataRaw(): string | null {
   const initData =
     (window as unknown as { Telegram?: { WebApp?: { initData?: string } } })
@@ -19,18 +21,15 @@ export async function postOnboardingEvent(
   step?: string,
   meta?: any,
 ) {
-  const initData = getInitDataRaw();
-
-  if (!initData) {
+  const rawInitData = getInitDataRaw();
+  if (rawInitData) {
+    setTelegramInitData(rawInitData);
+  }
+  const headers = getTelegramAuthHeaders();
+  if (!headers.Authorization) {
     return;
   }
-
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (initData) {
-    headers['X-Telegram-Init-Data'] = initData;
-  }
+  headers['Content-Type'] = 'application/json';
 
   const res = await fetch('/api/onboarding/events', {
     method: 'POST',
@@ -41,15 +40,13 @@ export async function postOnboardingEvent(
 }
 
 export async function getOnboardingStatus() {
-  const initData = getInitDataRaw();
-
-  if (!initData) {
-    return;
+  const rawInitData = getInitDataRaw();
+  if (rawInitData) {
+    setTelegramInitData(rawInitData);
   }
-
-  const headers: Record<string, string> = {};
-  if (initData) {
-    headers['X-Telegram-Init-Data'] = initData;
+  const headers = getTelegramAuthHeaders();
+  if (!headers.Authorization) {
+    return;
   }
   const res = await fetch('/api/onboarding/status', { headers });
   if (!res.ok) throw new Error('Failed to get onboarding status');
