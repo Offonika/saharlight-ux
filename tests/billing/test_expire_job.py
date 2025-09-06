@@ -71,6 +71,46 @@ async def test_expire_subscriptions_logs_event(
     assert any("expired 1 subscription" in r.getMessage() for r in caplog.records)
 
 
+@pytest.mark.asyncio
+async def test_expire_pending_without_end_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session_local = _setup_db()
+    with session_local() as session:
+        sub = Subscription(
+            user_id=1,
+            plan=SubscriptionPlan.PRO,
+            status=SubStatus.pending,
+            provider="dummy",
+            transaction_id="txp",
+            end_date=None,
+        )
+        session.add(sub)
+        session.commit()
+
+    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs) -> Any:
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(jobs, "run_db", run_db)
+    monkeypatch.setattr(jobs, "_utcnow", lambda: datetime(2024, 1, 2, tzinfo=timezone.utc))
+
+    await jobs.expire_subscriptions(None)
+
+    with session_local() as session:
+        sub = session.scalar(select(Subscription))
+        assert sub is not None
+        assert sub.status == SubStatus.expired
+        assert sub.end_date is not None
+        log = session.scalar(
+            select(BillingLog).where(
+                BillingLog.user_id == 1,
+                BillingLog.event == BillingEvent.EXPIRED,
+            )
+        )
+        assert log is not None
+
+
 def test_schedule_subscription_expiration_sets_job_kwargs() -> None:
     class DummyJob:
         next_run_time = None

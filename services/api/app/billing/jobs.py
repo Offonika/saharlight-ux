@@ -51,13 +51,23 @@ async def expire_subscriptions(_context: ContextTypes.DEFAULT_TYPE) -> None:
         now = _utcnow()
         subs = session.scalars(
             sa.select(Subscription).where(
-                Subscription.status.in_([SubStatus.trial.value, SubStatus.active.value]),
-                Subscription.end_date != None,  # noqa: E711
-                Subscription.end_date < now,
+                Subscription.status.in_(
+                    [
+                        SubStatus.trial.value,
+                        SubStatus.pending.value,
+                        SubStatus.active.value,
+                    ]
+                ),
+                sa.or_(
+                    Subscription.end_date == None,  # noqa: E711
+                    Subscription.end_date < now,
+                ),
             )
         ).all()
         for sub in subs:
-            if sub.status == SubStatus.active.value:
+            if sub.end_date is None:
+                sub.end_date = now
+            if sub.status != SubStatus.trial.value:
                 sub.status = cast(SubStatus, SubStatus.expired.value)
             log_billing_event(
                 session,

@@ -77,6 +77,17 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     assert set(data) == {"checkout_id"}
     assert data["checkout_id"].startswith("dummy-")
 
+    with session_local() as session:
+        sub = session.scalar(
+            select(Subscription).where(
+                Subscription.transaction_id == data["checkout_id"]
+            )
+        )
+        assert sub is not None
+        assert sub.status == SubStatus.pending
+        assert sub.plan == SubscriptionPlan.PRO
+        assert sub.end_date is not None
+
     with client:
         webhook = client.post(
             f"/api/billing/mock-webhook/{data['checkout_id']}",

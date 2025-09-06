@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -36,9 +38,10 @@ async def test_subscription_creation_atomicity() -> None:
             draft = Subscription(
                 user_id=1,
                 plan=SubscriptionPlan.PRO,
-                status=SubStatus.active,
+                status=SubStatus.pending,
                 provider="dummy",
                 transaction_id="tx",
+                end_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
             )
             session.add(draft)
             log_billing_event(

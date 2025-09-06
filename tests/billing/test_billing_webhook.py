@@ -78,6 +78,13 @@ def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog:
         BILLING_WEBHOOK_SECRET=secret,
     )
     checkout_id = create_subscription(client)
+    with session_local() as session:
+        pending_sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout_id)
+        )
+        assert pending_sub is not None
+        assert pending_sub.status == SubStatus.pending
+        assert pending_sub.end_date is not None
     event_id = "evt1"
     sig = _sign(secret, event_id, checkout_id)
     event = {
@@ -92,7 +99,9 @@ def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog:
     assert resp.status_code == 200
     assert resp.json() == {"status": "processed"}
     with session_local() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
+        sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout_id)
+        )
         assert sub is not None
         assert sub.status == SubStatus.active
         assert sub.plan == SubscriptionPlan.PRO
@@ -160,10 +169,12 @@ def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": bad_sig})
     assert resp.status_code == 400
     with session_local() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
+        sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout_id)
+        )
         assert sub is not None
-        assert sub.status == SubStatus.active
-        assert sub.end_date is None
+        assert sub.status == SubStatus.pending
+        assert sub.end_date is not None
 
 
 def test_webhook_signature_header_mismatch(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -183,10 +194,12 @@ def test_webhook_signature_header_mismatch(monkeypatch: pytest.MonkeyPatch) -> N
         resp = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": "wrong"})
     assert resp.status_code == 400
     with session_local() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
+        sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout_id)
+        )
         assert sub is not None
-        assert sub.status == SubStatus.active
-        assert sub.end_date is None
+        assert sub.status == SubStatus.pending
+        assert sub.end_date is not None
 
 
 def test_webhook_rejects_unknown_ip(monkeypatch: pytest.MonkeyPatch) -> None:

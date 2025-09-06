@@ -399,6 +399,7 @@ class Timezone(Base):
 
 class SubStatus(str, Enum):
     trial = "trial"
+    pending = "pending"
     active = "active"
     canceled = "canceled"
     expired = "expired"

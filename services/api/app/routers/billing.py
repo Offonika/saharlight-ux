@@ -180,7 +180,11 @@ async def subscribe(
         stmt = select(Subscription).where(
             Subscription.user_id == user_id,
             Subscription.status.in_(
-                [SubStatus.trial.value, SubStatus.active.value]
+                [
+                    SubStatus.trial.value,
+                    SubStatus.pending.value,
+                    SubStatus.active.value,
+                ]
             ),
         )
         if session.scalars(stmt).first() is not None:
@@ -195,11 +199,11 @@ async def subscribe(
             sub = Subscription(
                 user_id=user_id,
                 plan=plan,
-                status=cast(SubStatus, SubStatus.active.value),
+                status=cast(SubStatus, SubStatus.pending.value),
                 provider=settings.billing_provider.value,
                 transaction_id=checkout_id,
                 start_date=now,
-                end_date=None,
+                end_date=now,
             )
             session.add(sub)
             log_billing_event(
@@ -225,11 +229,11 @@ async def subscribe(
         sub = Subscription(
             user_id=user_id,
             plan=plan,
-            status=cast(SubStatus, SubStatus.active.value),
+            status=cast(SubStatus, SubStatus.pending.value),
             provider=settings.billing_provider.value,
             transaction_id=checkout["id"],
             start_date=now,
-            end_date=None,
+            end_date=now,
         )
         session.add(sub)
         log_billing_event(
