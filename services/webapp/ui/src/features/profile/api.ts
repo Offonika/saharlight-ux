@@ -29,6 +29,13 @@ export async function saveProfile({
   target,
   low,
   high,
+  quietStart,
+  quietEnd,
+  timezone,
+  timezoneAuto,
+  sosContact,
+  sosAlertsEnabled,
+  therapyType,
 }: {
   telegramId: number;
   target: number;
@@ -36,6 +43,13 @@ export async function saveProfile({
   high: number;
   icr?: number;
   cf?: number;
+  quietStart?: string;
+  quietEnd?: string;
+  timezone?: string;
+  timezoneAuto?: boolean;
+  sosContact?: string | null;
+  sosAlertsEnabled?: boolean;
+  therapyType?: string | null;
 }) {
   try {
     const body: Record<string, unknown> = {
@@ -51,6 +65,34 @@ export async function saveProfile({
 
     if (cf !== undefined) {
       body.cf = cf;
+    }
+
+    if (quietStart !== undefined) {
+      body.quietStart = quietStart;
+    }
+
+    if (quietEnd !== undefined) {
+      body.quietEnd = quietEnd;
+    }
+
+    if (timezone !== undefined) {
+      body.timezone = timezone;
+    }
+
+    if (timezoneAuto !== undefined) {
+      body.timezoneAuto = timezoneAuto;
+    }
+
+    if (sosContact !== undefined) {
+      body.sosContact = sosContact;
+    }
+
+    if (sosAlertsEnabled !== undefined) {
+      body.sosAlertsEnabled = sosAlertsEnabled;
+    }
+
+    if (therapyType !== undefined) {
+      body.therapyType = therapyType;
     }
 
     return await tgFetch<ProfileSchema>('/profiles', {

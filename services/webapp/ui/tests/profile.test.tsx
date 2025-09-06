@@ -70,6 +70,8 @@ describe('Profile page', () => {
       sosAlertsEnabled: true,
       sosContact: null,
       glucoseUnits: 'mmol/L',
+      quietStart: '23:00',
+      quietEnd: '07:00',
     });
     const realDTF = Intl.DateTimeFormat;
     const realResolved = realDTF.prototype.resolvedOptions;
@@ -274,11 +276,52 @@ describe('Profile page', () => {
         target: 5.5,
         low: 4,
         high: 10,
+        timezone: 'Europe/Moscow',
+        timezoneAuto: false,
+        quietStart: '23:00',
+        quietEnd: '07:00',
+        sosAlertsEnabled: true,
+        sosContact: null,
+        therapyType: 'insulin',
       });
       expect(patchProfile).not.toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({ title: 'Профиль сохранен' }),
       );
+    });
+  });
+
+  it('preserves settings when updating ICR only', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (saveProfile as vi.Mock).mockResolvedValue(undefined);
+    const { getByText, getByPlaceholderText } = render(<Profile />);
+
+    await waitFor(() => {
+      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+    });
+
+    const icrInput = getByPlaceholderText('12') as HTMLInputElement;
+    fireEvent.change(icrInput, { target: { value: '13' } });
+
+    fireEvent.click(getByText('Сохранить настройки'));
+
+    await waitFor(() => {
+      expect(saveProfile).toHaveBeenCalledWith({
+        telegramId: 123,
+        icr: 13,
+        cf: 2.5,
+        target: 6,
+        low: 4,
+        high: 10,
+        timezone: 'Europe/Moscow',
+        timezoneAuto: false,
+        quietStart: '23:00',
+        quietEnd: '07:00',
+        sosAlertsEnabled: true,
+        sosContact: null,
+        therapyType: 'insulin',
+      });
+      expect(patchProfile).not.toHaveBeenCalled();
     });
   });
 
@@ -306,6 +349,10 @@ describe('Profile page', () => {
         timezone: 'Europe/Moscow',
         timezoneAuto: false,
         therapyType: therapy,
+        quietStart: '23:00',
+        quietEnd: '07:00',
+        sosAlertsEnabled: true,
+        sosContact: null,
       });
       const { queryByLabelText } = render(<Profile therapyType={therapy} />);
       await waitFor(() => {
@@ -336,6 +383,10 @@ describe('Profile page', () => {
         timezone: 'Europe/Moscow',
         timezoneAuto: false,
         therapyType: therapy,
+        quietStart: '23:00',
+        quietEnd: '07:00',
+        sosAlertsEnabled: true,
+        sosContact: null,
       });
       render(<Profile therapyType={therapy} />);
       await waitFor(() => {
@@ -360,6 +411,10 @@ describe('Profile page', () => {
         timezone: 'Europe/Moscow',
         timezoneAuto: false,
         therapyType: therapy,
+        quietStart: '23:00',
+        quietEnd: '07:00',
+        sosAlertsEnabled: true,
+        sosContact: null,
       });
       render(<Profile therapyType={therapy} />);
       await waitFor(() => {
@@ -377,25 +432,29 @@ describe('Profile page', () => {
 
   it('allows zero pre-bolus and after-meal delay for insulin therapy', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    (getProfile as vi.Mock).mockResolvedValueOnce({
-      telegramId: 123,
-      icr: 12,
-      cf: 2.5,
-      target: 6,
-      low: 4,
-      high: 10,
-      dia: 4,
-      preBolus: 0,
-      roundStep: 0.5,
-      carbUnits: 'g',
-      gramsPerXe: 12,
-      rapidInsulinType: 'aspart' as RapidInsulin,
-      maxBolus: 10,
-      afterMealMinutes: 0,
-      timezone: 'Europe/Moscow',
-      timezoneAuto: false,
-      therapyType: 'insulin',
-    });
+      (getProfile as vi.Mock).mockResolvedValueOnce({
+        telegramId: 123,
+        icr: 12,
+        cf: 2.5,
+        target: 6,
+        low: 4,
+        high: 10,
+        dia: 4,
+        preBolus: 0,
+        roundStep: 0.5,
+        carbUnits: 'g',
+        gramsPerXe: 12,
+        rapidInsulinType: 'aspart' as RapidInsulin,
+        maxBolus: 10,
+        afterMealMinutes: 0,
+        timezone: 'Europe/Moscow',
+        timezoneAuto: false,
+        therapyType: 'insulin',
+        quietStart: '23:00',
+        quietEnd: '07:00',
+        sosAlertsEnabled: true,
+        sosContact: null,
+      });
 
     render(<Profile />);
     await waitFor(() => {
@@ -420,6 +479,10 @@ describe('Profile page', () => {
         timezone: 'Europe/Moscow',
         timezoneAuto: false,
         therapyType: therapy,
+        quietStart: '23:00',
+        quietEnd: '07:00',
+        sosAlertsEnabled: true,
+        sosContact: null,
       });
       render(<Profile therapyType={therapy} />);
       await waitFor(() => {
@@ -824,6 +887,13 @@ describe('Profile page', () => {
         target: 6,
         low: 4,
         high: 10,
+        timezone: 'Europe/Moscow',
+        timezoneAuto: false,
+        quietStart: '23:00',
+        quietEnd: '07:00',
+        sosAlertsEnabled: true,
+        sosContact: null,
+        therapyType: 'insulin',
       });
       expect(patchProfile).not.toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith(
