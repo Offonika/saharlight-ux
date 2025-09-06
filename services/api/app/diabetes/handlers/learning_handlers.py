@@ -2,12 +2,21 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, MutableMapping, cast
+from typing import TYPE_CHECKING, Any, MutableMapping, TypeAlias, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 from telegram import Update
-from telegram.ext import ApplicationHandlerStop, ContextTypes
+from telegram.ext import (
+    Application,
+    ApplicationHandlerStop,
+    CommandHandler,
+    ContextTypes,
+    ExtBot,
+    JobQueue,
+    MessageHandler,
+    filters,
+)
 
 from services.api.app.config import settings
 from services.api.app.diabetes import curriculum_engine
@@ -23,6 +32,18 @@ from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.ui import menu_keyboard
 from ...ui.keyboard import build_main_keyboard
 from ..learning_onboarding import ensure_overrides
+
+if TYPE_CHECKING:
+    App: TypeAlias = Application[
+        ExtBot[None],
+        ContextTypes.DEFAULT_TYPE,
+        dict[str, object],
+        dict[str, object],
+        dict[str, object],
+        JobQueue[ContextTypes.DEFAULT_TYPE],
+    ]
+else:
+    App = Application
 
 logger = logging.getLogger(__name__)
 
@@ -313,6 +334,27 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     logger.info(
         "exit_command_complete",
         extra={"user_id": user.id, "lesson_id": lesson_id},
+    )
+
+
+def register_handlers(app: App) -> None:
+    """Register learning-related handlers on the application."""
+
+    from . import learning_onboarding as onboarding
+
+    app.add_handler(CommandHandler("learn", learn_command))
+    app.add_handler(CommandHandler("lesson", lesson_command))
+    app.add_handler(CommandHandler("quiz", quiz_command))
+    app.add_handler(CommandHandler("progress", progress_command))
+    app.add_handler(CommandHandler("exit", exit_command))
+    app.add_handler(CommandHandler("learn_reset", onboarding.learn_reset))
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding.onboarding_reply)
+    )
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False
+        )
     )
 
 

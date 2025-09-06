@@ -25,7 +25,9 @@ class DummyMessage:
         self.text = text
         self.replies: list[str] = []
 
-    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
+    async def reply_text(
+        self, text: str, **kwargs: Any
+    ) -> None:  # pragma: no cover - helper
         self.replies.append(text)
 
 
@@ -64,51 +66,63 @@ async def test_learning_onboarding_flow(
         )
 
         await learning_handlers.learn_command(update1, context)
-        assert message1.replies == [onboarding_utils.ONBOARDING_PROMPT]
+        assert message1.replies == [onboarding_utils.AGE_PROMPT]
 
-        message2 = DummyMessage("да")
+        message2 = DummyMessage("adult")
         update2 = cast(Update, SimpleNamespace(message=message2, effective_user=None))
         await learning_onboarding.onboarding_reply(update2, context)
+        assert message2.replies == [onboarding_utils.DIABETES_TYPE_PROMPT]
 
-        message3 = DummyMessage()
+        message3 = DummyMessage("type1")
         update3 = cast(Update, SimpleNamespace(message=message3, effective_user=None))
-        await learning_handlers.learn_command(update3, context)
+        await learning_onboarding.onboarding_reply(update3, context)
+        assert message3.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
+
+        message4 = DummyMessage("beginner")
+        update4 = cast(Update, SimpleNamespace(message=message4, effective_user=None))
+        await learning_onboarding.onboarding_reply(update4, context)
+        assert message4.replies == [
+            "Ответы сохранены. Отправьте /learn чтобы продолжить."
+        ]
+        assert context.user_data["learn_profile_overrides"] == {
+            "age_group": "adult",
+            "diabetes_type": "type1",
+            "learning_level": "beginner",
+        }
+
+        message5 = DummyMessage()
+        update5 = cast(Update, SimpleNamespace(message=message5, effective_user=None))
+        await learning_handlers.learn_command(update5, context)
         assert any(
-            "Учебный режим" in text or "Урок" in text for text in message3.replies
+            "Учебный режим" in text or "Урок" in text for text in message5.replies
         )
 
         message_reset = DummyMessage()
-        update_reset = cast(Update, SimpleNamespace(message=message_reset, effective_user=None))
+        update_reset = cast(
+            Update, SimpleNamespace(message=message_reset, effective_user=None)
+        )
         context.user_data["learn_profile_overrides"] = {"a": 1}
         context.user_data["learn_onboarding_stage"] = "stage"
         await learning_onboarding.learn_reset(update_reset, context)
         assert "learn_profile_overrides" not in context.user_data
         assert "learn_onboarding_stage" not in context.user_data
 
-        message4 = DummyMessage()
-        update4 = cast(Update, SimpleNamespace(message=message4, effective_user=None))
-        await learning_handlers.learn_command(update4, context)
-        assert message4.replies == [onboarding_utils.ONBOARDING_PROMPT]
+        message6 = DummyMessage()
+        update6 = cast(Update, SimpleNamespace(message=message6, effective_user=None))
+        await learning_handlers.learn_command(update6, context)
+        assert message6.replies == [onboarding_utils.AGE_PROMPT]
     finally:
         engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_onboarding_reply_requires_yes() -> None:
+async def test_onboarding_reply_ignored_without_stage() -> None:
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"learning_waiting": True}),
+        SimpleNamespace(user_data={}),
     )
-    message1 = DummyMessage("нет")
-    update1 = cast(Update, SimpleNamespace(message=message1, effective_user=None))
-    await learning_onboarding.onboarding_reply(update1, context)
-    assert message1.replies == [onboarding_utils.ONBOARDING_PROMPT]
-    assert context.user_data.get("learning_onboarded") is None
-    assert context.user_data.get("learning_waiting") is True
-
-    message2 = DummyMessage("Да")
-    update2 = cast(Update, SimpleNamespace(message=message2, effective_user=None))
-    await learning_onboarding.onboarding_reply(update2, context)
-    assert context.user_data.get("learning_onboarded") is True
-    assert "learning_waiting" not in context.user_data
-
+    message = DummyMessage("hi")
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
+    await learning_onboarding.onboarding_reply(update, context)
+    assert message.replies == []
+    assert context.user_data == {}

@@ -181,21 +181,7 @@ def register_handlers(
     app.add_handler(CommandHandlerT("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandlerT("help", help_command))
     if learning_enabled:
-        from . import learning_onboarding
-
-        app.add_handler(CommandHandlerT("learn", learning_handlers.learn_command))
-        app.add_handler(CommandHandlerT("lesson", learning_handlers.lesson_command))
-        app.add_handler(CommandHandlerT("quiz", learning_handlers.quiz_command))
-        app.add_handler(CommandHandlerT("progress", learning_handlers.progress_command))
-        app.add_handler(CommandHandlerT("exit", learning_handlers.exit_command))
-        learning_onboarding.register_handlers(app)
-        app.add_handler(
-            MessageHandlerT(
-                filters.TEXT & ~filters.COMMAND,
-                learning_handlers.quiz_answer_handler,
-                block=False,
-            )
-        )
+        learning_handlers.register_handlers(app)
     app.add_handler(CommandHandlerT("gpt", gpt_handlers.chat_with_gpt))
     app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
     app.add_handler(CommandHandlerT("upgrade", billing_handlers.upgrade_command))
