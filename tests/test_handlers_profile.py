@@ -308,11 +308,19 @@ async def test_profile_view_missing_profile_shows_webapp_button(
 ) -> None:
     from urllib.parse import urlparse
     import services.api.app.diabetes.handlers.profile as handlers
+    from services.api.app.diabetes.services.db import Base
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
 
     import services.api.app.config as config
 
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
     monkeypatch.setattr(config.settings, "public_origin", "https://example.com")
     monkeypatch.setattr(config.settings, "ui_base_url", "")
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(handlers, "get_api", lambda: (object(), Exception, None))
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, user_id: None)
 
@@ -335,6 +343,7 @@ async def test_profile_view_missing_profile_shows_webapp_button(
 
     assert button.web_app is not None
     assert urlparse(button.web_app.url).path == "/profile"
+    engine.dispose()
 
 
 @pytest.mark.asyncio

@@ -173,3 +173,52 @@ async def test_save_profile_partial_icr_cf(monkeypatch: pytest.MonkeyPatch) -> N
     assert prof.timezone_auto is False
     assert prof.sos_alerts_enabled is False
     engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_profile_view_uses_local_profile_on_stale_api(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(profile_service.db, "SessionLocal", TestSession)
+
+    async def run_db(func, sessionmaker):
+        with sessionmaker() as session:
+            return func(session)
+
+    monkeypatch.setattr(handlers, "run_db", run_db)
+    monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
+    post_mock = MagicMock(return_value=(True, None))
+    monkeypatch.setattr(handlers, "post_profile", post_mock)
+
+    msg = DummyMessage()
+    payload = {"icr": 8, "cf": 3, "target": 6, "low": 4, "high": 9}
+    msg.web_app_data = SimpleNamespace(data=json.dumps(payload))
+    update = cast(
+        Update,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+    await handlers.profile_webapp_save(update, context)
+
+    outdated = SimpleNamespace(icr=1, cf=2, target=None, low=None, high=None)
+    monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, uid: outdated)
+
+    msg_view = DummyMessage()
+    update_view = cast(
+        Update, SimpleNamespace(message=msg_view, effective_user=SimpleNamespace(id=1))
+    )
+    await handlers.profile_view(update_view, context)
+
+    text = msg_view.texts[0]
+    assert "ИКХ: 8" in text
+    assert "КЧ: 3" in text
+    assert "Целевой сахар: 6" in text
+    engine.dispose()
