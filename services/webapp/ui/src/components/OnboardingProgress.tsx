@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { hasInitData } from '@/shared/initData';
 
 interface OnboardingStatus {
   completed: boolean;
@@ -15,6 +16,7 @@ const OnboardingProgress = () => {
   const [data, setData] = useState<OnboardingStatus | null>(null);
 
   useEffect(() => {
+    if (!hasInitData()) return;
     let active = true;
     import('@/shared/api/onboarding')
       .then((mod) => mod.getOnboardingStatus?.())

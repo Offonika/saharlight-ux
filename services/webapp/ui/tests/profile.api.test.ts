@@ -120,23 +120,22 @@ describe('profile api', () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profiles',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({
-          telegramId: 1,
-          target: 5,
-          low: 4,
-          high: 10,
-          timezone: 'UTC',
-          timezoneAuto: false,
-          quietStart: '23:00',
-          quietEnd: '07:00',
-          sosAlertsEnabled: true,
-          sosContact: null,
-          therapyType: 'none',
-        }),
-      }),
+      expect.objectContaining({ method: 'POST', body: expect.any(String) }),
     );
+    const body = JSON.parse(mockFetch.mock.calls[0][1]!.body as string);
+    expect(body).toEqual({
+      telegramId: 1,
+      target: 5,
+      low: 4,
+      high: 10,
+      timezone: 'UTC',
+      timezoneAuto: false,
+      quietStart: '23:00',
+      quietEnd: '07:00',
+      sosAlertsEnabled: true,
+      sosContact: null,
+      therapyType: 'none',
+    });
   });
 
   it('throws error when patchProfile request fails', async () => {
