@@ -23,7 +23,7 @@ describe('profile api', () => {
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(getProfile()).rejects.toThrow('Не удалось получить профиль: boom');
-    expect(mockFetch).toHaveBeenCalledWith('/api/profile', expect.any(Object));
+    expect(mockFetch).toHaveBeenCalledWith('/api/profile/self', expect.any(Object));
   });
 
   it('returns null when profile not found', async () => {
@@ -39,7 +39,7 @@ describe('profile api', () => {
 
     const result = await getProfile();
     expect(result).toBeNull();
-    expect(mockFetch).toHaveBeenCalledWith('/api/profile', expect.any(Object));
+    expect(mockFetch).toHaveBeenCalledWith('/api/profile/self', expect.any(Object));
   });
 
   it('throws error when getProfile returns invalid JSON', async () => {
@@ -56,7 +56,7 @@ describe('profile api', () => {
     await expect(getProfile()).rejects.toThrow(
       'Не удалось получить профиль: Некорректный ответ сервера',
     );
-    expect(mockFetch).toHaveBeenCalledWith('/api/profile', expect.any(Object));
+    expect(mockFetch).toHaveBeenCalledWith('/api/profile/self', expect.any(Object));
   });
 
   it('throws error when saveProfile request fails', async () => {

@@ -24,6 +24,13 @@ async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserCont
     return user
 
 
+@router.get("/profile")
+async def profile(user: UserContext = Depends(require_tg_user)) -> UserContext:
+    """Backward-compatible alias for :func:`profile_self`."""
+
+    return await profile_self(user)
+
+
 @router.patch("/profile", response_model=ProfileSettingsOut)
 async def profile_patch(
     data: ProfileSettingsIn,
