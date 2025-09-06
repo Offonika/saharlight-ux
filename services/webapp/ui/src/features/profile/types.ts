@@ -1,18 +1,12 @@
-import type { ProfileSchema, ProfileSettingsIn } from "@sdk";
+import type {
+  ProfileSchema,
+  ProfileSettingsIn,
+  ProfileSettingsOut,
+} from "@sdk";
 
 export type RapidInsulin = "aspart" | "lispro" | "glulisine" | "regular";
 
-export interface Profile extends ProfileSchema {
-  dia?: number | null;
-  preBolus?: number | null;
-  roundStep?: number | null;
-  carbUnits?: "g" | "xe" | null;
-  gramsPerXe?: number | null;
-  rapidInsulinType?: RapidInsulin | null;
-  maxBolus?: number | null;
-  afterMealMinutes?: number | null;
-  therapyType?: "insulin" | "tablets" | "none" | "mixed" | null;
-}
+export type Profile = ProfileSchema & ProfileSettingsOut;
 
 export type PatchProfileDto = Partial<
   Pick<

@@ -43,7 +43,9 @@ import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
 import { useTranslation } from '../src/i18n';
 import type { RapidInsulin } from '../src/features/profile/types';
 
-const originalSupportedValuesOf = (Intl as any).supportedValuesOf;
+type SupportedValuesFn = (key: string) => string[];
+const intl = Intl as unknown as { supportedValuesOf: SupportedValuesFn };
+const originalSupportedValuesOf = intl.supportedValuesOf;
 describe('Profile page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -65,11 +67,16 @@ describe('Profile page', () => {
       timezone: 'Europe/Moscow',
       timezoneAuto: false,
       therapyType: 'insulin',
+      sosAlertsEnabled: true,
+      sosContact: null,
+      glucoseUnits: 'mmol/L',
     });
     const realDTF = Intl.DateTimeFormat;
     const realResolved = realDTF.prototype.resolvedOptions;
-    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation((...args: any[]) => {
-      const formatter = new realDTF(...(args as []));
+    vi.spyOn(Intl, 'DateTimeFormat').mockImplementation((
+      ...args: ConstructorParameters<typeof Intl.DateTimeFormat>
+    ) => {
+      const formatter = new realDTF(...args);
       return Object.assign(formatter, {
         resolvedOptions: () => ({
           ...realResolved.call(formatter),
@@ -77,14 +84,14 @@ describe('Profile page', () => {
         }),
       });
     });
-    (Intl as any).supportedValuesOf = vi
-      .fn()
+    intl.supportedValuesOf = vi
+      .fn<[], string[]>()
       .mockReturnValue(['Europe/Moscow', 'Europe/Berlin']);
   });
 
   afterEach(() => {
     cleanup();
-    (Intl as any).supportedValuesOf = originalSupportedValuesOf;
+    intl.supportedValuesOf = originalSupportedValuesOf;
     vi.restoreAllMocks();
     searchParams = new URLSearchParams();
   });
@@ -95,6 +102,7 @@ describe('Profile page', () => {
     const { t } = useTranslation();
     const select = getByLabelText(
       t('profileHelp.carbUnits.title'),
+      { selector: 'select' },
     ) as HTMLSelectElement;
     expect(select.options[0].text).toBe(
       t('profileHelp.carbUnits.options.g'),
@@ -151,7 +159,7 @@ describe('Profile page', () => {
     const { getByLabelText } = render(<Profile />);
 
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
 
     const options = Array.from(
@@ -196,7 +204,7 @@ describe('Profile page', () => {
     const { queryByLabelText, getByDisplayValue } = render(<Profile />);
 
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
 
     expect(queryByLabelText('Граммов на 1 ХЕ')).toBeNull();
@@ -609,7 +617,7 @@ describe('Profile page', () => {
 
     const { getByPlaceholderText } = render(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
     expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('3');
@@ -634,7 +642,7 @@ describe('Profile page', () => {
 
     const { getByPlaceholderText } = render(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
     expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('3');
@@ -666,7 +674,7 @@ describe('Profile page', () => {
 
     const { getByPlaceholderText } = render(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
 
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
@@ -720,7 +728,7 @@ describe('Profile page', () => {
 
       render(<Profile />);
       await waitFor(() => {
-        expect(getProfile).toHaveBeenCalledWith(123);
+        expect(getProfile).toHaveBeenCalled();
       });
 
       if (shouldToast) {
@@ -743,7 +751,7 @@ describe('Profile page', () => {
 
     const { getByPlaceholderText } = render(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -762,7 +770,7 @@ describe('Profile page', () => {
 
     const { getByPlaceholderText } = render(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
     expect(toast).not.toHaveBeenCalled();
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('');

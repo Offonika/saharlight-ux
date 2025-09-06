@@ -293,7 +293,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
 
     let cancelled = false;
 
-    getProfile(telegramId)
+    getProfile()
       .then((data) => {
         if (cancelled) return;
         if (!data) {
