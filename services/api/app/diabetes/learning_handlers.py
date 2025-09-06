@@ -8,6 +8,8 @@ from typing import Any, Mapping, MutableMapping, cast
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
 
+from services.api.app.config import settings
+
 from .dynamic_tutor import check_user_answer, generate_step_text
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
@@ -50,6 +52,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     message = update.message
     if message is None:
         return
+    if not settings.learning_mode_enabled:
+        await message.reply_text("режим обучения отключён")
+        return
     if not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
@@ -87,6 +92,9 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     message = update.message
     if message is None:
         return
+    if not settings.learning_mode_enabled:
+        await message.reply_text("режим обучения отключён")
+        return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     if _rate_limited(user_data, "_lesson_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
@@ -112,6 +120,9 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if raw_message is None or not hasattr(raw_message, "reply_text"):
         return
     message = cast(Message, raw_message)
+    if not settings.learning_mode_enabled:
+        await message.reply_text("режим обучения отключён")
+        return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     if _rate_limited(user_data, "_lesson_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
@@ -129,6 +140,9 @@ async def lesson_answer_handler(
 
     message = update.message
     if message is None or not message.text:
+        return
+    if not settings.learning_mode_enabled:
+        await message.reply_text("режим обучения отключён")
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
@@ -160,6 +174,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     message = update.message
     if message is None:
+        return
+    if not settings.learning_mode_enabled:
+        await message.reply_text("режим обучения отключён")
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     clear_state(user_data)
