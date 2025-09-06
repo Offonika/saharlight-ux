@@ -4,7 +4,7 @@ import type { Profile, PatchProfileDto, RapidInsulin } from './types';
 
 export async function getProfile(): Promise<Profile | null> {
   try {
-    return await tgFetch<Profile>(`/profile`);
+    return await tgFetch<Profile>(`/profile/self`);
   } catch (error) {
     if (error instanceof FetchError) {
       if (error.status === 404) {
