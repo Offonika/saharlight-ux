@@ -99,7 +99,7 @@ export class ProfilesApi extends runtime.BaseAPI {
     /**
      * Profiles Get
      */
-    async profilesGetRaw(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileSchema>> {
+    async profilesGetRaw(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProfileSettingsOut>> {
         if (requestParameters['telegramId'] == null) {
             throw new runtime.RequiredError(
                 'telegramId',
@@ -129,13 +129,13 @@ export class ProfilesApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileSchemaFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProfileSettingsOutFromJSON(jsonValue));
     }
 
     /**
      * Profiles Get
      */
-    async profilesGet(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSchema> {
+    async profilesGet(requestParameters: ProfilesGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProfileSettingsOut> {
         const response = await this.profilesGetRaw(requestParameters, initOverrides);
         return await response.value();
     }

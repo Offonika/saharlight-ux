@@ -266,8 +266,8 @@ def test_profiles_post_updates_existing_profile(
             "target": 5.0,
             "low": 4.0,
             "high": 6.0,
-            "quietStart": "23:00:00",
-            "quietEnd": "07:00:00",
+            "timezone": "UTC",
+            "timezoneAuto": True,
         }
         assert client.post("/api/profiles", json=payload).status_code == 200
 
@@ -278,16 +278,14 @@ def test_profiles_post_updates_existing_profile(
             "target": 6.0,
             "low": 5.0,
             "high": 7.0,
-            "quietStart": "22:00:00",
-            "quietEnd": "06:00:00",
+            "timezone": "Europe/Moscow",
+            "timezoneAuto": False,
         }
         assert client.post("/api/profiles", json=update).status_code == 200
 
         resp = client.get("/api/profiles", params={"telegramId": 777})
         assert resp.status_code == 200
         data = resp.json()
-        assert data["icr"] == 3.0
-        assert data["cf"] == 4.0
-        assert data["quietStart"] == "22:00:00"
-        assert data["quietEnd"] == "06:00:00"
+        assert data["timezone"] == "Europe/Moscow"
+        assert data["timezoneAuto"] is False
     engine.dispose()
