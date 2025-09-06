@@ -10,6 +10,7 @@ from services.api.app.diabetes.curriculum_engine import (
     next_step,
     start_lesson,
 )
+from services.api.app.config import settings
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.models_learning import (
     Lesson,
@@ -26,6 +27,7 @@ async def test_lesson_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     db.SessionLocal.configure(bind=engine)
     db.Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
 
     await load_lessons(
         "content/lessons_v0.json",

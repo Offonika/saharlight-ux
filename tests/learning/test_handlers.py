@@ -72,6 +72,10 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+    async def fake_add_log(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
     async def fake_ensure_overrides(*args: object, **kwargs: object) -> bool:
         return True

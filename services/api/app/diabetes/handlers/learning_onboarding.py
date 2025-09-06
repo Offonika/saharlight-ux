@@ -16,6 +16,8 @@ from telegram.ext import (
 
 from ..learning_onboarding import ensure_overrides, learn_reset
 
+__all__ = ["onboarding_reply", "register_handlers", "learn_reset"]
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:

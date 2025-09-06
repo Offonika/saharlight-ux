@@ -36,6 +36,7 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     db.SessionLocal.configure(bind=engine)
     db.Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
 
     await load_lessons(
         "content/lessons_v0.json",
@@ -119,6 +120,7 @@ async def test_lesson_without_quiz(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     db.SessionLocal.configure(bind=engine)
     db.Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
 
     with db.SessionLocal() as session:
         session.add(db.User(telegram_id=1, thread_id="t1"))
