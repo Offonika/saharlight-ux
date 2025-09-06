@@ -4,12 +4,7 @@ import logging
 from datetime import datetime
 
 import httpx
-from telegram import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    Message,
-    Update,
-)
+from telegram import Message, Update
 from telegram.ext import ContextTypes
 
 from ... import config
@@ -100,17 +95,14 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     end_str = end_dt.strftime("%d.%m.%Y")
     await message.reply_text(f"🎉 Активирован trial до {end_str}")
-    sub_url = config.get_settings().subscription_url
-    if sub_url:
+    kb = subscription_keyboard(False)
+    if kb.inline_keyboard:
         text = (
             "🟢 Подписка PRO даёт расширенные функции:\n"
             "• Распознавание блюд по фото\n"
             "• Чат с GPT\n"
             "• Расширенные напоминания\n\n"
             "👉 Чтобы оформить подписку, нажмите кнопку ниже:"
-        )
-        kb = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("Оформить PRO", url=sub_url)]]
         )
         await message.reply_text(text, reply_markup=kb)
     logger.info("billing_action=user_id:%s action=trial result=ok", user.id)
@@ -122,8 +114,8 @@ async def upgrade_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     message = update.message
     if message is None:
         return
-    url = config.get_settings().subscription_url
-    if not url:
+    kb = subscription_keyboard(False)
+    if not kb.inline_keyboard:
         await message.reply_text("❌ Не настроена ссылка на оплату.")
         logger.info(
             "billing_action=user_id:%s action=upgrade result=error",
@@ -137,7 +129,6 @@ async def upgrade_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         "• Расширенные напоминания\n\n"
         "👉 Чтобы оформить подписку, нажмите кнопку ниже:"
     )
-    kb = InlineKeyboardMarkup([[InlineKeyboardButton("Оформить PRO", url=url)]])
     await message.reply_text(text, reply_markup=kb)
     if update.effective_user:
         logger.info(
