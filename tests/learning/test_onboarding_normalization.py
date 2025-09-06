@@ -1,0 +1,19 @@
+from __future__ import annotations
+
+from services.api.app.diabetes.learning_onboarding import (
+    _norm_age_group,
+    _norm_diabetes_type,
+    _norm_level,
+)
+
+
+def test_norm_age_group_number() -> None:
+    assert _norm_age_group("49") == "adult"
+
+
+def test_norm_diabetes_type_number() -> None:
+    assert _norm_diabetes_type("2") == "T2"
+
+
+def test_norm_level_zero() -> None:
+    assert _norm_level("0") == "novice"

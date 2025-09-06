@@ -81,9 +81,8 @@ async def _start_lesson(
 ) -> None:
     """Generate and send the first learning step."""
 
-    if message.from_user is None:
-        return
-    telegram_id = message.from_user.id
+    user = getattr(message, "from_user", None)
+    telegram_id = user.id if user is not None else 0
     text = await generate_step_text(profile, topic_slug, 1, None)
     text = format_reply(text)
     await message.reply_text(text)
@@ -160,11 +159,12 @@ async def lesson_answer_handler(
     """Process user's answer and move to the next step."""
 
     message = update.message
-    if message is None or not message.text or message.from_user is None:
+    if message is None or not getattr(message, "text", None):
         return
     if not settings.learning_mode_enabled:
         await message.reply_text("режим обучения отключён")
         return
+    user = getattr(message, "from_user", None)
     if settings.learning_content_mode == "static":
         await legacy_handlers.quiz_answer_handler(update, context)
         return
@@ -176,8 +176,9 @@ async def lesson_answer_handler(
         await message.reply_text(RATE_LIMIT_MESSAGE)
         return
     profile = _get_profile(user_data)
-    telegram_id = message.from_user.id
-    user_text = message.text.strip()
+    telegram_id = user.id if user is not None else 0
+    raw_text = getattr(message, "text", None)
+    user_text = raw_text.strip() if raw_text is not None else ""
     await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
     feedback = await check_user_answer(
         profile, state.topic, user_text, state.last_step_text or ""

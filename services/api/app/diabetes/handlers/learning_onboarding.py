@@ -40,14 +40,8 @@ async def onboarding_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if message is None or not message.text:
         return
     user_data = cast(dict[str, object], context.user_data)
-    stage = cast(str | None, user_data.get("learn_onboarding_stage"))
-    if stage is None:
+    if "learn_onboarding_stage" not in user_data:
         return
-    overrides = cast(
-        dict[str, str], user_data.setdefault("learn_profile_overrides", {})
-    )
-    overrides[stage] = message.text.strip()
-    user_data.pop("learn_onboarding_stage", None)
     if await ensure_overrides(update, context):
         await message.reply_text("Ответы сохранены. Отправьте /learn чтобы продолжить.")
 
