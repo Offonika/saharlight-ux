@@ -103,6 +103,40 @@ def test_status_with_subscription(monkeypatch: pytest.MonkeyPatch) -> None:
     assert data["subscription"]["endDate"] is None
 
 
+def test_status_with_trial_subscription(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    with session_local() as session:
+        session.add(
+            Subscription(
+                user_id=1,
+                plan=SubscriptionPlan.PRO,
+                status=SubStatus.trial,
+                provider="trial",
+                transaction_id="t1",
+                start_date=datetime(2024, 1, 1),
+                end_date=datetime(2024, 1, 15),
+            )
+        )
+        session.commit()
+
+    client = make_client(monkeypatch, session_local)
+    with client:
+        resp = client.get("/api/billing/status", params={"user_id": 1})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["featureFlags"] == {
+        "billingEnabled": False,
+        "paywallMode": "soft",
+        "testMode": True,
+    }
+    sub = data["subscription"]
+    assert sub["plan"] == "pro"
+    assert sub["status"] == SubStatus.trial.value
+    assert sub["provider"] == "trial"
+    assert sub["startDate"].startswith("2024-01-01")
+    assert sub["endDate"].startswith("2024-01-15")
+
+
 def test_status_with_multiple_subscriptions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

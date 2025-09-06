@@ -19,8 +19,10 @@ export interface BillingStatus {
   subscription: SubscriptionInfo | null;
 }
 
-export const getBillingStatus = (userId: string) =>
-  api.get<BillingStatus>(`/billing/status?user_id=${userId}`);
+export const getBillingStatus = (userId: string) => {
+  const params = new URLSearchParams({ user_id: userId });
+  return api.get<BillingStatus>(`/billing/status?${params.toString()}`);
+};
 
 export const startTrial = (userId: string) =>
   api.post<SubscriptionInfo>(`/billing/trial?user_id=${userId}`, {});

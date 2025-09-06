@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, it, vi, beforeEach, expect } from 'vitest';
+import { describe, it, vi, beforeEach, expect, afterEach } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import Subscription from './Subscription';
 import { getBillingStatus } from '@/api/billing';
 
@@ -35,6 +36,10 @@ describe('Subscription states', () => {
     mockedInitData.mockReturnValue(null);
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   const renderPage = async (status: unknown) => {
     mockedStatus.mockResolvedValue(status);
     render(
@@ -44,6 +49,15 @@ describe('Subscription states', () => {
     );
     await screen.findByTestId('status-card');
   };
+
+  it('requests billing status on mount', async () => {
+    await renderPage({
+      featureFlags: { billingEnabled: false, paywallMode: 'soft', testMode: true },
+      subscription: null,
+    });
+    expect(mockedStatus).toHaveBeenCalledTimes(1);
+    expect(mockedStatus).toHaveBeenCalledWith('123');
+  });
 
   it('renders no subscription', async () => {
     await renderPage({
