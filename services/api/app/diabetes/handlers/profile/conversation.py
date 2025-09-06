@@ -459,9 +459,6 @@ async def profile_timezone_save(
             existed, ok = db_set_timezone(session)
     else:
         existed, ok = await run_db(db_set_timezone, sessionmaker=SessionLocal)
-    if not existed:
-        await message.reply_text("Профиль не найден.", reply_markup=menu_keyboard())
-        return END
     if not ok:
         await message.reply_text(
             "⚠️ Не удалось обновить часовой пояс.",
@@ -498,8 +495,11 @@ async def profile_timezone_save(
             len(reminders),
             user_id,
         )
+    text = "✅ Часовой пояс обновлён."
+    if not existed:
+        text = "✅ Профиль создан. Часовой пояс сохранён."
 
-    await message.reply_text("✅ Часовой пояс обновлён.", reply_markup=menu_keyboard())
+    await message.reply_text(text, reply_markup=menu_keyboard())
     return END
 
 
