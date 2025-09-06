@@ -46,8 +46,13 @@ async def check_user_answer(
     topic_slug: str,
     user_answer: str,
     last_step_text: str,
-) -> str:
-    """Evaluate user's quiz answer and provide feedback."""
+) -> tuple[bool, str]:
+    """Evaluate user's quiz answer and provide feedback.
+
+    Returns a tuple ``(correct, feedback)`` where ``correct`` is ``True`` if the
+    LLM judged the answer as correct. The feedback message is returned as-is
+    from the model.
+    """
     model = LLMRouter().choose_model(LLMTask.QUIZ_CHECK)
     system = build_system_prompt(profile)
     user = (
@@ -56,9 +61,13 @@ async def check_user_answer(
         "объясни в 1–2 предложениях и дай мягкий совет, что повторить."
     )
     try:
-        return await _chat(model, system, user, max_tokens=250)
+        feedback = await _chat(model, system, user, max_tokens=250)
     except RuntimeError:
-        return "сервер занят, попробуйте позже"
+        return False, "сервер занят, попробуйте позже"
+
+    first = feedback.split(maxsplit=1)[0].strip(".,!?:;\"'«»").lower()
+    correct = first in {"верно", "правильно"}
+    return correct, feedback
 
 
 __all__ = ["generate_step_text", "check_user_answer"]

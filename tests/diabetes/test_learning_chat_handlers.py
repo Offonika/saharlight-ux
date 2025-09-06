@@ -81,8 +81,8 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     async def fake_check_user_answer(
         profile: object, topic: str, answer: str, last: str
-    ) -> str:
-        return "feedback"
+    ) -> tuple[bool, str]:
+        return True, "feedback"
 
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
