@@ -318,6 +318,52 @@ async def test_profile_security_toggle_sos_alerts(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "enabled, expected",
+    [
+        (True, "SOS-уведомления: Выкл"),
+        (False, "SOS-уведомления: Вкл"),
+    ],
+)
+async def test_profile_security_toggle_button_text(
+    monkeypatch: pytest.MonkeyPatch, enabled: bool, expected: str
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(handlers, "commit", commit)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.add(
+            Profile(
+                telegram_id=1,
+                icr=10,
+                cf=2,
+                target_bg=6,
+                low_threshold=4,
+                high_threshold=9,
+                sos_alerts_enabled=enabled,
+            )
+        )
+        session.commit()
+
+    query = DummyQuery(DummyMessage(), "profile_security")
+    update = cast(
+        Any, SimpleNamespace(callback_query=query, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(Any, SimpleNamespace(application=SimpleNamespace(job_queue="jq")))
+
+    await handlers.profile_security(update, context)
+
+    _, kwargs = query.edits[0]
+    markup = kwargs["reply_markup"]
+    button = markup.inline_keyboard[2][0]
+    assert button.text == expected
+
+
+@pytest.mark.asyncio
 async def test_profile_security_shows_reminders(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
