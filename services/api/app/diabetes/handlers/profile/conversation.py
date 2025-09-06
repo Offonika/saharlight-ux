@@ -452,7 +452,7 @@ async def profile_timezone_save(
     user_id = user.id
 
     def db_set_timezone(session: Session) -> tuple[bool, bool]:
-        return set_timezone(session, user_id, raw)
+        return set_timezone(session, user_id, raw, auto=False)
 
     if run_db is None:
         with SessionLocal() as session:
