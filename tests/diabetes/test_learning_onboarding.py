@@ -79,7 +79,11 @@ async def test_learning_onboarding_flow(
 
         message_reset = DummyMessage()
         update_reset = cast(Update, SimpleNamespace(message=message_reset, effective_user=None))
+        context.user_data["learn_profile_overrides"] = {"a": 1}
+        context.user_data["learn_onboarding_stage"] = "stage"
         await learning_onboarding.learn_reset(update_reset, context)
+        assert "learn_profile_overrides" not in context.user_data
+        assert "learn_onboarding_stage" not in context.user_data
 
         message4 = DummyMessage()
         update4 = cast(Update, SimpleNamespace(message=message4, effective_user=None))

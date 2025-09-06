@@ -14,6 +14,8 @@ from telegram.ext import (
     filters,
 )
 
+from ..learning_onboarding import learn_reset
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -41,18 +43,6 @@ async def onboarding_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     user_data.pop("learning_waiting", None)
     user_data["learning_onboarded"] = True
     await message.reply_text("Ответ принят. Отправьте /learn чтобы продолжить.")
-
-
-async def learn_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Reset learning-related state for the user."""
-    logger.debug("learn_reset", extra={"user": update.effective_user})
-    message = update.message
-    user_data = cast(dict[str, object], context.user_data)
-    user_data.pop("learning_onboarded", None)
-    user_data.pop("learning_waiting", None)
-    if message is not None:
-        await message.reply_text("Learning onboarding reset. Отправьте /learn.")
-
 
 def register_handlers(app: App) -> None:
     """Register learning onboarding handlers on the application."""
