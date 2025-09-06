@@ -27,6 +27,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/report - отчёт\n"
         "/sugar - уровень сахара\n"
         "/gpt - чат с GPT\n"
+        "/topics - список тем\n"
         "/reminders - список напоминаний\n"
         "/cancel - отменить ввод\n"
         "/help - справка\n"

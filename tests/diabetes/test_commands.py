@@ -38,6 +38,7 @@ async def test_help_mentions_webapp() -> None:
     text = message.replies[0]
     assert "/start" in text
     assert "WebApp" in text
+    assert "/topics" in text
 
 
 @pytest.mark.asyncio
