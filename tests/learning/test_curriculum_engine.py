@@ -29,6 +29,7 @@ from services.api.app.diabetes.services import db, gpt_client
 
 @pytest.mark.asyncio()
 async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -112,6 +113,7 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio()
 async def test_lesson_without_quiz(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},

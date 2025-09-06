@@ -23,6 +23,7 @@ from telegram.ext import (
     filters,
 )
 
+from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
 
 
@@ -62,6 +63,7 @@ class DummyBot(Bot):
 
 @pytest.mark.asyncio
 async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     steps = iter(["step1", "step2"])
 
     async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
@@ -130,7 +132,9 @@ async def test_static_mode_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
         called.append((update, context))
 
     monkeypatch.setattr(
-        learning_handlers, "settings", SimpleNamespace(learning_content_mode="static")
+        learning_handlers,
+        "settings",
+        SimpleNamespace(learning_content_mode="static", learning_mode_enabled=True),
     )
     monkeypatch.setattr(learning_handlers.legacy_handlers, "learn_command", fake_learn_command)
 
