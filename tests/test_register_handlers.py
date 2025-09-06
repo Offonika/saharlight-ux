@@ -82,6 +82,17 @@ def test_register_handlers_attaches_expected_handlers(
     assert billing_handlers.subscription_button in callbacks
     assert any(
         isinstance(h, CommandHandler)
+        and h.callback is learning_handlers.cmd_menu
+        and "menu" in h.commands
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, MessageHandler)
+        and h.callback is learning_handlers.on_learn_button
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CommandHandler)
         and h.callback is learning_handlers.lesson_command
         and "lesson" in h.commands
         for h in handlers

@@ -18,8 +18,11 @@ from telegram.ext import (
 from sqlalchemy.exc import SQLAlchemyError
 from typing import TYPE_CHECKING, TypeAlias
 
-from .common_handlers import menu_command, help_command, smart_input_help
+from telegram import BotCommand
+
+from .common_handlers import help_command, smart_input_help
 from .router import callback_router
+from . import learning_handlers
 from ..utils.ui import (
     PROFILE_BUTTON_TEXT,
     REMINDERS_BUTTON_TEXT,
@@ -31,6 +34,7 @@ from ..utils.ui import (
     SOS_BUTTON_TEXT,
     SUBSCRIPTION_BUTTON_TEXT,
 )
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +163,13 @@ def register_handlers(
     else:
         learning_enabled = settings.learning_mode_enabled
 
-    app.add_handler(CommandHandlerT("menu", menu_command))
+    app.add_handler(CommandHandlerT("menu", learning_handlers.cmd_menu))
+    app.add_handler(
+        MessageHandlerT(
+            filters.TEXT & filters.Regex(rf"^{re.escape(LEARN_BUTTON_TEXT)}$"),
+            learning_handlers.on_learn_button,
+        )
+    )
     app.add_handler(CommandHandlerT("report", reporting_handlers.report_request))
     app.add_handler(CommandHandlerT("history", reporting_handlers.history_view))
     app.add_handler(dose_calc.dose_conv)
@@ -171,7 +181,7 @@ def register_handlers(
     app.add_handler(CommandHandlerT("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandlerT("help", help_command))
     if learning_enabled:
-        from . import learning_handlers, learning_onboarding
+        from . import learning_onboarding
 
         app.add_handler(CommandHandlerT("learn", learning_handlers.learn_command))
         app.add_handler(CommandHandlerT("lesson", learning_handlers.lesson_command))
@@ -248,6 +258,18 @@ def register_handlers(
         )
     )
     app.add_handler(CallbackQueryHandlerT(callback_router))
+
+    try:
+        app.create_task(
+            app.bot.set_my_commands(
+                [
+                    BotCommand("learn", "Учебный режим"),
+                    BotCommand("menu", "Показать нижнее меню"),
+                ]
+            )
+        )
+    except Exception as e:  # pragma: no cover - network errors
+        logger.warning("set_my_commands failed: %s", e)
 
     async def _clear_waiting_flags(context: ContextTypes.DEFAULT_TYPE) -> None:
         for data in context.application.user_data.values():
