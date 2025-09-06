@@ -12,6 +12,7 @@ import ProfileHelpSheet from "@/components/ProfileHelpSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "@/i18n";
 import { saveProfile, getProfile, patchProfile } from "@/features/profile/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PatchProfileDto, RapidInsulin } from "@/features/profile/types";
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
@@ -286,6 +287,13 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   >(null);
   const [loaded, setLoaded] = useState(false);
 
+  const queryClient = useQueryClient();
+  const patchProfileMutation = useMutation({
+    mutationFn: patchProfile,
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['profile'] }),
+  });
+
   useEffect(() => {
     if (isOnboardingFlow) {
       postOnboardingEvent("onboarding_started", onboardingStep).catch(() =>
@@ -306,6 +314,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     const telegramId = resolveTelegramId(user, initData);
 
     if (typeof telegramId !== "number") {
+      setLoaded(true);
       return;
     }
 
@@ -408,16 +417,15 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         setLoaded(true);
 
         if (timezoneAuto && timezone !== deviceTz) {
-          patchProfile({
-            timezone: deviceTz ?? null,
-            timezoneAuto: true,
-          })
-            .then(() =>
+          // используем ту же мутацию, что и при ручных изменениях
+          patchProfileMutation
+            .mutateAsync({ timezone: deviceTz, timezoneAuto: true })
+            .then(() => {
               toast({
                 title: t('profile.updated'),
                 description: t('profile.timezoneUpdated'),
-              }),
-            )
+              });
+            })
             .catch((error) => {
               const message =
                 error instanceof Error ? error.message : String(error);
@@ -445,10 +453,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     return () => {
       cancelled = true;
     };
-  }, [user, initData, toast, t]);
+  }, [user, initData, toast, t]); // при желании можно сузить зависимости до [user, initData]
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
-    if (!loaded) return;
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
     if (field === "timezone") {
       setProfile((prev) => ({ ...prev, timezone: value }));
@@ -518,7 +525,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   ): Promise<void> => {
     try {
       if (Object.keys(data.patch).length > 0) {
-        await patchProfile(data.patch);
+        await patchProfileMutation.mutateAsync(data.patch);
       }
 
       const payload: {
@@ -747,7 +754,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                       id="cf"
                       type="text"
                       inputMode="decimal"
-                      pattern="^\\d*(?:[.,]\\д*)?$"
+                      pattern="^\\d*(?:[.,]\\d*)?$"
                       value={profile.cf}
                       onChange={(e) => handleInputChange("cf", e.target.value)}
                       className={`medical-input ${fieldErrors.cf ? 'border-destructive' : ''}`}
