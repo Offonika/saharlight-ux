@@ -127,14 +127,14 @@ fetch('http://localhost:8000/api/onboarding/status', {
 
 ### Создание профиля
 ```bash
-curl -X POST http://localhost:8000/api/profiles \
+curl -X POST http://localhost:8000/api/profile \
   -H 'Content-Type: application/json' \
   -d '{"telegramId":777,"icr":1.0,"cf":1.0,"target":5.0,"low":4.0,"high":6.0}'
 ```
 
 ### Получение профиля
 ```bash
-curl http://localhost:8000/api/profiles?telegramId=777
+curl http://localhost:8000/api/profile?telegramId=777
 ```
 
 ## Переменные окружения
