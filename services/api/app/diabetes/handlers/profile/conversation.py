@@ -27,6 +27,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from pydantic import ValidationError
 
 from services.api.app.diabetes.services.db import (
     SessionLocal,
@@ -361,7 +362,16 @@ async def profile_webapp_save(
         ]
         if key in data
     }
-    settings = ProfileSettingsIn(**settings_raw) if settings_raw else None
+    settings: ProfileSettingsIn | None = None
+    if settings_raw:
+        try:
+            settings = ProfileSettingsIn(**settings_raw)
+        except ValidationError:
+            await eff_msg.reply_text(
+                "Некорректные данные настроек профиля",
+                reply_markup=menu_keyboard(),
+            )
+            return
     user = update.effective_user
     if user is None:
         await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
@@ -411,9 +421,16 @@ async def profile_webapp_save(
         return
 
     if settings is not None or device_tz is not None:
-        await profile_service.patch_user_settings(
-            user_id, settings or ProfileSettingsIn(), device_tz
-        )
+        try:
+            await profile_service.patch_user_settings(
+                user_id, settings or ProfileSettingsIn(), device_tz
+            )
+        except HTTPException:
+            await eff_msg.reply_text(
+                "⚠️ Не удалось сохранить настройки",
+                reply_markup=menu_keyboard(),
+            )
+            return
 
     await eff_msg.reply_text(
         "✅ Профиль обновлён:\n"
