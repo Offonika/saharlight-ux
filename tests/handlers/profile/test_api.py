@@ -210,15 +210,18 @@ def test_local_profiles_roundtrip(session_factory: sessionmaker[Session]) -> Non
 def test_set_timezone_persists(session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t"))
-        session.add(Profile(telegram_id=1, timezone="UTC"))
+        session.add(Profile(telegram_id=1, timezone="UTC", timezone_auto=True))
         session.commit()
-        found, ok = profile_api.set_timezone(session, 1, "Europe/Moscow")
+        found, ok = profile_api.set_timezone(
+            session, 1, "Europe/Moscow", auto=False
+        )
         assert (found, ok) == (True, True)
 
     with session_factory() as session:
         prof = session.get(Profile, 1)
         assert prof is not None
         assert prof.timezone == "Europe/Moscow"
+        assert prof.timezone_auto is False
 
 
 def test_set_timezone_commit_failure(
@@ -230,9 +233,11 @@ def test_set_timezone_commit_failure(
     monkeypatch.setattr(profile_api, "commit", fail_commit)
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t"))
-        session.add(Profile(telegram_id=1, timezone="UTC"))
+        session.add(Profile(telegram_id=1, timezone="UTC", timezone_auto=True))
         session.commit()
-        found, ok = profile_api.set_timezone(session, 1, "Europe/Moscow")
+        found, ok = profile_api.set_timezone(
+            session, 1, "Europe/Moscow", auto=False
+        )
         assert (found, ok) == (True, False)
 
     with session_factory() as session:
@@ -247,7 +252,7 @@ def test_set_timezone_user_missing(
     commit_mock = MagicMock(return_value=None)
     monkeypatch.setattr(profile_api, "commit", commit_mock)
     with session_factory() as session:
-        existed, ok = profile_api.set_timezone(session, 999, "UTC")
+        existed, ok = profile_api.set_timezone(session, 999, "UTC", auto=False)
         assert (existed, ok) == (False, True)
         commit_mock.assert_called_once()
 

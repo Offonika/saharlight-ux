@@ -257,13 +257,19 @@ def save_profile(
     return True
 
 
-def set_timezone(session: Session, user_id: int, tz: str) -> tuple[bool, bool]:
+def set_timezone(
+    session: Session, user_id: int, tz: str, *, auto: bool
+) -> tuple[bool, bool]:
     """Update user timezone in the database.
 
     Returns ``(existed, ok)`` where ``existed`` shows whether the profile was
     present before the update and ``ok`` indicates commit success.
     """
-    return patch_user_settings(session, user_id, ProfileSettingsIn(timezone=tz))
+    return patch_user_settings(
+        session,
+        user_id,
+        ProfileSettingsIn(timezone=tz, timezoneAuto=auto),
+    )
 
 
 def get_profile_settings(session: Session, user_id: int) -> LocalProfileSettings | None:
