@@ -158,7 +158,7 @@ async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await billing_handlers.upgrade_command(update, context)
 
-    assert message.texts == ["💳 Оформить подписку: http://example.org/ui/subscription"]
+    assert message.texts == ["💳 Оформить PRO: http://example.org/ui/subscription"]
     monkeypatch.delenv("PUBLIC_ORIGIN")
     config.reload_settings()
 
@@ -166,7 +166,7 @@ async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_subscription_status_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
-    monkeypatch.setenv("SUBSCRIPTION_URL", "https://pay.example")
+    monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
     config.reload_settings()
 
     statuses = [
@@ -186,7 +186,7 @@ async def test_subscription_status_flow(monkeypatch: pytest.MonkeyPatch) -> None
             },
             "subscription": {
                 "plan": "pro",
-                "status": "trial",
+                "status": "TRIAL",
                 "provider": "dummy",
                 "startDate": "2025-01-01T00:00:00+00:00",
                 "endDate": "2025-01-14T00:00:00+00:00",
@@ -263,13 +263,17 @@ async def test_subscription_status_flow(monkeypatch: pytest.MonkeyPatch) -> None
         "Подписка PRO до 14.02.2025",
         "Подписка истекла, оформите заново",
     ]
-    # First markup has trial and upgrade buttons
-    first_kb = message.markups[0].inline_keyboard[0]
-    assert len(first_kb) == 2 and first_kb[0].callback_data == "trial"
+    # First markup has trial and upgrade buttons with proper labels
+    first_row = message.markups[0].inline_keyboard[0]
+    assert len(first_row) == 2
+    trial_btn, upgrade_btn = first_row
+    assert trial_btn.text == "🎁 Trial" and trial_btn.callback_data == "trial"
+    assert upgrade_btn.text == "💳 Оформить PRO"
+    assert upgrade_btn.web_app and upgrade_btn.web_app.url == config.build_ui_url("/subscription")
     # Subsequent keyboards only offer upgrade
     for kb in message.markups[1:]:
         assert len(kb.inline_keyboard[0]) == 1
 
     monkeypatch.delenv("API_URL")
-    monkeypatch.delenv("SUBSCRIPTION_URL")
+    monkeypatch.delenv("PUBLIC_ORIGIN")
     config.reload_settings()

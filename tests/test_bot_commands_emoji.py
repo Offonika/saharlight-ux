@@ -15,7 +15,7 @@ def test_commands_include_emojis() -> None:
         ("gpt", "🤖 Чат с GPT"),
         ("reminders", "⏰ Список напоминаний"),
         ("help", "❓ Справка"),
-        ("trial", "🎁 14 дней PRO"),
-        ("upgrade", "💳 Оформить подписку"),
+        ("trial", "🎁 Trial"),
+        ("upgrade", "💳 Оформить PRO"),
     ]
     assert [(c.command, c.description) for c in main.commands] == expected
