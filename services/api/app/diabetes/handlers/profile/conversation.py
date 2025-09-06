@@ -199,6 +199,31 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not ok:
         await message.reply_text(err or "⚠️ Не удалось сохранить профиль.")
         return END
+
+    def db_save_profile(session: Session) -> bool:
+        return bool(
+            save_profile(
+                session,
+                user_id,
+                icr,
+                cf,
+                target,
+                low,
+                high,
+            )
+        )
+
+    if run_db is None:
+        with SessionLocal() as session:
+            db_ok = db_save_profile(session)
+    else:
+        db_ok = await run_db(db_save_profile, sessionmaker=SessionLocal)
+    if not db_ok:
+        await message.reply_text(
+            "⚠️ Не удалось сохранить профиль.",
+            reply_markup=menu_keyboard(),
+        )
+        return END
     await message.reply_text(
         "✅ Профиль обновлён:\n"
         f"• ИКХ: {icr} г/ед.\n"
