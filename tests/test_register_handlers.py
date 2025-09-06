@@ -356,10 +356,11 @@ def test_register_reminder_handlers_missing_debug_module(
 
     app = ApplicationBuilder().token("TESTTOKEN").build()
 
-    with caplog.at_level(logging.WARNING):
-        register_reminder_handlers(app)
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError, match="register_debug_reminder_handlers"):
+            register_reminder_handlers(app)
 
-    assert "Could not load debug reminder handlers" in caplog.text
+    assert "Failed to load register_debug_reminder_handlers" in caplog.text
 
 
 @pytest.mark.asyncio
