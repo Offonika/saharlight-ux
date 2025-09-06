@@ -215,3 +215,18 @@ async def test_webapp_save_db_error(monkeypatch: pytest.MonkeyPatch) -> None:
     assert post_mock.call_count == 1
     save_mock.assert_called_once()
     assert msg.texts == ["⚠️ Не удалось сохранить профиль."]
+
+
+def test_parse_profile_values_success() -> None:
+    result = handlers.parse_profile_values(
+        {"icr": "8", "cf": "3", "target": "6", "low": "4", "high": "9"}
+    )
+    assert result == (8.0, 3.0, 6.0, 4.0, 9.0)
+
+
+def test_parse_profile_values_error() -> None:
+    with pytest.raises(ValueError) as exc:
+        handlers.parse_profile_values(
+            {"icr": "0", "cf": "3", "target": "6", "low": "4", "high": "9"}
+        )
+    assert str(exc.value) == handlers.MSG_ICR_GT0

@@ -79,6 +79,7 @@ from .validation import (  # noqa: E402
     MSG_TARGET_GT0,
     MSG_TARGET_RANGE,  # noqa: F401 - re-exported for tests
     parse_profile_args,
+    parse_profile_values,
     validate_profile_numbers,
 )
 
@@ -158,19 +159,13 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return END
 
     try:
-        icr = float(values["icr"].replace(",", "."))
-        cf = float(values["cf"].replace(",", "."))
-        target = float(values["target"].replace(",", "."))
-        low = float(values["low"].replace(",", "."))
-        high = float(values["high"].replace(",", "."))
-    except ValueError:
+        icr, cf, target, low, high = parse_profile_values(values)
+    except ValueError as exc:
         await message.reply_text(
-            "❗ Пожалуйста, введите корректные числа. Справка: /profile help"
+            exc.args[0]
+            if exc.args
+            else "❗ Пожалуйста, введите корректные числа. Справка: /profile help"
         )
-        return END
-    error = validate_profile_numbers(icr, cf, target, low, high)
-    if error:
-        await message.reply_text(error)
         return END
 
     warning_msg = ""
@@ -400,17 +395,11 @@ async def profile_webapp_save(
         await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
         return
     try:
-        icr = float(str(data["icr"]).replace(",", "."))
-        cf = float(str(data["cf"]).replace(",", "."))
-        target = float(str(data["target"]).replace(",", "."))
-        low = float(str(data["low"]).replace(",", "."))
-        high = float(str(data["high"]).replace(",", "."))
-    except ValueError:
-        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
-        return
-    error = validate_profile_numbers(icr, cf, target, low, high)
-    if error:
-        await eff_msg.reply_text(error, reply_markup=menu_keyboard())
+        icr, cf, target, low, high = parse_profile_values(data)
+    except ValueError as exc:
+        await eff_msg.reply_text(
+            exc.args[0] if exc.args else error_msg, reply_markup=menu_keyboard()
+        )
         return
     user = update.effective_user
     if user is None:
@@ -1079,6 +1068,7 @@ __all__ = [
     "fetch_profile",
     "post_profile",
     "parse_profile_args",
+    "parse_profile_values",
     "profile_command",
     "profile_view",
     "profile_cancel",

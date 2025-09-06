@@ -104,3 +104,17 @@ async def test_webapp_save_comma_decimal(monkeypatch: pytest.MonkeyPatch) -> Non
     text = msg.texts[0]
     assert "ИКХ: 8.5" in text
     assert "Низкий порог: 4.2" in text
+
+
+def test_parse_profile_values_comma() -> None:
+    result = handlers.parse_profile_values(
+        {"icr": "8,5", "cf": "3", "target": "6", "low": "4,2", "high": "9"}
+    )
+    assert result == (8.5, 3.0, 6.0, 4.2, 9.0)
+
+
+def test_parse_profile_values_invalid_number() -> None:
+    with pytest.raises(ValueError):
+        handlers.parse_profile_values(
+            {"icr": "x", "cf": "3", "target": "6", "low": "4", "high": "9"}
+        )
