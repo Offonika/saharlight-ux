@@ -22,12 +22,13 @@ from .conversation import (
     profile_webapp_handler,
     profile_webapp_save,
 )
-from .validation import parse_profile_args
+from .validation import parse_profile_args, parse_profile_values
 from services.api.app.diabetes.utils.ui import back_keyboard
 
 
 def get_api() -> tuple[object, type[Exception], type]:
     return _api.get_api(_conversation.SessionLocal)
+
 
 __all__ = [
     "profile_command",
@@ -55,6 +56,7 @@ __all__ = [
     "fetch_profile",
     "post_profile",
     "parse_profile_args",
+    "parse_profile_values",
 ]
 
 # Attach helper functions to the conversation module so tests and other modules
@@ -66,6 +68,7 @@ for _attr in (
     "fetch_profile",
     "post_profile",
     "parse_profile_args",
+    "parse_profile_values",
     "back_keyboard",
 ):
     setattr(_conversation, _attr, globals()[_attr])
@@ -77,4 +80,3 @@ _conversation.__all__ = __all__
 import sys as _sys  # noqa: E402
 
 _sys.modules[__name__] = _conversation
-
