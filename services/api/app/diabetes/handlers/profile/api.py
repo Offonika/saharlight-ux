@@ -2,7 +2,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import time as time_type
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy.orm import Session
 
@@ -86,14 +86,31 @@ class LocalProfileAPI:
         """Persist ``profile`` to the database."""
 
         with self._sessionmaker() as session:
+            existing: Profile | None = session.get(Profile, profile.telegram_id)
+
+            def _resolve(value: float | None, attr: str) -> float:
+                if value is not None:
+                    return value
+                if existing is not None:
+                    existing_value = cast(float | None, getattr(existing, attr))
+                    if existing_value is not None:
+                        return existing_value
+                raise ProfileSaveError(f"Missing value for {attr}")
+
+            icr = _resolve(profile.icr, "icr")
+            cf = _resolve(profile.cf, "cf")
+            target = _resolve(profile.target, "target_bg")
+            low = _resolve(profile.low, "low_threshold")
+            high = _resolve(profile.high, "high_threshold")
+
             ok = save_profile(
                 session,
                 profile.telegram_id,
-                profile.icr or 0.0,
-                profile.cf or 0.0,
-                profile.target or 0.0,
-                profile.low or 0.0,
-                profile.high or 0.0,
+                icr,
+                cf,
+                target,
+                low,
+                high,
                 sos_contact=profile.sos_contact,
                 sos_alerts_enabled=profile.sos_alerts_enabled,
                 dia=profile.dia,
