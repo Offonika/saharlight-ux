@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import asyncio
 import logging
@@ -38,14 +38,20 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
+    Base.metadata.create_all(
+        engine, tables=[Subscription.__table__, BillingLog.__table__]
+    )
     return sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
+def make_client(
+    monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
+) -> TestClient:
     from services.api.app.billing.config import BillingSettings
 
-    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
+    async def run_db(
+        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
+    ):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
@@ -54,11 +60,13 @@ def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Ses
 
     from services.api.app.main import app
 
-    app.dependency_overrides[billing._require_billing_enabled] = lambda: BillingSettings(
-        billing_enabled=True,
-        billing_test_mode=True,
-        billing_provider="dummy",
-        paywall_mode="soft",
+    app.dependency_overrides[billing._require_billing_enabled] = (
+        lambda: BillingSettings(
+            billing_enabled=True,
+            billing_test_mode=True,
+            billing_provider="dummy",
+            paywall_mode="soft",
+        )
     )
 
     return TestClient(app)
@@ -125,6 +133,31 @@ def test_trial_repeat_call(monkeypatch: pytest.MonkeyPatch) -> None:
     assert log_count == 1
 
 
+def test_trial_conflicts_with_active_subscription(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session_local = setup_db()
+    client = make_client(monkeypatch, session_local)
+    start = datetime.now(timezone.utc)
+    with session_local() as session:
+        session.add(
+            Subscription(
+                user_id=1,
+                plan=SubscriptionPlan.PRO,
+                status=cast(SubStatus, SubStatus.active.value),
+                provider="dummy",
+                transaction_id="active-1",
+                start_date=start,
+                end_date=start + timedelta(days=30),
+            )
+        )
+        session.commit()
+    with client:
+        resp = client.post("/api/billing/trial", params={"user_id": 1})
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == "subscription already active"
+
+
 def test_trial_repeat_call_after_expiration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -152,7 +185,9 @@ def test_trial_repeat_call_after_expiration(
     assert count == 1
 
 
-def test_trial_integrity_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_trial_integrity_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     calls: dict[str, int] = {"n": 0}
@@ -185,7 +220,9 @@ def test_trial_integrity_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.L
     }
 
 
-def test_trial_invalid_enum(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_trial_invalid_enum(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     calls: dict[str, int] = {"n": 0}
@@ -229,14 +266,18 @@ async def test_trial_parallel_requests(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(billing, "SessionLocal", session_local, raising=False)
     from services.api.app.main import app
 
-    app.dependency_overrides[billing._require_billing_enabled] = lambda: BillingSettings(
-        billing_enabled=True,
-        billing_test_mode=True,
-        billing_provider="dummy",
-        paywall_mode="soft",
+    app.dependency_overrides[billing._require_billing_enabled] = (
+        lambda: BillingSettings(
+            billing_enabled=True,
+            billing_test_mode=True,
+            billing_provider="dummy",
+            paywall_mode="soft",
+        )
     )
 
-    async with AsyncClient(transport=ASGITransport(app=cast(Any, app)), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=cast(Any, app)), base_url="http://test"
+    ) as ac:
         resp1, resp2 = await asyncio.gather(
             ac.post("/api/billing/trial", params={"user_id": 1}),
             ac.post("/api/billing/trial", params={"user_id": 1}),
