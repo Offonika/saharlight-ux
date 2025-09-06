@@ -454,7 +454,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     return () => {
       cancelled = true;
     };
-  }, [user, initData, toast, t]); // при желании можно сузить зависимости до [user, initData]
+  }, [user, initData]);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
