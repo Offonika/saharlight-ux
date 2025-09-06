@@ -7,11 +7,11 @@ from typing import Any, Mapping, MutableMapping, cast
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
-from services.api.app.ui.keyboard import build_main_keyboard
 
-from services.api.app.config import settings
-from .handlers import learning_handlers as legacy_handlers
+from services.api.app.config import TOPICS_RU, settings
+from services.api.app.ui.keyboard import build_main_keyboard
 from .dynamic_tutor import check_user_answer, generate_step_text
+from .handlers import learning_handlers as legacy_handlers
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .services.gpt_client import format_reply
@@ -22,12 +22,7 @@ logger = logging.getLogger(__name__)
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
 
-TOPICS: list[tuple[str, str]] = [
-    ("xe_basics", "Хлебные единицы"),
-    ("healthy-eating", "Здоровое питание"),
-    ("basics-of-diabetes", "Основы диабета"),
-    ("insulin-usage", "Инсулин"),
-]
+TOPICS: list[tuple[str, str]] = list(TOPICS_RU.items())
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
