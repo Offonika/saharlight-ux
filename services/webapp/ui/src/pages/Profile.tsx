@@ -47,19 +47,19 @@ type ProfileForm = {
 };
 
 type ParsedProfile = {
-  icr: number;
-  cf: number;
-  target: number;
-  low: number;
-  high: number;
-  dia: number;
-  preBolus: number;
-  roundStep: number;
+  icr?: number;
+  cf?: number;
+  target?: number;
+  low?: number;
+  high?: number;
+  dia?: number;
+  preBolus?: number;
+  roundStep?: number;
   carbUnits: 'g' | 'xe';
-  gramsPerXe: number;
-  rapidInsulinType: RapidInsulin;
-  maxBolus: number;
-  afterMealMinutes: number;
+  gramsPerXe?: number;
+  rapidInsulinType?: RapidInsulin;
+  maxBolus?: number;
+  afterMealMinutes?: number;
 };
 type FieldErrors = Partial<Record<keyof ProfileForm, string>>;
 
@@ -84,15 +84,15 @@ export const parseProfile = (
       max?: number;
       allowZero?: boolean;
     } = {},
-  ): number => {
+  ): number | undefined => {
     if (value.trim() === '') {
       if (required) errors[field] = 'required';
-      return 0;
+      return undefined;
     }
     const num = Number(value.replace(/,/g, '.'));
     if (!Number.isFinite(num)) {
       errors[field] = 'invalid';
-      return 0;
+      return undefined;
     }
     if (
       (!allowZero && num <= 0) ||
@@ -142,7 +142,12 @@ export const parseProfile = (
     { allowZero: true, max: 240 },
   );
 
-  if (low >= high || low >= target || target >= high) {
+  if (
+    low !== undefined &&
+    high !== undefined &&
+    target !== undefined &&
+    (low >= high || low >= target || target >= high)
+  ) {
     if (!errors.low) errors.low = 'out_of_range';
     if (!errors.high) errors.high = 'out_of_range';
     if (!errors.target) errors.target = 'out_of_range';
@@ -159,7 +164,7 @@ export const parseProfile = (
       preBolus,
       roundStep,
       carbUnits,
-      gramsPerXe: Number.isFinite(gramsPerXe) ? gramsPerXe : 0,
+      gramsPerXe,
       rapidInsulinType,
       maxBolus,
       afterMealMinutes,
@@ -172,12 +177,17 @@ export const shouldWarnProfile = (
   profile: ParsedProfile,
   original?: ParsedProfile,
 ): boolean => {
-  const icrCfWarn = profile.icr > 8 && profile.cf < 3;
-  const diaWarn = profile.dia > 12;
+  const icrCfWarn =
+    profile.icr !== undefined &&
+    profile.cf !== undefined &&
+    profile.icr > 8 &&
+    profile.cf < 3;
+  const diaWarn = profile.dia !== undefined && profile.dia > 12;
   const carbUnitsWarn =
     !!original &&
     original.carbUnits !== profile.carbUnits &&
     original.icr === profile.icr &&
+    profile.icr !== undefined &&
     profile.icr > 0;
 
   return icrCfWarn || diaWarn || carbUnitsWarn;
@@ -459,16 +469,30 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     if (profile.timezone !== original.timezone) patch.timezone = profile.timezone;
     if (profile.timezoneAuto !== original.timezoneAuto)
       patch.timezoneAuto = profile.timezoneAuto;
-    if (profile.dia !== original.dia) patch.dia = parsed.dia;
-    if (profile.preBolus !== original.preBolus) patch.preBolus = parsed.preBolus;
-    if (profile.roundStep !== original.roundStep) patch.roundStep = parsed.roundStep;
-    if (profile.carbUnits !== original.carbUnits) patch.carbUnits = parsed.carbUnits;
-    if (profile.gramsPerXe !== original.gramsPerXe)
+    if (profile.dia !== original.dia && parsed.dia !== undefined)
+      patch.dia = parsed.dia;
+    if (profile.preBolus !== original.preBolus && parsed.preBolus !== undefined)
+      patch.preBolus = parsed.preBolus;
+    if (profile.roundStep !== original.roundStep && parsed.roundStep !== undefined)
+      patch.roundStep = parsed.roundStep;
+    if (profile.carbUnits !== original.carbUnits)
+      patch.carbUnits = parsed.carbUnits;
+    if (
+      profile.gramsPerXe !== original.gramsPerXe &&
+      parsed.gramsPerXe !== undefined
+    )
       patch.gramsPerXe = parsed.gramsPerXe;
-    if (profile.rapidInsulinType !== original.rapidInsulinType)
+    if (
+      profile.rapidInsulinType !== original.rapidInsulinType &&
+      parsed.rapidInsulinType !== undefined
+    )
       patch.rapidInsulinType = parsed.rapidInsulinType;
-    if (profile.maxBolus !== original.maxBolus) patch.maxBolus = parsed.maxBolus;
-    if (profile.afterMealMinutes !== original.afterMealMinutes)
+    if (profile.maxBolus !== original.maxBolus && parsed.maxBolus !== undefined)
+      patch.maxBolus = parsed.maxBolus;
+    if (
+      profile.afterMealMinutes !== original.afterMealMinutes &&
+      parsed.afterMealMinutes !== undefined
+    )
       patch.afterMealMinutes = parsed.afterMealMinutes;
     return patch;
   };
@@ -485,23 +509,23 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         await patchProfile(data.patch);
       }
 
-      const payload = {
-        telegramId: data.telegramId,
-        target: data.target,
-        low: data.low,
-        high: data.high,
-      } as {
+      const payload: {
         telegramId: number;
         target: number;
         low: number;
         high: number;
         icr?: number;
         cf?: number;
+      } = {
+        telegramId: data.telegramId,
+        target: data.target!,
+        low: data.low!,
+        high: data.high!,
       };
 
       if (data.therapyType !== 'tablets' && data.therapyType !== 'none') {
-        payload.icr = data.icr;
-        payload.cf = data.cf;
+        if (data.icr !== undefined) payload.icr = data.icr;
+        if (data.cf !== undefined) payload.cf = data.cf;
       }
 
       await saveProfile(payload);

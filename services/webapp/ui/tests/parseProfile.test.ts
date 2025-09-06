@@ -70,6 +70,18 @@ describe("parseProfile", () => {
     expect(result.errors.gramsPerXe).toBe("required");
   });
 
+  it("does not set zero for empty optional numbers", () => {
+    const result = parseProfile(makeProfile({ gramsPerXe: "" }));
+    expect(result.errors).toEqual({});
+    expect(result.data.gramsPerXe).toBeUndefined();
+  });
+
+  it("leaves empty required numbers undefined", () => {
+    const result = parseProfile(makeProfile({ icr: "" }));
+    expect(result.errors.icr).toBe("required");
+    expect(result.data.icr).toBeUndefined();
+  });
+
   it("validates target range", () => {
     const result = parseProfile(makeProfile({ target: "12" }));
     expect(result.errors.target).toBe("out_of_range");
