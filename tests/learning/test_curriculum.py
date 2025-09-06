@@ -48,11 +48,18 @@ async def test_happy_path_one_lesson(monkeypatch: pytest.MonkeyPatch) -> None:
     progress = await start_lesson(1, slug)
     assert progress.current_step == 0
 
-    assert await next_step(1, lesson_id) == f"{disclaimer()}\n\ntext 1"
-    assert await next_step(1, lesson_id) == "text 2"
-    assert await next_step(1, lesson_id) == "text 3"
+    text, completed = await next_step(1, lesson_id)
+    assert text == f"{disclaimer()}\n\ntext 1"
+    assert completed is False
+    text, completed = await next_step(1, lesson_id)
+    assert text == "text 2"
+    assert completed is False
+    text, completed = await next_step(1, lesson_id)
+    assert text == "text 3"
+    assert completed is False
 
-    question_text = await next_step(1, lesson_id)
+    question_text, completed = await next_step(1, lesson_id)
+    assert completed is False
     assert question_text and question_text.startswith(disclaimer())
 
     with db.SessionLocal() as session:
@@ -61,13 +68,18 @@ async def test_happy_path_one_lesson(monkeypatch: pytest.MonkeyPatch) -> None:
     first_opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(questions[0].options, start=1))
     assert question_text.endswith(first_opts)
 
-    for q in questions:
+    for idx, q in enumerate(questions):
         correct, feedback = await check_answer(1, lesson_id, q.correct_option + 1)
         assert correct is True
         assert feedback
-        await next_step(1, lesson_id)
+        text, completed = await next_step(1, lesson_id)
+        if idx < len(questions) - 1:
+            assert text
+            assert completed is False
 
-    assert await next_step(1, lesson_id) is None
+    text, completed = await next_step(1, lesson_id)
+    assert text is None
+    assert completed is True
 
     with db.SessionLocal() as session:
         prog = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()

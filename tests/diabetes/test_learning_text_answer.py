@@ -38,10 +38,10 @@ def make_context(**kwargs: Any) -> CallbackContext[Any, Any, Any, Any]:
 async def test_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
 
-    questions = iter(["Q1", None])
+    questions = iter([("Q1", False), (None, True)])
 
-    async def fake_next(user_id: int, lesson_id: int) -> str | None:
-        return next(questions, None)
+    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+        return next(questions)
 
     async def fake_check(user_id: int, lesson_id: int, answer: int) -> tuple[bool, str]:
         return True, "ok"

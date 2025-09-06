@@ -38,11 +38,11 @@ async def test_lesson_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
         calls.append("start")
         return SimpleNamespace(lesson_id=1)
 
-    steps = iter(["step1", "step2"])
+    steps = iter([("step1", False), ("step2", False), (None, True)])
 
-    async def fake_next(user_id: int, lesson_id: int) -> str | None:
+    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
         calls.append("next")
-        return next(steps, None)
+        return next(steps)
 
     monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start)
     monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next)
@@ -83,10 +83,10 @@ async def test_lesson_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_quiz_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
 
-    questions = iter(["Q1", "Q2"])
+    questions = iter([("Q1", False), ("Q2", False), (None, True)])
 
-    async def fake_next(user_id: int, lesson_id: int) -> str | None:
-        return next(questions, None)
+    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+        return next(questions)
 
     answers: list[int] = []
 
