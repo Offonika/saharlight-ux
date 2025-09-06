@@ -86,8 +86,8 @@ async def test_learning_onboarding_flow(
         ]
         assert context.user_data["learn_profile_overrides"] == {
             "age_group": "adult",
-            "diabetes_type": "type1",
-            "learning_level": "beginner",
+            "diabetes_type": "T1",
+            "learning_level": "novice",
         }
 
         message5 = DummyMessage()
