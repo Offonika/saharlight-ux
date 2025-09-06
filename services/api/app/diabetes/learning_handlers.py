@@ -15,6 +15,7 @@ from .dynamic_tutor import check_user_answer, generate_step_text
 from .handlers import learning_handlers as legacy_handlers
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
+from .learning_utils import choose_initial_topic
 from .services.gpt_client import format_reply
 from .services.lesson_log import add_lesson_log
 
@@ -22,16 +23,6 @@ logger = logging.getLogger(__name__)
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
-
-
-def choose_initial_topic(profile: Mapping[str, str | None]) -> str:
-    """Pick an initial topic slug based on ``profile``.
-
-    Currently this is a simple heuristic that returns the first available
-    topic.  More sophisticated logic can be implemented later.
-    """
-
-    return next(iter(TOPICS_RU))
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
@@ -98,7 +89,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     profile = _get_profile(user_data)
-    slug = choose_initial_topic(profile)
+    slug, _ = choose_initial_topic(profile)
     progress = await curriculum_engine.start_lesson(user.id, slug)
     text, _ = await curriculum_engine.next_step(user.id, progress.lesson_id)
     if text is None:

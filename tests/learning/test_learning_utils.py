@@ -1,23 +1,35 @@
 from __future__ import annotations
 
+import pytest
+
 from services.api.app.diabetes.learning_utils import choose_initial_topic
 
 
-def test_choose_initial_topic_novice_insulin() -> None:
-    profile = {"learning_level": "novice", "therapyType": "insulin"}
-    assert choose_initial_topic(profile) == ("insulin-usage", "Инсулин")
+@pytest.mark.parametrize(
+    "profile, expected",
+    [
+        (
+            {"learning_level": "novice", "therapy_type": "insulin"},
+            ("insulin-usage", "Инсулин"),
+        ),
+        (
+            {"learning_level": "novice", "therapy_type": "tablets"},
+            ("basics-of-diabetes", "Основы диабета"),
+        ),
+        (
+            {"learning_level": "novice", "therapy_type": "none"},
+            ("basics-of-diabetes", "Основы диабета"),
+        ),
+        (
+            {"learning_level": "expert", "therapy_type": "insulin"},
+            ("xe_basics", "Хлебные единицы"),
+        ),
+        (
+            {"learning_level": "expert", "therapy_type": "none"},
+            ("healthy-eating", "Здоровое питание"),
+        ),
+    ],
+)
 
-
-def test_choose_initial_topic_novice_non_insulin() -> None:
-    profile = {"learning_level": "novice", "therapyType": "tablets"}
-    assert choose_initial_topic(profile) == ("basics-of-diabetes", "Основы диабета")
-
-
-def test_choose_initial_topic_non_novice_insulin() -> None:
-    profile = {"learning_level": "expert", "therapyType": "insulin"}
-    assert choose_initial_topic(profile) == ("xe_basics", "Хлебные единицы")
-
-
-def test_choose_initial_topic_non_novice_non_insulin() -> None:
-    profile = {"learning_level": "expert", "therapyType": "none"}
-    assert choose_initial_topic(profile) == ("healthy-eating", "Здоровое питание")
+def test_choose_initial_topic(profile: dict[str, str], expected: tuple[str, str]) -> None:
+    assert choose_initial_topic(profile) == expected
