@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEffect } from 'react';
@@ -86,7 +87,9 @@ describe('onboarding events', () => {
   it('Profile sends onboarding_started when flow=onboarding', async () => {
     render(
       <MemoryRouter initialEntries={['/profile?flow=onboarding&step=profile']}>
-        <Profile />
+        <QueryClientProvider client={new QueryClient()}>
+          <Profile />
+        </QueryClientProvider>
       </MemoryRouter>
     );
     await waitFor(() => {

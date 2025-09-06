@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const toast = vi.fn();
@@ -38,6 +39,11 @@ vi.mock('../src/pages/resolveTelegramId', () => ({
 
 import Profile from '../src/pages/Profile';
 import { saveProfile, getProfile, patchProfile } from '../src/features/profile/api';
+
+const renderWithClient = (ui: React.ReactElement) =>
+  render(
+    <QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>
+  );
 import { resolveTelegramId } from '../src/pages/resolveTelegramId';
 import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
 import { useTranslation } from '../src/i18n';
@@ -100,7 +106,7 @@ describe('Profile page', () => {
 
   it('displays carbUnits options using localized text', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    const { getByLabelText } = render(<Profile />);
+    const { getByLabelText } = renderWithClient(<Profile />);
     const { t } = useTranslation();
     const select = getByLabelText(
       t('profileHelp.carbUnits.title'),
@@ -116,7 +122,7 @@ describe('Profile page', () => {
 
   it('blocks save without telegramId and shows toast', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(undefined);
-    const { getByText } = render(<Profile />);
+    const { getByText } = renderWithClient(<Profile />);
     fireEvent.click(getByText('Сохранить настройки'));
     expect(saveProfile).not.toHaveBeenCalled();
     expect(patchProfile).not.toHaveBeenCalled();
@@ -139,7 +145,7 @@ describe('Profile page', () => {
     (useTelegramInitData as vi.Mock).mockReturnValue(
       'user=%7B%22id%22%3A%22notnumber%22%7D',
     );
-    const { getByText } = render(<Profile />);
+    const { getByText } = renderWithClient(<Profile />);
     fireEvent.click(getByText('Сохранить настройки'));
     expect(resolveTelegramId).toHaveBeenCalledWith(
       null,
@@ -158,7 +164,7 @@ describe('Profile page', () => {
 
   it('renders localized rapid insulin type options', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    const { getByLabelText } = render(<Profile />);
+    const { getByLabelText } = renderWithClient(<Profile />);
 
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
@@ -178,7 +184,7 @@ describe('Profile page', () => {
   it('blocks save with invalid numeric input and shows field error', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
 
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getByPlaceholderText } = renderWithClient(<Profile />);
     const icrInput = getByPlaceholderText('12');
     fireEvent.change(icrInput, { target: { value: '0' } });
 
@@ -192,7 +198,7 @@ describe('Profile page', () => {
 
   it('shows required error for empty field', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getByPlaceholderText } = renderWithClient(<Profile />);
     const icrInput = getByPlaceholderText('12');
     fireEvent.change(icrInput, { target: { value: '' } });
     fireEvent.click(getByText('Сохранить настройки'));
@@ -203,7 +209,7 @@ describe('Profile page', () => {
 
   it('toggles grams per XE input with carb unit', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    const { queryByLabelText, getByDisplayValue } = render(<Profile />);
+    const { queryByLabelText, getByDisplayValue } = renderWithClient(<Profile />);
 
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
@@ -218,7 +224,7 @@ describe('Profile page', () => {
   it('blocks save when target is out of range and shows toast', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
 
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getByPlaceholderText } = renderWithClient(<Profile />);
     const targetInput = getByPlaceholderText('6.0');
     fireEvent.change(targetInput, { target: { value: '12' } });
 
@@ -240,7 +246,7 @@ describe('Profile page', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
 
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getByPlaceholderText } = renderWithClient(<Profile />);
 
     await waitFor(() => {
       expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
@@ -294,7 +300,7 @@ describe('Profile page', () => {
   it('preserves settings when updating ICR only', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getByPlaceholderText } = renderWithClient(<Profile />);
 
     await waitFor(() => {
       expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
@@ -354,7 +360,7 @@ describe('Profile page', () => {
         sosAlertsEnabled: true,
         sosContact: null,
       });
-      const { queryByLabelText } = render(<Profile therapyType={therapy} />);
+      const { queryByLabelText } = renderWithClient(<Profile therapyType={therapy} />);
       await waitFor(() => {
         expect(getProfile).toHaveBeenCalledWith(123);
       });
@@ -388,7 +394,7 @@ describe('Profile page', () => {
         sosAlertsEnabled: true,
         sosContact: null,
       });
-      render(<Profile therapyType={therapy} />);
+      renderWithClient(<Profile therapyType={therapy} />);
       await waitFor(() => {
         expect(getProfile).toHaveBeenCalledWith(123);
       });
@@ -416,7 +422,7 @@ describe('Profile page', () => {
         sosAlertsEnabled: true,
         sosContact: null,
       });
-      render(<Profile therapyType={therapy} />);
+      renderWithClient(<Profile therapyType={therapy} />);
       await waitFor(() => {
         expect(getProfile).toHaveBeenCalledWith(123);
       });
@@ -456,7 +462,7 @@ describe('Profile page', () => {
         sosContact: null,
       });
 
-    render(<Profile />);
+    renderWithClient(<Profile />);
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
@@ -484,7 +490,7 @@ describe('Profile page', () => {
         sosAlertsEnabled: true,
         sosContact: null,
       });
-      render(<Profile therapyType={therapy} />);
+      renderWithClient(<Profile therapyType={therapy} />);
       await waitFor(() => {
         expect(getProfile).toHaveBeenCalledWith(123);
       });
@@ -494,7 +500,7 @@ describe('Profile page', () => {
 
   it('renders advanced bolus fields', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
       expect(getByPlaceholderText('15')).toBeTruthy();
       expect(getByPlaceholderText('0.5')).toBeTruthy();
@@ -504,7 +510,7 @@ describe('Profile page', () => {
 
   it('validates advanced bolus fields', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
       expect((getByPlaceholderText('15') as HTMLInputElement).value).toBe('15');
     });
@@ -522,7 +528,7 @@ describe('Profile page', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
     const { getByText, getByPlaceholderText, getByDisplayValue, getByLabelText } =
-      render(<Profile />);
+      renderWithClient(<Profile />);
     await waitFor(() => {
       expect((getByPlaceholderText('4') as HTMLInputElement).value).toBe('4');
     });
@@ -579,7 +585,7 @@ describe('Profile page', () => {
       therapyType: 'insulin',
     });
 
-    render(<Profile />);
+    renderWithClient(<Profile />);
 
     await waitFor(() => {
       expect(patchProfile).toHaveBeenCalledWith({
@@ -612,7 +618,7 @@ describe('Profile page', () => {
       therapyType: 'insulin',
     });
 
-    const { getByLabelText, getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByLabelText, getByText, getByPlaceholderText } = renderWithClient(<Profile />);
 
     await waitFor(() => {
       expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('6');
@@ -635,7 +641,7 @@ describe('Profile page', () => {
   it('sends therapyType change to server on save', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
-    const { getByLabelText, getByText } = render(<Profile />);
+    const { getByLabelText, getByText } = renderWithClient(<Profile />);
     const { t } = useTranslation();
 
     await waitFor(() => {
@@ -678,7 +684,7 @@ describe('Profile page', () => {
       therapyType: 'insulin',
     });
 
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
@@ -703,7 +709,7 @@ describe('Profile page', () => {
       therapyType: 'insulin',
     });
 
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
@@ -735,7 +741,7 @@ describe('Profile page', () => {
       therapyType: 'insulin',
     });
 
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
@@ -789,7 +795,7 @@ describe('Profile page', () => {
         therapyType,
       });
 
-      render(<Profile />);
+      renderWithClient(<Profile />);
       await waitFor(() => {
         expect(getProfile).toHaveBeenCalledWith(123);
       });
@@ -812,7 +818,7 @@ describe('Profile page', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockRejectedValue(new Error('load failed'));
 
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
@@ -831,7 +837,7 @@ describe('Profile page', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue(null);
 
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalledWith(123);
     });
@@ -841,7 +847,7 @@ describe('Profile page', () => {
 
   it('shows warning modal and blocks save until confirmation', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getByPlaceholderText } = renderWithClient(<Profile />);
 
     await waitFor(() => {
       expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
@@ -868,7 +874,7 @@ describe('Profile page', () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (saveProfile as vi.Mock).mockResolvedValue(undefined);
 
-    const { getByText, getByPlaceholderText } = render(<Profile />);
+    const { getByText, getByPlaceholderText } = renderWithClient(<Profile />);
 
     await waitFor(() => {
       expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
