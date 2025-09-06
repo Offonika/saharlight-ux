@@ -9,6 +9,8 @@ from services.api.app.diabetes.learning_prompts import (
     build_explain_step,
     build_feedback,
     build_quiz_check,
+    build_system_prompt,
+    build_user_prompt_step,
     disclaimer,
 )
 
@@ -59,4 +61,22 @@ def test_build_feedback_variants(correct: bool, prefix: str) -> None:
     assert text
     assert text.startswith(prefix)
     assert text.endswith(disclaimer())
+
+
+def test_build_system_prompt_limits_length() -> None:
+    """System prompt should contain warnings and stay within 1.5k chars."""
+
+    prompt = build_system_prompt({"age_group": "adult"})
+    assert "Не назначай" in prompt
+    assert "вопросом-проверкой" in prompt
+    assert len(prompt) <= 1_500
+
+
+def test_build_user_prompt_step_trims_and_ends_with_instruction() -> None:
+    """User prompt builder must trim long text and keep final instruction."""
+
+    long_summary = "x" * 2_000
+    prompt = build_user_prompt_step("xe_basics", 1, long_summary)
+    assert len(prompt) <= 1_500
+    assert prompt.endswith("Ответ не показывай.")
 
