@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from typing import cast
 
 from telegram import Update
 from telegram.ext import ContextTypes
+
+logger = logging.getLogger(__name__)
 
 
 ONBOARDING_PROMPT = "Перед началом ответьте 'да' чтобы продолжить обучение."
@@ -32,4 +35,21 @@ async def ensure_overrides(
         await message.reply_text(ONBOARDING_PROMPT)
     user_data["learning_waiting"] = True
     return False
+
+
+async def learn_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Reset learning-related state for the user."""
+
+    logger.debug("learn_reset", extra={"user": update.effective_user})
+    user_data = cast(dict[str, object], context.user_data)
+    for key in [
+        "learning_onboarded",
+        "learning_waiting",
+        "learn_profile_overrides",
+        "learn_onboarding_stage",
+    ]:
+        user_data.pop(key, None)
+    message = update.message
+    if message is not None:
+        await message.reply_text("Learning onboarding reset. Отправьте /learn.")
 

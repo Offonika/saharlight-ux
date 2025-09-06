@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import os
 import re
 
 from telegram.ext import (
@@ -137,7 +138,14 @@ def register_handlers(
         gpt_handlers,
         billing_handlers,
     )
-    from services.api.app.config import settings
+    from services.api.app.config import reload_settings, settings
+
+    reload_settings()
+    learning_env = os.getenv("LEARNING_MODE_ENABLED")
+    if learning_env is not None:
+        learning_enabled = learning_env.lower() not in {"0", "false"}
+    else:
+        learning_enabled = settings.learning_mode_enabled
 
     app.add_handler(CommandHandlerT("menu", menu_command))
     app.add_handler(CommandHandlerT("report", reporting_handlers.report_request))
@@ -150,7 +158,7 @@ def register_handlers(
     app.add_handler(sos_handlers.sos_contact_conv)
     app.add_handler(CommandHandlerT("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandlerT("help", help_command))
-    if settings.learning_mode_enabled:
+    if learning_enabled:
         from . import learning_handlers, learning_onboarding
 
         app.add_handler(CommandHandlerT("learn", learning_handlers.learn_command))
