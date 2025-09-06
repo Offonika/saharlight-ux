@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Save } from "lucide-react";
+
 import { MedicalHeader } from "@/components/MedicalHeader";
 import { useToast } from "@/hooks/use-toast";
 import MedicalButton from "@/components/MedicalButton";
@@ -13,7 +14,6 @@ import ProfileHelpSheet from "@/components/ProfileHelpSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "@/i18n";
 import { saveProfile, getProfile, patchProfile } from "@/features/profile/api";
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { PatchProfileDto, RapidInsulin } from "@/features/profile/types";
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
@@ -294,13 +294,6 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     ) | null
   >(null);
   const [loaded, setLoaded] = useState(false);
-
-  const queryClient = useQueryClient();
-  const patchProfileMutation = useMutation({
-    mutationFn: patchProfile,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['profile'] }),
-  });
 
   useEffect(() => {
     if (isOnboardingFlow) {
