@@ -341,8 +341,10 @@ def register_handlers(app: App) -> None:
     """Register learning-related handlers on the application."""
 
     from . import learning_onboarding as onboarding
+    from ..learning_handlers import topics_command
 
     app.add_handler(CommandHandler("learn", learn_command))
+    app.add_handler(CommandHandler("topics", topics_command))
     app.add_handler(CommandHandler("lesson", lesson_command))
     app.add_handler(CommandHandler("quiz", quiz_command))
     app.add_handler(CommandHandler("progress", progress_command))

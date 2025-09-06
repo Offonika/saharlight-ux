@@ -64,6 +64,7 @@ class DummyBot(Bot):
 @pytest.mark.asyncio
 async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+    monkeypatch.setattr(settings, "learning_ui_show_topics", True)
     steps = iter(["step1", "step2"])
 
     async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
