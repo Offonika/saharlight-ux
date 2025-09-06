@@ -5,6 +5,7 @@ from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
+from fastapi import HTTPException
 from telegram import Update
 from telegram.ext import CallbackContext
 
@@ -215,6 +216,73 @@ async def test_webapp_save_db_error(monkeypatch: pytest.MonkeyPatch) -> None:
     assert post_mock.call_count == 1
     save_mock.assert_called_once()
     assert msg.texts == ["⚠️ Не удалось сохранить профиль."]
+
+
+@pytest.mark.asyncio
+async def test_webapp_save_invalid_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    post_mock = MagicMock()
+    monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
+    monkeypatch.setattr(handlers, "post_profile", post_mock)
+    msg = DummyMessage()
+    msg.web_app_data = SimpleNamespace(
+        data=json.dumps(
+            {"icr": 8, "cf": 3, "target": 6, "low": 4, "high": 9, "dia": 0}
+        )
+    )
+    update = cast(
+        Update,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+    await handlers.profile_webapp_save(update, context)
+    assert post_mock.call_count == 0
+    assert msg.texts == ["Некорректные данные настроек профиля"]
+
+
+@pytest.mark.asyncio
+async def test_webapp_save_settings_patch_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    post_mock = MagicMock(return_value=(True, None))
+    save_mock = MagicMock(return_value=True)
+
+    async def run_db(func, sessionmaker):
+        session = MagicMock()
+        return func(session)
+
+    patch_mock = MagicMock(
+        side_effect=HTTPException(status_code=500, detail="boom")
+    )
+
+    monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
+    monkeypatch.setattr(handlers, "post_profile", post_mock)
+    monkeypatch.setattr(handlers, "save_profile", save_mock)
+    monkeypatch.setattr(handlers, "run_db", run_db)
+    monkeypatch.setattr(
+        handlers.profile_service,
+        "patch_user_settings",
+        patch_mock,
+    )
+    msg = DummyMessage()
+    msg.web_app_data = SimpleNamespace(
+        data=json.dumps(
+            {"icr": 8, "cf": 3, "target": 6, "low": 4, "high": 9, "dia": 1}
+        )
+    )
+    update = cast(
+        Update,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+    await handlers.profile_webapp_save(update, context)
+    patch_mock.assert_called_once()
+    assert msg.texts == ["⚠️ Не удалось сохранить настройки"]
 
 
 def test_parse_profile_values_success() -> None:
