@@ -49,7 +49,9 @@ class LessonModel(BaseModel):
 LESSON_LIST = TypeAdapter(list[LessonModel])
 
 
-DEFAULT_CONTENT_FILE = Path(__file__).resolve().parents[4] / "content" / "lessons_v0.json"
+DEFAULT_CONTENT_FILE = (
+    Path(__file__).resolve().parents[4] / "content" / "lessons_v0.json"
+)
 
 
 async def load_lessons(
@@ -65,7 +67,9 @@ async def load_lessons(
 
     def _load(session: Session) -> None:
         for item in lessons:
-            slug = item.slug or re.sub(r"[^a-z0-9]+", "-", item.title.lower()).strip("-")
+            slug = item.slug or re.sub(r"[^a-z0-9]+", "-", item.title.lower()).strip(
+                "-"
+            )
             lesson = Lesson(
                 slug=slug,
                 title=item.title,
@@ -119,8 +123,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 async def main(argv: list[str] | None = None) -> None:
-    init_db()
     args = _build_parser().parse_args(argv)
+    init_db()
     if args.reset:
         await reset_lessons()
     await load_lessons(args.path)
