@@ -13,6 +13,7 @@ from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress, QuizQuestion
 from services.api.app.diabetes.services import db, gpt_client
+from services.api.app.config import settings
 
 
 @pytest.mark.asyncio()
@@ -24,6 +25,7 @@ async def test_happy_path_one_lesson(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     db.SessionLocal.configure(bind=engine)
     db.Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
 
     await load_lessons(
         "content/lessons_v0.json",

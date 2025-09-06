@@ -12,6 +12,7 @@ from services.api.app.diabetes.learning_state import LearnState, get_state, set_
 class DummyMessage:
     def __init__(self, text: str | None = None) -> None:
         self.text = text
+        self.from_user = SimpleNamespace(id=1)
         self.replies: list[str] = []
         self.markups: list[InlineKeyboardMarkup | None] = []
 
@@ -40,6 +41,10 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
         return "step1?"
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    async def fake_add_log(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
     update = cast(object, SimpleNamespace(message=msg))
@@ -76,6 +81,10 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+    async def fake_add_log(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
     update = cast(object, SimpleNamespace(message=msg))
