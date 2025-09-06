@@ -6,13 +6,17 @@ from typing import Any, MutableMapping, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
-from telegram import Update
-from telegram.ext import ContextTypes
-
-from telegram import ReplyKeyboardMarkup, KeyboardButton
+from telegram import ReplyKeyboardMarkup, KeyboardButton, Update
+from telegram.ext import ApplicationHandlerStop, ContextTypes
 
 from services.api.app.config import settings
 from services.api.app.diabetes import curriculum_engine
+from services.api.app.diabetes.learning_state import (
+    LearnState,
+    clear_state,
+    get_state,
+    set_state,
+)
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress
 from services.api.app.diabetes.services.db import SessionLocal, run_db
 from services.api.app.diabetes.services.repository import commit
@@ -49,7 +53,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     model = settings.learning_command_model
 
     def _list(session: Session) -> list[tuple[str, str]]:
-        lessons = session.scalars(sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)).all()
+        lessons = session.scalars(
+            sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)
+        ).all()
         return [(lesson.title, lesson.slug) for lesson in lessons]
 
     lessons = await run_db(_list, sessionmaker=SessionLocal)
@@ -101,8 +107,17 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     text = await curriculum_engine.next_step(user.id, lesson_id)
     if text is None:
         await message.reply_text("Урок завершён")
+        clear_state(user_data)
     else:
         await message.reply_text(text)
+        state = get_state(user_data)
+        if state is None:
+            topic = lesson_slug or ""
+            state = LearnState(topic=topic, step=0, awaiting_answer=False)
+        state.step += 1
+        state.awaiting_answer = False
+        state.last_step_text = text
+        set_state(user_data, state)
     logger.info(
         "lesson_command_complete",
         extra={"user_id": user.id, "lesson_id": lesson_id},
@@ -127,19 +142,85 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if lesson_id is None:
         await message.reply_text("Урок не выбран")
         return
+    state = get_state(user_data)
     if context.args:
         try:
             answer = int(context.args[0])
         except ValueError:
             await message.reply_text("Ответ должен быть числом")
             return
-        _correct, feedback = await curriculum_engine.check_answer(user.id, lesson_id, answer)
+        if state is not None:
+            state.awaiting_answer = False
+            set_state(user_data, state)
+        _correct, feedback = await curriculum_engine.check_answer(
+            user.id, lesson_id, answer
+        )
         await message.reply_text(feedback)
+        question = await curriculum_engine.next_step(user.id, lesson_id)
+        if question is None:
+            await message.reply_text("Опрос завершён")
+            clear_state(user_data)
+        else:
+            await message.reply_text(question)
+            if state is None:
+                topic = cast(str | None, user_data.get("lesson_slug")) or ""
+                state = LearnState(topic=topic, step=0, awaiting_answer=False)
+            state.step += 1
+            state.awaiting_answer = True
+            set_state(user_data, state)
+        return
     question = await curriculum_engine.next_step(user.id, lesson_id)
     if question is None:
         await message.reply_text("Опрос завершён")
+        clear_state(user_data)
     else:
         await message.reply_text(question)
+        if state is None:
+            topic = cast(str | None, user_data.get("lesson_slug")) or ""
+            state = LearnState(topic=topic, step=0, awaiting_answer=False)
+        state.step += 1
+        state.awaiting_answer = True
+        set_state(user_data, state)
+
+
+async def quiz_answer_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Treat plain text as an answer when awaiting a quiz response."""
+
+    message = update.message
+    user = update.effective_user
+    if message is None or user is None or not message.text:
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    state = get_state(user_data)
+    if state is None or not state.awaiting_answer:
+        return
+    lesson_id = cast(int | None, user_data.get("lesson_id"))
+    if lesson_id is None:
+        clear_state(user_data)
+        return
+    try:
+        answer = int(message.text.strip())
+    except ValueError:
+        await message.reply_text("Ответ должен быть числом")
+        raise ApplicationHandlerStop
+    state.awaiting_answer = False
+    set_state(user_data, state)
+    _correct, feedback = await curriculum_engine.check_answer(
+        user.id, lesson_id, answer
+    )
+    await message.reply_text(feedback)
+    question = await curriculum_engine.next_step(user.id, lesson_id)
+    if question is None:
+        await message.reply_text("Опрос завершён")
+        clear_state(user_data)
+    else:
+        await message.reply_text(question)
+        state.step += 1
+        state.awaiting_answer = True
+        set_state(user_data, state)
+    raise ApplicationHandlerStop
 
 
 async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -150,7 +231,9 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     user_id = user.id
 
-    def _load_progress(session: Session, user_id: int) -> tuple[str, int, bool, int | None] | None:
+    def _load_progress(
+        session: Session, user_id: int
+    ) -> tuple[str, int, bool, int | None] | None:
         progress = session.scalars(
             sa.select(LessonProgress)
             .join(Lesson)
@@ -168,7 +251,9 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     result = await run_db(_load_progress, user_id, sessionmaker=SessionLocal)
     if result is None:
-        await message.reply_text("Вы ещё не начали обучение. Отправьте /learn чтобы начать.")
+        await message.reply_text(
+            "Вы ещё не начали обучение. Отправьте /learn чтобы начать."
+        )
         return
     title, current_step, completed, quiz_score = result
     lines = [
@@ -189,7 +274,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     user_data = cast(dict[str, object], context.user_data)
     lesson_id = cast(int | None, user_data.get("lesson_id"))
-    logger.info("exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id})
+    logger.info(
+        "exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id}
+    )
     lesson_id = cast(int | None, user_data.pop("lesson_id", None))
     user_data.pop("lesson_slug", None)
     user_data.pop("lesson_step", None)
@@ -198,7 +285,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         def _complete(session: Session, user_id: int, lesson_id: int) -> None:
             progress = session.execute(
-                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+                sa.select(LessonProgress).filter_by(
+                    user_id=user_id, lesson_id=lesson_id
+                )
             ).scalar_one_or_none()
             if progress is not None and not progress.completed:
                 progress.completed = True
@@ -217,6 +306,7 @@ __all__ = [
     "learn_command",
     "lesson_command",
     "quiz_command",
+    "quiz_answer_handler",
     "progress_command",
     "exit_command",
 ]
