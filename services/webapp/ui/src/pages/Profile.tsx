@@ -266,6 +266,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       }
     ) | null
   >(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (isOnboardingFlow) {
@@ -296,6 +297,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       .then((data) => {
         if (cancelled) return;
         if (!data) {
+          setLoaded(true);
           return;
         }
 
@@ -359,7 +361,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         const timezoneAuto = data.timezoneAuto === true;
         const therapyType = data.therapyType ?? 'none';
 
-        const loaded: ProfileForm = {
+        const loadedProfile: ProfileForm = {
           icr,
           cf,
           target,
@@ -377,10 +379,11 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           afterMealMinutes,
         };
 
-        setProfile(loaded);
-        setOriginal(loaded);
+        setProfile(loadedProfile);
+        setOriginal(loadedProfile);
         setTherapyType(therapyType);
         setOriginalTherapyType(therapyType);
+        setLoaded(true);
 
         if (timezoneAuto && timezone !== deviceTz) {
           patchProfile({
@@ -414,6 +417,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           description: message,
           variant: "destructive",
         });
+        setLoaded(true);
       });
 
     return () => {
@@ -422,6 +426,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   }, [user, initData, toast, t]);
 
   const handleInputChange = (field: keyof ProfileForm, value: string) => {
+    if (!loaded) return;
     setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
     if (field === "timezone") {
       setProfile((prev) => ({ ...prev, timezone: value }));
