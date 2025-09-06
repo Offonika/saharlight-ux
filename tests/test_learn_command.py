@@ -16,6 +16,7 @@ import services.api.app.diabetes.handlers.learning_handlers as handlers
 from services.api.app.config import Settings
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
+from services.api.app.ui.keyboard import build_main_keyboard
 
 
 class DummyMessage:
@@ -45,7 +46,9 @@ async def test_learn_command_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(handlers, "settings", Settings(LEARNING_MODE_ENABLED="0", _env_file=None))
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_message=message, effective_user=None)
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
@@ -119,3 +122,44 @@ async def test_learn_command_lists_lessons(monkeypatch: pytest.MonkeyPatch, tmp_
     keyboard = message.kwargs[0].get("reply_markup")
     assert keyboard is not None
     assert keyboard.keyboard
+
+
+@pytest.mark.asyncio
+async def test_cmd_menu_shows_keyboard() -> None:
+    message = DummyMessage()
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_message=message, effective_user=None)
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    await handlers.cmd_menu(update, context)
+
+    assert message.replies == ["Главное меню:"]
+    keyboard = message.kwargs[0].get("reply_markup")
+    assert keyboard is not None
+    assert keyboard.keyboard == build_main_keyboard().keyboard
+
+
+@pytest.mark.asyncio
+async def test_on_learn_button_calls_learn(monkeypatch: pytest.MonkeyPatch) -> None:
+    called = {"v": False}
+
+    async def fake_learn(
+        update: Update,
+        context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+    ) -> None:
+        called["v"] = True
+
+    monkeypatch.setattr(handlers, "learn_command", fake_learn)
+    update = cast(Update, SimpleNamespace(message=None))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    await handlers.on_learn_button(update, context)
+
+    assert called["v"] is True

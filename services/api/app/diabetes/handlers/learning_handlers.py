@@ -6,7 +6,7 @@ from typing import Any, MutableMapping, cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
-from telegram import ReplyKeyboardMarkup, KeyboardButton, Update
+from telegram import Update
 from telegram.ext import ApplicationHandlerStop, ContextTypes
 
 from services.api.app.config import settings
@@ -21,6 +21,7 @@ from services.api.app.diabetes.models_learning import Lesson, LessonProgress
 from services.api.app.diabetes.services.db import SessionLocal, run_db
 from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.ui import menu_keyboard
+from ...ui.keyboard import build_main_keyboard
 from ..learning_onboarding import ensure_overrides
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,20 @@ def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
         return True
     user_data[key] = now
     return False
+
+
+async def cmd_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show the main persistent keyboard."""
+
+    message = update.effective_message
+    if message:
+        await message.reply_text("Главное меню:", reply_markup=build_main_keyboard())
+
+
+async def on_learn_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    """Proxy button presses to :func:`learn_command`."""
+
+    await learn_command(update, ctx)
 
 
 async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -60,18 +75,16 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     lessons = await run_db(_list, sessionmaker=SessionLocal)
     if not lessons:
-        await message.reply_text("Уроки не найдены. Загрузите уроки: make load-lessons")
+        await message.reply_text(
+            "Уроки не найдены. Загрузите уроки: make load-lessons",
+            reply_markup=build_main_keyboard(),
+        )
         return
 
-    keyboard = ReplyKeyboardMarkup(
-        [[KeyboardButton(f"/lesson {slug}")] for _, slug in lessons],
-        resize_keyboard=True,
-        one_time_keyboard=True,
-    )
     titles = "\n".join(f"/lesson {slug} — {title}" for title, slug in lessons)
     await message.reply_text(
         f"🤖 Учебный режим активирован. Модель: {model}\n\nДоступные уроки:\n{titles}",
-        reply_markup=keyboard,
+        reply_markup=build_main_keyboard(),
     )
 
 
@@ -304,6 +317,8 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 __all__ = [
+    "cmd_menu",
+    "on_learn_button",
     "learn_command",
     "lesson_command",
     "quiz_command",
