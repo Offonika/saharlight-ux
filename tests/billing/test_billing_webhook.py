@@ -56,9 +56,11 @@ def make_client(
 
 
 def create_subscription(client: TestClient) -> str:
-    resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
+    resp = client.post(
+        "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+    )
     assert resp.status_code == 200
-    return resp.json()["id"]
+    return resp.json()["checkout_id"]
 
 
 def _sign(secret: str, event_id: str, transaction_id: str) -> str:

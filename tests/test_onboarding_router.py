@@ -12,7 +12,7 @@ import services.api.app.routers.onboarding as onboarding_router
 import services.api.app.services.onboarding_events as onboarding_events
 from services.api.app.diabetes.services.db import Base, Profile, Reminder, User
 from services.api.app.models.onboarding_event import OnboardingEvent
-from services.api.app.telegram_auth import require_tg_user
+from services.api.app.telegram_auth import check_token
 from services.api.app.main import app
 
 
@@ -37,7 +37,7 @@ def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Ses
     monkeypatch.setattr(onboarding_events, "run_db", run_db, raising=False)
     monkeypatch.setattr(onboarding_events, "SessionLocal", session_local, raising=False)
 
-    app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    app.dependency_overrides[check_token] = lambda: {"id": 1}
     return TestClient(app)
 
 

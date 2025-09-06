@@ -46,12 +46,39 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             user.id,
             exc.response.status_code,
         )
-        await message.reply_text("❌ Не удалось активировать пробный период. Попробуйте позже.")
+        if exc.response.status_code == 409:
+            end_dt: datetime | None = None
+            try:
+                status_url = f"{base.rstrip('/')}/billing/status"
+                async with httpx.AsyncClient() as client:
+                    stat = await client.get(
+                        status_url, params={"user_id": user.id}, timeout=10.0
+                    )
+                    stat.raise_for_status()
+                    payload: dict[str, object] = stat.json()
+                    sub = payload.get("subscription")
+                    if isinstance(sub, dict):
+                        end_raw = sub.get("endDate")
+                        if isinstance(end_raw, str):
+                            end_dt = datetime.fromisoformat(end_raw)
+            except Exception:  # pragma: no cover - best effort
+                pass
+            if end_dt is not None:
+                end_str = end_dt.strftime("%d.%m.%Y")
+                await message.reply_text(
+                    f"🎁 Пробный период уже активен до {end_str}"
+                )
+            else:
+                await message.reply_text("🎁 Пробный период уже активен")
+            return
+        await message.reply_text(
+            "❌ Не удалось активировать trial. Попробуйте позже."
+        )
         return
     except httpx.HTTPError:
         logger.exception("failed to start trial")
         logger.info("billing_action=user_id:%s action=trial result=error", user.id)
-        await message.reply_text("❌ Не удалось активировать пробный период. Попробуйте позже.")
+        await message.reply_text("❌ Не удалось активировать trial. Попробуйте позже.")
         return
 
     try:
@@ -67,7 +94,7 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await message.reply_text("❌ Ошибка сервера.")
         return
     end_str = end_dt.strftime("%d.%m.%Y")
-    await message.reply_text(f"🎉 Пробный период активирован до {end_str}")
+    await message.reply_text(f"🎉 Активирован trial до {end_str}")
     logger.info("billing_action=user_id:%s action=trial result=ok", user.id)
 
 

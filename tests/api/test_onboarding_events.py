@@ -18,7 +18,7 @@ from services.api.app.diabetes.services.db import (
 )
 from services.api.app.models.onboarding_event import OnboardingEvent
 from services.api.app.routers import onboarding
-from services.api.app.telegram_auth import require_tg_user
+from services.api.app.telegram_auth import check_token
 
 T = TypeVar("T")
 
@@ -52,7 +52,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
 
     from services.api.app.main import app
 
-    app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    app.dependency_overrides[check_token] = lambda: {"id": 1}
     return TestClient(app)
 
 

@@ -90,6 +90,15 @@ const Subscription = () => {
   const [billing, setBilling] = useState<BillingStatus | null>(null);
 
   useEffect(() => {
+    if (initData) {
+      const w = window as any;
+      w.Telegram = w.Telegram || {};
+      w.Telegram.WebApp = w.Telegram.WebApp || {};
+      w.Telegram.WebApp.initData = initData;
+    }
+  }, [initData]);
+
+  useEffect(() => {
     const telegramId = resolveTelegramId(user, initData);
     if (typeof telegramId !== 'number') return;
     getBillingStatus(String(telegramId))
