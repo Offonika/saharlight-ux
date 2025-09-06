@@ -18,10 +18,13 @@ LEARNING_MODE_ENABLED=true
 ## Подготовка базы данных
 
 ```bash
-alembic upgrade head
+make migrate
 ```
 
 ## Как загрузить уроки
+
+Команду можно запускать сразу после миграции, вручную вызывать `init_db` не
+нужно:
 
 ```bash
 make load-lessons
