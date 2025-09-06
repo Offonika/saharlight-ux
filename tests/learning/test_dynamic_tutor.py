@@ -25,9 +25,10 @@ async def test_step_answer_feedback(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(dynamic_tutor.LLMRouter, "choose_model", lambda self, task: "m")
 
     step = await dynamic_tutor.generate_step_text({}, "topic", 1, None)
-    feedback = await dynamic_tutor.check_user_answer({}, "topic", "42", step)
+    correct, feedback = await dynamic_tutor.check_user_answer({}, "topic", "42", step)
 
     assert step == "step1"
+    assert correct is False
     assert feedback == "feedback"
 
 
@@ -44,7 +45,8 @@ async def test_runtimeerror_returns_fallback(
     monkeypatch.setattr(dynamic_tutor.LLMRouter, "choose_model", lambda self, task: "m")
 
     step = await dynamic_tutor.generate_step_text({}, "topic", 1, None)
-    feedback = await dynamic_tutor.check_user_answer({}, "topic", "42", "step")
+    correct, feedback = await dynamic_tutor.check_user_answer({}, "topic", "42", "step")
 
     assert step == "сервер занят, попробуйте позже"
+    assert correct is False
     assert feedback == "сервер занят, попробуйте позже"

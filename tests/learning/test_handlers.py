@@ -70,8 +70,8 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
         return next(steps)
 
-    async def fake_check_user_answer(*args: object, **kwargs: object) -> str:
-        return "feedback"
+    async def fake_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
+        return True, "feedback"
 
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)

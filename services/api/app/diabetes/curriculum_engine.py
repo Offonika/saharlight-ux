@@ -168,8 +168,10 @@ async def check_answer(
             return lesson.slug
 
         slug = await db.run_db(_get_slug)
-        feedback = await check_user_answer({}, slug, str(answer), last_step_text or "")
-        return True, feedback
+        correct, feedback = await check_user_answer(
+            {}, slug, str(answer), last_step_text or ""
+        )
+        return correct, feedback
 
     answer_index = int(answer) - 1
 
