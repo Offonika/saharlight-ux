@@ -1,16 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { postOnboardingEvent, getOnboardingStatus } from '../src/shared/api/onboarding';
+import {
+  postOnboardingEvent,
+  getOnboardingStatus,
+} from '../src/shared/api/onboarding';
 
 describe('onboarding api', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
-    delete (window as any).telegramInitData;
+    delete (window as any).Telegram;
   });
 
   it('throws error when postOnboardingEvent request fails', async () => {
     const mockFetch = vi.fn().mockResolvedValue(new Response(null, { status: 500 }));
-    (window as any).telegramInitData = 'init';
+    (window as any).Telegram = { WebApp: { initData: 'init' } };
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(postOnboardingEvent('onboarding_started')).rejects.toThrow(
@@ -18,13 +21,16 @@ describe('onboarding api', () => {
     );
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/onboarding/events',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ 'X-Telegram-Init-Data': 'init' }),
+      }),
     );
   });
 
   it('throws error when getOnboardingStatus request fails', async () => {
     const mockFetch = vi.fn().mockResolvedValue(new Response(null, { status: 500 }));
-    (window as any).telegramInitData = 'init';
+    (window as any).Telegram = { WebApp: { initData: 'init' } };
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(getOnboardingStatus()).rejects.toThrow(
@@ -32,7 +38,9 @@ describe('onboarding api', () => {
     );
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/onboarding/status',
-      expect.any(Object),
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Telegram-Init-Data': 'init' }),
+      }),
     );
   });
 
@@ -45,10 +53,37 @@ describe('onboarding api', () => {
           headers: { 'Content-Type': 'application/json' },
         }),
       );
-    (window as any).telegramInitData = 'init';
+    (window as any).Telegram = { WebApp: { initData: 'init' } };
     vi.stubGlobal('fetch', mockFetch);
 
     const data = await getOnboardingStatus();
     expect(data).toEqual({ step: 'profile' });
+  });
+
+  it('skips requests when init data is missing', async () => {
+    const mockFetch = vi.fn();
+    vi.stubGlobal('fetch', mockFetch);
+
+    await postOnboardingEvent('onboarding_started');
+    await getOnboardingStatus();
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('uses tgWebAppData param when Telegram data missing', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal('location', { search: '?tgWebAppData=from-url' } as any);
+
+    await postOnboardingEvent('onboarding_started');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/onboarding/events',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'X-Telegram-Init-Data': 'from-url' }),
+      }),
+    );
   });
 });

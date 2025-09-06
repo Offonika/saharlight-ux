@@ -1,16 +1,57 @@
-export async function postOnboardingEvent(event: string, step?: string, meta?: any) {
-  const initData = (window as any).telegramInitData || '';
+export function getInitDataRaw(): string | null {
+  const initData =
+    (window as unknown as { Telegram?: { WebApp?: { initData?: string } } })
+      .Telegram?.WebApp?.initData;
+
+  if (initData) {
+    return initData;
+  }
+
+  const urlData = new URLSearchParams(window.location.search).get(
+    'tgWebAppData',
+  );
+
+  return urlData || null;
+}
+
+export async function postOnboardingEvent(
+  event: string,
+  step?: string,
+  meta?: any,
+) {
+  const initData = getInitDataRaw();
+
+  if (!initData) {
+    return;
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (initData) {
+    headers['X-Telegram-Init-Data'] = initData;
+  }
+
   const res = await fetch('/api/onboarding/events', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
+    headers,
     body: JSON.stringify({ event, step, meta }),
   });
   if (!res.ok) throw new Error('Failed to post onboarding event');
 }
 
 export async function getOnboardingStatus() {
-  const initData = (window as any).telegramInitData || '';
-  const res = await fetch('/api/onboarding/status', { headers: { 'X-Telegram-Init-Data': initData } });
+  const initData = getInitDataRaw();
+
+  if (!initData) {
+    return;
+  }
+
+  const headers: Record<string, string> = {};
+  if (initData) {
+    headers['X-Telegram-Init-Data'] = initData;
+  }
+  const res = await fetch('/api/onboarding/status', { headers });
   if (!res.ok) throw new Error('Failed to get onboarding status');
   return res.json();
 }
