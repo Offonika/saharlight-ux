@@ -17,7 +17,7 @@ vi.mock('@sdk/apis', () => ({
 }));
 
 vi.mock('@/lib/telegram-auth', () => ({
-  getTelegramAuthHeaders: vi.fn(() => ({ 'x-telegram-init-data': 'test' })),
+  getTelegramAuthHeaders: vi.fn(() => ({ Authorization: 'tg test' })),
 }));
 
 import { fetchAnalytics, fetchDayStats } from './stats';
@@ -37,7 +37,7 @@ describe('stats api', () => {
 
     expect(Configuration).toHaveBeenCalledWith({
       basePath: '/api',
-      headers: { 'x-telegram-init-data': 'test' },
+      headers: { Authorization: 'tg test' },
     });
     expect(DefaultApi).toHaveBeenCalledWith(configInstance);
     expect(mockGetAnalytics).toHaveBeenCalledWith({ telegramId: 1 });
@@ -52,7 +52,7 @@ describe('stats api', () => {
 
     expect(Configuration).toHaveBeenCalledWith({
       basePath: '/api',
-      headers: { 'x-telegram-init-data': 'test' },
+      headers: { Authorization: 'tg test' },
     });
     expect(DefaultApi).toHaveBeenCalledWith(configInstance);
     expect(mockGetStats).toHaveBeenCalledWith({ telegramId: 2 });

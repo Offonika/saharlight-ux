@@ -1,4 +1,4 @@
-const HEADER = 'x-telegram-init-data';
+const HEADER = 'Authorization';
 const LS_KEY = 'tg_init_data';
 
 export function getDevInitData(): string | null {
@@ -18,7 +18,7 @@ export function getTelegramAuthHeaders(): Record<string, string> {
   const initData =
     globalInitData || (import.meta.env.DEV ? getDevInitData() : null);
   if (initData) {
-    headers[HEADER] = initData;
+    headers[HEADER] = `tg ${initData}`;
   }
   return headers;
 }

@@ -129,10 +129,13 @@ def subscription_keyboard(trial_available: bool) -> InlineKeyboardMarkup:
     buttons: list[InlineKeyboardButton] = []
     if trial_available:
         buttons.append(InlineKeyboardButton("🎁 Trial", callback_data="trial"))
-    try:
-        url = config.build_ui_url("/subscription")
-    except RuntimeError:
-        url = None
+    settings = config.get_settings()
+    url = settings.subscription_url
+    if not url:
+        try:
+            url = config.build_ui_url("/subscription")
+        except RuntimeError:
+            url = None
     if url:
         buttons.append(
             InlineKeyboardButton(
