@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import time as dt_time
 from collections.abc import Awaitable, Callable
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -34,6 +33,7 @@ from services.api.app.diabetes.services.db import (
     User,
 )
 from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT, PHOTO_BUTTON_TEXT
+from .formatter import profile_view_formatter
 
 logger = logging.getLogger(__name__)
 
@@ -87,9 +87,7 @@ back_keyboard: ReplyKeyboardMarkup = _back_keyboard
 from .. import UserData  # noqa: E402
 
 
-PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(
-    6
-)
+PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(6)
 END: int = ConversationHandler.END
 
 
@@ -118,21 +116,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         if callable(end_conv):
             end_conv(update, context, END)
         else:
-            chat_id = (
-                getattr(update.effective_chat, "id", None)
-                if sugar_conv.per_chat
-                else None
-            )
-            user_id = (
-                getattr(update.effective_user, "id", None)
-                if sugar_conv.per_user
-                else None
-            )
-            msg_id = (
-                getattr(update.effective_message, "message_id", None)
-                if sugar_conv.per_message
-                else None
-            )
+            chat_id = getattr(update.effective_chat, "id", None) if sugar_conv.per_chat else None
+            user_id = getattr(update.effective_user, "id", None) if sugar_conv.per_user else None
+            msg_id = getattr(update.effective_message, "message_id", None) if sugar_conv.per_message else None
             key = cast(
                 tuple[int | str, ...],
                 tuple(i for i in (chat_id, user_id, msg_id) if i is not None),
@@ -142,7 +128,9 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             else:
                 logger.warning("sugar_conv lacks _update_state method")
 
-    help_text = "Настройки профиля доступны в приложении. Нажмите кнопку в сообщении /profile, чтобы открыть и обновить данные."
+    help_text = (
+        "Настройки профиля доступны в приложении. Нажмите кнопку в сообщении /profile, чтобы открыть и обновить данные."
+    )
 
     if len(args) == 1 and args[0].lower() == "help":
         await message.reply_text(help_text, parse_mode="Markdown")
@@ -164,9 +152,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         low = float(values["low"].replace(",", "."))
         high = float(values["high"].replace(",", "."))
     except ValueError:
-        await message.reply_text(
-            "❗ Пожалуйста, введите корректные числа. Справка: /profile help"
-        )
+        await message.reply_text("❗ Пожалуйста, введите корректные числа. Справка: /profile help")
         return END
     error = validate_profile_numbers(icr, cf, target, low, high)
     if error:
@@ -234,115 +220,11 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             )
         ]
 
-    if not profile:
-        text = (
-            "Ваш профиль пока не настроен.\n\nНастройки профиля доступны в приложении."
-        )
-        if webapp_button is not None:
-            text += " Нажмите кнопку ниже, чтобы открыть и обновить данные."
-            keyboard = InlineKeyboardMarkup([webapp_button])
-            await message.reply_text(text, parse_mode="Markdown", reply_markup=keyboard)
-        else:
-            await message.reply_text(text, parse_mode="Markdown")
-        return
-
-    icr = getattr(profile, "icr", None)
-    cf = getattr(profile, "cf", None)
-    target = getattr(profile, "target", None)
-    low = getattr(profile, "low", None)
-    high = getattr(profile, "high", None)
-    dia = getattr(profile, "dia", None)
-    round_step = getattr(profile, "round_step", None)
-    carb_units = getattr(profile, "carb_units", None)
-    grams_per_xe = getattr(profile, "grams_per_xe", None)
-    therapy_type = getattr(profile, "therapy_type", None)
-    rapid_insulin_type = getattr(profile, "rapid_insulin_type", None)
-    if rapid_insulin_type is None:
-        rapid_insulin_type = getattr(profile, "insulin_type", None)
-    prebolus_min = getattr(profile, "prebolus_min", None)
-    max_bolus = getattr(profile, "max_bolus", None)
-    postmeal_check_min = getattr(profile, "postmeal_check_min", None)
-    quiet_start = getattr(profile, "quiet_start", None)
-    quiet_end = getattr(profile, "quiet_end", None)
-    if isinstance(quiet_start, dict):
-        quiet_start = dt_time(**quiet_start)
-    if isinstance(quiet_end, dict):
-        quiet_end = dt_time(**quiet_end)
-    timezone = getattr(profile, "timezone", None)
-    sos_contact = getattr(profile, "sos_contact", None)
-    sos_alerts_enabled = getattr(profile, "sos_alerts_enabled", None)
-
-    bolus_lines = []
-    if icr is not None:
-        bolus_lines.append(f"• ИКХ: {icr} г/ед.")
-    if cf is not None:
-        bolus_lines.append(f"• КЧ: {cf} ммоль/л")
-    if target is not None:
-        bolus_lines.append(f"• Целевой сахар: {target} ммоль/л")
-    if low is not None:
-        bolus_lines.append(f"• Низкий порог: {low} ммоль/л")
-    if high is not None:
-        bolus_lines.append(f"• Высокий порог: {high} ммоль/л")
-    if dia is not None:
-        bolus_lines.append(f"• ДиА: {dia} ч")
-    if round_step is not None:
-        bolus_lines.append(f"• Округление: {round_step} ед.")
-    if therapy_type is not None:
-        bolus_lines.append(f"• Терапия: {therapy_type}")
-    if rapid_insulin_type is not None:
-        bolus_lines.append(f"• Инсулин: {rapid_insulin_type}")
-    if prebolus_min is not None:
-        bolus_lines.append(f"• Преболюс: {prebolus_min} мин")
-    if max_bolus is not None:
-        bolus_lines.append(f"• Макс. болюс: {max_bolus}")
-    if postmeal_check_min is not None:
-        bolus_lines.append(f"• Проверка после еды: {postmeal_check_min} мин")
-
-    carb_lines: list[str] = []
-    if carb_units is not None:
-        carb_lines.append(f"• Ед. углеводов: {carb_units}")
-    if grams_per_xe is not None:
-        carb_lines.append(f"• Грамм/ХЕ: {grams_per_xe}")
-
-    safety_lines: list[str] = []
-    if quiet_start and quiet_end:
-        qs = (
-            quiet_start.strftime("%H:%M")
-            if hasattr(quiet_start, "strftime")
-            else str(quiet_start)
-        )
-        qe = (
-            quiet_end.strftime("%H:%M")
-            if hasattr(quiet_end, "strftime")
-            else str(quiet_end)
-        )
-        safety_lines.append(f"• Тихий режим: {qs}-{qe}")
-    if timezone is not None:
-        safety_lines.append(f"• Часовой пояс: {timezone}")
-    if sos_contact is not None:
-        safety_lines.append(f"• SOS контакт: {sos_contact}")
-    if sos_alerts_enabled is not None:
-        state = "вкл" if sos_alerts_enabled else "выкл"
-        safety_lines.append(f"• SOS оповещения: {state}")
-
-    sections: list[str] = []
-    if bolus_lines:
-        sections.append("💉 *Болус*\n" + "\n".join(bolus_lines))
-    if carb_lines:
-        sections.append("🍽 *Углеводы*\n" + "\n".join(carb_lines))
-    if safety_lines:
-        sections.append("🛡 *Безопасность*\n" + "\n".join(safety_lines))
-
-    msg = "📄 Ваш профиль:\n\n" + "\n\n".join(sections)
-    rows = [
-        [InlineKeyboardButton("✏️ Изменить", callback_data="profile_edit")],
-        [InlineKeyboardButton("🔔 Безопасность", callback_data="profile_security")],
-        [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
-    ]
-    if webapp_button is not None:
-        rows.insert(1, webapp_button)
-    keyboard = InlineKeyboardMarkup(rows)
-    await message.reply_text(msg, reply_markup=keyboard, parse_mode="Markdown")
+    text, keyboard = profile_view_formatter(profile, webapp_button)
+    kwargs: dict[str, object] = {"parse_mode": "Markdown"}
+    if keyboard is not None:
+        kwargs["reply_markup"] = keyboard
+    await message.reply_text(text, **kwargs)
 
 
 async def profile_webapp_save(
@@ -479,9 +361,7 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     button = build_timezone_webapp_button()
     if button:
         keyboard = InlineKeyboardMarkup([[button]])
-        await message.reply_text(
-            "Можно определить автоматически:", reply_markup=keyboard
-        )
+        await message.reply_text("Можно определить автоматически:", reply_markup=keyboard)
     else:
         await message.reply_text(
             "Автоматическое определение недоступно, укажите часовой пояс вручную.",
@@ -490,9 +370,7 @@ async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     return PROFILE_TZ
 
 
-async def profile_timezone_save(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def profile_timezone_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Save user timezone from input."""
     message = update.message
     if message is None:
@@ -517,9 +395,7 @@ async def profile_timezone_save(
         button = build_timezone_webapp_button()
         if button:
             keyboard = InlineKeyboardMarkup([[button]])
-            await message.reply_text(
-                "Можно определить автоматически:", reply_markup=keyboard
-            )
+            await message.reply_text("Можно определить автоматически:", reply_markup=keyboard)
         else:
             await message.reply_text(
                 "Автоматическое определение недоступно, введите часовой пояс вручную.",
@@ -583,9 +459,7 @@ async def profile_timezone_save(
     return END
 
 
-def _security_db(
-    session: Session, user_id: int, action: str | None
-) -> dict[str, object]:
+def _security_db(session: Session, user_id: int, action: str | None) -> dict[str, object]:
     profile = session.get(Profile, user_id)
     user = session.get(User, user_id)
     if not profile:
@@ -622,22 +496,13 @@ def _security_db(
     if changed:
         try:
             commit(session)
-            alert = (
-                session.query(Alert)
-                .filter_by(user_id=user_id)
-                .order_by(Alert.ts.desc())
-                .first()
-            )
+            alert = session.query(Alert).filter_by(user_id=user_id).order_by(Alert.ts.desc()).first()
             alert_sugar = alert.sugar if alert else None
         except CommitError:
             commit_ok = False
 
     rems = session.query(Reminder).filter_by(telegram_id=user_id).all()
-    rem_text = (
-        "\n".join(f"{r.id}. {reminder_handlers._describe(r, user)}" for r in rems)
-        if rems
-        else "нет"
-    )
+    rem_text = "\n".join(f"{r.id}. {reminder_handlers._describe(r, user)}" for r in rems) if rems else "нет"
     return {
         "found": True,
         "commit_ok": commit_ok,
@@ -722,20 +587,12 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     keyboard = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton(
-                    "Низкий -0.5", callback_data="profile_security:low_dec"
-                ),
-                InlineKeyboardButton(
-                    "Низкий +0.5", callback_data="profile_security:low_inc"
-                ),
+                InlineKeyboardButton("Низкий -0.5", callback_data="profile_security:low_dec"),
+                InlineKeyboardButton("Низкий +0.5", callback_data="profile_security:low_inc"),
             ],
             [
-                InlineKeyboardButton(
-                    "Высокий -0.5", callback_data="profile_security:high_dec"
-                ),
-                InlineKeyboardButton(
-                    "Высокий +0.5", callback_data="profile_security:high_inc"
-                ),
+                InlineKeyboardButton("Высокий -0.5", callback_data="profile_security:high_dec"),
+                InlineKeyboardButton("Высокий +0.5", callback_data="profile_security:high_inc"),
             ],
             [
                 InlineKeyboardButton(
@@ -743,15 +600,9 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                     callback_data="profile_security:toggle_sos",
                 )
             ],
+            [InlineKeyboardButton("SOS контакт", callback_data="profile_security:sos_contact")],
             [
-                InlineKeyboardButton(
-                    "SOS контакт", callback_data="profile_security:sos_contact"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "➕ Добавить", callback_data="profile_security:add"
-                ),
+                InlineKeyboardButton("➕ Добавить", callback_data="profile_security:add"),
                 InlineKeyboardButton("🗑 Удалить", callback_data="profile_security:del"),
             ],
             [InlineKeyboardButton("🔙 Назад", callback_data="profile_back")],
@@ -848,9 +699,7 @@ async def profile_target(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     try:
         target = float(text)
     except ValueError:
-        await message.reply_text(
-            "Введите целевой сахар числом.", reply_markup=back_keyboard
-        )
+        await message.reply_text("Введите целевой сахар числом.", reply_markup=back_keyboard)
         return PROFILE_TARGET
     if target <= 0:
         await message.reply_text(MSG_TARGET_GT0, reply_markup=back_keyboard)
@@ -880,9 +729,7 @@ async def profile_low(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     try:
         low = float(text)
     except ValueError:
-        await message.reply_text(
-            "Введите нижний порог числом.", reply_markup=back_keyboard
-        )
+        await message.reply_text("Введите нижний порог числом.", reply_markup=back_keyboard)
         return PROFILE_LOW
     if low <= 0:
         await message.reply_text(MSG_LOW_GT0, reply_markup=back_keyboard)
@@ -912,18 +759,14 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     try:
         high = float(text)
     except ValueError:
-        await message.reply_text(
-            "Введите верхний порог числом.", reply_markup=back_keyboard
-        )
+        await message.reply_text("Введите верхний порог числом.", reply_markup=back_keyboard)
         return PROFILE_HIGH
     icr = user_data.get("profile_icr")
     cf = user_data.get("profile_cf")
     target = user_data.get("profile_target")
     low = user_data.get("profile_low")
     if None in (icr, cf, target, low):
-        await message.reply_text(
-            "⚠️ Не хватает данных для сохранения профиля. Пожалуйста, начните заново."
-        )
+        await message.reply_text("⚠️ Не хватает данных для сохранения профиля. Пожалуйста, начните заново.")
         return END
     error = validate_profile_numbers(icr, cf, target, low, high)
     if error:
@@ -995,15 +838,11 @@ async def _photo_fallback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return END
 
 
-async def _profile_edit_entry(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def _profile_edit_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return await profile_edit(update, context)
 
 
-async def _profile_timezone_entry(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def _profile_timezone_entry(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return await profile_timezone(update, context)
 
 
@@ -1011,16 +850,12 @@ profile_conv = ConversationHandler(
     entry_points=[
         CommandHandler("profile", profile_command),
         CallbackQueryNoWarnHandler(_profile_edit_entry, pattern="^profile_edit$"),
-        CallbackQueryNoWarnHandler(
-            _profile_timezone_entry, pattern="^profile_timezone$"
-        ),
+        CallbackQueryNoWarnHandler(_profile_timezone_entry, pattern="^profile_timezone$"),
     ],
     states={
         PROFILE_ICR: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_icr)],
         PROFILE_CF: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_cf)],
-        PROFILE_TARGET: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)
-        ],
+        PROFILE_TARGET: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_target)],
         PROFILE_LOW: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_low)],
         PROFILE_HIGH: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_high)],
         PROFILE_TZ: [
@@ -1042,9 +877,7 @@ profile_conv = ConversationHandler(
 )
 
 
-profile_webapp_handler = MessageHandler(
-    filters.StatusUpdate.WEB_APP_DATA, profile_webapp_save
-)
+profile_webapp_handler = MessageHandler(filters.StatusUpdate.WEB_APP_DATA, profile_webapp_save)
 
 
 __all__ = [
