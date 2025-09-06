@@ -213,6 +213,7 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
             "sosAlertsEnabled": "sos_alerts_enabled",
             "timezone": "timezone",
             "timezoneAuto": "timezone_auto",
+            "therapyType": "therapy_type",
         }
 
         profile_data: dict[str, object] = {"telegram_id": data.telegramId}

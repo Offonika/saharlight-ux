@@ -525,10 +525,6 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     },
   ): Promise<void> => {
     try {
-      if (Object.keys(data.patch).length > 0) {
-        await patchProfileMutation.mutateAsync(data.patch);
-      }
-
       const payload: {
         telegramId: number;
         target: number;
@@ -563,6 +559,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       }
 
       await saveProfile(payload);
+      if (Object.keys(data.patch).length > 0) {
+        await patchProfileMutation.mutateAsync(data.patch);
+      }
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       setOriginal(profile);
       if (data.therapyType) {

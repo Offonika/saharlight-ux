@@ -6,6 +6,12 @@ from datetime import time
 from fastapi import HTTPException
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
+from ..diabetes.schemas.profile import (
+    CarbUnits,
+    GlucoseUnits,
+    RapidInsulinType,
+)
+
 
 class _ProfileBase(BaseModel):
     telegramId: int = Field(
@@ -118,3 +124,56 @@ class ProfileUpdateSchema(_ProfileBase):
         alias="timezoneAuto",
         validation_alias=AliasChoices("timezoneAuto", "timezone_auto"),
     )
+
+
+class ProfilePatchSchema(ProfileUpdateSchema):
+    """Profile update payload including extended settings."""
+
+    dia: float | None = None
+    roundStep: float | None = Field(
+        default=None,
+        alias="roundStep",
+        validation_alias=AliasChoices("roundStep", "round_step"),
+    )
+    carbUnits: CarbUnits | None = Field(
+        default=None,
+        alias="carbUnits",
+        validation_alias=AliasChoices("carbUnits", "carb_units"),
+    )
+    gramsPerXe: float | None = Field(
+        default=None,
+        alias="gramsPerXe",
+        validation_alias=AliasChoices("gramsPerXe", "grams_per_xe"),
+    )
+    glucoseUnits: GlucoseUnits | None = Field(
+        default=None,
+        alias="glucoseUnits",
+        validation_alias=AliasChoices("glucoseUnits", "glucose_units"),
+    )
+    rapidInsulinType: RapidInsulinType | None = Field(
+        default=None,
+        alias="rapidInsulinType",
+        validation_alias=AliasChoices("rapidInsulinType", "rapid_insulin_type"),
+    )
+    maxBolus: float | None = Field(
+        default=None,
+        alias="maxBolus",
+        validation_alias=AliasChoices("maxBolus", "max_bolus"),
+    )
+    preBolus: int | None = Field(
+        default=None,
+        alias="preBolus",
+        validation_alias=AliasChoices("preBolus", "pre_bolus", "prebolus_min"),
+    )
+    afterMealMinutes: int | None = Field(
+        default=None,
+        alias="afterMealMinutes",
+        validation_alias=AliasChoices(
+            "afterMealMinutes",
+            "after_meal_minutes",
+            "postMealCheckMin",
+            "postmeal_check_min",
+        ),
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
