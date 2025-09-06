@@ -41,11 +41,9 @@ class DummyBillingProvider:
         """Verify webhook signature and log the transaction."""
 
         logger = logging.getLogger(__name__)
-        payload = f"{event.event_id}:{event.transaction_id}".encode()
+        payload = f"{event.event_id}:{event.transaction_id}:{event.plan.value}".encode()
         if self.webhook_secret:
-            expected_sig = hmac.new(
-                self.webhook_secret.encode(), payload, hashlib.sha256
-            ).hexdigest()
+            expected_sig = hmac.new(self.webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
         else:
             expected_sig = payload.decode()
         if not hmac.compare_digest(event.signature, expected_sig):
@@ -54,9 +52,7 @@ class DummyBillingProvider:
         logger.info("webhook %s verified", event.transaction_id)
         return True
 
-    async def create_subscription(
-        self, plan: str
-    ) -> dict[str, str]:  # pragma: no cover - compat
+    async def create_subscription(self, plan: str) -> dict[str, str]:  # pragma: no cover - compat
         """Backward compatible alias for :meth:`create_checkout`."""
 
         return await self.create_checkout(plan)

@@ -70,7 +70,7 @@ class TelegramPaymentsAdapter:
         plan = payment.invoice_payload
 
         secret = BillingSettings().billing_webhook_secret
-        payload = f"{event_id}:{transaction_id}".encode()
+        payload = f"{event_id}:{transaction_id}:{plan}".encode()
         if secret:
             signature = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
         else:
