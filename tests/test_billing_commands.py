@@ -24,6 +24,7 @@ class DummyMessage:
 async def test_trial_command_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
     monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
     end_date = "2025-01-15T00:00:00+00:00"
@@ -75,12 +76,14 @@ async def test_trial_command_success(monkeypatch: pytest.MonkeyPatch) -> None:
     assert button.web_app and button.web_app.url == config.build_ui_url("/subscription")
     monkeypatch.delenv("API_URL")
     monkeypatch.delenv("PUBLIC_ORIGIN")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
 
 @pytest.mark.asyncio
 async def test_trial_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
     class FailingClient:
@@ -113,12 +116,14 @@ async def test_trial_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert message.texts == ["❌ Не удалось активировать trial. Попробуйте позже."]
     monkeypatch.delenv("API_URL")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
 
 @pytest.mark.asyncio
 async def test_trial_command_already_active(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
     class DummyClient:
@@ -145,9 +150,7 @@ async def test_trial_command_already_active(monkeypatch: pytest.MonkeyPatch) -> 
     message = DummyMessage()
     update = cast(
         Update,
-        SimpleNamespace(
-            message=message, effective_user=SimpleNamespace(id=42), callback_query=None
-        ),
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=42), callback_query=None),
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -158,6 +161,7 @@ async def test_trial_command_already_active(monkeypatch: pytest.MonkeyPatch) -> 
 
     assert message.texts == ["🎁 Пробный период уже активен до 16.01.2025"]
     monkeypatch.delenv("API_URL")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
 
@@ -165,6 +169,7 @@ async def test_trial_command_already_active(monkeypatch: pytest.MonkeyPatch) -> 
 @pytest.mark.parametrize("payload", [{}, {"endDate": "oops"}, {"endDate": 123}])
 async def test_trial_command_bad_end_date(monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
     class DummyClient:
@@ -198,12 +203,14 @@ async def test_trial_command_bad_end_date(monkeypatch: pytest.MonkeyPatch, paylo
 
     assert message.texts == ["❌ Ошибка сервера: неверный формат даты trial."]
     monkeypatch.delenv("API_URL")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
 
 @pytest.mark.asyncio
 async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
     message = DummyMessage()
@@ -232,6 +239,7 @@ async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
     assert button.text == "💳 Оформить PRO"
     assert button.web_app and button.web_app.url == config.build_ui_url("/subscription")
     monkeypatch.delenv("PUBLIC_ORIGIN")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
 
@@ -239,6 +247,7 @@ async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_subscription_status_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
     monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
 
     statuses = [
@@ -348,4 +357,5 @@ async def test_subscription_status_flow(monkeypatch: pytest.MonkeyPatch) -> None
 
     monkeypatch.delenv("API_URL")
     monkeypatch.delenv("PUBLIC_ORIGIN")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
