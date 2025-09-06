@@ -54,6 +54,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     message = update.message
     if message is None:
         return
+    if not settings.learning_mode_enabled:
+        await message.reply_text("режим обучения отключён")
+        return
     if settings.learning_content_mode == "static":
         await legacy_handlers.learn_command(update, context)
         return
@@ -100,6 +103,9 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     message = update.message
     if message is None:
         return
+    if not settings.learning_mode_enabled:
+        await message.reply_text("режим обучения отключён")
+        return
     if settings.learning_content_mode == "static":
         await legacy_handlers.lesson_command(update, context)
         return
@@ -123,11 +129,18 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     query = update.callback_query
     if query is None:
         return
+    raw_message = query.message
+    if not settings.learning_mode_enabled:
+        await query.answer()
+        if raw_message is not None and hasattr(raw_message, "reply_text"):
+            await cast(Message, raw_message).reply_text(
+                "режим обучения отключён"
+            )
+        return
     if settings.learning_content_mode == "static":
         await legacy_handlers.lesson_command(update, context)
         return
     await query.answer()
-    raw_message = query.message
     if raw_message is None or not hasattr(raw_message, "reply_text"):
         return
     message = cast(Message, raw_message)
@@ -148,6 +161,9 @@ async def lesson_answer_handler(
 
     message = update.message
     if message is None or not message.text or message.from_user is None:
+        return
+    if not settings.learning_mode_enabled:
+        await message.reply_text("режим обучения отключён")
         return
     if settings.learning_content_mode == "static":
         await legacy_handlers.quiz_answer_handler(update, context)
@@ -189,6 +205,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     message = update.message
     if message is None:
+        return
+    if not settings.learning_mode_enabled:
+        await message.reply_text("режим обучения отключён")
         return
     if settings.learning_content_mode == "static":
         await legacy_handlers.exit_command(update, context)

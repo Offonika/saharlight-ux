@@ -5,6 +5,7 @@ from typing import Any, cast
 
 import pytest
 
+from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.learning_state import LearnState
 
@@ -30,6 +31,7 @@ class DummyCallback:
 
 @pytest.mark.asyncio
 async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     async def fake_generate_step_text(
         profile: object, topic: str, step_idx: int, prev: object
     ) -> str:
@@ -66,6 +68,7 @@ async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> No
 
 @pytest.mark.asyncio
 async def test_lesson_answer_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     async def fake_check_user_answer(
         profile: object, topic: str, answer: str, last: str
     ) -> str:

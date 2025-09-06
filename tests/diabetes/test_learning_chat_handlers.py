@@ -5,6 +5,7 @@ from typing import Any, cast
 import pytest
 from telegram import InlineKeyboardMarkup, ReplyKeyboardMarkup
 
+from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
 
@@ -33,6 +34,7 @@ class DummyCallback:
 
 @pytest.mark.asyncio
 async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     async def fake_ensure_overrides(update: object, context: object) -> bool:
         return True
 
@@ -69,6 +71,7 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
 
 @pytest.mark.asyncio
 async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     async def fake_generate_step_text(
         profile: object, topic: str, step_idx: int, prev: object
     ) -> str:
@@ -104,7 +107,10 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_exit_command_clears_state() -> None:
+async def test_exit_command_clears_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     msg = DummyMessage()
     update = cast(object, SimpleNamespace(message=msg))
     user_data: dict[str, Any] = {}

@@ -18,6 +18,7 @@ from services.api.app.config import settings
 
 @pytest.mark.asyncio()
 async def test_happy_path_one_lesson(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},

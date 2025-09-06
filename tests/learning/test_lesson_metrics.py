@@ -19,12 +19,16 @@ from services.api.app.diabetes.models_learning import (
     QuizQuestion,
 )
 from services.api.app.diabetes.services import db, gpt_client
+from services.api.app.config import settings
 
 
 @pytest.mark.asyncio
 async def test_lesson_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     """Complete a lesson and ensure Prometheus counters track activity."""
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
+    engine = create_engine(
+        "sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
     db.SessionLocal.configure(bind=engine)
     db.Base.metadata.create_all(bind=engine)
     monkeypatch.setattr(settings, "learning_content_mode", "static")

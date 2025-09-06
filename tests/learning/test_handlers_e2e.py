@@ -6,6 +6,7 @@ import pytest
 from telegram import Bot, Chat, Message, MessageEntity, ReplyKeyboardMarkup, Update, User
 from telegram.ext import Application, CommandHandler
 
+from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
@@ -50,6 +51,7 @@ class DummyBot(Bot):
 
 @pytest.mark.asyncio
 async def test_keyboard_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     async def fake_ensure_overrides(*_args: object, **_kwargs: object) -> bool:
         return True
 
