@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, cleanup, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const toast = vi.fn();
@@ -74,7 +75,11 @@ describe('Profile onboarding', () => {
   });
 
   it('renders empty form when profile is missing (404)', async () => {
-    const { getByPlaceholderText } = render(<Profile />);
+    const { getByPlaceholderText } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <Profile />
+      </QueryClientProvider>,
+    );
 
     await waitFor(() => {
       expect(toast).not.toHaveBeenCalled();

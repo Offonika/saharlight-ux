@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Save } from "lucide-react";
 import { MedicalHeader } from "@/components/MedicalHeader";
@@ -236,6 +237,13 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   const { user } = useTelegram();
   const initData = useTelegramInitData();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const patchProfileMutation = useMutation({
+    mutationFn: patchProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+  });
   const deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const [profile, setProfile] = useState<ProfileForm>({
     icr: "",
@@ -518,7 +526,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   ): Promise<void> => {
     try {
       if (Object.keys(data.patch).length > 0) {
-        await patchProfile(data.patch);
+        await patchProfileMutation.mutateAsync(data.patch);
       }
 
       const payload: {
@@ -555,6 +563,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       }
 
       await saveProfile(payload);
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
       setOriginal(profile);
       if (data.therapyType) {
         setOriginalTherapyType(data.therapyType);

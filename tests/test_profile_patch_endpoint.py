@@ -186,3 +186,26 @@ def test_profile_patch_saves_additional_fields(
         assert prof.max_bolus == 12
         assert prof.prebolus_min == 10
         assert prof.postmeal_check_min == 90
+
+
+def test_profile_get_returns_updated_values(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    SessionLocal = setup_db(monkeypatch)
+    with TestClient(server.app) as client:
+        resp = client.patch(
+            "/api/profile",
+            json={"timezone": "Europe/Moscow", "timezoneAuto": True},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        resp = client.get("/api/profile", headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["timezone"] == "Europe/Moscow"
+        assert data["timezoneAuto"] is True
+
+    with SessionLocal() as session:
+        prof = session.get(db.Profile, 1)
+        assert prof is not None
+        assert prof.timezone == "Europe/Moscow"

@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "set_timezone",
     "patch_user_settings",
+    "get_profile_settings",
     "save_timezone",
     "save_profile",
     "get_profile",
@@ -114,6 +115,7 @@ async def patch_user_settings(
 
         try:
             commit(cast(Session, session))
+            cast(Session, session).refresh(profile)
         except CommitError:  # pragma: no cover
             raise HTTPException(status_code=500, detail="db commit failed")
 
@@ -137,6 +139,12 @@ async def patch_user_settings(
         )
 
     return await db.run_db(_patch, sessionmaker=db.SessionLocal)
+
+
+async def get_profile_settings(telegram_id: int) -> ProfileSettingsOut:
+    """Return current profile settings for ``telegram_id``."""
+
+    return await patch_user_settings(telegram_id, ProfileSettingsIn())
 
 
 async def save_timezone(telegram_id: int, tz: str, *, auto: bool) -> bool:

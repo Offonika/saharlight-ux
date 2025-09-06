@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query
 
 from ..diabetes.schemas.profile import ProfileSettingsIn, ProfileSettingsOut
 from ..schemas.user import UserContext
-from ..services.profile import patch_user_settings
+from ..services.profile import get_profile_settings, patch_user_settings
 from ..telegram_auth import require_tg_user
 
 
@@ -24,11 +24,11 @@ async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserCont
     return user
 
 
-@router.get("/profile")
-async def profile(user: UserContext = Depends(require_tg_user)) -> UserContext:
-    """Backward-compatible alias for :func:`profile_self`."""
+@router.get("/profile", response_model=ProfileSettingsOut)
+async def profile(user: UserContext = Depends(require_tg_user)) -> ProfileSettingsOut:
+    """Return current profile settings."""
 
-    return await profile_self(user)
+    return await get_profile_settings(user["id"])
 
 
 @router.patch("/profile", response_model=ProfileSettingsOut)
