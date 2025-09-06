@@ -16,6 +16,13 @@ except ModuleNotFoundError as exc:  # pragma: no cover - executed at import time
 
 logger = logging.getLogger(__name__)
 
+TOPICS_RU: dict[str, str] = {
+    "xe_basics": "Хлебные единицы",
+    "healthy-eating": "Здоровое питание",
+    "basics-of-diabetes": "Основы диабета",
+    "insulin-usage": "Инсулин",
+}
+
 
 class Settings(BaseSettings):
     """Runtime application configuration.
@@ -67,6 +74,9 @@ class Settings(BaseSettings):
     learning_prompt_cache: bool = Field(default=True, alias="LEARNING_PROMPT_CACHE")
     learning_content_mode: Literal["dynamic", "static"] = Field(
         default="dynamic", alias="LEARNING_CONTENT_MODE"
+    )
+    learning_ui_show_topics: bool = Field(
+        default=False, alias="LEARNING_UI_SHOW_TOPICS"
     )
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     learning_assistant_id: Optional[str] = Field(default=None, alias="LEARNING_ASSISTANT_ID")
@@ -154,3 +164,14 @@ def build_ui_url(path: str) -> str:
     if base:
         return f"{origin}/{base}/{rel}"
     return f"{origin}/{rel}"
+
+
+__all__ = [
+    "TOPICS_RU",
+    "Settings",
+    "settings",
+    "get_settings",
+    "reload_settings",
+    "get_db_password",
+    "build_ui_url",
+]
