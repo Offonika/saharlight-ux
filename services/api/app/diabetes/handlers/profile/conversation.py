@@ -659,7 +659,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             ],
             [
                 InlineKeyboardButton(
-                    f"SOS-уведомления: {'off' if result['sos_enabled'] else 'on'}",
+                    f"SOS-уведомления: {'Выкл' if result['sos_enabled'] else 'Вкл'}",
                     callback_data="profile_security:toggle_sos",
                 )
             ],
