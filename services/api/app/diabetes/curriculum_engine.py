@@ -24,6 +24,17 @@ from .services.repository import commit
 logger = logging.getLogger(__name__)
 
 
+def _is_feedback_correct(feedback: str) -> bool:
+    """Return ``True`` if tutor's feedback marks the answer as correct."""
+
+    text = feedback.lower()
+    if "неверно" in text or "почти" in text:
+        return False
+    if "верно" in text or "правиль" in text:
+        return True
+    return False
+
+
 async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
     """Start or reset a lesson for a user and return progress."""
 
@@ -169,7 +180,8 @@ async def check_answer(
 
         slug = await db.run_db(_get_slug)
         feedback = await check_user_answer({}, slug, str(answer), last_step_text or "")
-        return True, feedback
+        correct = _is_feedback_correct(feedback)
+        return correct, feedback
 
     answer_index = int(answer) - 1
 

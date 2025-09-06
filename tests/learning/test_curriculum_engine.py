@@ -184,7 +184,9 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_check(
         profile: object, slug: str, answer: str, last: str
     ) -> str:
-        return f"fb {answer}"
+        return (
+            "Верно, продолжай!" if answer == "42" else "Неверно, попробуй ещё."
+        )
 
     monkeypatch.setattr(curriculum_engine, "generate_step_text", fake_generate)
     monkeypatch.setattr(curriculum_engine, "check_user_answer", fake_check)
@@ -198,8 +200,12 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     correct, feedback = await check_answer(1, lesson_id, "42")
     assert correct is True
-    assert feedback == "fb 42"
+    assert feedback == "Верно, продолжай!"
 
     text, completed = await next_step(1, lesson_id, profile)
     assert text == "step 2"
     assert completed is False
+
+    wrong, fb_wrong = await check_answer(1, lesson_id, "0")
+    assert wrong is False
+    assert fb_wrong == "Неверно, попробуй ещё."
