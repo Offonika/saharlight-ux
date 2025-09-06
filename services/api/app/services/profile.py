@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..diabetes.services.db import Profile, User
 from ..diabetes.services import db
 from ..diabetes.services.repository import CommitError, commit
-from ..schemas.profile import ProfileSchema
+from ..schemas.profile import ProfileUpdateSchema, ProfileSchema
 from ..diabetes.schemas.profile import (
     CarbUnits,
     GlucoseUnits,
@@ -152,7 +152,7 @@ async def save_timezone(telegram_id: int, tz: str, *, auto: bool) -> bool:
     return True
 
 
-def _validate_profile(data: ProfileSchema) -> None:
+def _validate_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
     """Validate business rules for a patient profile."""
     required = {
         "target": data.target,
@@ -181,7 +181,7 @@ def _validate_profile(data: ProfileSchema) -> None:
     # quiet times are validated by Pydantic; no additional checks required
 
 
-async def save_profile(data: ProfileSchema) -> None:
+async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
     _validate_profile(data)
 
     def _save(session: SessionProtocol) -> None:
@@ -190,23 +190,31 @@ async def save_profile(data: ProfileSchema) -> None:
             user = User(telegram_id=data.telegramId, thread_id="api")
             cast(Session, session).add(user)
 
-        profile_data = {
-            "telegram_id": data.telegramId,
-            "org_id": data.orgId,
-            "icr": data.icr,
-            "cf": data.cf,
-            "target_bg": data.target,
-            "low_threshold": data.low,
-            "high_threshold": data.high,
-            "quiet_start": data.quietStart,
-            "quiet_end": data.quietEnd,
-            "sos_contact": data.sosContact,
-            "sos_alerts_enabled": (
-                data.sosAlertsEnabled if data.sosAlertsEnabled is not None else True
-            ),
-            "timezone": data.timezone,
-            "timezone_auto": data.timezoneAuto,
-        }
+        profile_data: dict[str, object] = {"telegram_id": data.telegramId}
+        if data.orgId is not None:
+            profile_data["org_id"] = data.orgId
+        if data.icr is not None:
+            profile_data["icr"] = data.icr
+        if data.cf is not None:
+            profile_data["cf"] = data.cf
+        if data.target is not None:
+            profile_data["target_bg"] = data.target
+        if data.low is not None:
+            profile_data["low_threshold"] = data.low
+        if data.high is not None:
+            profile_data["high_threshold"] = data.high
+        if data.quietStart is not None:
+            profile_data["quiet_start"] = data.quietStart
+        if data.quietEnd is not None:
+            profile_data["quiet_end"] = data.quietEnd
+        if data.sosContact is not None:
+            profile_data["sos_contact"] = data.sosContact
+        if data.sosAlertsEnabled is not None:
+            profile_data["sos_alerts_enabled"] = data.sosAlertsEnabled
+        if data.timezone is not None:
+            profile_data["timezone"] = data.timezone
+        if data.timezoneAuto is not None:
+            profile_data["timezone_auto"] = data.timezoneAuto
 
         stmt = insert(Profile).values(**profile_data)
         update_values = {

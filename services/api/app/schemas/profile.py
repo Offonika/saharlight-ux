@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 
-class ProfileSchema(BaseModel):
+class _ProfileBase(BaseModel):
     telegramId: int = Field(
         alias="telegramId", validation_alias=AliasChoices("telegramId", "telegram_id")
     )
@@ -32,36 +32,11 @@ class ProfileSchema(BaseModel):
         alias="high",
         validation_alias=AliasChoices("high", "targetHigh"),
     )
-    quietStart: time = Field(
-        default=time(23, 0),
-        alias="quietStart",
-        validation_alias=AliasChoices("quietStart", "quiet_start"),
-    )
-    quietEnd: time = Field(
-        default=time(7, 0),
-        alias="quietEnd",
-        validation_alias=AliasChoices("quietEnd", "quiet_end"),
-    )
     orgId: Optional[int] = None
     sosContact: Optional[str] = Field(
         default=None,
         alias="sosContact",
         validation_alias=AliasChoices("sosContact", "sos_contact"),
-    )
-    sosAlertsEnabled: bool = Field(
-        default=True,
-        alias="sosAlertsEnabled",
-        validation_alias=AliasChoices("sosAlertsEnabled", "sos_alerts_enabled"),
-    )
-    timezone: str = Field(
-        default="UTC",
-        alias="timezone",
-        validation_alias=AliasChoices("timezone"),
-    )
-    timezoneAuto: bool = Field(
-        default=True,
-        alias="timezoneAuto",
-        validation_alias=AliasChoices("timezoneAuto", "timezone_auto"),
     )
     therapyType: str | None = Field(
         default=None,
@@ -82,8 +57,64 @@ class ProfileSchema(BaseModel):
         return values
 
     @model_validator(mode="after")
-    def compute_target(self) -> "ProfileSchema":
+    def compute_target(self) -> "_ProfileBase":
         if self.low is not None and self.high is not None:
             if self.target is None:
                 self.target = (self.low + self.high) / 2
         return self
+
+
+class ProfileSchema(_ProfileBase):
+    quietStart: time = Field(
+        default=time(23, 0),
+        alias="quietStart",
+        validation_alias=AliasChoices("quietStart", "quiet_start"),
+    )
+    quietEnd: time = Field(
+        default=time(7, 0),
+        alias="quietEnd",
+        validation_alias=AliasChoices("quietEnd", "quiet_end"),
+    )
+    sosAlertsEnabled: bool = Field(
+        default=True,
+        alias="sosAlertsEnabled",
+        validation_alias=AliasChoices("sosAlertsEnabled", "sos_alerts_enabled"),
+    )
+    timezone: str = Field(
+        default="UTC",
+        alias="timezone",
+        validation_alias=AliasChoices("timezone"),
+    )
+    timezoneAuto: bool = Field(
+        default=True,
+        alias="timezoneAuto",
+        validation_alias=AliasChoices("timezoneAuto", "timezone_auto"),
+    )
+
+
+class ProfileUpdateSchema(_ProfileBase):
+    quietStart: time | None = Field(
+        default=None,
+        alias="quietStart",
+        validation_alias=AliasChoices("quietStart", "quiet_start"),
+    )
+    quietEnd: time | None = Field(
+        default=None,
+        alias="quietEnd",
+        validation_alias=AliasChoices("quietEnd", "quiet_end"),
+    )
+    sosAlertsEnabled: bool | None = Field(
+        default=None,
+        alias="sosAlertsEnabled",
+        validation_alias=AliasChoices("sosAlertsEnabled", "sos_alerts_enabled"),
+    )
+    timezone: str | None = Field(
+        default=None,
+        alias="timezone",
+        validation_alias=AliasChoices("timezone"),
+    )
+    timezoneAuto: bool | None = Field(
+        default=None,
+        alias="timezoneAuto",
+        validation_alias=AliasChoices("timezoneAuto", "timezone_auto"),
+    )

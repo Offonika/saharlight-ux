@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
 from services.api.app.diabetes.services.db import User
-from services.api.app.schemas.profile import ProfileSchema
+from services.api.app.schemas.profile import ProfileUpdateSchema
 from services.api.app.services import profile as profile_service
 
 
@@ -15,7 +15,7 @@ async def test_save_profile_allows_non_insulin(
         session.add(User(telegram_id=1, thread_id="t"))
         session.commit()
 
-    data = ProfileSchema(
+    data = ProfileUpdateSchema(
         telegramId=1,
         target=5.0,
         low=4.0,
