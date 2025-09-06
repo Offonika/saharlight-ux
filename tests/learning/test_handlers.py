@@ -114,6 +114,6 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     ans_msg._bot = bot
     await app.process_update(Update(update_id=3, message=ans_msg))
 
-    assert bot.sent == ["Выберите тему:", "step1", "feedback", "step2"]
+    assert bot.sent == ["Выберите тему:", "Доступные темы:", "step1", "feedback", "step2"]
 
     await app.shutdown()

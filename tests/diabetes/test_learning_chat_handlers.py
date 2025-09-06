@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from telegram import InlineKeyboardMarkup
+from telegram import InlineKeyboardMarkup, ReplyKeyboardMarkup
 
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
@@ -46,9 +46,10 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     context = SimpleNamespace(user_data={})
 
     await learning_handlers.learn_command(update, context)
-    markup = msg.markups[0]
-    assert isinstance(markup, InlineKeyboardMarkup)
-    assert markup.inline_keyboard[0][0].callback_data == "lesson:slug"
+    assert isinstance(msg.markups[0], ReplyKeyboardMarkup)
+    inline_markup = msg.markups[1]
+    assert isinstance(inline_markup, InlineKeyboardMarkup)
+    assert inline_markup.inline_keyboard[0][0].callback_data == "lesson:slug"
 
     msg2 = DummyMessage()
     query = DummyCallback(msg2, "lesson:slug")

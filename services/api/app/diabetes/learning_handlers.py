@@ -7,6 +7,7 @@ from typing import Any, Mapping, MutableMapping, cast
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
+from services.api.app.ui.keyboard import build_main_keyboard
 
 from .dynamic_tutor import check_user_answer, generate_step_text
 from .learning_onboarding import ensure_overrides
@@ -58,7 +59,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             for slug, title in TOPICS
         ]
     )
-    await message.reply_text("Выберите тему:", reply_markup=keyboard)
+    # Show the persistent main keyboard alongside topic selection buttons
+    await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
+    await message.reply_text("Доступные темы:", reply_markup=keyboard)
 
 
 async def _start_lesson(
@@ -163,7 +166,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     clear_state(user_data)
-    await message.reply_text("Учебная сессия завершена.")
+    await message.reply_text(
+        "Учебная сессия завершена.", reply_markup=build_main_keyboard()
+    )
 
 
 __all__ = [
