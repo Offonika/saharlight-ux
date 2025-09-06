@@ -87,6 +87,7 @@ from .validation import (  # noqa: E402
 
 from .formatters import profile_view_formatter  # noqa: E402
 from services.api.app.services import profile as profile_service  # noqa: E402
+from services.api.app.diabetes.schemas.profile import ProfileSettingsIn  # noqa: E402
 
 back_keyboard: ReplyKeyboardMarkup = _back_keyboard
 
@@ -338,6 +339,29 @@ async def profile_webapp_save(
             exc.args[0] if exc.args else error_msg, reply_markup=menu_keyboard()
         )
         return
+
+    device_tz = data.get("deviceTz")
+    settings_raw = {
+        key: data.get(key)
+        for key in [
+            "timezone",
+            "timezoneAuto",
+            "dia",
+            "roundStep",
+            "carbUnits",
+            "gramsPerXe",
+            "glucoseUnits",
+            "sosContact",
+            "sosAlertsEnabled",
+            "therapyType",
+            "rapidInsulinType",
+            "maxBolus",
+            "preBolus",
+            "afterMealMinutes",
+        ]
+        if key in data
+    }
+    settings = ProfileSettingsIn(**settings_raw) if settings_raw else None
     user = update.effective_user
     if user is None:
         await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
@@ -385,6 +409,11 @@ async def profile_webapp_save(
             reply_markup=menu_keyboard(),
         )
         return
+
+    if settings is not None or device_tz is not None:
+        await profile_service.patch_user_settings(
+            user_id, settings or ProfileSettingsIn(), device_tz
+        )
 
     await eff_msg.reply_text(
         "✅ Профиль обновлён:\n"

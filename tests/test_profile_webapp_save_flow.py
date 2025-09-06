@@ -222,3 +222,55 @@ async def test_profile_view_uses_local_profile_on_stale_api(
     assert "КЧ: 3" in text
     assert "Целевой сахар: 6" in text
     engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_webapp_save_persists_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
+    monkeypatch.setattr(handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(profile_service.db, "SessionLocal", TestSession)
+
+    async def run_db(func, *args, sessionmaker, **kwargs):
+        with sessionmaker() as session:
+            return func(session, *args, **kwargs)
+
+    monkeypatch.setattr(handlers, "run_db", run_db)
+    monkeypatch.setattr(profile_service.db, "run_db", run_db)
+
+    monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
+    monkeypatch.setattr(handlers, "post_profile", lambda *a, **kw: (True, None))
+
+    msg = DummyMessage()
+    payload = {
+        "icr": 8,
+        "cf": 3,
+        "target": 6,
+        "low": 4,
+        "high": 9,
+        "timezone": "Europe/Moscow",
+        "timezoneAuto": False,
+        "dia": 12,
+        "carbUnits": "xe",
+        "glucoseUnits": "mg/dL",
+        "deviceTz": "Europe/Moscow",
+    }
+    msg.web_app_data = SimpleNamespace(data=json.dumps(payload))
+    update = cast(
+        Update,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+    await handlers.profile_webapp_save(update, context)
+
+    settings = await profile_service.get_profile_settings(1)
+    assert settings.timezone == "Europe/Moscow"
+    assert settings.dia == 12
+    assert settings.carbUnits.value == "xe"
+    assert settings.glucoseUnits.value == "mg/dL"
+    engine.dispose()
