@@ -209,3 +209,39 @@ def test_profile_get_returns_updated_values(
         prof = session.get(db.Profile, 1)
         assert prof is not None
         assert prof.timezone == "Europe/Moscow"
+
+
+def test_profile_get_returns_saved_settings(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    SessionLocal = setup_db(monkeypatch)
+    with TestClient(server.app) as client:
+        resp = client.patch(
+            "/api/profile",
+            json={
+                "timezone": "Europe/Moscow",
+                "timezoneAuto": True,
+                "dia": 6,
+                "roundStep": 1,
+                "carbUnits": "xe",
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+
+        resp = client.get("/api/profile", headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["timezone"] == "Europe/Moscow"
+        assert data["timezoneAuto"] is True
+        assert data["dia"] == 6
+        assert data["roundStep"] == 1
+        assert data["carbUnits"] == "xe"
+
+    with SessionLocal() as session:
+        prof = session.get(db.Profile, 1)
+        assert prof is not None
+        assert prof.timezone == "Europe/Moscow"
+        assert prof.dia == 6
+        assert prof.round_step == 1
+        assert prof.carb_units == "xe"
