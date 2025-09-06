@@ -25,7 +25,7 @@ from pydantic import BaseModel, TypeAdapter
 from sqlalchemy.orm import Session
 
 from .models_learning import Lesson, LessonProgress, LessonStep, QuizQuestion
-from .services.db import SessionLocal, SessionMaker, run_db
+from .services.db import SessionLocal, SessionMaker, init_db, run_db
 from .services.repository import CommitError, commit
 
 logger = logging.getLogger(__name__)
@@ -119,6 +119,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 async def main(argv: list[str] | None = None) -> None:
+    init_db()
     args = _build_parser().parse_args(argv)
     if args.reset:
         await reset_lessons()
