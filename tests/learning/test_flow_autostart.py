@@ -8,7 +8,7 @@ import pytest
 from telegram import Bot, Chat, Message, MessageEntity, Update, User
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
-from services.api.app.config import settings
+from services.api.app.config import TOPICS_RU, settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.handlers import learning_onboarding
 
@@ -51,6 +51,8 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     """Autostart should skip topic list and send first dynamic step."""
 
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    title = next(iter(TOPICS_RU.values()))
 
     async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
@@ -125,7 +127,12 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     assert bot.sent[-1] == "шаг1"
-    assert all("Выберите тему" not in s and "Доступные темы" not in s for s in bot.sent)
+    assert all(
+        title not in s
+        and "Выберите тему" not in s
+        and "Доступные темы" not in s
+        for s in bot.sent
+    )
     assert captured_profile == {
         "age_group": "adult",
         "diabetes_type": "T2",
