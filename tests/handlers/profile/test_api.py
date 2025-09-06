@@ -207,14 +207,57 @@ def test_local_profiles_roundtrip(session_factory: sessionmaker[Session]) -> Non
     assert fetched.sos_alerts_enabled is False
 
 
+def test_local_profiles_partial_update_keeps_existing(
+    session_factory: sessionmaker[Session],
+) -> None:
+    api = profile_api.LocalProfileAPI(session_factory)
+
+    initial = profile_api.LocalProfile(
+        telegram_id=1,
+        icr=1.0,
+        cf=2.0,
+        target=3.0,
+        low=4.0,
+        high=5.0,
+    )
+    api.profiles_post(initial)
+
+    update = profile_api.LocalProfile(telegram_id=1, cf=3.5)
+    api.profiles_post(update)
+
+    with session_factory() as session:
+        prof = session.get(Profile, 1)
+        assert prof is not None
+        assert prof.icr == 1.0
+        assert prof.cf == 3.5
+        assert prof.target_bg == 3.0
+        assert prof.low_threshold == 4.0
+        assert prof.high_threshold == 5.0
+
+
+def test_local_profiles_missing_required_raises(
+    session_factory: sessionmaker[Session],
+) -> None:
+    api = profile_api.LocalProfileAPI(session_factory)
+
+    with pytest.raises(profile_api.ProfileSaveError):
+        api.profiles_post(
+            profile_api.LocalProfile(
+                telegram_id=1,
+                cf=2.0,
+                target=3.0,
+                low=4.0,
+                high=5.0,
+            )
+        )
+
+
 def test_set_timezone_persists(session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1, timezone="UTC", timezone_auto=True))
         session.commit()
-        found, ok = profile_api.set_timezone(
-            session, 1, "Europe/Moscow", auto=False
-        )
+        found, ok = profile_api.set_timezone(session, 1, "Europe/Moscow", auto=False)
         assert (found, ok) == (True, True)
 
     with session_factory() as session:
@@ -235,9 +278,7 @@ def test_set_timezone_commit_failure(
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Profile(telegram_id=1, timezone="UTC", timezone_auto=True))
         session.commit()
-        found, ok = profile_api.set_timezone(
-            session, 1, "Europe/Moscow", auto=False
-        )
+        found, ok = profile_api.set_timezone(session, 1, "Europe/Moscow", auto=False)
         assert (found, ok) == (True, False)
 
     with session_factory() as session:
