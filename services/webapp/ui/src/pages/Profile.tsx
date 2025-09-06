@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Save } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 
 import { MedicalHeader } from "@/components/MedicalHeader";
 import { useToast } from "@/hooks/use-toast";
@@ -662,6 +662,14 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     setWarningOpen(false);
   };
 
+  if (!loaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <>
       <Modal
@@ -1235,6 +1243,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
               className="w-full flex items-center justify-center gap-2"
               variant="medical"
               size="lg"
+              disabled={!loaded}
             >
               <Save className="w-4 h-4" />
               {t('profile.save')}
