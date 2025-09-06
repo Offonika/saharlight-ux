@@ -117,11 +117,11 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         progress = await curriculum_engine.start_lesson(user.id, lesson_slug)
         lesson_id = progress.lesson_id
         user_data["lesson_id"] = lesson_id
-    text = await curriculum_engine.next_step(user.id, lesson_id)
-    if text is None:
+    text, completed = await curriculum_engine.next_step(user.id, lesson_id)
+    if text is None and completed:
         await message.reply_text("Урок завершён")
         clear_state(user_data)
-    else:
+    elif text is not None:
         await message.reply_text(text)
         state = get_state(user_data)
         if state is None:
@@ -169,11 +169,11 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             user.id, lesson_id, answer
         )
         await message.reply_text(feedback)
-        question = await curriculum_engine.next_step(user.id, lesson_id)
-        if question is None:
+        question, completed = await curriculum_engine.next_step(user.id, lesson_id)
+        if question is None and completed:
             await message.reply_text("Опрос завершён")
             clear_state(user_data)
-        else:
+        elif question is not None:
             await message.reply_text(question)
             if state is None:
                 topic = cast(str | None, user_data.get("lesson_slug")) or ""
@@ -182,11 +182,11 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             state.awaiting_answer = True
             set_state(user_data, state)
         return
-    question = await curriculum_engine.next_step(user.id, lesson_id)
-    if question is None:
+    question, completed = await curriculum_engine.next_step(user.id, lesson_id)
+    if question is None and completed:
         await message.reply_text("Опрос завершён")
         clear_state(user_data)
-    else:
+    elif question is not None:
         await message.reply_text(question)
         if state is None:
             topic = cast(str | None, user_data.get("lesson_slug")) or ""
@@ -224,11 +224,11 @@ async def quiz_answer_handler(
         user.id, lesson_id, answer
     )
     await message.reply_text(feedback)
-    question = await curriculum_engine.next_step(user.id, lesson_id)
-    if question is None:
+    question, completed = await curriculum_engine.next_step(user.id, lesson_id)
+    if question is None and completed:
         await message.reply_text("Опрос завершён")
         clear_state(user_data)
-    else:
+    elif question is not None:
         await message.reply_text(question)
         state.step += 1
         state.awaiting_answer = True

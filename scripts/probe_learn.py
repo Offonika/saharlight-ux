@@ -59,8 +59,8 @@ async def main(user_id: int, lesson_slug: str) -> None:
     quiz_index = 0
 
     while True:
-        text = await curriculum_engine.next_step(user_id, lesson_id)
-        if text is None:
+        text, completed = await curriculum_engine.next_step(user_id, lesson_id)
+        if text is None and completed:
             break
         print(text)
         if steps_done >= step_total and quiz_index < len(questions):

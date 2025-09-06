@@ -14,6 +14,7 @@ from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.models_learning import (
     Lesson,
     LessonProgress,
+    LessonStep,
     QuizQuestion,
 )
 from services.api.app.diabetes.metrics import (
@@ -63,16 +64,20 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert progress.current_step == 0
     assert lessons_started._value.get() == base_started + 1  # type: ignore[attr-defined]
 
-    first = await next_step(1, lesson_id)
+    first, completed = await next_step(1, lesson_id)
+    assert completed is False
     assert first == f"{disclaimer()}\n\ntext 1"
 
-    second = await next_step(1, lesson_id)
+    second, completed = await next_step(1, lesson_id)
+    assert completed is False
     assert second == "text 2"
 
-    third = await next_step(1, lesson_id)
+    third, completed = await next_step(1, lesson_id)
+    assert completed is False
     assert third == "text 3"
 
-    question_text = await next_step(1, lesson_id)
+    question_text, completed = await next_step(1, lesson_id)
+    assert completed is False
     assert question_text.startswith(disclaimer())
 
     with db.SessionLocal() as session:
@@ -86,10 +91,13 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         assert correct is True
         assert feedback
         if idx < len(questions) - 1:
-            next_q = await next_step(1, lesson_id)
+            next_q, completed = await next_step(1, lesson_id)
             assert next_q
+            assert completed is False
 
-    assert await next_step(1, lesson_id) is None
+    text, completed = await next_step(1, lesson_id)
+    assert text is None
+    assert completed is True
 
     with db.SessionLocal() as session:
         progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
@@ -98,3 +106,43 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert lessons_completed._value.get() == base_completed + 1  # type: ignore[attr-defined]
     assert quiz_avg_score._sum.get() == base_sum + 100  # type: ignore[attr-defined]
     assert quiz_avg_score._count.get() == base_count + 1  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio()
+async def test_lesson_without_quiz(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    db.SessionLocal.configure(bind=engine)
+    db.Base.metadata.create_all(bind=engine)
+
+    with db.SessionLocal() as session:
+        session.add(db.User(telegram_id=1, thread_id="t1"))
+        lesson = Lesson(title="t", slug="s", content="", is_active=True)
+        session.add(lesson)
+        session.flush()
+        session.add(LessonStep(lesson_id=lesson.id, step_order=1, content="c"))
+        session.commit()
+        lesson_id = lesson.id
+
+    async def fake_completion(**kwargs: object) -> str:
+        return "text"
+
+    monkeypatch.setattr(gpt_client, "create_learning_chat_completion", fake_completion)
+
+    await start_lesson(1, "s")
+
+    first, completed = await next_step(1, lesson_id)
+    assert first == f"{disclaimer()}\n\ntext"
+    assert completed is False
+
+    text, completed = await next_step(1, lesson_id)
+    assert text is None
+    assert completed is True
+
+    with db.SessionLocal() as session:
+        progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
+        assert progress.completed is True
+        assert progress.quiz_score is None

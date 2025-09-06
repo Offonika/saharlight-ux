@@ -39,8 +39,8 @@ async def test_lesson_start_logging(monkeypatch: pytest.MonkeyPatch, caplog: pyt
     async def fake_start(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
 
-    async def fake_next(user_id: int, lesson_id: int) -> str | None:
-        return None
+    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+        return None, True
 
     monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start)
     monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next)
