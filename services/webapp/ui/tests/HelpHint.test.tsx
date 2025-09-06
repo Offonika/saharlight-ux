@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { describe, it, expect, afterEach } from 'vitest';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 
 import HelpHint from '../src/components/HelpHint';
 
@@ -39,5 +39,34 @@ describe('HelpHint', () => {
 
     fireEvent.keyDown(button, { key: 'Escape' });
     expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('uses mobile styles on small screens', async () => {
+    const original = window.matchMedia;
+    // @ts-expect-error -- jsdom
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(max-width: 640px)',
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
+    setup();
+    const button = screen.getByLabelText('ICR');
+    fireEvent.click(button);
+    const tooltip = await screen.findByRole('tooltip');
+    const content = tooltip.parentElement as HTMLElement;
+    await waitFor(() =>
+      expect(
+        content.classList.contains('max-w-[calc(100vw-2rem)]'),
+      ).toBe(true),
+    );
+    expect(content.getAttribute('data-side')).toBe('bottom');
+
+    window.matchMedia = original;
   });
 });

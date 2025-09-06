@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 interface HelpHintProps {
   label?: string;
@@ -25,6 +26,7 @@ const HelpHint = ({
 }: HelpHintProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const isSmallScreen = useMediaQuery('(max-width: 640px)');
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Escape') {
@@ -50,7 +52,9 @@ const HelpHint = ({
             <HelpCircle className="h-4 w-4" aria-hidden="true" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side={side}>{children}</TooltipContent>
+        <TooltipContent mobile={isSmallScreen} side={isSmallScreen ? 'bottom' : side}>
+          {children}
+        </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
