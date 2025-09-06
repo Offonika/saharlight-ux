@@ -296,12 +296,18 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (isOnboardingFlow) {
+    const telegramId = resolveTelegramId(user, initData);
+
+    if (
+      isOnboardingFlow &&
+      initData &&
+      typeof telegramId === "number"
+    ) {
       postOnboardingEvent("onboarding_started", onboardingStep).catch(() =>
         undefined,
       );
     }
-  }, [isOnboardingFlow, onboardingStep]);
+  }, [isOnboardingFlow, onboardingStep, user, initData]);
 
   useEffect(() => {
     try {
