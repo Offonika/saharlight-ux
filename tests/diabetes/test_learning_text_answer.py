@@ -40,7 +40,9 @@ async def test_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
 
     questions = iter([("Q1", False), (None, True)])
 
-    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+    async def fake_next(
+        user_id: int, lesson_id: int, prev_feedback: str | None = None
+    ) -> tuple[str | None, bool]:
         return next(questions)
 
     async def fake_check(user_id: int, lesson_id: int, answer: int) -> tuple[bool, str]:

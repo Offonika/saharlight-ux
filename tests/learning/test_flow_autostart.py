@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -10,7 +11,6 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.handlers import learning_onboarding
-from services.api.app.config import TOPICS_RU
 
 
 class DummyBot(Bot):
@@ -52,14 +52,24 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
-        return "шаг1"
+    progress = SimpleNamespace(lesson_id=1)
+
+    async def fake_start(user_id: int, slug: str) -> SimpleNamespace:
+        return progress
+
+    async def fake_next(
+        user_id: int, lesson_id: int, prev_feedback: str | None = None
+    ) -> tuple[str, bool]:
+        return "шаг1", False
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
     monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
+        learning_handlers.curriculum_engine, "start_lesson", fake_start
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next
     )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
@@ -109,8 +119,7 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         )
     )
 
-    title = TOPICS_RU[0][1]
-    assert bot.sent[-2:] == [f"Начнём с темы: {title}", "шаг1"]
+    assert bot.sent[-1] == "шаг1"
     assert all("Выберите тему" not in s and "Доступные темы" not in s for s in bot.sent)
 
     await app.shutdown()

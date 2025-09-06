@@ -40,7 +40,9 @@ async def test_lesson_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 
     steps = iter([("step1", False), ("step2", False), (None, True)])
 
-    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+    async def fake_next(
+        user_id: int, lesson_id: int, prev_feedback: str | None = None
+    ) -> tuple[str | None, bool]:
         calls.append("next")
         return next(steps)
 
@@ -85,7 +87,9 @@ async def test_quiz_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 
     questions = iter([("Q1", False), ("Q2", False), (None, True)])
 
-    async def fake_next(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+    async def fake_next(
+        user_id: int, lesson_id: int, prev_feedback: str | None = None
+    ) -> tuple[str | None, bool]:
         return next(questions)
 
     answers: list[int] = []

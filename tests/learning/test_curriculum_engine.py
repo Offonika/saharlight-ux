@@ -190,6 +190,11 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     text, completed = await next_step(1, lesson_id)
     assert text == "step 1"
     assert completed is False
+    with db.SessionLocal() as session:
+        progress = session.query(LessonProgress).filter_by(
+            user_id=1, lesson_id=lesson_id
+        ).one()
+        assert progress.current_step == 1
 
     correct, feedback = await check_answer(1, lesson_id, "42")
     assert correct is True
@@ -198,3 +203,8 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     text, completed = await next_step(1, lesson_id)
     assert text == "step 2"
     assert completed is False
+    with db.SessionLocal() as session:
+        progress = session.query(LessonProgress).filter_by(
+            user_id=1, lesson_id=lesson_id
+        ).one()
+        assert progress.current_step == 2

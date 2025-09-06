@@ -55,7 +55,9 @@ async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
     return progress
 
 
-async def next_step(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
+async def next_step(
+    user_id: int, lesson_id: int, prev_feedback: str | None = None
+) -> tuple[str | None, bool]:
     """Advance the lesson and return the next piece of content.
 
     Behaviour is determined by ``settings.learning_content_mode``:
@@ -75,8 +77,9 @@ async def next_step(user_id: int, lesson_id: int) -> tuple[str | None, bool]:
             progress.current_step += 1
             commit(session)
             return progress.current_step, lesson.slug
+
         step_idx, slug = await db.run_db(_advance_dynamic)
-        text = await generate_step_text({}, slug, step_idx, None)
+        text = await generate_step_text({}, slug, step_idx, prev_feedback)
         return text, False
 
     def _advance_static(

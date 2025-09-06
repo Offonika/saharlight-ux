@@ -11,7 +11,6 @@ from telegram.ext import ContextTypes
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
 from . import curriculum_engine
-from .dynamic_tutor import check_user_answer, generate_step_text
 from .handlers import learning_handlers as legacy_handlers
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
@@ -100,6 +99,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     profile = _get_profile(user_data)
     slug = choose_initial_topic(profile)
     progress = await curriculum_engine.start_lesson(user.id, slug)
+    user_data["lesson_id"] = progress.lesson_id
     text, _ = await curriculum_engine.next_step(user.id, progress.lesson_id)
     if text is None:
         return
@@ -118,18 +118,22 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def _start_lesson(
     message: Message,
     user_data: MutableMapping[str, Any],
-    profile: Mapping[str, str | None],
     topic_slug: str,
 ) -> None:
-    """Generate and send the first learning step."""
+    """Start a lesson and send the first step."""
 
     from_user = getattr(message, "from_user", None)
-    telegram_id = from_user.id if from_user else None
-    text = await generate_step_text(profile, topic_slug, 1, None)
+    user_id = from_user.id if from_user else None
+    if user_id is None:
+        return
+    progress = await curriculum_engine.start_lesson(user_id, topic_slug)
+    user_data["lesson_id"] = progress.lesson_id
+    text, _ = await curriculum_engine.next_step(user_id, progress.lesson_id)
+    if text is None:
+        return
     text = format_reply(text)
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    if telegram_id is not None:
-        await add_lesson_log(telegram_id, topic_slug, "assistant", 1, text)
+    await add_lesson_log(user_id, topic_slug, "assistant", 1, text)
     state = LearnState(
         topic=topic_slug,
         step=1,
@@ -161,8 +165,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "Сначала выберите тему командой /learn"
         )
         return
-    profile = _get_profile(user_data)
-    await _start_lesson(message, user_data, profile, topic_slug)
+    await _start_lesson(message, user_data, topic_slug)
 
 
 async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -192,8 +195,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
     data = query.data or ""
     slug = data.split(":", 1)[1] if ":" in data else ""
-    profile = _get_profile(user_data)
-    await _start_lesson(message, user_data, profile, slug)
+    await _start_lesson(message, user_data, slug)
 
 
 async def lesson_answer_handler(
@@ -218,29 +220,30 @@ async def lesson_answer_handler(
     if _rate_limited(user_data, "_answer_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
         return
-    profile = _get_profile(user_data)
-    telegram_id = from_user.id if from_user else None
+    lesson_id = cast(int | None, user_data.get("lesson_id"))
+    if lesson_id is None:
+        return
+    user_id = from_user.id if from_user else None
+    if user_id is None:
+        return
     user_text = message.text.strip()
-    if telegram_id is not None:
-        await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
-    feedback = await check_user_answer(
-        profile, state.topic, user_text, state.last_step_text or ""
+    await add_lesson_log(user_id, state.topic, "user", state.step, user_text)
+    _correct, feedback = await curriculum_engine.check_answer(
+        user_id, lesson_id, user_text, state.last_step_text or ""
     )
     feedback = format_reply(feedback)
     await message.reply_text(feedback, reply_markup=build_main_keyboard())
-    if telegram_id is not None:
-        await add_lesson_log(
-            telegram_id, state.topic, "assistant", state.step, feedback
-        )
-    next_text = await generate_step_text(
-        profile, state.topic, state.step + 1, feedback
+    await add_lesson_log(user_id, state.topic, "assistant", state.step, feedback)
+    next_text, _completed = await curriculum_engine.next_step(
+        user_id, lesson_id, feedback
     )
+    if next_text is None:
+        return
     next_text = format_reply(next_text)
     await message.reply_text(next_text, reply_markup=build_main_keyboard())
-    if telegram_id is not None:
-        await add_lesson_log(
-            telegram_id, state.topic, "assistant", state.step + 1, next_text
-        )
+    await add_lesson_log(
+        user_id, state.topic, "assistant", state.step + 1, next_text
+    )
     state.step += 1
     state.last_step_text = next_text
     state.prev_summary = feedback
@@ -262,6 +265,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     clear_state(user_data)
+    user_data.pop("lesson_id", None)
     await message.reply_text(
         "Учебная сессия завершена.", reply_markup=build_main_keyboard()
     )

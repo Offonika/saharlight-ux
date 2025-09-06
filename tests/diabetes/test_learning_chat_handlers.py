@@ -41,12 +41,25 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
     monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"slug": "Topic"})
-    async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
-        return "step1?"
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    progress = SimpleNamespace(lesson_id=1)
+
+    async def fake_start(user_id: int, slug: str) -> SimpleNamespace:
+        return progress
+
+    async def fake_next(
+        user_id: int, lesson_id: int, prev_feedback: str | None = None
+    ) -> tuple[str, bool]:
+        return "step1?", False
+
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next
+    )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
@@ -74,18 +87,31 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
 @pytest.mark.asyncio
 async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
-    async def fake_generate_step_text(
-        profile: object, topic: str, step_idx: int, prev: object
-    ) -> str:
-        return f"step{step_idx}?"
+    progress = SimpleNamespace(lesson_id=1)
 
-    async def fake_check_user_answer(
-        profile: object, topic: str, answer: str, last: str
-    ) -> str:
-        return "feedback"
+    async def fake_start(user_id: int, slug: str) -> SimpleNamespace:
+        return progress
 
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
-    monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+    async def fake_next(
+        user_id: int, lesson_id: int, prev_feedback: str | None = None
+    ) -> tuple[str, bool]:
+        step_idx = 1 if prev_feedback is None else 2
+        return f"step{step_idx}?", False
+
+    async def fake_check(
+        user_id: int, lesson_id: int, answer: str, last: str
+    ) -> tuple[bool, str]:
+        return True, "feedback"
+
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "check_answer", fake_check
+    )
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
@@ -145,7 +171,9 @@ async def test_learn_command_autostarts_when_topics_hidden(
         assert slug == "slug"
         return progress
 
-    async def fake_next_step(user_id: int, lesson_id: int) -> tuple[str, bool]:
+    async def fake_next_step(
+        user_id: int, lesson_id: int, prev_feedback: str | None = None
+    ) -> tuple[str, bool]:
         assert lesson_id == 1
         return "first", False
 
