@@ -33,7 +33,7 @@ describe('useDefaultAfterMealMinutes', () => {
     (getProfile as vi.Mock).mockResolvedValue(null);
     const { result } = renderHook(() => useDefaultAfterMealMinutes(1));
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalled();
+      expect(getProfile).toHaveBeenCalledWith(1);
       expect(result.current).toBe(120);
     });
   });
