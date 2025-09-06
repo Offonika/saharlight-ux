@@ -23,6 +23,7 @@ from services.api.app.billing import (
     log_billing_event,
     verify_webhook,
 )
+from services.api.app.billing.config import BillingProvider
 
 from ..diabetes.services.db import (
     SessionLocal,
@@ -34,6 +35,7 @@ from ..diabetes.services.db import (
 from ..schemas.billing import (
     BillingStatusResponse,
     CheckoutSchema,
+    DummyCheckoutSchema,
     FeatureFlags,
     SubscriptionSchema,
     WebhookEvent,
@@ -162,30 +164,64 @@ async def start_trial(
     return SubscriptionSchema.model_validate(trial, from_attributes=True)
 
 
-@router.post("/subscribe", response_model=CheckoutSchema)
+@router.post(
+    "/subscribe", response_model=CheckoutSchema | DummyCheckoutSchema
+)
 async def subscribe(
     user_id: int,
     plan: SubscriptionPlan,
     settings: BillingSettings = Depends(_require_billing_enabled),
-) -> CheckoutSchema:
+) -> CheckoutSchema | DummyCheckoutSchema:
     """Initiate a subscription and return checkout details."""
 
-    checkout = await create_checkout(settings, plan.value)
     now = datetime.now(timezone.utc)
 
-    def _create_subscription(session: Session) -> None:
+    def _ensure_no_active(session: Session) -> None:
         stmt = select(Subscription).where(
             Subscription.user_id == user_id,
             Subscription.status.in_(
-                [
-                    SubStatus.trial.value,
-                    SubStatus.active.value,
-                ]
+                [SubStatus.trial.value, SubStatus.active.value]
             ),
         )
         if session.scalars(stmt).first() is not None:
             raise HTTPException(status_code=409, detail="subscription already exists")
 
+    await run_db(_ensure_no_active, sessionmaker=SessionLocal)
+
+    if settings.billing_provider is BillingProvider.DUMMY:
+        checkout_id = f"dummy-{uuid4().hex}"
+
+        def _create_sub(session: Session) -> None:
+            sub = Subscription(
+                user_id=user_id,
+                plan=plan,
+                status=cast(SubStatus, SubStatus.active.value),
+                provider=settings.billing_provider.value,
+                transaction_id=checkout_id,
+                start_date=now,
+                end_date=None,
+            )
+            session.add(sub)
+            log_billing_event(
+                session,
+                user_id,
+                BillingEvent.INIT,
+                {"plan": plan.value},
+            )
+            log_billing_event(
+                session,
+                user_id,
+                BillingEvent.CHECKOUT_CREATED,
+                {"plan": plan.value, "checkout_id": checkout_id},
+            )
+            session.commit()
+
+        await run_db(_create_sub, sessionmaker=SessionLocal)
+        return DummyCheckoutSchema(checkout_id=checkout_id)
+
+    checkout = await create_checkout(settings, plan.value)
+
+    def _create_subscription(session: Session) -> None:
         sub = Subscription(
             user_id=user_id,
             plan=plan,

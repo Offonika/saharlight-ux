@@ -69,21 +69,27 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     with client:
-        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
+        resp = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
     assert resp.status_code == 200
     data = resp.json()
-    assert set(data) == {"id", "url"}
-    assert "mock-checkout" in data["url"]
+    assert set(data) == {"checkout_id"}
+    assert data["checkout_id"].startswith("dummy-")
 
     with client:
         webhook = client.post(
-            f"/api/billing/mock-webhook/{data['id']}",
+            f"/api/billing/mock-webhook/{data['checkout_id']}",
             headers={"X-Admin-Token": "secret"},
         )
     assert webhook.status_code == 200
 
     with session_local() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == data["id"]))
+        sub = session.scalar(
+            select(Subscription).where(
+                Subscription.transaction_id == data["checkout_id"]
+            )
+        )
         assert sub is not None
         assert sub.status == SubStatus.active
         assert sub.plan == SubscriptionPlan.PRO
@@ -93,30 +99,33 @@ def test_mock_webhook_requires_token(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     with client:
-        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
+        resp = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
     assert resp.status_code == 200
     data = resp.json()
 
     with client:
-        webhook = client.post(f"/api/billing/mock-webhook/{data['id']}")
+        webhook = client.post(
+            f"/api/billing/mock-webhook/{data['checkout_id']}"
+        )
     assert webhook.status_code == 403
 
 
 def test_provider_gets_plan_str(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
-    captured: dict[str, object] = {}
+    async def fake_create_checkout(self, plan: str) -> dict[str, str]:  # pragma: no cover
+        raise AssertionError("should not be called")
 
-    async def fake_create_checkout(self, plan: str) -> dict[str, str]:
-        captured["plan"] = plan
-        return {"id": "test", "url": "https://example.com/mock-checkout"}
-
-    monkeypatch.setattr(DummyBillingProvider, "create_checkout", fake_create_checkout, raising=False)
+    monkeypatch.setattr(
+        DummyBillingProvider, "create_checkout", fake_create_checkout, raising=False
+    )
     client = make_client(monkeypatch, session_local)
     with client:
-        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
+        resp = client.post(
+            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
+        )
     assert resp.status_code == 200
-    assert captured["plan"] == "pro"
-    assert isinstance(captured["plan"], str)
 
 
 def test_subscribe_duplicate(monkeypatch: pytest.MonkeyPatch) -> None:

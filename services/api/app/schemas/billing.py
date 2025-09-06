@@ -23,6 +23,12 @@ class CheckoutSchema(BaseModel):
     url: str
 
 
+class DummyCheckoutSchema(BaseModel):
+    """Checkout information for the dummy billing provider."""
+
+    checkout_id: str = Field(alias="checkout_id")
+
+
 class WebhookEvent(BaseModel):
     """Webhook event payload from billing provider."""
 

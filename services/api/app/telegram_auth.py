@@ -88,3 +88,20 @@ def require_tg_user(
     if user is None or not isinstance(user.get("id"), int):
         raise HTTPException(status_code=401, detail="invalid user")
     return cast(UserContext, user)
+
+
+def check_token(authorization: str | None = Header(None)) -> UserContext:
+    """Validate Telegram init data passed via ``Authorization`` header."""
+    if not authorization or not authorization.startswith("tg "):
+        raise HTTPException(status_code=401, detail="missing init data")
+    init_data = authorization[3:]
+    token: str | None = settings.telegram_token
+    if not token:
+        logger.error("telegram token not configured")
+        raise HTTPException(status_code=500, detail="server misconfigured")
+    data: dict[str, object] = parse_and_verify_init_data(init_data, token)
+    user_raw = data.get("user")
+    user = user_raw if isinstance(user_raw, dict) else None
+    if user is None or not isinstance(user.get("id"), int):
+        raise HTTPException(status_code=401, detail="invalid user")
+    return cast(UserContext, user)

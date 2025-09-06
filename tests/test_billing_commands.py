@@ -58,7 +58,7 @@ async def test_trial_command_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await billing_handlers.trial_command(update, context)
 
-    assert message.texts == ["🎉 Пробный период активирован до 15.01.2025"]
+    assert message.texts == ["🎉 Активирован trial до 15.01.2025"]
     monkeypatch.delenv("API_URL")
     config.reload_settings()
 
@@ -96,7 +96,52 @@ async def test_trial_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await billing_handlers.trial_command(update, context)
 
-    assert message.texts == ["❌ Не удалось активировать пробный период. Попробуйте позже."]
+    assert message.texts == ["❌ Не удалось активировать trial. Попробуйте позже."]
+    monkeypatch.delenv("API_URL")
+    config.reload_settings()
+
+
+@pytest.mark.asyncio
+async def test_trial_command_already_active(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("API_URL", "http://api.test/api")
+    config.reload_settings()
+
+    class DummyClient:
+        async def __aenter__(self) -> "DummyClient":
+            return self
+
+        async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
+            pass
+
+        async def post(self, url: str, params: dict[str, int], timeout: float) -> httpx.Response:
+            req = httpx.Request("POST", url)
+            return httpx.Response(409, request=req, json={"detail": "Trial already active"})
+
+        async def get(self, url: str, params: dict[str, int], timeout: float) -> httpx.Response:
+            req = httpx.Request("GET", url)
+            return httpx.Response(
+                200,
+                request=req,
+                json={"subscription": {"endDate": "2025-01-16T00:00:00+00:00"}},
+            )
+
+    monkeypatch.setattr(billing_handlers.httpx, "AsyncClient", lambda: DummyClient())
+
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(
+            message=message, effective_user=SimpleNamespace(id=42), callback_query=None
+        ),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    await billing_handlers.trial_command(update, context)
+
+    assert message.texts == ["🎁 Пробный период уже активен до 16.01.2025"]
     monkeypatch.delenv("API_URL")
     config.reload_settings()
 

@@ -9,7 +9,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from ..schemas.user import UserContext
-from ..telegram_auth import require_tg_user
+from ..telegram_auth import check_token
 from ..services.onboarding_events import log_onboarding_event
 from ..diabetes.services.db import (
     Profile,
@@ -33,7 +33,7 @@ class EventPayload(BaseModel):
 
 
 @router.post("/events")
-async def post_event(payload: EventPayload, user: UserContext = Depends(require_tg_user)) -> dict[str, bool]:
+async def post_event(payload: EventPayload, user: UserContext = Depends(check_token)) -> dict[str, bool]:
     variant = None
     if payload.meta and isinstance(payload.meta.get("variant"), str):
         variant = payload.meta["variant"]
@@ -53,7 +53,7 @@ class StatusResponse(BaseModel):
 
 
 @router.get("/status", response_model=StatusResponse)
-async def get_status(user: UserContext = Depends(require_tg_user)) -> StatusResponse:
+async def get_status(user: UserContext = Depends(check_token)) -> StatusResponse:
     user_id = user["id"]
 
     def _load(session: Session) -> tuple[Profile | None, int, OnboardingEvent | None]:
