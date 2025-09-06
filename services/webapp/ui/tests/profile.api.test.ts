@@ -95,7 +95,14 @@ describe('profile api', () => {
       .fn()
       .mockResolvedValue(
         new Response(
-          JSON.stringify({ telegramId: 1, target: 5, low: 4, high: 10 }),
+          JSON.stringify({
+            telegramId: 1,
+            target: 5,
+            low: 4,
+            high: 10,
+            dia: 4,
+            roundStep: 0.5,
+          }),
           {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
@@ -103,8 +110,7 @@ describe('profile api', () => {
         ),
       );
     vi.stubGlobal('fetch', mockFetch);
-
-    await saveProfile({
+    const result = await saveProfile({
       telegramId: 1,
       target: 5,
       low: 4,
@@ -135,6 +141,15 @@ describe('profile api', () => {
       sosAlertsEnabled: true,
       sosContact: null,
       therapyType: 'none',
+    });
+
+    expect(result).toEqual({
+      telegramId: 1,
+      target: 5,
+      low: 4,
+      high: 10,
+      dia: 4,
+      roundStep: 0.5,
     });
   });
 
