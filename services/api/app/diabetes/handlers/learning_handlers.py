@@ -220,7 +220,8 @@ async def quiz_answer_handler(
         state.step += 1
         state.awaiting_answer = True
         set_state(user_data, state)
-    raise ApplicationHandlerStop
+    # Let calling code continue without forcing ApplicationHandlerStop.
+    return
 
 
 async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
