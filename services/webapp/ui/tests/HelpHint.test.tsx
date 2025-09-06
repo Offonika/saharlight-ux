@@ -23,6 +23,13 @@ describe('HelpHint', () => {
     expect(screen.queryByRole('tooltip')).toBeNull();
   });
 
+  it('shows tooltip on click', async () => {
+    setup();
+    const button = screen.getByLabelText('ICR');
+    fireEvent.click(button);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Example');
+  });
+
   it('closes tooltip on Escape key', async () => {
     setup();
     const button = screen.getByLabelText('ICR');
