@@ -335,7 +335,12 @@ def patch_user_settings(
         profile.prebolus_min = data.preBolus
     if data.afterMealMinutes is not None:
         profile.postmeal_check_min = data.afterMealMinutes
-    if profile.timezone_auto and device_tz and profile.timezone != device_tz:
+    if (
+        profile.timezone_auto
+        and device_tz
+        and data.timezone is None
+        and profile.timezone != device_tz
+    ):
         profile.timezone = device_tz
     try:
         commit(session)
