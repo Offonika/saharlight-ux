@@ -26,7 +26,7 @@ describe('profile api', () => {
       'Не удалось получить профиль: boom',
     );
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profiles?telegramId=1',
+      '/api/profile?telegramId=1',
       expect.any(Object),
     );
   });
@@ -45,7 +45,7 @@ describe('profile api', () => {
     const result = await getProfile(1);
     expect(result).toBeNull();
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profiles?telegramId=1',
+      '/api/profile?telegramId=1',
       expect.any(Object),
     );
   });
@@ -65,7 +65,7 @@ describe('profile api', () => {
       'Не удалось получить профиль: Некорректный ответ сервера',
     );
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profiles?telegramId=1',
+      '/api/profile?telegramId=1',
       expect.any(Object),
     );
   });
@@ -85,7 +85,7 @@ describe('profile api', () => {
       saveProfile({ telegramId: 1, icr: 1, cf: 2, target: 5, low: 4, high: 10 }),
     ).rejects.toThrow('Не удалось сохранить профиль: fail');
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profiles',
+      '/api/profile',
       expect.objectContaining({ method: 'POST' }),
     );
   });
@@ -119,7 +119,7 @@ describe('profile api', () => {
     });
 
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profiles',
+      '/api/profile',
       expect.objectContaining({ method: 'POST', body: expect.any(String) }),
     );
     const body = JSON.parse(mockFetch.mock.calls[0][1]!.body as string);

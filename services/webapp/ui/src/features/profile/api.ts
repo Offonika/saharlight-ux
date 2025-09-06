@@ -5,7 +5,7 @@ import type { Profile, PatchProfileDto, RapidInsulin } from './types';
 export async function getProfile(telegramId: number): Promise<Profile | null> {
   try {
     return await tgFetch<Profile>(
-      `/profiles?telegramId=${telegramId}`,
+      `/profile?telegramId=${telegramId}`,
     );
   } catch (error) {
     if (error instanceof FetchError) {
@@ -95,7 +95,7 @@ export async function saveProfile({
       body.therapyType = therapyType;
     }
 
-    return await tgFetch<ProfileSchema>('/profiles', {
+    return await tgFetch<ProfileSchema>('/profile', {
       method: 'POST',
       body,
     });
