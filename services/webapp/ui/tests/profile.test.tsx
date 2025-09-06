@@ -52,33 +52,34 @@ import type { RapidInsulin } from '../src/features/profile/types';
 type SupportedValuesFn = (key: string) => string[];
 const intl = Intl as unknown as { supportedValuesOf: SupportedValuesFn };
 const originalSupportedValuesOf = intl.supportedValuesOf;
+const baseProfile = {
+  telegramId: 0,
+  icr: 12,
+  cf: 2.5,
+  target: 6,
+  low: 4,
+  high: 10,
+  dia: 4,
+  preBolus: 15,
+  roundStep: 0.5,
+  carbUnits: 'g',
+  gramsPerXe: 12,
+  rapidInsulinType: 'aspart' as RapidInsulin,
+  maxBolus: 10,
+  afterMealMinutes: 120,
+  timezone: 'Europe/Moscow',
+  timezoneAuto: false,
+  therapyType: 'insulin',
+  sosAlertsEnabled: true,
+  sosContact: null,
+  glucoseUnits: 'mmol/L',
+  quietStart: '23:00',
+  quietEnd: '07:00',
+};
 describe('Profile page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (getProfile as vi.Mock).mockResolvedValue({
-      telegramId: 0,
-      icr: 12,
-      cf: 2.5,
-      target: 6,
-      low: 4,
-      high: 10,
-      dia: 4,
-      preBolus: 15,
-      roundStep: 0.5,
-      carbUnits: 'g',
-      gramsPerXe: 12,
-      rapidInsulinType: 'aspart' as RapidInsulin,
-      maxBolus: 10,
-      afterMealMinutes: 120,
-      timezone: 'Europe/Moscow',
-      timezoneAuto: false,
-      therapyType: 'insulin',
-      sosAlertsEnabled: true,
-      sosContact: null,
-      glucoseUnits: 'mmol/L',
-      quietStart: '23:00',
-      quietEnd: '07:00',
-    });
+    (getProfile as vi.Mock).mockResolvedValue({ ...baseProfile });
     const realDTF = Intl.DateTimeFormat;
     const realResolved = realDTF.prototype.resolvedOptions;
     vi.spyOn(Intl, 'DateTimeFormat').mockImplementation((
@@ -843,6 +844,58 @@ describe('Profile page', () => {
     });
     expect(toast).not.toHaveBeenCalled();
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('');
+  });
+
+  it('does not reset fields during auto timezone patch', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (getProfile as vi.Mock).mockResolvedValueOnce({
+      ...baseProfile,
+      timezoneAuto: true,
+    });
+    let resolvePatch: (() => void) | undefined;
+    (patchProfile as vi.Mock).mockImplementation(
+      () => new Promise<void>((r) => {
+        resolvePatch = r;
+      }),
+    );
+
+    const { getByPlaceholderText } = renderWithClient(<Profile />);
+    await waitFor(() => expect(patchProfile).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(getByPlaceholderText('12'), {
+      target: { value: '8' },
+    });
+
+    if (resolvePatch) resolvePatch();
+
+    await waitFor(() =>
+      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('8'),
+    );
+  });
+
+  it('keeps auto-patched timezone after reload', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (getProfile as vi.Mock)
+      .mockResolvedValueOnce({
+        ...baseProfile,
+        timezoneAuto: true,
+      })
+      .mockResolvedValueOnce({
+        ...baseProfile,
+        timezone: 'Europe/Berlin',
+        timezoneAuto: true,
+      });
+    (patchProfile as vi.Mock).mockResolvedValue(undefined);
+
+    const first = renderWithClient(<Profile />);
+    await waitFor(() => expect(patchProfile).toHaveBeenCalledTimes(1));
+    await waitFor(() => first.getByDisplayValue('Europe/Berlin'));
+    first.unmount();
+
+    const second = renderWithClient(<Profile />);
+    await waitFor(() => expect(getProfile).toHaveBeenCalledTimes(2));
+    await waitFor(() => second.getByDisplayValue('Europe/Berlin'));
+    expect(patchProfile).toHaveBeenCalledTimes(1);
   });
 
   it('shows warning modal and blocks save until confirmation', async () => {
