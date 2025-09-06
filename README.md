@@ -33,8 +33,19 @@ cp infra/env/.env.example .env
 ```
 Заполните `.env` своими значениями.
 
+## Миграции
+
+Перед запуском миграций создайте и активируйте виртуальное окружение:
+
+```bash
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+make migrate
+```
+
 ### Установка `diabetes_sdk`
-Для доступа к внешнему API нужен приватный пакет `diabetes_sdk`. 
+Для доступа к внешнему API нужен приватный пакет `diabetes_sdk`.
 Получите доступ у мейнтейнеров и установите его вручную, например:
 
 ```bash

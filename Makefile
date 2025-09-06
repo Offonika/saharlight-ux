@@ -6,9 +6,14 @@ DB_URL?=postgresql://postgres@localhost/$(DB_NAME)
 RUN_AS_POSTGRES?=sudo -u postgres
 PYTHONPATH?=PYTHONPATH=/opt/saharlight-ux
 
+# === VENV ===
+
+venv:
+	python3.12 -m venv venv && venv/bin/pip install -r requirements.txt
+
 # === MIGRATIONS ===
 
-migrate:
+migrate: venv
 	$(PYTHONPATH) $(ALEMBIC) upgrade head
 
 step-up:
