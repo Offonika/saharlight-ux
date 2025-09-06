@@ -44,6 +44,10 @@ type ProfileForm = {
   rapidInsulinType: RapidInsulin;
   maxBolus: string;
   afterMealMinutes: string;
+  quietStart: string;
+  quietEnd: string;
+  sosContact: string | null;
+  sosAlertsEnabled: boolean;
 };
 
 type ParsedProfile = {
@@ -249,6 +253,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     rapidInsulinType: 'aspart',
     maxBolus: "",
     afterMealMinutes: "",
+    quietStart: '23:00',
+    quietEnd: '07:00',
+    sosContact: null,
+    sosAlertsEnabled: true,
   });
   const [original, setOriginal] = useState<ProfileForm | null>(null);
   const [timezones, setTimezones] = useState<string[]>([]);
@@ -387,6 +395,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           rapidInsulinType,
           maxBolus,
           afterMealMinutes,
+          quietStart: data.quietStart ?? '23:00',
+          quietEnd: data.quietEnd ?? '07:00',
+          sosContact: data.sosContact ?? null,
+          sosAlertsEnabled: data.sosAlertsEnabled ?? true,
         };
 
         setProfile(loadedProfile);
@@ -516,11 +528,25 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         high: number;
         icr?: number;
         cf?: number;
+        quietStart: string;
+        quietEnd: string;
+        timezone: string;
+        timezoneAuto: boolean;
+        sosContact: string | null;
+        sosAlertsEnabled: boolean;
+        therapyType: TherapyType;
       } = {
         telegramId: data.telegramId,
         target: data.target!,
         low: data.low!,
         high: data.high!,
+        quietStart: profile.quietStart,
+        quietEnd: profile.quietEnd,
+        timezone: profile.timezone,
+        timezoneAuto: profile.timezoneAuto,
+        sosContact: profile.sosContact,
+        sosAlertsEnabled: profile.sosAlertsEnabled,
+        therapyType: data.therapyType ?? originalTherapyType,
       };
 
       if (data.therapyType !== 'tablets' && data.therapyType !== 'none') {
