@@ -18,6 +18,7 @@ from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
 from .services.gpt_client import format_reply
 from .services.lesson_log import add_lesson_log
+from .planner import generate_learning_plan, pretty_plan
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,10 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     text, _ = await curriculum_engine.next_step(user.id, progress.lesson_id, profile)
     if text is None:
         return
-    text = format_reply(text)
+    plan = generate_learning_plan(text)
+    user_data["learning_plan"] = plan
+    user_data["learning_plan_index"] = 0
+    text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
     await add_lesson_log(user.id, slug, "assistant", 1, text)
     state = LearnState(
@@ -259,6 +263,51 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
 
 
+async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Display the current learning plan."""
+
+    message = update.message
+    if message is None:
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    plan = cast(list[str] | None, user_data.get("learning_plan"))
+    if not plan:
+        await message.reply_text(
+            "План не найден. Отправьте /learn чтобы начать.",
+            reply_markup=build_main_keyboard(),
+        )
+        return
+    await message.reply_text(
+        pretty_plan(plan), reply_markup=build_main_keyboard()
+    )
+
+
+async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Advance to the next step in the learning plan."""
+
+    message = update.message
+    if message is None:
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    plan = cast(list[str] | None, user_data.get("learning_plan"))
+    if not plan:
+        await message.reply_text(
+            "План не найден. Отправьте /learn чтобы начать.",
+            reply_markup=build_main_keyboard(),
+        )
+        return
+    idx = cast(int, user_data.get("learning_plan_index", 0)) + 1
+    if idx >= len(plan):
+        await message.reply_text(
+            "План завершён.", reply_markup=build_main_keyboard()
+        )
+    else:
+        await message.reply_text(
+            plan[idx], reply_markup=build_main_keyboard()
+        )
+    user_data["learning_plan_index"] = idx
+
+
 __all__ = [
     "topics_command",
     "learn_command",
@@ -266,4 +315,6 @@ __all__ = [
     "lesson_callback",
     "lesson_answer_handler",
     "exit_command",
+    "plan_command",
+    "skip_command",
 ]

@@ -373,6 +373,8 @@ def register_handlers(app: App) -> None:
         lesson_answer_handler,
         lesson_callback,
         topics_command as cmd_topics,
+        plan_command,
+        skip_command,
     )
 
     app.add_handler(CommandHandler("learn", learn_command))
@@ -380,6 +382,8 @@ def register_handlers(app: App) -> None:
     app.add_handler(CommandHandler("lesson", lesson_command))
     app.add_handler(CommandHandler("quiz", quiz_command))
     app.add_handler(CommandHandler("progress", progress_command))
+    app.add_handler(CommandHandler("plan", plan_command))
+    app.add_handler(CommandHandler("skip", skip_command))
     app.add_handler(CommandHandler("exit", exit_command))
     app.add_handler(CommandHandler("learn_reset", onboarding.learn_reset))
     app.add_handler(
