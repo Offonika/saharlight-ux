@@ -101,6 +101,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         topic=slug,
         step=1,
         awaiting_answer=True,
+        disclaimer_shown=True,
         last_step_text=text,
     )
     set_state(user_data, state)

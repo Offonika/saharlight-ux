@@ -174,9 +174,8 @@ async def check_answer(
         correct, feedback = await check_user_answer(
             profile, slug, str(answer), last_step_text or ""
         )
-        tail = disclaimer()
         feedback = feedback.strip()
-        return correct, f"{feedback} {tail}" if feedback else tail
+        return correct, feedback
 
     answer_index = int(answer) - 1
 

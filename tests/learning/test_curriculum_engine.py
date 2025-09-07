@@ -198,7 +198,7 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     correct, feedback = await check_answer(1, lesson_id, profile, "42")
     assert correct is True
-    assert feedback == f"fb 42 {disclaimer()}"
+    assert feedback == "fb 42"
 
     text, completed = await next_step(1, lesson_id, profile)
     assert text == "step 2"
