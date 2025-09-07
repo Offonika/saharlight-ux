@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from typing import Any, Mapping, cast
 
+import asyncio
 import pytest
 from telegram import InlineKeyboardMarkup, ReplyKeyboardMarkup
 
@@ -17,13 +18,9 @@ class DummyMessage:
         self.replies: list[str] = []
         self.markups: list[InlineKeyboardMarkup | None] = []
 
-    async def reply_text(
-        self, text: str, **kwargs: Any
-    ) -> None:  # pragma: no cover - helper
+    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
         self.replies.append(text)
-        self.markups.append(
-            cast(InlineKeyboardMarkup | None, kwargs.get("reply_markup"))
-        )
+        self.markups.append(cast(InlineKeyboardMarkup | None, kwargs.get("reply_markup")))
 
 
 class DummyCallback:
@@ -63,12 +60,8 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
-    )
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "next_step", fake_next_step
-    )
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
@@ -90,26 +83,20 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     assert msg2.replies == [f"{disclaimer()}\n\nstep1?"]
     assert isinstance(msg2.markups[0], ReplyKeyboardMarkup)
     state = get_state(context_cb.user_data)
-    assert state is not None and state.step == 1 and state.awaiting_answer
+    assert state is not None and state.step == 1 and state.awaiting
 
 
 @pytest.mark.asyncio
 async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fake_generate_step_text(
-        profile: object, topic: str, step_idx: int, prev: object
-    ) -> str:
+    async def fake_generate_step_text(profile: object, topic: str, step_idx: int, prev: object) -> str:
         return f"step{step_idx}?"
 
-    async def fake_check_user_answer(
-        profile: object, topic: str, answer: str, last: str
-    ) -> tuple[bool, str]:
+    async def fake_check_user_answer(profile: object, topic: str, answer: str, last: str) -> tuple[bool, str]:
         return True, "feedback"
 
-    monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
-    )
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
@@ -134,12 +121,8 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     ) -> tuple[str, bool]:
         return "step1?", False
 
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
-    )
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "next_step", fake_next_step
-    )
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
 
     msg = DummyMessage()
     update = cast(object, SimpleNamespace(message=msg))
@@ -157,7 +140,7 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert msg2.replies == ["feedback", "step2?"]
     assert all(isinstance(m, ReplyKeyboardMarkup) for m in msg2.markups)
     state = get_state(context2.user_data)
-    assert state is not None and state.step == 2 and state.awaiting_answer
+    assert state is not None and state.step == 2 and state.awaiting
 
 
 @pytest.mark.asyncio
@@ -221,7 +204,7 @@ async def test_exit_command_clears_state(
     msg = DummyMessage()
     update = cast(object, SimpleNamespace(message=msg))
     user_data: dict[str, Any] = {}
-    set_state(user_data, LearnState("t", 1, True))
+    set_state(user_data, LearnState(topic="t", step=1, awaiting=True))
     context = SimpleNamespace(user_data=user_data)
 
     await learning_handlers.exit_command(update, context)
@@ -241,9 +224,7 @@ async def test_learn_command_autostarts_when_topics_hidden(
         return True
 
     monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
-    monkeypatch.setattr(
-        learning_handlers, "choose_initial_topic", lambda _: ("slug", "t")
-    )
+    monkeypatch.setattr(learning_handlers, "choose_initial_topic", lambda _: ("slug", "t"))
 
     progress = SimpleNamespace(lesson_id=1)
 
@@ -263,12 +244,8 @@ async def test_learn_command_autostarts_when_topics_hidden(
         return "first", False
 
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
-    )
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "next_step", fake_next_step
-    )
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -276,9 +253,7 @@ async def test_learn_command_autostarts_when_topics_hidden(
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
-    update = cast(
-        object, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=7))
-    )
+    update = cast(object, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=7)))
     context = SimpleNamespace(user_data={})
 
     await learning_handlers.learn_command(update, context)
@@ -293,15 +268,10 @@ async def test_lesson_answer_ignores_busy(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     msg = DummyMessage(text="ans")
     user_data: dict[str, Any] = {}
+    user_data: dict[str, Any] = {"learn_busy": True}
     set_state(
         user_data,
-        LearnState(
-            topic="slug",
-            step=1,
-            awaiting_answer=True,
-            learn_busy=True,
-            last_step_text="q",
-        ),
+        LearnState(topic="slug", step=1, last_step_text="q", awaiting=True),
     )
     update = cast(object, SimpleNamespace(message=msg))
     context = SimpleNamespace(user_data=user_data)
@@ -312,23 +282,58 @@ async def test_lesson_answer_ignores_busy(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 @pytest.mark.asyncio
+async def test_lesson_answer_double_click(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    async def slow_check_user_answer(profile: object, topic: str, answer: str, last: str) -> tuple[bool, str]:
+        await asyncio.sleep(0)
+        return True, "fb"
+
+    async def fake_generate_step_text(profile: object, topic: str, step_idx: int, prev: object) -> str:
+        return "next"
+
+    monkeypatch.setattr(learning_handlers, "check_user_answer", slow_check_user_answer)
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", lambda *a, **k: None)
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
+
+    user_data: dict[str, Any] = {}
+    set_state(
+        user_data,
+        LearnState(topic="slug", step=1, last_step_text="q", awaiting=True),
+    )
+
+    msg1 = DummyMessage("ans")
+    update1 = cast(object, SimpleNamespace(message=msg1))
+    context1 = SimpleNamespace(user_data=user_data)
+
+    task = asyncio.create_task(learning_handlers.lesson_answer_handler(update1, context1))
+    await asyncio.sleep(0)
+
+    msg2 = DummyMessage("ans")
+    update2 = cast(object, SimpleNamespace(message=msg2))
+    context2 = SimpleNamespace(user_data=user_data)
+    await learning_handlers.lesson_answer_handler(update2, context2)
+    await task
+
+    assert msg1.replies == ["fb", "next"]
+    assert msg2.replies == []
+
+
+@pytest.mark.asyncio
 async def test_lesson_answer_handler_error_keeps_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fake_check_user_answer(
-        *args: object, **kwargs: object
-    ) -> tuple[bool, str]:
+    async def fake_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
         return False, dynamic_tutor.BUSY_MESSAGE
 
     async def fail_generate_step_text(*args: object, **kwargs: object) -> str:
         raise AssertionError("should not be called")
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
-    monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fail_generate_step_text
-    )
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fail_generate_step_text)
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -339,7 +344,7 @@ async def test_lesson_answer_handler_error_keeps_state(
     user_data: dict[str, Any] = {}
     set_state(
         user_data,
-        LearnState(topic="slug", step=1, awaiting_answer=True, last_step_text="q"),
+        LearnState(topic="slug", step=1, last_step_text="q", awaiting=True),
     )
     update = cast(object, SimpleNamespace(message=msg))
     context = SimpleNamespace(user_data=user_data)
@@ -350,8 +355,8 @@ async def test_lesson_answer_handler_error_keeps_state(
     state = get_state(user_data)
     assert state is not None
     assert state.step == 1
-    assert state.awaiting_answer
-    assert not state.learn_busy
+    assert state.awaiting
+    assert not context.user_data.get("learn_busy", False)
 
 
 @pytest.mark.asyncio
@@ -373,7 +378,7 @@ async def test_lesson_answer_handler_add_log_failure(
     user_data: dict[str, Any] = {}
     set_state(
         user_data,
-        LearnState(topic="slug", step=1, awaiting_answer=True, last_step_text="q"),
+        LearnState(topic="slug", step=1, last_step_text="q", awaiting=True),
     )
     update = cast(object, SimpleNamespace(message=msg))
     context = SimpleNamespace(user_data=user_data)
@@ -384,5 +389,5 @@ async def test_lesson_answer_handler_add_log_failure(
     state = get_state(user_data)
     assert state is not None
     assert state.step == 1
-    assert state.awaiting_answer
-    assert not state.learn_busy
+    assert state.awaiting
+    assert not context.user_data.get("learn_busy", False)

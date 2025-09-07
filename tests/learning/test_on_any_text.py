@@ -22,7 +22,7 @@ class DummyMessage:
 async def test_on_any_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     user_data: dict[str, object] = {}
-    set_state(user_data, LearnState(topic="t", step=1, awaiting_answer=True, last_step_text="q"))
+    set_state(user_data, LearnState(topic="t", step=1, awaiting=True, last_step_text="q"))
     called = False
 
     async def fake_check_user_answer(
@@ -64,7 +64,7 @@ async def test_on_any_text_idontknow(monkeypatch: pytest.MonkeyPatch) -> None:
     user_data: dict[str, object] = {}
     set_state(
         user_data,
-        LearnState(topic="t", step=1, awaiting_answer=True, last_step_text="q"),
+        LearnState(topic="t", step=1, awaiting=True, last_step_text="q"),
     )
     called = False
 
