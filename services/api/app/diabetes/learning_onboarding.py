@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Callable, cast
 
-from telegram import ReplyKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
 
 logger = logging.getLogger(__name__)
@@ -64,31 +64,55 @@ DIABETES_TYPE_PROMPT = "Укажите тип диабета."
 LEARNING_LEVEL_PROMPT = "Укажите ваш уровень знаний."
 
 
+CB_PREFIX = "learn_onb:"
+
 _ORDER: list[
     tuple[
         str,
         str,
         Callable[[str], str | None],
-        ReplyKeyboardMarkup,
+        InlineKeyboardMarkup,
     ]
 ] = [
     (
         "age_group",
         AGE_PROMPT,
         _norm_age_group,
-        ReplyKeyboardMarkup([["teen", "adult", "60+"]], one_time_keyboard=True),
+        InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("teen", callback_data=f"{CB_PREFIX}teen"),
+                    InlineKeyboardButton("adult", callback_data=f"{CB_PREFIX}adult"),
+                    InlineKeyboardButton("60+", callback_data=f"{CB_PREFIX}60+"),
+                ]
+            ]
+        ),
     ),
     (
         "diabetes_type",
         DIABETES_TYPE_PROMPT,
         _norm_diabetes_type,
-        ReplyKeyboardMarkup([["T1", "T2"]], one_time_keyboard=True),
+        InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("T1", callback_data=f"{CB_PREFIX}T1"),
+                    InlineKeyboardButton("T2", callback_data=f"{CB_PREFIX}T2"),
+                ]
+            ]
+        ),
     ),
     (
         "learning_level",
         LEARNING_LEVEL_PROMPT,
         _norm_level,
-        ReplyKeyboardMarkup([["novice", "expert"]], one_time_keyboard=True),
+        InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("novice", callback_data=f"{CB_PREFIX}novice"),
+                    InlineKeyboardButton("expert", callback_data=f"{CB_PREFIX}expert"),
+                ]
+            ]
+        ),
     ),
 ]
 
@@ -107,7 +131,9 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     overrides = cast(
         dict[str, str], user_data.setdefault("learn_profile_overrides", {})
     )
-    message = update.message
+    message: Message | None = update.message
+    if message is None and update.callback_query is not None:
+        message = cast("Message | None", update.callback_query.message)
     for key, prompt, norm, keyboard in _ORDER:
         raw = overrides.get(key)
         if raw is not None:
