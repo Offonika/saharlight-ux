@@ -4,7 +4,7 @@ import datetime
 import logging
 import re
 from collections.abc import Awaitable, Callable
-from typing import Protocol, TypedDict, TypeVar, cast
+from typing import MutableMapping, Protocol, TypedDict, TypeVar, cast
 
 from telegram import (
     CallbackQuery,
@@ -23,6 +23,8 @@ from services.api.app.diabetes.utils.calc_bolus import (
     PatientProfile,
     calc_bolus,
 )
+from .. import assistant_state
+from ...assistant.services import memory_service
 from services.api.app.diabetes.utils.functions import smart_input
 from services.api.app.diabetes.gpt_command_parser import (
     ParserTimeoutError,
@@ -68,6 +70,24 @@ except ImportError:  # pragma: no cover - optional db runner
     run_db = None
 else:
     run_db = cast(RunDB, _run_db)
+
+
+async def _ensure_summary_loaded(
+    user_id: int, user_data: MutableMapping[str, object]
+) -> None:
+    """Populate ``assistant_summary`` from DB if missing."""
+
+    if assistant_state.SUMMARY_KEY in user_data:
+        return
+    try:
+        memory = await memory_service.get_memory(user_id)
+    except Exception:  # pragma: no cover - DB issues
+        return
+    if memory is None:
+        return
+    summary = getattr(memory, "summary_text", None) or getattr(memory, "summary", None)
+    if summary:
+        user_data[assistant_state.SUMMARY_KEY] = summary
 
 
 class EditMessageMeta(TypedDict):
@@ -641,6 +661,7 @@ async def freeform_handler(
     user = update.effective_user
     if user is None:
         return
+    await _ensure_summary_loaded(user.id, user_data)
     raw_text = text.strip()
     user_id = user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
@@ -721,10 +742,13 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Chat handler that records conversation history."""
 
     message = update.message
+    user = update.effective_user
     if message is None or message.text is None:
         return
 
     user_data = cast(dict[str, object], context.user_data)
+    if user is not None:
+        await _ensure_summary_loaded(user.id, user_data)
     user_text = message.text
     reply = "🗨️ Чат с GPT временно недоступен."
     await message.reply_text(reply)
