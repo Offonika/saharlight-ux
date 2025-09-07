@@ -7,7 +7,7 @@ from openai import OpenAIError
 from services.api.app.diabetes import gpt_command_parser
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_handles_asyncio_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -20,7 +20,7 @@ async def test_parse_command_handles_asyncio_timeout(
         await gpt_command_parser.parse_command("test")
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_handles_openai_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -34,7 +34,7 @@ async def test_parse_command_handles_openai_error(
     assert result is None
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_handles_value_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -48,7 +48,7 @@ async def test_parse_command_handles_value_error(
     assert result is None
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_handles_type_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -62,7 +62,7 @@ async def test_parse_command_handles_type_error(
     assert result is None
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_returns_none_without_choices(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -79,7 +79,7 @@ async def test_parse_command_returns_none_without_choices(
     assert result is None
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_returns_none_without_message(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -96,7 +96,7 @@ async def test_parse_command_returns_none_without_message(
     assert result is None
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_returns_none_without_content(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -113,7 +113,7 @@ async def test_parse_command_returns_none_without_content(
     assert result is None
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_empty_content(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -132,7 +132,7 @@ async def test_parse_command_empty_content(
     assert "Content is empty in GPT response" in caplog.text
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_non_string_content(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -151,7 +151,7 @@ async def test_parse_command_non_string_content(
     assert "Content is not a string in GPT response" in caplog.text
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_string_without_json(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -176,7 +176,7 @@ async def test_parse_command_string_without_json(
     assert "No JSON object found in response" in caplog.text
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_parse_command_json_invalid_structure(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
