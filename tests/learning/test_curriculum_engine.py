@@ -192,13 +192,13 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     profile: dict[str, str] = {"age": "30"}
     await start_lesson(1, "s")
     text, completed = await next_step(1, lesson_id, profile)
-    assert text == "step 1"
+    assert text == f"{disclaimer()}\n\nstep 1"
     assert completed is False
     assert fake_generate.calls[0] is profile
 
     correct, feedback = await check_answer(1, lesson_id, "42")
     assert correct is True
-    assert feedback == "fb 42"
+    assert feedback == f"fb 42 {disclaimer()}"
 
     text, completed = await next_step(1, lesson_id, profile)
     assert text == "step 2"

@@ -84,6 +84,8 @@ async def next_step(
 
         step_idx, slug = await db.run_db(_advance_dynamic)
         text = await generate_step_text(profile, slug, step_idx, prev_summary)
+        if step_idx == 1:
+            return f"{disclaimer()}\n\n{text}", False
         return text, False
 
     def _advance_static(
@@ -171,7 +173,9 @@ async def check_answer(
         correct, feedback = await check_user_answer(
             {}, slug, str(answer), last_step_text or ""
         )
-        return correct, feedback
+        tail = disclaimer()
+        feedback = feedback.strip()
+        return correct, f"{feedback} {tail}" if feedback else tail
 
     answer_index = int(answer) - 1
 
