@@ -24,6 +24,9 @@ class AssistantMemory(Base):
     last_turn_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False
     )
+    summary_text: Mapped[str] = mapped_column(
+        String(1024), nullable=False, default=""
+    )
 
 
 class LessonLog(Base):

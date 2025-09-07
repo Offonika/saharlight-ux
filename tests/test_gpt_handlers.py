@@ -21,6 +21,14 @@ class DummyMessage:
         self.kwargs.append(kwargs)
 
 
+@pytest.fixture(autouse=True)
+def _patch_record_turn(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def dummy(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(gpt_handlers.memory_service, "record_turn", dummy)
+
+
 @pytest.mark.asyncio
 async def test_chat_with_gpt_replies_and_history(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_completion(*args: object, **kwargs: object) -> Any:
@@ -104,7 +112,10 @@ async def test_chat_with_gpt_trims_history(monkeypatch: pytest.MonkeyPatch) -> N
     )
     for i in range(3):
         msg = DummyMessage(str(i))
-        update = cast(Update, SimpleNamespace(message=msg, effective_user=None))
+        update = cast(
+            Update,
+            SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)),
+        )
         await gpt_handlers.chat_with_gpt(update, context)
     history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
     assert len(history) == 2
@@ -121,17 +132,30 @@ async def test_chat_with_gpt_summarizes_history(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(gpt_handlers.gpt_client, "format_reply", lambda text, **kwargs: text)
     monkeypatch.setattr(assistant_state, "ASSISTANT_MAX_TURNS", 2)
     monkeypatch.setattr(assistant_state, "ASSISTANT_SUMMARY_TRIGGER", 3)
+    calls: list[str | None] = []
+
+    async def fake_record_turn(
+        user_id: int, *, summary_text: str | None = None, now: datetime.datetime | None = None
+    ) -> None:
+        calls.append(summary_text)
+
+    monkeypatch.setattr(gpt_handlers.memory_service, "record_turn", fake_record_turn)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
     for i in range(3):
         msg = DummyMessage(str(i))
-        update = cast(Update, SimpleNamespace(message=msg, effective_user=None))
+        update = cast(
+            Update,
+            SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)),
+        )
         await gpt_handlers.chat_with_gpt(update, context)
     history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
     summary = cast(str, context.user_data[assistant_state.SUMMARY_KEY])
     assert summary.startswith("user: 0")
+    assert calls[:2] == [None, None]
+    assert calls[2] == summary
     assert len(history) == 2
     assert history[0].startswith("user: 1")
     assert history[1].startswith("user: 2")

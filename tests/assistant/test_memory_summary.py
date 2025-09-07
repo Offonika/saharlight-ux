@@ -47,3 +47,19 @@ async def test_record_turn_increments(
     assert mem.turn_count == 3
     last = mem.last_turn_at.replace(tzinfo=timezone.utc)
     assert abs(last - (base + timedelta(minutes=2))) < timedelta(seconds=1)
+
+
+@pytest.mark.asyncio
+async def test_record_turn_updates_summary(
+    setup_db: sessionmaker[Session],
+) -> None:
+    now = datetime.now(tz=timezone.utc)
+    await memory_service.record_turn(1, summary_text="hi", now=now)
+    mem = await memory_service.get_memory(1)
+    assert mem is not None
+    assert mem.summary_text == "hi"
+    await memory_service.record_turn(
+        1, summary_text="bye", now=now + timedelta(minutes=1)
+    )
+    mem = await memory_service.get_memory(1)
+    assert mem.summary_text == "bye"
