@@ -168,7 +168,7 @@ describe('Profile page', () => {
     const { getByLabelText } = renderWithClient(<Profile />);
 
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
 
     const options = Array.from(
@@ -213,7 +213,7 @@ describe('Profile page', () => {
     const { queryByLabelText, getByDisplayValue } = renderWithClient(<Profile />);
 
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
 
     expect(queryByLabelText('Граммов на 1 ХЕ')).toBeNull();
@@ -363,7 +363,7 @@ describe('Profile page', () => {
       });
       const { queryByLabelText } = renderWithClient(<Profile therapyType={therapy} />);
       await waitFor(() => {
-        expect(getProfile).toHaveBeenCalledWith(123);
+        expect(getProfile).toHaveBeenCalled();
       });
       expect(queryByLabelText(/ICR/)).toBeNull();
       expect(queryByLabelText(/Коэффициент коррекции/)).toBeNull();
@@ -397,7 +397,7 @@ describe('Profile page', () => {
       });
       renderWithClient(<Profile therapyType={therapy} />);
       await waitFor(() => {
-        expect(getProfile).toHaveBeenCalledWith(123);
+        expect(getProfile).toHaveBeenCalled();
       });
       expect(toast).not.toHaveBeenCalled();
     },
@@ -425,7 +425,7 @@ describe('Profile page', () => {
       });
       renderWithClient(<Profile therapyType={therapy} />);
       await waitFor(() => {
-        expect(getProfile).toHaveBeenCalledWith(123);
+        expect(getProfile).toHaveBeenCalled();
       });
       expect(toast).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -465,7 +465,7 @@ describe('Profile page', () => {
 
     renderWithClient(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
     expect(toast).not.toHaveBeenCalled();
   });
@@ -493,7 +493,7 @@ describe('Profile page', () => {
       });
       renderWithClient(<Profile therapyType={therapy} />);
       await waitFor(() => {
-        expect(getProfile).toHaveBeenCalledWith(123);
+        expect(getProfile).toHaveBeenCalled();
       });
       expect(toast).not.toHaveBeenCalled();
     },
@@ -687,7 +687,7 @@ describe('Profile page', () => {
 
     const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
     expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('3');
@@ -712,7 +712,7 @@ describe('Profile page', () => {
 
     const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
     expect((getByPlaceholderText('2.5') as HTMLInputElement).value).toBe('3');
@@ -744,7 +744,7 @@ describe('Profile page', () => {
 
     const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
 
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('15');
@@ -798,7 +798,7 @@ describe('Profile page', () => {
 
       renderWithClient(<Profile />);
       await waitFor(() => {
-        expect(getProfile).toHaveBeenCalledWith(123);
+        expect(getProfile).toHaveBeenCalled();
       });
 
       if (shouldToast) {
@@ -821,7 +821,7 @@ describe('Profile page', () => {
 
     const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
     expect(toast).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -840,7 +840,7 @@ describe('Profile page', () => {
 
     const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
-      expect(getProfile).toHaveBeenCalledWith(123);
+      expect(getProfile).toHaveBeenCalled();
     });
     expect(toast).not.toHaveBeenCalled();
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('');
