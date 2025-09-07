@@ -5,8 +5,8 @@ import pytest
 from services.api.app.config import settings
 from typing import Callable
 
-from services.api.app.diabetes.services import lesson_log
-from services.api.app.diabetes.services.lesson_log import add_lesson_log
+from services.api.app.assistant.repositories import logs as lesson_log
+from services.api.app.assistant.repositories.logs import add_lesson_log
 from services.api.app.diabetes.models_learning import LessonLog
 
 
@@ -21,7 +21,7 @@ async def test_skip_when_logging_disabled(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
 
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
+    await add_lesson_log(1, 1, 1, 1, "assistant", "hi")
 
 
 @pytest.mark.asyncio
@@ -35,7 +35,7 @@ async def test_add_lesson_log_handles_errors(monkeypatch: pytest.MonkeyPatch) ->
 
     monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
 
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
+    await add_lesson_log(1, 1, 1, 1, "assistant", "hi")
 
 
 @pytest.mark.asyncio
@@ -51,8 +51,8 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
 
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
-    await add_lesson_log(1, "topic", "assistant", 2, "there")
+    await add_lesson_log(1, 1, 1, 1, "assistant", "hi")
+    await add_lesson_log(1, 1, 1, 2, "assistant", "there")
 
     assert len(lesson_log.pending_logs) == 2
 
@@ -68,7 +68,7 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(lesson_log, "run_db", ok_run_db)
     monkeypatch.setattr(lesson_log, "commit", lambda _: None)
 
-    await add_lesson_log(1, "topic", "assistant", 3, "third")
+    await add_lesson_log(1, 1, 1, 3, "assistant", "third")
 
     assert len(inserted) == 3
     assert not lesson_log.pending_logs
