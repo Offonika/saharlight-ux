@@ -379,7 +379,7 @@ async def test_parse_command_with_invalid_schema(
         result = await gpt_command_parser.parse_command("test")
 
     assert result is None
-    assert "Invalid command structure" in caplog.text
+    assert "Command validation failed for action=123" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -620,8 +620,7 @@ def test_extract_first_json_with_escaped_chars() -> None:
 
 def test_extract_first_json_braces_inside_string_field() -> None:
     text = (
-        'prefix {"action":"add_entry","fields":{"note":"use {curly} braces"}} '
-        "suffix"
+        'prefix {"action":"add_entry","fields":{"note":"use {curly} braces"}} ' "suffix"
     )
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
@@ -630,9 +629,7 @@ def test_extract_first_json_braces_inside_string_field() -> None:
 
 
 def test_extract_first_json_braces_and_quotes_inside_string_field() -> None:
-    text = (
-        '{"action":"add_entry","fields":{"note":"{\\"inner\\":1} end"}}'
-    )
+    text = '{"action":"add_entry","fields":{"note":"{\\"inner\\":1} end"}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {"note": '{"inner":1} end'},

@@ -198,7 +198,7 @@ async def test_parse_command_json_invalid_structure(
         result = await gpt_command_parser.parse_command("test")
 
     assert result is None
-    assert "Invalid command structure" in caplog.text
+    assert "Missing fields for action=add_entry" in caplog.text
 
 
 def test_sanitize_sensitive_data_masks_token() -> None:
