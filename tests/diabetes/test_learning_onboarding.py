@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-from telegram import Update
+from telegram import InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
 from services.api.app.config import settings
@@ -24,11 +24,13 @@ class DummyMessage:
     def __init__(self, text: str | None = None) -> None:
         self.text = text
         self.replies: list[str] = []
+        self.markups: list[Any] = []
 
     async def reply_text(
         self, text: str, **kwargs: Any
     ) -> None:  # pragma: no cover - helper
         self.replies.append(text)
+        self.markups.append(kwargs.get("reply_markup"))
 
 
 class DummyCallbackQuery:
@@ -89,7 +91,7 @@ async def test_learning_onboarding_flow(
         await learning_onboarding.onboarding_reply(update3, context)
         assert message3.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
 
-        message4 = DummyMessage("beginner")
+        message4 = DummyMessage("новичок")
         update4 = cast(Update, SimpleNamespace(message=message4, effective_user=None))
         await learning_onboarding.onboarding_reply(update4, context)
         assert message4.replies == [
@@ -170,6 +172,13 @@ async def test_learning_onboarding_callback_flow(
         )
         await learning_onboarding.onboarding_callback(upd_cb2, ctx)
         assert q2_msg.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
+        markup = q2_msg.markups[0]
+        assert isinstance(markup, InlineKeyboardMarkup)
+        assert [b.text for b in markup.inline_keyboard[0]] == [
+            "Новичок",
+            "Средний",
+            "Эксперт",
+        ]
 
         q3_msg = DummyMessage()
         q3 = DummyCallbackQuery(f"{onboarding_utils.CB_PREFIX}novice", q3_msg)

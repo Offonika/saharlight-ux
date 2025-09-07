@@ -51,9 +51,13 @@ def _norm_level(text: str) -> str | None:
     str_map: dict[str, str] = {
         "novice": "novice",
         "beginner": "novice",
+        "новичок": "novice",
         "intermediate": "intermediate",
+        "средний": "intermediate",
+        "продвинутый": "intermediate",
         "advanced": "expert",
         "expert": "expert",
+        "эксперт": "expert",
     }
     return str_map.get(t)
 
@@ -108,8 +112,11 @@ _ORDER: list[
         InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton("novice", callback_data=f"{CB_PREFIX}novice"),
-                    InlineKeyboardButton("expert", callback_data=f"{CB_PREFIX}expert"),
+                    InlineKeyboardButton("Новичок", callback_data=f"{CB_PREFIX}novice"),
+                    InlineKeyboardButton(
+                        "Средний", callback_data=f"{CB_PREFIX}intermediate"
+                    ),
+                    InlineKeyboardButton("Эксперт", callback_data=f"{CB_PREFIX}expert"),
                 ]
             ]
         ),
