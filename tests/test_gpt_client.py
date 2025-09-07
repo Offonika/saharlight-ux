@@ -364,3 +364,14 @@ async def test_create_chat_completion_retry(monkeypatch: pytest.MonkeyPatch) -> 
 
     assert calls == 2
 
+
+@pytest.mark.asyncio
+async def test_create_chat_completion_without_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "openai_api_key", None)
+    monkeypatch.setattr(gpt_client, "_async_client", None)
+    completion = await gpt_client.create_chat_completion(model="m", messages=[])
+    content = completion.choices[0].message.content or ""
+    assert "OpenAI API key is not configured" in content
+

@@ -5,6 +5,7 @@ import io
 import logging
 import re
 import threading
+import time
 from collections import OrderedDict
 from typing import Iterable, Mapping, cast
 
@@ -117,6 +118,28 @@ def format_reply(text: str, *, max_len: int = 800) -> str:
     return "\n\n".join(paragraphs)
 
 
+def _static_completion(model: str) -> ChatCompletion:
+    """Return a dummy completion prompting to configure the API key."""
+    return ChatCompletion.model_validate(
+        {
+            "id": "static",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": model,
+            "choices": [
+                {
+                    "index": 0,
+                    "finish_reason": "stop",
+                    "message": {
+                        "role": "assistant",
+                        "content": "OpenAI API key is not configured. Please set OPENAI_API_KEY.",
+                    },
+                }
+            ],
+        }
+    )
+
+
 async def create_chat_completion(
     *,
     model: str,
@@ -126,7 +149,13 @@ async def create_chat_completion(
     timeout: float | httpx.Timeout | None = None,
 ) -> ChatCompletion:
     """Create a chat completion with typed return value."""
-    client: AsyncOpenAI = await _get_async_client()
+    try:
+        client: AsyncOpenAI = await _get_async_client()
+    except RuntimeError as exc:
+        if "OPENAI_API_KEY" in str(exc):
+            logger.warning("[OpenAI] %s", exc)
+            return _static_completion(model)
+        raise
     timeout_param: float | httpx.Timeout
     if timeout is None:
         timeout_param = httpx.Timeout(CHAT_COMPLETION_TIMEOUT)
