@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import logging
@@ -10,16 +9,21 @@ from telegram.ext import ContextTypes
 
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
-from . import curriculum_engine
 from .dynamic_tutor import check_user_answer, generate_step_text
 from .handlers import learning_handlers as legacy_handlers
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
+from .planner import generate_learning_plan, pretty_plan
 from .learning_utils import choose_initial_topic
+from . import curriculum_engine
 from .services.gpt_client import format_reply
 from .services.lesson_log import add_lesson_log
 
 logger = logging.getLogger(__name__)
+
+# Backward compatibility: some tests monkeypatch this symbol.
+_ = choose_initial_topic  # noqa: F401
+__curriculum_engine = curriculum_engine  # noqa: F401
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
@@ -89,16 +93,22 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     profile = _get_profile(user_data)
-    slug, _ = choose_initial_topic(profile)
-    progress = await curriculum_engine.start_lesson(user.id, slug)
+    plan = generate_learning_plan(profile)
+    first_slug, _ = choose_initial_topic(profile)
+    if first_slug in plan:
+        plan.remove(first_slug)
+    plan.insert(0, first_slug)
+    user_data["learning_plan"] = {"plan": plan, "index": 0}
+    clear_state(user_data)
+    progress = await curriculum_engine.start_lesson(user.id, plan[0])
     text, _ = await curriculum_engine.next_step(user.id, progress.lesson_id, profile)
     if text is None:
         return
     text = format_reply(text)
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(user.id, slug, "assistant", 1, text)
+    await add_lesson_log(user.id, plan[0], "assistant", 1, text)
     state = LearnState(
-        topic=slug,
+        topic=plan[0],
         step=1,
         awaiting_answer=True,
         last_step_text=text,
@@ -130,6 +140,54 @@ async def _start_lesson(
     set_state(user_data, state)
 
 
+async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Show the current learning plan."""
+
+    message = update.message
+    if message is None:
+        return
+    if not settings.learning_mode_enabled or settings.learning_content_mode == "static":
+        await message.reply_text("режим обучения отключён")
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    plan_state = cast(dict[str, object] | None, user_data.get("learning_plan"))
+    if not plan_state:
+        await message.reply_text("План не найден. Отправьте /learn.")
+        return
+    plan = cast(list[str], plan_state.get("plan", []))
+    index = cast(int, plan_state.get("index", 0))
+    text = pretty_plan(plan, index)
+    await message.reply_text(text, reply_markup=build_main_keyboard())
+
+
+async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Advance to the next topic in the plan and start it."""
+
+    message = update.message
+    user = update.effective_user
+    if message is None or user is None:
+        return
+    if not settings.learning_mode_enabled or settings.learning_content_mode == "static":
+        await message.reply_text("режим обучения отключён")
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    plan_state = cast(dict[str, object] | None, user_data.get("learning_plan"))
+    if not plan_state:
+        await message.reply_text("План не найден. Отправьте /learn.")
+        return
+    plan = cast(list[str], plan_state.get("plan", []))
+    index = cast(int, plan_state.get("index", 0)) + 1
+    if index >= len(plan):
+        user_data.pop("learning_plan", None)
+        clear_state(user_data)
+        await message.reply_text("План завершён", reply_markup=build_main_keyboard())
+        return
+    plan_state["index"] = index
+    profile = _get_profile(user_data)
+    clear_state(user_data)
+    await _start_lesson(message, user_data, profile, plan[index])
+
+
 async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Start a lesson by topic slug passed as an argument."""
 
@@ -148,9 +206,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     topic_slug = context.args[0] if context.args else None
     if topic_slug is None:
-        await message.reply_text(
-            "Сначала выберите тему командой /learn"
-        )
+        await message.reply_text("Сначала выберите тему командой /learn")
         return
     profile = _get_profile(user_data)
     await _start_lesson(message, user_data, profile, topic_slug)
@@ -166,9 +222,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not settings.learning_mode_enabled:
         await query.answer()
         if raw_message is not None and hasattr(raw_message, "reply_text"):
-            await cast(Message, raw_message).reply_text(
-                "режим обучения отключён"
-            )
+            await cast(Message, raw_message).reply_text("режим обучения отключён")
         return
     if settings.learning_content_mode == "static":
         await legacy_handlers.lesson_command(update, context)
@@ -223,9 +277,7 @@ async def lesson_answer_handler(
         await add_lesson_log(
             telegram_id, state.topic, "assistant", state.step, feedback
         )
-    next_text = await generate_step_text(
-        profile, state.topic, state.step + 1, feedback
-    )
+    next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
     next_text = format_reply(next_text)
     await message.reply_text(next_text, reply_markup=build_main_keyboard())
     if telegram_id is not None:
@@ -261,6 +313,8 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 __all__ = [
     "topics_command",
     "learn_command",
+    "plan_command",
+    "skip_command",
     "lesson_command",
     "lesson_callback",
     "lesson_answer_handler",

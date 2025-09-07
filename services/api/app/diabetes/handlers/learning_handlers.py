@@ -86,7 +86,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await message.reply_text("🚫 Обучение недоступно.")
         return
     if settings.learning_content_mode == "dynamic":
-        from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
+        from services.api.app.diabetes import (
+            learning_handlers as dynamic_learning_handlers,
+        )
 
         await dynamic_learning_handlers.learn_command(update, context)
         return
@@ -192,9 +194,11 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if state is not None:
             state.awaiting_answer = False
             set_state(user_data, state)
-        _correct, feedback = await curriculum_engine.check_answer(
-            user.id, lesson_id, {}, answer
-        )
+        check_fn = cast(Any, curriculum_engine.check_answer)
+        try:
+            _correct, feedback = await check_fn(user.id, lesson_id, {}, answer)
+        except TypeError:  # pragma: no cover - fallback for legacy signature
+            _correct, feedback = await check_fn(user.id, lesson_id, answer)
         await message.reply_text(feedback)
         question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
         if question is None and completed:
@@ -247,9 +251,11 @@ async def quiz_answer_handler(
         raise ApplicationHandlerStop
     state.awaiting_answer = False
     set_state(user_data, state)
-    _correct, feedback = await curriculum_engine.check_answer(
-        user.id, lesson_id, {}, answer
-    )
+    check_fn = cast(Any, curriculum_engine.check_answer)
+    try:
+        _correct, feedback = await check_fn(user.id, lesson_id, {}, answer)
+    except TypeError:  # pragma: no cover - fallback for legacy signature
+        _correct, feedback = await check_fn(user.id, lesson_id, answer)
     await message.reply_text(feedback)
     question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
     if question is None and completed:
