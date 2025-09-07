@@ -20,6 +20,7 @@ __all__ = [
     "get_lesson_logs",
     "flush_pending_logs",
     "start_flush_task",
+    "stop_flush_task",
     "cleanup_old_logs",
 ]
 
@@ -103,6 +104,22 @@ def start_flush_task(interval: float = _FLUSH_INTERVAL) -> None:
     global _flush_task
     if _flush_task is None or _flush_task.done():
         _flush_task = asyncio.create_task(_flush_periodically(interval))
+
+
+async def stop_flush_task() -> None:
+    """Cancel the background flush task if it's running."""
+
+    global _flush_task
+    task = _flush_task
+    if task is None:
+        return
+    if not task.done():
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:  # pragma: no cover - expected
+            pass
+    _flush_task = None
 
 
 async def get_lesson_logs(user_id: int, plan_id: int) -> list[LessonLog]:

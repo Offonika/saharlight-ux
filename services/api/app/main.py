@@ -21,6 +21,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 # ────────── local ──────────
 from . import config, reminder_events
+from services.api.app.assistant.repositories.logs import (
+    start_flush_task,
+    stop_flush_task,
+)
 from .diabetes.handlers.reminder_jobs import DefaultJobQueue
 from .diabetes.services.db import init_db, run_db  # noqa: F401
 from services.api.app.diabetes.services.gpt_client import dispose_openai_clients
@@ -50,17 +54,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         init_db()  # создаёт/инициализирует БД
     except (ValueError, SQLAlchemyError) as exc:
         logger.error("Failed to initialize the database: %s", exc)
-        raise RuntimeError(
-            "Database initialization failed. Please check your configuration and try again."
-        ) from exc
+        raise RuntimeError("Database initialization failed. Please check your configuration and try again.") from exc
     jq = cast(DefaultJobQueue | None, getattr(app.state, "job_queue", None))
     reminder_events.register_job_queue(jq)
+    if settings.learning_logging_required:
+        start_flush_task()
     try:
         yield
     finally:
         reminder_events.register_job_queue(None)
         await dispose_http_client()
         await dispose_openai_clients()
+        await stop_flush_task()
 
 
 app = FastAPI(title="Diabetes Assistant API", version="1.0.0", lifespan=lifespan)
