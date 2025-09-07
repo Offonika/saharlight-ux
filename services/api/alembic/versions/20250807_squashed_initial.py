@@ -54,12 +54,6 @@ subscription_status_enum = sa.Enum(
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-    if bind.dialect.name == "postgresql":
-        subscription_plan_enum.create(bind, checkfirst=True)
-        reminder_type_enum.create(bind, checkfirst=True)
-        schedule_kind_enum.create(bind, checkfirst=True)
-        subscription_status_enum.create(bind, checkfirst=True)
 
     op.create_table(
         "users",
