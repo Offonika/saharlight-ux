@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from services.api.app import config
 from services.api.app.diabetes import curriculum_engine
+from services.api.app.diabetes.dynamic_tutor import BUSY_MESSAGE
 from services.api.app.diabetes.models_learning import (
     LessonProgress,
     LessonStep,
@@ -60,6 +61,9 @@ async def main(user_id: int, lesson_slug: str) -> None:
 
     while True:
         text, completed = await curriculum_engine.next_step(user_id, lesson_id, {})
+        if text == BUSY_MESSAGE:
+            print(text)
+            break
         if text is None and completed:
             break
         print(text)

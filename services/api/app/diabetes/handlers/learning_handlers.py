@@ -34,6 +34,7 @@ from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.ui import menu_keyboard
 from ...ui.keyboard import build_main_keyboard
 from ..learning_onboarding import ensure_overrides
+from ..dynamic_tutor import BUSY_MESSAGE
 
 if TYPE_CHECKING:
     App: TypeAlias = Application[
@@ -148,6 +149,10 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         lesson_id = progress.lesson_id
         user_data["lesson_id"] = lesson_id
     text, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+    if text == BUSY_MESSAGE:
+        await message.reply_text(BUSY_MESSAGE)
+        user_data.pop("lesson_id", None)
+        return
     if text is None and completed:
         await message.reply_text("Урок завершён")
         clear_state(user_data)
@@ -210,6 +215,9 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             set_state(user_data, state)
         await message.reply_text(feedback)
         question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+        if question == BUSY_MESSAGE:
+            await message.reply_text(BUSY_MESSAGE)
+            return
         if question is None and completed:
             await message.reply_text("Опрос завершён")
             clear_state(user_data)
@@ -225,6 +233,9 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             set_state(user_data, state)
         return
     question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+    if question == BUSY_MESSAGE:
+        await message.reply_text(BUSY_MESSAGE)
+        return
     if question is None and completed:
         await message.reply_text("Опрос завершён")
         clear_state(user_data)
@@ -274,6 +285,9 @@ async def quiz_answer_handler(
         set_state(user_data, state)
     await message.reply_text(feedback)
     question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+    if question == BUSY_MESSAGE:
+        await message.reply_text(BUSY_MESSAGE)
+        return
     if question is None and completed:
         await message.reply_text("Опрос завершён")
         clear_state(user_data)
