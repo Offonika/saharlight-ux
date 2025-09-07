@@ -2,16 +2,18 @@ import os
 from types import SimpleNamespace
 from typing import Any, Callable, cast
 
+from unittest.mock import AsyncMock
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
-from unittest.mock import AsyncMock
 
 from services.api.app.diabetes.services.db import Base, User
 import services.api.app.services.onboarding_state as onboarding_state
 import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
+import services.bot.main as main
 
 
 class DummyMessage:
@@ -21,6 +23,7 @@ class DummyMessage:
         self.polls: list[tuple[str, list[str]]] = []
         self.reply_markups: list[Any] = []
         self.deleted = False
+        self.bot = SimpleNamespace(set_my_commands=AsyncMock())
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
@@ -34,7 +37,7 @@ class DummyMessage:
         self.deleted = True
 
     def get_bot(self) -> Any:
-        return SimpleNamespace(set_my_commands=AsyncMock())
+        return self.bot
 
 
 class DummyQuery:
@@ -188,8 +191,10 @@ async def test_onboarding_skip_sends_final(
     state = await onboarding.onboarding_skip(update, context)
     assert state == ConversationHandler.END
     assert not message.polls
-    assert message.texts == ["Пропущено"]
-    assert message.reply_markups == ["MK"]
+    assert message.texts[0] == "Пропущено"
+    assert message.reply_markups[0] == "MK"
+    assert any("/learn" in t for t in message.texts[1:])
+    message.bot.set_my_commands.assert_awaited_once_with(main.commands)
     engine.dispose()
 
 
