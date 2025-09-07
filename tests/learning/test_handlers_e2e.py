@@ -57,6 +57,7 @@ class DummyBot(Bot):
 async def test_keyboard_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     monkeypatch.setattr(settings, "learning_ui_show_topics", True)
+
     async def fake_ensure_overrides(*_args: object, **_kwargs: object) -> bool:
         return True
 
@@ -95,9 +96,7 @@ async def test_keyboard_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
 
     first_markup = bot.markups[0]
     assert isinstance(first_markup, ReplyKeyboardMarkup)
-    assert any(
-        LEARN_BUTTON_TEXT == button.text for row in first_markup.keyboard for button in row
-    )
+    assert any(LEARN_BUTTON_TEXT == button.text for row in first_markup.keyboard for button in row)
     assert isinstance(bot.markups[-1], ReplyKeyboardMarkup)
 
     await app.shutdown()
@@ -129,6 +128,43 @@ async def test_old_learn_button_triggers_handler(monkeypatch: pytest.MonkeyPatch
         chat=chat,
         from_user=user,
         text=registration.OLD_LEARN_BUTTON_TEXT,
+    )
+    msg._bot = bot
+    await app.process_update(Update(update_id=1, message=msg))
+
+    assert bot.texts == ["ok"]
+
+    await app.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_prev_learn_button_triggers_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bot = DummyBot()
+    app = Application.builder().bot(bot).build()
+
+    async def fake_learn_command(*_args: object, **_kwargs: object) -> None:
+        await bot.send_message(chat_id=1, text="ok")
+
+    monkeypatch.setattr(legacy_learning_handlers, "learn_command", fake_learn_command)
+
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & filters.Regex(registration.LEARN_BUTTON_PATTERN),
+            legacy_learning_handlers.on_learn_button,
+        )
+    )
+    await app.initialize()
+
+    user = User(id=1, is_bot=False, first_name="T")
+    chat = Chat(id=1, type="private")
+    msg = Message(
+        message_id=1,
+        date=datetime.now(),
+        chat=chat,
+        from_user=user,
+        text=registration.PREV_LEARN_BUTTON_TEXT,
     )
     msg._bot = bot
     await app.process_update(Update(update_id=1, message=msg))
