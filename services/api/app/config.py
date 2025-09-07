@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     learning_prompt_cache_ttl_sec: int = Field(default=28800, alias="LEARNING_PROMPT_CACHE_TTL_SEC")
     learning_content_mode: Literal["dynamic", "static"] = Field(default="dynamic", alias="LEARNING_CONTENT_MODE")
     learning_ui_show_topics: bool = Field(default=False, alias="LEARNING_UI_SHOW_TOPICS")
-    learning_logging_required: bool = Field(default=True, alias="LEARNING_LOGGING_REQUIRED")
+    learning_logging_required: bool = Field(default=False, alias="LEARNING_LOGGING_REQUIRED")
     lesson_logs_ttl_days: int = Field(default=14, alias="LESSON_LOGS_TTL_DAYS")
     assistant_memory_ttl_days: int = Field(default=60, alias="ASSISTANT_MEMORY_TTL_DAYS")
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")

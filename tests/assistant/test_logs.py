@@ -1,32 +1,38 @@
 from __future__ import annotations
 
-import pytest
-
-from services.api.app.config import settings
+import logging
 from typing import Callable
+
+import pytest
 
 from services.api.app.assistant.repositories import logs
 from services.api.app.assistant.repositories.logs import add_lesson_log
 from services.api.app.assistant.models import LessonLog
+from services.api.app.config import settings
 
 
 @pytest.mark.asyncio
-async def test_skip_when_logging_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    """add_lesson_log should no-op when feature flag is disabled."""
+async def test_add_lesson_log_warns_when_not_required(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Failures shouldn't raise when logging isn't required."""
 
     monkeypatch.setattr(settings, "learning_logging_required", False)
 
-    async def fail_run_db(*_: object, **__: object) -> None:  # pragma: no cover - sanity
-        raise AssertionError("run_db should not be called")
+    async def fail_run_db(*_: object, **__: object) -> None:
+        raise RuntimeError("db down")
 
     monkeypatch.setattr(logs, "run_db", fail_run_db)
 
-    await add_lesson_log(1, 1, 0, 1, "assistant", "hi")
+    logs.pending_logs.clear()
+    with caplog.at_level(logging.WARNING):
+        await add_lesson_log(1, 1, 0, 1, "assistant", "hi")
+    assert "Failed to flush" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_add_lesson_log_handles_errors(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Errors during logging must not bubble up."""
+async def test_add_lesson_log_raises_when_required(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Errors should bubble up when logging is required."""
 
     monkeypatch.setattr(settings, "learning_logging_required", True)
 
@@ -35,14 +41,15 @@ async def test_add_lesson_log_handles_errors(monkeypatch: pytest.MonkeyPatch) ->
 
     monkeypatch.setattr(logs, "run_db", fail_run_db)
 
-    await add_lesson_log(1, 1, 0, 1, "assistant", "hi")
+    with pytest.raises(RuntimeError):
+        await add_lesson_log(1, 1, 0, 1, "assistant", "hi")
 
 
 @pytest.mark.asyncio
 async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
     """Queued logs are flushed once DB is available."""
 
-    monkeypatch.setattr(settings, "learning_logging_required", True)
+    monkeypatch.setattr(settings, "learning_logging_required", False)
 
     logs.pending_logs.clear()
 
