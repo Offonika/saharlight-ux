@@ -16,6 +16,7 @@ from telegram import (
 )
 from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session, sessionmaker
+from openai.types.chat import ChatCompletionMessageParam
 
 from services.api.app.diabetes.services.db import SessionLocal, Entry, Profile
 from services.api.app.diabetes.services.repository import CommitError, commit as _commit
@@ -33,6 +34,7 @@ from services.api.app.diabetes.utils.ui import (
     confirm_keyboard,
     menu_keyboard as menu_keyboard_fn,
 )
+from services.api.app.diabetes.services import gpt_client
 
 from .alert_handlers import check_alert as _check_alert
 from .dose_validation import _sanitize
@@ -52,6 +54,9 @@ class RunDB(Protocol):
 
 
 logger = logging.getLogger(__name__)
+
+ASSISTANT_MAX_TURNS = 20
+ASSISTANT_SUMMARY_TRIGGER = 10
 
 run_db: RunDB | None
 try:
@@ -711,17 +716,85 @@ async def freeform_handler(
 
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Placeholder GPT chat handler."""
+    """Chat with the GPT model while keeping short conversation history."""
+    message = update.message
+    if message is None or message.text is None:
+        return
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        context.user_data = {}
+        user_data_raw = context.user_data
+    user_data = cast(UserData, user_data_raw)
+    history = cast(list[str], user_data.setdefault("assistant_history", []))
+    summary = cast(str | None, user_data.get("assistant_summary"))
+
+    user_text = message.text
+    history.append(f"user: {user_text}")
+
+    messages: list[ChatCompletionMessageParam] = []
+    if summary:
+        messages.append({"role": "system", "content": summary})
+    for line in history:
+        if line.startswith("user: "):
+            messages.append({"role": "user", "content": line[6:]})
+        elif line.startswith("assistant: "):
+            messages.append({"role": "assistant", "content": line[11:]})
+    try:
+        completion = await gpt_client.create_chat_completion(
+            model="gpt-4o-mini",
+            messages=messages,
+            temperature=0.4,
+        )
+    except RuntimeError:
+        await message.reply_text("сервер занят, попробуйте позже")
+        return
+    reply_raw = completion.choices[0].message.content or ""
+    reply = gpt_client.format_reply(reply_raw)
+    await message.reply_text(reply)
+    history.append(f"assistant: {reply}")
+
+    if len(history) > ASSISTANT_MAX_TURNS:
+        del history[:-ASSISTANT_MAX_TURNS]
+
+    if len(history) >= ASSISTANT_SUMMARY_TRIGGER:
+        source = "\n".join(([summary] if summary else []) + history).strip()
+        completion = await gpt_client.create_chat_completion(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Summarize the conversation briefly.",
+                },
+                {"role": "user", "content": source},
+            ],
+            temperature=0.3,
+            max_tokens=200,
+        )
+        new_summary = completion.choices[0].message.content or ""
+        user_data["assistant_summary"] = gpt_client.format_reply(new_summary)
+        history.clear()
+
+
+async def reset_chat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Clear assistant history and summary."""
     message = update.message
     if message is None:
         return
-    await message.reply_text("🗨️ Чат с GPT временно недоступен.")
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        context.user_data = {}
+        user_data_raw = context.user_data
+    user_data = cast(UserData, user_data_raw)
+    user_data.pop("assistant_history", None)
+    user_data.pop("assistant_summary", None)
+    await message.reply_text("🧹 История чата очищена.")
 
 
 __all__ = [
     "SessionLocal",
     "freeform_handler",
     "chat_with_gpt",
+    "reset_chat",
     "ParserTimeoutError",
     "parse_quick_values",
     "apply_pending_entry",

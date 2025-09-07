@@ -45,6 +45,8 @@ class UserData(TypedDict, total=False):
     __file_path: str
     reminder_id: int
     chat_id: int
+    assistant_history: list[str]
+    assistant_summary: str
 
 
 from .dose_calc import _cancel_then  # noqa: E402

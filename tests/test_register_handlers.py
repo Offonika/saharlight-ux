@@ -77,10 +77,17 @@ def test_register_handlers_attaches_expected_handlers(
         for h in handlers
     )
     assert gpt_handlers.chat_with_gpt in callbacks
+    assert gpt_handlers.reset_chat in callbacks
     assert security_handlers.hypo_alert_faq in callbacks
     assert billing_handlers.trial_command in callbacks
     assert billing_handlers.upgrade_command in callbacks
     assert billing_handlers.subscription_button in callbacks
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is gpt_handlers.reset_chat
+        and "reset" in h.commands
+        for h in handlers
+    )
     assert any(
         isinstance(h, CommandHandler)
         and h.callback is learning_handlers.cmd_menu

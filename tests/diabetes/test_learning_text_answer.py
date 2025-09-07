@@ -46,7 +46,10 @@ async def test_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
         assert profile == {}
         return next(questions)
 
-    async def fake_check(user_id: int, lesson_id: int, answer: int) -> tuple[bool, str]:
+    async def fake_check(
+        user_id: int, lesson_id: int, profile: Mapping[str, str | None], answer: int
+    ) -> tuple[bool, str]:
+        assert profile == {}
         return True, "ok"
 
     monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next)
