@@ -84,8 +84,15 @@ async def test_learning_onboarding_flow(
 
         await learning_handlers.learn_command(update1, context)
         assert message1.replies == [onboarding_utils.AGE_PROMPT]
+        markup = message1.markups[0]
+        assert isinstance(markup, InlineKeyboardMarkup)
+        assert [b.text for b in markup.inline_keyboard[0]] == [
+            "Подросток",
+            "Взрослый",
+            "60+",
+        ]
 
-        message2 = DummyMessage("adult")
+        message2 = DummyMessage("взрослый")
         update2 = cast(Update, SimpleNamespace(message=message2, effective_user=None))
         await learning_onboarding.onboarding_reply(update2, context)
         assert message2.replies == [onboarding_utils.DIABETES_TYPE_PROMPT]

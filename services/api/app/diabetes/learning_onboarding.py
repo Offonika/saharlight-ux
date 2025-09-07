@@ -26,7 +26,9 @@ def _norm_age_group(text: str) -> str | None:
         return "adult"
     mapping = {
         "teen": "teen",
+        "подросток": "teen",
         "adult": "adult",
+        "взрослый": "adult",
         "60+": "60+",
     }
     return mapping.get(t)
@@ -87,8 +89,8 @@ _ORDER: list[
         InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton("teen", callback_data=f"{CB_PREFIX}teen"),
-                    InlineKeyboardButton("adult", callback_data=f"{CB_PREFIX}adult"),
+                    InlineKeyboardButton("Подросток", callback_data=f"{CB_PREFIX}teen"),
+                    InlineKeyboardButton("Взрослый", callback_data=f"{CB_PREFIX}adult"),
                     InlineKeyboardButton("60+", callback_data=f"{CB_PREFIX}60+"),
                 ]
             ]
