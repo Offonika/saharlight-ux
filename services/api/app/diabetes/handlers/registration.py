@@ -28,7 +28,7 @@ from ..utils.ui import (
     REMINDERS_BUTTON_TEXT,
     REPORT_BUTTON_TEXT,
     HISTORY_BUTTON_TEXT,
-    PHOTO_BUTTON_TEXT,
+    PHOTO_BUTTON_PATTERN,
     QUICK_INPUT_BUTTON_TEXT,
     HELP_BUTTON_TEXT,
     SOS_BUTTON_TEXT,
@@ -215,7 +215,7 @@ def register_handlers(
     )
     app.add_handler(
         MessageHandlerT(
-            filters.Regex(re.escape(PHOTO_BUTTON_TEXT)), photo_handlers.photo_prompt
+            filters.Regex(PHOTO_BUTTON_PATTERN), photo_handlers.photo_prompt
         )
     )
     app.add_handler(

@@ -31,7 +31,7 @@ from services.api.app.diabetes.utils.functions import (
 from services.api.app.diabetes.utils.ui import (
     confirm_keyboard,
     dose_keyboard,
-    PHOTO_BUTTON_TEXT,
+    PHOTO_BUTTON_PATTERN,
     SUGAR_BUTTON_TEXT,
     DOSE_BUTTON_TEXT,
     HISTORY_BUTTON_TEXT,
@@ -365,7 +365,7 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
         MessageHandler(
-            filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"),
+            filters.Regex(PHOTO_BUTTON_PATTERN),
             cast(object, _cancel_then(photo_prompt)),
         ),
         MessageHandler(

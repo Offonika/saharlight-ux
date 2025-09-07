@@ -7,6 +7,8 @@ UI-компоненты бота «Diabet Buddy».
     from services.api.app.diabetes.utils.ui import menu_keyboard, dose_keyboard, confirm_keyboard
 """
 
+import re
+
 from telegram import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
@@ -18,6 +20,7 @@ from telegram import (
 PROFILE_BUTTON_TEXT = "📄 Мой профиль"
 REMINDERS_BUTTON_TEXT = "⏰ Напоминания"
 PHOTO_BUTTON_TEXT = "📷 Фото еды"
+PHOTO_BUTTON_PATTERN = re.compile(r"^\s*📷?\s*Фото еды$", re.IGNORECASE)
 SUGAR_BUTTON_TEXT = "🩸 Уровень сахара"
 DOSE_BUTTON_TEXT = "💉 Доза инсулина"
 HISTORY_BUTTON_TEXT = "📊 История"
@@ -40,6 +43,7 @@ __all__ = (
     "PROFILE_BUTTON_TEXT",
     "REMINDERS_BUTTON_TEXT",
     "PHOTO_BUTTON_TEXT",
+    "PHOTO_BUTTON_PATTERN",
     "SUGAR_BUTTON_TEXT",
     "DOSE_BUTTON_TEXT",
     "HISTORY_BUTTON_TEXT",

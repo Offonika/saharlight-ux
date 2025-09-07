@@ -20,7 +20,7 @@ from services.api.app.diabetes.utils.ui import (
     sugar_keyboard,
     SUGAR_BUTTON_TEXT,
     BACK_BUTTON_TEXT,
-    PHOTO_BUTTON_TEXT,
+    PHOTO_BUTTON_PATTERN,
 )
 from services.api.app.ui.keyboard import build_main_keyboard
 
@@ -150,7 +150,7 @@ sugar_conv = ConversationHandler(
         MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), dose_cancel),
         CommandHandler("menu", cast(object, _cancel_then(menu_command))),
         MessageHandler(
-            filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), cast(object, _cancel_then(photo_prompt))
+            filters.Regex(PHOTO_BUTTON_PATTERN), cast(object, _cancel_then(photo_prompt))
         ),
     ],
 )

@@ -44,7 +44,7 @@ from services.api.app.services.profile import save_timezone
 from services.api.app.types import SessionProtocol
 from sqlalchemy.orm import Session
 from services.api.app.diabetes.utils.ui import (
-    PHOTO_BUTTON_TEXT,
+    PHOTO_BUTTON_PATTERN,
     build_timezone_webapp_button,
 )
 from services.api.app.ui.keyboard import build_main_keyboard
@@ -663,7 +663,7 @@ onboarding_conv = ConversationHandler(
         REMINDERS: [CallbackQueryHandler(reminders_chosen)],
     },
     fallbacks=[
-        MessageHandler(filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"), _photo_fallback)
+        MessageHandler(filters.Regex(PHOTO_BUTTON_PATTERN), _photo_fallback)
     ],
 )
 __all__ = [
