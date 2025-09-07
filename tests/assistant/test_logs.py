@@ -72,3 +72,14 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert len(inserted) == 3
     assert not logs.pending_logs
+
+
+@pytest.mark.asyncio
+async def test_stop_flush_task_cancels_task() -> None:
+    """stop_flush_task should cancel the background flush task."""
+    await logs.stop_flush_task()  # ensure clean state
+    logs.start_flush_task(0.01)
+    task = logs._flush_task
+    assert task is not None
+    await logs.stop_flush_task()
+    assert task.cancelled()
