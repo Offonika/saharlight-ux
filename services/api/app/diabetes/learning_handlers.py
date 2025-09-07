@@ -25,6 +25,8 @@ from .services.gpt_client import (
     format_reply,
 )
 from services.api.app.assistant.repositories.logs import add_lesson_log
+from services.api.app.assistant.repositories import plans as plans_repo
+from services.api.app.assistant.repositories import progress as progress_repo
 from .planner import generate_learning_plan, pretty_plan
 
 logger = logging.getLogger(__name__)
@@ -55,7 +57,7 @@ def _get_profile(user_data: MutableMapping[str, Any]) -> Mapping[str, str | None
     return {}
 
 
-def _persist(
+async def _persist(
     user_id: int,
     user_data: MutableMapping[str, Any],
     bot_data: MutableMapping[str, object],
@@ -63,17 +65,40 @@ def _persist(
     plans = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
     progress = cast(dict[int, Any], bot_data.setdefault(PROGRESS_KEY, {}))
     plan = cast(list[str] | None, user_data.get("learning_plan"))
+    plan_id = cast(int | None, user_data.get("learning_plan_id"))
     if plan is not None:
         plans[user_id] = plan
+        try:
+            if plan_id is None:
+                active = await plans_repo.get_active_plan(user_id)
+                if active is None:
+                    plan_id = await plans_repo.create_plan(
+                        user_id, 1, cast(dict[str, Any], plan)
+                    )
+                else:
+                    plan_id = active.id
+                user_data["learning_plan_id"] = plan_id
+            else:
+                await plans_repo.update_plan(
+                    plan_id, plan_json=cast(dict[str, Any], plan)
+                )
+        except (SQLAlchemyError, RuntimeError) as exc:  # pragma: no cover - logging only
+            logger.exception("persist plan failed: %s", exc)
+            plan_id = None
     state = get_state(user_data)
-    if state is not None:
-        progress[user_id] = {
+    if state is not None and plan_id is not None:
+        data = {
             "topic": state.topic,
             "module_idx": cast(int, user_data.get("learning_module_idx", 0)),
             "step_idx": state.step,
             "snapshot": state.last_step_text,
             "prev_summary": state.prev_summary,
         }
+        progress[user_id] = data
+        try:
+            await progress_repo.upsert_progress(user_id, plan_id, data)
+        except (SQLAlchemyError, RuntimeError) as exc:  # pragma: no cover - logging only
+            logger.exception("persist progress failed: %s", exc)
 
 
 async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -84,35 +109,50 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if get_state(user_data) is not None:
         return
     bot_data = cast(MutableMapping[str, Any], context.bot_data)
-    plans = cast(dict[int, Any], bot_data.get(PLANS_KEY, {}))
-    progress = cast(dict[int, dict[str, Any]], bot_data.get(PROGRESS_KEY, {}))
-    data = progress.get(user.id)
-    if data is None:
-        return
-    plan = plans.get(user.id)
+    plans_map = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
+    progress_map = cast(dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {}))
+    data = progress_map.get(user.id)
+    plan = cast(list[str] | None, plans_map.get(user.id))
+    plan_id = cast(int | None, user_data.get("learning_plan_id"))
+    if data is None or plan is None or plan_id is None:
+        try:
+            db_plan = await plans_repo.get_active_plan(user.id)
+            if db_plan is None:
+                return
+            plan = cast(list[str], db_plan.plan_json)
+            plan_id = db_plan.id
+            db_progress = await progress_repo.get_progress(user.id, plan_id)
+            if db_progress is None:
+                return
+            data = db_progress.progress_json
+            plans_map[user.id] = plan
+            progress_map[user.id] = data
+            user_data["learning_plan_id"] = plan_id
+        except (SQLAlchemyError, RuntimeError) as exc:  # pragma: no cover - logging only
+            logger.exception("hydrate failed: %s", exc)
+            return
     topic = cast(str, data.get("topic", ""))
     module_idx = cast(int, data.get("module_idx", 0))
     step_idx = cast(int, data.get("step_idx", 0))
     snapshot = cast(str | None, data.get("snapshot"))
+    prev_summary = cast(str | None, data.get("prev_summary"))
     user_data["learning_module_idx"] = module_idx
-    if plan is not None:
-        user_data["learning_plan"] = plan
+    user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = step_idx - 1 if step_idx > 0 else 0
     if snapshot is None:
         profile = _get_profile(user_data)
-        snapshot = await generate_step_text(profile, topic, step_idx, None)
-        if plan is None:
-            plan = generate_learning_plan(snapshot)
-            plans[user.id] = plan
-            user_data["learning_plan"] = plan
+        snapshot = await generate_step_text(profile, topic, step_idx, prev_summary)
         data["snapshot"] = snapshot
-        progress_map = cast(dict[int, Any], bot_data.setdefault(PROGRESS_KEY, {}))
         progress_map[user.id] = data
+        try:
+            await progress_repo.upsert_progress(user.id, plan_id, data)
+        except (SQLAlchemyError, RuntimeError) as exc:  # pragma: no cover - logging only
+            logger.exception("snapshot persist failed: %s", exc)
     state = LearnState(
         topic=topic,
         step=step_idx,
         last_step_text=snapshot,
-        prev_summary=cast(str | None, data.get("prev_summary")),
+        prev_summary=prev_summary,
         awaiting=True,
     )
     set_state(user_data, state)
@@ -154,12 +194,17 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if settings.learning_ui_show_topics:
         await topics_command(update, context)
         return
-    if not await ensure_overrides(update, context):
-        return
+    await _hydrate(update, context)
     user = update.effective_user
     if user is None:
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
+    state = get_state(user_data)
+    if state is not None and state.last_step_text:
+        await message.reply_text(state.last_step_text, reply_markup=build_main_keyboard())
+        return
+    if not await ensure_overrides(update, context):
+        return
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
     progress = await curriculum_engine.start_lesson(user.id, slug)
@@ -187,7 +232,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         awaiting=True,
     )
     set_state(user_data, state)
-    _persist(user.id, user_data, context.bot_data)
+    await _persist(user.id, user_data, context.bot_data)
 
 
 async def _start_lesson(
@@ -229,7 +274,7 @@ async def _start_lesson(
         awaiting=True,
     )
     set_state(user_data, state)
-    _persist(from_user.id, user_data, bot_data)
+    await _persist(from_user.id, user_data, bot_data)
 
 
 async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -389,7 +434,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         state.awaiting = True
         set_state(user_data, state)
         if from_user is not None:
-            _persist(from_user.id, user_data, context.bot_data)
+            await _persist(from_user.id, user_data, context.bot_data)
 
 
 async def assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
@@ -451,7 +496,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     clear_state(user_data)
     user = update.effective_user
     if user is not None:
-        _persist(user.id, user_data, context.bot_data)
+        await _persist(user.id, user_data, context.bot_data)
     await message.reply_text("Учебная сессия завершена.", reply_markup=build_main_keyboard())
 
 
@@ -496,7 +541,7 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user_data["learning_plan_index"] = idx
     user = update.effective_user
     if user is not None:
-        _persist(user.id, user_data, context.bot_data)
+        await _persist(user.id, user_data, context.bot_data)
 
 
 __all__ = [

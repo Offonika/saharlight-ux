@@ -8,8 +8,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from services.api.app.assistant.repositories import plans as plans_repo
+from services.api.app.assistant.repositories import progress as progress_repo
 from services.api.app.diabetes.services import db
-from services.api.app.assistant.services import progress_service
 from services.api.app.diabetes import learning_handlers
 
 
@@ -34,8 +35,8 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     )
     session_local = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
-    monkeypatch.setattr(db, "SessionLocal", session_local, raising=False)
-    monkeypatch.setattr(progress_service, "SessionLocal", session_local, raising=False)
+    monkeypatch.setattr(plans_repo, "SessionLocal", session_local, raising=False)
+    monkeypatch.setattr(progress_repo, "SessionLocal", session_local, raising=False)
     yield session_local
     db.dispose_engine(engine)
 
@@ -46,27 +47,23 @@ async def test_restart_restores_step(
 ) -> None:
     """Ensure progress survives service restart and plan continues from step 2."""
 
-    await progress_service.upsert_progress(1, "intro", 2)
-    progress = await progress_service.get_progress(1, "intro")
-    assert progress is not None
+    with setup_db() as session:  # type: ignore[misc]
+        session.add(db.User(telegram_id=1, thread_id=""))
+        session.commit()
+    plan_id = await plans_repo.create_plan(1, version=1, plan_json=["Шаг 1", "Шаг 2"])
+    await progress_repo.upsert_progress(
+        1,
+        plan_id,
+        {"topic": "intro", "module_idx": 0, "step_idx": 2, "snapshot": "Шаг 2"},
+    )
 
-    bot_data = {
-        learning_handlers.PROGRESS_KEY: {
-            1: {"topic": progress.lesson, "module_idx": 0, "step_idx": progress.step}
-        }
-    }
     update = SimpleNamespace(
         message=DummyMessage(), effective_user=SimpleNamespace(id=1)
     )
-    context = SimpleNamespace(user_data={}, bot_data=bot_data)
-
-    async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
-        return "Шаг 2"
-
-    monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
-    )
+    context = SimpleNamespace(user_data={}, bot_data={})
     monkeypatch.setattr(learning_handlers, "build_main_keyboard", lambda: None)
+    monkeypatch.setattr(learning_handlers.settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(learning_handlers.settings, "learning_content_mode", "dynamic")
 
     await learning_handlers.plan_command(update, context)
 
