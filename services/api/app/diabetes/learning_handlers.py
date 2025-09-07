@@ -109,6 +109,8 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_data = cast(MutableMapping[str, Any], context.user_data)
     if get_state(user_data) is not None:
         return
+    if "learning_plan" in user_data and "learning_plan_index" in user_data:
+        return
     bot_data = cast(MutableMapping[str, Any], context.bot_data)
     plans_map = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
     progress_map = cast(dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {}))
