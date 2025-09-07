@@ -118,9 +118,7 @@ async def start_trial(
                 select(Subscription)
                 .where(
                     Subscription.user_id == user_id,
-                    Subscription.status.in_(
-                        [SubStatus.trial.value, SubStatus.active.value]
-                    ),
+                    Subscription.status.in_([SubStatus.trial.value, SubStatus.active.value]),
                 )
                 .order_by(Subscription.start_date.desc())
                 .limit(1)
@@ -131,9 +129,7 @@ async def start_trial(
                 status = SubStatus(existing.status)
                 if status is SubStatus.trial:
                     raise HTTPException(status_code=409, detail="Trial already active")
-                raise HTTPException(
-                    status_code=409, detail="subscription already active"
-                )
+                raise HTTPException(status_code=409, detail="subscription already active")
             return _create_trial(session)
 
     trial: Subscription | None
@@ -189,8 +185,16 @@ async def subscribe(
             Subscription.user_id == user_id,
             Subscription.status.in_([SubStatus.trial.value, SubStatus.active.value]),
         )
-        if session.scalars(stmt).first() is not None:
-            raise HTTPException(status_code=409, detail="subscription already exists")
+        existing = session.scalars(stmt).first()
+        if existing is not None:
+            status = SubStatus(existing.status)
+            if status is SubStatus.trial:
+                detail = "У вас уже активирован пробный период"
+            elif status is SubStatus.active and existing.plan == plan:
+                detail = f"Подписка {existing.plan.name} уже активна"
+            else:
+                detail = f"У вас уже активна подписка {existing.plan.name}"
+            raise HTTPException(status_code=409, detail=detail)
 
     await run_db(_ensure_no_active, sessionmaker=SessionLocal)
 
@@ -255,9 +259,7 @@ async def subscribe(
     try:
         await run_db(_create_subscription, sessionmaker=SessionLocal)
     except IntegrityError as exc:
-        raise HTTPException(
-            status_code=409, detail="subscription already exists"
-        ) from exc
+        raise HTTPException(status_code=409, detail="subscription already exists") from exc
     return CheckoutSchema.model_validate(checkout)
 
 
@@ -282,9 +284,7 @@ async def webhook(
     now = datetime.now(timezone.utc)
 
     def _activate(session: Session) -> bool:
-        stmt = select(Subscription).where(
-            Subscription.transaction_id == event.transaction_id
-        )
+        stmt = select(Subscription).where(Subscription.transaction_id == event.transaction_id)
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
@@ -312,11 +312,7 @@ async def webhook(
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
-        if (
-            sub.status == SubStatus.active.value
-            and sub_end is not None
-            and sub_end > now
-        ):
+        if sub.status == SubStatus.active.value and sub_end is not None and sub_end > now:
             return False
         base = sub_end if sub_end is not None and sub_end > now else now
         sub.plan = event.plan
@@ -415,9 +411,7 @@ async def admin_mock_webhook(
 
 
 @router.get("/status", response_model=BillingStatusResponse)
-async def status(
-    user_id: int, settings: BillingSettings = Depends(get_billing_settings)
-) -> BillingStatusResponse:
+async def status(user_id: int, settings: BillingSettings = Depends(get_billing_settings)) -> BillingStatusResponse:
     """Return billing feature flags and the latest subscription for a user."""
 
     def _get_subscription(session: Session) -> Subscription | None:
@@ -455,7 +449,5 @@ async def status(
         return BillingStatusResponse(featureFlags=flags, subscription=None)
     return BillingStatusResponse(
         featureFlags=flags,
-        subscription=SubscriptionSchema.model_validate(
-            subscription, from_attributes=True
-        ),
+        subscription=SubscriptionSchema.model_validate(subscription, from_attributes=True),
     )
