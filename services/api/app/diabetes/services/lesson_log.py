@@ -4,9 +4,10 @@ import logging
 
 from sqlalchemy.orm import Session
 
+from ...config import settings
 from ..models_learning import LessonLog
 from .db import SessionLocal, run_db
-from .repository import CommitError, commit
+from .repository import commit
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,9 @@ async def add_lesson_log(
 ) -> None:
     """Insert a lesson log entry."""
 
+    if not settings.learning_logging_required:
+        return
+
     def _add(session: Session) -> None:
         session.add(
             LessonLog(
@@ -36,7 +40,7 @@ async def add_lesson_log(
 
     try:
         await run_db(_add, sessionmaker=SessionLocal)
-    except CommitError:  # pragma: no cover - logging only
+    except Exception:  # pragma: no cover - logging only
         logger.exception("Failed to add lesson log for %s", telegram_id)
 
 
