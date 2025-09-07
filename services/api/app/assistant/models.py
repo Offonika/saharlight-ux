@@ -21,7 +21,9 @@ class AssistantMemory(Base):
         index=True,
     )
     turn_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    last_turn_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    last_turn_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False
+    )
 
 
 class LessonLog(Base):
@@ -31,7 +33,10 @@ class LessonLog(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.telegram_id"), nullable=False, index=True
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     plan_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     module_idx: Mapped[int] = mapped_column(Integer, nullable=False)
