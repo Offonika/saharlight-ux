@@ -6,6 +6,7 @@ from typing import Any, Mapping, MutableMapping, cast
 
 import httpx
 from openai import OpenAIError
+from sqlalchemy.exc import SQLAlchemyError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ApplicationHandlerStop, ContextTypes
 
@@ -328,8 +329,8 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
                 "user",
                 "",
             )
-        except Exception:
-            logger.exception("lesson log failed")
+        except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
+            logger.exception("lesson log failed: %s", exc)
             await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
             state.awaiting = True
             set_state(user_data, state)
@@ -356,8 +357,8 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
                     "assistant",
                     "",
                 )
-            except Exception:
-                logger.exception("lesson log failed")
+            except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
+                logger.exception("lesson log failed: %s", exc)
                 await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
                 return
         next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
@@ -376,8 +377,8 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
                     "assistant",
                     "",
                 )
-            except Exception:
-                logger.exception("lesson log failed")
+            except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
+                logger.exception("lesson log failed: %s", exc)
                 await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
                 return
         state.step += 1

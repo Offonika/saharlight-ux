@@ -3,6 +3,7 @@ from typing import Any, Mapping, cast
 
 import asyncio
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 from telegram import InlineKeyboardMarkup, ReplyKeyboardMarkup
 
 from services.api.app.config import settings
@@ -366,7 +367,7 @@ async def test_lesson_answer_handler_add_log_failure(
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
     async def fail_add_log(*args: object, **kwargs: object) -> None:
-        raise RuntimeError("db error")
+        raise SQLAlchemyError("db error")
 
     async def fail_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
         raise AssertionError("should not be called")
