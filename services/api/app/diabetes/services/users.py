@@ -31,8 +31,4 @@ async def ensure_user_exists(user_id: int) -> None:
             logger.exception("Failed to create user %s", user_id)
             raise
 
-    try:
-        await run_db(_ensure, sessionmaker=SessionLocal)
-    except Exception:
-        logger.exception("Failed to ensure user %s exists", user_id)
-        raise
+    await run_db(_ensure, sessionmaker=SessionLocal)
