@@ -28,6 +28,9 @@ from .planner import generate_learning_plan, pretty_plan
 
 logger = logging.getLogger(__name__)
 
+PLANS_KEY = "learning_plans"
+PROGRESS_KEY = "learning_progress"
+
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
 
@@ -48,6 +51,70 @@ def _get_profile(user_data: MutableMapping[str, Any]) -> Mapping[str, str | None
     if isinstance(raw, Mapping):
         return raw
     return {}
+
+
+def _persist(
+    user_id: int,
+    user_data: MutableMapping[str, Any],
+    bot_data: MutableMapping[str, object],
+) -> None:
+    plans = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
+    progress = cast(dict[int, Any], bot_data.setdefault(PROGRESS_KEY, {}))
+    plan = cast(list[str] | None, user_data.get("learning_plan"))
+    if plan is not None:
+        plans[user_id] = plan
+    state = get_state(user_data)
+    if state is not None:
+        progress[user_id] = {
+            "topic": state.topic,
+            "module_idx": cast(int, user_data.get("learning_module_idx", 0)),
+            "step_idx": state.step,
+            "snapshot": state.last_step_text,
+            "prev_summary": state.prev_summary,
+        }
+
+
+async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    if user is None:
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    if get_state(user_data) is not None:
+        return
+    bot_data = cast(MutableMapping[str, Any], context.bot_data)
+    plans = cast(dict[int, Any], bot_data.get(PLANS_KEY, {}))
+    progress = cast(dict[int, dict[str, Any]], bot_data.get(PROGRESS_KEY, {}))
+    data = progress.get(user.id)
+    if data is None:
+        return
+    plan = plans.get(user.id)
+    topic = cast(str, data.get("topic", ""))
+    module_idx = cast(int, data.get("module_idx", 0))
+    step_idx = cast(int, data.get("step_idx", 0))
+    snapshot = cast(str | None, data.get("snapshot"))
+    user_data["learning_module_idx"] = module_idx
+    if plan is not None:
+        user_data["learning_plan"] = plan
+    user_data["learning_plan_index"] = step_idx - 1 if step_idx > 0 else 0
+    if snapshot is None:
+        profile = _get_profile(user_data)
+        snapshot = await generate_step_text(profile, topic, step_idx, None)
+        if plan is None:
+            plan = generate_learning_plan(snapshot)
+            plans[user.id] = plan
+            user_data["learning_plan"] = plan
+        data["snapshot"] = snapshot
+        progress_map = cast(dict[int, Any], bot_data.setdefault(PROGRESS_KEY, {}))
+        progress_map[user.id] = data
+    state = LearnState(
+        topic=topic,
+        step=step_idx,
+        awaiting_answer=True,
+        disclaimer_shown=True,
+        last_step_text=snapshot,
+        prev_summary=cast(str | None, data.get("prev_summary")),
+    )
+    set_state(user_data, state)
 
 
 async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -116,11 +183,13 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         last_step_text=text,
     )
     set_state(user_data, state)
+    _persist(user.id, user_data, context.bot_data)
 
 
 async def _start_lesson(
     message: Message,
     user_data: MutableMapping[str, Any],
+    bot_data: MutableMapping[str, object],
     profile: Mapping[str, str | None],
     topic_slug: str,
 ) -> None:
@@ -152,6 +221,7 @@ async def _start_lesson(
         last_step_text=text,
     )
     set_state(user_data, state)
+    _persist(from_user.id, user_data, bot_data)
 
 
 async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -180,7 +250,8 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await message.reply_text("Неизвестная тема")
         return
     profile = _get_profile(user_data)
-    await _start_lesson(message, user_data, profile, topic_slug)
+    await _hydrate(update, context)
+    await _start_lesson(message, user_data, context.bot_data, profile, topic_slug)
 
 
 async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -212,7 +283,8 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await message.reply_text("Неизвестная тема")
         return
     profile = _get_profile(user_data)
-    await _start_lesson(message, user_data, profile, slug)
+    await _hydrate(update, context)
+    await _start_lesson(message, user_data, context.bot_data, profile, slug)
 
 
 async def lesson_answer_handler(
@@ -230,6 +302,7 @@ async def lesson_answer_handler(
     if settings.learning_content_mode == "static":
         await legacy_handlers.quiz_answer_handler(update, context)
         return
+    await _hydrate(update, context)
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
     if state is None or not state.awaiting_answer or state.learn_busy:
@@ -297,6 +370,8 @@ async def lesson_answer_handler(
     finally:
         state.learn_busy = False
         set_state(user_data, state)
+        if from_user is not None:
+            _persist(from_user.id, user_data, context.bot_data)
 
 
 async def assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
@@ -328,6 +403,7 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
     if settings.learning_content_mode != "dynamic":
         return
+    await _hydrate(update, context)
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
     if state is not None and state.awaiting_answer and state.last_step_text:
@@ -352,8 +428,12 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if settings.learning_content_mode == "static":
         await legacy_handlers.exit_command(update, context)
         return
+    await _hydrate(update, context)
     user_data = cast(MutableMapping[str, Any], context.user_data)
     clear_state(user_data)
+    user = update.effective_user
+    if user is not None:
+        _persist(user.id, user_data, context.bot_data)
     await message.reply_text(
         "Учебная сессия завершена.", reply_markup=build_main_keyboard()
     )
@@ -365,6 +445,7 @@ async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message is None:
         return
+    await _hydrate(update, context)
     user_data = cast(MutableMapping[str, Any], context.user_data)
     plan = cast(list[str] | None, user_data.get("learning_plan"))
     if not plan:
@@ -382,6 +463,7 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message is None:
         return
+    await _hydrate(update, context)
     user_data = cast(MutableMapping[str, Any], context.user_data)
     plan = cast(list[str] | None, user_data.get("learning_plan"))
     if not plan:
@@ -396,6 +478,9 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     else:
         await message.reply_text(plan[idx], reply_markup=build_main_keyboard())
     user_data["learning_plan_index"] = idx
+    user = update.effective_user
+    if user is not None:
+        _persist(user.id, user_data, context.bot_data)
 
 
 __all__ = [
