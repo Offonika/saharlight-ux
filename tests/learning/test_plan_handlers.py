@@ -18,6 +18,28 @@ class DummyMessage:
         self.replies.append(text)
 
 
+def make_update(*, message: object, user_id: int = 1) -> Update:
+    user = SimpleNamespace(id=user_id)
+    return cast(Update, SimpleNamespace(message=message, effective_user=user))
+
+
+def make_context(
+    *,
+    user_data: dict[str, Any] | None = None,
+    bot_data: dict[str, Any] | None = None,
+    args: list[str] | None = None,
+) -> CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
+    data = {
+        "user_data": user_data or {},
+        "bot_data": bot_data or {},
+        "args": args or [],
+    }
+    return cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(**data),
+    )
+
+
 def test_generate_and_pretty_plan() -> None:
     plan = generate_learning_plan("step1")
     assert plan[0] == "step1"
@@ -57,13 +79,8 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
     message = DummyMessage()
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
-    context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
-    )
+    update = make_update(message=message)
+    context = make_context(user_data={})
 
     await learning_handlers.learn_command(update, context)
 
@@ -77,11 +94,8 @@ async def test_plan_and_skip_commands() -> None:
     plan = ["step1", "step2"]
     user_data = {"learning_plan": plan, "learning_plan_index": 0}
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
-    context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data=user_data),
-    )
+    update = make_update(message=message)
+    context = make_context(user_data=user_data)
 
     await learning_handlers.plan_command(update, context)
     assert message.replies[-1] == pretty_plan(plan)
