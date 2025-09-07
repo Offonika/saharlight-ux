@@ -72,7 +72,7 @@ async def test_happy_path_one_lesson(monkeypatch: pytest.MonkeyPatch) -> None:
     assert question_text.endswith(first_opts)
 
     for idx, q in enumerate(questions):
-        correct, feedback = await check_answer(1, lesson_id, q.correct_option + 1)
+        correct, feedback = await check_answer(1, lesson_id, {}, q.correct_option + 1)
         assert correct is True
         assert feedback
         text, completed = await next_step(1, lesson_id, {})

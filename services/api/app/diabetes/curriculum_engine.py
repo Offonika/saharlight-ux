@@ -155,10 +155,11 @@ async def next_step(
 async def check_answer(
     user_id: int,
     lesson_id: int,
+    profile: Mapping[str, str | None],
     answer: int | str,
     last_step_text: str | None = None,
 ) -> tuple[bool, str]:
-    """Check user's answer and return feedback."""
+    """Check user's answer using the given profile and return feedback."""
 
     if settings.learning_content_mode == "dynamic":
         def _get_slug(session: Session) -> str:
@@ -169,7 +170,7 @@ async def check_answer(
 
         slug = await db.run_db(_get_slug)
         correct, feedback = await check_user_answer(
-            {}, slug, str(answer), last_step_text or ""
+            profile, slug, str(answer), last_step_text or ""
         )
         return correct, feedback
 
