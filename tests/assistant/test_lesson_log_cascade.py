@@ -35,7 +35,7 @@ def test_lesson_logs_deleted_with_user(session_factory: sessionmaker[Session]) -
         user = db.User(telegram_id=1, thread_id="")
         session.add(user)
         session.flush()
-        plan = LearningPlan(user_id=1, version=1, plan_json={})
+        plan = LearningPlan(user_id=1, version=1, plan_json=[])
         session.add(plan)
         session.flush()
         session.add(

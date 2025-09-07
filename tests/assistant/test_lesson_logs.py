@@ -45,7 +45,7 @@ async def test_add_and_flush_logs(
     with session_factory() as session:
         session.add(db.User(telegram_id=1, thread_id="t"))
         session.add(
-            LearningPlan(id=1, user_id=1, plan_json={}, is_active=True, version=1)
+            LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1)
         )
         session.commit()
 
@@ -77,7 +77,7 @@ async def test_cleanup_old_logs(session_factory: sessionmaker[Session]) -> None:
     with session_factory() as session:
         session.add(db.User(telegram_id=1, thread_id="t"))
         session.add(
-            LearningPlan(id=1, user_id=1, plan_json={}, is_active=True, version=1)
+            LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1)
         )
         session.flush()
         session.add(

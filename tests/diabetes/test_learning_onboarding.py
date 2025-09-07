@@ -248,7 +248,7 @@ async def test_learn_reset_deactivates_plan(
         with SessionLocal() as session:
             session.add(db.User(telegram_id=5, thread_id=""))
             session.commit()
-        plan_id = await plans.create_plan(5, version=1, plan_json={})
+        plan_id = await plans.create_plan(5, version=1, plan_json=[])
         message = DummyMessage()
         update = cast(
             Update,

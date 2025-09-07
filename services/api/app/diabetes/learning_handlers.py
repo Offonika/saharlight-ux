@@ -65,24 +65,22 @@ async def _persist(
 ) -> None:
     plans = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
     progress = cast(dict[int, Any], bot_data.setdefault(PROGRESS_KEY, {}))
-    plan = cast(list[str] | None, user_data.get("learning_plan"))
-    plan_id = cast(int | None, user_data.get("learning_plan_id"))
+    raw_plan = user_data.get("learning_plan")
+    plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
+    raw_plan_id = user_data.get("learning_plan_id")
+    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
     if plan is not None:
         plans[user_id] = plan
         try:
             if plan_id is None:
                 active = await plans_repo.get_active_plan(user_id)
                 if active is None:
-                    plan_id = await plans_repo.create_plan(
-                        user_id, 1, cast(dict[str, Any], plan)
-                    )
+                    plan_id = await plans_repo.create_plan(user_id, 1, plan)
                 else:
                     plan_id = active.id
                 user_data["learning_plan_id"] = plan_id
             else:
-                await plans_repo.update_plan(
-                    plan_id, plan_json=cast(dict[str, Any], plan)
-                )
+                await plans_repo.update_plan(plan_id, plan_json=plan)
         except (SQLAlchemyError, RuntimeError) as exc:  # pragma: no cover - logging only
             logger.exception("persist plan failed: %s", exc)
             plan_id = None
@@ -115,14 +113,16 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     plans_map = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
     progress_map = cast(dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {}))
     data = progress_map.get(user.id)
-    plan = cast(list[str] | None, plans_map.get(user.id))
-    plan_id = cast(int | None, user_data.get("learning_plan_id"))
+    raw_plan = plans_map.get(user.id)
+    plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
+    raw_plan_id = user_data.get("learning_plan_id")
+    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
     if data is None or plan is None or plan_id is None:
         try:
             db_plan = await plans_repo.get_active_plan(user.id)
             if db_plan is None:
                 return
-            plan = cast(list[str], db_plan.plan_json)
+            plan = db_plan.plan_json
             plan_id = db_plan.id
             db_progress = await progress_repo.get_progress(user.id, plan_id)
             if db_progress is None:

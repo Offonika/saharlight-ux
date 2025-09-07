@@ -34,7 +34,7 @@ def session_local(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
 async def test_get_and_upsert(session_local: sessionmaker[Session]) -> None:
     with session_local() as session:
         session.add(db.User(telegram_id=1, thread_id=""))
-        plan = LearningPlan(user_id=1, version=1, plan_json={})
+        plan = LearningPlan(user_id=1, version=1, plan_json=[])
         session.add(plan)
         session.commit()
         plan_id = plan.id
