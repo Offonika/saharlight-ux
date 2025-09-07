@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.assistant.models import LessonLog
+from services.api.app.diabetes.models_learning import LearningPlan
 from services.api.app.diabetes.services import db
 
 
@@ -34,10 +35,13 @@ def test_lesson_logs_deleted_with_user(session_factory: sessionmaker[Session]) -
         user = db.User(telegram_id=1, thread_id="")
         session.add(user)
         session.flush()
+        plan = LearningPlan(user_id=1, version=1, plan_json={})
+        session.add(plan)
+        session.flush()
         session.add(
             LessonLog(
                 user_id=1,
-                plan_id=1,
+                plan_id=plan.id,
                 module_idx=0,
                 step_idx=0,
                 role="assistant",
