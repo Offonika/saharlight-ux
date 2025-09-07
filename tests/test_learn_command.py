@@ -68,7 +68,7 @@ async def test_learn_command_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await handlers.learn_command(update, context)
 
-    assert message.replies == ["🚫 Обучение недоступно."]
+    assert message.replies == ["🚫 Учебный режим недоступен."]
 
 
 @pytest.mark.asyncio
