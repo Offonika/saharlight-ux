@@ -19,10 +19,7 @@ from services.api.app.config import Settings
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes.utils.ui import menu_keyboard
-from services.api.app.ui.keyboard import (
-    ASSISTANT_AI_BUTTON_TEXT,
-    LEARN_BUTTON_TEXT,
-)
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -192,7 +189,6 @@ async def test_cmd_menu_shows_keyboard() -> None:
     assert keyboard is not None
     expected_layout = list(menu_keyboard().keyboard)
     expected_layout.append((KeyboardButton(LEARN_BUTTON_TEXT),))
-    expected_layout.append((KeyboardButton(ASSISTANT_AI_BUTTON_TEXT),))
     assert list(keyboard.keyboard) == expected_layout
     assert not any(
         button.text == registration.OLD_LEARN_BUTTON_TEXT

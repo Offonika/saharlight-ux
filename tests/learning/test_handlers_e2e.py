@@ -1,22 +1,23 @@
 from __future__ import annotations
 
 from datetime import datetime
-import re
 
 import pytest
-from telegram import Bot, Chat, Message, MessageEntity, ReplyKeyboardMarkup, Update, User
+from telegram import (
+    Bot,
+    Chat,
+    Message,
+    MessageEntity,
+    ReplyKeyboardMarkup,
+    Update,
+    User,
+)
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
-from services.api.app.diabetes.handlers import (
-    learning_handlers as legacy_learning_handlers,
-    registration,
-)
-from services.api.app.ui.keyboard import (
-    ASSISTANT_AI_BUTTON_TEXT,
-    LEARN_BUTTON_TEXT,
-)
+from services.api.app.diabetes.handlers import registration
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 
 class DummyBot(Bot):
@@ -61,6 +62,7 @@ class DummyBot(Bot):
 async def test_keyboard_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     monkeypatch.setattr(settings, "learning_ui_show_topics", True)
+
     async def fake_ensure_overrides(*_args: object, **_kwargs: object) -> bool:
         return True
 
@@ -100,7 +102,9 @@ async def test_keyboard_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
     first_markup = bot.markups[0]
     assert isinstance(first_markup, ReplyKeyboardMarkup)
     assert any(
-        LEARN_BUTTON_TEXT == button.text for row in first_markup.keyboard for button in row
+        LEARN_BUTTON_TEXT == button.text
+        for row in first_markup.keyboard
+        for button in row
     )
     assert isinstance(bot.markups[-1], ReplyKeyboardMarkup)
 
@@ -108,19 +112,21 @@ async def test_keyboard_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_old_learn_button_triggers_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_old_learn_button_triggers_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
 
     async def fake_learn_command(*_args: object, **_kwargs: object) -> None:
         await bot.send_message(chat_id=1, text="ok")
 
-    monkeypatch.setattr(legacy_learning_handlers, "learn_command", fake_learn_command)
+    monkeypatch.setattr(learning_handlers, "learn_command", fake_learn_command)
 
     app.add_handler(
         MessageHandler(
             filters.TEXT & filters.Regex(registration.LEARN_BUTTON_PATTERN),
-            legacy_learning_handlers.on_learn_button,
+            learning_handlers.learn_command,
         )
     )
     await app.initialize()
@@ -143,7 +149,7 @@ async def test_old_learn_button_triggers_handler(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
-async def test_assistant_button_triggers_handler(
+async def test_new_learn_button_triggers_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     bot = DummyBot()
@@ -156,7 +162,7 @@ async def test_assistant_button_triggers_handler(
 
     app.add_handler(
         MessageHandler(
-            filters.TEXT & filters.Regex(rf"^{re.escape(ASSISTANT_AI_BUTTON_TEXT)}$"),
+            filters.TEXT & filters.Regex(registration.LEARN_BUTTON_PATTERN),
             learning_handlers.learn_command,
         )
     )
@@ -169,7 +175,7 @@ async def test_assistant_button_triggers_handler(
         date=datetime.now(),
         chat=chat,
         from_user=user,
-        text=ASSISTANT_AI_BUTTON_TEXT,
+        text=LEARN_BUTTON_TEXT,
     )
     msg._bot = bot
     await app.process_update(Update(update_id=1, message=msg))
