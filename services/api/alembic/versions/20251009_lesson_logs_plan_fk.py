@@ -4,7 +4,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = "20251009_lesson_logs_plan_fk"
-down_revision: Union[str, Sequence[str], None] = "3539fae8f7b6"
+down_revision: Union[str, Sequence[str], None] = "3539fae8f7b6_merge_heads"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision: str = "20251002_billing_event_lowercase"
-down_revision: Union[str, Sequence[str], None] = "3539fae8f7b6"
+down_revision: Union[str, Sequence[str], None] = "3539fae8f7b6_merge_heads"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -60,4 +60,3 @@ def downgrade() -> None:
         op.execute("ALTER TYPE billing_event_old RENAME TO billing_event")
     else:
         return
-
