@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 import logging
+from typing import Mapping
 
 from openai.types.chat import ChatCompletionMessageParam
 
-from .llm_router import LLMTask
 from .learning_prompts import build_system_prompt, build_user_prompt_step
+from .llm_router import LLMTask
 from .services.gpt_client import create_learning_chat_completion
 
 logger = logging.getLogger(__name__)
