@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from typing import Any, Mapping, cast
+from typing import Any, Mapping
 
 import pytest
 
@@ -8,6 +8,7 @@ from services.api.app.diabetes import learning_handlers as dynamic_handlers
 from services.api.app.diabetes.dynamic_tutor import BUSY_MESSAGE
 from services.api.app.diabetes.handlers import learning_handlers as legacy_handlers
 from services.api.app.diabetes.learning_state import get_state
+from tests.utils.telegram import make_context, make_update
 
 
 class DummyMessage:
@@ -65,10 +66,8 @@ async def test_dynamic_learn_command_busy(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fail_add_log)
 
     msg = DummyMessage()
-    update = cast(
-        object, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=7))
-    )
-    context = SimpleNamespace(user_data={})
+    update = make_update(message=msg)
+    context = make_context(user_data={})
 
     await dynamic_handlers.learn_command(update, context)
 
@@ -97,10 +96,8 @@ async def test_legacy_lesson_command_busy(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(legacy_handlers, "ensure_overrides", fake_ensure_overrides)
 
     msg = DummyMessage()
-    update = cast(
-        object, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=7))
-    )
-    context = SimpleNamespace(user_data={}, args=["slug"])
+    update = make_update(message=msg)
+    context = make_context(user_data={}, args=["slug"])
 
     await legacy_handlers.lesson_command(update, context)
 
