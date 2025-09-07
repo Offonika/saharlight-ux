@@ -196,7 +196,12 @@ class UserRole(Base):
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.telegram_id"), primary_key=True
     )
-    role: Mapped[str] = mapped_column(String, nullable=False, default="patient")
+    role: Mapped[str] = mapped_column(
+        String,
+        nullable=False,
+        default="patient",
+        server_default=sa.text("'patient'"),
+    )
 
 
 class Profile(Base):
