@@ -1,6 +1,7 @@
 import logging
 
 import pytest
+from openai import OpenAIError
 
 from services.api.app.diabetes import dynamic_tutor
 
@@ -24,15 +25,28 @@ async def test_generate_step_text_formats_reply(
 
 
 @pytest.mark.asyncio
-async def test_generate_step_text_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_generate_step_text_api_error(monkeypatch: pytest.MonkeyPatch) -> None:
     async def raise_error(**kwargs: object) -> str:
-        raise ValueError("boom")
+        raise OpenAIError("boom")
 
     monkeypatch.setattr(dynamic_tutor, "create_learning_chat_completion", raise_error)
 
     result = await dynamic_tutor.generate_step_text({}, "t", 1, None)
 
     assert result == dynamic_tutor.BUSY_MESSAGE
+
+
+@pytest.mark.asyncio
+async def test_generate_step_text_unexpected_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def raise_error(**kwargs: object) -> str:
+        raise ValueError("boom")
+
+    monkeypatch.setattr(dynamic_tutor, "create_learning_chat_completion", raise_error)
+
+    with pytest.raises(ValueError):
+        await dynamic_tutor.generate_step_text({}, "t", 1, None)
 
 
 @pytest.mark.asyncio
@@ -59,9 +73,9 @@ async def test_check_user_answer_uses_max_tokens(
 
 
 @pytest.mark.asyncio
-async def test_check_user_answer_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_check_user_answer_api_error(monkeypatch: pytest.MonkeyPatch) -> None:
     async def raise_error(**kwargs: object) -> str:
-        raise ValueError("boom")
+        raise OpenAIError("boom")
 
     monkeypatch.setattr(dynamic_tutor, "create_learning_chat_completion", raise_error)
 
@@ -69,6 +83,19 @@ async def test_check_user_answer_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert correct is False
     assert result == dynamic_tutor.BUSY_MESSAGE
+
+
+@pytest.mark.asyncio
+async def test_check_user_answer_unexpected_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def raise_error(**kwargs: object) -> str:
+        raise ValueError("boom")
+
+    monkeypatch.setattr(dynamic_tutor, "create_learning_chat_completion", raise_error)
+
+    with pytest.raises(ValueError):
+        await dynamic_tutor.check_user_answer({}, "topic", "ans", "text")
 
 
 @pytest.mark.asyncio
