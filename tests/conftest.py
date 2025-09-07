@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
-import asyncio
+from collections.abc import AsyncIterator, Iterator
 import sqlite3
 import subprocess
 from typing import Any, Callable, cast
@@ -239,9 +238,9 @@ def _dispose_engine_per_module() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
-def _dispose_openai_clients_after_test() -> Iterator[None]:
+async def _dispose_openai_clients_after_test() -> AsyncIterator[None]:
     """Dispose OpenAI clients after each test."""
     yield
     from services.api.app.diabetes.services.gpt_client import dispose_openai_clients
 
-    asyncio.run(dispose_openai_clients())
+    await dispose_openai_clients()
