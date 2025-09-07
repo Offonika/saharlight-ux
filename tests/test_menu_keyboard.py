@@ -12,5 +12,4 @@ def test_menu_keyboard_layout() -> None:
         [ui.QUICK_INPUT_BUTTON_TEXT, ui.HELP_BUTTON_TEXT],
         [ui.SOS_BUTTON_TEXT],
         [kb.LEARN_BUTTON_TEXT],
-        [kb.ASSISTANT_AI_BUTTON_TEXT],
     ]

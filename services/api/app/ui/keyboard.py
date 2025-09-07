@@ -2,16 +2,14 @@ from telegram import ReplyKeyboardMarkup, KeyboardButton
 
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
-LEARN_BUTTON_TEXT = "🎓 Учебный режим"
-ASSISTANT_AI_BUTTON_TEXT = "🤖 Ассистент_AI"
+LEARN_BUTTON_TEXT = "🤖 Ассистент_AI"
 
 
 def build_main_keyboard() -> ReplyKeyboardMarkup:
-    """Build main menu keyboard with extra learning and assistant buttons."""
+    """Build main menu keyboard with extra assistant button."""
     menu = menu_keyboard()
     layout = [row[:] for row in menu.keyboard]
     layout.append((KeyboardButton(LEARN_BUTTON_TEXT),))
-    layout.append((KeyboardButton(ASSISTANT_AI_BUTTON_TEXT),))
     return ReplyKeyboardMarkup(
         keyboard=layout,
         resize_keyboard=True,
@@ -23,6 +21,5 @@ def build_main_keyboard() -> ReplyKeyboardMarkup:
 
 __all__ = [
     "LEARN_BUTTON_TEXT",
-    "ASSISTANT_AI_BUTTON_TEXT",
     "build_main_keyboard",
 ]

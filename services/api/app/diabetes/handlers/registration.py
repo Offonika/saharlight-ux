@@ -34,16 +34,12 @@ from ..utils.ui import (
     SOS_BUTTON_TEXT,
     SUBSCRIPTION_BUTTON_TEXT,
 )
-from services.api.app.ui.keyboard import (
-    ASSISTANT_AI_BUTTON_TEXT,
-    LEARN_BUTTON_TEXT,
-)
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 OLD_LEARN_BUTTON_TEXT = "🎓 Обучение"
 LEARN_BUTTON_PATTERN = (
     rf"^(?:{re.escape(LEARN_BUTTON_TEXT)}|{re.escape(OLD_LEARN_BUTTON_TEXT)})$"
 )
-ASSISTANT_AI_BUTTON_PATTERN = rf"^{re.escape(ASSISTANT_AI_BUTTON_TEXT)}$"
 
 logger = logging.getLogger(__name__)
 
@@ -179,12 +175,6 @@ def register_handlers(
     app.add_handler(
         MessageHandlerT(
             filters.TEXT & filters.Regex(LEARN_BUTTON_PATTERN),
-            learning_handlers.on_learn_button,
-        )
-    )
-    app.add_handler(
-        MessageHandlerT(
-            filters.TEXT & filters.Regex(ASSISTANT_AI_BUTTON_PATTERN),
             dynamic_learning_handlers.learn_command,
         )
     )
