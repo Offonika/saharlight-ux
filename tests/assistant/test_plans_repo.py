@@ -71,3 +71,30 @@ async def test_update_delete_and_list(session_local: sessionmaker[Session]) -> N
     assert {p.id for p in plans_list} == {plan_id1, plan_id2}
     await plans.delete_plan(plan_id1)
     assert await plans.get_plan(plan_id1) is None
+
+
+@pytest.mark.asyncio
+async def test_deactivate_plan(session_local: sessionmaker[Session]) -> None:
+    with session_local() as session:
+        session.add(db.User(telegram_id=3, thread_id=""))
+        session.commit()
+    plan_id = await plans.create_plan(3, version=1, plan_json={})
+    await plans.deactivate_plan(3, plan_id)
+    plan = await plans.get_plan(plan_id)
+    assert plan is not None
+    assert plan.is_active is False
+
+
+@pytest.mark.asyncio
+async def test_create_plan_deactivates_previous_active(
+    session_local: sessionmaker[Session],
+) -> None:
+    with session_local() as session:
+        session.add(db.User(telegram_id=4, thread_id=""))
+        session.commit()
+    first_id = await plans.create_plan(4, version=1, plan_json={})
+    second_id = await plans.create_plan(4, version=2, plan_json={})
+    first = await plans.get_plan(first_id)
+    second = await plans.get_plan(second_id)
+    assert first is not None and first.is_active is False
+    assert second is not None and second.is_active is True
