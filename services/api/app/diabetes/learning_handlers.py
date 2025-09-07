@@ -4,6 +4,8 @@ import logging
 import time
 from typing import Any, Mapping, MutableMapping, cast
 
+import httpx
+from openai import OpenAIError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ApplicationHandlerStop, ContextTypes
 
@@ -63,7 +65,10 @@ async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton(title, callback_data=f"lesson:{slug}")] for slug, title in TOPICS_RU.items()]
+        [
+            [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
+            for slug, title in TOPICS_RU.items()
+        ]
     )
     await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
@@ -198,7 +203,9 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _start_lesson(message, user_data, profile, slug)
 
 
-async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def lesson_answer_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Process user's answer and move to the next step."""
 
     message = update.message
@@ -227,15 +234,21 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
     state.learn_busy = True
     set_state(user_data, state)
     try:
-        _correct, feedback = await check_user_answer(profile, state.topic, user_text, state.last_step_text or "")
+        _correct, feedback = await check_user_answer(
+            profile, state.topic, user_text, state.last_step_text or ""
+        )
         feedback = format_reply(feedback)
         await message.reply_text(feedback, reply_markup=build_main_keyboard())
         if feedback == BUSY_MESSAGE:
             state.awaiting_answer = True
             return
         if telegram_id is not None:
-            await add_lesson_log(telegram_id, state.topic, "assistant", state.step, feedback)
-        next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
+            await add_lesson_log(
+                telegram_id, state.topic, "assistant", state.step, feedback
+            )
+        next_text = await generate_step_text(
+            profile, state.topic, state.step + 1, feedback
+        )
         if next_text == BUSY_MESSAGE:
             await message.reply_text(next_text, reply_markup=build_main_keyboard())
             state.awaiting_answer = True
@@ -243,7 +256,9 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         next_text = format_reply(next_text)
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
         if telegram_id is not None:
-            await add_lesson_log(telegram_id, state.topic, "assistant", state.step + 1, next_text)
+            await add_lesson_log(
+                telegram_id, state.topic, "assistant", state.step + 1, next_text
+            )
         state.step += 1
         state.last_step_text = next_text
         state.prev_summary = feedback
@@ -267,7 +282,8 @@ async def assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
             ],
             max_tokens=200,
         )
-    except RuntimeError:
+    except (OpenAIError, httpx.HTTPError, RuntimeError) as exc:
+        logger.exception("[GPT] assistant chat failed: %s", exc)
         return "сервер занят, попробуйте позже"
 
 
@@ -307,7 +323,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     clear_state(user_data)
-    await message.reply_text("Учебная сессия завершена.", reply_markup=build_main_keyboard())
+    await message.reply_text(
+        "Учебная сессия завершена.", reply_markup=build_main_keyboard()
+    )
 
 
 async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
