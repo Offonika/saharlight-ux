@@ -35,6 +35,7 @@ class _PendingLog:
 
 
 pending_logs: list[_PendingLog] = []
+pending_logs_lock = asyncio.Lock()
 _flush_task: asyncio.Task[None] | None = None
 _FLUSH_INTERVAL = 5.0
 
@@ -42,23 +43,24 @@ _FLUSH_INTERVAL = 5.0
 async def flush_pending_logs() -> None:
     """Flush accumulated logs to the database."""
 
-    if not pending_logs:
-        return
+    async with pending_logs_lock:
+        if not pending_logs:
+            return
 
-    entries = [LessonLog(**asdict(log)) for log in pending_logs]
+        entries = [LessonLog(**asdict(log)) for log in pending_logs]
 
-    def _flush(session: Session) -> None:
-        session.add_all(entries)
-        commit(session)
+        def _flush(session: Session) -> None:
+            session.add_all(entries)
+            commit(session)
 
-    try:
-        await run_db(_flush, sessionmaker=SessionLocal)
-    except Exception:  # pragma: no cover - logging only
-        logger.exception("Failed to flush %s lesson logs", len(entries))
-        lesson_log_failures.inc(len(entries))
-        return
+        try:
+            await run_db(_flush, sessionmaker=SessionLocal)
+        except Exception:  # pragma: no cover - logging only
+            logger.exception("Failed to flush %s lesson logs", len(entries))
+            lesson_log_failures.inc(len(entries))
+            return
 
-    pending_logs.clear()
+        pending_logs.clear()
 
 
 async def add_lesson_log(
@@ -74,16 +76,17 @@ async def add_lesson_log(
     if not settings.learning_logging_required:
         return
 
-    pending_logs.append(
-        _PendingLog(
-            user_id=user_id,
-            plan_id=plan_id,
-            module_idx=module_idx,
-            step_idx=step_idx,
-            role=role,
-            content=content,
+    async with pending_logs_lock:
+        pending_logs.append(
+            _PendingLog(
+                user_id=user_id,
+                plan_id=plan_id,
+                module_idx=module_idx,
+                step_idx=step_idx,
+                role=role,
+                content=content,
+            )
         )
-    )
 
     await flush_pending_logs()
 
