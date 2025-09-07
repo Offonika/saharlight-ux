@@ -65,7 +65,7 @@ async def main(user_id: int, lesson_slug: str) -> None:
         print(text)
         if steps_done >= step_total and quiz_index < len(questions):
             answer = questions[quiz_index].correct_option
-            _, feedback = await curriculum_engine.check_answer(user_id, lesson_id, answer)
+            _, feedback = await curriculum_engine.check_answer(user_id, lesson_id, {}, answer)
             print(feedback)
             quiz_index += 1
         else:

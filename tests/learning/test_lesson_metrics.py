@@ -69,7 +69,7 @@ async def test_lesson_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     assert completed is False
 
     for idx, q in enumerate(questions):
-        await check_answer(1, lesson_id, q.correct_option + 1)
+        await check_answer(1, lesson_id, {}, q.correct_option + 1)
         text, completed = await next_step(1, lesson_id, {})
         if idx < len(questions) - 1:
             assert text is not None

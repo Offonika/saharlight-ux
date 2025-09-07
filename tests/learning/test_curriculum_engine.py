@@ -91,7 +91,7 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert question_text.endswith(first_opts)
 
     for idx, q in enumerate(questions):
-        correct, feedback = await check_answer(1, lesson_id, q.correct_option + 1)
+        correct, feedback = await check_answer(1, lesson_id, {}, q.correct_option + 1)
         assert correct is True
         assert feedback
         if idx < len(questions) - 1:
@@ -196,7 +196,7 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert completed is False
     assert fake_generate.calls[0] is profile
 
-    correct, feedback = await check_answer(1, lesson_id, "42")
+    correct, feedback = await check_answer(1, lesson_id, profile, "42")
     assert correct is True
     assert feedback == "fb 42"
 

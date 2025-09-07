@@ -193,7 +193,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             state.awaiting_answer = False
             set_state(user_data, state)
         _correct, feedback = await curriculum_engine.check_answer(
-            user.id, lesson_id, answer
+            user.id, lesson_id, {}, answer
         )
         await message.reply_text(feedback)
         question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
@@ -248,7 +248,7 @@ async def quiz_answer_handler(
     state.awaiting_answer = False
     set_state(user_data, state)
     _correct, feedback = await curriculum_engine.check_answer(
-        user.id, lesson_id, answer
+        user.id, lesson_id, {}, answer
     )
     await message.reply_text(feedback)
     question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
