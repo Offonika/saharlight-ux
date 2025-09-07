@@ -31,6 +31,10 @@ def make_context(**kwargs: Any) -> CallbackContext[Any, Any, Any, Any]:
 @pytest.mark.asyncio
 async def test_lesson_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    async def fake_ensure_overrides(update: object, context: object) -> bool:
+        return True
+
+    monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
 
     calls: list[str] = []
 

@@ -127,3 +127,20 @@ async def test_onboarding_reply_ignored_without_stage() -> None:
     await learning_onboarding.onboarding_reply(update, context)
     assert message.replies == []
     assert context.user_data == {}
+
+
+@pytest.mark.asyncio
+async def test_lesson_command_requires_onboarding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    message = DummyMessage()
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, args=["l1"]),
+    )
+    await learning_handlers.lesson_command(update, context)
+    assert message.replies == [onboarding_utils.AGE_PROMPT]

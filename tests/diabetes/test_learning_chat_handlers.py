@@ -91,7 +91,12 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         return None
 
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
-    monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"slug": "Topic"})
+
+    async def fake_ensure_overrides(update: object, context: object) -> bool:
+        return True
+
+    monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
+
 
     msg = DummyMessage()
     update = cast(object, SimpleNamespace(message=msg))
