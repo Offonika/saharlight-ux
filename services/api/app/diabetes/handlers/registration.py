@@ -255,6 +255,8 @@ def register_handlers(
     )
     app.add_handler(CallbackQueryHandlerT(callback_router))
 
+    old_post_init = getattr(app, "post_init", None)
+
     async def _set_commands(
         app: Application[
             ExtBot[None],
@@ -265,6 +267,8 @@ def register_handlers(
             JobQueue[ContextTypes.DEFAULT_TYPE],
         ],
     ) -> None:
+        if callable(old_post_init):
+            await old_post_init(app)
         try:
             await app.bot.set_my_commands(
                 [

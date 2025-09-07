@@ -80,10 +80,20 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
+    async def fake_start_lesson(user_id: int, topic_slug: str) -> object:
+        return SimpleNamespace(lesson_id=1)
+
+    async def fake_next_step(user_id: int, lesson_id: int, profile: object) -> tuple[str, object | None]:
+        return next(steps), None
+
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
+
     async def fake_ensure_overrides(*args: object, **kwargs: object) -> bool:
         return True
 
     monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
+    monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
