@@ -297,7 +297,9 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     topic_slug = context.args[0] if context.args else None
     if topic_slug is None:
-        await message.reply_text("Сначала выберите тему командой /learn")
+        await message.reply_text(
+            "Сначала выберите тему — нажмите кнопку 🤖 Ассистент_AI или команду /learn"
+        )
         return
     if topic_slug not in TOPICS_RU:
         await message.reply_text("Неизвестная тема")
@@ -511,7 +513,7 @@ async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     plan = cast(list[str] | None, user_data.get("learning_plan"))
     if not plan:
         await message.reply_text(
-            "План не найден. Отправьте /learn чтобы начать.",
+            "План не найден. Нажмите кнопку 🤖 Ассистент_AI или команду /learn, чтобы начать.",
             reply_markup=build_main_keyboard(),
         )
         return
@@ -529,7 +531,7 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     plan = cast(list[str] | None, user_data.get("learning_plan"))
     if not plan:
         await message.reply_text(
-            "План не найден. Отправьте /learn чтобы начать.",
+            "План не найден. Нажмите кнопку 🤖 Ассистент_AI или команду /learn, чтобы начать.",
             reply_markup=build_main_keyboard(),
         )
         return
