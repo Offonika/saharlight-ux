@@ -323,3 +323,37 @@ async def test_lesson_answer_handler_error_keeps_state(
     assert state.step == 1
     assert state.awaiting_answer
     assert not state.learn_busy
+
+
+@pytest.mark.asyncio
+async def test_lesson_answer_handler_add_log_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    async def fail_add_log(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("db error")
+
+    async def fail_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
+        raise AssertionError("should not be called")
+
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", fail_add_log)
+    monkeypatch.setattr(learning_handlers, "check_user_answer", fail_check_user_answer)
+
+    msg = DummyMessage(text="ans")
+    user_data: dict[str, Any] = {}
+    set_state(
+        user_data,
+        LearnState(topic="slug", step=1, awaiting_answer=True, last_step_text="q"),
+    )
+    update = cast(object, SimpleNamespace(message=msg))
+    context = SimpleNamespace(user_data=user_data)
+
+    await learning_handlers.lesson_answer_handler(update, context)
+
+    assert msg.replies == [dynamic_tutor.BUSY_MESSAGE]
+    state = get_state(user_data)
+    assert state is not None
+    assert state.step == 1
+    assert state.awaiting_answer
+    assert not state.learn_busy
