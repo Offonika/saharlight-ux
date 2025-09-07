@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import logging
@@ -11,7 +10,7 @@ from telegram.ext import ContextTypes
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
 from . import curriculum_engine
-from .dynamic_tutor import check_user_answer, generate_step_text
+from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
 from .handlers import learning_handlers as legacy_handlers
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
@@ -58,10 +57,7 @@ async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
-            for slug, title in TOPICS_RU.items()
-        ]
+        [[InlineKeyboardButton(title, callback_data=f"lesson:{slug}")] for slug, title in TOPICS_RU.items()]
     )
     await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
@@ -149,9 +145,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     topic_slug = context.args[0] if context.args else None
     if topic_slug is None:
-        await message.reply_text(
-            "Сначала выберите тему командой /learn"
-        )
+        await message.reply_text("Сначала выберите тему командой /learn")
         return
     profile = _get_profile(user_data)
     await _start_lesson(message, user_data, profile, topic_slug)
@@ -167,9 +161,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not settings.learning_mode_enabled:
         await query.answer()
         if raw_message is not None and hasattr(raw_message, "reply_text"):
-            await cast(Message, raw_message).reply_text(
-                "режим обучения отключён"
-            )
+            await cast(Message, raw_message).reply_text("режим обучения отключён")
         return
     if settings.learning_content_mode == "static":
         await legacy_handlers.lesson_command(update, context)
@@ -188,9 +180,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _start_lesson(message, user_data, profile, slug)
 
 
-async def lesson_answer_handler(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Process user's answer and move to the next step."""
 
     message = update.message
@@ -205,7 +195,7 @@ async def lesson_answer_handler(
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
-    if state is None or not state.awaiting_answer:
+    if state is None or not state.awaiting_answer or state.learn_busy:
         return
     if _rate_limited(user_data, "_answer_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
@@ -215,29 +205,34 @@ async def lesson_answer_handler(
     user_text = message.text.strip()
     if telegram_id is not None:
         await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
-    _correct, feedback = await check_user_answer(
-        profile, state.topic, user_text, state.last_step_text or ""
-    )
-    feedback = format_reply(feedback)
-    await message.reply_text(feedback, reply_markup=build_main_keyboard())
-    if telegram_id is not None:
-        await add_lesson_log(
-            telegram_id, state.topic, "assistant", state.step, feedback
-        )
-    next_text = await generate_step_text(
-        profile, state.topic, state.step + 1, feedback
-    )
-    next_text = format_reply(next_text)
-    await message.reply_text(next_text, reply_markup=build_main_keyboard())
-    if telegram_id is not None:
-        await add_lesson_log(
-            telegram_id, state.topic, "assistant", state.step + 1, next_text
-        )
-    state.step += 1
-    state.last_step_text = next_text
-    state.prev_summary = feedback
-    state.awaiting_answer = True
+    state.awaiting_answer = False
+    state.learn_busy = True
     set_state(user_data, state)
+    try:
+        _correct, feedback = await check_user_answer(profile, state.topic, user_text, state.last_step_text or "")
+        feedback = format_reply(feedback)
+        await message.reply_text(feedback, reply_markup=build_main_keyboard())
+        if feedback == BUSY_MESSAGE:
+            state.awaiting_answer = True
+            return
+        if telegram_id is not None:
+            await add_lesson_log(telegram_id, state.topic, "assistant", state.step, feedback)
+        next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
+        if next_text == BUSY_MESSAGE:
+            await message.reply_text(next_text, reply_markup=build_main_keyboard())
+            state.awaiting_answer = True
+            return
+        next_text = format_reply(next_text)
+        await message.reply_text(next_text, reply_markup=build_main_keyboard())
+        if telegram_id is not None:
+            await add_lesson_log(telegram_id, state.topic, "assistant", state.step + 1, next_text)
+        state.step += 1
+        state.last_step_text = next_text
+        state.prev_summary = feedback
+        state.awaiting_answer = True
+    finally:
+        state.learn_busy = False
+        set_state(user_data, state)
 
 
 async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -254,9 +249,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     clear_state(user_data)
-    await message.reply_text(
-        "Учебная сессия завершена.", reply_markup=build_main_keyboard()
-    )
+    await message.reply_text("Учебная сессия завершена.", reply_markup=build_main_keyboard())
 
 
 __all__ = [

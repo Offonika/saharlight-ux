@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import logging
 
 from openai.types.chat import ChatCompletionMessageParam
 
 from .llm_router import LLMTask
 from .learning_prompts import build_system_prompt, build_user_prompt_step
 from .services.gpt_client import create_learning_chat_completion
+
+logger = logging.getLogger(__name__)
+
+BUSY_MESSAGE = "сервер занят, попробуйте позже"
 
 
 async def _chat(task: LLMTask, system: str, user: str, *, max_tokens: int = 350) -> str:
@@ -34,8 +39,9 @@ async def generate_step_text(
         system = build_system_prompt(profile)
         user = build_user_prompt_step(topic_slug, step_idx, prev_summary)
         return await _chat(LLMTask.EXPLAIN_STEP, system, user)
-    except RuntimeError:
-        return "сервер занят, попробуйте позже"
+    except Exception:
+        logger.exception("failed to generate step", extra={"topic": topic_slug, "step": step_idx})
+        return BUSY_MESSAGE
 
 
 async def check_user_answer(
@@ -58,12 +64,16 @@ async def check_user_answer(
     )
     try:
         feedback = await _chat(LLMTask.QUIZ_CHECK, system, user, max_tokens=250)
-    except RuntimeError:
-        return False, "сервер занят, попробуйте позже"
+    except Exception:
+        logger.exception(
+            "failed to check answer",
+            extra={"topic": topic_slug, "answer": user_answer},
+        )
+        return False, BUSY_MESSAGE
 
     first = feedback.split(maxsplit=1)[0].strip(".,!?:;\"'«»").lower()
     correct = first in {"верно", "правильно"}
     return correct, feedback
 
 
-__all__ = ["generate_step_text", "check_user_answer"]
+__all__ = ["generate_step_text", "check_user_answer", "BUSY_MESSAGE"]
