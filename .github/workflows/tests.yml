@@ -19,6 +19,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Load test env
+        run: |
+          cp .env.test .env
+          cat .env.test >> $GITHUB_ENV
       - uses: pnpm/action-setup@v2
         with:
           version: 8

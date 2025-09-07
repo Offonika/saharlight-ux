@@ -192,8 +192,13 @@ make load-lessons
 2. Запустите `make load-lessons`, чтобы записать изменения в базу.
 3. При необходимости пересоздайте фикстуру: `python scripts/load_lessons.py --dump lessons_v0.json`.
 
-## Тесты
-Установите зависимости и запустите проверки:
+## Как запускать тесты
+Перед стартом экспортируйте переменные окружения для тестов:
+```bash
+cp .env.test .env
+export $(grep -v '^#' .env.test | xargs)
+```
+Установите зависимости и выполните проверки:
 ```bash
 pip install -r services/api/app/requirements-dev.txt
 pytest -q --cov --cov-fail-under=85
