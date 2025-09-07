@@ -15,6 +15,7 @@ from services.api.app.ui.keyboard import build_main_keyboard
 from . import curriculum_engine
 from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
 from .handlers import learning_handlers as legacy_handlers
+from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
@@ -298,7 +299,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     topic_slug = context.args[0] if context.args else None
     if topic_slug is None:
         await message.reply_text(
-            "Сначала выберите тему — нажмите кнопку 🤖 Ассистент_AI или команду /learn"
+            f"Сначала выберите тему — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn"
         )
         return
     if topic_slug not in TOPICS_RU:
@@ -499,7 +500,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     if user is not None:
         await _persist(user.id, user_data, context.bot_data)
-    await message.reply_text("Учебная сессия завершена.", reply_markup=build_main_keyboard())
+    await message.reply_text(
+        f"Сессия {LEARN_BUTTON_TEXT} завершена.", reply_markup=build_main_keyboard()
+    )
 
 
 async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -513,7 +516,7 @@ async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     plan = cast(list[str] | None, user_data.get("learning_plan"))
     if not plan:
         await message.reply_text(
-            "План не найден. Нажмите кнопку 🤖 Ассистент_AI или команду /learn, чтобы начать.",
+            f"План не найден. Нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn, чтобы начать.",
             reply_markup=build_main_keyboard(),
         )
         return
@@ -531,7 +534,7 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     plan = cast(list[str] | None, user_data.get("learning_plan"))
     if not plan:
         await message.reply_text(
-            "План не найден. Нажмите кнопку 🤖 Ассистент_AI или команду /learn, чтобы начать.",
+            f"План не найден. Нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn, чтобы начать.",
             reply_markup=build_main_keyboard(),
         )
         return

@@ -19,6 +19,7 @@ from services.api.app.diabetes.handlers import learning_handlers, learning_onboa
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
 from services.api.app.assistant.repositories import plans
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -108,7 +109,7 @@ async def test_learning_onboarding_flow(
         update5 = cast(Update, SimpleNamespace(message=message5, effective_user=None))
         await learning_handlers.learn_command(update5, context)
         assert any(
-            "Учебный режим" in text or "Урок" in text for text in message5.replies
+            LEARN_BUTTON_TEXT in text or "Урок" in text for text in message5.replies
         )
 
         message_reset = DummyMessage()
@@ -201,7 +202,7 @@ async def test_learning_onboarding_callback_flow(
         upd2 = cast(Update, SimpleNamespace(message=msg2, effective_user=None))
         await learning_handlers.learn_command(upd2, ctx)
         assert any(
-            "Учебный режим" in text or "Урок" in text for text in msg2.replies
+            LEARN_BUTTON_TEXT in text or "Урок" in text for text in msg2.replies
         )
     finally:
         engine.dispose()

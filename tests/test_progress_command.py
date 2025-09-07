@@ -10,6 +10,7 @@ from telegram.ext import CallbackContext
 import services.api.app.diabetes.handlers.learning_handlers as handlers
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -52,7 +53,7 @@ async def test_progress_command_no_progress(monkeypatch: pytest.MonkeyPatch) -> 
     await handlers.progress_command(update, context)
 
     assert message.replies == [
-        "Вы ещё не начали обучение. Нажмите кнопку 🤖 Ассистент_AI или команду /learn, чтобы начать."
+        f"Вы ещё не начали обучение. Нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn, чтобы начать."
     ]
 
 

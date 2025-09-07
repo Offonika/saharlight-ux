@@ -10,6 +10,7 @@ from services.api.app.config import settings
 from services.api.app.diabetes import dynamic_tutor, learning_handlers
 from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -209,7 +210,7 @@ async def test_exit_command_clears_state(
     context = SimpleNamespace(user_data=user_data)
 
     await learning_handlers.exit_command(update, context)
-    assert msg.replies == ["Учебная сессия завершена."]
+    assert msg.replies == [f"Сессия {LEARN_BUTTON_TEXT} завершена."]
     assert isinstance(msg.markups[0], ReplyKeyboardMarkup)
     assert get_state(user_data) is None
 

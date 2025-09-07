@@ -30,7 +30,7 @@ from services.api.app.diabetes.learning_state import (
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress
 from services.api.app.diabetes.services.db import SessionLocal, run_db
 from services.api.app.diabetes.services.repository import commit
-from ...ui.keyboard import build_main_keyboard
+from ...ui.keyboard import LEARN_BUTTON_TEXT, build_main_keyboard
 from ..learning_onboarding import ensure_overrides
 from ..dynamic_tutor import BUSY_MESSAGE
 
@@ -83,7 +83,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if message is None:
         return
     if not settings.learning_mode_enabled:
-        await message.reply_text("🚫 Учебный режим недоступен.")
+        await message.reply_text(f"🚫 {LEARN_BUTTON_TEXT} недоступен.")
         return
     if settings.learning_content_mode == "dynamic":
         from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
@@ -108,7 +108,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     titles = "\n".join(f"/lesson {slug} — {title}" for title, slug in lessons)
     await message.reply_text(
-        f"🤖 Учебный режим активирован. Модель: {model}\n\nДоступные уроки:\n{titles}",
+        f"{LEARN_BUTTON_TEXT} активирован. Модель: {model}\n\nДоступные уроки:\n{titles}",
         reply_markup=build_main_keyboard(),
     )
 
@@ -121,7 +121,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if message is None or user is None:
         return
     if not settings.learning_mode_enabled:
-        await message.reply_text("🚫 Учебный режим недоступен.")
+        await message.reply_text(f"🚫 {LEARN_BUTTON_TEXT} недоступен.")
         return
     if not await ensure_overrides(update, context):
         return
@@ -140,7 +140,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if lesson_id is None:
         if lesson_slug is None:
             await message.reply_text(
-                "Сначала выберите урок — нажмите кнопку 🤖 Ассистент_AI или команду /learn"
+                f"Сначала выберите урок — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn"
             )
             return
         progress = await curriculum_engine.start_lesson(user.id, lesson_slug)
@@ -178,7 +178,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if message is None or user is None:
         return
     if not settings.learning_mode_enabled:
-        await message.reply_text("🚫 Учебный режим недоступен.")
+        await message.reply_text(f"🚫 {LEARN_BUTTON_TEXT} недоступен.")
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     if _rate_limited(user_data, "_quiz_ts"):
@@ -300,7 +300,7 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     result = await run_db(_load_progress, user_id, sessionmaker=SessionLocal)
     if result is None:
         await message.reply_text(
-            "Вы ещё не начали обучение. Нажмите кнопку 🤖 Ассистент_AI или команду /learn, чтобы начать."
+            f"Вы ещё не начали обучение. Нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn, чтобы начать."
         )
         return
     title, current_step, completed, quiz_score = result
@@ -339,7 +339,10 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         await run_db(_complete, user.id, lesson_id, sessionmaker=SessionLocal)
 
-    await message.reply_text("Учебная сессия завершена.", reply_markup=build_main_keyboard())
+    await message.reply_text(
+        f"Сессия {LEARN_BUTTON_TEXT} завершена.",
+        reply_markup=build_main_keyboard(),
+    )
     logger.info(
         "exit_command_complete",
         extra={"user_id": user.id, "lesson_id": lesson_id},
