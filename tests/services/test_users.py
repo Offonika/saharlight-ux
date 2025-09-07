@@ -1,6 +1,7 @@
 import logging
 
 import pytest
+from sqlalchemy.orm import sessionmaker
 
 from services.api.app.diabetes.services import users
 
@@ -18,4 +19,23 @@ async def test_ensure_user_exists_db_error(
         with pytest.raises(RuntimeError):
             await users.ensure_user_exists(1)
 
-    assert "Failed to ensure user 1 exists" in caplog.text
+    assert "Failed to ensure user" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_ensure_user_exists_commit_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    in_memory_db: sessionmaker,
+) -> None:
+    def failing_commit(session: object) -> None:
+        raise users.CommitError
+
+    monkeypatch.setattr(users, "commit", failing_commit)
+    monkeypatch.setattr(users, "SessionLocal", in_memory_db)
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(users.CommitError):
+            await users.ensure_user_exists(1)
+
+    assert "Failed to create user 1" in caplog.text
