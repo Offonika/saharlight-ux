@@ -11,6 +11,10 @@ from telegram.ext import CallbackContext, ConversationHandler
 from unittest.mock import AsyncMock
 
 import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
+from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (
+    CallbackQueryNoWarnHandler,
+)
+from telegram.ext import CallbackQueryHandler
 import services.api.app.diabetes.services.users as users_service
 import services.api.app.diabetes.services.db as db
 import services.api.app.services.onboarding_state as onboarding_state
@@ -244,3 +248,11 @@ async def test_resume_from_saved_step() -> None:
 
 def test_onboarding_conv_per_message() -> None:
     assert onboarding.onboarding_conv.per_message is False
+    # Conversation states should use ``CallbackQueryNoWarnHandler`` instead of
+    # ``CallbackQueryHandler`` to avoid per-message warnings.
+    for handlers in onboarding.onboarding_conv.states.values():
+        assert not any(isinstance(h, CallbackQueryHandler) for h in handlers)
+    assert all(
+        isinstance(h, CallbackQueryNoWarnHandler)
+        for h in onboarding.onboarding_conv.states[onboarding.PROFILE]
+    )

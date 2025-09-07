@@ -10,7 +10,6 @@ Implements three steps with navigation and progress hints:
 from __future__ import annotations
 
 import logging
-import warnings
 from typing import Any, Iterable, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from datetime import time as time_cls
@@ -23,7 +22,6 @@ from telegram import (
     WebAppData,
 )
 from telegram.ext import (
-    CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
     ConversationHandler,
@@ -31,7 +29,6 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-from telegram.warnings import PTBUserWarning
 
 import config
 from services.api.app.diabetes.services.db import SessionLocal, User, run_db
@@ -52,15 +49,7 @@ from services.api.app.utils import choose_variant
 import services.bot.main as bot_main
 from .reminder_jobs import DefaultJobQueue
 from . import reminder_handlers
-
-warnings.filterwarnings(
-    "ignore",
-    message=(
-        "If 'per_message=True', all entry points, state handlers, and fallbacks "
-        "must be 'CallbackQueryHandler'"
-    ),
-    category=PTBUserWarning,
-)
+from .callbackquery_no_warn_handler import CallbackQueryNoWarnHandler
 
 logger = logging.getLogger(__name__)
 
@@ -651,20 +640,24 @@ onboarding_conv = ConversationHandler(
         CommandHandler("reset_onboarding", reset_onboarding),
     ],
     states={
-        PROFILE: [CallbackQueryHandler(profile_chosen)],
+        PROFILE: [CallbackQueryNoWarnHandler(profile_chosen)],
         TIMEZONE: [
-            CallbackQueryHandler(
+            CallbackQueryNoWarnHandler(
                 timezone_nav,
                 pattern=f"^({CB_BACK}|{CB_SKIP}|{CB_CANCEL})$",
             ),
             MessageHandler(filters.StatusUpdate.WEB_APP_DATA, timezone_webapp),
             MessageHandler(filters.TEXT & (~filters.COMMAND), timezone_text),
         ],
-        REMINDERS: [CallbackQueryHandler(reminders_chosen)],
+        REMINDERS: [CallbackQueryNoWarnHandler(reminders_chosen)],
     },
     fallbacks=[
         MessageHandler(filters.Regex(PHOTO_BUTTON_PATTERN), _photo_fallback)
     ],
+    # Subsequent steps rely on ``MessageHandler`` for text input, so enabling
+    # ``per_message=True`` would reset the conversation on each reply. Keep
+    # per-chat tracking to allow callback queries across messages.
+    per_message=False,
 )
 __all__ = [
     "PROFILE",
