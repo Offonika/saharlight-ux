@@ -7,6 +7,8 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.handlers import gpt_handlers
+from services.api.app.diabetes import assistant_state
+from services.api.app.services import assistant_memory
 
 
 class DummyMessage:
@@ -23,7 +25,9 @@ class DummyMessage:
 @pytest.mark.asyncio
 async def test_chat_with_gpt_replies_and_history() -> None:
     message = DummyMessage("hi")
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
@@ -46,15 +50,17 @@ async def test_chat_with_gpt_no_message() -> None:
 
 @pytest.mark.asyncio
 async def test_chat_with_gpt_trims_history(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(gpt_handlers, "ASSISTANT_MAX_TURNS", 2)
-    monkeypatch.setattr(gpt_handlers, "ASSISTANT_SUMMARY_TRIGGER", 99)
+    monkeypatch.setattr(assistant_state, "ASSISTANT_MAX_TURNS", 2)
+    monkeypatch.setattr(assistant_state, "ASSISTANT_SUMMARY_TRIGGER", 99)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
     for i in range(3):
         msg = DummyMessage(str(i))
-        update = cast(Update, SimpleNamespace(message=msg))
+        update = cast(
+            Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+        )
         await gpt_handlers.chat_with_gpt(update, context)
     history = cast(list[str], context.user_data["assistant_history"])
     assert len(history) == 2
@@ -63,35 +69,58 @@ async def test_chat_with_gpt_trims_history(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 @pytest.mark.asyncio
-async def test_chat_with_gpt_summarizes_history(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(gpt_handlers, "ASSISTANT_MAX_TURNS", 5)
-    monkeypatch.setattr(gpt_handlers, "ASSISTANT_SUMMARY_TRIGGER", 3)
+async def test_chat_with_gpt_summarizes_history(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(assistant_state, "ASSISTANT_MAX_TURNS", 2)
+    monkeypatch.setattr(assistant_state, "ASSISTANT_SUMMARY_TRIGGER", 3)
+    saved: list[tuple[int, str]] = []
+
+    async def fake_save(uid: int, text: str) -> None:
+        saved.append((uid, text))
+
+    monkeypatch.setattr(assistant_memory, "save_summary", fake_save)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
     for i in range(3):
         msg = DummyMessage(str(i))
-        update = cast(Update, SimpleNamespace(message=msg))
+        update = cast(
+            Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+        )
         await gpt_handlers.chat_with_gpt(update, context)
     history = cast(list[str], context.user_data["assistant_history"])
     summary = cast(str, context.user_data["assistant_summary"])
-    assert history[0] == summary
-    assert history[1].startswith("user: 1")
-    assert history[2].startswith("user: 2")
+    assert len(history) == 2
+    assert history[0].startswith("user: 1")
+    assert history[1].startswith("user: 2")
+    assert "user: 0" in summary
+    assert saved and saved[0][0] == 1
 
 
 @pytest.mark.asyncio
-async def test_reset_command_clears_history() -> None:
+async def test_reset_command_clears_history(monkeypatch: pytest.MonkeyPatch) -> None:
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"assistant_history": ["turn"], "assistant_summary": "s"}),
+        SimpleNamespace(
+            user_data={"assistant_history": ["turn"], "assistant_summary": "s"}
+        ),
     )
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
+    deleted: list[int] = []
+
+    async def fake_delete(uid: int) -> None:
+        deleted.append(uid)
+
+    monkeypatch.setattr(assistant_memory, "delete_summary", fake_delete)
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     await gpt_handlers.reset_command(update, context)
     assert context.user_data == {}
     assert message.texts == ["История диалога очищена."]
+    assert deleted == [1]
 
 
 @pytest.mark.asyncio

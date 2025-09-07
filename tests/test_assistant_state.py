@@ -5,6 +5,7 @@ import pytest
 
 from services.api.app.diabetes import assistant_state
 from services.api.app.diabetes import commands
+from services.api.app.services import assistant_memory
 
 
 @pytest.mark.asyncio
@@ -34,13 +35,21 @@ async def test_reset_command_clears(monkeypatch: pytest.MonkeyPatch) -> None:
         assistant_state.SUMMARY_KEY: "y",
     }
     replies: list[str] = []
+    deleted: list[int] = []
 
     class DummyMessage:
         async def reply_text(self, text: str, **_: Any) -> None:
             replies.append(text)
 
-    update = SimpleNamespace(effective_message=DummyMessage())
+    async def fake_delete(uid: int) -> None:
+        deleted.append(uid)
+
+    monkeypatch.setattr(assistant_memory, "delete_summary", fake_delete)
+    update = SimpleNamespace(
+        effective_message=DummyMessage(), effective_user=SimpleNamespace(id=1)
+    )
     context = SimpleNamespace(user_data=user_data)
     await commands.reset_command(update, context)
     assert user_data == {}
     assert replies and "очищ" in replies[0].lower()
+    assert deleted == [1]

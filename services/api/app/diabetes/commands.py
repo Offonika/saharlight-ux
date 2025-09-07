@@ -11,6 +11,7 @@ from .handlers.onboarding_handlers import (
     reset_onboarding as _reset_onboarding,
 )
 from .assistant_state import reset as _reset_assistant
+from services.api.app.services import assistant_memory
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,9 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     user_data = cast(dict[str, object], context.user_data)
     _reset_assistant(user_data)
+    user = update.effective_user
+    if user is not None:
+        await assistant_memory.delete_summary(user.id)
     await message.reply_text("История очищена.")
 
 

@@ -20,15 +20,18 @@ def summarize(parts: list[str]) -> str:
     return " ".join(parts)
 
 
-def add_turn(user_data: MutableMapping[str, object], text: str) -> None:
+def add_turn(user_data: MutableMapping[str, object], text: str) -> str | None:
     """Append assistant reply ``text`` to ``user_data`` keeping short history.
 
     When the number of stored turns reaches :data:`ASSISTANT_SUMMARY_TRIGGER`,
     older entries beyond :data:`ASSISTANT_MAX_TURNS` are summarized and the
     summary is stored under ``assistant_summary`` key.
+
+    Returns the updated summary when one was generated, otherwise ``None``.
     """
     history = cast(list[str], user_data.setdefault(HISTORY_KEY, []))
     history.append(text)
+    summary: str | None = None
     if len(history) >= ASSISTANT_SUMMARY_TRIGGER:
         old = history[:-ASSISTANT_MAX_TURNS]
         if old:
@@ -38,6 +41,7 @@ def add_turn(user_data: MutableMapping[str, object], text: str) -> None:
         del history[:-ASSISTANT_MAX_TURNS]
     elif len(history) > ASSISTANT_MAX_TURNS:
         del history[:-ASSISTANT_MAX_TURNS]
+    return summary
 
 
 def reset(user_data: MutableMapping[str, object]) -> None:

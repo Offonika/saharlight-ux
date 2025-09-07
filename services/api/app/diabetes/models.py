@@ -4,6 +4,7 @@ from services.api.app.models.onboarding_metrics import (  # noqa: F401
     OnboardingMetricEvent,
     OnboardingMetricDaily,
 )
+from services.api.app.services.assistant_memory import AssistantMemory  # noqa: F401
 from .services.db import Base
 
 metadata = Base.metadata
