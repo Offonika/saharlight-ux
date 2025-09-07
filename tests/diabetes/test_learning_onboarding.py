@@ -41,7 +41,9 @@ class DummyCallbackQuery:
         self.message = message
         self.answers: list[str | None] = []
 
-    async def answer(self, text: str | None = None, **kwargs: Any) -> None:  # pragma: no cover - helper
+    async def answer(
+        self, text: str | None = None, **kwargs: Any
+    ) -> None:  # pragma: no cover - helper
         self.answers.append(text)
 
 
@@ -179,7 +181,7 @@ async def test_learning_onboarding_callback_flow(
         assert [b.text for b in markup.inline_keyboard[0]] == [
             "Новичок",
             "Средний",
-            "Эксперт",
+            "Продвинутый",
         ]
 
         q3_msg = DummyMessage()
@@ -201,9 +203,7 @@ async def test_learning_onboarding_callback_flow(
         msg2 = DummyMessage()
         upd2 = cast(Update, SimpleNamespace(message=msg2, effective_user=None))
         await learning_handlers.learn_command(upd2, ctx)
-        assert any(
-            LEARN_BUTTON_TEXT in text or "Урок" in text for text in msg2.replies
-        )
+        assert any(LEARN_BUTTON_TEXT in text or "Урок" in text for text in msg2.replies)
     finally:
         engine.dispose()
 
@@ -219,6 +219,28 @@ async def test_onboarding_reply_ignored_without_stage() -> None:
     await learning_onboarding.onboarding_reply(update, context)
     assert message.replies == []
     assert context.user_data == {}
+
+
+@pytest.mark.asyncio
+async def test_ensure_overrides_normalizes_level() -> None:
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            user_data={
+                "learn_profile_overrides": {
+                    "age_group": "adult",
+                    "diabetes_type": "T1",
+                    "learning_level": "продвинутый",
+                }
+            }
+        ),
+    )
+    update = cast(
+        Update, SimpleNamespace(message=None, callback_query=None, effective_user=None)
+    )
+    assert await onboarding_utils.ensure_overrides(update, context)
+    assert context.user_data["learn_profile_overrides"]["learning_level"] == "expert"
+    assert context.user_data.get("learning_onboarded") is True
 
 
 @pytest.mark.asyncio
