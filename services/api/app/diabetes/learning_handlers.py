@@ -23,7 +23,7 @@ from .services.gpt_client import (
     create_learning_chat_completion,
     format_reply,
 )
-from .services.lesson_log import add_lesson_log
+from services.api.app.assistant.repositories.logs import add_lesson_log
 from .planner import generate_learning_plan, pretty_plan
 
 logger = logging.getLogger(__name__)
@@ -315,7 +315,9 @@ async def lesson_answer_handler(
     user_text = message.text.strip()
     if telegram_id is not None:
         try:
-            await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
+            await add_lesson_log(
+                telegram_id, state.topic, "user", state.step, user_text
+            )
         except Exception:
             logger.exception("lesson log failed")
             await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
@@ -346,7 +348,9 @@ async def lesson_answer_handler(
                 )
             except Exception:
                 logger.exception("lesson log failed")
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+                await message.reply_text(
+                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
+                )
                 state.awaiting_answer = True
                 return
         next_text = await generate_step_text(
@@ -365,7 +369,9 @@ async def lesson_answer_handler(
                 )
             except Exception:
                 logger.exception("lesson log failed")
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+                await message.reply_text(
+                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
+                )
                 state.awaiting_answer = True
                 return
         state.step += 1
