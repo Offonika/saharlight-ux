@@ -153,6 +153,7 @@ def register_handlers(
         sugar_handlers,
         gpt_handlers,
         billing_handlers,
+        learning_onboarding,
     )
     from services.api.app.config import reload_settings, settings
 
@@ -181,7 +182,41 @@ def register_handlers(
     app.add_handler(CommandHandlerT("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandlerT("help", help_command))
     if learning_enabled:
-        learning_handlers.register_handlers(app)
+        app.add_handler(CommandHandlerT("learn", learning_handlers.learn_command))
+        app.add_handler(CommandHandlerT("lesson", learning_handlers.lesson_command))
+        app.add_handler(CommandHandlerT("quiz", learning_handlers.quiz_command))
+        app.add_handler(CommandHandlerT("progress", learning_handlers.progress_command))
+        app.add_handler(CommandHandlerT("exit", learning_handlers.exit_command))
+        app.add_handler(CommandHandlerT("topics", dynamic_learning_handlers.topics_command))
+        app.add_handler(CommandHandlerT("plan", dynamic_learning_handlers.plan_command))
+        app.add_handler(CommandHandlerT("skip", dynamic_learning_handlers.skip_command))
+        app.add_handler(CommandHandlerT("learn_reset", learning_onboarding.learn_reset))
+        app.add_handler(
+            MessageHandlerT(
+                filters.TEXT & ~filters.COMMAND,
+                learning_onboarding.onboarding_reply,
+            )
+        )
+        app.add_handler(
+            MessageHandlerT(
+                filters.TEXT & ~filters.COMMAND,
+                learning_handlers.quiz_answer_handler,
+                block=False,
+            )
+        )
+        app.add_handler(
+            CallbackQueryHandlerT(
+                dynamic_learning_handlers.lesson_callback,
+                pattern="^lesson:",
+            )
+        )
+        app.add_handler(
+            MessageHandlerT(
+                filters.TEXT & ~filters.COMMAND,
+                dynamic_learning_handlers.lesson_answer_handler,
+                block=False,
+            )
+        )
     app.add_handler(CommandHandlerT("gpt", gpt_handlers.chat_with_gpt))
     app.add_handler(CommandHandlerT("reset", gpt_handlers.reset_command))
     app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
