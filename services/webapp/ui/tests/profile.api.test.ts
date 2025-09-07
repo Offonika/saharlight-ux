@@ -22,11 +22,11 @@ describe('profile api', () => {
       );
     vi.stubGlobal('fetch', mockFetch);
 
-    await expect(getProfile(1)).rejects.toThrow(
+    await expect(getProfile()).rejects.toThrow(
       'Не удалось получить профиль: boom',
     );
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profile?telegramId=1',
+      '/api/profile',
       expect.any(Object),
     );
   });
@@ -42,10 +42,10 @@ describe('profile api', () => {
       );
     vi.stubGlobal('fetch', mockFetch);
 
-    const result = await getProfile(1);
+    const result = await getProfile();
     expect(result).toBeNull();
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profile?telegramId=1',
+      '/api/profile',
       expect.any(Object),
     );
   });
@@ -61,11 +61,11 @@ describe('profile api', () => {
       );
     vi.stubGlobal('fetch', mockFetch);
 
-    await expect(getProfile(1)).rejects.toThrow(
+    await expect(getProfile()).rejects.toThrow(
       'Не удалось получить профиль: Некорректный ответ сервера',
     );
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/profile?telegramId=1',
+      '/api/profile',
       expect.any(Object),
     );
   });
