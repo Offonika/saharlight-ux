@@ -43,21 +43,15 @@ _async_client_lock: asyncio.Lock | None = None
 
 _learning_router = LLMRouter()
 
-CacheKey = tuple[str, tuple[tuple[tuple[str, str], ...], ...]]
+CacheKey = tuple[str, str, str]
 
 _learning_cache: dict[CacheKey, str] = {}
 _learning_cache_lock = threading.Lock()
 
 
-def _make_cache_key(
-    model: str, messages: Iterable[ChatCompletionMessageParam]
-) -> CacheKey:
-    """Create a hashable cache key from *model* and *messages*."""
-    normalized: list[tuple[tuple[str, str], ...]] = []
-    for message in messages:
-        mapping = cast(Mapping[str, object], message)
-        normalized.append(tuple((k, str(v)) for k, v in sorted(mapping.items())))
-    return model, tuple(normalized)
+def _make_cache_key(model: str, system: str, user: str) -> CacheKey:
+    """Create a hashable cache key from model and prompts."""
+    return model, system, user
 
 
 def _get_client() -> OpenAI:
@@ -183,8 +177,17 @@ async def create_learning_chat_completion(
     """Create and format a chat completion for learning tasks."""
     model = _learning_router.choose_model(task)
     msg_list = list(messages)
+    system = ""
+    user = ""
+    for msg in msg_list:
+        mapping = cast(Mapping[str, object], msg)
+        role = mapping.get("role")
+        if role == "system" and not system:
+            system = str(mapping.get("content", ""))
+        elif role == "user" and not user:
+            user = str(mapping.get("content", ""))
     settings = config.get_settings()
-    cache_key = _make_cache_key(model, msg_list)
+    cache_key = _make_cache_key(model, system, user)
     if settings.learning_prompt_cache:
         with _learning_cache_lock:
             cached = _learning_cache.get(cache_key)
