@@ -174,12 +174,19 @@ class User(Base):
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     profile: Mapped["Profile"] = relationship("Profile", back_populates="user", uselist=False)
+    learning_progresses: Mapped[list["LearningProgress"]] = relationship(
+        "LearningProgress", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class UserRole(Base):
     __tablename__ = "user_roles"
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), primary_key=True)
     role: Mapped[str] = mapped_column(String, nullable=False, default="patient")
+
+
+# Import assistant models to register them with SQLAlchemy
+from services.api.app.assistant import models as _assistant_models  # noqa: E402,F401
 
 
 class Profile(Base):
