@@ -94,7 +94,8 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     slug, _ = choose_initial_topic(profile)
     progress = await curriculum_engine.start_lesson(user.id, slug)
     text, _ = await curriculum_engine.next_step(user.id, progress.lesson_id, profile)
-    if text is None:
+    if text is None or text == BUSY_MESSAGE:
+        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
     plan = generate_learning_plan(text)
     user_data["learning_plan"] = plan
