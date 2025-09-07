@@ -130,9 +130,13 @@ async def start_trial(
             if existing is not None:
                 status = SubStatus(existing.status)
                 if status is SubStatus.trial:
-                    raise HTTPException(status_code=409, detail="Trial already active")
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Пробный период уже активен",
+                    )
                 raise HTTPException(
-                    status_code=409, detail="subscription already active"
+                    status_code=409,
+                    detail="Подписка уже активна",
                 )
             return _create_trial(session)
 
@@ -155,7 +159,10 @@ async def start_trial(
             },
             exc_info=exc,
         )
-        raise HTTPException(status_code=400, detail="invalid enum value") from exc
+        raise HTTPException(
+            status_code=400,
+            detail="недопустимое значение перечисления",
+        ) from exc
     except IntegrityError as exc:
         logger.warning(
             "trial creation failed",
@@ -167,9 +174,15 @@ async def start_trial(
             },
             exc_info=exc,
         )
-        raise HTTPException(status_code=409, detail="Trial already active") from exc
+        raise HTTPException(
+            status_code=409,
+            detail="Пробный период уже активен",
+        ) from exc
     if trial is None:
-        raise HTTPException(status_code=500, detail="trial retrieval failed")
+        raise HTTPException(
+            status_code=500,
+            detail="не удалось получить пробный период",
+        )
 
     return SubscriptionSchema.model_validate(trial, from_attributes=True)
 

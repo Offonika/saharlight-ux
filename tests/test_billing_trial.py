@@ -117,7 +117,7 @@ def test_trial_repeat_call(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resp1.status_code == 200
     data1 = resp1.json()
     assert resp2.status_code == 409
-    assert resp2.json()["detail"] == "Trial already active"
+    assert resp2.json()["detail"] == "Пробный период уже активен"
     assert data1["plan"] == "pro"
     assert data1["status"] == SubStatus.trial.value
     count_stmt = select(func.count()).select_from(Subscription)
@@ -155,7 +155,7 @@ def test_trial_conflicts_with_active_subscription(
     with client:
         resp = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp.status_code == 409
-    assert resp.json()["detail"] == "subscription already active"
+    assert resp.json()["detail"] == "Подписка уже активна"
 
 
 def test_trial_repeat_call_after_expiration(
@@ -178,7 +178,7 @@ def test_trial_repeat_call_after_expiration(
     with client:
         resp2 = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp2.status_code == 409
-    assert resp2.json()["detail"] == "Trial already active"
+    assert resp2.json()["detail"] == "Пробный период уже активен"
     count_stmt = select(func.count()).select_from(Subscription)
     with session_local() as session:
         count = session.scalar(count_stmt)
@@ -207,7 +207,7 @@ def test_trial_integrity_error(
         with client:
             resp = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp.status_code == 409
-    assert resp.json()["detail"] == "Trial already active"
+    assert resp.json()["detail"] == "Пробный период уже активен"
     assert len(caplog.records) == 1
     record = caplog.records[0]
     assert record.user_id == 1
@@ -238,7 +238,7 @@ def test_trial_invalid_enum(
         with client:
             resp = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp.status_code == 400
-    assert resp.json()["detail"] == "invalid enum value"
+    assert resp.json()["detail"] == "недопустимое значение перечисления"
     assert len(caplog.records) == 1
     record = caplog.records[0]
     assert record.user_id == 1
