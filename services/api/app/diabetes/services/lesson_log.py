@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from ...config import settings
 from ..models_learning import LessonLog
+from ..metrics import lesson_log_failures
 from .db import SessionLocal, run_db
 from .repository import commit
 
@@ -53,6 +54,7 @@ async def flush_pending_logs() -> None:
         await run_db(_flush, sessionmaker=SessionLocal)
     except Exception:  # pragma: no cover - logging only
         logger.exception("Failed to flush %s lesson logs", len(entries))
+        lesson_log_failures.inc(len(entries))
         return
 
     pending_logs.clear()
