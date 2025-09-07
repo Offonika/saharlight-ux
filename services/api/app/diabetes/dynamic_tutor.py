@@ -40,7 +40,9 @@ async def generate_step_text(
         user = build_user_prompt_step(topic_slug, step_idx, prev_summary)
         return await _chat(LLMTask.EXPLAIN_STEP, system, user)
     except Exception:
-        logger.exception("failed to generate step", extra={"topic": topic_slug, "step": step_idx})
+        logger.exception(
+            "failed to generate step", extra={"topic": topic_slug, "step": step_idx}
+        )
         return BUSY_MESSAGE
 
 
@@ -67,6 +69,12 @@ async def check_user_answer(
     except Exception:
         logger.exception(
             "failed to check answer",
+            extra={"topic": topic_slug, "answer": user_answer},
+        )
+        return False, BUSY_MESSAGE
+    if not feedback.strip():
+        logger.warning(
+            "empty feedback",
             extra={"topic": topic_slug, "answer": user_answer},
         )
         return False, BUSY_MESSAGE
