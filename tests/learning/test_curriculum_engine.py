@@ -11,6 +11,7 @@ from services.api.app.diabetes.curriculum_engine import (
     next_step,
     start_lesson,
 )
+from services.api.app.diabetes.dynamic_tutor import BUSY_MESSAGE
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.models_learning import (
@@ -236,3 +237,41 @@ async def test_check_answer_invalid_input(
         False,
         "Пожалуйста, выберите номер варианта",
     )
+
+
+@pytest.mark.asyncio()
+async def test_next_step_handles_gpt_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    db.SessionLocal.configure(bind=engine)
+    db.Base.metadata.create_all(bind=engine)
+
+    with db.SessionLocal() as session:
+        session.add(db.User(telegram_id=1, thread_id="t1"))
+        lesson = Lesson(title="t", slug="s", content="", is_active=True)
+        session.add(lesson)
+        session.flush()
+        session.add(LessonStep(lesson_id=lesson.id, step_order=1, content="c"))
+        session.commit()
+        lesson_id = lesson.id
+
+    await start_lesson(1, "s")
+
+    async def fail_completion(**kwargs: object) -> str:  # pragma: no cover - test
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(
+        gpt_client,
+        "create_learning_chat_completion",
+        fail_completion,
+    )
+
+    text, completed = await next_step(1, lesson_id, {})
+    assert text == BUSY_MESSAGE
+    assert completed is False

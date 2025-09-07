@@ -8,7 +8,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from ..config import settings
-from .dynamic_tutor import check_user_answer, generate_step_text
+from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
 from .learning_prompts import (
     SYSTEM_TUTOR_RU,
     build_explain_step,
@@ -145,13 +145,24 @@ async def next_step(
     ) = await db.run_db(_advance_static)
     if step_content is not None and step_idx is not None:
         start = time.monotonic()
-        text = await gpt_client.create_learning_chat_completion(
-            task=LLMTask.EXPLAIN_STEP,
-            messages=[
-                {"role": "system", "content": SYSTEM_TUTOR_RU},
-                {"role": "user", "content": build_explain_step(step_content)},
-            ],
-        )
+        try:
+            text = await gpt_client.create_learning_chat_completion(
+                task=LLMTask.EXPLAIN_STEP,
+                messages=[
+                    {"role": "system", "content": SYSTEM_TUTOR_RU},
+                    {"role": "user", "content": build_explain_step(step_content)},
+                ],
+            )
+        except Exception:
+            logger.exception(
+                "failed to create learning chat completion",
+                extra={
+                    "user_id": user_id,
+                    "lesson_id": lesson_id,
+                    "step": step_idx,
+                },
+            )
+            return BUSY_MESSAGE, completed
         latency = time.monotonic() - start
         logger.info(
             "lesson_step",
