@@ -14,6 +14,16 @@
 LEARNING_MODE_ENABLED=true
 ```
 
+## Флаги ассистента
+
+| Флаг | Значение по умолчанию | Описание |
+| --- | --- | --- |
+| `ASSISTANT_MODE_ENABLED` | `true` | включает режим ассистента |
+| `LEARNING_PLANNER_MODEL` | `gpt-4o-mini` | модель построения плана урока |
+| `ASSISTANT_MAX_TURNS` | `16` | число сообщений, хранящихся в истории |
+| `ASSISTANT_SUMMARY_TRIGGER` | `12` | после стольких сообщений создаётся сводка |
+| `LEARNING_PROMPT_CACHE_TTL_SEC` | `28800` | время жизни кэша промптов, сек |
+
 ## Подготовка базы данных
 
 ```bash
