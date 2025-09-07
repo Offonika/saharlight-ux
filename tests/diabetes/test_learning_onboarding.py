@@ -48,6 +48,7 @@ async def test_learning_onboarding_flow(
 ) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
     monkeypatch.setattr(settings, "learning_command_model", "test-model")
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
 
     sample = [{"title": "Sample", "steps": ["s1"], "quiz": []}]
     path = tmp_path / "lessons.json"
