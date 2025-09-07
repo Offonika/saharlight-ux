@@ -5,7 +5,6 @@ from typing import MutableMapping, cast
 
 from sqlalchemy.orm import Session
 
-from ...diabetes import assistant_state
 from ...diabetes.services.db import SessionLocal, run_db
 from ...diabetes.services.repository import commit
 from ..models import AssistantMemory
@@ -33,15 +32,15 @@ async def get_memory(user_id: int) -> AssistantMemory | None:
 
 
 async def save_memory(
-    user_id: int, *, summary_text: str, turn_count: int, last_turn_at: datetime
+    user_id: int, *, profile_url: str | None, turn_count: int, last_turn_at: datetime
 ) -> AssistantMemory:
-    """Persist ``summary_text`` for ``user_id`` overwriting existing value."""
+    """Persist profile link and counters for ``user_id``."""
 
     def _save(session: Session) -> AssistantMemory:
         return repo_upsert_memory(
             session,
             user_id=user_id,
-            summary_text=summary_text,
+            profile_url=profile_url,
             turn_count=turn_count,
             last_turn_at=last_turn_at,
         )
@@ -65,19 +64,13 @@ async def clear_memory(user_id: int) -> None:
 async def record_turn(
     user_id: int,
     user_data: MutableMapping[str, object],
-    text: str,
     *,
     now: datetime | None = None,
 ) -> None:
-    """Record assistant reply and persist summary if threshold exceeded."""
+    """Increment turn counter without storing raw text."""
 
-    summarized = assistant_state.add_turn(user_data, text)
-    if summarized == 0:
-        return
     if now is None:
         now = datetime.now(timezone.utc)
-
-    summary = cast(str, user_data[assistant_state.SUMMARY_KEY])
 
     def _save(session: Session) -> None:
         existing = repo_get_memory(session, user_id)
@@ -85,8 +78,8 @@ async def record_turn(
         repo_upsert_memory(
             session,
             user_id=user_id,
-            summary_text=summary,
-            turn_count=prev_count + summarized,
+            profile_url=cast(str | None, user_data.get("profile_url")),
+            turn_count=prev_count + 1,
             last_turn_at=now,
         )
 

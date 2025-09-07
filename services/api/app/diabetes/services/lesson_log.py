@@ -27,7 +27,6 @@ class _PendingLog:
     topic_slug: str
     role: str
     step_idx: int
-    content: str
 
 
 pending_logs: list[_PendingLog] = []
@@ -61,20 +60,18 @@ async def add_lesson_log(
     topic_slug: str,
     role: str,
     step_idx: int,
-    content: str,
 ) -> None:
-    """Queue a lesson log entry and attempt to flush."""
+    """Queue a lesson log entry without storing raw text."""
 
     if not settings.learning_logging_required:
         return
 
     pending_logs.append(
         _PendingLog(
-        telegram_id=telegram_id,
-        topic_slug=topic_slug,
-        role=role,
-        step_idx=step_idx,
-        content=content,
+            telegram_id=telegram_id,
+            topic_slug=topic_slug,
+            role=role,
+            step_idx=step_idx,
         )
     )
 

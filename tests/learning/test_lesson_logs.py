@@ -28,10 +28,8 @@ def setup_db() -> None:
 
 @pytest.mark.asyncio
 async def test_add_and_get_logs(setup_db: None) -> None:
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
-    await add_lesson_log(1, "topic", "user", 1, "answer")
+    await add_lesson_log(1, "topic", "assistant", 1)
+    await add_lesson_log(1, "topic", "user", 1)
     logs = await get_lesson_logs(1, "topic")
     assert [log.role for log in logs] == ["assistant", "user"]
-    assert logs[0].content == "hi"
-    assert logs[1].content == "answer"
     assert isinstance(logs[0].created_at, type(logs[1].created_at))

@@ -294,7 +294,11 @@ async def test_lesson_answer_double_click(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", slow_check_user_answer)
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", lambda *a, **k: None)
+
+    async def fake_add_log(*a: object, **k: object) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     user_data: dict[str, Any] = {}

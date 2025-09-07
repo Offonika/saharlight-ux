@@ -19,22 +19,22 @@ def upsert_memory(
     session: Session,
     *,
     user_id: int,
-    summary_text: str,
+    profile_url: str | None,
     turn_count: int,
     last_turn_at: datetime,
 ) -> AssistantMemory:
-    """Insert or update conversation memory for a user."""
+    """Insert or update minimal memory data for a user."""
     memory = session.get(AssistantMemory, user_id)
     if memory is None:
         memory = AssistantMemory(
             user_id=user_id,
-            summary_text=summary_text,
+            profile_url=profile_url,
             turn_count=turn_count,
             last_turn_at=last_turn_at,
         )
         session.add(memory)
     else:
-        memory.summary_text = summary_text
+        memory.profile_url = profile_url
         memory.turn_count = turn_count
         memory.last_turn_at = last_turn_at
     commit(session)

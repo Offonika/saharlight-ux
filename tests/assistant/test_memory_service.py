@@ -40,11 +40,14 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
 async def test_save_and_get_memory(setup_db: sessionmaker[Session]) -> None:
     now = datetime.now(tz=timezone.utc)
     await memory_service.save_memory(
-        1, summary_text="hello", turn_count=1, last_turn_at=now
+        1,
+        profile_url="https://example.com/profile/1",
+        turn_count=1,
+        last_turn_at=now,
     )
     mem = await memory_service.get_memory(1)
     assert mem is not None
-    assert mem.summary_text == "hello"
+    assert mem.profile_url == "https://example.com/profile/1"
     assert mem.turn_count == 1
 
 
@@ -52,7 +55,10 @@ async def test_save_and_get_memory(setup_db: sessionmaker[Session]) -> None:
 async def test_clear_memory(setup_db: sessionmaker[Session]) -> None:
     now = datetime.now(tz=timezone.utc)
     await memory_service.save_memory(
-        1, summary_text="hello", turn_count=1, last_turn_at=now
+        1,
+        profile_url="https://example.com/profile/1",
+        turn_count=1,
+        last_turn_at=now,
     )
     await memory_service.clear_memory(1)
     assert await memory_service.get_memory(1) is None
@@ -62,7 +68,10 @@ async def test_clear_memory(setup_db: sessionmaker[Session]) -> None:
 async def test_reset_command_clears_memory(setup_db: sessionmaker[Session]) -> None:
     now = datetime.now(tz=timezone.utc)
     await memory_service.save_memory(
-        1, summary_text="hello", turn_count=1, last_turn_at=now
+        1,
+        profile_url="https://example.com/profile/1",
+        turn_count=1,
+        last_turn_at=now,
     )
 
     class DummyMessage:
