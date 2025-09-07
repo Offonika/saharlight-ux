@@ -85,9 +85,16 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert question_text.startswith(disclaimer())
 
     with db.SessionLocal() as session:
-        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
+        questions = (
+            session.query(QuizQuestion)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(QuizQuestion.id)
+            .all()
+        )
 
-    first_opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(questions[0].options, start=1))
+    first_opts = "\n".join(
+        f"{idx}. {opt}" for idx, opt in enumerate(questions[0].options, start=1)
+    )
     assert question_text.endswith(first_opts)
 
     for idx, q in enumerate(questions):
@@ -104,7 +111,11 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert completed is True
 
     with db.SessionLocal() as session:
-        progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
+        progress = (
+            session.query(LessonProgress)
+            .filter_by(user_id=1, lesson_id=lesson_id)
+            .one()
+        )
         assert progress.completed is True
         assert progress.quiz_score == 100
     assert lessons_completed._value.get() == base_completed + 1  # type: ignore[attr-defined]
@@ -149,7 +160,11 @@ async def test_lesson_without_quiz(monkeypatch: pytest.MonkeyPatch) -> None:
     assert completed is True
 
     with db.SessionLocal() as session:
-        progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
+        progress = (
+            session.query(LessonProgress)
+            .filter_by(user_id=1, lesson_id=lesson_id)
+            .one()
+        )
         assert progress.completed is True
         assert progress.quiz_score is None
 
@@ -203,3 +218,21 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     text, completed = await next_step(1, lesson_id, profile)
     assert text == "step 2"
     assert completed is False
+
+
+@pytest.mark.asyncio()
+async def test_check_answer_invalid_input(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
+
+    async def fake_run_db(*args: object, **kwargs: object) -> None:
+        raise AssertionError("run_db should not be called")
+
+    monkeypatch.setattr(curriculum_engine.db, "run_db", fake_run_db)
+
+    correct, feedback = await check_answer(1, 1, {}, "abc")
+    assert (correct, feedback) == (
+        False,
+        "Пожалуйста, выберите номер варианта",
+    )

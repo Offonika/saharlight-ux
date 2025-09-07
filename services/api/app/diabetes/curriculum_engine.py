@@ -28,7 +28,9 @@ async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
     """Start or reset a lesson for a user and return progress."""
 
     def _start(session: Session) -> LessonProgress:
-        lesson = session.execute(sa.select(Lesson).filter_by(slug=lesson_slug)).scalar_one()
+        lesson = session.execute(
+            sa.select(Lesson).filter_by(slug=lesson_slug)
+        ).scalar_one()
         progress = session.execute(
             sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson.id)
         ).scalar_one_or_none()
@@ -71,9 +73,12 @@ async def next_step(
     """
 
     if settings.learning_content_mode == "dynamic":
+
         def _advance_dynamic(session: Session) -> tuple[int, str]:
             progress = session.execute(
-                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+                sa.select(LessonProgress).filter_by(
+                    user_id=user_id, lesson_id=lesson_id
+                )
             ).scalar_one()
             lesson = session.execute(
                 sa.select(Lesson).filter_by(id=lesson_id)
@@ -95,7 +100,9 @@ async def next_step(
             sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
         ).scalar_one()
         steps = session.scalars(
-            sa.select(LessonStep).filter_by(lesson_id=lesson_id).order_by(LessonStep.step_order)
+            sa.select(LessonStep)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(LessonStep.step_order)
         ).all()
         if progress.current_step < len(steps):
             step = steps[progress.current_step]
@@ -105,13 +112,24 @@ async def next_step(
             commit(session)
             return step.content, None, first_step, False, step_idx, False
         questions = session.scalars(
-            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
+            sa.select(QuizQuestion)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(QuizQuestion.id)
         ).all()
         if progress.current_question < len(questions):
             q = questions[progress.current_question]
             first_question = progress.current_question == 0
-            opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(q.options, start=1))
-            return None, f"{q.question}\n{opts}", False, first_question, progress.current_step, False
+            opts = "\n".join(
+                f"{idx}. {opt}" for idx, opt in enumerate(q.options, start=1)
+            )
+            return (
+                None,
+                f"{q.question}\n{opts}",
+                False,
+                first_question,
+                progress.current_step,
+                False,
+            )
         if not progress.completed:
             progress.completed = True
             commit(session)
@@ -164,6 +182,7 @@ async def check_answer(
     """Check user's answer using the given profile and return feedback."""
 
     if settings.learning_content_mode == "dynamic":
+
         def _get_slug(session: Session) -> str:
             lesson = session.execute(
                 sa.select(Lesson).filter_by(id=lesson_id)
@@ -177,14 +196,19 @@ async def check_answer(
         feedback = feedback.strip()
         return correct, feedback
 
-    answer_index = int(answer) - 1
+    try:
+        answer_index = int(answer) - 1
+    except (TypeError, ValueError):
+        return False, "Пожалуйста, выберите номер варианта"
 
     def _check(session: Session) -> tuple[bool, str, int, bool, int | None]:
         progress = session.execute(
             sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
         ).scalar_one()
         questions = session.scalars(
-            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
+            sa.select(QuizQuestion)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(QuizQuestion.id)
         ).all()
         question = questions[progress.current_question]
         correct = answer_index == question.correct_option
@@ -226,4 +250,6 @@ async def check_answer(
         },
     )
     return correct, message
+
+
 __all__ = ["start_lesson", "next_step", "check_answer"]
