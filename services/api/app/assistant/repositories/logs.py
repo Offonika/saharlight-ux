@@ -127,7 +127,8 @@ async def cleanup_old_logs(ttl: timedelta | None = None) -> None:
     cutoff = datetime.now(timezone.utc) - ttl
 
     def _cleanup(session: Session) -> int:
-        deleted = session.query(LessonLog).where(LessonLog.created_at < cutoff).delete()
+        query = session.query(LessonLog).where(LessonLog.created_at < cutoff)
+        deleted = query.delete(synchronize_session=False)
         commit(session)
         return deleted
 
