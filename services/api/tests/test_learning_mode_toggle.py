@@ -59,6 +59,7 @@ async def test_learning_mode_enabled_lists_lessons(
 
     monkeypatch.setenv("LEARNING_MODE_ENABLED", "true")
     monkeypatch.setenv("LEARNING_ENABLED", "1")
+    monkeypatch.setenv("LEARNING_CONTENT_MODE", "static")
     settings = config.reload_settings()
 
     SessionLocal = setup_db()
@@ -109,6 +110,7 @@ async def test_learning_mode_disabled_denies_access(
 ) -> None:
     monkeypatch.setenv("LEARNING_MODE_ENABLED", "false")
     monkeypatch.setenv("LEARNING_ENABLED", "0")
+    monkeypatch.setenv("LEARNING_CONTENT_MODE", "static")
     settings = config.reload_settings()
     monkeypatch.setattr(learning_handlers, "settings", settings)
 

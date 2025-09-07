@@ -85,6 +85,11 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not settings.learning_mode_enabled:
         await message.reply_text("🚫 Обучение недоступно.")
         return
+    if settings.learning_content_mode == "dynamic":
+        from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
+
+        await dynamic_learning_handlers.learn_command(update, context)
+        return
     if not await ensure_overrides(update, context):
         return
     model = settings.learning_command_model

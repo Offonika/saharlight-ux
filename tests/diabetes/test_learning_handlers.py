@@ -66,6 +66,7 @@ def setup_db() -> sessionmaker[Session]:
 async def test_learn_enabled(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
     monkeypatch.setattr(settings, "learning_command_model", "super-model")
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
     sample = [
         {
             "title": "Sample",

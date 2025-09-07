@@ -46,7 +46,13 @@ async def test_learn_command_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """When flag is disabled the command should warn the user."""
 
     monkeypatch.setattr(
-        handlers, "settings", Settings(LEARNING_MODE_ENABLED="0", _env_file=None)
+        handlers,
+        "settings",
+        Settings(
+            LEARNING_MODE_ENABLED="0",
+            LEARNING_CONTENT_MODE="static",
+            _env_file=None,
+        ),
     )
     message = DummyMessage()
     update = cast(
@@ -74,7 +80,12 @@ async def test_learn_command_no_lessons(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(
         handlers,
         "settings",
-        Settings(LEARNING_MODE_ENABLED="1", LEARNING_COMMAND_MODEL="m", _env_file=None),
+        Settings(
+            LEARNING_MODE_ENABLED="1",
+            LEARNING_COMMAND_MODEL="m",
+            LEARNING_CONTENT_MODE="static",
+            _env_file=None,
+        ),
     )
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message, effective_user=None))
@@ -124,7 +135,12 @@ async def test_learn_command_lists_lessons(
     monkeypatch.setattr(
         handlers,
         "settings",
-        Settings(LEARNING_MODE_ENABLED="1", LEARNING_COMMAND_MODEL="m", _env_file=None),
+        Settings(
+            LEARNING_MODE_ENABLED="1",
+            LEARNING_COMMAND_MODEL="m",
+            LEARNING_CONTENT_MODE="static",
+            _env_file=None,
+        ),
     )
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message, effective_user=None))
