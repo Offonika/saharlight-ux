@@ -70,7 +70,7 @@ async def test_learn_command_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await handlers.learn_command(update, context)
 
-    assert message.replies == ["🚫 Учебный режим недоступен."]
+    assert message.replies == [f"🚫 {LEARN_BUTTON_TEXT} недоступен."]
 
 
 @pytest.mark.asyncio
@@ -162,7 +162,7 @@ async def test_learn_command_lists_lessons(
 
     await handlers.learn_command(update, context)
 
-    assert message.replies[0].startswith("🤖 Учебный режим активирован.")
+    assert message.replies[0].startswith(f"{LEARN_BUTTON_TEXT} активирован.")
     keyboard = message.kwargs[0].get("reply_markup")
     assert keyboard is not None
     assert keyboard.keyboard

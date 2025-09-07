@@ -10,6 +10,7 @@ from .learning_handlers import learn_command, topics_command
 from .handlers.onboarding_handlers import (
     reset_onboarding as _reset_onboarding,
 )
+from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .assistant_state import reset as _reset_assistant
 from ..assistant.services.memory_service import clear_memory as _clear_memory
 
@@ -20,7 +21,7 @@ HELP_TEXT = "\n".join(
         "Доступные команды:",
         "/start - начать работу с ботом",
         "/help - краткая справка",
-        "нажмите кнопку 🤖 Ассистент_AI или команду /learn - режим обучения",
+        f"нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn - режим обучения",
         "/topics - список тем",
         "/reset_onboarding - сбросить мастер настройки",
         "/trial - Включить trial",

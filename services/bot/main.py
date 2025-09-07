@@ -122,9 +122,9 @@ def main() -> None:  # pragma: no cover
     # ---- Register handlers (they may schedule reminders)
     register_handlers(application)
     if settings.learning_mode_enabled:
-        logger.info("📚 Учебный режим включён")
+        logger.info("📚 🤖 Ассистент_AI включён")
     else:
-        logger.info("📚 Учебный режим выключен")
+        logger.info("📚 🤖 Ассистент_AI выключен")
     register_billing_handlers(application)
 
     # ---- Schedule test job on startup

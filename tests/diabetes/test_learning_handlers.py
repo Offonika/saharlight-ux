@@ -15,6 +15,7 @@ from services.api.app.diabetes import learning_handlers as dynamic_handlers
 from services.api.app.diabetes.handlers import learning_handlers as legacy_handlers
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -48,7 +49,7 @@ async def test_learn_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(user_data={}),
     )
     await legacy_handlers.learn_command(update, context)
-    assert message.replies == ["🚫 Учебный режим недоступен."]
+    assert message.replies == [f"🚫 {LEARN_BUTTON_TEXT} недоступен."]
 
 
 def setup_db() -> sessionmaker[Session]:
