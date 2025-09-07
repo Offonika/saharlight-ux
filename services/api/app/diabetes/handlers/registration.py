@@ -18,7 +18,6 @@ from telegram.ext import (
 from sqlalchemy.exc import SQLAlchemyError
 from typing import TYPE_CHECKING, TypeAlias
 
-from telegram import BotCommand
 
 from .common_handlers import help_command, smart_input_help
 from .router import callback_router
@@ -254,33 +253,6 @@ def register_handlers(
         )
     )
     app.add_handler(CallbackQueryHandlerT(callback_router))
-
-    old_post_init = getattr(app, "post_init", None)
-
-    async def _set_commands(
-        app: Application[
-            ExtBot[None],
-            ContextTypes.DEFAULT_TYPE,
-            dict[str, object],
-            dict[str, object],
-            dict[str, object],
-            JobQueue[ContextTypes.DEFAULT_TYPE],
-        ],
-    ) -> None:
-        if callable(old_post_init):
-            await old_post_init(app)
-        try:
-            await app.bot.set_my_commands(
-                [
-                    BotCommand("learn", "Учебный режим"),
-                    BotCommand("topics", "Список тем"),
-                    BotCommand("menu", "Показать нижнее меню"),
-                ]
-            )
-        except Exception as e:  # pragma: no cover - network errors
-            logger.warning("set_my_commands failed: %s", e)
-
-    app.post_init = _set_commands
 
     async def _clear_waiting_flags(context: ContextTypes.DEFAULT_TYPE) -> None:
         for data in context.application.user_data.values():

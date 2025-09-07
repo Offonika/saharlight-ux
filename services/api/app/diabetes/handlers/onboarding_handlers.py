@@ -64,6 +64,12 @@ warnings.filterwarnings(
 
 logger = logging.getLogger(__name__)
 
+# Hint shown after onboarding is finished or skipped.
+ONBOARDING_HINT = (
+    "Попробуйте /learn — учебный режим, /topics — список тем, "
+    "/menu — показать меню."
+)
+
 # Conversation states
 PROFILE, TIMEZONE, REMINDERS = range(3)
 ONB_PROFILE_ICR = PROFILE
@@ -500,6 +506,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await bot.set_my_commands(bot_main.commands)
     except Exception as e:  # pragma: no cover - network errors
         logger.warning("set_my_commands failed: %s", e)
+    await message.reply_text(ONBOARDING_HINT)
     return ConversationHandler.END
 
 
@@ -566,6 +573,7 @@ async def _finish(
         await bot.set_my_commands(bot_main.commands)
     except Exception as e:  # pragma: no cover - network errors
         logger.warning("set_my_commands failed: %s", e)
+    await message.reply_text(ONBOARDING_HINT)
     return ConversationHandler.END
 
 
