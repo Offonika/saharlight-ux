@@ -229,7 +229,14 @@ async def lesson_answer_handler(
     telegram_id = from_user.id if from_user else None
     user_text = message.text.strip()
     if telegram_id is not None:
-        await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
+        try:
+            await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
+        except Exception:
+            logger.exception("lesson log failed")
+            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+            state.awaiting_answer = True
+            set_state(user_data, state)
+            return
     state.awaiting_answer = False
     state.learn_busy = True
     set_state(user_data, state)
@@ -243,9 +250,15 @@ async def lesson_answer_handler(
             state.awaiting_answer = True
             return
         if telegram_id is not None:
-            await add_lesson_log(
-                telegram_id, state.topic, "assistant", state.step, feedback
-            )
+            try:
+                await add_lesson_log(
+                    telegram_id, state.topic, "assistant", state.step, feedback
+                )
+            except Exception:
+                logger.exception("lesson log failed")
+                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+                state.awaiting_answer = True
+                return
         next_text = await generate_step_text(
             profile, state.topic, state.step + 1, feedback
         )
@@ -256,9 +269,15 @@ async def lesson_answer_handler(
         next_text = format_reply(next_text)
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
         if telegram_id is not None:
-            await add_lesson_log(
-                telegram_id, state.topic, "assistant", state.step + 1, next_text
-            )
+            try:
+                await add_lesson_log(
+                    telegram_id, state.topic, "assistant", state.step + 1, next_text
+                )
+            except Exception:
+                logger.exception("lesson log failed")
+                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+                state.awaiting_answer = True
+                return
         state.step += 1
         state.last_step_text = next_text
         state.prev_summary = feedback
