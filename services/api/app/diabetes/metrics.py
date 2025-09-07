@@ -21,18 +21,25 @@ def get_metric_value(metric: MetricWrapperBase, suffix: str | None = None) -> fl
     return 0.0
 
 lessons_started: Counter = Counter(
-    "lessons_started", "Total number of lessons started"
+    "lessons_started", "Total number of lessons started",
 )
 lessons_completed: Counter = Counter(
-    "lessons_completed", "Total number of lessons completed"
+    "lessons_completed", "Total number of lessons completed",
 )
 quiz_avg_score: Summary = Summary(
-    "quiz_avg_score", "Average quiz score across completed lessons"
+    "quiz_avg_score", "Average quiz score across completed lessons",
 )
 
 db_down_seconds: Gauge = Gauge(
-    "db_down_seconds", "Seconds database has been unreachable"
+    "db_down_seconds", "Seconds database has been unreachable",
 )
 lesson_log_failures: Counter = Counter(
-    "lesson_log_failures", "Number of failed lesson log flushes"
+    "lesson_log_failures", "Number of failed lesson log flushes",
+)
+
+learning_prompt_cache_hit: Counter = Counter(
+    "learning_prompt_cache_hit", "Number of learning prompt cache hits",
+)
+learning_prompt_cache_miss: Counter = Counter(
+    "learning_prompt_cache_miss", "Number of learning prompt cache misses",
 )

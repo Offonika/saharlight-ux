@@ -23,6 +23,10 @@ from openai.types.beta.threads import (
 
 from services.api.app import config
 from services.api.app.diabetes.llm_router import LLMRouter, LLMTask
+from services.api.app.diabetes.metrics import (
+    learning_prompt_cache_hit,
+    learning_prompt_cache_miss,
+)
 from services.api.app.diabetes.utils.openai_utils import (
     get_async_openai_client,
     get_openai_client,
@@ -219,8 +223,12 @@ async def create_learning_chat_completion(
                 reply, ts = cached
                 if now - ts < settings.learning_prompt_cache_ttl_sec:
                     _learning_cache.move_to_end(cache_key)
+                    learning_prompt_cache_hit.inc()
+                    logger.info("[learning_prompt_cache] cache_hit %s", cache_key)
                     return reply
                 _learning_cache.pop(cache_key, None)
+        learning_prompt_cache_miss.inc()
+        logger.info("[learning_prompt_cache] cache_miss %s", cache_key)
 
     completion = await create_chat_completion(
         model=model,
