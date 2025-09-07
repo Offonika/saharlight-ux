@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from typing import MutableMapping, cast
 
-ASSISTANT_MAX_TURNS: int = 20
-ASSISTANT_SUMMARY_TRIGGER: int = 40
+from services.api.app.config import get_settings
+
+_settings = get_settings()
+ASSISTANT_MAX_TURNS: int = _settings.assistant_max_turns
+ASSISTANT_SUMMARY_TRIGGER: int = _settings.assistant_summary_trigger
 
 HISTORY_KEY = "assistant_history"
 SUMMARY_KEY = "assistant_summary"

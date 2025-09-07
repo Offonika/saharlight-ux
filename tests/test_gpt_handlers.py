@@ -24,14 +24,10 @@ class DummyMessage:
 @pytest.mark.asyncio
 async def test_chat_with_gpt_replies_and_history(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_completion(*args: object, **kwargs: object) -> Any:
-        return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="hi"))]
-        )
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="hi"))])
 
     monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fake_completion)
-    monkeypatch.setattr(
-        gpt_handlers.gpt_client, "format_reply", lambda text, **kwargs: text
-    )
+    monkeypatch.setattr(gpt_handlers.gpt_client, "format_reply", lambda text, **kwargs: text)
 
     message = DummyMessage("hi")
     update = cast(Update, SimpleNamespace(message=message, effective_user=None))
@@ -61,9 +57,26 @@ async def test_chat_with_gpt_handles_error(monkeypatch: pytest.MonkeyPatch) -> N
     await gpt_handlers.chat_with_gpt(update, context)
     assert message.texts == ["⚠️ Не удалось получить ответ. Попробуйте позже."]
     history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
-    assert history and history[0].endswith(
-        "assistant: ⚠️ Не удалось получить ответ. Попробуйте позже."
+    assert history and history[0].endswith("assistant: ⚠️ Не удалось получить ответ. Попробуйте позже.")
+
+
+@pytest.mark.asyncio
+async def test_chat_with_gpt_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fail(*args: object, **kwargs: object) -> Any:
+        raise AssertionError("should not be called")
+
+    monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fail)
+    monkeypatch.setattr(gpt_handlers.settings, "assistant_mode_enabled", False)
+
+    message = DummyMessage("hi")
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
     )
+    await gpt_handlers.chat_with_gpt(update, context)
+    assert message.texts == []
+    assert context.user_data == {}
 
 
 @pytest.mark.asyncio
@@ -79,14 +92,10 @@ async def test_chat_with_gpt_no_message() -> None:
 @pytest.mark.asyncio
 async def test_chat_with_gpt_trims_history(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_completion(*args: object, **kwargs: object) -> Any:
-        return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))]
-        )
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))])
 
     monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fake_completion)
-    monkeypatch.setattr(
-        gpt_handlers.gpt_client, "format_reply", lambda text, **kwargs: text
-    )
+    monkeypatch.setattr(gpt_handlers.gpt_client, "format_reply", lambda text, **kwargs: text)
     monkeypatch.setattr(assistant_state, "ASSISTANT_MAX_TURNS", 2)
     monkeypatch.setattr(assistant_state, "ASSISTANT_SUMMARY_TRIGGER", 99)
     context = cast(
@@ -106,14 +115,10 @@ async def test_chat_with_gpt_trims_history(monkeypatch: pytest.MonkeyPatch) -> N
 @pytest.mark.asyncio
 async def test_chat_with_gpt_summarizes_history(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_completion(*args: object, **kwargs: object) -> Any:
-        return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))]
-        )
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))])
 
     monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fake_completion)
-    monkeypatch.setattr(
-        gpt_handlers.gpt_client, "format_reply", lambda text, **kwargs: text
-    )
+    monkeypatch.setattr(gpt_handlers.gpt_client, "format_reply", lambda text, **kwargs: text)
     monkeypatch.setattr(assistant_state, "ASSISTANT_MAX_TURNS", 2)
     monkeypatch.setattr(assistant_state, "ASSISTANT_SUMMARY_TRIGGER", 3)
     context = cast(
@@ -148,6 +153,28 @@ async def test_reset_command_clears_history() -> None:
     await gpt_handlers.reset_command(update, context)
     assert context.user_data == {}
     assert message.texts == ["История диалога очищена."]
+
+
+@pytest.mark.asyncio
+async def test_reset_command_ignored_when_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            user_data={
+                assistant_state.HISTORY_KEY: ["turn"],
+                assistant_state.SUMMARY_KEY: "s",
+            }
+        ),
+    )
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message))
+    monkeypatch.setattr(gpt_handlers.settings, "assistant_mode_enabled", False)
+    await gpt_handlers.reset_command(update, context)
+    assert context.user_data == {
+        assistant_state.HISTORY_KEY: ["turn"],
+        assistant_state.SUMMARY_KEY: "s",
+    }
+    assert message.texts == []
 
 
 @pytest.mark.asyncio
@@ -443,9 +470,7 @@ async def test_freeform_handler_quick_entry_complete(
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
 
-    async def fake_check_alert(
-        update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
-    ) -> None:
+    async def fake_check_alert(update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float) -> None:
         return None
 
     class DummySession:
@@ -644,9 +669,7 @@ async def test_freeform_handler_pending_entry_commit(
         SimpleNamespace(user_data=user_data),
     )
 
-    async def fake_check_alert(
-        update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
-    ) -> None:
+    async def fake_check_alert(update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float) -> None:
         return None
 
     class DummySession:
@@ -965,9 +988,7 @@ def test_parse_quick_values() -> None:
     def fake_smart_input(text: str) -> dict[str, float | None]:
         return {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
 
-    quick, carbs = gpt_handlers.parse_quick_values(
-        "sugar=5 xe=1 dose=2 carbs=10", smart_input=fake_smart_input
-    )
+    quick, carbs = gpt_handlers.parse_quick_values("sugar=5 xe=1 dose=2 carbs=10", smart_input=fake_smart_input)
     assert quick == {"sugar": 5.0, "xe": 1.0, "dose": 2.0}
     assert carbs == 10.0
 
@@ -976,9 +997,7 @@ def test_parse_quick_values() -> None:
 async def test_apply_pending_entry_new(monkeypatch: pytest.MonkeyPatch) -> None:
     saved: list[gpt_handlers.EntryData] = []
 
-    async def fake_save_entry(
-        entry_data: gpt_handlers.EntryData, *, SessionLocal: Any, commit: Any
-    ) -> bool:
+    async def fake_save_entry(entry_data: gpt_handlers.EntryData, *, SessionLocal: Any, commit: Any) -> bool:
         saved.append(entry_data)
         return True
 
@@ -986,9 +1005,7 @@ async def test_apply_pending_entry_new(monkeypatch: pytest.MonkeyPatch) -> None:
 
     sugar_called: list[float] = []
 
-    async def fake_check_alert(
-        update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float
-    ) -> None:
+    async def fake_check_alert(update: Update, context: CallbackContext[Any, Any, Any, Any], sugar: float) -> None:
         sugar_called.append(sugar)
 
     user_data: dict[str, Any] = {}
@@ -1013,9 +1030,7 @@ async def test_apply_pending_entry_new(monkeypatch: pytest.MonkeyPatch) -> None:
         menu_keyboard=None,
     )
     assert handled is True
-    assert message.texts == [
-        "✅ Запись сохранена: сахар 5.0 ммоль/л, ХЕ 1.0, доза 2.0 Ед."
-    ]
+    assert message.texts == ["✅ Запись сохранена: сахар 5.0 ммоль/л, ХЕ 1.0, доза 2.0 Ед."]
     assert sugar_called == [5.0]
     assert "pending_entry" not in user_data
     assert saved and saved[0]["sugar_before"] == 5.0
@@ -1043,9 +1058,7 @@ async def test_parse_via_gpt_success() -> None:
         }
 
     message = DummyMessage()
-    result = await gpt_handlers.parse_via_gpt(
-        "text", message, parse_command=fake_parse_command
-    )
+    result = await gpt_handlers.parse_via_gpt("text", message, parse_command=fake_parse_command)
     assert result is not None
     event_dt, fields = result
     assert event_dt.year == 2024
