@@ -123,10 +123,12 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user = update.effective_user
     if message is None or user is None:
         return
-    logger.info("lesson_command_start", extra={"user_id": user.id})
     if not settings.learning_mode_enabled:
         await message.reply_text("🚫 Обучение недоступно.")
         return
+    if not await ensure_overrides(update, context):
+        return
+    logger.info("lesson_command_start", extra={"user_id": user.id})
     user_data = cast(MutableMapping[str, Any], context.user_data)
     if _rate_limited(user_data, "_lesson_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)

@@ -148,6 +148,8 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if settings.learning_content_mode == "static":
         await legacy_handlers.lesson_command(update, context)
         return
+    if not await ensure_overrides(update, context):
+        return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     if _rate_limited(user_data, "_lesson_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)

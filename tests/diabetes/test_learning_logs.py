@@ -35,6 +35,10 @@ def make_context(**kwargs: Any) -> CallbackContext[Any, Any, Any, Any]:
 async def test_lesson_start_logging(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     """Ensure starting a lesson logs start and completion events."""
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    async def fake_ensure_overrides(update: object, context: object) -> bool:
+        return True
+
+    monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
 
     async def fake_start(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
