@@ -3,6 +3,7 @@
 import asyncio
 import io
 import logging
+import os
 import re
 import threading
 import time
@@ -149,6 +150,11 @@ async def create_chat_completion(
     timeout: float | httpx.Timeout | None = None,
 ) -> ChatCompletion:
     """Create a chat completion with typed return value."""
+    settings = config.get_settings()
+    api_key = settings.openai_api_key or os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        logger.warning("[OpenAI] OPENAI_API_KEY is not set")
+        return _static_completion(model)
     try:
         client: AsyncOpenAI = await _get_async_client()
     except RuntimeError as exc:
