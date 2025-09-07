@@ -15,10 +15,23 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
-    op.drop_column("assistant_memory", "summary_text")
-    op.drop_column("lesson_logs", "content")
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.drop_column("assistant_memory", "summary_text")
+        op.drop_column("lesson_logs", "content")
+    else:
+        with op.batch_alter_table("assistant_memory") as batch_op:
+            batch_op.drop_column("summary_text")
 
 
 def downgrade() -> None:
-    op.add_column("lesson_logs", sa.Column("content", sa.Text(), nullable=False))
-    op.add_column("assistant_memory", sa.Column("summary_text", sa.Text(), nullable=False))
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.add_column("lesson_logs", sa.Column("content", sa.Text(), nullable=False))
+        op.add_column(
+            "assistant_memory", sa.Column("summary_text", sa.Text(), nullable=False)
+        )
+    else:
+        op.add_column(
+            "assistant_memory", sa.Column("summary_text", sa.Text(), nullable=False)
+        )

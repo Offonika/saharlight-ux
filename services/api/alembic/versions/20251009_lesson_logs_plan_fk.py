@@ -10,15 +10,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_foreign_key(
-        "lesson_logs_plan_id_fkey",
-        "lesson_logs",
-        "learning_plans",
-        ["plan_id"],
-        ["id"],
-        ondelete="CASCADE",
-    )
+    if op.get_bind().dialect.name == "postgresql":
+        op.create_foreign_key(
+            "lesson_logs_plan_id_fkey",
+            "lesson_logs",
+            "learning_plans",
+            ["plan_id"],
+            ["id"],
+            ondelete="CASCADE",
+        )
 
 
 def downgrade() -> None:
-    op.drop_constraint("lesson_logs_plan_id_fkey", "lesson_logs", type_="foreignkey")
+    if op.get_bind().dialect.name == "postgresql":
+        op.drop_constraint(
+            "lesson_logs_plan_id_fkey", "lesson_logs", type_="foreignkey"
+        )
