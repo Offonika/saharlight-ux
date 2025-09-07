@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Mapping
 
-NOVICE_LEVELS = {"novice", "beginner", "a"}
+NOVICE_LEVELS = {"novice", "beginner"}
 INSULIN_THERAPIES = {"insulin", "mixed"}
 
 __all__ = ["choose_initial_topic"]
