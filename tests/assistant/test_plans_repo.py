@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import pytest
+import pytest  # required for pytest fixtures
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
