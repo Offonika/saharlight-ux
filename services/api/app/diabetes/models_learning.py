@@ -23,7 +23,9 @@ class LearningPlan(Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.true())
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    plan_json: Mapped[dict[str, Any]] = mapped_column(sa.JSON().with_variant(JSONB, "postgresql"), nullable=False)
+    plan_json: Mapped[list[str]] = mapped_column(
+        sa.JSON().with_variant(JSONB, "postgresql"), nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False)
     updated_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True), onupdate=sa.func.now())
 

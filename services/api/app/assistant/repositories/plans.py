@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ from ...types import SessionProtocol
 async def create_plan(
     user_id: int,
     version: int,
-    plan_json: dict[str, Any],
+    plan_json: list[str],
     *,
     is_active: bool = True,
 ) -> int:
@@ -86,7 +86,7 @@ async def list_plans(user_id: int) -> list[LearningPlan]:
 async def update_plan(
     plan_id: int,
     *,
-    plan_json: dict[str, Any] | None = None,
+    plan_json: list[str] | None = None,
     is_active: bool | None = None,
     version: int | None = None,
 ) -> None:
