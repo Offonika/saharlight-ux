@@ -5,7 +5,7 @@ import io
 import logging
 import re
 import threading
-from typing import Iterable
+from typing import Iterable, Mapping, cast
 
 import httpx
 from openai import AsyncOpenAI, OpenAI, OpenAIError
@@ -42,6 +42,22 @@ _async_client: AsyncOpenAI | None = None
 _async_client_lock: asyncio.Lock | None = None
 
 _learning_router = LLMRouter()
+
+CacheKey = tuple[str, tuple[tuple[tuple[str, str], ...], ...]]
+
+_learning_cache: dict[CacheKey, str] = {}
+_learning_cache_lock = threading.Lock()
+
+
+def _make_cache_key(
+    model: str, messages: Iterable[ChatCompletionMessageParam]
+) -> CacheKey:
+    """Create a hashable cache key from *model* and *messages*."""
+    normalized: list[tuple[tuple[str, str], ...]] = []
+    for message in messages:
+        mapping = cast(Mapping[str, object], message)
+        normalized.append(tuple((k, str(v)) for k, v in sorted(mapping.items())))
+    return model, tuple(normalized)
 
 
 def _get_client() -> OpenAI:
@@ -140,8 +156,11 @@ async def create_chat_completion(
             status_code = getattr(exc, "status_code", None)
             if isinstance(exc, httpx.HTTPStatusError):
                 status_code = exc.response.status_code
-            if status_code in {429, 500, 502, 503, 504} and attempt < CHAT_COMPLETION_MAX_RETRIES:
-                backoff = 2 ** attempt
+            if (
+                status_code in {429, 500, 502, 503, 504}
+                and attempt < CHAT_COMPLETION_MAX_RETRIES
+            ):
+                backoff = 2**attempt
                 logger.warning(
                     "[OpenAI] transient error (status %s), retrying in %s s",
                     status_code,
@@ -149,9 +168,7 @@ async def create_chat_completion(
                 )
                 await asyncio.sleep(backoff)
                 continue
-            logger.exception(
-                "[OpenAI] Failed to create chat completion: %s", exc
-            )
+            logger.exception("[OpenAI] Failed to create chat completion: %s", exc)
             raise
 
 
@@ -165,15 +182,28 @@ async def create_learning_chat_completion(
 ) -> str:
     """Create and format a chat completion for learning tasks."""
     model = _learning_router.choose_model(task)
+    msg_list = list(messages)
+    settings = config.get_settings()
+    cache_key = _make_cache_key(model, msg_list)
+    if settings.learning_prompt_cache:
+        with _learning_cache_lock:
+            cached = _learning_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     completion = await create_chat_completion(
         model=model,
-        messages=messages,
+        messages=msg_list,
         temperature=temperature,
         max_tokens=max_tokens,
         timeout=timeout,
     )
     content = completion.choices[0].message.content or ""
-    return format_reply(content)
+    reply = format_reply(content)
+    if settings.learning_prompt_cache:
+        with _learning_cache_lock:
+            _learning_cache[cache_key] = reply
+    return reply
 
 
 async def create_thread() -> str:
