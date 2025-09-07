@@ -23,6 +23,7 @@ from telegram import BotCommand
 from .common_handlers import help_command, smart_input_help
 from .router import callback_router
 from . import learning_handlers
+from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
 from ..utils.ui import (
     PROFILE_BUTTON_TEXT,
     REMINDERS_BUTTON_TEXT,
@@ -227,6 +228,14 @@ def register_handlers(
             filters.Regex(re.escape(SOS_BUTTON_TEXT)),
             sos_handlers.sos_contact_start,
         )
+    )
+    app.add_handler(
+        MessageHandlerT(
+            filters.TEXT & ~filters.COMMAND,
+            dynamic_learning_handlers.on_any_text,
+            block=False,
+        ),
+        group=0,
     )
     app.add_handler(
         MessageHandlerT(filters.TEXT & ~filters.COMMAND, gpt_handlers.freeform_handler)

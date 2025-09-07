@@ -6,7 +6,7 @@ import time
 from typing import Any, Mapping, MutableMapping, cast
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
-from telegram.ext import ContextTypes
+from telegram.ext import ApplicationHandlerStop, ContextTypes
 
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
@@ -16,7 +16,12 @@ from .handlers import learning_handlers as legacy_handlers
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
-from .services.gpt_client import format_reply
+from .learning_prompts import build_system_prompt
+from .llm_router import LLMTask
+from .services.gpt_client import (
+    create_learning_chat_completion,
+    format_reply,
+)
 from .services.lesson_log import add_lesson_log
 from .planner import generate_learning_plan, pretty_plan
 
@@ -244,6 +249,48 @@ async def lesson_answer_handler(
     set_state(user_data, state)
 
 
+async def assistant_chat(
+    profile: Mapping[str, str | None], text: str
+) -> str:
+    """Answer a general user question via the learning LLM."""
+
+    system = build_system_prompt(profile)
+    user = text[:400]
+    try:
+        return await create_learning_chat_completion(
+            task=LLMTask.EXPLAIN_STEP,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            max_tokens=200,
+        )
+    except RuntimeError:
+        return "сервер занят, попробуйте позже"
+
+
+async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle any incoming text either as an answer or a general query."""
+
+    message = update.message
+    if message is None or not message.text:
+        return
+    if not settings.learning_mode_enabled:
+        return
+    if settings.learning_content_mode != "dynamic":
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    state = get_state(user_data)
+    if state is not None and state.awaiting_answer and state.last_step_text:
+        await lesson_answer_handler(update, context)
+        raise ApplicationHandlerStop
+    profile = _get_profile(user_data)
+    reply = await assistant_chat(profile, message.text.strip())
+    reply = format_reply(reply)
+    await message.reply_text(reply, reply_markup=build_main_keyboard())
+    raise ApplicationHandlerStop
+
+
 async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Exit the current lesson and clear stored state."""
 
@@ -314,6 +361,7 @@ __all__ = [
     "lesson_command",
     "lesson_callback",
     "lesson_answer_handler",
+    "on_any_text",
     "exit_command",
     "plan_command",
     "skip_command",
