@@ -5,7 +5,13 @@ from __future__ import annotations
 import logging
 from typing import Callable, cast
 
-from telegram import ReplyKeyboardMarkup, Update
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    ReplyKeyboardMarkup,
+    Update,
+)
 from telegram.ext import ContextTypes
 
 logger = logging.getLogger(__name__)
@@ -51,9 +57,11 @@ def _norm_level(text: str) -> str | None:
     str_map: dict[str, str] = {
         "novice": "novice",
         "beginner": "novice",
+        "новичок": "novice",
         "intermediate": "intermediate",
         "advanced": "expert",
         "expert": "expert",
+        "эксперт": "expert",
     }
     return str_map.get(t)
 
@@ -69,7 +77,7 @@ _ORDER: list[
         str,
         str,
         Callable[[str], str | None],
-        ReplyKeyboardMarkup,
+        InlineKeyboardMarkup | ReplyKeyboardMarkup,
     ]
 ] = [
     (
@@ -88,7 +96,18 @@ _ORDER: list[
         "learning_level",
         LEARNING_LEVEL_PROMPT,
         _norm_level,
-        ReplyKeyboardMarkup([["novice", "expert"]], one_time_keyboard=True),
+        InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        "Новичок", callback_data="ll:novice"
+                    ),
+                    InlineKeyboardButton(
+                        "Эксперт", callback_data="ll:expert"
+                    ),
+                ]
+            ]
+        ),
     ),
 ]
 
@@ -107,7 +126,11 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     overrides = cast(
         dict[str, str], user_data.setdefault("learn_profile_overrides", {})
     )
-    message = update.message
+    message: Message | None = update.message
+    if message is None and update.callback_query is not None:
+        callback_message = update.callback_query.message
+        if isinstance(callback_message, Message):
+            message = callback_message
     for key, prompt, norm, keyboard in _ORDER:
         raw = overrides.get(key)
         if raw is not None:

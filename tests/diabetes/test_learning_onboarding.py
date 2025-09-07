@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-from telegram import Update
+from telegram import InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
 from services.api.app.config import settings
@@ -24,11 +24,13 @@ class DummyMessage:
     def __init__(self, text: str | None = None) -> None:
         self.text = text
         self.replies: list[str] = []
+        self.markups: list[object | None] = []
 
     async def reply_text(
         self, text: str, **kwargs: Any
     ) -> None:  # pragma: no cover - helper
         self.replies.append(text)
+        self.markups.append(kwargs.get("reply_markup"))
 
 
 def setup_db() -> tuple[sessionmaker[Session], Engine]:
@@ -60,7 +62,10 @@ async def test_learning_onboarding_flow(
 
     try:
         message1 = DummyMessage()
-        update1 = cast(Update, SimpleNamespace(message=message1, effective_user=None))
+        update1 = cast(
+            Update,
+            SimpleNamespace(message=message1, callback_query=None, effective_user=None),
+        )
         context = cast(
             CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
             SimpleNamespace(user_data={}),
@@ -70,20 +75,43 @@ async def test_learning_onboarding_flow(
         assert message1.replies == [onboarding_utils.AGE_PROMPT]
 
         message2 = DummyMessage("adult")
-        update2 = cast(Update, SimpleNamespace(message=message2, effective_user=None))
+        update2 = cast(
+            Update,
+            SimpleNamespace(message=message2, callback_query=None, effective_user=None),
+        )
         await learning_onboarding.onboarding_reply(update2, context)
         assert message2.replies == [onboarding_utils.DIABETES_TYPE_PROMPT]
 
+
         message3 = DummyMessage("type1")
-        update3 = cast(Update, SimpleNamespace(message=message3, effective_user=None))
+        update3 = cast(
+            Update,
+            SimpleNamespace(message=message3, callback_query=None, effective_user=None),
+        )
         await learning_onboarding.onboarding_reply(update3, context)
         assert message3.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
+        markup = message3.markups[0]
+        assert isinstance(markup, InlineKeyboardMarkup)
+        buttons = [b.text for row in markup.inline_keyboard for b in row]
+        assert buttons == ["Новичок", "Эксперт"]
 
-        message4 = DummyMessage("beginner")
-        update4 = cast(Update, SimpleNamespace(message=message4, effective_user=None))
+        query_message = DummyMessage()
+
+        class DummyQuery:
+            def __init__(self) -> None:
+                self.data = "ll:novice"
+                self.message = query_message
+
+            async def answer(self) -> None:  # pragma: no cover - simple stub
+                return None
+
+        update4 = cast(
+            Update,
+            SimpleNamespace(callback_query=DummyQuery(), message=None, effective_user=None),
+        )
         await learning_onboarding.onboarding_reply(update4, context)
-        assert message4.replies == [
-            "Ответы сохранены. Отправьте /learn чтобы продолжить."
+        assert query_message.replies == [
+            "Ответы сохранены. Отправьте /learn чтобы продолжить.",
         ]
         assert context.user_data["learn_profile_overrides"] == {
             "age_group": "adult",
@@ -92,7 +120,10 @@ async def test_learning_onboarding_flow(
         }
 
         message5 = DummyMessage()
-        update5 = cast(Update, SimpleNamespace(message=message5, effective_user=None))
+        update5 = cast(
+            Update,
+            SimpleNamespace(message=message5, callback_query=None, effective_user=None),
+        )
         await learning_handlers.learn_command(update5, context)
         assert any(
             "Учебный режим" in text or "Урок" in text for text in message5.replies
@@ -100,7 +131,10 @@ async def test_learning_onboarding_flow(
 
         message_reset = DummyMessage()
         update_reset = cast(
-            Update, SimpleNamespace(message=message_reset, effective_user=None)
+            Update,
+            SimpleNamespace(
+                message=message_reset, callback_query=None, effective_user=None
+            ),
         )
         context.user_data["learn_profile_overrides"] = {"a": 1}
         context.user_data["learn_onboarding_stage"] = "stage"
@@ -109,7 +143,10 @@ async def test_learning_onboarding_flow(
         assert "learn_onboarding_stage" not in context.user_data
 
         message6 = DummyMessage()
-        update6 = cast(Update, SimpleNamespace(message=message6, effective_user=None))
+        update6 = cast(
+            Update,
+            SimpleNamespace(message=message6, callback_query=None, effective_user=None),
+        )
         await learning_handlers.learn_command(update6, context)
         assert message6.replies == [onboarding_utils.AGE_PROMPT]
     finally:
@@ -123,7 +160,10 @@ async def test_onboarding_reply_ignored_without_stage() -> None:
         SimpleNamespace(user_data={}),
     )
     message = DummyMessage("hi")
-    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, callback_query=None, effective_user=None),
+    )
     await learning_onboarding.onboarding_reply(update, context)
     assert message.replies == []
     assert context.user_data == {}
@@ -136,7 +176,12 @@ async def test_lesson_command_requires_onboarding(
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
     message = DummyMessage()
     update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+        Update,
+        SimpleNamespace(
+            message=message,
+            callback_query=None,
+            effective_user=SimpleNamespace(id=1),
+        ),
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],

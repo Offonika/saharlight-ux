@@ -17,3 +17,8 @@ def test_norm_diabetes_type_numeric() -> None:
 
 def test_norm_level_numeric() -> None:
     assert _norm_level("0") == "novice"
+
+
+def test_norm_level_russian() -> None:
+    assert _norm_level("Новичок") == "novice"
+    assert _norm_level("эксперт") == "expert"
