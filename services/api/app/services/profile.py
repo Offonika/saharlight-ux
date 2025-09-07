@@ -291,8 +291,15 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
 
         try:
             commit(cast(Session, session))
-        except CommitError:  # pragma: no cover
-            raise HTTPException(status_code=500, detail="db commit failed")
+        except CommitError as exc:  # pragma: no cover
+            safe_payload = profile_data.copy()
+            safe_payload.pop("sos_contact", None)
+            logger.exception(
+                "Failed to commit profile for %s payload=%s",
+                data.telegramId,
+                safe_payload,
+            )
+            raise HTTPException(status_code=500, detail="db commit failed") from exc
 
     await db.run_db(_save, sessionmaker=db.SessionLocal)
 
