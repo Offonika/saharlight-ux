@@ -1,8 +1,8 @@
-from typing import Any, cast
 from types import ModuleType
 
 import importlib
 import sys
+from typing import Any, ContextManager, cast
 
 import pytest
 
@@ -20,6 +20,16 @@ class DummyEngine:
 
     def dispose(self) -> None:
         self.disposed = True
+
+    def begin(self) -> ContextManager["DummyEngine"]:  # type: ignore[override]
+        class _Ctx(ContextManager["DummyEngine"]):
+            def __enter__(self_inner) -> "DummyEngine":
+                return self
+
+            def __exit__(self_inner, *args: object) -> None:
+                return None
+
+        return _Ctx()
 
 
 @pytest.mark.parametrize(

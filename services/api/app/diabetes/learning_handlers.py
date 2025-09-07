@@ -19,6 +19,7 @@ from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
 from .learning_prompts import build_system_prompt, disclaimer
 from .llm_router import LLMTask
+from .metrics import lesson_log_failures
 from .services.gpt_client import (
     create_learning_chat_completion,
     format_reply,
@@ -57,8 +58,10 @@ def _get_profile(user_data: MutableMapping[str, Any]) -> Mapping[str, str | None
 def _persist(
     user_id: int,
     user_data: MutableMapping[str, Any],
-    bot_data: MutableMapping[str, object],
+    bot_data: MutableMapping[str, object] | None = None,
 ) -> None:
+    if bot_data is None:
+        return
     plans = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
     progress = cast(dict[int, Any], bot_data.setdefault(PROGRESS_KEY, {}))
     plan = cast(list[str] | None, user_data.get("learning_plan"))
@@ -75,8 +78,25 @@ def _persist(
         }
 
 
+async def _log_lesson(
+    telegram_id: int,
+    topic_slug: str,
+    role: str,
+    step_idx: int,
+) -> None:
+    """Attempt to log lesson progress without affecting the main flow."""
+
+    if not settings.learning_logging_required:
+        return
+    try:
+        await add_lesson_log(telegram_id, topic_slug, role, step_idx)
+    except Exception:  # pragma: no cover - metrics only
+        logger.exception("lesson log failed")
+        lesson_log_failures.inc()
+
+
 async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.effective_user
+    user = getattr(update, "effective_user", None)
     if user is None:
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
@@ -155,7 +175,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     if not await ensure_overrides(update, context):
         return
-    user = update.effective_user
+    user = getattr(update, "effective_user", None)
     if user is None:
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
@@ -171,7 +191,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data["learning_plan_index"] = 0
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(user.id, slug, "assistant", 1)
+    await _log_lesson(user.id, slug, "assistant", 1)
     state = LearnState(
         topic=slug,
         step=1,
@@ -179,13 +199,13 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         awaiting=True,
     )
     set_state(user_data, state)
-    _persist(user.id, user_data, context.bot_data)
+    _persist(user.id, user_data, getattr(context, "bot_data", None))
 
 
 async def _start_lesson(
     message: Message,
     user_data: MutableMapping[str, Any],
-    bot_data: MutableMapping[str, object],
+    bot_data: MutableMapping[str, object] | None,
     profile: Mapping[str, str | None],
     topic_slug: str,
 ) -> None:
@@ -206,7 +226,7 @@ async def _start_lesson(
     user_data["learning_plan_index"] = 0
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(from_user.id, topic_slug, "assistant", 1)
+    await _log_lesson(from_user.id, topic_slug, "assistant", 1)
     state = LearnState(
         topic=topic_slug,
         step=1,
@@ -244,13 +264,13 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     profile = _get_profile(user_data)
     await _hydrate(update, context)
-    await _start_lesson(message, user_data, context.bot_data, profile, topic_slug)
+    await _start_lesson(message, user_data, getattr(context, "bot_data", None), profile, topic_slug)
 
 
 async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle topic selection from inline keyboard."""
 
-    query = update.callback_query
+    query = getattr(update, "callback_query", None)
     if query is None:
         return
     raw_message = query.message
@@ -277,7 +297,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
     profile = _get_profile(user_data)
     await _hydrate(update, context)
-    await _start_lesson(message, user_data, context.bot_data, profile, slug)
+    await _start_lesson(message, user_data, getattr(context, "bot_data", None), profile, slug)
 
 
 async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -305,14 +325,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
     telegram_id = from_user.id if from_user else None
     user_text = message.text.strip()
     if telegram_id is not None:
-        try:
-            await add_lesson_log(telegram_id, state.topic, "user", state.step)
-        except Exception:
-            logger.exception("lesson log failed")
-            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-            state.awaiting = True
-            set_state(user_data, state)
-            return
+        await _log_lesson(telegram_id, state.topic, "user", state.step)
     state.awaiting = False
     user_data[BUSY_KEY] = True
     set_state(user_data, state)
@@ -326,12 +339,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         if feedback == BUSY_MESSAGE:
             return
         if telegram_id is not None:
-            try:
-                await add_lesson_log(telegram_id, state.topic, "assistant", state.step)
-            except Exception:
-                logger.exception("lesson log failed")
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-                return
+            await _log_lesson(telegram_id, state.topic, "assistant", state.step)
         next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
         if next_text == BUSY_MESSAGE:
             await message.reply_text(next_text, reply_markup=build_main_keyboard())
@@ -339,12 +347,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         next_text = format_reply(next_text)
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
         if telegram_id is not None:
-            try:
-                await add_lesson_log(telegram_id, state.topic, "assistant", state.step + 1)
-            except Exception:
-                logger.exception("lesson log failed")
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-                return
+            await _log_lesson(telegram_id, state.topic, "assistant", state.step + 1)
         state.step += 1
         state.last_step_text = next_text
         state.prev_summary = feedback
@@ -353,7 +356,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         state.awaiting = True
         set_state(user_data, state)
         if from_user is not None:
-            _persist(from_user.id, user_data, context.bot_data)
+            _persist(from_user.id, user_data, getattr(context, "bot_data", None))
 
 
 async def assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
@@ -413,9 +416,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await _hydrate(update, context)
     user_data = cast(MutableMapping[str, Any], context.user_data)
     clear_state(user_data)
-    user = update.effective_user
+    user = getattr(update, "effective_user", None)
     if user is not None:
-        _persist(user.id, user_data, context.bot_data)
+        _persist(user.id, user_data, getattr(context, "bot_data", None))
     await message.reply_text("Учебная сессия завершена.", reply_markup=build_main_keyboard())
 
 
@@ -458,9 +461,9 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     else:
         await message.reply_text(plan[idx], reply_markup=build_main_keyboard())
     user_data["learning_plan_index"] = idx
-    user = update.effective_user
+    user = getattr(update, "effective_user", None)
     if user is not None:
-        _persist(user.id, user_data, context.bot_data)
+        _persist(user.id, user_data, getattr(context, "bot_data", None))
 
 
 __all__ = [

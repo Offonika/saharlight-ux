@@ -9,6 +9,7 @@ from services.api.app.config import settings
 from services.api.app.diabetes import dynamic_tutor, learning_handlers
 from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
+from services.api.app.diabetes.metrics import lesson_log_failures
 
 
 class DummyMessage:
@@ -364,30 +365,41 @@ async def test_lesson_answer_handler_add_log_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+    monkeypatch.setattr(settings, "learning_logging_required", True)
+    lesson_log_failures._value.set(0)  # type: ignore[attr-defined] # noqa: SLF001
 
     async def fail_add_log(*args: object, **kwargs: object) -> None:
         raise RuntimeError("db error")
 
-    async def fail_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
-        raise AssertionError("should not be called")
+    async def ok_check_user_answer(
+        *args: object, **kwargs: object
+    ) -> tuple[bool, str]:
+        return True, "ok"
 
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fail_add_log)
-    monkeypatch.setattr(learning_handlers, "check_user_answer", fail_check_user_answer)
+    monkeypatch.setattr(learning_handlers, "check_user_answer", ok_check_user_answer)
+
+    async def ok_generate_step_text(*a: object, **k: object) -> str:
+        return "next"
+
+    monkeypatch.setattr(learning_handlers, "generate_step_text", ok_generate_step_text)
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     msg = DummyMessage(text="ans")
     user_data: dict[str, Any] = {}
-    set_state(
-        user_data,
-        LearnState(topic="slug", step=1, last_step_text="q", awaiting=True),
+    set_state(user_data, LearnState(topic="slug", step=1, last_step_text="q", awaiting=True))
+    update = cast(
+        object,
+        SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)),
     )
-    update = cast(object, SimpleNamespace(message=msg))
-    context = SimpleNamespace(user_data=user_data)
+    context = SimpleNamespace(user_data=user_data, bot_data={})
 
     await learning_handlers.lesson_answer_handler(update, context)
 
-    assert msg.replies == [dynamic_tutor.BUSY_MESSAGE]
+    assert msg.replies == ["ok", "next"]
     state = get_state(user_data)
     assert state is not None
-    assert state.step == 1
+    assert state.step == 2
     assert state.awaiting
     assert not context.user_data.get("learn_busy", False)
+    assert lesson_log_failures._value.get() == 3
