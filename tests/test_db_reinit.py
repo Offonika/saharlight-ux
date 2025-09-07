@@ -1,5 +1,7 @@
-from typing import Any, cast
+from collections.abc import Iterator
+from contextlib import contextmanager
 from types import ModuleType
+from typing import Any, cast
 
 import importlib
 import sys
@@ -20,6 +22,10 @@ class DummyEngine:
 
     def dispose(self) -> None:
         self.disposed = True
+
+    @contextmanager
+    def begin(self) -> Iterator["DummyEngine"]:
+        yield self
 
 
 @pytest.mark.parametrize(
