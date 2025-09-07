@@ -125,14 +125,10 @@ def subscription_keyboard(trial_available: bool) -> InlineKeyboardMarkup:
     """Build inline keyboard for subscription actions."""
     from services.api.app import config
 
-    # Settings values may change during tests or runtime when environment
-    # variables are monkeypatched. Reloading here ensures we always read the
-    # latest ``SUBSCRIPTION_URL`` or ``PUBLIC_ORIGIN`` values.
-    config.reload_settings()
+    settings = config.get_settings()
     buttons: list[InlineKeyboardButton] = []
     if trial_available:
         buttons.append(InlineKeyboardButton("🎁 Trial", callback_data="trial"))
-    settings = config.get_settings()
     url = settings.subscription_url
     if not url:
         try:

@@ -27,6 +27,7 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if message is None or user is None:
         return
 
+    config.reload_settings()
     base = config.get_settings().api_url
     if not base:
         await message.reply_text("❌ Не настроен API_URL")
@@ -114,6 +115,7 @@ async def upgrade_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     message = update.message
     if message is None:
         return
+    config.reload_settings()
     kb = subscription_keyboard(False)
     if not kb.inline_keyboard:
         await message.reply_text("❌ Не настроена ссылка на оплату.")
@@ -144,6 +146,7 @@ async def subscription_button(update: Update, context: ContextTypes.DEFAULT_TYPE
     user = update.effective_user
     if message is None or user is None:
         return
+    config.reload_settings()
     base = config.get_settings().api_url
     if not base:
         await message.reply_text("❌ Не настроен API_URL")
