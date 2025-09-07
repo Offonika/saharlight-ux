@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import contextvars
 import time
 
 import pytest
@@ -46,3 +48,30 @@ async def test_upsert_updates_timestamp() -> None:
     assert progress2 is not None
     assert progress2.step == 2
     assert progress2.updated_at > first_ts
+
+
+@pytest.mark.asyncio
+async def test_upsert_progress_concurrent(monkeypatch: pytest.MonkeyPatch) -> None:
+    step_ctx: contextvars.ContextVar[int] = contextvars.ContextVar("step")
+
+    original_commit = progress_service.commit
+
+    def delayed_commit(session: Session) -> None:
+        step = step_ctx.get()
+        if step == 1:
+            time.sleep(0.1)
+        original_commit(session)
+
+    monkeypatch.setattr(progress_service, "commit", delayed_commit)
+
+    async def upsert(step: int) -> None:
+        token = step_ctx.set(step)
+        try:
+            await progress_service.upsert_progress(1, "intro", step)
+        finally:
+            step_ctx.reset(token)
+
+    await asyncio.gather(upsert(1), upsert(2))
+    progress = await progress_service.get_progress(1, "intro")
+    assert progress is not None
+    assert progress.step == 2

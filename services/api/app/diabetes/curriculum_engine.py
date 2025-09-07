@@ -7,6 +7,7 @@ from collections.abc import Mapping
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
+from ..assistant.services import progress_service
 from ..config import settings
 from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
 from .learning_prompts import (
@@ -88,6 +89,7 @@ async def next_step(
             return progress.current_step, lesson.slug
 
         step_idx, slug = await db.run_db(_advance_dynamic)
+        await progress_service.upsert_progress(user_id, slug, step_idx)
         text = await generate_step_text(profile, slug, step_idx, prev_summary)
         if step_idx == 1:
             return f"{disclaimer()}\n\n{text}", False
@@ -95,10 +97,11 @@ async def next_step(
 
     def _advance_static(
         session: Session,
-    ) -> tuple[str | None, str | None, bool, bool, int, bool]:
+    ) -> tuple[str | None, str | None, bool, bool, int, bool, str]:
         progress = session.execute(
             sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
         ).scalar_one()
+        lesson = session.execute(sa.select(Lesson).filter_by(id=lesson_id)).scalar_one()
         steps = session.scalars(
             sa.select(LessonStep)
             .filter_by(lesson_id=lesson_id)
@@ -110,7 +113,7 @@ async def next_step(
             progress.current_step += 1
             step_idx = progress.current_step
             commit(session)
-            return step.content, None, first_step, False, step_idx, False
+            return step.content, None, first_step, False, step_idx, False, lesson.slug
         questions = session.scalars(
             sa.select(QuizQuestion)
             .filter_by(lesson_id=lesson_id)
@@ -129,11 +132,12 @@ async def next_step(
                 first_question,
                 progress.current_step,
                 False,
+                lesson.slug,
             )
         if not progress.completed:
             progress.completed = True
             commit(session)
-        return None, None, False, False, progress.current_step, True
+        return None, None, False, False, progress.current_step, True, lesson.slug
 
     (
         step_content,
@@ -142,8 +146,10 @@ async def next_step(
         first_question,
         step_idx,
         completed,
+        slug,
     ) = await db.run_db(_advance_static)
     if step_content is not None and step_idx is not None:
+        await progress_service.upsert_progress(user_id, slug, step_idx)
         start = time.monotonic()
         try:
             text = await gpt_client.create_learning_chat_completion(
