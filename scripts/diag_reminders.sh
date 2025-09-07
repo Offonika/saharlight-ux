@@ -113,7 +113,7 @@ BOT_TOKEN="${BOT_TOKEN:-${TELEGRAM_BOT_TOKEN:-}}"
 if [ -n "$BOT_TOKEN" ]; then
   "$PY" - <<PY
 import asyncio, os, sys
-from datetime import datetime
+from datetime import datetime, UTC
 try:
     from telegram import Bot
 except Exception as e:
@@ -123,7 +123,7 @@ token=os.environ.get("BOT_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN")
 chat_id=int("${TG_ID}")
 async def main():
     bot=Bot(token=token)
-    txt=f"Диагностика: бот доступен ✅ (UTC={datetime.utcnow():%Y-%m-%d %H:%M:%S})"
+    txt=f"Диагностика: бот доступен ✅ (UTC={datetime.now(UTC):%Y-%m-%d %H:%M:%S})"
     await bot.send_message(chat_id=chat_id, text=txt)
 asyncio.run(main())
 print(">> Сообщение диагностики отправлено (если токен и чат корректны).")
