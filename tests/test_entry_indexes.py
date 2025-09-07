@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any
 
 import sqlalchemy as sa
@@ -35,7 +35,7 @@ def test_entry_indexes_usage() -> None:
     with SessionLocal() as session:
         session.add(db.User(telegram_id=1, thread_id="t"))
         session.flush()
-        session.add(db.Entry(telegram_id=1, event_time=datetime.utcnow()))
+        session.add(db.Entry(telegram_id=1, event_time=datetime.now(UTC)))
         session.commit()
 
         plan_tg = session.execute(

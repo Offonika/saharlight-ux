@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, UTC
 from typing import Any
 
 import sqlalchemy as sa
@@ -40,7 +40,7 @@ def test_onboarding_events_metrics_index_exists() -> None:
             OnboardingMetricEvent(
                 variant="v1",
                 step="s1",
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(UTC),
             )
         )
         session.commit()
