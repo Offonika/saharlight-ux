@@ -118,14 +118,3 @@ class LessonProgress(Base):
     lesson: Mapped[Lesson] = relationship("Lesson", back_populates="progresses")
 
 
-class LessonLog(Base):
-    __tablename__ = "lesson_logs"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    telegram_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), nullable=False, index=True)
-    topic_slug: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    role: Mapped[str] = mapped_column(String, nullable=False)
-    step_idx: Mapped[int] = mapped_column(Integer, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False)
-
-    user: Mapped[User] = relationship("User")
