@@ -107,3 +107,33 @@ async def test_plan_and_skip_commands() -> None:
     await learning_handlers.skip_command(update, context)
     assert message.replies[-1] == "План завершён."
     assert user_data["learning_plan_index"] == 2
+
+
+@pytest.mark.asyncio
+async def test_plan_command_respects_existing_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plan = ["step1", "step2"]
+    user_data = {"learning_plan": plan, "learning_plan_index": 0}
+    message = DummyMessage()
+    update = make_update(message=message)
+    context = make_context(user_data=user_data)
+
+    async def fail_get_active_plan(*args: object, **kwargs: object) -> None:
+        raise AssertionError("should not fetch plan")
+
+    async def fail_get_progress(*args: object, **kwargs: object) -> None:
+        raise AssertionError("should not fetch progress")
+
+    monkeypatch.setattr(
+        learning_handlers.plans_repo, "get_active_plan", fail_get_active_plan
+    )
+    monkeypatch.setattr(
+        learning_handlers.progress_repo, "get_progress", fail_get_progress
+    )
+
+    await learning_handlers.plan_command(update, context)
+
+    assert message.replies == [pretty_plan(plan)]
+    assert user_data["learning_plan"] == plan
+    assert user_data["learning_plan_index"] == 0
