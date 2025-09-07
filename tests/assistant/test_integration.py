@@ -27,7 +27,7 @@ async def test_flow_idk_with_log_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
-    monkeypatch.setattr(settings, "learning_logging_required", True)
+    monkeypatch.setattr(settings, "learning_logging_required", False)
 
     async def fake_ensure_overrides(*_: object) -> bool:
         return True

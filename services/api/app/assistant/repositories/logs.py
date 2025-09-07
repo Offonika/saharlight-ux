@@ -56,9 +56,13 @@ async def flush_pending_logs() -> None:
 
         try:
             await run_db(_flush, sessionmaker=SessionLocal)
-        except Exception:  # pragma: no cover - logging only
-            logger.exception("Failed to flush %s lesson logs", len(entries))
+        except Exception as exc:  # pragma: no cover - logging only
+            logger.warning(
+                "Failed to flush %s lesson logs", len(entries), exc_info=exc
+            )
             lesson_log_failures.inc(len(entries))
+            if settings.learning_logging_required:
+                raise
             return
 
         pending_logs.clear()
@@ -73,10 +77,6 @@ async def add_lesson_log(
     content: str,
 ) -> None:
     """Queue a lesson log entry and attempt to flush."""
-
-    if not settings.learning_logging_required:
-        return
-
     async with pending_logs_lock:
         pending_logs.append(
             _PendingLog(

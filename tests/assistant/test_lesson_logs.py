@@ -40,7 +40,7 @@ def session_factory(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
 async def test_add_and_flush_logs(
     session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(settings, "learning_logging_required", True)
+    monkeypatch.setattr(settings, "learning_logging_required", False)
 
     with session_factory() as session:
         session.add(db.User(telegram_id=1, thread_id="t"))
