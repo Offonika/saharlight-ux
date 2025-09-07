@@ -139,7 +139,9 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     lesson_id = cast(int | None, user_data.get("lesson_id"))
     if lesson_id is None:
         if lesson_slug is None:
-            await message.reply_text("Сначала выберите урок командой /learn")
+            await message.reply_text(
+                "Сначала выберите урок — нажмите кнопку 🤖 Ассистент_AI или команду /learn"
+            )
             return
         progress = await curriculum_engine.start_lesson(user.id, lesson_slug)
         lesson_id = progress.lesson_id
@@ -297,7 +299,9 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     result = await run_db(_load_progress, user_id, sessionmaker=SessionLocal)
     if result is None:
-        await message.reply_text("Вы ещё не начали обучение. Отправьте /learn чтобы начать.")
+        await message.reply_text(
+            "Вы ещё не начали обучение. Нажмите кнопку 🤖 Ассистент_AI или команду /learn, чтобы начать."
+        )
         return
     title, current_step, completed, quiz_score = result
     lines = [

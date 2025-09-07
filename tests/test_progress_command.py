@@ -52,7 +52,7 @@ async def test_progress_command_no_progress(monkeypatch: pytest.MonkeyPatch) -> 
     await handlers.progress_command(update, context)
 
     assert message.replies == [
-        "Вы ещё не начали обучение. Отправьте /learn чтобы начать."
+        "Вы ещё не начали обучение. Нажмите кнопку 🤖 Ассистент_AI или команду /learn, чтобы начать."
     ]
 
 
