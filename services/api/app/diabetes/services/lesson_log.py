@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,7 @@ __all__ = [
     "get_lesson_logs",
     "flush_pending_logs",
     "start_flush_task",
+    "cleanup_old_logs",
 ]
 
 
@@ -70,11 +72,11 @@ async def add_lesson_log(
 
     pending_logs.append(
         _PendingLog(
-        telegram_id=telegram_id,
-        topic_slug=topic_slug,
-        role=role,
-        step_idx=step_idx,
-        content=content,
+            telegram_id=telegram_id,
+            topic_slug=topic_slug,
+            role=role,
+            step_idx=step_idx,
+            content=content,
         )
     )
 
@@ -107,3 +109,20 @@ async def get_lesson_logs(telegram_id: int, topic_slug: str) -> list[LessonLog]:
         )
 
     return await run_db(_get, sessionmaker=SessionLocal)
+
+
+async def cleanup_old_logs(ttl: timedelta | None = None) -> None:
+    """Remove lesson logs older than ``ttl``."""
+
+    days = settings.lesson_logs_ttl_days
+    ttl = ttl or timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - ttl
+
+    def _cleanup(session: Session) -> int:
+        deleted = session.query(LessonLog).where(LessonLog.created_at < cutoff).delete()
+        commit(session)
+        return deleted
+
+    removed = await run_db(_cleanup, sessionmaker=SessionLocal)
+    if removed:
+        logger.info("Removed %s stale lesson log(s)", removed)
