@@ -13,16 +13,18 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_index("ix_lesson_logs_user_id", table_name="lesson_logs")
-    op.drop_index("ix_lesson_logs_plan_id", table_name="lesson_logs")
-    op.create_index(
-        "ix_lesson_logs_user_plan",
-        "lesson_logs",
-        ["user_id", "plan_id"],
-    )
+    if op.get_bind().dialect.name == "postgresql":
+        op.drop_index("ix_lesson_logs_user_id", table_name="lesson_logs")
+        op.drop_index("ix_lesson_logs_plan_id", table_name="lesson_logs")
+        op.create_index(
+            "ix_lesson_logs_user_plan",
+            "lesson_logs",
+            ["user_id", "plan_id"],
+        )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_lesson_logs_user_plan", table_name="lesson_logs")
-    op.create_index("ix_lesson_logs_user_id", "lesson_logs", ["user_id"])
-    op.create_index("ix_lesson_logs_plan_id", "lesson_logs", ["plan_id"])
+    if op.get_bind().dialect.name == "postgresql":
+        op.drop_index("ix_lesson_logs_user_plan", table_name="lesson_logs")
+        op.create_index("ix_lesson_logs_user_id", "lesson_logs", ["user_id"])
+        op.create_index("ix_lesson_logs_plan_id", "lesson_logs", ["plan_id"])

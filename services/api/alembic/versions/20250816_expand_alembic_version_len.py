@@ -11,15 +11,15 @@ depends_on = None
 
 def upgrade() -> None:
     bind = op.get_bind()
-    if bind.dialect.name == "sqlite":
-        return
-
-    op.execute("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)")
+    if bind.dialect.name == "postgresql":
+        op.execute(
+            "ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)"
+        )
 
 
 def downgrade() -> None:
     bind = op.get_bind()
-    if bind.dialect.name == "sqlite":
-        return
-
-    op.execute("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(32)")
+    if bind.dialect.name == "postgresql":
+        op.execute(
+            "ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(32)"
+        )

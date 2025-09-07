@@ -2,30 +2,39 @@ from __future__ import annotations
 
 import logging
 import logging.config
-
+import tempfile
 from types import SimpleNamespace
 import importlib
+
 from alembic import command
 from alembic.config import Config
 import pytest
+import sqlalchemy as sa
 
 
 def test_upgrade(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("DATABASE_URL", "sqlite+pysqlite:///:memory:")
+    with tempfile.NamedTemporaryFile(suffix=".sqlite") as tmp:
+        db_url = f"sqlite+pysqlite:///{tmp.name}"
+        monkeypatch.setenv("DATABASE_URL", db_url)
 
-    original_file_config = logging.config.fileConfig
+        original_file_config = logging.config.fileConfig
 
-    def _safe_file_config(fname: str, *args: object, **kwargs: object) -> None:
-        kwargs.setdefault("disable_existing_loggers", False)
-        original_file_config(fname, *args, **kwargs)
+        def _safe_file_config(fname: str, *args: object, **kwargs: object) -> None:
+            kwargs.setdefault("disable_existing_loggers", False)
+            original_file_config(fname, *args, **kwargs)
 
-    monkeypatch.setattr(logging.config, "fileConfig", _safe_file_config)
+        monkeypatch.setattr(logging.config, "fileConfig", _safe_file_config)
 
-    cfg = Config("services/api/alembic.ini")
-    command.upgrade(cfg, "heads")
+        cfg = Config("services/api/alembic.ini")
+        command.upgrade(cfg, "heads")
 
-    logging.config.dictConfig({"version": 1, "disable_existing_loggers": False})
-    assert logging.getLogger(__name__).disabled is False
+        engine = sa.create_engine(db_url)
+        inspector = sa.inspect(engine)
+        cols = [col["name"] for col in inspector.get_columns("assistant_memory")]
+        assert "summary_text" not in cols
+
+        logging.config.dictConfig({"version": 1, "disable_existing_loggers": False})
+        assert logging.getLogger(__name__).disabled is False
 
 
 class _DummyBatchOp:
