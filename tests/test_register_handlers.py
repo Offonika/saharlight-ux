@@ -132,6 +132,10 @@ def test_register_handlers_attaches_expected_handlers(
         and h.callback is dynamic_learning_handlers.lesson_answer_handler
         for h in handlers
     )
+    assert dynamic_learning_handlers.on_any_text in callbacks
+    assert callbacks.index(dynamic_learning_handlers.on_any_text) < callbacks.index(
+        gpt_handlers.freeform_handler
+    )
     assert any(
         isinstance(h, CommandHandler)
         and h.callback is learning_onboarding.learn_reset
