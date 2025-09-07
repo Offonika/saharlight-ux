@@ -245,18 +245,28 @@ def register_handlers(
     )
     app.add_handler(CallbackQueryHandlerT(callback_router))
 
-    try:
-        app.create_task(
-            app.bot.set_my_commands(
+    async def _set_commands(
+        app: Application[
+            ExtBot[None],
+            ContextTypes.DEFAULT_TYPE,
+            dict[str, object],
+            dict[str, object],
+            dict[str, object],
+            JobQueue[ContextTypes.DEFAULT_TYPE],
+        ],
+    ) -> None:
+        try:
+            await app.bot.set_my_commands(
                 [
                     BotCommand("learn", "Учебный режим"),
                     BotCommand("topics", "Список тем"),
                     BotCommand("menu", "Показать нижнее меню"),
                 ]
             )
-        )
-    except Exception as e:  # pragma: no cover - network errors
-        logger.warning("set_my_commands failed: %s", e)
+        except Exception as e:  # pragma: no cover - network errors
+            logger.warning("set_my_commands failed: %s", e)
+
+    app.post_init = _set_commands
 
     async def _clear_waiting_flags(context: ContextTypes.DEFAULT_TYPE) -> None:
         for data in context.application.user_data.values():
