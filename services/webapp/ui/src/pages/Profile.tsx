@@ -459,7 +459,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         }
 
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         if (cancelled) return;
         const message = error instanceof Error ? error.message : String(error);
         toast({
