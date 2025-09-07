@@ -1,26 +1,14 @@
 from __future__ import annotations
 
 from typing import cast
+from datetime import datetime
 
-from sqlalchemy import BigInteger, ForeignKey, Text
-from sqlalchemy.orm import Mapped, Session, mapped_column
+from sqlalchemy.orm import Session
 
-from ...diabetes.services.db import Base, SessionLocal, run_db
+from ...assistant.models import AssistantMemory
+from ...diabetes.services.db import SessionLocal, run_db
 from ...diabetes.services.repository import commit
 from ...types import SessionProtocol
-
-
-class AssistantMemory(Base):
-    """Persisted memory summary for assistant conversations."""
-
-    __tablename__ = "assistant_memory"
-
-    user_id: Mapped[int] = mapped_column(
-        BigInteger,
-        ForeignKey("users.telegram_id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    memory: Mapped[str] = mapped_column(Text, nullable=False)
 
 
 async def get_memory(user_id: int) -> str | None:
@@ -28,7 +16,7 @@ async def get_memory(user_id: int) -> str | None:
 
     def _get(session: SessionProtocol) -> str | None:
         record = cast(AssistantMemory | None, session.get(AssistantMemory, user_id))
-        return None if record is None else record.memory
+        return None if record is None else record.summary_text
 
     return await run_db(_get, sessionmaker=SessionLocal)
 
@@ -38,11 +26,19 @@ async def save_memory(user_id: int, memory: str) -> None:
 
     def _save(session: SessionProtocol) -> None:
         record = cast(AssistantMemory | None, session.get(AssistantMemory, user_id))
+        now = datetime.utcnow()
         if record is None:
-            record = AssistantMemory(user_id=user_id, memory=memory)
+            record = AssistantMemory(
+                user_id=user_id,
+                summary_text=memory,
+                turn_count=0,
+                last_turn_at=now,
+            )
             cast(Session, session).add(record)
         else:
-            record.memory = memory
+            record.summary_text = memory
+            record.turn_count = 0
+            record.last_turn_at = now
         commit(cast(Session, session))
 
     await run_db(_save, sessionmaker=SessionLocal)

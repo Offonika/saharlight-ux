@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from ...diabetes.services.db import Base, SessionLocal, run_db
-from ...diabetes.services.repository import commit
+from ...diabetes.services.repository import transactional
 from ...types import SessionProtocol
 
 logger = logging.getLogger(__name__)
@@ -52,13 +52,14 @@ async def upsert_progress(user_id: int, lesson: str, step: int) -> None:
     """Insert or update progress ensuring idempotency."""
 
     def _upsert(session: SessionProtocol) -> None:
+        sess = cast(Session, session)
         stmt = insert(Progress).values(user_id=user_id, lesson=lesson, step=step)
-        session.execute(
-            stmt.on_conflict_do_update(
-                index_elements=[Progress.user_id, Progress.lesson],
-                set_={"step": step, "updated_at": func.now()},
+        with transactional(sess):
+            sess.execute(
+                stmt.on_conflict_do_update(
+                    index_elements=[Progress.user_id, Progress.lesson],
+                    set_={"step": step, "updated_at": func.now()},
+                )
             )
-        )
-        commit(cast(Session, session))
 
     await run_db(_upsert, sessionmaker=SessionLocal)
