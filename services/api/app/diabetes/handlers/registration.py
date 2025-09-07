@@ -36,6 +36,9 @@ from ..utils.ui import (
 )
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
+OLD_LEARN_BUTTON_TEXT = "🎓 Обучение"
+LEARN_BUTTON_PATTERN = rf"^(?:{re.escape(LEARN_BUTTON_TEXT)}|{re.escape(OLD_LEARN_BUTTON_TEXT)})$"
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -166,7 +169,7 @@ def register_handlers(
     app.add_handler(CommandHandlerT("menu", learning_handlers.cmd_menu))
     app.add_handler(
         MessageHandlerT(
-            filters.TEXT & filters.Regex(rf"^{re.escape(LEARN_BUTTON_TEXT)}$"),
+            filters.TEXT & filters.Regex(LEARN_BUTTON_PATTERN),
             learning_handlers.on_learn_button,
         )
     )
