@@ -5,9 +5,9 @@ import pytest
 from services.api.app.config import settings
 from typing import Callable
 
-from services.api.app.diabetes.services import lesson_log
-from services.api.app.diabetes.services.lesson_log import add_lesson_log
-from services.api.app.diabetes.models_learning import LessonLog
+from services.api.app.assistant.repositories import logs
+from services.api.app.assistant.repositories.logs import add_lesson_log
+from services.api.app.assistant.models import LessonLog
 
 
 @pytest.mark.asyncio
@@ -19,9 +19,9 @@ async def test_skip_when_logging_disabled(monkeypatch: pytest.MonkeyPatch) -> No
     async def fail_run_db(*_: object, **__: object) -> None:  # pragma: no cover - sanity
         raise AssertionError("run_db should not be called")
 
-    monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
+    monkeypatch.setattr(logs, "run_db", fail_run_db)
 
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
+    await add_lesson_log(1, 1, 0, 1, "assistant", "hi")
 
 
 @pytest.mark.asyncio
@@ -33,9 +33,9 @@ async def test_add_lesson_log_handles_errors(monkeypatch: pytest.MonkeyPatch) ->
     async def fail_run_db(*_: object, **__: object) -> None:
         raise RuntimeError("db down")
 
-    monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
+    monkeypatch.setattr(logs, "run_db", fail_run_db)
 
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
+    await add_lesson_log(1, 1, 0, 1, "assistant", "hi")
 
 
 @pytest.mark.asyncio
@@ -44,17 +44,17 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(settings, "learning_logging_required", True)
 
-    lesson_log.pending_logs.clear()
+    logs.pending_logs.clear()
 
     async def fail_run_db(*_: object, **__: object) -> None:
         raise RuntimeError("db down")
 
-    monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
+    monkeypatch.setattr(logs, "run_db", fail_run_db)
 
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
-    await add_lesson_log(1, "topic", "assistant", 2, "there")
+    await add_lesson_log(1, 1, 0, 1, "assistant", "hi")
+    await add_lesson_log(1, 1, 0, 2, "assistant", "there")
 
-    assert len(lesson_log.pending_logs) == 2
+    assert len(logs.pending_logs) == 2
 
     inserted: list[LessonLog] = []
 
@@ -65,10 +65,10 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
     async def ok_run_db(fn: Callable[[DummySession], None], *args: object, **kwargs: object) -> None:
         fn(DummySession())
 
-    monkeypatch.setattr(lesson_log, "run_db", ok_run_db)
-    monkeypatch.setattr(lesson_log, "commit", lambda _: None)
+    monkeypatch.setattr(logs, "run_db", ok_run_db)
+    monkeypatch.setattr(logs, "commit", lambda _: None)
 
-    await add_lesson_log(1, "topic", "assistant", 3, "third")
+    await add_lesson_log(1, 1, 0, 3, "assistant", "third")
 
     assert len(inserted) == 3
-    assert not lesson_log.pending_logs
+    assert not logs.pending_logs

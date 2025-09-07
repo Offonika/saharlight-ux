@@ -7,12 +7,12 @@ from sqlalchemy.pool import StaticPool
 from services.api.app.diabetes.services import db
 from datetime import datetime, timedelta, timezone
 
-from services.api.app.diabetes.services.lesson_log import (
+from services.api.app.assistant.repositories.logs import (
     add_lesson_log,
     get_lesson_logs,
     cleanup_old_logs,
 )
-from services.api.app.diabetes.models_learning import LessonLog  # noqa: F401
+from services.api.app.assistant.models import LessonLog  # noqa: F401
 
 
 @pytest.fixture()
@@ -31,9 +31,9 @@ def setup_db() -> None:
 
 @pytest.mark.asyncio
 async def test_add_and_get_logs(setup_db: None) -> None:
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
-    await add_lesson_log(1, "topic", "user", 1, "answer")
-    logs = await get_lesson_logs(1, "topic")
+    await add_lesson_log(1, 1, 0, 1, "assistant", "hi")
+    await add_lesson_log(1, 1, 0, 1, "user", "answer")
+    logs = await get_lesson_logs(1, 1)
     assert [log.role for log in logs] == ["assistant", "user"]
     assert logs[0].content == "hi"
     assert logs[1].content == "answer"
@@ -50,20 +50,22 @@ async def test_cleanup_old_logs(setup_db: None) -> None:
         )  # ensure user exists for completeness
         session.add(
             LessonLog(
-                telegram_id=1,
-                topic_slug="topic",
-                role="assistant",
+                user_id=1,
+                plan_id=1,
+                module_idx=0,
                 step_idx=1,
+                role="assistant",
                 content="old",
                 created_at=old,
             )
         )
         session.add(
             LessonLog(
-                telegram_id=1,
-                topic_slug="topic",
-                role="assistant",
+                user_id=1,
+                plan_id=1,
+                module_idx=0,
                 step_idx=2,
+                role="assistant",
                 content="new",
                 created_at=now,
             )

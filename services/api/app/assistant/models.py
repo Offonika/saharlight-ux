@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, ForeignKey, Integer, Text, TIMESTAMP
+import sqlalchemy as sa
+from sqlalchemy import BigInteger, ForeignKey, Integer, String, Text, TIMESTAMP
 from sqlalchemy.orm import Mapped, mapped_column
 
 from services.api.app.diabetes.services.db import Base
@@ -24,4 +25,28 @@ class AssistantMemory(Base):
     last_turn_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
 
 
-__all__ = ["AssistantMemory"]
+class LessonLog(Base):
+    """Single lesson interaction log entry."""
+
+    __tablename__ = "lesson_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    plan_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    module_idx: Mapped[int] = mapped_column(Integer, nullable=False)
+    step_idx: Mapped[int] = mapped_column(Integer, nullable=False)
+    role: Mapped[str] = mapped_column(String, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=sa.func.now(),
+    )
+
+
+__all__ = ["AssistantMemory", "LessonLog"]
