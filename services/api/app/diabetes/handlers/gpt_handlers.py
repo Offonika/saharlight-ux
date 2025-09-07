@@ -34,6 +34,7 @@ from services.api.app.diabetes.utils.ui import confirm_keyboard
 from services.api.app.ui.keyboard import build_main_keyboard
 from services.api.app.diabetes.services import gpt_client
 from services.api.app.config import settings
+from services.api.app.assistant.services import memory_service
 
 from .alert_handlers import check_alert as _check_alert
 from .dose_validation import _sanitize
@@ -688,6 +689,7 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not settings.assistant_mode_enabled:
         return
 
+    user = update.effective_user
     user_data = cast(dict[str, object], context.user_data)
     user_text = message.text
 
@@ -703,7 +705,16 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         reply = "⚠️ Не удалось получить ответ. Попробуйте позже."
 
     await message.reply_text(reply)
-    assistant_state.add_turn(user_data, f"user: {user_text}\nassistant: {reply}")
+    summarized = assistant_state.add_turn(
+        user_data, f"user: {user_text}\nassistant: {reply}"
+    )
+    if user is not None:
+        summary = (
+            cast(str | None, user_data.get(assistant_state.SUMMARY_KEY))
+            if summarized
+            else None
+        )
+        await memory_service.record_turn(user.id, summary_text=summary)
 
 
 async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

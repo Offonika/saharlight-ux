@@ -41,16 +41,21 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
 @pytest.mark.asyncio
 async def test_save_and_get_memory(setup_db: sessionmaker[Session]) -> None:
     now = datetime.now(tz=timezone.utc)
-    await memory_service.save_memory(1, turn_count=1, last_turn_at=now)
+    await memory_service.save_memory(
+        1, turn_count=1, last_turn_at=now, summary_text="hi"
+    )
     mem = await memory_service.get_memory(1)
     assert mem is not None
     assert mem.turn_count == 1
+    assert mem.summary_text == "hi"
 
 
 @pytest.mark.asyncio
 async def test_clear_memory(setup_db: sessionmaker[Session]) -> None:
     now = datetime.now(tz=timezone.utc)
-    await memory_service.save_memory(1, turn_count=1, last_turn_at=now)
+    await memory_service.save_memory(
+        1, turn_count=1, last_turn_at=now, summary_text="x"
+    )
     await memory_service.clear_memory(1)
     assert await memory_service.get_memory(1) is None
 
@@ -58,7 +63,9 @@ async def test_clear_memory(setup_db: sessionmaker[Session]) -> None:
 @pytest.mark.asyncio
 async def test_reset_command_clears_memory(setup_db: sessionmaker[Session]) -> None:
     now = datetime.now(tz=timezone.utc)
-    await memory_service.save_memory(1, turn_count=1, last_turn_at=now)
+    await memory_service.save_memory(
+        1, turn_count=1, last_turn_at=now, summary_text="y"
+    )
 
     class DummyMessage:
         def __init__(self) -> None:
@@ -88,8 +95,12 @@ async def test_reset_command_clears_memory(setup_db: sessionmaker[Session]) -> N
 async def test_cleanup_old_memory(setup_db: sessionmaker[Session]) -> None:
     old = datetime.now(timezone.utc) - timedelta(days=61)
     now = datetime.now(timezone.utc)
-    await memory_service.save_memory(1, turn_count=1, last_turn_at=old)
-    await memory_service.save_memory(2, turn_count=1, last_turn_at=now)
+    await memory_service.save_memory(
+        1, turn_count=1, last_turn_at=old, summary_text="old"
+    )
+    await memory_service.save_memory(
+        2, turn_count=1, last_turn_at=now, summary_text="new"
+    )
 
     await memory_service.cleanup_old_memory(ttl=timedelta(days=60))
 

@@ -33,7 +33,11 @@ async def test_memory_reset(monkeypatch: pytest.MonkeyPatch) -> None:
         assert user_id == 1
         cleared["called"] = True
 
+    async def fake_record_turn(*args: Any, **kwargs: Any) -> None:
+        return None
+
     monkeypatch.setattr(memory_service, "get_memory", fake_get_memory)
+    monkeypatch.setattr(memory_service, "record_turn", fake_record_turn)
     monkeypatch.setattr(commands, "_clear_memory", fake_clear_memory)
 
     message = DummyMessage("hi")
