@@ -1,10 +1,5 @@
 import { tgFetch, FetchError } from '@/lib/tgFetch';
-import type {
-  Profile,
-  PatchProfileDto,
-  ProfilePatchSchema,
-  RapidInsulin,
-} from './types';
+import type { Profile, PatchProfileDto, RapidInsulin } from './types';
 
 export async function getProfile(telegramId: number): Promise<Profile | null> {
   try {
@@ -54,7 +49,7 @@ export async function saveProfile({
   sosContact?: string | null;
   sosAlertsEnabled?: boolean;
   therapyType?: string | null;
-}): Promise<ProfilePatchSchema> {
+}): Promise<void> {
   try {
     const body: Record<string, unknown> = {
       telegramId,
@@ -99,10 +94,7 @@ export async function saveProfile({
       body.therapyType = therapyType;
     }
 
-    return await tgFetch<ProfilePatchSchema>('/profile', {
-      method: 'POST',
-      body,
-    });
+    await tgFetch('/profile', { method: 'POST', body });
   } catch (error) {
     console.error('Failed to save profile:', error);
     if (error instanceof Error) {

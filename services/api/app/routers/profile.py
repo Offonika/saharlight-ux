@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..diabetes.schemas.profile import ProfileSettingsIn
 from ..schemas.profile import ProfileSchema
 from ..schemas.user import UserContext
-from ..services.profile import get_profile_settings, patch_user_settings
+from ..services.profile import (
+    get_profile_settings,
+    patch_user_settings,
+    save_profile,
+)
 from ..telegram_auth import require_tg_user
 
 
@@ -41,4 +45,20 @@ async def profile_patch(
     """Update profile settings."""
 
     return await patch_user_settings(user["id"], data, device_tz)
+
+
+@router.post("/profile")
+async def profile_post(
+    data: ProfileSchema,
+    user: UserContext = Depends(require_tg_user),
+) -> dict[str, str]:
+    """Create or overwrite full profile settings."""
+
+    if data.telegramId != user["id"]:
+        raise HTTPException(status_code=403, detail="telegramId mismatch")
+    try:
+        await save_profile(data)
+    except ValueError as exc:  # pragma: no cover - conversion to HTTP 422
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"status": "ok"}
 
