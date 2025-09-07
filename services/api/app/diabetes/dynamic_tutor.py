@@ -9,6 +9,9 @@ from .learning_prompts import build_system_prompt, build_user_prompt_step
 from .services.gpt_client import create_chat_completion, format_reply
 
 
+router = LLMRouter()
+
+
 async def _chat(model: str, system: str, user: str, *, max_tokens: int = 350) -> str:
     """Call OpenAI chat completion and format the reply."""
     messages: list[ChatCompletionMessageParam] = [
@@ -32,7 +35,7 @@ async def generate_step_text(
     prev_summary: str | None,
 ) -> str:
     """Generate explanation text for a learning step."""
-    model = LLMRouter().choose_model(LLMTask.EXPLAIN_STEP)
+    model = router.choose_model(LLMTask.EXPLAIN_STEP)
     try:
         system = build_system_prompt(profile)
         user = build_user_prompt_step(topic_slug, step_idx, prev_summary)
@@ -53,7 +56,7 @@ async def check_user_answer(
     LLM judged the answer as correct. The feedback message is returned as-is
     from the model.
     """
-    model = LLMRouter().choose_model(LLMTask.QUIZ_CHECK)
+    model = router.choose_model(LLMTask.QUIZ_CHECK)
     system = build_system_prompt(profile)
     user = (
         f"Тема: {topic_slug}. Текст предыдущего шага:\n{last_step_text}\n\n"
