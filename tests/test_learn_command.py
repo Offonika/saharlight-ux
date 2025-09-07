@@ -4,7 +4,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 import json
-import re
 
 import pytest
 from sqlalchemy import create_engine
@@ -220,7 +219,7 @@ async def test_on_learn_button_calls_learn(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_learn_button_texts_match_pattern() -> None:
-    assert re.fullmatch(registration.LEARN_BUTTON_PATTERN, LEARN_BUTTON_TEXT)
-    assert re.fullmatch(
-        registration.LEARN_BUTTON_PATTERN, registration.OLD_LEARN_BUTTON_TEXT
+    assert registration.LEARN_BUTTON_PATTERN.fullmatch(LEARN_BUTTON_TEXT)
+    assert registration.LEARN_BUTTON_PATTERN.fullmatch(
+        registration.OLD_LEARN_BUTTON_TEXT
     )
