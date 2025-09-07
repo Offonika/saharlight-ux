@@ -14,6 +14,7 @@ class DummyMessage:
     def __init__(self, text: str | None = None) -> None:
         self.text = text
         self.replies: list[str] = []
+        self.from_user = SimpleNamespace(id=1)
 
     async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
         self.replies.append(text)
@@ -38,6 +39,15 @@ async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"slug": "Topic"})
+    async def fake_start_lesson(user_id: int, topic_slug: str) -> object:
+        return SimpleNamespace(lesson_id=1)
+
+    async def fake_next_step(user_id: int, lesson_id: int, profile: object) -> tuple[str, object | None]:
+        return "step1", None
+
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
+    monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
 
     times = iter([0.0, 1.0])
 
@@ -88,6 +98,16 @@ async def test_lesson_answer_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None
             return 1000.0
 
     monkeypatch.setattr(learning_handlers.time, "monotonic", fake_monotonic)
+
+    async def fake_start_lesson2(user_id: int, topic_slug: str) -> object:
+        return SimpleNamespace(lesson_id=1)
+
+    async def fake_next_step2(user_id: int, lesson_id: int, profile: object) -> tuple[str, object | None]:
+        return "next", None
+
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson2)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step2)
+    monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
 
     user_data: dict[str, object] = {}
     learning_handlers.set_state(

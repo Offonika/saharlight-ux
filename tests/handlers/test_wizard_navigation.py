@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
+from unittest.mock import AsyncMock
 
 from services.api.app.diabetes.services.db import Base, User
 import services.api.app.services.onboarding_state as onboarding_state
@@ -31,6 +32,9 @@ class DummyMessage:
 
     async def delete(self) -> None:  # pragma: no cover - interface completeness
         self.deleted = True
+
+    def get_bot(self) -> Any:
+        return SimpleNamespace(set_my_commands=AsyncMock())
 
 
 class DummyQuery:

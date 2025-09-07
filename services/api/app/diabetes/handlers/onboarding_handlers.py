@@ -27,6 +27,7 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     ConversationHandler,
+    ExtBot,
     MessageHandler,
     filters,
 )
@@ -48,6 +49,7 @@ from services.api.app.diabetes.utils.ui import (
     menu_keyboard,
 )
 from services.api.app.utils import choose_variant
+import services.bot.main as bot_main
 from .reminder_jobs import DefaultJobQueue
 from . import reminder_handlers
 
@@ -493,6 +495,11 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _mark_user_complete(user.id)
     await _log_event(user.id, "onboarding_finished", 3, variant)
     await message.reply_text("Пропущено", reply_markup=menu_keyboard())
+    bot = cast(ExtBot[None], message.get_bot())
+    try:
+        await bot.set_my_commands(bot_main.commands)
+    except Exception as e:  # pragma: no cover - network errors
+        logger.warning("set_my_commands failed: %s", e)
     return ConversationHandler.END
 
 
@@ -554,6 +561,11 @@ async def _finish(
         "🎉 Готово! Настройка завершена.", reply_markup=menu_keyboard()
     )
     await _log_event(user_id, "onboarding_finished", 3, variant)
+    bot = cast(ExtBot[None], message.get_bot())
+    try:
+        await bot.set_my_commands(bot_main.commands)
+    except Exception as e:  # pragma: no cover - network errors
+        logger.warning("set_my_commands failed: %s", e)
     return ConversationHandler.END
 
 
