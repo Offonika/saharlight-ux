@@ -358,6 +358,7 @@ async def test_lesson_answer_double_click(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(
         learning_handlers, "generate_step_text", fake_generate_step_text
     )
+
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
@@ -466,3 +467,52 @@ async def test_lesson_answer_handler_add_log_failure(
     assert state.step == 1
     assert state.awaiting
     assert not context.user_data.get("learn_busy", False)
+
+
+@pytest.mark.asyncio
+async def test_start_lesson_add_log_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
+        return SimpleNamespace(lesson_id=1)
+
+    async def fake_next_step(
+        user_id: int, lesson_id: int, profile: Mapping[str, str | None]
+    ) -> tuple[str, bool]:
+        return "step1", False
+
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
+    monkeypatch.setattr(learning_handlers, "generate_learning_plan", lambda t: [t])
+    monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
+
+    async def fail_add_log(*args: object, **kwargs: object) -> None:
+        raise SQLAlchemyError("db error")
+
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", fail_add_log)
+
+    called = False
+
+    async def fake_persist(user_id: int, user_data: object, bot_data: object) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(learning_handlers, "_persist", fake_persist)
+
+    msg = DummyMessage()
+    user_data: dict[str, Any] = {}
+    bot_data: dict[str, object] = {}
+
+    await learning_handlers._start_lesson(msg, user_data, bot_data, {}, "slug")
+
+    assert msg.replies == ["step1", "не удалось записать лог урока"]
+    state = get_state(user_data)
+    assert state is not None
+    assert state.step == 1
+    assert called
