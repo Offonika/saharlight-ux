@@ -5,9 +5,8 @@ from re import Pattern
 from types import SimpleNamespace
 from typing import Any, Iterable, cast
 
-from telegram import Update
-
 import pytest
+from telegram import Update
 from telegram.ext import BaseHandler, CallbackContext, MessageHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
@@ -19,7 +18,10 @@ from services.api.app.diabetes.handlers import (
     onboarding_handlers,
     sos_handlers,
 )
-from services.api.app.diabetes.utils.ui import PHOTO_BUTTON_TEXT
+from services.api.app.diabetes.utils.ui import (
+    PHOTO_BUTTON_PATTERN,
+    PHOTO_BUTTON_TEXT,
+)
 
 
 def _find_handler(
@@ -79,21 +81,21 @@ async def _exercise(
 @pytest.mark.asyncio
 async def test_profile_conv_photo_fallback() -> None:
     handler = _find_handler(
-        profile_handlers.profile_conv.fallbacks, f"^{PHOTO_BUTTON_TEXT}$"
+        profile_handlers.profile_conv.fallbacks, PHOTO_BUTTON_PATTERN.pattern
     )
     await _exercise(handler)
 
 
 @pytest.mark.asyncio
 async def test_sugar_conv_photo_fallback() -> None:
-    handler = _find_handler(dose_calc.sugar_conv.fallbacks, f"^{PHOTO_BUTTON_TEXT}$")
+    handler = _find_handler(dose_calc.sugar_conv.fallbacks, PHOTO_BUTTON_PATTERN.pattern)
     await _exercise(handler)
 
 
 @pytest.mark.asyncio
 async def test_onboarding_conv_photo_fallback() -> None:
     handler = _find_handler(
-        onboarding_handlers.onboarding_conv.fallbacks, f"^{PHOTO_BUTTON_TEXT}$"
+        onboarding_handlers.onboarding_conv.fallbacks, PHOTO_BUTTON_PATTERN.pattern
     )
     await _exercise(handler)
 
@@ -101,6 +103,6 @@ async def test_onboarding_conv_photo_fallback() -> None:
 @pytest.mark.asyncio
 async def test_sos_contact_conv_photo_fallback() -> None:
     handler = _find_handler(
-        sos_handlers.sos_contact_conv.fallbacks, f"^{PHOTO_BUTTON_TEXT}$"
+        sos_handlers.sos_contact_conv.fallbacks, PHOTO_BUTTON_PATTERN.pattern
     )
     await _exercise(handler)

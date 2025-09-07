@@ -17,7 +17,7 @@ from services.api.app.diabetes.services.db import SessionLocal, Profile
 
 from services.api.app.diabetes.utils.ui import (
     BACK_BUTTON_TEXT,
-    PHOTO_BUTTON_TEXT,
+    PHOTO_BUTTON_PATTERN,
     back_keyboard,
 )
 from services.api.app.ui.keyboard import build_main_keyboard
@@ -115,7 +115,7 @@ sos_contact_conv = ConversationHandler(
         MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), sos_contact_cancel),
         CommandHandler("cancel", sos_contact_cancel),
         MessageHandler(
-            filters.Regex(f"^{PHOTO_BUTTON_TEXT}$"),
+            filters.Regex(PHOTO_BUTTON_PATTERN),
             _cancel_then(dose_calc.photo_prompt),
         ),
     ],
