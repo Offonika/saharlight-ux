@@ -7,11 +7,11 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
-from ...config import settings
-from ..models_learning import LessonLog
-from ..metrics import lesson_log_failures
-from .db import SessionLocal, run_db
-from .repository import commit
+from services.api.app.config import settings
+from services.api.app.assistant.models import LessonLog
+from services.api.app.diabetes.metrics import lesson_log_failures
+from services.api.app.diabetes.services.db import SessionLocal, run_db
+from services.api.app.diabetes.services.repository import commit
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +26,12 @@ __all__ = [
 
 @dataclass(slots=True)
 class _PendingLog:
-    telegram_id: int
-    topic_slug: str
-    role: str
+    user_id: int
+    plan_id: int
+    module_idx: int
     step_idx: int
+    role: str
+    content: str
 
 
 pending_logs: list[_PendingLog] = []
@@ -60,10 +62,12 @@ async def flush_pending_logs() -> None:
 
 
 async def add_lesson_log(
-    telegram_id: int,
-    topic_slug: str,
-    role: str,
+    user_id: int,
+    plan_id: int,
+    module_idx: int,
     step_idx: int,
+    role: str,
+    content: str,
 ) -> None:
     """Queue a lesson log entry and attempt to flush."""
 
@@ -72,10 +76,12 @@ async def add_lesson_log(
 
     pending_logs.append(
         _PendingLog(
-            telegram_id=telegram_id,
-            topic_slug=topic_slug,
-            role=role,
+            user_id=user_id,
+            plan_id=plan_id,
+            module_idx=module_idx,
             step_idx=step_idx,
+            role=role,
+            content=content,
         )
     )
 
@@ -96,13 +102,13 @@ def start_flush_task(interval: float = _FLUSH_INTERVAL) -> None:
         _flush_task = asyncio.create_task(_flush_periodically(interval))
 
 
-async def get_lesson_logs(telegram_id: int, topic_slug: str) -> list[LessonLog]:
-    """Fetch lesson logs for a user and topic."""
+async def get_lesson_logs(user_id: int, plan_id: int) -> list[LessonLog]:
+    """Fetch lesson logs for a user and plan."""
 
     def _get(session: Session) -> list[LessonLog]:
         return (
             session.query(LessonLog)
-            .filter_by(telegram_id=telegram_id, topic_slug=topic_slug)
+            .filter_by(user_id=user_id, plan_id=plan_id)
             .order_by(LessonLog.id)
             .all()
         )

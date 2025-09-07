@@ -161,7 +161,7 @@ def register_handlers(
     )
     from services.api.app.diabetes import commands as bot_commands
     from services.api.app.config import reload_settings, settings
-    from services.api.app.diabetes.services.lesson_log import cleanup_old_logs
+    from services.api.app.assistant.repositories.logs import cleanup_old_logs
     from services.api.app.assistant.services.memory_service import cleanup_old_memory
 
     reload_settings()
