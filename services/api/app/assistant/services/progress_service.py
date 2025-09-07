@@ -20,9 +20,7 @@ class Progress(Base):
     """Store learning progress for a user and a lesson."""
 
     __tablename__ = "assistant_progress"
-    __table_args__ = (
-        sa.PrimaryKeyConstraint("user_id", "lesson"),
-    )
+    __table_args__ = (sa.PrimaryKeyConstraint("user_id", "lesson"),)
 
     user_id: Mapped[int] = mapped_column(BigInteger)
     lesson: Mapped[str] = mapped_column(String)
@@ -56,7 +54,10 @@ async def upsert_progress(user_id: int, lesson: str, step: int) -> None:
         session.execute(
             stmt.on_conflict_do_update(
                 index_elements=[Progress.user_id, Progress.lesson],
-                set_={"step": step, "updated_at": func.now()},
+                set_={
+                    "step": sa.func.max(Progress.step, stmt.excluded.step),
+                    "updated_at": func.now(),
+                },
             )
         )
         commit(cast(Session, session))
