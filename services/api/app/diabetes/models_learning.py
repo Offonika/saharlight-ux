@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Sequence
+from typing import Any, Optional, Sequence
 from datetime import datetime
 
 import sqlalchemy as sa
@@ -9,6 +9,33 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .services.db import Base, User
+
+
+class LearningPlan(Base):
+    __tablename__ = "learning_plans"
+    __table_args__ = (
+        sa.Index("ix_learning_plans_user_id_is_active", "user_id", "is_active"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id"), nullable=False
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=sa.true()
+    )
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    plan_json: Mapped[dict[str, Any]] = mapped_column(
+        sa.JSON().with_variant(JSONB, "postgresql"), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        TIMESTAMP(timezone=True), onupdate=sa.func.now()
+    )
+
+    user: Mapped[User] = relationship("User")
 
 
 class Lesson(Base):
