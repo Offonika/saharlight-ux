@@ -194,7 +194,9 @@ class User(Base):
 class UserRole(Base):
     __tablename__ = "user_roles"
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.telegram_id"), primary_key=True
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="CASCADE"),
+        primary_key=True,
     )
     role: Mapped[str] = mapped_column(
         String,
@@ -207,7 +209,9 @@ class UserRole(Base):
 class Profile(Base):
     __tablename__ = "profiles"
     telegram_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.telegram_id"), primary_key=True
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="CASCADE"),
+        primary_key=True,
     )
     icr: Mapped[Optional[float]] = mapped_column(Float)
     cf: Mapped[Optional[float]] = mapped_column(Float)
