@@ -16,7 +16,11 @@ class LearningPlan(Base):
     __table_args__ = (sa.Index("ix_learning_plans_user_id_is_active", "user_id", "is_active"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="CASCADE"),
+        nullable=False,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=sa.true())
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     plan_json: Mapped[dict[str, Any]] = mapped_column(sa.JSON().with_variant(JSONB, "postgresql"), nullable=False)

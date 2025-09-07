@@ -13,4 +13,8 @@ def make_context(
     *, user_data: dict[str, object] | None = None, **kwargs: Any
 ) -> object:
     """Create context stub with mandatory bot_data."""
-    return SimpleNamespace(user_data=user_data or {}, bot_data={}, **kwargs)
+    return SimpleNamespace(
+        user_data=user_data if user_data is not None else {},
+        bot_data={},
+        **kwargs,
+    )
