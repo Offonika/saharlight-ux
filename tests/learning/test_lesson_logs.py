@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.diabetes.services import db
@@ -36,6 +36,21 @@ async def test_add_and_get_logs(setup_db: None) -> None:
     logs = await get_lesson_logs(1, 42)
     assert [log.role for log in logs] == ["assistant", "user"]
     assert isinstance(logs[0].created_at, type(logs[1].created_at))
+
+
+@pytest.mark.asyncio
+async def test_get_logs_uses_index(setup_db: None) -> None:
+    await add_lesson_log(1, 42, 0, 1, "assistant", "a")
+    await add_lesson_log(1, 42, 0, 1, "user", "b")
+    await get_lesson_logs(1, 42)
+    with db.SessionLocal() as session:
+        plan = session.execute(
+            text(
+                "EXPLAIN QUERY PLAN SELECT * FROM lesson_logs "
+                "WHERE user_id = 1 AND plan_id = 42 ORDER BY id"
+            )
+        ).all()
+    assert any("ix_lesson_logs_user_plan" in row[3] for row in plan)
 
 
 @pytest.mark.asyncio
