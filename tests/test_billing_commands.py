@@ -24,7 +24,7 @@ class DummyMessage:
 async def test_trial_command_success(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
     monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
-    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
+    monkeypatch.setenv("SUBSCRIPTION_URL", "")
     config.reload_settings()
 
     end_date = "2025-01-15T00:00:00+00:00"
@@ -83,7 +83,7 @@ async def test_trial_command_success(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_trial_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
-    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
+    monkeypatch.setenv("SUBSCRIPTION_URL", "")
     config.reload_settings()
 
     class FailingClient:
@@ -123,7 +123,7 @@ async def test_trial_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_trial_command_already_active(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
-    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
+    monkeypatch.setenv("SUBSCRIPTION_URL", "")
     config.reload_settings()
 
     class DummyClient:
@@ -169,7 +169,7 @@ async def test_trial_command_already_active(monkeypatch: pytest.MonkeyPatch) -> 
 @pytest.mark.parametrize("payload", [{}, {"endDate": "oops"}, {"endDate": 123}])
 async def test_trial_command_bad_end_date(monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
-    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
+    monkeypatch.setenv("SUBSCRIPTION_URL", "")
     config.reload_settings()
 
     class DummyClient:
@@ -210,7 +210,7 @@ async def test_trial_command_bad_end_date(monkeypatch: pytest.MonkeyPatch, paylo
 @pytest.mark.asyncio
 async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
-    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
+    monkeypatch.setenv("SUBSCRIPTION_URL", "")
     config.reload_settings()
 
     message = DummyMessage()
@@ -247,7 +247,7 @@ async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_subscription_status_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
     monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
-    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
+    monkeypatch.setenv("SUBSCRIPTION_URL", "")
     config.reload_settings()
 
     statuses = [
