@@ -12,17 +12,18 @@ from services.api.app.assistant.repositories import plans as plans_repo
 from services.api.app.assistant.repositories import progress as progress_repo
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes import learning_handlers
+from services.api.app.diabetes.models_learning import LearningProgress
 
 
 class DummyMessage:
-    """Capture replies for assertions."""
+    """Capture replies and emulate minimal Telegram Message."""
 
-    def __init__(self) -> None:
+    def __init__(self, text: str = "", user_id: int = 1) -> None:
         self.sent: list[str] = []
+        self.text = text
+        self.from_user = SimpleNamespace(id=user_id)
 
-    async def reply_text(
-        self, text: str, **_kwargs: Any
-    ) -> None:  # pragma: no cover - simple capture
+    async def reply_text(self, text: str, **_kwargs: Any) -> None:
         self.sent.append(text)
 
 
@@ -70,3 +71,110 @@ async def test_restart_restores_step(
     assert context.user_data.get("learning_plan_index") == 1
     assert update.message.sent
     assert "Шаг 2" in update.message.sent[0]
+
+
+@pytest.mark.asyncio
+async def test_hydrate_generates_snapshot_and_persists(
+    monkeypatch: pytest.MonkeyPatch, setup_db: sessionmaker[Session]
+) -> None:
+    """Full flow: learn → 'Не знаю' → restart → plan and learn continue."""
+
+    with setup_db() as session:  # type: ignore[misc]
+        session.add(db.User(telegram_id=1, thread_id=""))
+        session.commit()
+
+    monkeypatch.setattr(learning_handlers.settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(learning_handlers.settings, "learning_content_mode", "dynamic")
+    monkeypatch.setattr(learning_handlers, "build_main_keyboard", lambda: None)
+    monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
+
+    async def fake_ensure_overrides(*_a: object, **_k: object) -> bool:
+        return True
+
+    monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
+    monkeypatch.setattr(
+        learning_handlers, "choose_initial_topic", lambda _p: ("intro", "Intro")
+    )
+
+    async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
+        return SimpleNamespace(lesson_id=1)
+
+    async def fake_next_step(
+        user_id: int, lesson_id: int, profile: Any
+    ) -> tuple[str, bool]:
+        return "Шаг 1", False
+
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
+
+    gen_calls: list[int] = []
+
+    async def fake_generate_step_text(
+        _profile: Any, _topic: str, step_idx: int, _prev: str | None
+    ) -> str:
+        gen_calls.append(step_idx)
+        return f"Шаг {step_idx}"
+
+    async def fake_assistant_chat(_profile: Any, _text: str) -> str:
+        return "feedback"
+
+    monkeypatch.setattr(
+        learning_handlers, "generate_step_text", fake_generate_step_text
+    )
+    monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)
+
+    async def fake_add_log(*_a: object, **_k: object) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+
+    calls: list[dict[str, Any]] = []
+    orig_upsert = progress_repo.upsert_progress
+
+    async def spy_upsert(
+        user_id: int, plan_id: int, progress_json: dict[str, Any]
+    ) -> Any:
+        calls.append(progress_json.copy())
+        return await orig_upsert(user_id, plan_id, progress_json)
+
+    monkeypatch.setattr(progress_repo, "upsert_progress", spy_upsert)
+
+    msg_learn = DummyMessage(text="/learn")
+    update = SimpleNamespace(message=msg_learn, effective_user=msg_learn.from_user)
+    context = SimpleNamespace(user_data={}, bot_data={})
+    await learning_handlers.learn_command(update, context)
+    assert msg_learn.sent == ["Шаг 1"]
+    assert len(calls) == 1
+
+    msg_ans = DummyMessage(text="Не знаю")
+    upd_ans = SimpleNamespace(message=msg_ans, effective_user=msg_ans.from_user)
+    await learning_handlers.lesson_answer_handler(upd_ans, context)
+    assert msg_ans.sent == ["feedback", "Шаг 2"]
+    assert len(calls) == 2
+    assert gen_calls == [2]
+
+    with setup_db() as session:  # type: ignore[misc]
+        progress = session.query(LearningProgress).one()
+        progress.progress_json = {**progress.progress_json, "snapshot": None}
+        session.add(progress)
+        session.commit()
+
+    context2 = SimpleNamespace(user_data={}, bot_data={})
+    plan_msg = DummyMessage()
+    upd_plan = SimpleNamespace(message=plan_msg, effective_user=plan_msg.from_user)
+    await learning_handlers.plan_command(upd_plan, context2)
+
+    assert context2.user_data.get("learning_plan_index") == 1
+    assert len(calls) == 3
+    assert gen_calls == [2, 2]
+
+    msg_learn2 = DummyMessage(text="/learn")
+    upd_learn2 = SimpleNamespace(
+        message=msg_learn2, effective_user=msg_learn2.from_user
+    )
+    await learning_handlers.learn_command(upd_learn2, context2)
+    assert msg_learn2.sent == ["Шаг 2"]
