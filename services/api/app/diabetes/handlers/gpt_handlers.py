@@ -33,6 +33,7 @@ from services.api.app.diabetes.gpt_command_parser import (
 from services.api.app.diabetes.utils.constants import XE_GRAMS
 from services.api.app.diabetes.utils.ui import confirm_keyboard
 from services.api.app.ui.keyboard import build_main_keyboard
+from services.api.app.diabetes.services import gpt_client
 
 from .alert_handlers import check_alert as _check_alert
 from .dose_validation import _sanitize
@@ -52,13 +53,6 @@ class RunDB(Protocol):
 
 
 logger = logging.getLogger(__name__)
-
-# Maximum number of conversation turns to keep in ``assistant_history``.
-# When the limit is exceeded, oldest turns are trimmed.
-ASSISTANT_MAX_TURNS = 20
-
-# Number of turns after which older history is summarized into a single string.
-ASSISTANT_SUMMARY_TRIGGER = 10
 
 run_db: RunDB | None
 try:
@@ -748,25 +742,22 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if user is not None:
         await _ensure_summary_loaded(user.id, user_data)
     user_text = message.text
-    reply = "🗨️ Чат с GPT временно недоступен."
+
+    try:
+        completion = await gpt_client.create_chat_completion(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": user_text}],
+        )
+        content = completion.choices[0].message.content or ""
+        reply = gpt_client.format_reply(content)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Failed to get GPT reply: %s", exc)
+        reply = "⚠️ Не удалось получить ответ. Попробуйте позже."
+
     await message.reply_text(reply)
-
-    history = cast(list[str], user_data.setdefault("assistant_history", []))
-    history.append(f"user: {user_text}\nassistant: {reply}")
-    if len(history) > ASSISTANT_MAX_TURNS:
-        del history[:-ASSISTANT_MAX_TURNS]
-
-    if len(history) >= ASSISTANT_SUMMARY_TRIGGER:
-        keep = ASSISTANT_SUMMARY_TRIGGER - 1
-        older = history[: len(history) - keep]
-        prev_summary = cast(str | None, user_data.get("assistant_summary"))
-        parts: list[str] = []
-        if prev_summary:
-            parts.append(prev_summary)
-        parts.extend(older)
-        summary = " ".join(parts).strip()
-        user_data["assistant_summary"] = summary
-        history[:] = [summary] + history[-keep:]
+    assistant_state.add_turn(
+        user_data, f"user: {user_text}\nassistant: {reply}"
+    )
 
 
 async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -777,8 +768,7 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
 
     user_data = cast(dict[str, object], context.user_data)
-    user_data.pop("assistant_history", None)
-    user_data.pop("assistant_summary", None)
+    assistant_state.reset(user_data)
     await message.reply_text("История диалога очищена.")
 
 

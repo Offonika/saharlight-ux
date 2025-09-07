@@ -7,6 +7,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.handlers import gpt_handlers
+from services.api.app.diabetes import assistant_state
 
 
 class DummyMessage:
@@ -21,22 +22,53 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_chat_with_gpt_replies_and_history() -> None:
+async def test_chat_with_gpt_replies_and_history(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_completion(*args: object, **kwargs: object) -> Any:
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="hi"))]
+        )
+
+    monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fake_completion)
+    monkeypatch.setattr(
+        gpt_handlers.gpt_client, "format_reply", lambda text, **kwargs: text
+    )
+
     message = DummyMessage("hi")
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
     await gpt_handlers.chat_with_gpt(update, context)
-    assert message.texts == ["🗨️ Чат с GPT временно недоступен."]
-    history = cast(list[str], context.user_data["assistant_history"])
+    assert message.texts == ["hi"]
+    history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
     assert history and "user: hi" in history[0]
 
 
 @pytest.mark.asyncio
+async def test_chat_with_gpt_handles_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fail(*args: object, **kwargs: object) -> Any:
+        raise RuntimeError
+
+    monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fail)
+
+    message = DummyMessage("hi")
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    await gpt_handlers.chat_with_gpt(update, context)
+    assert message.texts == ["⚠️ Не удалось получить ответ. Попробуйте позже."]
+    history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
+    assert history and history[0].endswith(
+        "assistant: ⚠️ Не удалось получить ответ. Попробуйте позже."
+    )
+
+
+@pytest.mark.asyncio
 async def test_chat_with_gpt_no_message() -> None:
-    update = cast(Update, SimpleNamespace(message=None))
+    update = cast(Update, SimpleNamespace(message=None, effective_user=None))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(),
@@ -46,17 +78,26 @@ async def test_chat_with_gpt_no_message() -> None:
 
 @pytest.mark.asyncio
 async def test_chat_with_gpt_trims_history(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(gpt_handlers, "ASSISTANT_MAX_TURNS", 2)
-    monkeypatch.setattr(gpt_handlers, "ASSISTANT_SUMMARY_TRIGGER", 99)
+    async def fake_completion(*args: object, **kwargs: object) -> Any:
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))]
+        )
+
+    monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fake_completion)
+    monkeypatch.setattr(
+        gpt_handlers.gpt_client, "format_reply", lambda text, **kwargs: text
+    )
+    monkeypatch.setattr(assistant_state, "ASSISTANT_MAX_TURNS", 2)
+    monkeypatch.setattr(assistant_state, "ASSISTANT_SUMMARY_TRIGGER", 99)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
     for i in range(3):
         msg = DummyMessage(str(i))
-        update = cast(Update, SimpleNamespace(message=msg))
+        update = cast(Update, SimpleNamespace(message=msg, effective_user=None))
         await gpt_handlers.chat_with_gpt(update, context)
-    history = cast(list[str], context.user_data["assistant_history"])
+    history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
     assert len(history) == 2
     assert history[0].startswith("user: 1")
     assert history[1].startswith("user: 2")
@@ -64,21 +105,31 @@ async def test_chat_with_gpt_trims_history(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.asyncio
 async def test_chat_with_gpt_summarizes_history(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(gpt_handlers, "ASSISTANT_MAX_TURNS", 5)
-    monkeypatch.setattr(gpt_handlers, "ASSISTANT_SUMMARY_TRIGGER", 3)
+    async def fake_completion(*args: object, **kwargs: object) -> Any:
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))]
+        )
+
+    monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fake_completion)
+    monkeypatch.setattr(
+        gpt_handlers.gpt_client, "format_reply", lambda text, **kwargs: text
+    )
+    monkeypatch.setattr(assistant_state, "ASSISTANT_MAX_TURNS", 2)
+    monkeypatch.setattr(assistant_state, "ASSISTANT_SUMMARY_TRIGGER", 3)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
     for i in range(3):
         msg = DummyMessage(str(i))
-        update = cast(Update, SimpleNamespace(message=msg))
+        update = cast(Update, SimpleNamespace(message=msg, effective_user=None))
         await gpt_handlers.chat_with_gpt(update, context)
-    history = cast(list[str], context.user_data["assistant_history"])
-    summary = cast(str, context.user_data["assistant_summary"])
-    assert history[0] == summary
-    assert history[1].startswith("user: 1")
-    assert history[2].startswith("user: 2")
+    history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
+    summary = cast(str, context.user_data[assistant_state.SUMMARY_KEY])
+    assert summary.startswith("user: 0")
+    assert len(history) == 2
+    assert history[0].startswith("user: 1")
+    assert history[1].startswith("user: 2")
 
 
 @pytest.mark.asyncio
