@@ -29,7 +29,6 @@ class _PendingLog:
     topic_slug: str
     role: str
     step_idx: int
-    content: str
 
 
 pending_logs: list[_PendingLog] = []
@@ -63,7 +62,6 @@ async def add_lesson_log(
     topic_slug: str,
     role: str,
     step_idx: int,
-    content: str,
 ) -> None:
     """Queue a lesson log entry and attempt to flush."""
 
@@ -76,7 +74,6 @@ async def add_lesson_log(
             topic_slug=topic_slug,
             role=role,
             step_idx=step_idx,
-            content=content,
         )
     )
 

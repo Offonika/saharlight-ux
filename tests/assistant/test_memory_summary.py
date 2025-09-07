@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.assistant.services import memory_service
-from services.api.app.diabetes import assistant_state
 from services.api.app.diabetes.services import db
 
 
@@ -36,28 +35,15 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
 
 
 @pytest.mark.asyncio
-async def test_summary_persisted(
-    monkeypatch: pytest.MonkeyPatch, setup_db: sessionmaker[Session]
+async def test_record_turn_increments(
+    setup_db: sessionmaker[Session],
 ) -> None:
-    monkeypatch.setattr(assistant_state, "ASSISTANT_MAX_TURNS", 2)
-    monkeypatch.setattr(assistant_state, "ASSISTANT_SUMMARY_TRIGGER", 3)
-
-    def fake_summary(parts: list[str]) -> str:
-        return ",".join(parts)
-
-    monkeypatch.setattr(assistant_state, "summarize", fake_summary)
-
-    user_data: dict[str, object] = {}
     base = datetime.now(tz=timezone.utc)
     for i in range(3):
-        await memory_service.record_turn(
-            1, user_data, f"a{i}", now=base + timedelta(minutes=i)
-        )
+        await memory_service.record_turn(1, now=base + timedelta(minutes=i))
 
     mem = await memory_service.get_memory(1)
     assert mem is not None
-    assert mem.summary_text == "a0"
-    assert mem.turn_count == 1
+    assert mem.turn_count == 3
     last = mem.last_turn_at.replace(tzinfo=timezone.utc)
     assert abs(last - (base + timedelta(minutes=2))) < timedelta(seconds=1)
-    assert user_data[assistant_state.HISTORY_KEY] == ["a1", "a2"]
