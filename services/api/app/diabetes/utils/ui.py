@@ -128,8 +128,10 @@ def confirm_keyboard(back_cb: str | None = None) -> InlineKeyboardMarkup:
 def subscription_keyboard(trial_available: bool) -> InlineKeyboardMarkup:
     """Build inline keyboard for subscription actions."""
     from services.api.app import config
-
-    settings = config.get_settings()
+    # Ensure settings reflect current environment variables (e.g., SUBSCRIPTION_URL)
+    # since tests and runtime code may mutate os.environ dynamically. Reloading
+    # guarantees we don't use a cached Settings instance with stale values.
+    settings = config.reload_settings()
     buttons: list[InlineKeyboardButton] = []
     if trial_available:
         buttons.append(InlineKeyboardButton("🎁 Trial", callback_data="trial"))
