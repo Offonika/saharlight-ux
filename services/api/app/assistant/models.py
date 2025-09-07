@@ -30,16 +30,16 @@ class LessonLog(Base):
     """Stores conversation steps within a learning plan."""
 
     __tablename__ = "lesson_logs"
+    __table_args__ = (sa.Index("ix_lesson_logs_user_plan", "user_id", "plan_id"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(
         BigInteger,
         ForeignKey("users.telegram_id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     plan_id: Mapped[int] = mapped_column(
-        ForeignKey("learning_plans.id", ondelete="CASCADE"), nullable=False, index=True
+        ForeignKey("learning_plans.id", ondelete="CASCADE"), nullable=False
     )
     module_idx: Mapped[int] = mapped_column(Integer, nullable=False)
     step_idx: Mapped[int] = mapped_column(Integer, nullable=False)

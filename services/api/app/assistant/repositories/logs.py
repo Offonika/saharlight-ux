@@ -111,7 +111,7 @@ async def get_lesson_logs(user_id: int, plan_id: int) -> list[LessonLog]:
     def _get(session: Session) -> list[LessonLog]:
         return (
             session.query(LessonLog)
-            .filter_by(user_id=user_id, plan_id=plan_id)
+            .filter(LessonLog.user_id == user_id, LessonLog.plan_id == plan_id)
             .order_by(LessonLog.id)
             .all()
         )
