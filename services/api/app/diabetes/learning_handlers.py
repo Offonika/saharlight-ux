@@ -17,7 +17,7 @@ from .handlers import learning_handlers as legacy_handlers
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
-from .learning_prompts import build_system_prompt
+from .learning_prompts import build_system_prompt, disclaimer
 from .llm_router import LLMTask
 from .services.gpt_client import (
     create_learning_chat_completion,
@@ -124,19 +124,31 @@ async def _start_lesson(
     profile: Mapping[str, str | None],
     topic_slug: str,
 ) -> None:
-    """Generate and send the first learning step."""
+    """Start lesson, send first step and store progress."""
 
     from_user = getattr(message, "from_user", None)
-    telegram_id = from_user.id if from_user else None
-    text = await generate_step_text(profile, topic_slug, 1, None)
-    text = format_reply(text)
+    if from_user is None:
+        return
+    progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
+    text, _ = await curriculum_engine.next_step(
+        from_user.id, progress.lesson_id, profile
+    )
+    if text is None or text == BUSY_MESSAGE:
+        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+        return
+    if not text.startswith(disclaimer()):
+        text = f"{disclaimer()}\n\n{text}"
+    plan = generate_learning_plan(text)
+    user_data["learning_plan"] = plan
+    user_data["learning_plan_index"] = 0
+    text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    if telegram_id is not None:
-        await add_lesson_log(telegram_id, topic_slug, "assistant", 1, text)
+    await add_lesson_log(from_user.id, topic_slug, "assistant", 1, text)
     state = LearnState(
         topic=topic_slug,
         step=1,
         awaiting_answer=True,
+        disclaimer_shown=True,
         last_step_text=text,
     )
     set_state(user_data, state)

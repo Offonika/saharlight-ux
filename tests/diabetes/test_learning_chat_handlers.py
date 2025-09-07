@@ -6,6 +6,7 @@ from telegram import InlineKeyboardMarkup, ReplyKeyboardMarkup
 
 from services.api.app.config import settings
 from services.api.app.diabetes import dynamic_tutor, learning_handlers
+from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
 
 
@@ -48,16 +49,26 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"slug": "Topic"})
     monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"slug": "Topic"})
 
-    async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
-        return "step1?"
+    async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
+        return SimpleNamespace(lesson_id=1)
 
-    monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
-    )
+    async def fake_next_step(
+        user_id: int,
+        lesson_id: int,
+        profile: Mapping[str, str | None],
+        prev_summary: str | None = None,
+    ) -> tuple[str, bool]:
+        return "step1?", False
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
@@ -76,7 +87,7 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     context_cb = SimpleNamespace(user_data={})
 
     await learning_handlers.lesson_callback(update_cb, context_cb)
-    assert msg2.replies == ["step1?"]
+    assert msg2.replies == [f"{disclaimer()}\n\nstep1?"]
     assert isinstance(msg2.markups[0], ReplyKeyboardMarkup)
     state = get_state(context_cb.user_data)
     assert state is not None and state.step == 1 and state.awaiting_answer
@@ -112,12 +123,30 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
     monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"slug": "Topic"})
 
+    async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
+        return SimpleNamespace(lesson_id=1)
+
+    async def fake_next_step(
+        user_id: int,
+        lesson_id: int,
+        profile: Mapping[str, str | None],
+        prev_summary: str | None = None,
+    ) -> tuple[str, bool]:
+        return "step1?", False
+
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
+
     msg = DummyMessage()
     update = cast(object, SimpleNamespace(message=msg))
     context = SimpleNamespace(user_data={}, args=["slug"])
 
     await learning_handlers.lesson_command(update, context)
-    assert msg.replies == ["step1?"]
+    assert msg.replies == [f"{disclaimer()}\n\nstep1?"]
     assert isinstance(msg.markups[0], ReplyKeyboardMarkup)
 
     msg2 = DummyMessage(text="ans")
