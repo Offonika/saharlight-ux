@@ -5,7 +5,7 @@ import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from services.api.app.diabetes import commands
+from services.api.app.diabetes import assistant_state, commands
 from services.api.app.diabetes.handlers import gpt_handlers
 from services.api.app.assistant.services import memory_service
 
@@ -46,7 +46,7 @@ async def test_memory_reset(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await gpt_handlers.chat_with_gpt(update, context)
     assert not called["called"]
-    assert "assistant_summary" not in context.user_data
+    assert assistant_state.SUMMARY_KEY not in context.user_data
 
     reset_update = cast(Update, SimpleNamespace(effective_message=DummyMessage(), effective_user=user))
     reset_context = cast(

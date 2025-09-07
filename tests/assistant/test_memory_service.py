@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.assistant.services import memory_service
-from services.api.app.diabetes import commands
+from services.api.app.diabetes import assistant_state, commands
 from services.api.app.diabetes.services import db
 
 
@@ -72,7 +72,10 @@ async def test_reset_command_clears_memory(setup_db: sessionmaker[Session]) -> N
         effective_user=SimpleNamespace(id=1),
     )
     context = SimpleNamespace(
-        user_data={"assistant_history": ["x"], "assistant_summary": "y"}
+        user_data={
+            assistant_state.HISTORY_KEY: ["x"],
+            assistant_state.SUMMARY_KEY: "y",
+        }
     )
 
     await commands.reset_command(update, context)

@@ -4,7 +4,7 @@ import datetime
 import logging
 import re
 from collections.abc import Awaitable, Callable
-from typing import MutableMapping, Protocol, TypedDict, TypeVar, cast
+from typing import Protocol, TypedDict, TypeVar, cast
 
 from telegram import (
     CallbackQuery,
@@ -61,16 +61,6 @@ except ImportError:  # pragma: no cover - optional db runner
     run_db = None
 else:
     run_db = cast(RunDB, _run_db)
-
-
-async def _ensure_summary_loaded(
-    _user_id: int, user_data: MutableMapping[str, object]
-) -> None:
-    """Populate ``assistant_summary`` from DB if missing."""
-
-    if assistant_state.SUMMARY_KEY in user_data:
-        return
-    # Summary persistence has been removed; this stub is kept for compatibility.
 
 
 class EditMessageMeta(TypedDict):
@@ -644,7 +634,6 @@ async def freeform_handler(
     user = update.effective_user
     if user is None:
         return
-    await _ensure_summary_loaded(user.id, user_data)
     raw_text = text.strip()
     user_id = user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
@@ -725,13 +714,10 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     """Chat handler that records conversation history."""
 
     message = update.message
-    user = update.effective_user
     if message is None or message.text is None:
         return
 
     user_data = cast(dict[str, object], context.user_data)
-    if user is not None:
-        await _ensure_summary_loaded(user.id, user_data)
     user_text = message.text
 
     try:
