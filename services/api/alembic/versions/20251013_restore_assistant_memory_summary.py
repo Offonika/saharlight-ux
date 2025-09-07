@@ -20,7 +20,12 @@ def upgrade() -> None:
         "assistant_memory",
         sa.Column("summary_text", sa.String(length=1024), nullable=False, server_default=""),
     )
-    op.alter_column("assistant_memory", "summary_text", server_default=None)
+    bind = op.get_bind()
+    if bind.dialect.name == "sqlite":
+        with op.batch_alter_table("assistant_memory") as batch_op:
+            batch_op.alter_column("summary_text", server_default=None)
+    else:
+        op.alter_column("assistant_memory", "summary_text", server_default=None)
 
 
 def downgrade() -> None:
