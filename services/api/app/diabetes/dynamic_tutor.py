@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Mapping
 
+import httpx
+from openai import OpenAIError
 from openai.types.chat import ChatCompletionMessageParam
 
 from .learning_prompts import build_system_prompt, build_user_prompt_step
@@ -39,11 +41,17 @@ async def generate_step_text(
         system = build_system_prompt(profile)
         user = build_user_prompt_step(topic_slug, step_idx, prev_summary)
         return await _chat(LLMTask.EXPLAIN_STEP, system, user)
-    except Exception:
+    except (OpenAIError, httpx.HTTPError, RuntimeError):
         logger.exception(
             "failed to generate step", extra={"topic": topic_slug, "step": step_idx}
         )
         return BUSY_MESSAGE
+    except Exception:
+        logger.exception(
+            "unexpected error while generating step",
+            extra={"topic": topic_slug, "step": step_idx},
+        )
+        raise
 
 
 async def check_user_answer(
@@ -66,12 +74,18 @@ async def check_user_answer(
     )
     try:
         feedback = await _chat(LLMTask.QUIZ_CHECK, system, user, max_tokens=250)
-    except Exception:
+    except (OpenAIError, httpx.HTTPError, RuntimeError):
         logger.exception(
             "failed to check answer",
             extra={"topic": topic_slug, "answer": user_answer},
         )
         return False, BUSY_MESSAGE
+    except Exception:
+        logger.exception(
+            "unexpected error while checking answer",
+            extra={"topic": topic_slug, "answer": user_answer},
+        )
+        raise
     if not feedback.strip():
         logger.warning(
             "empty feedback",
