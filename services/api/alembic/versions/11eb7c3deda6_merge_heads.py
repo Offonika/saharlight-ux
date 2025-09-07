@@ -1,11 +1,10 @@
 """merge heads
 
-Revision ID: 20250904_merge_heads
+Revision ID: 11eb7c3deda6
 Revises: 20251002_billing_event_lowercase, 20251002_subscription_plan_values_callable
 Create Date: 2025-09-04 19:44:43.266143
 
 """
-
 from typing import Sequence, Union
 
 from alembic import op
@@ -13,11 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "20250904_merge_heads"
-down_revision: Union[str, None] = (
-    "20251002_billing_event_lowercase",
-    "20251002_subscription_plan_values_callable",
-)
+revision: str = '11eb7c3deda6'
+down_revision: Union[str, None] = ('20251002_billing_event_lowercase', '20251002_subscription_plan_values_callable')
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
