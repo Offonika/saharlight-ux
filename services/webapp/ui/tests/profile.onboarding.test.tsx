@@ -48,6 +48,7 @@ import Profile from '../src/pages/Profile';
 import { resolveTelegramId } from '../src/pages/resolveTelegramId';
 import { postOnboardingEvent } from '../src/shared/api/onboarding';
 import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
+import { getProfile } from '../src/features/profile/api';
 
 const originalSupportedValuesOf = (Intl as any).supportedValuesOf;
 
@@ -114,6 +115,7 @@ describe('Profile onboarding', () => {
   });
 
   it('renders empty form when profile is missing (404)', async () => {
+    (getProfile as vi.Mock).mockResolvedValueOnce(null);
     const { getByPlaceholderText } = render(
       <QueryClientProvider client={new QueryClient()}>
         <Profile />
@@ -122,6 +124,21 @@ describe('Profile onboarding', () => {
 
     await waitFor(() => {
       expect(toast).not.toHaveBeenCalled();
+    });
+
+    expect((getByPlaceholderText('6.0') as HTMLInputElement).value).toBe('');
+  });
+
+  it('shows error toast on profile load failure', async () => {
+    (getProfile as vi.Mock).mockRejectedValueOnce(new Error('network'));
+    const { getByPlaceholderText } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <Profile />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(toast).toHaveBeenCalled();
     });
 
     expect((getByPlaceholderText('6.0') as HTMLInputElement).value).toBe('');
