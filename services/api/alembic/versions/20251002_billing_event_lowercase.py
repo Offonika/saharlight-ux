@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision: str = "20251002_billing_event_lowercase"
-down_revision: Union[str, Sequence[str], None] = "3539fae8f7b6_merge_heads"
+down_revision: Union[str, Sequence[str], None] = "20251001_merge_heads"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
