@@ -7,6 +7,7 @@ from telegram.ext import CallbackContext
 
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
+from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.planner import generate_learning_plan, pretty_plan
 
 
@@ -43,7 +44,7 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
         profile: Mapping[str, str | None],
         prev_summary: str | None = None,
     ) -> tuple[str, bool]:
-        return "step1", False
+        return f"{disclaimer()}\n\nstep1", False
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -68,8 +69,8 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
     await learning_handlers.learn_command(update, context)
 
     assert context.user_data["learning_plan_index"] == 0
-    assert context.user_data["learning_plan"][0] == "step1"
-    assert message.replies == ["step1"]
+    assert context.user_data["learning_plan"][0] == f"{disclaimer()}\n\nstep1"
+    assert message.replies == [f"{disclaimer()}\n\nstep1"]
 
 
 @pytest.mark.asyncio

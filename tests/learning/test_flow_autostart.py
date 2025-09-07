@@ -11,6 +11,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.handlers import learning_onboarding
+from services.api.app.diabetes.learning_prompts import disclaimer
 
 
 class DummyBot(Bot):
@@ -67,7 +68,7 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     ) -> tuple[str, bool]:
         nonlocal captured_profile
         captured_profile = profile
-        return "шаг1", False
+        return f"{disclaimer()}\n\nшаг1", False
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -126,11 +127,9 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         )
     )
 
-    assert bot.sent[-1] == "шаг1"
+    assert bot.sent[-1] == f"{disclaimer()}\n\nшаг1"
     assert all(
-        title not in s
-        and "Выберите тему" not in s
-        and "Доступные темы" not in s
+        title not in s and "Выберите тему" not in s and "Доступные темы" not in s
         for s in bot.sent
     )
     assert captured_profile == {
