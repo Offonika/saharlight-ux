@@ -59,8 +59,8 @@ from services.api.app.diabetes.handlers.callbackquery_no_warn_handler import (  
 from services.api.app.diabetes.utils.ui import (  # noqa: E402
     build_timezone_webapp_button,
     back_keyboard as _back_keyboard,
-    menu_keyboard,
 )
+from services.api.app.ui.keyboard import build_main_keyboard
 from services.api.app.diabetes.services.repository import (  # noqa: E402
     CommitError,
     commit,
@@ -223,7 +223,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not db_ok:
         await message.reply_text(
             "⚠️ Не удалось сохранить профиль.",
-            reply_markup=menu_keyboard(),
+            reply_markup=build_main_keyboard(),
         )
         return END
     await message.reply_text(
@@ -234,7 +234,7 @@ async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         f"• Низкий порог: {low} ммоль/л\n"
         f"• Высокий порог: {high} ммоль/л"
         f"{warning_msg}",
-        reply_markup=menu_keyboard(),
+        reply_markup=build_main_keyboard(),
     )
     return END
 
@@ -261,7 +261,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 logger.exception("failed to fetch profile from DB for %s", user_id)
                 await message.reply_text(
                     "⚠️ Не удалось загрузить профиль из локальной базы.",
-                    reply_markup=menu_keyboard(),
+                    reply_markup=build_main_keyboard(),
                 )
                 return
             profile = None
@@ -271,7 +271,7 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             logger.exception("failed to fetch profile from DB for %s", user_id)
             await message.reply_text(
                 "⚠️ Не удалось загрузить профиль из локальной базы.",
-                reply_markup=menu_keyboard(),
+                reply_markup=build_main_keyboard(),
             )
             return
         if profile is not None:
@@ -316,13 +316,13 @@ async def profile_webapp_save(
     web_app = getattr(eff_msg, "web_app_data", None)
     error_msg = "⚠️ Некорректные данные из WebApp."
     if web_app is None:
-        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
+        await eff_msg.reply_text(error_msg, reply_markup=build_main_keyboard())
         return
     raw = web_app.data
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
+        await eff_msg.reply_text(error_msg, reply_markup=build_main_keyboard())
         return
     if {
         "icr",
@@ -331,13 +331,13 @@ async def profile_webapp_save(
         "low",
         "high",
     } - data.keys():
-        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
+        await eff_msg.reply_text(error_msg, reply_markup=build_main_keyboard())
         return
     try:
         icr, cf, target, low, high = parse_profile_values(data)
     except ValueError as exc:
         await eff_msg.reply_text(
-            exc.args[0] if exc.args else error_msg, reply_markup=menu_keyboard()
+            exc.args[0] if exc.args else error_msg, reply_markup=build_main_keyboard()
         )
         return
 
@@ -369,12 +369,12 @@ async def profile_webapp_save(
         except ValidationError:
             await eff_msg.reply_text(
                 "Некорректные данные настроек профиля",
-                reply_markup=menu_keyboard(),
+                reply_markup=build_main_keyboard(),
             )
             return
     user = update.effective_user
     if user is None:
-        await eff_msg.reply_text(error_msg, reply_markup=menu_keyboard())
+        await eff_msg.reply_text(error_msg, reply_markup=build_main_keyboard())
         return
     user_id = user.id
     ok, err = post_profile(
@@ -391,7 +391,7 @@ async def profile_webapp_save(
     if not ok:
         await eff_msg.reply_text(
             err or "⚠️ Не удалось сохранить профиль.",
-            reply_markup=menu_keyboard(),
+            reply_markup=build_main_keyboard(),
         )
         return
 
@@ -416,7 +416,7 @@ async def profile_webapp_save(
     if not db_ok:
         await eff_msg.reply_text(
             "⚠️ Не удалось сохранить профиль.",
-            reply_markup=menu_keyboard(),
+            reply_markup=build_main_keyboard(),
         )
         return
 
@@ -428,7 +428,7 @@ async def profile_webapp_save(
         except HTTPException:
             await eff_msg.reply_text(
                 "⚠️ Не удалось сохранить настройки",
-                reply_markup=menu_keyboard(),
+                reply_markup=build_main_keyboard(),
             )
             return
 
@@ -439,7 +439,7 @@ async def profile_webapp_save(
         f"• Целевой сахар: {target} ммоль/л\n"
         f"• Низкий порог: {low} ммоль/л\n"
         f"• Высокий порог: {high} ммоль/л",
-        reply_markup=menu_keyboard(),
+        reply_markup=build_main_keyboard(),
     )
 
 
@@ -447,7 +447,7 @@ async def profile_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """Cancel profile creation conversation."""
     message = update.message
     if message is not None:
-        await message.reply_text("Отменено.", reply_markup=menu_keyboard())
+        await message.reply_text("Отменено.", reply_markup=build_main_keyboard())
     return END
 
 
@@ -459,7 +459,7 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = cast(Message, query.message)
     await query.answer()
     await message.delete()
-    await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
+    await message.reply_text("📋 Выберите действие:", reply_markup=build_main_keyboard())
 
 
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -539,7 +539,7 @@ async def profile_timezone_save(
     if not ok:
         await message.reply_text(
             "⚠️ Не удалось обновить часовой пояс.",
-            reply_markup=menu_keyboard(),
+            reply_markup=build_main_keyboard(),
         )
         return END
 
@@ -575,7 +575,7 @@ async def profile_timezone_save(
     if not existed:
         text = "✅ Профиль создан. Часовой пояс сохранён."
 
-    await message.reply_text(text, reply_markup=menu_keyboard())
+    await message.reply_text(text, reply_markup=build_main_keyboard())
     return END
 
 
@@ -693,7 +693,7 @@ async def profile_security(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if not result.get("commit_ok", True):
         await message.reply_text(
             "⚠️ Не удалось сохранить настройки.",
-            reply_markup=menu_keyboard(),
+            reply_markup=build_main_keyboard(),
         )
         return
     alert_sugar = result.get("alert_sugar")
@@ -974,7 +974,7 @@ async def profile_high(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         f"• Низкий порог: {low} ммоль/л\n"
         f"• Высокий порог: {high} ммоль/л"
         f"{warning_msg}",
-        reply_markup=menu_keyboard(),
+        reply_markup=build_main_keyboard(),
     )
     return END
 

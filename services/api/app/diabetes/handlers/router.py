@@ -13,7 +13,7 @@ from telegram.ext import ContextTypes
 from typing import Awaitable, Callable, cast
 
 from services.api.app.diabetes.services.db import Entry, SessionLocal
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.ui.keyboard import build_main_keyboard
 
 from services.api.app.diabetes.services.repository import CommitError, commit
 from . import EntryData, UserData
@@ -100,7 +100,9 @@ async def handle_cancel_entry(
     message = query.message
     if not isinstance(message, Message):
         return
-    await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
+    await message.reply_text(
+        "📋 Выберите действие:", reply_markup=build_main_keyboard()
+    )
 
 
 async def handle_edit_or_delete(

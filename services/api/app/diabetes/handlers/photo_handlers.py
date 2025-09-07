@@ -20,7 +20,7 @@ from services.api.app.diabetes.services.gpt_client import (
 )
 from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.utils.functions import extract_nutrition_info
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.ui.keyboard import build_main_keyboard
 
 from . import EntryData, UserData
 
@@ -44,7 +44,7 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if message is None:
         return
     await message.reply_text(
-        "📸 Пришлите фото блюда для анализа.", reply_markup=menu_keyboard()
+        "📸 Пришлите фото блюда для анализа.", reply_markup=build_main_keyboard()
     )
 
 
@@ -270,7 +270,7 @@ async def photo_handler(
                 f"Вот полный ответ Vision:\n<pre>{html.escape(vision_text)}</pre>\n"
                 "Введите /dose и укажите их вручную.",
                 parse_mode="HTML",
-                reply_markup=menu_keyboard(),
+                reply_markup=build_main_keyboard(),
             )
             user_data.pop("pending_entry", None)
             return END
@@ -311,7 +311,7 @@ async def photo_handler(
                 raise
         await message.reply_text(
             f"🍽️ На фото:\n{vision_text}\n\nВведите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина.",
-            reply_markup=menu_keyboard(),
+            reply_markup=build_main_keyboard(),
         )
         return PHOTO_SUGAR
 

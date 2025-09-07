@@ -48,7 +48,7 @@ from services.api.app.diabetes.utils.helpers import (
     parse_time_interval,
 )
 from services.api.app.diabetes.utils.jobs import _remove_jobs, schedule_once
-from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.ui.keyboard import build_main_keyboard
 from services.api.app.diabetes.schemas.reminders import ScheduleKind
 from .reminder_jobs import DefaultJobQueue, schedule_reminder
 from .alert_handlers import check_alert as _check_alert
@@ -453,7 +453,9 @@ async def reminders_list(
         return
 
     if show_menu:
-        await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
+        await message.reply_text(
+            "📋 Выберите действие:", reply_markup=build_main_keyboard()
+        )
 
     if keyboard is not None:
         await message.reply_text(text, parse_mode="HTML", reply_markup=keyboard)

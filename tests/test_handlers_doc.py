@@ -336,7 +336,7 @@ async def test_photo_handler_sends_bytes(
         "extract_nutrition_info",
         lambda text: functions.NutritionInfo(carbs_g=10.0, xe=1.0),
     )
-    monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
+    monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
 
     result = await photo_handlers.photo_handler(update, context)
 
@@ -390,7 +390,7 @@ async def test_photo_then_freeform_calculates_dose(
         "extract_nutrition_info",
         lambda text: functions.NutritionInfo(carbs_g=10.0, xe=1.0),
     )
-    monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
+    monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
     monkeypatch.setattr(gpt_handlers, "confirm_keyboard", lambda: None)
 
     photo_msg = DummyMessage(photo=(DummyPhoto(),))

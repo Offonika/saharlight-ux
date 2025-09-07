@@ -1068,7 +1068,7 @@ async def test_reminders_list_shows_menu_keyboard(
     monkeypatch.setattr(handlers, "_render_reminders", fake_render)
 
     sentinel_markup = ReplyKeyboardMarkup([[]])
-    monkeypatch.setattr(handlers, "menu_keyboard", lambda: sentinel_markup)
+    monkeypatch.setattr(handlers, "build_main_keyboard", lambda: sentinel_markup)
 
     captured: list[tuple[str, dict[str, Any]]] = []
 

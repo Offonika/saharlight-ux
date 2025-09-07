@@ -3,11 +3,14 @@ import services.api.app.ui.keyboard as kb
 
 
 def test_main_keyboard_preserves_buttons() -> None:
-    menu_layout = [[btn.text for btn in row] for row in ui.menu_keyboard().keyboard]
     keyboard_layout = [
         [btn.text for btn in row] for row in kb.build_main_keyboard().keyboard
     ]
-    assert keyboard_layout == menu_layout + [
+    assert keyboard_layout == [
+        [ui.PHOTO_BUTTON_TEXT, ui.SUGAR_BUTTON_TEXT],
+        [ui.DOSE_BUTTON_TEXT, ui.REPORT_BUTTON_TEXT],
+        [ui.QUICK_INPUT_BUTTON_TEXT, ui.HELP_BUTTON_TEXT],
+        [ui.SOS_BUTTON_TEXT],
         [kb.LEARN_BUTTON_TEXT],
         [kb.ASSISTANT_AI_BUTTON_TEXT],
     ]

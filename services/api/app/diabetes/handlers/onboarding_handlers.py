@@ -46,8 +46,8 @@ from sqlalchemy.orm import Session
 from services.api.app.diabetes.utils.ui import (
     PHOTO_BUTTON_TEXT,
     build_timezone_webapp_button,
-    menu_keyboard,
 )
+from services.api.app.ui.keyboard import build_main_keyboard
 from services.api.app.utils import choose_variant
 import services.bot.main as bot_main
 from .reminder_jobs import DefaultJobQueue
@@ -500,7 +500,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await onboarding_state.complete_state(user.id)
     await _mark_user_complete(user.id)
     await _log_event(user.id, "onboarding_finished", 3, variant)
-    await message.reply_text("Пропущено", reply_markup=menu_keyboard())
+    await message.reply_text("Пропущено", reply_markup=build_main_keyboard())
     bot = cast(ExtBot[None], message.get_bot())
     try:
         await bot.set_my_commands(bot_main.commands)
@@ -565,7 +565,7 @@ async def _finish(
         await message.reply_text("Созданы напоминания:\n" + "\n".join(reminders))
     await _log_event(user_id, "step_completed_3", 3, variant)
     await message.reply_text(
-        "🎉 Готово! Настройка завершена.", reply_markup=menu_keyboard()
+        "🎉 Готово! Настройка завершена.", reply_markup=build_main_keyboard()
     )
     await _log_event(user_id, "onboarding_finished", 3, variant)
     bot = cast(ExtBot[None], message.get_bot())

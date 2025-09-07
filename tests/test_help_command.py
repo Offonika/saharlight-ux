@@ -6,6 +6,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.common_handlers as handlers
+import services.api.app.ui.keyboard as kb
 
 
 class DummyMessage:
@@ -32,7 +33,8 @@ async def test_help_includes_new_features() -> None:
     await handlers.help_command(update, context)
 
     assert (
-        message.kwargs[0]["reply_markup"].keyboard == handlers.menu_keyboard().keyboard
+        message.kwargs[0]["reply_markup"].keyboard
+        == kb.build_main_keyboard().keyboard
     )
     text = message.replies[0]
     assert "🆕 Новые возможности:\n" in text

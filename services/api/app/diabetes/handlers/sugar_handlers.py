@@ -17,12 +17,12 @@ from services.api.app.diabetes.services.db import Entry, SessionLocal
 from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.utils.functions import _safe_float
 from services.api.app.diabetes.utils.ui import (
-    menu_keyboard,
     sugar_keyboard,
     SUGAR_BUTTON_TEXT,
     BACK_BUTTON_TEXT,
     PHOTO_BUTTON_TEXT,
 )
+from services.api.app.ui.keyboard import build_main_keyboard
 
 from . import EntryData, UserData
 from .alert_handlers import check_alert
@@ -129,7 +129,7 @@ async def sugar_val(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await check_alert(update, context, sugar)
     await message.reply_text(
         f"✅ Уровень сахара {sugar} ммоль/л сохранён.",
-        reply_markup=menu_keyboard(),
+        reply_markup=build_main_keyboard(),
     )
     if chat_data is not None:
         chat_data.pop("sugar_active", None)

@@ -19,8 +19,8 @@ from services.api.app.diabetes.utils.ui import (
     BACK_BUTTON_TEXT,
     PHOTO_BUTTON_TEXT,
     back_keyboard,
-    menu_keyboard,
 )
+from services.api.app.ui.keyboard import build_main_keyboard
 from services.api.app.diabetes.services.repository import CommitError, commit
 
 from . import dose_calc, _cancel_then
@@ -85,13 +85,13 @@ async def sos_contact_save(
         except CommitError:
             await message.reply_text(
                 "⚠️ Не удалось сохранить контакт.",
-                reply_markup=menu_keyboard(),
+                reply_markup=build_main_keyboard(),
             )
             return ConversationHandler.END
 
     await message.reply_text(
         "✅ Контакт для SOS сохранён.",
-        reply_markup=menu_keyboard(),
+        reply_markup=build_main_keyboard(),
     )
     return ConversationHandler.END
 
@@ -104,7 +104,7 @@ async def sos_contact_cancel(
     if message is None:
         return ConversationHandler.END
     assert message is not None
-    await message.reply_text("Отменено.", reply_markup=menu_keyboard())
+    await message.reply_text("Отменено.", reply_markup=build_main_keyboard())
     return ConversationHandler.END
 
 
