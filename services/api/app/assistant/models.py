@@ -33,7 +33,9 @@ class LessonLog(Base):
     user_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("users.telegram_id"), nullable=False, index=True
     )
-    plan_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    plan_id: Mapped[int] = mapped_column(
+        ForeignKey("learning_plans.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     module_idx: Mapped[int] = mapped_column(Integer, nullable=False)
     step_idx: Mapped[int] = mapped_column(Integer, nullable=False)
     role: Mapped[str] = mapped_column(String, nullable=False)
