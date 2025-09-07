@@ -70,7 +70,7 @@ def _require_billing_enabled(
     settings: BillingSettings = Depends(get_billing_settings),
 ) -> BillingSettings:
     if not settings.billing_enabled:
-        raise HTTPException(status_code=503, detail="billing disabled")
+        raise HTTPException(status_code=503, detail="биллинг отключен")
     return settings
 
 
@@ -128,8 +128,8 @@ async def start_trial(
             if existing is not None:
                 status = SubStatus(existing.status)
                 if status is SubStatus.trial:
-                    raise HTTPException(status_code=409, detail="Trial already active")
-                raise HTTPException(status_code=409, detail="subscription already active")
+                    raise HTTPException(status_code=409, detail="Пробный период уже активен")
+                raise HTTPException(status_code=409, detail="Подписка уже активна")
             return _create_trial(session)
 
     trial: Subscription | None
@@ -151,7 +151,7 @@ async def start_trial(
             },
             exc_info=exc,
         )
-        raise HTTPException(status_code=400, detail="invalid enum value") from exc
+        raise HTTPException(status_code=400, detail="Недопустимое значение перечисления") from exc
     except IntegrityError as exc:
         logger.warning(
             "trial creation failed",
@@ -163,9 +163,9 @@ async def start_trial(
             },
             exc_info=exc,
         )
-        raise HTTPException(status_code=409, detail="Trial already active") from exc
+        raise HTTPException(status_code=409, detail="Пробный период уже активен") from exc
     if trial is None:
-        raise HTTPException(status_code=500, detail="trial retrieval failed")
+        raise HTTPException(status_code=500, detail="Не удалось получить пробный период")
 
     return SubscriptionSchema.model_validate(trial, from_attributes=True)
 
@@ -259,7 +259,7 @@ async def subscribe(
     try:
         await run_db(_create_subscription, sessionmaker=SessionLocal)
     except IntegrityError as exc:
-        raise HTTPException(status_code=409, detail="subscription already exists") from exc
+        raise HTTPException(status_code=409, detail="Подписка уже существует") from exc
     return CheckoutSchema.model_validate(checkout)
 
 
@@ -279,7 +279,7 @@ async def webhook(
     else:
         ip = ""
     if not await verify_webhook(settings, event, request.headers, ip):
-        raise HTTPException(status_code=400, detail="invalid signature")
+        raise HTTPException(status_code=400, detail="Недействительная подпись")
 
     now = datetime.now(timezone.utc)
 
@@ -345,9 +345,9 @@ async def mock_webhook(
     """Simulate provider webhook to activate a subscription in test mode."""
 
     if not settings.billing_test_mode:
-        raise HTTPException(status_code=403, detail="test mode disabled")
+        raise HTTPException(status_code=403, detail="тестовый режим отключен")
     if settings.billing_admin_token is None or x_token != settings.billing_admin_token:
-        raise HTTPException(status_code=403, detail="forbidden")
+        raise HTTPException(status_code=403, detail="доступ запрещен")
 
     def _activate(session: Session) -> bool:
         stmt = select(Subscription).where(Subscription.transaction_id == checkout_id)
@@ -369,7 +369,7 @@ async def mock_webhook(
 
     updated = await run_db(_activate, sessionmaker=SessionLocal)
     if not updated:
-        raise HTTPException(status_code=404, detail="subscription not found")
+        raise HTTPException(status_code=404, detail="подписка не найдена")
     return {"status": "ok"}
 
 
@@ -382,9 +382,9 @@ async def admin_mock_webhook(
     """Manually activate a subscription in test mode."""
 
     if not settings.billing_test_mode:
-        raise HTTPException(status_code=403, detail="test mode disabled")
+        raise HTTPException(status_code=403, detail="тестовый режим отключен")
     if settings.billing_admin_token is None or x_token != settings.billing_admin_token:
-        raise HTTPException(status_code=403, detail="forbidden")
+        raise HTTPException(status_code=403, detail="доступ запрещен")
 
     def _activate(session: Session) -> bool:
         stmt = select(Subscription).where(Subscription.transaction_id == transaction_id)
@@ -406,7 +406,7 @@ async def admin_mock_webhook(
 
     updated = await run_db(_activate, sessionmaker=SessionLocal)
     if not updated:
-        raise HTTPException(status_code=404, detail="subscription not found")
+        raise HTTPException(status_code=404, detail="подписка не найдена")
     return {"status": "ok"}
 
 
