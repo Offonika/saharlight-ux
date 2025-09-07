@@ -3,6 +3,22 @@
 from __future__ import annotations
 
 from prometheus_client import Counter, Gauge, Summary
+from prometheus_client.metrics import MetricWrapperBase
+
+
+def get_metric_value(metric: MetricWrapperBase, suffix: str | None = None) -> float:
+    """Return current value of *metric* using only public APIs."""
+    for metric_family in metric.collect():
+        base_name = metric_family.name
+        target = f"{base_name}_{suffix}" if suffix else None
+        for sample in metric_family.samples:
+            name = sample.name
+            if target:
+                if name == target:
+                    return float(sample.value)
+            elif name in {base_name, f"{base_name}_total"}:
+                return float(sample.value)
+    return 0.0
 
 lessons_started: Counter = Counter(
     "lessons_started", "Total number of lessons started"
