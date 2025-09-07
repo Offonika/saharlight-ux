@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 PLANS_KEY = "learning_plans"
 PROGRESS_KEY = "learning_progress"
+BUSY_KEY = "learn_busy"
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
@@ -109,10 +110,9 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     state = LearnState(
         topic=topic,
         step=step_idx,
-        awaiting_answer=True,
-        disclaimer_shown=True,
         last_step_text=snapshot,
         prev_summary=cast(str | None, data.get("prev_summary")),
+        awaiting=True,
     )
     set_state(user_data, state)
 
@@ -132,10 +132,7 @@ async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
-            for slug, title in TOPICS_RU.items()
-        ]
+        [[InlineKeyboardButton(title, callback_data=f"lesson:{slug}")] for slug, title in TOPICS_RU.items()]
     )
     await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
@@ -178,9 +175,8 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     state = LearnState(
         topic=slug,
         step=1,
-        awaiting_answer=True,
-        disclaimer_shown=True,
         last_step_text=text,
+        awaiting=True,
     )
     set_state(user_data, state)
     _persist(user.id, user_data, context.bot_data)
@@ -199,9 +195,7 @@ async def _start_lesson(
     if from_user is None:
         return
     progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
-    text, _ = await curriculum_engine.next_step(
-        from_user.id, progress.lesson_id, profile
-    )
+    text, _ = await curriculum_engine.next_step(from_user.id, progress.lesson_id, profile)
     if text is None or text == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
@@ -216,9 +210,8 @@ async def _start_lesson(
     state = LearnState(
         topic=topic_slug,
         step=1,
-        awaiting_answer=True,
-        disclaimer_shown=True,
         last_step_text=text,
+        awaiting=True,
     )
     set_state(user_data, state)
     _persist(from_user.id, user_data, bot_data)
@@ -287,9 +280,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _start_lesson(message, user_data, context.bot_data, profile, slug)
 
 
-async def lesson_answer_handler(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Process user's answer and move to the next step."""
 
     message = update.message
@@ -305,7 +296,7 @@ async def lesson_answer_handler(
     await _hydrate(update, context)
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
-    if state is None or not state.awaiting_answer or state.learn_busy:
+    if state is None or not state.awaiting or user_data.get(BUSY_KEY):
         return
     if _rate_limited(user_data, "_answer_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
@@ -319,61 +310,47 @@ async def lesson_answer_handler(
         except Exception:
             logger.exception("lesson log failed")
             await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-            state.awaiting_answer = True
+            state.awaiting = True
             set_state(user_data, state)
             return
-    state.awaiting_answer = False
-    state.learn_busy = True
+    state.awaiting = False
+    user_data[BUSY_KEY] = True
     set_state(user_data, state)
     try:
         if user_text.lower() == "не знаю":
-            feedback = await assistant_chat(
-                profile, f"Объясни подробнее: {state.last_step_text}"
-            )
+            feedback = await assistant_chat(profile, f"Объясни подробнее: {state.last_step_text}")
         else:
-            _correct, feedback = await check_user_answer(
-                profile, state.topic, user_text, state.last_step_text or ""
-            )
+            _correct, feedback = await check_user_answer(profile, state.topic, user_text, state.last_step_text or "")
         feedback = format_reply(feedback)
         await message.reply_text(feedback, reply_markup=build_main_keyboard())
         if feedback == BUSY_MESSAGE:
-            state.awaiting_answer = True
             return
         if telegram_id is not None:
             try:
-                await add_lesson_log(
-                    telegram_id, state.topic, "assistant", state.step, feedback
-                )
+                await add_lesson_log(telegram_id, state.topic, "assistant", state.step, feedback)
             except Exception:
                 logger.exception("lesson log failed")
                 await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-                state.awaiting_answer = True
                 return
-        next_text = await generate_step_text(
-            profile, state.topic, state.step + 1, feedback
-        )
+        next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
         if next_text == BUSY_MESSAGE:
             await message.reply_text(next_text, reply_markup=build_main_keyboard())
-            state.awaiting_answer = True
             return
         next_text = format_reply(next_text)
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
         if telegram_id is not None:
             try:
-                await add_lesson_log(
-                    telegram_id, state.topic, "assistant", state.step + 1, next_text
-                )
+                await add_lesson_log(telegram_id, state.topic, "assistant", state.step + 1, next_text)
             except Exception:
                 logger.exception("lesson log failed")
                 await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-                state.awaiting_answer = True
                 return
         state.step += 1
         state.last_step_text = next_text
         state.prev_summary = feedback
-        state.awaiting_answer = True
     finally:
-        state.learn_busy = False
+        user_data[BUSY_KEY] = False
+        state.awaiting = True
         set_state(user_data, state)
         if from_user is not None:
             _persist(from_user.id, user_data, context.bot_data)
@@ -411,7 +388,7 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await _hydrate(update, context)
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
-    if state is not None and state.awaiting_answer and state.last_step_text:
+    if state is not None and state.awaiting and state.last_step_text:
         await lesson_answer_handler(update, context)
         raise ApplicationHandlerStop
     profile = _get_profile(user_data)
@@ -439,9 +416,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     if user is not None:
         _persist(user.id, user_data, context.bot_data)
-    await message.reply_text(
-        "Учебная сессия завершена.", reply_markup=build_main_keyboard()
-    )
+    await message.reply_text("Учебная сессия завершена.", reply_markup=build_main_keyboard())
 
 
 async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

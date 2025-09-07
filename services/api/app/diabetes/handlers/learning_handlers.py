@@ -21,7 +21,6 @@ from telegram.ext import (
 
 from services.api.app.config import settings
 from services.api.app.diabetes import curriculum_engine
-from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.learning_state import (
     LearnState,
     clear_state,
@@ -97,9 +96,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     model = settings.learning_command_model
 
     def _list(session: Session) -> list[tuple[str, str]]:
-        lessons = session.scalars(
-            sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)
-        ).all()
+        lessons = session.scalars(sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)).all()
         return [(lesson.title, lesson.slug) for lesson in lessons]
 
     lessons = await run_db(_list, sessionmaker=SessionLocal)
@@ -161,12 +158,10 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         state = get_state(user_data)
         if state is None:
             topic = lesson_slug or ""
-            state = LearnState(topic=topic, step=0, awaiting_answer=False)
+            state = LearnState(topic=topic, step=0, awaiting=False)
         state.step += 1
-        state.awaiting_answer = False
+        state.awaiting = False
         state.last_step_text = text
-        if not state.disclaimer_shown:
-            state.disclaimer_shown = True
         set_state(user_data, state)
     logger.info(
         "lesson_command_complete",
@@ -200,19 +195,9 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await message.reply_text("Ответ должен быть числом")
             return
         if state is not None:
-            state.awaiting_answer = False
+            state.awaiting = False
             set_state(user_data, state)
-        _correct, feedback = await curriculum_engine.check_answer(
-            user.id, lesson_id, {}, answer
-        )
-        if state is None or not state.disclaimer_shown:
-            tail = disclaimer()
-            feedback = f"{feedback} {tail}" if feedback else tail
-            if state is None:
-                topic = cast(str | None, user_data.get("lesson_slug")) or ""
-                state = LearnState(topic=topic, step=0, awaiting_answer=False)
-            state.disclaimer_shown = True
-            set_state(user_data, state)
+        _correct, feedback = await curriculum_engine.check_answer(user.id, lesson_id, {}, answer)
         await message.reply_text(feedback)
         question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
         if question == BUSY_MESSAGE:
@@ -225,11 +210,9 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await message.reply_text(question)
             if state is None:
                 topic = cast(str | None, user_data.get("lesson_slug")) or ""
-                state = LearnState(topic=topic, step=0, awaiting_answer=False)
+                state = LearnState(topic=topic, step=0, awaiting=False)
             state.step += 1
-            state.awaiting_answer = True
-            if not state.disclaimer_shown:
-                state.disclaimer_shown = True
+            state.awaiting = True
             set_state(user_data, state)
         return
     question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
@@ -243,17 +226,13 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await message.reply_text(question)
         if state is None:
             topic = cast(str | None, user_data.get("lesson_slug")) or ""
-            state = LearnState(topic=topic, step=0, awaiting_answer=False)
+            state = LearnState(topic=topic, step=0, awaiting=False)
         state.step += 1
-        state.awaiting_answer = True
-        if not state.disclaimer_shown:
-            state.disclaimer_shown = True
+        state.awaiting = True
         set_state(user_data, state)
 
 
-async def quiz_answer_handler(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def quiz_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Treat plain text as an answer when awaiting a quiz response."""
 
     message = update.message
@@ -262,7 +241,7 @@ async def quiz_answer_handler(
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
-    if state is None or not state.awaiting_answer:
+    if state is None or not state.awaiting:
         return
     lesson_id = cast(int | None, user_data.get("lesson_id"))
     if lesson_id is None:
@@ -273,16 +252,9 @@ async def quiz_answer_handler(
     except ValueError:
         await message.reply_text("Ответ должен быть числом")
         raise ApplicationHandlerStop
-    state.awaiting_answer = False
+    state.awaiting = False
     set_state(user_data, state)
-    _correct, feedback = await curriculum_engine.check_answer(
-        user.id, lesson_id, {}, answer
-    )
-    if not state.disclaimer_shown:
-        tail = disclaimer()
-        feedback = f"{feedback} {tail}" if feedback else tail
-        state.disclaimer_shown = True
-        set_state(user_data, state)
+    _correct, feedback = await curriculum_engine.check_answer(user.id, lesson_id, {}, answer)
     await message.reply_text(feedback)
     question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
     if question == BUSY_MESSAGE:
@@ -294,9 +266,7 @@ async def quiz_answer_handler(
     elif question is not None:
         await message.reply_text(question)
         state.step += 1
-        state.awaiting_answer = True
-        if not state.disclaimer_shown:
-            state.disclaimer_shown = True
+        state.awaiting = True
         set_state(user_data, state)
     # Let calling code continue without forcing ApplicationHandlerStop.
     return
@@ -310,9 +280,7 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     user_id = user.id
 
-    def _load_progress(
-        session: Session, user_id: int
-    ) -> tuple[str, int, bool, int | None] | None:
+    def _load_progress(session: Session, user_id: int) -> tuple[str, int, bool, int | None] | None:
         progress = session.scalars(
             sa.select(LessonProgress)
             .join(Lesson)
@@ -330,9 +298,7 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     result = await run_db(_load_progress, user_id, sessionmaker=SessionLocal)
     if result is None:
-        await message.reply_text(
-            "Вы ещё не начали обучение. Отправьте /learn чтобы начать."
-        )
+        await message.reply_text("Вы ещё не начали обучение. Отправьте /learn чтобы начать.")
         return
     title, current_step, completed, quiz_score = result
     lines = [
@@ -353,9 +319,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     user_data = cast(dict[str, object], context.user_data)
     lesson_id = cast(int | None, user_data.get("lesson_id"))
-    logger.info(
-        "exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id}
-    )
+    logger.info("exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id})
     lesson_id = cast(int | None, user_data.pop("lesson_id", None))
     user_data.pop("lesson_slug", None)
     user_data.pop("lesson_step", None)
@@ -364,9 +328,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         def _complete(session: Session, user_id: int, lesson_id: int) -> None:
             progress = session.execute(
-                sa.select(LessonProgress).filter_by(
-                    user_id=user_id, lesson_id=lesson_id
-                )
+                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
             ).scalar_one_or_none()
             if progress is not None and not progress.completed:
                 progress.completed = True
@@ -402,20 +364,10 @@ def register_handlers(app: App) -> None:
     app.add_handler(CommandHandler("skip", skip_command))
     app.add_handler(CommandHandler("exit", exit_command))
     app.add_handler(CommandHandler("learn_reset", onboarding.learn_reset))
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding.onboarding_reply)
-    )
-    app.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False
-        )
-    )
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding.onboarding_reply))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False))
     app.add_handler(CallbackQueryHandler(lesson_callback, pattern="^lesson:"))
-    app.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False
-        )
-    )
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False))
 
 
 __all__ = [

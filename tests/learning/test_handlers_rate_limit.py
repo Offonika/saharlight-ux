@@ -39,6 +39,7 @@ async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"slug": "Topic"})
+
     async def fake_start_lesson(user_id: int, topic_slug: str) -> object:
         return SimpleNamespace(lesson_id=1)
 
@@ -112,7 +113,7 @@ async def test_lesson_answer_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None
     user_data: dict[str, object] = {}
     learning_handlers.set_state(
         user_data,
-        LearnState(topic="slug", step=1, awaiting_answer=True, last_step_text="q"),
+        LearnState(topic="slug", step=1, awaiting=True, last_step_text="q"),
     )
 
     msg1 = DummyMessage(text="a1")
