@@ -8,11 +8,12 @@ import logging
 import os
 import time
 import urllib.parse
-from typing import Any, TypeAlias
+from typing import TypeAlias
 
 import aiohttp
 from aiohttp.client import ClientTimeout
 from aiohttp.client_exceptions import ClientError
+from pydantic import BaseModel, ValidationError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import CommandHandler, ContextTypes
 
@@ -23,6 +24,12 @@ logger = logging.getLogger(__name__)
 
 
 CommandHandlerT: TypeAlias = CommandHandler[ContextTypes.DEFAULT_TYPE, object]
+
+
+class OnboardingStatus(BaseModel):
+    completed: bool
+    step: str | None
+    missing: list[str]
 
 
 def _build_init_data(user_id: int, token: str) -> str:
@@ -58,22 +65,22 @@ def build_status_handler(ui_base_url: str, api_base: str = "/api") -> CommandHan
                     headers={TG_INIT_DATA_HEADER: init_data},
                     timeout=ClientTimeout(total=5),
                 ) as resp:
-                    data: dict[str, Any] = await resp.json()
+                    data = OnboardingStatus.model_validate(await resp.json())
         except asyncio.TimeoutError:
             logger.exception("Status request timed out")
-            await update.message.reply_text(
-                "Не удалось получить статус онбординга"
-            )
+            await update.message.reply_text("Не удалось получить статус онбординга")
             return
         except ClientError:
             logger.exception("Status request failed")
-            await update.message.reply_text(
-                "Не удалось получить статус онбординга"
-            )
+            await update.message.reply_text("Не удалось получить статус онбординга")
+            return
+        except (ValueError, ValidationError):
+            logger.exception("Invalid status response")
+            await update.message.reply_text("Не удалось получить статус онбординга")
             return
 
-        completed = bool(data.get("completed"))
-        missing = [str(s) for s in data.get("missing", [])]
+        completed = data.completed
+        missing = data.missing
 
         profile_url = f"{ui_base_url.rstrip('/')}/profile?flow=onboarding&step=profile"
         reminders_url = (
