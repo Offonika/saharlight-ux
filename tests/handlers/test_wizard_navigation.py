@@ -87,15 +87,20 @@ async def test_start_triggers_onboarding(
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
+    import services.api.app.diabetes.services.users as users_service
+
     monkeypatch.setattr(gpt_client, "create_thread", fake_thread)
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
     monkeypatch.setattr(onboarding, "commit", lambda s: None)
+
     async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-        sessionmaker = kwargs.get("sessionmaker", TestSession)
+        sessionmaker = kwargs.pop("sessionmaker", TestSession)
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
     monkeypatch.setattr(onboarding, "run_db", run_db)
+    monkeypatch.setattr(users_service, "SessionLocal", TestSession)
+    monkeypatch.setattr(users_service, "run_db", run_db)
 
     message = DummyMessage()
     update = cast(
@@ -117,9 +122,33 @@ async def test_start_triggers_onboarding(
 async def test_variant_b_starts_with_timezone(
     monkeypatch: pytest.MonkeyPatch, patch_state: None
 ) -> None:
+    os.environ.setdefault("OPENAI_API_KEY", "x")
+    os.environ.setdefault("OPENAI_ASSISTANT_ID", "y")
     import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
+    import services.api.app.diabetes.services.gpt_client as gpt_client
+    import services.api.app.diabetes.services.users as users_service
 
     monkeypatch.setattr(onboarding, "choose_variant", lambda uid: "B")
+
+    async def fake_thread() -> str:
+        return "tid"
+
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    monkeypatch.setattr(gpt_client, "create_thread", fake_thread)
+    monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
+    monkeypatch.setattr(onboarding, "commit", lambda s: None)
+
+    async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        sessionmaker = kwargs.pop("sessionmaker", TestSession)
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(onboarding, "run_db", run_db)
+    monkeypatch.setattr(users_service, "SessionLocal", TestSession)
+    monkeypatch.setattr(users_service, "run_db", run_db)
 
     message = DummyMessage()
     update = cast(
@@ -134,6 +163,7 @@ async def test_variant_b_starts_with_timezone(
     state = await onboarding.start_command(update, context)
     assert state == onboarding.TIMEZONE
     assert any("1/3" in text for text in message.texts)
+    engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -159,6 +189,7 @@ async def test_onboarding_skip_sends_final(
     monkeypatch: pytest.MonkeyPatch, patch_state: None
 ) -> None:
     import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
+    import services.api.app.diabetes.services.users as users_service
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -171,11 +202,13 @@ async def test_onboarding_skip_sends_final(
     monkeypatch.setattr(onboarding, "commit", lambda s: None)
     monkeypatch.setattr(onboarding, "build_main_keyboard", lambda: "MK")
     async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-        sessionmaker = kwargs.get("sessionmaker", TestSession)
+        sessionmaker = kwargs.pop("sessionmaker", TestSession)
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
     monkeypatch.setattr(onboarding, "run_db", run_db)
+    monkeypatch.setattr(users_service, "SessionLocal", TestSession)
+    monkeypatch.setattr(users_service, "run_db", run_db)
 
     message = DummyMessage()
     query = DummyQuery(message, "onb_skip")
@@ -220,6 +253,7 @@ async def test_onboarding_completion_message(
     monkeypatch: pytest.MonkeyPatch, patch_state: None
 ) -> None:
     import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
+    import services.api.app.diabetes.services.users as users_service
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -232,11 +266,13 @@ async def test_onboarding_completion_message(
     monkeypatch.setattr(onboarding, "commit", lambda s: None)
     monkeypatch.setattr(onboarding, "build_main_keyboard", lambda: "MK")
     async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-        sessionmaker = kwargs.get("sessionmaker", TestSession)
+        sessionmaker = kwargs.pop("sessionmaker", TestSession)
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
     monkeypatch.setattr(onboarding, "run_db", run_db)
+    monkeypatch.setattr(users_service, "SessionLocal", TestSession)
+    monkeypatch.setattr(users_service, "run_db", run_db)
 
     message = DummyMessage()
     query = DummyQuery(message, "onb_rem_no")
