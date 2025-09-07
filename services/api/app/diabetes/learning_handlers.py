@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import logging
@@ -148,9 +147,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     topic_slug = context.args[0] if context.args else None
     if topic_slug is None:
-        await message.reply_text(
-            "Сначала выберите тему командой /learn"
-        )
+        await message.reply_text("Сначала выберите тему командой /learn")
         return
     profile = _get_profile(user_data)
     await _start_lesson(message, user_data, profile, topic_slug)
@@ -166,9 +163,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not settings.learning_mode_enabled:
         await query.answer()
         if raw_message is not None and hasattr(raw_message, "reply_text"):
-            await cast(Message, raw_message).reply_text(
-                "режим обучения отключён"
-            )
+            await cast(Message, raw_message).reply_text("режим обучения отключён")
         return
     if settings.learning_content_mode == "static":
         await legacy_handlers.lesson_command(update, context)
@@ -204,7 +199,7 @@ async def lesson_answer_handler(
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
-    if state is None or not state.awaiting_answer:
+    if state is None or not state.awaiting_answer or state.learn_busy:
         return
     if _rate_limited(user_data, "_answer_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
@@ -212,31 +207,46 @@ async def lesson_answer_handler(
     profile = _get_profile(user_data)
     telegram_id = from_user.id if from_user else None
     user_text = message.text.strip()
-    if telegram_id is not None:
-        await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
-    _correct, feedback = await check_user_answer(
-        profile, state.topic, user_text, state.last_step_text or ""
-    )
-    feedback = format_reply(feedback)
-    await message.reply_text(feedback, reply_markup=build_main_keyboard())
-    if telegram_id is not None:
-        await add_lesson_log(
-            telegram_id, state.topic, "assistant", state.step, feedback
-        )
-    next_text = await generate_step_text(
-        profile, state.topic, state.step + 1, feedback
-    )
-    next_text = format_reply(next_text)
-    await message.reply_text(next_text, reply_markup=build_main_keyboard())
-    if telegram_id is not None:
-        await add_lesson_log(
-            telegram_id, state.topic, "assistant", state.step + 1, next_text
-        )
-    state.step += 1
-    state.last_step_text = next_text
-    state.prev_summary = feedback
-    state.awaiting_answer = True
+    state.learn_busy = True
     set_state(user_data, state)
+    try:
+        if telegram_id is not None:
+            await add_lesson_log(
+                telegram_id, state.topic, "user", state.step, user_text
+            )
+        _correct, feedback = await check_user_answer(
+            profile, state.topic, user_text, state.last_step_text or ""
+        )
+        feedback = format_reply(feedback)
+        await message.reply_text(feedback, reply_markup=build_main_keyboard())
+        if telegram_id is not None:
+            await add_lesson_log(
+                telegram_id, state.topic, "assistant", state.step, feedback
+            )
+        next_text = await generate_step_text(
+            profile, state.topic, state.step + 1, feedback
+        )
+        next_text = format_reply(next_text)
+        await message.reply_text(next_text, reply_markup=build_main_keyboard())
+        if telegram_id is not None:
+            await add_lesson_log(
+                telegram_id, state.topic, "assistant", state.step + 1, next_text
+            )
+        state.step += 1
+        state.last_step_text = next_text
+        state.prev_summary = feedback
+        state.awaiting_answer = True
+    except Exception:
+        logger.exception(
+            "lesson_answer_handler failed",
+            extra={"topic": state.topic, "step": state.step},
+        )
+        await message.reply_text(
+            "сервер занят, попробуйте позже", reply_markup=build_main_keyboard()
+        )
+    finally:
+        state.learn_busy = False
+        set_state(user_data, state)
 
 
 async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

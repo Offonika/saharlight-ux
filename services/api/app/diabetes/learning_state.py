@@ -15,6 +15,7 @@ class LearnState:
     awaiting_answer: bool
     last_step_text: str | None = None
     prev_summary: str | None = None
+    learn_busy: bool = False
 
 
 def get_state(data: MutableMapping[str, object]) -> LearnState | None:

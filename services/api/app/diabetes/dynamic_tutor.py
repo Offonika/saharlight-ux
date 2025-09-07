@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import logging
 
 from openai.types.chat import ChatCompletionMessageParam
 
@@ -10,6 +11,7 @@ from .services.gpt_client import create_chat_completion, format_reply
 
 
 router = LLMRouter()
+logger = logging.getLogger(__name__)
 
 
 async def _chat(model: str, system: str, user: str, *, max_tokens: int = 350) -> str:
@@ -40,7 +42,10 @@ async def generate_step_text(
         system = build_system_prompt(profile)
         user = build_user_prompt_step(topic_slug, step_idx, prev_summary)
         return await _chat(model, system, user)
-    except RuntimeError:
+    except Exception:
+        logger.exception(
+            "generate_step_text failed", extra={"topic": topic_slug, "step": step_idx}
+        )
         return "сервер занят, попробуйте позже"
 
 
@@ -65,7 +70,8 @@ async def check_user_answer(
     )
     try:
         feedback = await _chat(model, system, user, max_tokens=250)
-    except RuntimeError:
+    except Exception:
+        logger.exception("check_user_answer failed", extra={"topic": topic_slug})
         return False, "сервер занят, попробуйте позже"
 
     first = feedback.split(maxsplit=1)[0].strip(".,!?:;\"'«»").lower()
