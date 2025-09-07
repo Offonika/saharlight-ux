@@ -10,6 +10,7 @@ from .learning_handlers import learn_command, topics_command
 from .handlers.onboarding_handlers import (
     reset_onboarding as _reset_onboarding,
 )
+from .assistant_state import reset as _reset_assistant
 
 logger = logging.getLogger(__name__)
 
@@ -57,4 +58,21 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     )
 
 
-__all__ = ["help_command", "reset_onboarding", "learn_command", "topics_command"]
+async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Clear assistant conversation history and summary."""
+
+    message = update.effective_message
+    if message is None:
+        return
+    user_data = cast(dict[str, object], context.user_data)
+    _reset_assistant(user_data)
+    await message.reply_text("История очищена.")
+
+
+__all__ = [
+    "help_command",
+    "reset_onboarding",
+    "reset_command",
+    "learn_command",
+    "topics_command",
+]
