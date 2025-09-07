@@ -53,6 +53,13 @@ class RunDB(Protocol):
 
 logger = logging.getLogger(__name__)
 
+# Maximum number of conversation turns to keep in ``assistant_history``.
+# When the limit is exceeded, oldest turns are trimmed.
+ASSISTANT_MAX_TURNS = 20
+
+# Number of turns after which older history is summarized into a single string.
+ASSISTANT_SUMMARY_TRIGGER = 10
+
 run_db: RunDB | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
@@ -711,17 +718,53 @@ async def freeform_handler(
 
 
 async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Placeholder GPT chat handler."""
+    """Chat handler that records conversation history."""
+
+    message = update.message
+    if message is None or message.text is None:
+        return
+
+    user_data = cast(dict[str, object], context.user_data)
+    user_text = message.text
+    reply = "🗨️ Чат с GPT временно недоступен."
+    await message.reply_text(reply)
+
+    history = cast(list[str], user_data.setdefault("assistant_history", []))
+    history.append(f"user: {user_text}\nassistant: {reply}")
+    if len(history) > ASSISTANT_MAX_TURNS:
+        del history[:-ASSISTANT_MAX_TURNS]
+
+    if len(history) >= ASSISTANT_SUMMARY_TRIGGER:
+        keep = ASSISTANT_SUMMARY_TRIGGER - 1
+        older = history[: len(history) - keep]
+        prev_summary = cast(str | None, user_data.get("assistant_summary"))
+        parts: list[str] = []
+        if prev_summary:
+            parts.append(prev_summary)
+        parts.extend(older)
+        summary = " ".join(parts).strip()
+        user_data["assistant_summary"] = summary
+        history[:] = [summary] + history[-keep:]
+
+
+async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Clear assistant conversation history and summary."""
+
     message = update.message
     if message is None:
         return
-    await message.reply_text("🗨️ Чат с GPT временно недоступен.")
+
+    user_data = cast(dict[str, object], context.user_data)
+    user_data.pop("assistant_history", None)
+    user_data.pop("assistant_summary", None)
+    await message.reply_text("История диалога очищена.")
 
 
 __all__ = [
     "SessionLocal",
     "freeform_handler",
     "chat_with_gpt",
+    "reset_command",
     "ParserTimeoutError",
     "parse_quick_values",
     "apply_pending_entry",

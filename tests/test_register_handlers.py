@@ -279,6 +279,13 @@ def test_register_handlers_attaches_expected_handlers(
     ]
     assert gpt_cmd and "gpt" in gpt_cmd[0].commands
 
+    reset_cmd = [
+        h
+        for h in handlers
+        if isinstance(h, CommandHandler) and h.callback is gpt_handlers.reset_command
+    ]
+    assert reset_cmd and "reset" in reset_cmd[0].commands
+
     history_cmd = [
         h
         for h in handlers

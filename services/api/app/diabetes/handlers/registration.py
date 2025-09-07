@@ -184,6 +184,7 @@ def register_handlers(
     if learning_enabled:
         learning_handlers.register_handlers(app)
     app.add_handler(CommandHandlerT("gpt", gpt_handlers.chat_with_gpt))
+    app.add_handler(CommandHandlerT("reset", gpt_handlers.reset_command))
     app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
     app.add_handler(CommandHandlerT("upgrade", billing_handlers.upgrade_command))
     app.add_handler(

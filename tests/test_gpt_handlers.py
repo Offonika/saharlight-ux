@@ -21,15 +21,17 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_chat_with_gpt_replies() -> None:
-    message = DummyMessage()
+async def test_chat_with_gpt_replies_and_history() -> None:
+    message = DummyMessage("hi")
     update = cast(Update, SimpleNamespace(message=message))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(user_data={}),
     )
     await gpt_handlers.chat_with_gpt(update, context)
     assert message.texts == ["🗨️ Чат с GPT временно недоступен."]
+    history = cast(list[str], context.user_data["assistant_history"])
+    assert history and "user: hi" in history[0]
 
 
 @pytest.mark.asyncio
@@ -40,6 +42,56 @@ async def test_chat_with_gpt_no_message() -> None:
         SimpleNamespace(),
     )
     await gpt_handlers.chat_with_gpt(update, context)
+
+
+@pytest.mark.asyncio
+async def test_chat_with_gpt_trims_history(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(gpt_handlers, "ASSISTANT_MAX_TURNS", 2)
+    monkeypatch.setattr(gpt_handlers, "ASSISTANT_SUMMARY_TRIGGER", 99)
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    for i in range(3):
+        msg = DummyMessage(str(i))
+        update = cast(Update, SimpleNamespace(message=msg))
+        await gpt_handlers.chat_with_gpt(update, context)
+    history = cast(list[str], context.user_data["assistant_history"])
+    assert len(history) == 2
+    assert history[0].startswith("user: 1")
+    assert history[1].startswith("user: 2")
+
+
+@pytest.mark.asyncio
+async def test_chat_with_gpt_summarizes_history(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(gpt_handlers, "ASSISTANT_MAX_TURNS", 5)
+    monkeypatch.setattr(gpt_handlers, "ASSISTANT_SUMMARY_TRIGGER", 3)
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    for i in range(3):
+        msg = DummyMessage(str(i))
+        update = cast(Update, SimpleNamespace(message=msg))
+        await gpt_handlers.chat_with_gpt(update, context)
+    history = cast(list[str], context.user_data["assistant_history"])
+    summary = cast(str, context.user_data["assistant_summary"])
+    assert history[0] == summary
+    assert history[1].startswith("user: 1")
+    assert history[2].startswith("user: 2")
+
+
+@pytest.mark.asyncio
+async def test_reset_command_clears_history() -> None:
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={"assistant_history": ["turn"], "assistant_summary": "s"}),
+    )
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message))
+    await gpt_handlers.reset_command(update, context)
+    assert context.user_data == {}
+    assert message.texts == ["История диалога очищена."]
 
 
 @pytest.mark.asyncio
