@@ -91,6 +91,7 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         return None
 
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"slug": "Topic"})
 
     msg = DummyMessage()
     update = cast(object, SimpleNamespace(message=msg))
@@ -109,6 +110,54 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert all(isinstance(m, ReplyKeyboardMarkup) for m in msg2.markups)
     state = get_state(context2.user_data)
     assert state is not None and state.step == 2 and state.awaiting_answer
+
+
+@pytest.mark.asyncio
+async def test_lesson_command_unknown_topic(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+    monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"known": "Topic"})
+
+    called = False
+
+    async def fake_start_lesson(*args: object, **kwargs: object) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(learning_handlers, "_start_lesson", fake_start_lesson)
+
+    msg = DummyMessage()
+    update = cast(object, SimpleNamespace(message=msg))
+    context = SimpleNamespace(user_data={}, args=["unknown"])
+
+    await learning_handlers.lesson_command(update, context)
+
+    assert msg.replies == ["Неизвестная тема"]
+    assert called is False
+
+
+@pytest.mark.asyncio
+async def test_lesson_callback_unknown_topic(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+    monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"known": "Topic"})
+
+    called = False
+
+    async def fake_start_lesson(*args: object, **kwargs: object) -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(learning_handlers, "_start_lesson", fake_start_lesson)
+
+    msg = DummyMessage()
+    query = DummyCallback(msg, "lesson:unknown")
+    update = cast(object, SimpleNamespace(callback_query=query))
+    context = SimpleNamespace(user_data={})
+
+    await learning_handlers.lesson_callback(update, context)
+
+    assert query.answered is True
+    assert msg.replies == ["Неизвестная тема"]
+    assert called is False
 
 
 @pytest.mark.asyncio

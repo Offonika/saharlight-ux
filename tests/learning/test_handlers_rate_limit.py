@@ -32,12 +32,12 @@ class DummyCallback:
 @pytest.mark.asyncio
 async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
-    async def fake_generate_step_text(
-        profile: object, topic: str, step_idx: int, prev: object
-    ) -> str:
+
+    async def fake_generate_step_text(profile: object, topic: str, step_idx: int, prev: object) -> str:
         return "step1"
 
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"slug": "Topic"})
 
     times = iter([0.0, 1.0])
 
@@ -69,14 +69,11 @@ async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> No
 @pytest.mark.asyncio
 async def test_lesson_answer_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
-    async def fake_check_user_answer(
-        profile: object, topic: str, answer: str, last: str
-    ) -> tuple[bool, str]:
+
+    async def fake_check_user_answer(profile: object, topic: str, answer: str, last: str) -> tuple[bool, str]:
         return True, "feedback"
 
-    async def fake_generate_step_text(
-        profile: object, topic: str, step_idx: int, prev: object
-    ) -> str:
+    async def fake_generate_step_text(profile: object, topic: str, step_idx: int, prev: object) -> str:
         return "next"
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
