@@ -8,6 +8,8 @@ from typing import Callable, cast
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
 
+from services.api.app.assistant.repositories import plans
+
 logger = logging.getLogger(__name__)
 
 
@@ -169,6 +171,11 @@ async def learn_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         "learn_onboarding_stage",
     ]:
         user_data.pop(key, None)
+    user = update.effective_user
+    if user is not None:
+        active_plan = await plans.get_active_plan(user.id)
+        if active_plan is not None and active_plan.id is not None:
+            await plans.deactivate_plan(user.id, active_plan.id)
     message = update.message
     if message is not None:
         await message.reply_text("Learning onboarding reset. Отправьте /learn.")

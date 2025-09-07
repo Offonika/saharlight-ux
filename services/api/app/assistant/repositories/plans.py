@@ -19,15 +19,26 @@ async def create_plan(
     is_active: bool = True,
 ) -> int:
     def _create(session: SessionProtocol) -> int:
+        sess = cast(Session, session)
+        if is_active:
+            stmt = (
+                sa.update(LearningPlan)
+                .where(
+                    LearningPlan.user_id == user_id,
+                    LearningPlan.is_active.is_(True),
+                )
+                .values(is_active=False)
+            )
+            sess.execute(stmt)
         plan = LearningPlan(
             user_id=user_id,
             version=version,
             plan_json=plan_json,
             is_active=is_active,
         )
-        cast(Session, session).add(plan)
-        commit(cast(Session, session))
-        cast(Session, session).refresh(plan)
+        sess.add(plan)
+        commit(sess)
+        sess.refresh(plan)
         assert plan.id is not None
         return plan.id
 
@@ -50,6 +61,17 @@ async def get_active_plan(user_id: int) -> LearningPlan | None:
         return cast(LearningPlan | None, sess.scalar(stmt))
 
     return await run_db(_get, sessionmaker=SessionLocal)
+
+
+async def deactivate_plan(user_id: int, plan_id: int) -> None:
+    def _deactivate(session: SessionProtocol) -> None:
+        plan = cast(LearningPlan | None, session.get(LearningPlan, plan_id))
+        if plan is None or plan.user_id != user_id:
+            return
+        plan.is_active = False
+        commit(cast(Session, session))
+
+    await run_db(_deactivate, sessionmaker=SessionLocal)
 
 
 async def list_plans(user_id: int) -> list[LearningPlan]:

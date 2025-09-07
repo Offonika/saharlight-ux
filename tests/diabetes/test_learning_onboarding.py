@@ -18,6 +18,7 @@ from services.api.app.diabetes import learning_onboarding as onboarding_utils
 from services.api.app.diabetes.handlers import learning_handlers, learning_onboarding
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
+from services.api.app.assistant.repositories import plans
 
 
 class DummyMessage:
@@ -234,3 +235,30 @@ async def test_lesson_command_requires_onboarding(
     )
     await learning_handlers.lesson_command(update, context)
     assert message.replies == [onboarding_utils.AGE_PROMPT]
+
+
+@pytest.mark.asyncio
+async def test_learn_reset_deactivates_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    SessionLocal, engine = setup_db()
+    monkeypatch.setattr(plans, "SessionLocal", SessionLocal)
+    try:
+        with SessionLocal() as session:
+            session.add(db.User(telegram_id=5, thread_id=""))
+            session.commit()
+        plan_id = await plans.create_plan(5, version=1, plan_json={})
+        message = DummyMessage()
+        update = cast(
+            Update,
+            SimpleNamespace(message=message, effective_user=SimpleNamespace(id=5)),
+        )
+        context = cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            SimpleNamespace(user_data={}),
+        )
+        await learning_onboarding.learn_reset(update, context)
+        plan = await plans.get_plan(plan_id)
+        assert plan is not None and plan.is_active is False
+    finally:
+        engine.dispose()
