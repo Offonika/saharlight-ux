@@ -20,10 +20,9 @@ class Progress(Base):
     """Store learning progress for a user and a lesson."""
 
     __tablename__ = "assistant_progress"
-    __table_args__ = (sa.PrimaryKeyConstraint("user_id", "lesson"),)
 
-    user_id: Mapped[int] = mapped_column(BigInteger)
-    lesson: Mapped[str] = mapped_column(String)
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    lesson: Mapped[str] = mapped_column(String, primary_key=True)
     step: Mapped[int] = mapped_column(Integer, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
