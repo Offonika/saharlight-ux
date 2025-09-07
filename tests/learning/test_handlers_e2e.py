@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 
 import pytest
 from telegram import Bot, Chat, Message, MessageEntity, ReplyKeyboardMarkup, Update, User
@@ -12,7 +13,10 @@ from services.api.app.diabetes.handlers import (
     learning_handlers as legacy_learning_handlers,
     registration,
 )
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import (
+    ASSISTANT_AI_BUTTON_TEXT,
+    LEARN_BUTTON_TEXT,
+)
 
 
 class DummyBot(Bot):
@@ -129,6 +133,43 @@ async def test_old_learn_button_triggers_handler(monkeypatch: pytest.MonkeyPatch
         chat=chat,
         from_user=user,
         text=registration.OLD_LEARN_BUTTON_TEXT,
+    )
+    msg._bot = bot
+    await app.process_update(Update(update_id=1, message=msg))
+
+    assert bot.texts == ["ok"]
+
+    await app.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_assistant_button_triggers_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bot = DummyBot()
+    app = Application.builder().bot(bot).build()
+
+    async def fake_learn_command(*_args: object, **_kwargs: object) -> None:
+        await bot.send_message(chat_id=1, text="ok")
+
+    monkeypatch.setattr(learning_handlers, "learn_command", fake_learn_command)
+
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & filters.Regex(rf"^{re.escape(ASSISTANT_AI_BUTTON_TEXT)}$"),
+            learning_handlers.learn_command,
+        )
+    )
+    await app.initialize()
+
+    user = User(id=1, is_bot=False, first_name="T")
+    chat = Chat(id=1, type="private")
+    msg = Message(
+        message_id=1,
+        date=datetime.now(),
+        chat=chat,
+        from_user=user,
+        text=ASSISTANT_AI_BUTTON_TEXT,
     )
     msg._bot = bot
     await app.process_update(Update(update_id=1, message=msg))
