@@ -77,7 +77,7 @@ async def test_plan_and_skip_commands() -> None:
     plan = ["step1", "step2"]
     user_data = {"learning_plan": plan, "learning_plan_index": 0}
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=user_data),

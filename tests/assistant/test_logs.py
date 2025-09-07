@@ -8,6 +8,7 @@ from typing import Callable
 from services.api.app.diabetes.services import lesson_log
 from services.api.app.diabetes.services.lesson_log import add_lesson_log
 from services.api.app.diabetes.models_learning import LessonLog
+from services.api.app.diabetes.metrics import lesson_log_failures
 
 
 @pytest.mark.asyncio
@@ -26,9 +27,10 @@ async def test_skip_when_logging_disabled(monkeypatch: pytest.MonkeyPatch) -> No
 
 @pytest.mark.asyncio
 async def test_add_lesson_log_handles_errors(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Errors during logging must not bubble up."""
+    """Errors during logging must not bubble up and increment metric."""
 
     monkeypatch.setattr(settings, "learning_logging_required", True)
+    lesson_log_failures._value.set(0)  # type: ignore[attr-defined] # noqa: SLF001
 
     async def fail_run_db(*_: object, **__: object) -> None:
         raise RuntimeError("db down")
@@ -36,6 +38,8 @@ async def test_add_lesson_log_handles_errors(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
 
     await add_lesson_log(1, "topic", "assistant", 1, "hi")
+
+    assert lesson_log_failures._value.get() == 1  # type: ignore[attr-defined] # noqa: SLF001
 
 
 @pytest.mark.asyncio

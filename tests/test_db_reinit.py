@@ -21,6 +21,18 @@ class DummyEngine:
     def dispose(self) -> None:
         self.disposed = True
 
+    def begin(self) -> "DummyEngine":  # pragma: no cover - simple stub
+        return self
+
+    def execute(self, *_: Any, **__: Any) -> None:  # pragma: no cover - stub
+        return None
+
+    def __enter__(self) -> "DummyEngine":  # pragma: no cover - stub
+        return self
+
+    def __exit__(self, *args: object) -> None:  # pragma: no cover - stub
+        return None
+
 
 @pytest.mark.parametrize(
     ("attr", "orig", "new", "url_attr"),

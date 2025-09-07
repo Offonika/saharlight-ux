@@ -9,6 +9,7 @@ from services.api.app.config import settings
 from services.api.app.diabetes import dynamic_tutor, learning_handlers
 from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
+from services.api.app.diabetes.services import lesson_log
 
 
 class DummyMessage:
@@ -294,7 +295,10 @@ async def test_lesson_answer_double_click(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", slow_check_user_answer)
     monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", lambda *a, **k: None)
+    async def noop_add_log(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", noop_add_log)
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     user_data: dict[str, Any] = {}
@@ -360,19 +364,32 @@ async def test_lesson_answer_handler_error_keeps_state(
 
 
 @pytest.mark.asyncio
-async def test_lesson_answer_handler_add_log_failure(
+async def test_lesson_answer_handler_db_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Handler continues even if logging fails due to DB error."""
+
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fail_add_log(*args: object, **kwargs: object) -> None:
-        raise RuntimeError("db error")
+    async def fail_run_db(*_: object, **__: object) -> None:
+        raise RuntimeError("db down")
 
-    async def fail_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
-        raise AssertionError("should not be called")
+    monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
+    lesson_log.pending_logs.clear()
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fail_add_log)
-    monkeypatch.setattr(learning_handlers, "check_user_answer", fail_check_user_answer)
+    async def fake_check_user_answer(
+        profile: object, topic: str, answer: str, last: str
+    ) -> tuple[bool, str]:
+        return True, "fb"
+
+    async def fake_generate_step_text(
+        profile: object, topic: str, step_idx: int, prev: object
+    ) -> str:
+        return "next"
+
+    monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     msg = DummyMessage(text="ans")
     user_data: dict[str, Any] = {}
@@ -385,9 +402,10 @@ async def test_lesson_answer_handler_add_log_failure(
 
     await learning_handlers.lesson_answer_handler(update, context)
 
-    assert msg.replies == [dynamic_tutor.BUSY_MESSAGE]
+    assert msg.replies == ["fb", "next"]
     state = get_state(user_data)
     assert state is not None
-    assert state.step == 1
+    assert state.step == 2
     assert state.awaiting
     assert not context.user_data.get("learn_busy", False)
+    lesson_log.pending_logs.clear()

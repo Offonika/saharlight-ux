@@ -71,18 +71,20 @@ async def add_lesson_log(
 
     if not settings.learning_logging_required:
         return
-
-    pending_logs.append(
-        _PendingLog(
-            telegram_id=telegram_id,
-            topic_slug=topic_slug,
-            role=role,
-            step_idx=step_idx,
-            content=content,
+    try:
+        pending_logs.append(
+            _PendingLog(
+                telegram_id=telegram_id,
+                topic_slug=topic_slug,
+                role=role,
+                step_idx=step_idx,
+                content=content,
+            )
         )
-    )
-
-    await flush_pending_logs()
+        await flush_pending_logs()
+    except Exception:  # pragma: no cover - logging only
+        logger.exception("Failed to add lesson log")
+        lesson_log_failures.inc()
 
 
 async def _flush_periodically(interval: float) -> None:

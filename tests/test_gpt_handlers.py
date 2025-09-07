@@ -23,7 +23,7 @@ class DummyMessage:
 @pytest.mark.asyncio
 async def test_chat_with_gpt_replies_and_history() -> None:
     message = DummyMessage("hi")
-    update = cast(Update, SimpleNamespace(message=message))
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
@@ -36,7 +36,7 @@ async def test_chat_with_gpt_replies_and_history() -> None:
 
 @pytest.mark.asyncio
 async def test_chat_with_gpt_no_message() -> None:
-    update = cast(Update, SimpleNamespace(message=None))
+    update = cast(Update, SimpleNamespace(message=None, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(),
@@ -54,7 +54,7 @@ async def test_chat_with_gpt_trims_history(monkeypatch: pytest.MonkeyPatch) -> N
     )
     for i in range(3):
         msg = DummyMessage(str(i))
-        update = cast(Update, SimpleNamespace(message=msg))
+        update = cast(Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)))
         await gpt_handlers.chat_with_gpt(update, context)
     history = cast(list[str], context.user_data["assistant_history"])
     assert len(history) == 2
@@ -72,7 +72,7 @@ async def test_chat_with_gpt_summarizes_history(monkeypatch: pytest.MonkeyPatch)
     )
     for i in range(3):
         msg = DummyMessage(str(i))
-        update = cast(Update, SimpleNamespace(message=msg))
+        update = cast(Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)))
         await gpt_handlers.chat_with_gpt(update, context)
     history = cast(list[str], context.user_data["assistant_history"])
     summary = cast(str, context.user_data["assistant_summary"])
