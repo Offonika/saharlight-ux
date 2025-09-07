@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from ...config import settings
+from ..metrics import lesson_log_failures
 from ..models_learning import LessonLog
 from .db import SessionLocal, run_db
 from .repository import commit
@@ -49,11 +50,7 @@ async def flush_pending_logs() -> None:
         session.add_all(entries)
         commit(session)
 
-    try:
-        await run_db(_flush, sessionmaker=SessionLocal)
-    except Exception:  # pragma: no cover - logging only
-        logger.exception("Failed to flush %s lesson logs", len(entries))
-        return
+    await run_db(_flush, sessionmaker=SessionLocal)
 
     pending_logs.clear()
 
@@ -80,13 +77,21 @@ async def add_lesson_log(
         )
     )
 
-    await flush_pending_logs()
+    try:
+        await flush_pending_logs()
+    except Exception:  # pragma: no cover - logging only
+        lesson_log_failures.inc()
+        logger.exception("Failed to add lesson log")
 
 
 async def _flush_periodically(interval: float) -> None:
     while True:
         await asyncio.sleep(interval)
-        await flush_pending_logs()
+        try:
+            await flush_pending_logs()
+        except Exception:  # pragma: no cover - logging only
+            lesson_log_failures.inc()
+            logger.exception("Failed to flush lesson logs")
 
 
 def start_flush_task(interval: float = _FLUSH_INTERVAL) -> None:

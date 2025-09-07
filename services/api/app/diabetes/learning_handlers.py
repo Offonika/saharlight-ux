@@ -305,14 +305,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
     telegram_id = from_user.id if from_user else None
     user_text = message.text.strip()
     if telegram_id is not None:
-        try:
-            await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
-        except Exception:
-            logger.exception("lesson log failed")
-            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-            state.awaiting = True
-            set_state(user_data, state)
-            return
+        await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
     state.awaiting = False
     user_data[BUSY_KEY] = True
     set_state(user_data, state)
@@ -326,12 +319,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         if feedback == BUSY_MESSAGE:
             return
         if telegram_id is not None:
-            try:
-                await add_lesson_log(telegram_id, state.topic, "assistant", state.step, feedback)
-            except Exception:
-                logger.exception("lesson log failed")
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-                return
+            await add_lesson_log(telegram_id, state.topic, "assistant", state.step, feedback)
         next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
         if next_text == BUSY_MESSAGE:
             await message.reply_text(next_text, reply_markup=build_main_keyboard())
@@ -339,12 +327,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         next_text = format_reply(next_text)
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
         if telegram_id is not None:
-            try:
-                await add_lesson_log(telegram_id, state.topic, "assistant", state.step + 1, next_text)
-            except Exception:
-                logger.exception("lesson log failed")
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-                return
+            await add_lesson_log(telegram_id, state.topic, "assistant", state.step + 1, next_text)
         state.step += 1
         state.last_step_text = next_text
         state.prev_summary = feedback

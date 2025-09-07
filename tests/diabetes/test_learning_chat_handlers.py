@@ -205,7 +205,7 @@ async def test_exit_command_clears_state(
     update = cast(object, SimpleNamespace(message=msg))
     user_data: dict[str, Any] = {}
     set_state(user_data, LearnState(topic="t", step=1, awaiting=True))
-    context = SimpleNamespace(user_data=user_data)
+    context = SimpleNamespace(user_data=user_data, bot_data={})
 
     await learning_handlers.exit_command(update, context)
     assert msg.replies == ["Учебная сессия завершена."]
@@ -273,8 +273,11 @@ async def test_lesson_answer_ignores_busy(monkeypatch: pytest.MonkeyPatch) -> No
         user_data,
         LearnState(topic="slug", step=1, last_step_text="q", awaiting=True),
     )
-    update = cast(object, SimpleNamespace(message=msg))
-    context = SimpleNamespace(user_data=user_data)
+    update = cast(
+        object,
+        SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)),
+    )
+    context = SimpleNamespace(user_data=user_data, bot_data={})
 
     await learning_handlers.lesson_answer_handler(update, context)
 
@@ -346,8 +349,10 @@ async def test_lesson_answer_handler_error_keeps_state(
         user_data,
         LearnState(topic="slug", step=1, last_step_text="q", awaiting=True),
     )
-    update = cast(object, SimpleNamespace(message=msg))
-    context = SimpleNamespace(user_data=user_data)
+    update = cast(
+        object, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    )
+    context = SimpleNamespace(user_data=user_data, bot_data={})
 
     await learning_handlers.lesson_answer_handler(update, context)
 
@@ -360,19 +365,32 @@ async def test_lesson_answer_handler_error_keeps_state(
 
 
 @pytest.mark.asyncio
-async def test_lesson_answer_handler_add_log_failure(
+async def test_lesson_answer_handler_log_error_continues(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+    monkeypatch.setattr(settings, "learning_logging_required", True)
 
-    async def fail_add_log(*args: object, **kwargs: object) -> None:
+    async def fail_run_db(*args: object, **kwargs: object) -> None:
         raise RuntimeError("db error")
 
-    async def fail_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
-        raise AssertionError("should not be called")
+    from services.api.app.diabetes.services import lesson_log
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fail_add_log)
-    monkeypatch.setattr(learning_handlers, "check_user_answer", fail_check_user_answer)
+    monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
+
+    async def fake_check_user_answer(
+        profile: object, topic: str, answer: str, last: str
+    ) -> tuple[bool, str]:
+        return True, "fb"
+
+    async def fake_generate_step_text(
+        profile: object, topic: str, step_idx: int, prev: str | None
+    ) -> str:
+        return "next"
+
+    monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     msg = DummyMessage(text="ans")
     user_data: dict[str, Any] = {}
@@ -380,14 +398,15 @@ async def test_lesson_answer_handler_add_log_failure(
         user_data,
         LearnState(topic="slug", step=1, last_step_text="q", awaiting=True),
     )
-    update = cast(object, SimpleNamespace(message=msg))
-    context = SimpleNamespace(user_data=user_data)
+    update = cast(
+        object, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1))
+    )
+    context = SimpleNamespace(user_data=user_data, bot_data={})
 
     await learning_handlers.lesson_answer_handler(update, context)
 
-    assert msg.replies == [dynamic_tutor.BUSY_MESSAGE]
+    assert msg.replies == ["fb", "next"]
     state = get_state(user_data)
     assert state is not None
-    assert state.step == 1
+    assert state.step == 2
     assert state.awaiting
-    assert not context.user_data.get("learn_busy", False)

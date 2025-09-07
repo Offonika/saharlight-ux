@@ -13,3 +13,7 @@ lessons_completed: Counter = Counter(
 quiz_avg_score: Summary = Summary(
     "quiz_avg_score", "Average quiz score across completed lessons"
 )
+
+lesson_log_failures: Counter = Counter(
+    "lesson_log_failures", "Total number of lesson log write failures"
+)
