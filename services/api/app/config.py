@@ -81,6 +81,9 @@ class Settings(BaseSettings):
     learning_ui_show_topics: bool = Field(
         default=False, alias="LEARNING_UI_SHOW_TOPICS"
     )
+    learning_logging_required: bool = Field(
+        default=True, alias="LEARNING_LOGGING_REQUIRED"
+    )
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     learning_assistant_id: Optional[str] = Field(default=None, alias="LEARNING_ASSISTANT_ID")
     learning_command_model: str = Field(default="gpt-4o-mini", alias="LEARNING_COMMAND_MODEL")
