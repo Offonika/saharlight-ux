@@ -38,7 +38,12 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 
-from services.api.app.config import get_db_password, settings
+from services.api.app.config import (
+    get_db_password,
+    get_db_read_password,
+    get_db_write_password,
+    settings,
+)
 from services.api.app.diabetes.schemas.reminders import ReminderType, ScheduleKind
 
 logger = logging.getLogger(__name__)
@@ -51,7 +56,9 @@ def _register_sqlite_adapters() -> None:
     sqlite3.register_adapter(date, lambda val: val.isoformat())
     sqlite3.register_adapter(time, lambda val: val.isoformat())
 
-    sqlite3.register_converter("timestamp", lambda b: datetime.fromisoformat(b.decode()))
+    sqlite3.register_converter(
+        "timestamp", lambda b: datetime.fromisoformat(b.decode())
+    )
     sqlite3.register_converter("date", lambda b: date.fromisoformat(b.decode()))
     sqlite3.register_converter("time", lambda b: time.fromisoformat(b.decode()))
 
@@ -112,8 +119,12 @@ async def run_db(
         with sessionmaker() as _session:
             bind = _session.get_bind()
     except UnboundExecutionError as exc:
-        logger.error("Database engine is not initialized. Call init_db() to configure it.")
-        raise RuntimeError("Database engine is not initialized; run init_db() before calling run_db().") from exc
+        logger.error(
+            "Database engine is not initialized. Call init_db() to configure it."
+        )
+        raise RuntimeError(
+            "Database engine is not initialized; run init_db() before calling run_db()."
+        ) from exc
 
     if bind.url.drivername == "sqlite" and bind.url.database == ":memory:":
         with sqlite_memory_lock:
@@ -172,19 +183,27 @@ class User(Base):
         nullable=False,
     )
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
-    profile: Mapped["Profile"] = relationship("Profile", back_populates="user", uselist=False)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
+    profile: Mapped["Profile"] = relationship(
+        "Profile", back_populates="user", uselist=False
+    )
 
 
 class UserRole(Base):
     __tablename__ = "user_roles"
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id"), primary_key=True
+    )
     role: Mapped[str] = mapped_column(String, nullable=False, default="patient")
 
 
 class Profile(Base):
     __tablename__ = "profiles"
-    telegram_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), primary_key=True)
+    telegram_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id"), primary_key=True
+    )
     icr: Mapped[Optional[float]] = mapped_column(Float)
     cf: Mapped[Optional[float]] = mapped_column(Float)
     target_bg: Mapped[Optional[float]] = mapped_column(Float)
@@ -283,12 +302,20 @@ class Entry(Base):
 
     __tablename__ = "entries"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), index=True)
+    telegram_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id"), index=True
+    )
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
 
-    event_time: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
-    updated_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True), onupdate=func.now())
+    event_time: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        TIMESTAMP(timezone=True), onupdate=func.now()
+    )
 
     photo_path: Mapped[Optional[str]] = mapped_column(String)
     carbs_g: Mapped[Optional[float]] = mapped_column(Float)
@@ -305,12 +332,16 @@ class Entry(Base):
 class Alert(Base):
     __tablename__ = "alerts"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
+    user_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id")
+    )
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     sugar: Mapped[Optional[float]] = mapped_column(Float)
     type: Mapped[Optional[str]] = mapped_column(String)
 
-    ts: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    ts: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
 
     resolved: Mapped[bool] = mapped_column(Boolean, default=False)
     user: Mapped[User] = relationship("User")
@@ -319,7 +350,9 @@ class Alert(Base):
 class Reminder(Base):
     __tablename__ = "reminders"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    telegram_id: Mapped[Optional[int]] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
+    telegram_id: Mapped[Optional[int]] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id")
+    )
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     type: Mapped[ReminderType] = mapped_column(
         sa.Enum(
@@ -348,7 +381,9 @@ class Reminder(Base):
     minutes_after: Mapped[Optional[int]] = mapped_column(Integer)
     days_mask: Mapped[Optional[int]] = mapped_column(Integer)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
     user: Mapped[User] = relationship("User")
 
     @property
@@ -374,7 +409,9 @@ class Reminder(Base):
 class ReminderLog(Base):
     __tablename__ = "reminder_logs"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    reminder_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("reminders.id"))
+    reminder_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("reminders.id")
+    )
     telegram_id: Mapped[Optional[int]] = mapped_column(
         BigInteger,
         ForeignKey("users.telegram_id"),
@@ -384,7 +421,9 @@ class ReminderLog(Base):
     org_id: Mapped[Optional[int]] = mapped_column(Integer)
     action: Mapped[Optional[str]] = mapped_column(String)
     snooze_minutes: Mapped[Optional[int]] = mapped_column(Integer)
-    event_time: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    event_time: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
 
 
 class Timezone(Base):
@@ -413,10 +452,14 @@ class Subscription(Base):
     """
 
     __tablename__ = "subscriptions"
-    __table_args__ = (sa.UniqueConstraint("user_id", "status", name="subscriptions_user_status_key"),)
+    __table_args__ = (
+        sa.UniqueConstraint("user_id", "status", name="subscriptions_user_status_key"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False
+    )
     plan: Mapped[SubscriptionPlan] = mapped_column(
         sa.Enum(
             SubscriptionPlan,
@@ -436,11 +479,19 @@ class Subscription(Base):
         nullable=False,
     )
     provider: Mapped[str] = mapped_column(String, nullable=False)
-    transaction_id: Mapped[str] = mapped_column(String, index=True, unique=True, nullable=False)
-    start_date: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    transaction_id: Mapped[str] = mapped_column(
+        String, index=True, unique=True, nullable=False
+    )
+    start_date: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
     end_date: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True))
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
-    updated_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        TIMESTAMP(timezone=True), onupdate=func.now()
+    )
 
     user: Mapped["User"] = relationship("User")
 
@@ -454,7 +505,9 @@ class HistoryRecord(Base):
 
     __tablename__ = "history_records"
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    telegram_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False)
+    telegram_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.telegram_id"), index=True, nullable=False
+    )
     date: Mapped[date] = mapped_column(Date, nullable=False)
     time: Mapped[time] = mapped_column(Time, nullable=False)
     sugar: Mapped[Optional[float]] = mapped_column(Float)
@@ -498,3 +551,47 @@ def init_db() -> None:
         raise RuntimeError("Database engine is not configured; call init_db()")
 
     Base.metadata.create_all(bind=engine)
+
+    if not url.drivername.startswith("sqlite"):
+        with engine.begin() as connection:
+            if settings.db_read_role:
+                read_password = get_db_read_password()
+                if read_password:
+                    connection.execute(
+                        sa.text(
+                            f"ALTER ROLE {settings.db_read_role} WITH PASSWORD :pwd"
+                        ),
+                        {"pwd": read_password},
+                    )
+                connection.execute(
+                    sa.text(
+                        f"GRANT SELECT ON ALL TABLES IN SCHEMA public TO {settings.db_read_role}"
+                    )
+                )
+                connection.execute(
+                    sa.text(
+                        "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO "
+                        f"{settings.db_read_role}"
+                    )
+                )
+            if settings.db_write_role:
+                write_password = get_db_write_password()
+                if write_password:
+                    connection.execute(
+                        sa.text(
+                            f"ALTER ROLE {settings.db_write_role} WITH PASSWORD :pwd"
+                        ),
+                        {"pwd": write_password},
+                    )
+                connection.execute(
+                    sa.text(
+                        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public "
+                        f"TO {settings.db_write_role}"
+                    )
+                )
+                connection.execute(
+                    sa.text(
+                        "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "
+                        f"{settings.db_write_role}"
+                    )
+                )

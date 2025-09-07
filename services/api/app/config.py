@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     db_name: str = Field(default="diabetes_bot", alias="DB_NAME")
     db_user: str = Field(default="diabetes_user", alias="DB_USER")
     db_password: Optional[str] = Field(default=None, alias="DB_PASSWORD")
+    db_read_role: Optional[str] = Field(default=None, alias="DB_READ_ROLE")
+    db_write_role: Optional[str] = Field(default=None, alias="DB_WRITE_ROLE")
 
     # Logging and runtime
     log_level: int = Field(default=logging.INFO, alias="LOG_LEVEL")
@@ -177,6 +179,18 @@ def get_db_password() -> Optional[str]:
     return os.environ.get("DB_PASSWORD")
 
 
+def get_db_read_password() -> Optional[str]:
+    """Return the read-only database role password from the environment."""
+
+    return os.environ.get("DB_READ_PASSWORD")
+
+
+def get_db_write_password() -> Optional[str]:
+    """Return the write database role password from the environment."""
+
+    return os.environ.get("DB_WRITE_PASSWORD")
+
+
 def build_ui_url(path: str) -> str:
     """Return an absolute UI URL for ``path``.
 
@@ -201,5 +215,7 @@ __all__ = [
     "get_settings",
     "reload_settings",
     "get_db_password",
+    "get_db_read_password",
+    "get_db_write_password",
     "build_ui_url",
 ]
