@@ -131,6 +131,10 @@ curl -X POST http://localhost:8000/api/profile \
   -H 'Content-Type: application/json' \
   -d '{"telegramId":777,"icr":1.0,"cf":1.0,"target":5.0,"low":4.0,"high":6.0}'
 ```
+Ответ:
+```json
+{"status": "ok"}
+```
 
 ### Получение профиля
 ```bash

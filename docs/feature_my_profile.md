@@ -114,15 +114,15 @@ Accept: application/json
   "sos_contact": "@user", "sos_alerts_enabled": true
 }
 
-4.2 Базовое сохранение (исторический)
-POST /api/profile/save
+4.2 Базовое сохранение
+POST /api/profile
 Content-Type: application/json
 
 
 Сохраняет ICR, CF, target, low, high только если therapy_type='insulin' или 'mixed' — иначе болюсные игнорируются.
 
 4.3 Частичный апдейт (рекомендуемый)
-PATCH /api/profile/settings
+PATCH /api/profile
 Content-Type: application/json
 
 
