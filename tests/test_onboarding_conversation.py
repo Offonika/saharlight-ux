@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from telegram import Update
 from telegram.ext import CallbackContext, ConversationHandler
 from unittest.mock import AsyncMock
 
 import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
+import services.api.app.diabetes.services.users as users_service
+import services.api.app.diabetes.services.db as db
 import services.api.app.services.onboarding_state as onboarding_state
 
 
@@ -17,6 +21,22 @@ def fake_onboarding_state(monkeypatch: pytest.MonkeyPatch) -> None:
     store: dict[int, dict[str, Any]] = {}
     steps: dict[int, int] = {}
     variants: dict[int, str | None] = {}
+
+    engine = create_engine("sqlite:///:memory:")
+    db.Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    async def run_db(
+        fn: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> Any:  # pragma: no cover - simple sync stub
+        session_maker = kwargs.pop("sessionmaker", TestSession)
+        with session_maker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(onboarding, "SessionLocal", TestSession, raising=False)
+    monkeypatch.setattr(users_service, "SessionLocal", TestSession, raising=False)
+    monkeypatch.setattr(onboarding, "run_db", run_db, raising=False)
+    monkeypatch.setattr(users_service, "run_db", run_db, raising=False)
 
     async def save_state(
         user_id: int, step: int, data: dict[str, object], variant: str | None = None
