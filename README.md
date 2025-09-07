@@ -147,9 +147,27 @@ curl http://localhost:8000/api/profile?telegramId=777
 - `PUBLIC_ORIGIN` — публичный URL API;
 - `WEBAPP_URL` — адрес WebApp для онбординга;
 - `API_URL` — базовый URL внешнего API; требует установленный пакет `diabetes_sdk`;
-- `OPENAI_API_KEY` — ключ OpenAI для распознавания фото.
+- `OPENAI_API_KEY` — ключ OpenAI для распознавания фото;
+- `OPENAI_ASSISTANT_ID` — идентификатор ассистента для GPT;
+- `SUBSCRIPTION_URL` — страница оформления подписки в WebApp;
+- `UI_BASE_URL` и `VITE_API_BASE` — базовые пути для фронтенда и API;
+- `BILLING_ENABLED`/`BILLING_TEST_MODE`/`BILLING_PROVIDER` — управление биллингом;
+- `LEARNING_MODE_ENABLED` — включает режим обучения.
 
 Подробнее см. `infra/env/.env.example`.
+
+## Health check
+Сервис предоставляет два эндпоинта проверки состояния:
+- `GET /api/health` — базовый ответ `{"status": "ok"}`;
+- `GET /api/health/ping` — проверка подключения к базе данных. Возвращает `{"status":"up"}`,
+  при недоступности базы — `503` и `{"status":"down"}`.
+
+## Сценарии деградации
+- **Недоступна база данных.** `GET /api/health/ping` отвечает `503`; метрика
+  `db_down_seconds` увеличивается.
+- **Не задан `OPENAI_API_KEY`.** Функции, требующие GPT, возвращают
+  сообщение `OpenAI API key is not configured`, при этом остальные
+  части бота работают.
 
 ## Политика хранения данных
 Бот сохраняет только идентификаторы пользователей и служебные ссылки на профиль.
@@ -178,7 +196,24 @@ make load-lessons
 Установите зависимости и запустите проверки:
 ```bash
 pip install -r services/api/app/requirements-dev.txt
-pytest tests/
+pytest -q --cov --cov-fail-under=85
 mypy --strict .
 ruff check .
+```
+Или одной командой:
+```bash
+make ci
+```
+
+## Метрики
+Prometheus‑совместимые метрики доступны по:
+
+```bash
+curl http://localhost:8000/api/metrics
+```
+
+Агрегированные показатели онбординга:
+
+```bash
+curl 'http://localhost:8000/api/metrics/onboarding?from=2025-09-01&to=2025-09-07'
 ```
