@@ -16,6 +16,7 @@ from telegram.ext import CallbackContext
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_onboarding as onboarding_utils
 from services.api.app.diabetes.handlers import learning_handlers, learning_onboarding
+import services.api.app.profiles as profiles
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
 
@@ -205,6 +206,41 @@ async def test_learning_onboarding_callback_flow(
     finally:
         engine.dispose()
 
+
+@pytest.mark.asyncio
+async def test_learning_onboarding_skips_known_diabetes_type(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_get_profile_for_user(
+        _: int,
+        __: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+    ) -> dict[str, object]:
+        return {"diabetes_type": "T1"}
+
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    monkeypatch.setattr(profiles, "get_profile_for_user", fake_get_profile_for_user)
+
+    message1 = DummyMessage()
+    update1 = cast(
+        Update,
+        SimpleNamespace(message=message1, effective_user=SimpleNamespace(id=1)),
+    )
+    await onboarding_utils.ensure_overrides(update1, context)
+    assert message1.replies == [onboarding_utils.AGE_PROMPT]
+
+    message2 = DummyMessage("adult")
+    update2 = cast(
+        Update,
+        SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=1)),
+    )
+    context.user_data["learn_onboarding_stage"] = "age_group"
+    await learning_onboarding.onboarding_reply(update2, context)
+    assert message2.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
+    overrides = cast(dict[str, str], context.user_data["learn_profile_overrides"])
+    assert overrides["diabetes_type"] == "T1"
 
 @pytest.mark.asyncio
 async def test_onboarding_reply_ignored_without_stage() -> None:
