@@ -11,7 +11,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, ContextTypes
 
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_onboarding as onboarding_utils
@@ -37,7 +37,9 @@ class DummyCallbackQuery:
         self.message = message
         self.answers: list[str | None] = []
 
-    async def answer(self, text: str | None = None, **kwargs: Any) -> None:  # pragma: no cover - helper
+    async def answer(
+        self, text: str | None = None, **kwargs: Any
+    ) -> None:  # pragma: no cover - helper
         self.answers.append(text)
 
 
@@ -59,6 +61,23 @@ async def test_learning_onboarding_flow(
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
     monkeypatch.setattr(settings, "learning_command_model", "test-model")
     monkeypatch.setattr(settings, "learning_content_mode", "static")
+
+    async def fake_get_profile_for_user(
+        _user_id: int, ctx: ContextTypes.DEFAULT_TYPE
+    ) -> dict[str, object]:
+        user_data = cast(dict[str, object], ctx.user_data)
+        overrides = cast(dict[str, str], user_data.get("learn_profile_overrides", {}))
+        profile = {
+            "age_group": "adult",
+            "diabetes_type": "unknown",
+            "learning_level": "novice",
+        }
+        profile.update(overrides)
+        return profile
+
+    monkeypatch.setattr(
+        onboarding_utils, "get_profile_for_user", fake_get_profile_for_user
+    )
 
     sample = [{"title": "Sample", "steps": ["s1"], "quiz": []}]
     path = tmp_path / "lessons.json"
@@ -134,6 +153,23 @@ async def test_learning_onboarding_callback_flow(
     monkeypatch.setattr(settings, "learning_command_model", "test-model")
     monkeypatch.setattr(settings, "learning_content_mode", "static")
 
+    async def fake_get_profile_for_user(
+        _user_id: int, ctx: ContextTypes.DEFAULT_TYPE
+    ) -> dict[str, object]:
+        user_data = cast(dict[str, object], ctx.user_data)
+        overrides = cast(dict[str, str], user_data.get("learn_profile_overrides", {}))
+        profile = {
+            "age_group": "adult",
+            "diabetes_type": "unknown",
+            "learning_level": "novice",
+        }
+        profile.update(overrides)
+        return profile
+
+    monkeypatch.setattr(
+        onboarding_utils, "get_profile_for_user", fake_get_profile_for_user
+    )
+
     sample = [{"title": "Sample", "steps": ["s1"], "quiz": []}]
     path = tmp_path / "lessons.json"
     path.write_text(json.dumps(sample), encoding="utf-8")
@@ -190,11 +226,62 @@ async def test_learning_onboarding_callback_flow(
         msg2 = DummyMessage()
         upd2 = cast(Update, SimpleNamespace(message=msg2, effective_user=None))
         await learning_handlers.learn_command(upd2, ctx)
-        assert any(
-            "Учебный режим" in text or "Урок" in text for text in msg2.replies
-        )
+        assert any("Учебный режим" in text or "Урок" in text for text in msg2.replies)
     finally:
         engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_skip_diabetes_type_if_known(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_command_model", "test-model")
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
+
+    async def fake_get_profile_for_user(
+        _user_id: int, ctx: ContextTypes.DEFAULT_TYPE
+    ) -> dict[str, object]:
+        user_data = cast(dict[str, object], ctx.user_data)
+        overrides = cast(
+            dict[str, str], user_data.setdefault("learn_profile_overrides", {})
+        )
+        profile = {
+            "age_group": "adult",
+            "diabetes_type": "T1",
+            "learning_level": "novice",
+        }
+        profile.update(overrides)
+        return profile
+
+    monkeypatch.setattr(
+        onboarding_utils, "get_profile_for_user", fake_get_profile_for_user
+    )
+
+    message1 = DummyMessage()
+    update1 = cast(
+        Update, SimpleNamespace(message=message1, effective_user=SimpleNamespace(id=1))
+    )
+    ctx = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+
+    await learning_handlers.learn_command(update1, ctx)
+    assert message1.replies == [onboarding_utils.AGE_PROMPT]
+    assert ctx.user_data["learn_profile_overrides"]["diabetes_type"] == "T1"
+
+    message2 = DummyMessage("adult")
+    update2 = cast(Update, SimpleNamespace(message=message2, effective_user=None))
+    await learning_onboarding.onboarding_reply(update2, ctx)
+    assert message2.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
+
+
+def test_norm_helpers() -> None:
+    assert onboarding_utils._norm_age_group("15") == "teen"
+    assert onboarding_utils._norm_age_group("65") == "60+"
+    assert onboarding_utils._norm_age_group("25") == "adult"
+    assert onboarding_utils._norm_diabetes_type("2") == "T2"
+    assert onboarding_utils._norm_diabetes_type("x") is None
+    assert onboarding_utils._norm_level("1") == "intermediate"
 
 
 @pytest.mark.asyncio
@@ -215,6 +302,24 @@ async def test_lesson_command_requires_onboarding(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+
+    async def fake_get_profile_for_user(
+        _user_id: int, ctx: ContextTypes.DEFAULT_TYPE
+    ) -> dict[str, object]:
+        user_data = cast(dict[str, object], ctx.user_data)
+        overrides = cast(dict[str, str], user_data.get("learn_profile_overrides", {}))
+        profile = {
+            "age_group": "adult",
+            "diabetes_type": "unknown",
+            "learning_level": "novice",
+        }
+        profile.update(overrides)
+        return profile
+
+    monkeypatch.setattr(
+        onboarding_utils, "get_profile_for_user", fake_get_profile_for_user
+    )
+
     message = DummyMessage()
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
