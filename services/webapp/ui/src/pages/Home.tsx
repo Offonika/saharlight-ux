@@ -1,4 +1,4 @@
-import { Star } from 'lucide-react';
+import { Star, Clock, User, Bell, LineChart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { MedicalHeader } from '@/components/MedicalHeader';
@@ -9,13 +9,45 @@ import { fetchDayStats } from '@/api/stats';
 
 const menuItems = [
   {
+    id: 'history',
+    title: 'История',
+    icon: Clock,
+    description: 'Журнал измерений',
+    route: '/history',
+    color: 'medical-blue',
+  },
+  {
+    id: 'profile',
+    title: 'Профиль',
+    icon: User,
+    description: 'Ваши настройки',
+    route: '/profile',
+    color: 'medical-teal',
+  },
+  {
+    id: 'reminders',
+    title: 'Напоминания',
+    icon: Bell,
+    description: 'Управление напоминаниями',
+    route: '/reminders',
+    color: 'medical-success',
+  },
+  {
+    id: 'analytics',
+    title: 'Аналитика',
+    icon: LineChart,
+    description: 'Статистика и отчёты',
+    route: '/analytics',
+    color: 'medical-warning',
+  },
+  {
     id: 'subscription',
     title: 'Подписка',
     icon: Star,
     description: 'Тарифы и оплата',
     route: '/subscription',
-    color: 'medical-warning'
-  }
+    color: 'medical-warning',
+  },
 ];
 
 const Home = () => {
