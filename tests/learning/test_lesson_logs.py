@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.diabetes.services import db
-from datetime import datetime, timedelta, timezone
 
 from services.api.app.assistant.repositories.logs import (
     add_lesson_log,
-    get_lesson_logs,
     cleanup_old_logs,
+    get_lesson_logs,
 )
 from services.api.app.assistant.models import LessonLog  # noqa: F401
 
@@ -73,3 +74,12 @@ async def test_cleanup_old_logs(setup_db: None) -> None:
         logs = session.query(LessonLog).all()
         assert len(logs) == 1
         assert logs[0].step_idx == 2
+
+
+def test_lesson_logs_index(setup_db: None) -> None:
+    with db.SessionLocal() as session:
+        engine = session.get_bind()
+        indexes = {idx["name"] for idx in inspect(engine).get_indexes("lesson_logs")}
+    assert "ix_lesson_logs_user_plan" in indexes
+    assert "ix_lesson_logs_user_id" not in indexes
+    assert "ix_lesson_logs_plan_id" not in indexes
