@@ -6,7 +6,18 @@ import pytest
 
 from services.api.app import config
 from services.api.app.diabetes.llm_router import LLMTask
+from services.api.app.diabetes.metrics import (
+    get_metric_value,
+    learning_prompt_cache_hit,
+    learning_prompt_cache_miss,
+)
 from services.api.app.diabetes.services import gpt_client
+
+
+def setup_function() -> None:
+    """Reset cache metrics before each test."""
+    learning_prompt_cache_hit._value.set(0)  # type: ignore[attr-defined] # noqa: SLF001
+    learning_prompt_cache_miss._value.set(0)  # type: ignore[attr-defined] # noqa: SLF001
 
 
 @pytest.mark.asyncio
@@ -41,10 +52,15 @@ async def test_learning_cache_reuses_response(monkeypatch: pytest.MonkeyPatch) -
         {"role": "user", "content": "hi"},
     ]
 
+    base_hit = get_metric_value(learning_prompt_cache_hit)
+    base_miss = get_metric_value(learning_prompt_cache_miss)
+
     await gpt_client.create_learning_chat_completion(task=LLMTask.EXPLAIN_STEP, messages=messages)
     await gpt_client.create_learning_chat_completion(task=LLMTask.EXPLAIN_STEP, messages=messages)
 
     assert call_count == 1
+    assert get_metric_value(learning_prompt_cache_miss) == base_miss + 1
+    assert get_metric_value(learning_prompt_cache_hit) == base_hit + 1
 
 
 @pytest.mark.asyncio
@@ -230,6 +246,9 @@ async def test_learning_cache_respects_ttl(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(gpt_client.time, "time", lambda: start + 0.5)
     await gpt_client.create_learning_chat_completion(task=LLMTask.EXPLAIN_STEP, messages=messages)
     assert call_count == 1
+    assert get_metric_value(learning_prompt_cache_hit) == 1
+    assert get_metric_value(learning_prompt_cache_miss) == 1
     monkeypatch.setattr(gpt_client.time, "time", lambda: start + 2)
     await gpt_client.create_learning_chat_completion(task=LLMTask.EXPLAIN_STEP, messages=messages)
     assert call_count == 2
+    assert get_metric_value(learning_prompt_cache_miss) == 2
