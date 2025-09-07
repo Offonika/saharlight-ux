@@ -238,10 +238,11 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
     try:
         cmd = CommandSchema.model_validate(parsed)
     except ValidationError:
-        logger.exception("Invalid command structure")
+        action = parsed.get("action") if isinstance(parsed, dict) else None
+        logger.exception("Command validation failed for action=%s", action)
         return None
     cmd_dict = cmd.model_dump(exclude_none=True)
     if cmd.action != "get_day_summary" and "fields" not in cmd_dict:
-        logger.error("Invalid command structure")
+        logger.error("Missing fields for action=%s", cmd.action)
         return None
     return cmd_dict
