@@ -5,6 +5,7 @@ import io
 import logging
 import re
 import threading
+from collections import OrderedDict
 from typing import Iterable, Mapping, cast
 
 import httpx
@@ -45,7 +46,7 @@ _learning_router = LLMRouter()
 
 CacheKey = tuple[str, str, str]
 
-_learning_cache: dict[CacheKey, str] = {}
+_learning_cache: OrderedDict[CacheKey, str] = OrderedDict()
 _learning_cache_lock = threading.Lock()
 
 
@@ -191,6 +192,8 @@ async def create_learning_chat_completion(
     if settings.learning_prompt_cache:
         with _learning_cache_lock:
             cached = _learning_cache.get(cache_key)
+            if cached is not None:
+                _learning_cache.move_to_end(cache_key)
         if cached is not None:
             return cached
 
@@ -206,6 +209,11 @@ async def create_learning_chat_completion(
     if settings.learning_prompt_cache:
         with _learning_cache_lock:
             _learning_cache[cache_key] = reply
+            _learning_cache.move_to_end(cache_key)
+            max_size = settings.learning_prompt_cache_size
+            if max_size > 0:
+                while len(_learning_cache) > max_size:
+                    _learning_cache.popitem(last=False)
     return reply
 
 

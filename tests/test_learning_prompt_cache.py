@@ -1,4 +1,5 @@
 import types
+from collections import OrderedDict
 from types import SimpleNamespace
 
 import pytest
@@ -23,7 +24,11 @@ async def test_learning_cache_reuses_response(monkeypatch: pytest.MonkeyPatch) -
         gpt_client, "create_chat_completion", fake_create_chat_completion
     )
     monkeypatch.setattr(
-        config, "get_settings", lambda: SimpleNamespace(learning_prompt_cache=True)
+        config,
+        "get_settings",
+        lambda: SimpleNamespace(
+            learning_prompt_cache=True, learning_prompt_cache_size=128
+        ),
     )
     monkeypatch.setattr(
         gpt_client,
@@ -31,7 +36,7 @@ async def test_learning_cache_reuses_response(monkeypatch: pytest.MonkeyPatch) -
         gpt_client.LLMRouter("gpt-4o-mini"),
         raising=False,
     )
-    monkeypatch.setattr(gpt_client, "_learning_cache", {})
+    monkeypatch.setattr(gpt_client, "_learning_cache", OrderedDict())
 
     messages = [
         {"role": "system", "content": "sys"},
@@ -63,7 +68,11 @@ async def test_learning_cache_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
         gpt_client, "create_chat_completion", fake_create_chat_completion
     )
     monkeypatch.setattr(
-        config, "get_settings", lambda: SimpleNamespace(learning_prompt_cache=False)
+        config,
+        "get_settings",
+        lambda: SimpleNamespace(
+            learning_prompt_cache=False, learning_prompt_cache_size=128
+        ),
     )
     monkeypatch.setattr(
         gpt_client,
@@ -71,7 +80,7 @@ async def test_learning_cache_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
         gpt_client.LLMRouter("gpt-4o-mini"),
         raising=False,
     )
-    monkeypatch.setattr(gpt_client, "_learning_cache", {})
+    monkeypatch.setattr(gpt_client, "_learning_cache", OrderedDict())
 
     messages = [
         {"role": "system", "content": "sys"},
@@ -103,7 +112,11 @@ async def test_learning_cache_key_components(monkeypatch: pytest.MonkeyPatch) ->
         gpt_client, "create_chat_completion", fake_create_chat_completion
     )
     monkeypatch.setattr(
-        config, "get_settings", lambda: SimpleNamespace(learning_prompt_cache=True)
+        config,
+        "get_settings",
+        lambda: SimpleNamespace(
+            learning_prompt_cache=True, learning_prompt_cache_size=128
+        ),
     )
     monkeypatch.setattr(
         gpt_client,
@@ -111,7 +124,7 @@ async def test_learning_cache_key_components(monkeypatch: pytest.MonkeyPatch) ->
         gpt_client.LLMRouter("m1"),
         raising=False,
     )
-    monkeypatch.setattr(gpt_client, "_learning_cache", {})
+    monkeypatch.setattr(gpt_client, "_learning_cache", OrderedDict())
 
     msg_base = [
         {"role": "system", "content": "sys1"},
@@ -158,5 +171,57 @@ async def test_learning_cache_key_components(monkeypatch: pytest.MonkeyPatch) ->
     await gpt_client.create_learning_chat_completion(
         task=LLMTask.EXPLAIN_STEP, messages=msg_base
     )
-    
+
     assert call_count == 4
+
+
+@pytest.mark.asyncio
+async def test_learning_cache_respects_size(monkeypatch: pytest.MonkeyPatch) -> None:
+    call_count = 0
+
+    async def fake_create_chat_completion(*, model: str, **kwargs: object) -> object:
+        nonlocal call_count
+        call_count += 1
+        return types.SimpleNamespace(
+            choices=[types.SimpleNamespace(message=types.SimpleNamespace(content="ok"))]
+        )
+
+    monkeypatch.setattr(
+        gpt_client, "create_chat_completion", fake_create_chat_completion
+    )
+    monkeypatch.setattr(
+        config,
+        "get_settings",
+        lambda: SimpleNamespace(
+            learning_prompt_cache=True, learning_prompt_cache_size=2
+        ),
+    )
+    monkeypatch.setattr(
+        gpt_client,
+        "_learning_router",
+        gpt_client.LLMRouter("m1"),
+        raising=False,
+    )
+    monkeypatch.setattr(gpt_client, "_learning_cache", OrderedDict())
+
+    def make_msgs(i: int) -> list[dict[str, str]]:
+        return [{"role": "system", "content": "s"}, {"role": "user", "content": f"u{i}"}]
+
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=make_msgs(1)
+    )
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=make_msgs(2)
+    )
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=make_msgs(1)
+    )
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=make_msgs(3)
+    )
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=make_msgs(2)
+    )
+
+    assert call_count == 4
+    assert len(gpt_client._learning_cache) == 2

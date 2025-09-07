@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     )
     learning_model_default: str = Field(default="gpt-4o-mini", alias="LEARNING_MODEL_DEFAULT")
     learning_prompt_cache: bool = Field(default=True, alias="LEARNING_PROMPT_CACHE")
+    learning_prompt_cache_size: int = Field(
+        default=128, alias="LEARNING_PROMPT_CACHE_SIZE"
+    )
     learning_content_mode: Literal["dynamic", "static"] = Field(
         default="dynamic", alias="LEARNING_CONTENT_MODE"
     )
