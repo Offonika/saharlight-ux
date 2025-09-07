@@ -253,9 +253,14 @@ async def lesson_answer_handler(
     state.learn_busy = True
     set_state(user_data, state)
     try:
-        _correct, feedback = await check_user_answer(
-            profile, state.topic, user_text, state.last_step_text or ""
-        )
+        if user_text.lower() == "не знаю":
+            feedback = await assistant_chat(
+                profile, f"Объясни подробнее: {state.last_step_text}"
+            )
+        else:
+            _correct, feedback = await check_user_answer(
+                profile, state.topic, user_text, state.last_step_text or ""
+            )
         feedback = format_reply(feedback)
         await message.reply_text(feedback, reply_markup=build_main_keyboard())
         if feedback == BUSY_MESSAGE:
@@ -303,7 +308,7 @@ async def assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
     """Answer a general user question via the learning LLM."""
 
     system = build_system_prompt(profile)
-    user = text[:400]
+    user = f"{text[:400]}\n\nОтветь в 2–5 предложениях."
     try:
         return await create_learning_chat_completion(
             task=LLMTask.EXPLAIN_STEP,

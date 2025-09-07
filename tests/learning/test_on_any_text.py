@@ -59,6 +59,50 @@ async def test_on_any_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_on_any_text_idontknow(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+    user_data: dict[str, object] = {}
+    set_state(
+        user_data,
+        LearnState(topic="t", step=1, awaiting_answer=True, last_step_text="q"),
+    )
+    called = False
+
+    async def fake_assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
+        nonlocal called
+        called = True
+        assert "q" in text
+        return "fb"
+
+    async def fake_generate_step_text(
+        profile: Mapping[str, str | None], topic: str, step_idx: int, prev: object
+    ) -> str:
+        assert prev == "fb"
+        return "next"
+
+    async def fake_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
+        raise AssertionError("should not be called")
+
+    async def fake_add_log(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
+
+    msg = DummyMessage("Не знаю")
+    update = SimpleNamespace(message=msg)
+    context = SimpleNamespace(user_data=user_data)
+
+    with pytest.raises(ApplicationHandlerStop):
+        await learning_handlers.on_any_text(update, context)
+    assert called
+    assert msg.replies == ["fb", "next"]
+
+
+@pytest.mark.asyncio
 async def test_on_any_text_general(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     user_data: dict[str, object] = {}
