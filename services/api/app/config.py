@@ -85,6 +85,9 @@ class Settings(BaseSettings):
     learning_prompt_cache_size: int = Field(
         default=128, alias="LEARNING_PROMPT_CACHE_SIZE"
     )
+    learning_prompt_cache_ttl: int = Field(
+        default=3600, alias="LEARNING_PROMPT_CACHE_TTL"
+    )
     learning_content_mode: Literal["dynamic", "static"] = Field(
         default="dynamic", alias="LEARNING_CONTENT_MODE"
     )

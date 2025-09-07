@@ -7,6 +7,7 @@ import re
 import threading
 import time
 from collections import OrderedDict
+from dataclasses import dataclass
 from typing import Iterable, Mapping, cast
 
 import httpx
@@ -23,6 +24,10 @@ from openai.types.beta.threads import (
 
 from services.api.app import config
 from services.api.app.diabetes.llm_router import LLMRouter, LLMTask
+from services.api.app.diabetes.metrics import (
+    learning_cache_hit,
+    learning_cache_miss,
+)
 from services.api.app.diabetes.utils.openai_utils import (
     get_async_openai_client,
     get_openai_client,
@@ -47,7 +52,14 @@ _learning_router = LLMRouter()
 
 CacheKey = tuple[str, str, str]
 
-_learning_cache: OrderedDict[CacheKey, str] = OrderedDict()
+
+@dataclass
+class _CacheEntry:
+    value: str
+    ts: float
+
+
+_learning_cache: OrderedDict[CacheKey, _CacheEntry] = OrderedDict()
 _learning_cache_lock = threading.Lock()
 
 
@@ -219,12 +231,18 @@ async def create_learning_chat_completion(
     settings = config.get_settings()
     cache_key = _make_cache_key(model, system, user)
     if settings.learning_prompt_cache:
+        ttl = settings.learning_prompt_cache_ttl
         with _learning_cache_lock:
-            cached = _learning_cache.get(cache_key)
-            if cached is not None:
-                _learning_cache.move_to_end(cache_key)
-        if cached is not None:
-            return cached
+            entry = _learning_cache.get(cache_key)
+            if entry is not None:
+                if ttl <= 0 or time.time() - entry.ts < ttl:
+                    _learning_cache.move_to_end(cache_key)
+                    learning_cache_hit.inc()
+                    logger.info("[learning-cache] cache_hit")
+                    return entry.value
+                _learning_cache.pop(cache_key, None)
+        learning_cache_miss.inc()
+        logger.info("[learning-cache] cache_miss")
 
     completion = await create_chat_completion(
         model=model,
@@ -237,7 +255,7 @@ async def create_learning_chat_completion(
     reply = format_reply(content)
     if settings.learning_prompt_cache:
         with _learning_cache_lock:
-            _learning_cache[cache_key] = reply
+            _learning_cache[cache_key] = _CacheEntry(reply, time.time())
             _learning_cache.move_to_end(cache_key)
             max_size = settings.learning_prompt_cache_size
             if max_size > 0:
