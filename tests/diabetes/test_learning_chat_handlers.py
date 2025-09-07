@@ -1,4 +1,3 @@
-
 from types import SimpleNamespace
 from typing import Any, Mapping, cast
 
@@ -17,9 +16,13 @@ class DummyMessage:
         self.replies: list[str] = []
         self.markups: list[InlineKeyboardMarkup | None] = []
 
-    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
+    async def reply_text(
+        self, text: str, **kwargs: Any
+    ) -> None:  # pragma: no cover - helper
         self.replies.append(text)
-        self.markups.append(cast(InlineKeyboardMarkup | None, kwargs.get("reply_markup")))
+        self.markups.append(
+            cast(InlineKeyboardMarkup | None, kwargs.get("reply_markup"))
+        )
 
 
 class DummyCallback:
@@ -36,14 +39,20 @@ class DummyCallback:
 async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     monkeypatch.setattr(settings, "learning_ui_show_topics", True)
+
     async def fake_ensure_overrides(update: object, context: object) -> bool:
         return True
 
     monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
     monkeypatch.setattr(learning_handlers, "TOPICS_RU", {"slug": "Topic"})
+
     async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
         return "step1?"
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+
+    monkeypatch.setattr(
+        learning_handlers, "generate_step_text", fake_generate_step_text
+    )
+
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
@@ -74,6 +83,7 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
 @pytest.mark.asyncio
 async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
     async def fake_generate_step_text(
         profile: object, topic: str, step_idx: int, prev: object
     ) -> str:
@@ -84,8 +94,11 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     ) -> tuple[bool, str]:
         return True, "feedback"
 
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(
+        learning_handlers, "generate_step_text", fake_generate_step_text
+    )
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
@@ -103,7 +116,7 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     update2 = cast(object, SimpleNamespace(message=msg2))
     context2 = SimpleNamespace(user_data=context.user_data)
 
-    await learning_handlers.lesson_answer_handler(update2, context2)
+    await learning_handlers.on_any_text(update2, context2)
     assert msg2.replies == ["feedback", "step2?"]
     assert all(isinstance(m, ReplyKeyboardMarkup) for m in msg2.markups)
     state = get_state(context2.user_data)
@@ -143,6 +156,7 @@ async def test_learn_command_autostarts_when_topics_hidden(
     )
 
     progress = SimpleNamespace(lesson_id=1)
+
     async def fake_start_lesson(user_id: int, slug: str) -> object:
         assert slug == "slug"
         return progress
@@ -159,14 +173,22 @@ async def test_learn_command_autostarts_when_topics_hidden(
         return "first", False
 
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
-    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
-    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
+
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
+
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
-    update = cast(object, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=7)))
+    update = cast(
+        object, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=7))
+    )
     context = SimpleNamespace(user_data={})
 
     await learning_handlers.learn_command(update, context)
@@ -174,3 +196,23 @@ async def test_learn_command_autostarts_when_topics_hidden(
     assert isinstance(msg.markups[0], ReplyKeyboardMarkup)
     state = get_state(context.user_data)
     assert state is not None and state.topic == "slug" and state.step == 1
+
+
+@pytest.mark.asyncio
+async def test_on_any_text_general_chat(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+    called: list[tuple[Mapping[str, str | None], str]] = []
+
+    async def fake_chat(profile: Mapping[str, str | None], text: str) -> str:
+        called.append((profile, text))
+        return "reply"
+
+    monkeypatch.setattr(learning_handlers, "assistant_chat", fake_chat)
+    msg = DummyMessage(text="hi")
+    update = cast(object, SimpleNamespace(message=msg))
+    context = SimpleNamespace(user_data={})
+
+    await learning_handlers.on_any_text(update, context)
+
+    assert msg.replies == ["reply"]
+    assert called == [({}, "hi")]

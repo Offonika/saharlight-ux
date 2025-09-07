@@ -96,7 +96,13 @@ async def test_quiz_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 
     answers: list[int] = []
 
-    async def fake_check(user_id: int, lesson_id: int, answer: int) -> tuple[bool, str]:
+    async def fake_check(
+        user_id: int,
+        lesson_id: int,
+        profile: Mapping[str, str | None],
+        answer: int,
+        last_step_text: str | None = None,
+    ) -> tuple[bool, str]:
         answers.append(answer)
         return True, "ok"
 

@@ -15,7 +15,9 @@ class DummyMessage:
         self.text = text
         self.replies: list[str] = []
 
-    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
+    async def reply_text(
+        self, text: str, **kwargs: Any
+    ) -> None:  # pragma: no cover - helper
         self.replies.append(text)
 
 
@@ -32,12 +34,15 @@ class DummyCallback:
 @pytest.mark.asyncio
 async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
     async def fake_generate_step_text(
         profile: object, topic: str, step_idx: int, prev: object
     ) -> str:
         return "step1"
 
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(
+        learning_handlers, "generate_step_text", fake_generate_step_text
+    )
 
     times = iter([0.0, 1.0])
 
@@ -69,6 +74,7 @@ async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> No
 @pytest.mark.asyncio
 async def test_lesson_answer_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
     async def fake_check_user_answer(
         profile: object, topic: str, answer: str, last: str
     ) -> tuple[bool, str]:
@@ -80,7 +86,9 @@ async def test_lesson_answer_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None
         return "next"
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(
+        learning_handlers, "generate_step_text", fake_generate_step_text
+    )
 
     times = iter([0.0, 1.0])
 
@@ -101,11 +109,11 @@ async def test_lesson_answer_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None
     msg1 = DummyMessage(text="a1")
     update1 = cast(object, SimpleNamespace(message=msg1))
     context1 = SimpleNamespace(user_data=user_data)
-    await learning_handlers.lesson_answer_handler(update1, context1)
+    await learning_handlers.on_any_text(update1, context1)
     assert msg1.replies == ["feedback", "next"]
 
     msg2 = DummyMessage(text="a2")
     update2 = cast(object, SimpleNamespace(message=msg2))
     context2 = SimpleNamespace(user_data=user_data)
-    await learning_handlers.lesson_answer_handler(update2, context2)
+    await learning_handlers.on_any_text(update2, context2)
     assert msg2.replies == [learning_handlers.RATE_LIMIT_MESSAGE]

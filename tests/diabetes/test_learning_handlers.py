@@ -135,15 +135,13 @@ async def test_dynamic_lesson_callback_disabled(
 
 
 @pytest.mark.asyncio
-async def test_dynamic_lesson_answer_handler_disabled(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_on_any_text_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", False)
     message = DummyMessage(text="ans")
     update = cast(Update, SimpleNamespace(message=message))
     context = SimpleNamespace(user_data={})
-    await dynamic_handlers.lesson_answer_handler(update, context)
-    assert message.replies == ["режим обучения отключён"]
+    await dynamic_handlers.on_any_text(update, context)
+    assert message.replies == []
 
 
 @pytest.mark.asyncio

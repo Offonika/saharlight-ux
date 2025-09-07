@@ -86,7 +86,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await message.reply_text("🚫 Обучение недоступно.")
         return
     if settings.learning_content_mode == "dynamic":
-        from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
+        from services.api.app.diabetes import (
+            learning_handlers as dynamic_learning_handlers,
+        )
 
         await dynamic_learning_handlers.learn_command(update, context)
         return
@@ -348,8 +350,8 @@ def register_handlers(app: App) -> None:
 
     from . import learning_onboarding as onboarding
     from ..learning_handlers import (
-        lesson_answer_handler,
         lesson_callback,
+        on_any_text,
         topics_command as cmd_topics,
     )
 
@@ -370,9 +372,8 @@ def register_handlers(app: App) -> None:
     )
     app.add_handler(CallbackQueryHandler(lesson_callback, pattern="^lesson:"))
     app.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False
-        )
+        MessageHandler(filters.TEXT & ~filters.COMMAND, on_any_text, block=False),
+        group=0,
     )
 
 

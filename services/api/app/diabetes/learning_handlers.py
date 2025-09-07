@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import logging
@@ -7,6 +6,7 @@ from typing import Any, Mapping, MutableMapping, cast
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
+from openai.types.chat import ChatCompletionMessageParam
 
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
@@ -16,7 +16,9 @@ from .handlers import learning_handlers as legacy_handlers
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
-from .services.gpt_client import format_reply
+from .learning_prompts import build_system_prompt
+from .llm_router import LLMTask
+from .services.gpt_client import create_learning_chat_completion, format_reply
 from .services.lesson_log import add_lesson_log
 
 logger = logging.getLogger(__name__)
@@ -148,9 +150,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     topic_slug = context.args[0] if context.args else None
     if topic_slug is None:
-        await message.reply_text(
-            "Сначала выберите тему командой /learn"
-        )
+        await message.reply_text("Сначала выберите тему командой /learn")
         return
     profile = _get_profile(user_data)
     await _start_lesson(message, user_data, profile, topic_slug)
@@ -166,9 +166,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not settings.learning_mode_enabled:
         await query.answer()
         if raw_message is not None and hasattr(raw_message, "reply_text"):
-            await cast(Message, raw_message).reply_text(
-                "режим обучения отключён"
-            )
+            await cast(Message, raw_message).reply_text("режим обучения отключён")
         return
     if settings.learning_content_mode == "static":
         await legacy_handlers.lesson_command(update, context)
@@ -223,9 +221,7 @@ async def lesson_answer_handler(
         await add_lesson_log(
             telegram_id, state.topic, "assistant", state.step, feedback
         )
-    next_text = await generate_step_text(
-        profile, state.topic, state.step + 1, feedback
-    )
+    next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
     next_text = format_reply(next_text)
     await message.reply_text(next_text, reply_markup=build_main_keyboard())
     if telegram_id is not None:
@@ -237,6 +233,39 @@ async def lesson_answer_handler(
     state.prev_summary = feedback
     state.awaiting_answer = True
     set_state(user_data, state)
+
+
+async def assistant_chat(profile: Mapping[str, str | None], user_text: str) -> str:
+    """Return a chat reply from the learning assistant."""
+
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "system", "content": build_system_prompt(profile)},
+        {"role": "user", "content": user_text},
+    ]
+    return await create_learning_chat_completion(
+        task=LLMTask.LONG_PLAN, messages=messages
+    )
+
+
+async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle any freeform text in learning mode."""
+
+    message = update.message
+    if message is None or not message.text:
+        return
+    if not settings.learning_mode_enabled:
+        return
+    if settings.learning_content_mode == "static":
+        return
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    state = get_state(user_data)
+    if state and state.awaiting_answer and state.last_step_text:
+        await lesson_answer_handler(update, context)
+        return
+    profile = _get_profile(user_data)
+    reply = await assistant_chat(profile, message.text.strip())
+    reply = format_reply(reply)
+    await message.reply_text(reply, reply_markup=build_main_keyboard())
 
 
 async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -264,5 +293,6 @@ __all__ = [
     "lesson_command",
     "lesson_callback",
     "lesson_answer_handler",
+    "on_any_text",
     "exit_command",
 ]
