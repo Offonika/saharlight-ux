@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from services.api.app.diabetes import dynamic_tutor
@@ -67,3 +69,26 @@ async def test_check_user_answer_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert correct is False
     assert result == dynamic_tutor.BUSY_MESSAGE
+
+
+@pytest.mark.asyncio
+async def test_check_user_answer_empty_feedback(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_create_learning_chat_completion(**kwargs: object) -> str:
+        return "   "
+
+    monkeypatch.setattr(
+        dynamic_tutor,
+        "create_learning_chat_completion",
+        fake_create_learning_chat_completion,
+    )
+
+    with caplog.at_level(logging.WARNING):
+        correct, result = await dynamic_tutor.check_user_answer(
+            {}, "topic", "ans", "text"
+        )
+
+    assert correct is False
+    assert result == dynamic_tutor.BUSY_MESSAGE
+    assert "empty feedback" in caplog.text
