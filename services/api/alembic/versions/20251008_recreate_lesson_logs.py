@@ -15,25 +15,29 @@ def upgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name != "postgresql":
         return
+
     op.drop_index("ix_lesson_logs_topic_slug", table_name="lesson_logs")
     op.drop_index("ix_lesson_logs_telegram_id", table_name="lesson_logs")
-    op.drop_table("lesson_logs")
-    op.create_table(
+
+    op.alter_column(
         "lesson_logs",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("user_id", sa.BigInteger(), sa.ForeignKey("users.telegram_id"), nullable=False),
-        sa.Column("plan_id", sa.Integer(), nullable=False),
-        sa.Column("module_idx", sa.Integer(), nullable=False),
-        sa.Column("step_idx", sa.Integer(), nullable=False),
-        sa.Column("role", sa.String(), nullable=False),
-        sa.Column("content", sa.Text(), nullable=False),
-        sa.Column(
-            "created_at",
-            sa.TIMESTAMP(timezone=True),
-            server_default=sa.func.now(),
-            nullable=False,
-        ),
+        "telegram_id",
+        new_column_name="user_id",
+        existing_type=sa.BigInteger(),
+        existing_nullable=False,
     )
+    op.add_column("lesson_logs", sa.Column("plan_id", sa.Integer(), nullable=True))
+    op.add_column("lesson_logs", sa.Column("module_idx", sa.Integer(), nullable=True))
+    op.add_column("lesson_logs", sa.Column("content", sa.Text(), nullable=True))
+    op.drop_column("lesson_logs", "topic_slug")
+
+    op.execute(
+        "UPDATE lesson_logs SET plan_id = 0, module_idx = 0, content = '' WHERE plan_id IS NULL"
+    )
+    op.alter_column("lesson_logs", "plan_id", existing_type=sa.Integer(), nullable=False)
+    op.alter_column("lesson_logs", "module_idx", existing_type=sa.Integer(), nullable=False)
+    op.alter_column("lesson_logs", "content", existing_type=sa.Text(), nullable=False)
+
     op.create_index("ix_lesson_logs_user_id", "lesson_logs", ["user_id"])
     op.create_index("ix_lesson_logs_plan_id", "lesson_logs", ["plan_id"])
 
@@ -44,20 +48,26 @@ def downgrade() -> None:
         return
     op.drop_index("ix_lesson_logs_plan_id", table_name="lesson_logs")
     op.drop_index("ix_lesson_logs_user_id", table_name="lesson_logs")
-    op.drop_table("lesson_logs")
-    op.create_table(
+
+    op.add_column(
         "lesson_logs",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("telegram_id", sa.BigInteger(), sa.ForeignKey("users.telegram_id"), nullable=False),
-        sa.Column("topic_slug", sa.String(), nullable=False),
-        sa.Column("role", sa.String(), nullable=False),
-        sa.Column("step_idx", sa.Integer(), nullable=False),
-        sa.Column(
-            "created_at",
-            sa.TIMESTAMP(timezone=True),
-            server_default=sa.func.now(),
-            nullable=False,
-        ),
+        sa.Column("topic_slug", sa.String(), nullable=True),
     )
-    op.create_index("ix_lesson_logs_telegram_id", "lesson_logs", ["telegram_id"])
+    op.alter_column(
+        "lesson_logs",
+        "user_id",
+        new_column_name="telegram_id",
+        existing_type=sa.BigInteger(),
+        existing_nullable=False,
+    )
+    op.drop_column("lesson_logs", "plan_id")
+    op.drop_column("lesson_logs", "module_idx")
+    op.drop_column("lesson_logs", "content")
+
+    op.execute("UPDATE lesson_logs SET topic_slug = '' WHERE topic_slug IS NULL")
+    op.alter_column("lesson_logs", "topic_slug", existing_type=sa.String(), nullable=False)
+
+    op.create_index(
+        "ix_lesson_logs_telegram_id", "lesson_logs", ["telegram_id"]
+    )
     op.create_index("ix_lesson_logs_topic_slug", "lesson_logs", ["topic_slug"])
