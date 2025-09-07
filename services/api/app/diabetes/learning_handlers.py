@@ -156,6 +156,9 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if topic_slug is None:
         await message.reply_text("Сначала выберите тему командой /learn")
         return
+    if topic_slug not in TOPICS_RU:
+        await message.reply_text("Неизвестная тема")
+        return
     profile = _get_profile(user_data)
     await _start_lesson(message, user_data, profile, topic_slug)
 
@@ -185,6 +188,9 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
     data = query.data or ""
     slug = data.split(":", 1)[1] if ":" in data else ""
+    if slug not in TOPICS_RU:
+        await message.reply_text("Неизвестная тема")
+        return
     profile = _get_profile(user_data)
     await _start_lesson(message, user_data, profile, slug)
 
@@ -244,9 +250,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         set_state(user_data, state)
 
 
-async def assistant_chat(
-    profile: Mapping[str, str | None], text: str
-) -> str:
+async def assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
     """Answer a general user question via the learning LLM."""
 
     system = build_system_prompt(profile)
@@ -317,9 +321,7 @@ async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             reply_markup=build_main_keyboard(),
         )
         return
-    await message.reply_text(
-        pretty_plan(plan), reply_markup=build_main_keyboard()
-    )
+    await message.reply_text(pretty_plan(plan), reply_markup=build_main_keyboard())
 
 
 async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -338,13 +340,9 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     idx = cast(int, user_data.get("learning_plan_index", 0)) + 1
     if idx >= len(plan):
-        await message.reply_text(
-            "План завершён.", reply_markup=build_main_keyboard()
-        )
+        await message.reply_text("План завершён.", reply_markup=build_main_keyboard())
     else:
-        await message.reply_text(
-            plan[idx], reply_markup=build_main_keyboard()
-        )
+        await message.reply_text(plan[idx], reply_markup=build_main_keyboard())
     user_data["learning_plan_index"] = idx
 
 
