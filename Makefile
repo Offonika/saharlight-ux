@@ -4,7 +4,7 @@ ALEMBIC=$(PY) -m alembic -c services/api/alembic.ini
 DB_NAME?=diabetes_bot
 DB_URL?=postgresql://postgres@localhost/$(DB_NAME)
 RUN_AS_POSTGRES?=sudo -u postgres
-PYTHONPATH?=PYTHONPATH=/opt/saharlight-ux
+PYTHONPATH?=PYTHONPATH=$(PWD)
 
 # === VENV ===
 
