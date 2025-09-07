@@ -36,6 +36,11 @@ db_down_seconds: Gauge = Gauge(
 lesson_log_failures: Counter = Counter(
     "lesson_log_failures", "Number of failed lesson log flushes",
 )
+lesson_log_failures_last: Gauge = Gauge(
+    "lesson_log_failures_last",
+    "Previously observed lesson_log_failures count",
+    multiprocess_mode="max",
+)
 
 learning_prompt_cache_hit: Counter = Counter(
     "learning_prompt_cache_hit", "Number of learning prompt cache hits",

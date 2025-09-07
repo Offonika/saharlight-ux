@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import logging
 
-from ..metrics import get_metric_value, db_down_seconds, lesson_log_failures
+from ..metrics import (
+    get_metric_value,
+    db_down_seconds,
+    lesson_log_failures,
+    lesson_log_failures_last,
+)
 from .db import SessionLocal, run_db
 
 logger = logging.getLogger(__name__)
@@ -24,9 +29,6 @@ def notify(message: str) -> None:
     send_slack(message)
 
 
-_last_lesson_log_failures = 0.0
-
-
 async def ping_db() -> None:
     """Ping database and update ``db_down_seconds`` gauge."""
 
@@ -43,8 +45,8 @@ def check_alerts(db_threshold: int) -> None:
     db_value = get_metric_value(db_down_seconds)
     if db_value > db_threshold:
         notify(f"db_down for {db_value} sec")
-    global _last_lesson_log_failures
     current = get_metric_value(lesson_log_failures)
-    if current > _last_lesson_log_failures:
+    previous = get_metric_value(lesson_log_failures_last)
+    if current > previous:
         notify("lesson_log_failures increased")
-    _last_lesson_log_failures = current
+    lesson_log_failures_last.set(current)
