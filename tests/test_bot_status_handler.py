@@ -63,7 +63,7 @@ class DummySession:
 @pytest.mark.asyncio
 async def test_status_incomplete(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TELEGRAM_TOKEN", "t")
-    resp = {"completed": False, "missing": ["profile", "reminders"]}
+    resp = {"completed": False, "missing": ["profile", "reminders"], "step": "profile"}
     session = DummySession(resp)
     monkeypatch.setattr(aiohttp, "ClientSession", lambda: session)
 
@@ -93,7 +93,7 @@ async def test_status_incomplete(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_status_completed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TELEGRAM_TOKEN", "t")
-    resp = {"completed": True, "missing": []}
+    resp = {"completed": True, "missing": [], "step": None}
     session = DummySession(resp)
     monkeypatch.setattr(aiohttp, "ClientSession", lambda: session)
 
@@ -155,7 +155,9 @@ class TimeoutSession:
 
 
 @pytest.mark.asyncio
-async def test_status_client_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_status_client_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setenv("TELEGRAM_TOKEN", "t")
     monkeypatch.setattr(aiohttp, "ClientSession", lambda: ErrorSession())
 
@@ -176,7 +178,9 @@ async def test_status_client_error(monkeypatch: pytest.MonkeyPatch, caplog: pyte
 
 
 @pytest.mark.asyncio
-async def test_status_timeout_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_status_timeout_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setenv("TELEGRAM_TOKEN", "t")
     monkeypatch.setattr(aiohttp, "ClientSession", lambda: TimeoutSession())
 
@@ -194,3 +198,27 @@ async def test_status_timeout_error(monkeypatch: pytest.MonkeyPatch, caplog: pyt
 
     assert message.replies == ["Не удалось получить статус онбординга"]
     assert any("Status request timed out" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_status_invalid_payload(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("TELEGRAM_TOKEN", "t")
+    session = DummySession({"completed": "yes"})
+    monkeypatch.setattr(aiohttp, "ClientSession", lambda: session)
+
+    handler = build_status_handler("https://ui.example", api_base="https://api.example")
+    message = DummyMessage()
+    user = SimpleNamespace(id=1)
+    update = cast(Update, SimpleNamespace(message=message, effective_user=user))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    with caplog.at_level(logging.ERROR):
+        await handler.callback(update, context)
+
+    assert message.replies == ["Не удалось получить статус онбординга"]
+    assert any("Invalid status response" in r.message for r in caplog.records)
