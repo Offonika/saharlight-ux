@@ -24,6 +24,7 @@ from .services.gpt_client import (
     format_reply,
 )
 from .services.lesson_log import add_lesson_log
+from .metrics import lesson_log_failures
 from .planner import generate_learning_plan, pretty_plan
 
 logger = logging.getLogger(__name__)
@@ -174,7 +175,12 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data["learning_plan_index"] = 0
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(user.id, slug, "assistant", 1, text)
+    if settings.learning_logging_required:
+        try:
+            await add_lesson_log(user.id, slug, "assistant", 1, text)
+        except Exception:
+            lesson_log_failures.inc()
+            logger.exception("lesson log failed")
     state = LearnState(
         topic=slug,
         step=1,
@@ -212,7 +218,12 @@ async def _start_lesson(
     user_data["learning_plan_index"] = 0
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(from_user.id, topic_slug, "assistant", 1, text)
+    if settings.learning_logging_required:
+        try:
+            await add_lesson_log(from_user.id, topic_slug, "assistant", 1, text)
+        except Exception:
+            lesson_log_failures.inc()
+            logger.exception("lesson log failed")
     state = LearnState(
         topic=topic_slug,
         step=1,
@@ -313,15 +324,14 @@ async def lesson_answer_handler(
     profile = _get_profile(user_data)
     telegram_id = from_user.id if from_user else None
     user_text = message.text.strip()
-    if telegram_id is not None:
+    if telegram_id is not None and settings.learning_logging_required:
         try:
-            await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
+            await add_lesson_log(
+                telegram_id, state.topic, "user", state.step, user_text
+            )
         except Exception:
+            lesson_log_failures.inc()
             logger.exception("lesson log failed")
-            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-            state.awaiting_answer = True
-            set_state(user_data, state)
-            return
     state.awaiting_answer = False
     state.learn_busy = True
     set_state(user_data, state)
@@ -339,16 +349,14 @@ async def lesson_answer_handler(
         if feedback == BUSY_MESSAGE:
             state.awaiting_answer = True
             return
-        if telegram_id is not None:
+        if telegram_id is not None and settings.learning_logging_required:
             try:
                 await add_lesson_log(
                     telegram_id, state.topic, "assistant", state.step, feedback
                 )
             except Exception:
+                lesson_log_failures.inc()
                 logger.exception("lesson log failed")
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-                state.awaiting_answer = True
-                return
         next_text = await generate_step_text(
             profile, state.topic, state.step + 1, feedback
         )
@@ -358,16 +366,14 @@ async def lesson_answer_handler(
             return
         next_text = format_reply(next_text)
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
-        if telegram_id is not None:
+        if telegram_id is not None and settings.learning_logging_required:
             try:
                 await add_lesson_log(
                     telegram_id, state.topic, "assistant", state.step + 1, next_text
                 )
             except Exception:
+                lesson_log_failures.inc()
                 logger.exception("lesson log failed")
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-                state.awaiting_answer = True
-                return
         state.step += 1
         state.last_step_text = next_text
         state.prev_summary = feedback
