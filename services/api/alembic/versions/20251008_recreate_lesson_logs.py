@@ -32,10 +32,11 @@ def upgrade() -> None:
     op.drop_column("lesson_logs", "topic_slug")
 
     op.execute(
-        "UPDATE lesson_logs SET plan_id = 0, module_idx = 0, content = '' WHERE plan_id IS NULL"
+        "UPDATE lesson_logs SET module_idx = 0, content = '' WHERE module_idx IS NULL",
     )
-    op.alter_column("lesson_logs", "plan_id", existing_type=sa.Integer(), nullable=False)
-    op.alter_column("lesson_logs", "module_idx", existing_type=sa.Integer(), nullable=False)
+    op.alter_column(
+        "lesson_logs", "module_idx", existing_type=sa.Integer(), nullable=False
+    )
     op.alter_column("lesson_logs", "content", existing_type=sa.Text(), nullable=False)
 
     op.create_index("ix_lesson_logs_user_id", "lesson_logs", ["user_id"])
@@ -65,9 +66,9 @@ def downgrade() -> None:
     op.drop_column("lesson_logs", "content")
 
     op.execute("UPDATE lesson_logs SET topic_slug = '' WHERE topic_slug IS NULL")
-    op.alter_column("lesson_logs", "topic_slug", existing_type=sa.String(), nullable=False)
-
-    op.create_index(
-        "ix_lesson_logs_telegram_id", "lesson_logs", ["telegram_id"]
+    op.alter_column(
+        "lesson_logs", "topic_slug", existing_type=sa.String(), nullable=False
     )
+
+    op.create_index("ix_lesson_logs_telegram_id", "lesson_logs", ["telegram_id"])
     op.create_index("ix_lesson_logs_topic_slug", "lesson_logs", ["topic_slug"])
