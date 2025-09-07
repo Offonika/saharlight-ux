@@ -34,6 +34,7 @@ from services.api.app.diabetes.handlers import (
     learning_onboarding,
 )
 from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
+from services.api.app.diabetes import commands
 from services.api.app.config import reload_settings
 
 
@@ -282,9 +283,15 @@ def test_register_handlers_attaches_expected_handlers(
     reset_cmd = [
         h
         for h in handlers
-        if isinstance(h, CommandHandler) and h.callback is gpt_handlers.reset_command
+        if isinstance(h, CommandHandler) and h.callback is commands.reset_command
     ]
     assert reset_cmd and "reset" in reset_cmd[0].commands
+    reset_onb_cmd = [
+        h
+        for h in handlers
+        if isinstance(h, CommandHandler) and h.callback is commands.reset_onboarding
+    ]
+    assert reset_onb_cmd and "reset_onboarding" in reset_onb_cmd[0].commands
 
     history_cmd = [
         h

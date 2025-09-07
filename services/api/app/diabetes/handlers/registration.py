@@ -157,6 +157,7 @@ def register_handlers(
         gpt_handlers,
         billing_handlers,
     )
+    from services.api.app.diabetes import commands as bot_commands
     from services.api.app.config import reload_settings, settings
 
     reload_settings()
@@ -183,10 +184,11 @@ def register_handlers(
     app.add_handler(sos_handlers.sos_contact_conv)
     app.add_handler(CommandHandlerT("cancel", dose_calc.dose_cancel))
     app.add_handler(CommandHandlerT("help", help_command))
+    app.add_handler(CommandHandlerT("reset_onboarding", bot_commands.reset_onboarding))
     if learning_enabled:
         learning_handlers.register_handlers(app)
     app.add_handler(CommandHandlerT("gpt", gpt_handlers.chat_with_gpt))
-    app.add_handler(CommandHandlerT("reset", gpt_handlers.reset_command))
+    app.add_handler(CommandHandlerT("reset", bot_commands.reset_command))
     app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
     app.add_handler(CommandHandlerT("upgrade", billing_handlers.upgrade_command))
     app.add_handler(
