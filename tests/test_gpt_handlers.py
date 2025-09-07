@@ -136,7 +136,12 @@ async def test_chat_with_gpt_summarizes_history(monkeypatch: pytest.MonkeyPatch)
 async def test_reset_command_clears_history() -> None:
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={"assistant_history": ["turn"], "assistant_summary": "s"}),
+        SimpleNamespace(
+            user_data={
+                assistant_state.HISTORY_KEY: ["turn"],
+                assistant_state.SUMMARY_KEY: "s",
+            }
+        ),
     )
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
