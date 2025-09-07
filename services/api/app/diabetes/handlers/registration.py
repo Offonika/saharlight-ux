@@ -37,8 +37,12 @@ from ..utils.ui import (
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 OLD_LEARN_BUTTON_TEXT = "🎓 Обучение"
+LEARN_BUTTON_ALIASES: tuple[str, str] = (
+    LEARN_BUTTON_TEXT,
+    OLD_LEARN_BUTTON_TEXT,
+)
 LEARN_BUTTON_PATTERN = (
-    rf"^(?:{re.escape(LEARN_BUTTON_TEXT)}|{re.escape(OLD_LEARN_BUTTON_TEXT)})$"
+    r"^(?:" + "|".join(re.escape(text) for text in LEARN_BUTTON_ALIASES) + r")$"
 )
 
 logger = logging.getLogger(__name__)

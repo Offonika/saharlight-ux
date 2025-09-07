@@ -219,7 +219,8 @@ async def test_on_learn_button_calls_learn(monkeypatch: pytest.MonkeyPatch) -> N
     assert called["v"] is True
 
 
-def test_old_learn_button_text_matches_pattern() -> None:
+def test_learn_button_texts_match_pattern() -> None:
+    assert re.fullmatch(registration.LEARN_BUTTON_PATTERN, LEARN_BUTTON_TEXT)
     assert re.fullmatch(
         registration.LEARN_BUTTON_PATTERN, registration.OLD_LEARN_BUTTON_TEXT
     )
