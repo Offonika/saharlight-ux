@@ -44,24 +44,21 @@ def test_upsert_and_get_memory() -> None:
         mem = upsert_memory(
             session,
             user_id=1,
-            summary_text="hello",
             turn_count=1,
             last_turn_at=now,
         )
-        assert mem.summary_text == "hello"
+        assert mem.turn_count == 1
         fetched = get_memory(session, 1)
         assert fetched is not None
-        assert fetched.summary_text == "hello"
+        assert fetched.turn_count == 1
 
         later = now + timedelta(minutes=1)
         upsert_memory(
             session,
             user_id=1,
-            summary_text="bye",
             turn_count=2,
             last_turn_at=later,
         )
         fetched2 = get_memory(session, 1)
         assert fetched2 is not None
-        assert fetched2.summary_text == "bye"
         assert fetched2.turn_count == 2

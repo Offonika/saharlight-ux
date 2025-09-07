@@ -126,7 +126,6 @@ class LessonLog(Base):
     topic_slug: Mapped[str] = mapped_column(String, nullable=False, index=True)
     role: Mapped[str] = mapped_column(String, nullable=False)
     step_idx: Mapped[int] = mapped_column(Integer, nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False)
 
     user: Mapped[User] = relationship("User")

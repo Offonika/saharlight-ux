@@ -21,7 +21,7 @@ async def test_skip_when_logging_disabled(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
 
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
+    await add_lesson_log(1, "topic", "assistant", 1)
 
 
 @pytest.mark.asyncio
@@ -35,7 +35,7 @@ async def test_add_lesson_log_handles_errors(monkeypatch: pytest.MonkeyPatch) ->
 
     monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
 
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
+    await add_lesson_log(1, "topic", "assistant", 1)
 
 
 @pytest.mark.asyncio
@@ -51,8 +51,8 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(lesson_log, "run_db", fail_run_db)
 
-    await add_lesson_log(1, "topic", "assistant", 1, "hi")
-    await add_lesson_log(1, "topic", "assistant", 2, "there")
+    await add_lesson_log(1, "topic", "assistant", 1)
+    await add_lesson_log(1, "topic", "assistant", 2)
 
     assert len(lesson_log.pending_logs) == 2
 
@@ -68,7 +68,7 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(lesson_log, "run_db", ok_run_db)
     monkeypatch.setattr(lesson_log, "commit", lambda _: None)
 
-    await add_lesson_log(1, "topic", "assistant", 3, "third")
+    await add_lesson_log(1, "topic", "assistant", 3)
 
     assert len(inserted) == 3
     assert not lesson_log.pending_logs

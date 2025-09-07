@@ -171,7 +171,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data["learning_plan_index"] = 0
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(user.id, slug, "assistant", 1, text)
+    await add_lesson_log(user.id, slug, "assistant", 1)
     state = LearnState(
         topic=slug,
         step=1,
@@ -206,7 +206,7 @@ async def _start_lesson(
     user_data["learning_plan_index"] = 0
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(from_user.id, topic_slug, "assistant", 1, text)
+    await add_lesson_log(from_user.id, topic_slug, "assistant", 1)
     state = LearnState(
         topic=topic_slug,
         step=1,
@@ -306,7 +306,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
     user_text = message.text.strip()
     if telegram_id is not None:
         try:
-            await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
+            await add_lesson_log(telegram_id, state.topic, "user", state.step)
         except Exception:
             logger.exception("lesson log failed")
             await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
@@ -327,7 +327,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
             return
         if telegram_id is not None:
             try:
-                await add_lesson_log(telegram_id, state.topic, "assistant", state.step, feedback)
+                await add_lesson_log(telegram_id, state.topic, "assistant", state.step)
             except Exception:
                 logger.exception("lesson log failed")
                 await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
@@ -340,7 +340,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
         if telegram_id is not None:
             try:
-                await add_lesson_log(telegram_id, state.topic, "assistant", state.step + 1, next_text)
+                await add_lesson_log(telegram_id, state.topic, "assistant", state.step + 1)
             except Exception:
                 logger.exception("lesson log failed")
                 await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
