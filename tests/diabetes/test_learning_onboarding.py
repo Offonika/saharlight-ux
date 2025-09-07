@@ -50,6 +50,11 @@ async def test_learning_onboarding_flow(
     monkeypatch.setattr(settings, "learning_command_model", "test-model")
     monkeypatch.setattr(settings, "learning_content_mode", "static")
 
+    async def fake_profile(user_id: int, ctx: object) -> dict[str, object]:
+        return {"diabetes_type": "unknown"}
+
+    monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_profile)
+
     sample = [{"title": "Sample", "steps": ["s1"], "quiz": []}]
     path = tmp_path / "lessons.json"
     path.write_text(json.dumps(sample), encoding="utf-8")
@@ -134,6 +139,11 @@ async def test_lesson_command_requires_onboarding(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+
+    async def fake_profile(user_id: int, ctx: object) -> dict[str, object]:
+        return {"diabetes_type": "unknown"}
+
+    monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_profile)
     message = DummyMessage()
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
@@ -144,3 +154,35 @@ async def test_lesson_command_requires_onboarding(
     )
     await learning_handlers.lesson_command(update, context)
     assert message.replies == [onboarding_utils.AGE_PROMPT]
+
+
+@pytest.mark.asyncio
+async def test_skip_diabetes_type_when_present(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
+
+    async def fake_profile(user_id: int, ctx: object) -> dict[str, object]:
+        return {"diabetes_type": "T1"}
+
+    monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_profile)
+    message1 = DummyMessage()
+    update1 = cast(
+        Update,
+        SimpleNamespace(message=message1, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    await learning_handlers.learn_command(update1, context)
+    assert message1.replies == [onboarding_utils.AGE_PROMPT]
+
+    message2 = DummyMessage("adult")
+    update2 = cast(
+        Update,
+        SimpleNamespace(message=message2, effective_user=SimpleNamespace(id=1)),
+    )
+    await learning_onboarding.onboarding_reply(update2, context)
+    assert message2.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
