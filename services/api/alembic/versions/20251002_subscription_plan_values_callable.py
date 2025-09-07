@@ -1,7 +1,7 @@
 """20251002_subscription_plan_values_callable
 
 Revision ID: 20251002_subscription_plan_values_callable
-Revises: 3539fae8f7b6_merge_heads
+Revises: 20251001_merge_heads
 Create Date: 2025-09-04 19:03:02.753378
 
 """
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = "20251002_subscription_plan_values_callable"
-down_revision: Union[str, None] = "3539fae8f7b6_merge_heads"
+down_revision: Union[str, None] = "20251001_merge_heads"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
