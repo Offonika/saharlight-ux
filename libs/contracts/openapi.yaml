@@ -25,6 +25,30 @@ paths:
                   type: string
                 title: Response Health Get
       security: []
+  /health/ping:
+    get:
+      summary: Health Ping
+      operationId: healthPingGet
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Health Ping Get
+        '503':
+          description: Service Unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Health Ping Get 503
+      security: []
   /profiles:
     post:
       tags:
