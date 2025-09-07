@@ -136,7 +136,9 @@ export const parseProfile = (
     required: carbUnits === 'xe',
   });
 
-  const rapidInsulinType = profile.rapidInsulinType;
+  const rapidInsulinType = isNonInsulin
+    ? undefined
+    : profile.rapidInsulinType;
   if (!isNonInsulin && !rapidInsulinType) {
     errors.rapidInsulinType = 'required';
   }
@@ -523,10 +525,12 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     )
       patch.gramsPerXe = parsed.gramsPerXe;
     if (
+      (therapyTypeValue === 'insulin' || therapyTypeValue === 'mixed') &&
       profile.rapidInsulinType !== original.rapidInsulinType &&
       parsed.rapidInsulinType !== undefined
-    )
+    ) {
       patch.rapidInsulinType = parsed.rapidInsulinType;
+    }
     if (profile.maxBolus !== original.maxBolus && parsed.maxBolus !== undefined)
       patch.maxBolus = parsed.maxBolus;
     if (
@@ -579,8 +583,12 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       }
 
       await saveProfile(payload);
-      if (Object.keys(data.patch).length > 0) {
-        await patchProfileMutation.mutateAsync(data.patch);
+      const patchPayload = { ...data.patch };
+      if (patchPayload.rapidInsulinType === undefined) {
+        delete patchPayload.rapidInsulinType;
+      }
+      if (Object.keys(patchPayload).length > 0) {
+        await patchProfileMutation.mutateAsync(patchPayload);
       }
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       setOriginal(profile);

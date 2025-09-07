@@ -101,6 +101,7 @@ describe("parseProfile", () => {
     expect(result.errors).toEqual({});
     expect(result.data.icr).toBe(0);
     expect(result.data.cf).toBe(0);
+    expect(result.data.rapidInsulinType).toBeUndefined();
   });
 });
 
