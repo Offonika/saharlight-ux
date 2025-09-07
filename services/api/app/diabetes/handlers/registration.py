@@ -94,7 +94,12 @@ def register_reminder_handlers(
 
     from . import reminder_handlers
 
-    app.add_handler(CommandHandlerT("reminders", reminder_handlers.reminders_list))
+    app.add_handler(
+        CommandHandlerT(
+            ["reminders", "reminder", "remind"],
+            reminder_handlers.reminders_list,
+        )
+    )
     app.add_handler(CommandHandlerT("addreminder", reminder_handlers.add_reminder))
     app.add_handler(reminder_handlers.reminder_action_handler)
     app.add_handler(reminder_handlers.reminder_webapp_handler)
@@ -275,6 +280,7 @@ def register_handlers(
                     BotCommand("learn", "Учебный режим"),
                     BotCommand("topics", "Список тем"),
                     BotCommand("menu", "Показать нижнее меню"),
+                    BotCommand("reminders", "Мои напоминания"),
                 ]
             )
         except Exception as e:  # pragma: no cover - network errors

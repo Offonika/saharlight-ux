@@ -274,6 +274,9 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
     removed.
     """
     names = {base_name, f"{base_name}_after", f"{base_name}_snooze"}
+    if base_name.startswith("reminder_"):
+        legacy = base_name.replace("reminder_", "remind_")
+        names.update({legacy, f"{legacy}_after", f"{legacy}_snooze"})
     removed = 0
 
     scheduler = getattr(job_queue, "scheduler", None)

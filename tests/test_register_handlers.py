@@ -414,6 +414,12 @@ def test_register_reminder_handlers(monkeypatch: pytest.MonkeyPatch) -> None:
         isinstance(h, CommandHandler) and h.callback is rh.reminders_list
         for h in handlers
     )
+    rem_handler = next(
+        h
+        for h in handlers
+        if isinstance(h, CommandHandler) and h.callback is rh.reminders_list
+    )
+    assert {"reminders", "reminder", "remind"} <= set(rem_handler.commands)
     assert any(
         isinstance(h, CommandHandler) and h.callback is rh.add_reminder
         for h in handlers
