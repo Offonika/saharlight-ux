@@ -24,7 +24,6 @@ from services.api.app.diabetes.utils.calc_bolus import (
     calc_bolus,
 )
 from .. import assistant_state
-from ...assistant.services import memory_service
 from services.api.app.diabetes.utils.functions import smart_input
 from services.api.app.diabetes.gpt_command_parser import (
     ParserTimeoutError,
@@ -71,21 +70,13 @@ else:
 
 
 async def _ensure_summary_loaded(
-    user_id: int, user_data: MutableMapping[str, object]
+    _user_id: int, user_data: MutableMapping[str, object]
 ) -> None:
     """Populate ``assistant_summary`` from DB if missing."""
 
     if assistant_state.SUMMARY_KEY in user_data:
         return
-    try:
-        memory = await memory_service.get_memory(user_id)
-    except Exception:  # pragma: no cover - DB issues
-        return
-    if memory is None:
-        return
-    summary = getattr(memory, "summary_text", None) or getattr(memory, "summary", None)
-    if summary:
-        user_data[assistant_state.SUMMARY_KEY] = summary
+    # Summary persistence has been removed; this stub is kept for compatibility.
 
 
 class EditMessageMeta(TypedDict):

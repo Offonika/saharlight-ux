@@ -20,10 +20,12 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_memory_loaded_and_reset(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_memory_reset(monkeypatch: pytest.MonkeyPatch) -> None:
+    called: dict[str, bool] = {"called": False}
+
     async def fake_get_memory(user_id: int) -> Any:
-        assert user_id == 1
-        return SimpleNamespace(summary_text="prev")
+        called["called"] = True
+        return SimpleNamespace()
 
     cleared: dict[str, bool] = {"called": False}
 
@@ -43,7 +45,8 @@ async def test_memory_loaded_and_reset(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     await gpt_handlers.chat_with_gpt(update, context)
-    assert context.user_data.get("assistant_summary") == "prev"
+    assert not called["called"]
+    assert "assistant_summary" not in context.user_data
 
     reset_update = cast(Update, SimpleNamespace(effective_message=DummyMessage(), effective_user=user))
     reset_context = cast(
