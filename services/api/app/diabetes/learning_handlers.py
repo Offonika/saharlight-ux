@@ -63,7 +63,10 @@ async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton(title, callback_data=f"lesson:{slug}")] for slug, title in TOPICS_RU.items()]
+        [
+            [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
+            for slug, title in TOPICS_RU.items()
+        ]
     )
     await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
@@ -198,7 +201,9 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _start_lesson(message, user_data, profile, slug)
 
 
-async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def lesson_answer_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Process user's answer and move to the next step."""
 
     message = update.message
@@ -222,20 +227,40 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
     telegram_id = from_user.id if from_user else None
     user_text = message.text.strip()
     if telegram_id is not None:
-        await add_lesson_log(telegram_id, state.topic, "user", state.step, user_text)
+        try:
+            await add_lesson_log(
+                telegram_id, state.topic, "user", state.step, user_text
+            )
+        except Exception:  # pragma: no cover - network/db errors
+            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+            state.awaiting_answer = True
+            return
     state.awaiting_answer = False
     state.learn_busy = True
     set_state(user_data, state)
     try:
-        _correct, feedback = await check_user_answer(profile, state.topic, user_text, state.last_step_text or "")
+        _correct, feedback = await check_user_answer(
+            profile, state.topic, user_text, state.last_step_text or ""
+        )
         feedback = format_reply(feedback)
         await message.reply_text(feedback, reply_markup=build_main_keyboard())
         if feedback == BUSY_MESSAGE:
             state.awaiting_answer = True
             return
         if telegram_id is not None:
-            await add_lesson_log(telegram_id, state.topic, "assistant", state.step, feedback)
-        next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
+            try:
+                await add_lesson_log(
+                    telegram_id, state.topic, "assistant", state.step, feedback
+                )
+            except Exception:  # pragma: no cover - network/db errors
+                await message.reply_text(
+                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
+                )
+                state.awaiting_answer = True
+                return
+        next_text = await generate_step_text(
+            profile, state.topic, state.step + 1, feedback
+        )
         if next_text == BUSY_MESSAGE:
             await message.reply_text(next_text, reply_markup=build_main_keyboard())
             state.awaiting_answer = True
@@ -243,7 +268,16 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         next_text = format_reply(next_text)
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
         if telegram_id is not None:
-            await add_lesson_log(telegram_id, state.topic, "assistant", state.step + 1, next_text)
+            try:
+                await add_lesson_log(
+                    telegram_id, state.topic, "assistant", state.step + 1, next_text
+                )
+            except Exception:  # pragma: no cover - network/db errors
+                await message.reply_text(
+                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
+                )
+                state.awaiting_answer = True
+                return
         state.step += 1
         state.last_step_text = next_text
         state.prev_summary = feedback
@@ -307,7 +341,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     clear_state(user_data)
-    await message.reply_text("Учебная сессия завершена.", reply_markup=build_main_keyboard())
+    await message.reply_text(
+        "Учебная сессия завершена.", reply_markup=build_main_keyboard()
+    )
 
 
 async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
