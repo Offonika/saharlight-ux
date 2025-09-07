@@ -31,6 +31,16 @@ class DummyMessage:
         self.replies.append(text)
 
 
+class DummyCallbackQuery:
+    def __init__(self, data: str, message: DummyMessage) -> None:
+        self.data = data
+        self.message = message
+        self.answers: list[str | None] = []
+
+    async def answer(self, text: str | None = None, **kwargs: Any) -> None:  # pragma: no cover - helper
+        self.answers.append(text)
+
+
 def setup_db() -> tuple[sessionmaker[Session], Engine]:
     engine = create_engine(
         "sqlite:///:memory:",
@@ -112,6 +122,77 @@ async def test_learning_onboarding_flow(
         update6 = cast(Update, SimpleNamespace(message=message6, effective_user=None))
         await learning_handlers.learn_command(update6, context)
         assert message6.replies == [onboarding_utils.AGE_PROMPT]
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_learning_onboarding_callback_flow(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_command_model", "test-model")
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
+
+    sample = [{"title": "Sample", "steps": ["s1"], "quiz": []}]
+    path = tmp_path / "lessons.json"
+    path.write_text(json.dumps(sample), encoding="utf-8")
+
+    SessionLocal, engine = setup_db()
+    await load_lessons(path, sessionmaker=SessionLocal)
+    monkeypatch.setattr(learning_handlers, "SessionLocal", SessionLocal)
+
+    try:
+        msg1 = DummyMessage()
+        upd1 = cast(Update, SimpleNamespace(message=msg1, effective_user=None))
+        ctx = cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            SimpleNamespace(user_data={}),
+        )
+
+        await learning_handlers.learn_command(upd1, ctx)
+        assert msg1.replies == [onboarding_utils.AGE_PROMPT]
+
+        q1_msg = DummyMessage()
+        q1 = DummyCallbackQuery(f"{onboarding_utils.CB_PREFIX}adult", q1_msg)
+        upd_cb1 = cast(
+            Update,
+            SimpleNamespace(callback_query=q1, message=None, effective_user=None),
+        )
+        await learning_onboarding.onboarding_callback(upd_cb1, ctx)
+        assert q1_msg.replies == [onboarding_utils.DIABETES_TYPE_PROMPT]
+
+        q2_msg = DummyMessage()
+        q2 = DummyCallbackQuery(f"{onboarding_utils.CB_PREFIX}T1", q2_msg)
+        upd_cb2 = cast(
+            Update,
+            SimpleNamespace(callback_query=q2, message=None, effective_user=None),
+        )
+        await learning_onboarding.onboarding_callback(upd_cb2, ctx)
+        assert q2_msg.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
+
+        q3_msg = DummyMessage()
+        q3 = DummyCallbackQuery(f"{onboarding_utils.CB_PREFIX}novice", q3_msg)
+        upd_cb3 = cast(
+            Update,
+            SimpleNamespace(callback_query=q3, message=None, effective_user=None),
+        )
+        await learning_onboarding.onboarding_callback(upd_cb3, ctx)
+        assert q3_msg.replies == [
+            "Ответы сохранены. Отправьте /learn чтобы продолжить.",
+        ]
+        assert ctx.user_data["learn_profile_overrides"] == {
+            "age_group": "adult",
+            "diabetes_type": "T1",
+            "learning_level": "novice",
+        }
+
+        msg2 = DummyMessage()
+        upd2 = cast(Update, SimpleNamespace(message=msg2, effective_user=None))
+        await learning_handlers.learn_command(upd2, ctx)
+        assert any(
+            "Учебный режим" in text or "Урок" in text for text in msg2.replies
+        )
     finally:
         engine.dispose()
 
