@@ -40,14 +40,14 @@ def test_system_tutor_contains_disclaimer() -> None:
         ),
     ],
 )
-def test_builder_functions_append_disclaimer(
+def test_builder_functions_without_disclaimer(
     builder: object, kwargs: dict[str, object]
 ) -> None:
-    """All builders should return non-empty text with the disclaimer."""
+    """Builders should return non-empty text without the disclaimer."""
 
     text = builder(**kwargs)  # type: ignore[arg-type]
     assert text
-    assert text.endswith(disclaimer())
+    assert disclaimer() not in text
 
 
 @pytest.mark.parametrize(
@@ -60,7 +60,7 @@ def test_build_feedback_variants(correct: bool, prefix: str) -> None:
     text = build_feedback(correct, "Пояснение")
     assert text
     assert text.startswith(prefix)
-    assert text.endswith(disclaimer())
+    assert disclaimer() not in text
 
 
 def test_build_system_prompt_limits_length() -> None:
