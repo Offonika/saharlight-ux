@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -31,7 +31,9 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     db.Base.metadata.create_all(bind=engine)
     monkeypatch.setattr(memory_service, "SessionLocal", SessionLocal)
     with SessionLocal() as session:
-        session.add(db.User(telegram_id=1, thread_id=""))
+        session.add_all(
+            [db.User(telegram_id=1, thread_id=""), db.User(telegram_id=2, thread_id="")]
+        )
         session.commit()
     return SessionLocal
 
@@ -84,3 +86,20 @@ async def test_reset_command_clears_memory(setup_db: sessionmaker[Session]) -> N
 
     assert await memory_service.get_memory(1) is None
     assert context.user_data == {}
+
+
+@pytest.mark.asyncio
+async def test_cleanup_old_memory(setup_db: sessionmaker[Session]) -> None:
+    old = datetime.now(timezone.utc) - timedelta(days=61)
+    now = datetime.now(timezone.utc)
+    await memory_service.save_memory(
+        1, summary_text="old", turn_count=1, last_turn_at=old
+    )
+    await memory_service.save_memory(
+        2, summary_text="new", turn_count=1, last_turn_at=now
+    )
+
+    await memory_service.cleanup_old_memory(ttl=timedelta(days=60))
+
+    assert await memory_service.get_memory(1) is None
+    assert await memory_service.get_memory(2) is not None

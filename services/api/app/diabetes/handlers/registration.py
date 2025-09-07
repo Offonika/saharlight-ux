@@ -37,7 +37,9 @@ from ..utils.ui import (
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 
 OLD_LEARN_BUTTON_TEXT = "🎓 Обучение"
-LEARN_BUTTON_PATTERN = rf"^(?:{re.escape(LEARN_BUTTON_TEXT)}|{re.escape(OLD_LEARN_BUTTON_TEXT)})$"
+LEARN_BUTTON_PATTERN = (
+    rf"^(?:{re.escape(LEARN_BUTTON_TEXT)}|{re.escape(OLD_LEARN_BUTTON_TEXT)})$"
+)
 
 logger = logging.getLogger(__name__)
 
@@ -158,6 +160,8 @@ def register_handlers(
         billing_handlers,
     )
     from services.api.app.config import reload_settings, settings
+    from services.api.app.diabetes.services.lesson_log import cleanup_old_logs
+    from services.api.app.assistant.services.memory_service import cleanup_old_memory
 
     reload_settings()
     learning_env = os.getenv("LEARNING_MODE_ENABLED")
@@ -273,4 +277,15 @@ def register_handlers(
             _clear_waiting_flags,
             interval=datetime.timedelta(hours=1),
             name="clear_waiting_gpt_flags",
+        )
+
+        async def _cleanup(_context: ContextTypes.DEFAULT_TYPE) -> None:
+            await cleanup_old_logs()
+            await cleanup_old_memory()
+
+        jq.run_repeating(
+            _cleanup,
+            interval=datetime.timedelta(days=1),
+            first=datetime.timedelta(hours=1),
+            name="cleanup_old_records",
         )

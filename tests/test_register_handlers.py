@@ -519,15 +519,14 @@ async def test_reminders_command_renders_list(
 
 def test_register_handlers_schedules_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
     run_once_called: dict[str, Any] = {}
-    run_repeating_called: dict[str, Any] = {}
+    run_repeating_names: list[str] = []
 
     def fake_run_once(self, callback: Any, *args: Any, **kwargs: Any) -> None:
         run_once_called["callback"] = callback
         run_once_called["name"] = kwargs.get("name")
 
     def fake_run_repeating(self, callback: Any, *args: Any, **kwargs: Any) -> None:
-        run_repeating_called["callback"] = callback
-        run_repeating_called["name"] = kwargs.get("name")
+        run_repeating_names.append(kwargs.get("name"))
 
     monkeypatch.setattr(JobQueue, "run_once", fake_run_once)
     monkeypatch.setattr(JobQueue, "run_repeating", fake_run_repeating)
@@ -537,5 +536,7 @@ def test_register_handlers_schedules_cleanup(monkeypatch: pytest.MonkeyPatch) ->
 
     assert run_once_called.get("callback") is not None
     assert run_once_called.get("name") == "clear_waiting_gpt_flags_once"
-    assert run_repeating_called.get("callback") is not None
-    assert run_repeating_called.get("name") == "clear_waiting_gpt_flags"
+    assert set(run_repeating_names) >= {
+        "clear_waiting_gpt_flags",
+        "cleanup_old_records",
+    }

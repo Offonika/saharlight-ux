@@ -5,9 +5,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.diabetes.services import db
+from datetime import datetime, timedelta, timezone
+
 from services.api.app.diabetes.services.lesson_log import (
     add_lesson_log,
     get_lesson_logs,
+    cleanup_old_logs,
 )
 from services.api.app.diabetes.models_learning import LessonLog  # noqa: F401
 
@@ -35,3 +38,41 @@ async def test_add_and_get_logs(setup_db: None) -> None:
     assert logs[0].content == "hi"
     assert logs[1].content == "answer"
     assert isinstance(logs[0].created_at, type(logs[1].created_at))
+
+
+@pytest.mark.asyncio
+async def test_cleanup_old_logs(setup_db: None) -> None:
+    old = datetime.now(timezone.utc) - timedelta(days=15)
+    now = datetime.now(timezone.utc)
+    with db.SessionLocal() as session:
+        session.add(
+            db.User(telegram_id=2, thread_id="t")
+        )  # ensure user exists for completeness
+        session.add(
+            LessonLog(
+                telegram_id=1,
+                topic_slug="topic",
+                role="assistant",
+                step_idx=1,
+                content="old",
+                created_at=old,
+            )
+        )
+        session.add(
+            LessonLog(
+                telegram_id=1,
+                topic_slug="topic",
+                role="assistant",
+                step_idx=2,
+                content="new",
+                created_at=now,
+            )
+        )
+        session.commit()
+
+    await cleanup_old_logs(ttl=timedelta(days=14))
+
+    with db.SessionLocal() as session:
+        logs = session.query(LessonLog).all()
+        assert len(logs) == 1
+        assert logs[0].content == "new"

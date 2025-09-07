@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import MutableMapping, cast
 
 from sqlalchemy.orm import Session
@@ -20,6 +20,7 @@ __all__ = [
     "save_memory",
     "clear_memory",
     "record_turn",
+    "cleanup_old_memory",
 ]
 
 
@@ -91,3 +92,24 @@ async def record_turn(
         )
 
     await run_db(_save, sessionmaker=SessionLocal)
+
+
+async def cleanup_old_memory(ttl: timedelta | None = None) -> None:
+    """Delete assistant memory entries older than ``ttl``."""
+
+    from services.api.app.config import settings
+
+    days = settings.assistant_memory_ttl_days
+    ttl = ttl or timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - ttl
+
+    def _cleanup(session: Session) -> int:
+        deleted = (
+            session.query(AssistantMemory)
+            .where(AssistantMemory.last_turn_at < cutoff)
+            .delete()
+        )
+        commit(session)
+        return deleted
+
+    await run_db(_cleanup, sessionmaker=SessionLocal)
