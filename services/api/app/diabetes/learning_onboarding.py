@@ -56,7 +56,7 @@ def _norm_level(text: str) -> str | None:
         "новичок": "novice",
         "intermediate": "intermediate",
         "средний": "intermediate",
-        "продвинутый": "intermediate",
+        "продвинутый": "expert",
         "advanced": "expert",
         "expert": "expert",
         "эксперт": "expert",
@@ -118,7 +118,9 @@ _ORDER: list[
                     InlineKeyboardButton(
                         "Средний", callback_data=f"{CB_PREFIX}intermediate"
                     ),
-                    InlineKeyboardButton("Эксперт", callback_data=f"{CB_PREFIX}expert"),
+                    InlineKeyboardButton(
+                        "Продвинутый", callback_data=f"{CB_PREFIX}expert"
+                    ),
                 ]
             ]
         ),
