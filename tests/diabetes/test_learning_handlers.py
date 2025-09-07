@@ -48,7 +48,7 @@ async def test_learn_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(user_data={}),
     )
     await legacy_handlers.learn_command(update, context)
-    assert message.replies == ["🚫 Обучение недоступно."]
+    assert message.replies == ["🚫 Учебный режим недоступен."]
 
 
 def setup_db() -> sessionmaker[Session]:

@@ -135,5 +135,5 @@ async def test_learning_mode_disabled_denies_access(
     ):
         await learning_handlers.learn_command(update, context)
 
-    assert message.replies == ["🚫 Обучение недоступно."]
+    assert message.replies == ["🚫 Учебный режим недоступен."]
     assert "OK: lessons loaded" not in caplog.text

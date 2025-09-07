@@ -85,7 +85,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if message is None:
         return
     if not settings.learning_mode_enabled:
-        await message.reply_text("🚫 Обучение недоступно.")
+        await message.reply_text("🚫 Учебный режим недоступен.")
         return
     if settings.learning_content_mode == "dynamic":
         from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
@@ -125,7 +125,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if message is None or user is None:
         return
     if not settings.learning_mode_enabled:
-        await message.reply_text("🚫 Обучение недоступно.")
+        await message.reply_text("🚫 Учебный режим недоступен.")
         return
     if not await ensure_overrides(update, context):
         return
@@ -182,7 +182,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if message is None or user is None:
         return
     if not settings.learning_mode_enabled:
-        await message.reply_text("🚫 Обучение недоступно.")
+        await message.reply_text("🚫 Учебный режим недоступен.")
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     if _rate_limited(user_data, "_quiz_ts"):
