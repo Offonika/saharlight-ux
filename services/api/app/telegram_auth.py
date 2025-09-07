@@ -80,7 +80,7 @@ def require_tg_user(
     token: str | None = settings.telegram_token
     if not token:
         logger.error("telegram token not configured")
-        raise HTTPException(status_code=500, detail="server misconfigured")
+        raise HTTPException(status_code=503, detail="telegram token not configured")
 
     data: dict[str, object] = parse_and_verify_init_data(init_data, token)
     user_raw = data.get("user")
@@ -98,7 +98,7 @@ def check_token(authorization: str | None = Header(None)) -> UserContext:
     token: str | None = settings.telegram_token
     if not token:
         logger.error("telegram token not configured")
-        raise HTTPException(status_code=500, detail="server misconfigured")
+        raise HTTPException(status_code=503, detail="telegram token not configured")
     data: dict[str, object] = parse_and_verify_init_data(init_data, token)
     user_raw = data.get("user")
     user = user_raw if isinstance(user_raw, dict) else None

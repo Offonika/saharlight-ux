@@ -106,11 +106,12 @@ def test_require_tg_user_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
         require_tg_user("bad")
 
 
-def test_require_tg_user_empty_token(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_require_tg_user_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Requests fail with a clear error if the bot token is not configured."""
     monkeypatch.setattr(settings, "telegram_token", "")
     with pytest.raises(HTTPException) as exc:
         require_tg_user("whatever")
-    assert exc.value.status_code == 500
+    assert exc.value.status_code == 503
 
 
 def test_parse_and_verify_init_data_expired() -> None:
