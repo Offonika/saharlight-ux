@@ -75,7 +75,7 @@ async def next_step(
 
     if settings.learning_content_mode == "dynamic":
 
-        def _advance_dynamic(session: Session) -> tuple[int, str]:
+        def _get_progress(session: Session) -> tuple[int, str]:
             progress = session.execute(
                 sa.select(LessonProgress).filter_by(
                     user_id=user_id, lesson_id=lesson_id
@@ -84,13 +84,32 @@ async def next_step(
             lesson = session.execute(
                 sa.select(Lesson).filter_by(id=lesson_id)
             ).scalar_one()
-            progress.current_step += 1
-            commit(session)
             return progress.current_step, lesson.slug
 
-        step_idx, slug = await db.run_db(_advance_dynamic)
+        current_step, slug = await db.run_db(_get_progress)
+        step_idx = current_step + 1
+        try:
+            text = await generate_step_text(profile, slug, step_idx, prev_summary)
+        except Exception:
+            logger.exception(
+                "failed to generate dynamic step",
+                extra={"lesson": slug, "step": step_idx},
+            )
+            return BUSY_MESSAGE, False
+        if text == BUSY_MESSAGE:
+            return BUSY_MESSAGE, False
+
+        def _advance(session: Session) -> None:
+            progress = session.execute(
+                sa.select(LessonProgress).filter_by(
+                    user_id=user_id, lesson_id=lesson_id
+                )
+            ).scalar_one()
+            progress.current_step = step_idx
+            commit(session)
+
+        await db.run_db(_advance)
         await progress_service.upsert_progress(user_id, slug, step_idx)
-        text = await generate_step_text(profile, slug, step_idx, prev_summary)
         if step_idx == 1:
             return f"{disclaimer()}\n\n{text}", False
         return text, False

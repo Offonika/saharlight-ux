@@ -276,3 +276,105 @@ async def test_next_step_handles_gpt_errors(
     text, completed = await next_step(1, lesson_id, {})
     assert text == BUSY_MESSAGE
     assert completed is False
+
+
+@pytest.mark.asyncio()
+async def test_next_step_dynamic_busy_does_not_increment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    db.SessionLocal.configure(bind=engine)
+    db.Base.metadata.create_all(bind=engine)
+
+    with db.SessionLocal() as session:
+        session.add(db.User(telegram_id=1, thread_id="t1"))
+        lesson = Lesson(title="t", slug="s", content="", is_active=True)
+        session.add(lesson)
+        session.commit()
+        lesson_id = lesson.id
+
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    async def fake_generate(
+        profile: object, slug: str, step_idx: int, prev: object
+    ) -> str:
+        return BUSY_MESSAGE
+
+    async def fake_upsert(*args: object, **kwargs: object) -> None:
+        fake_upsert.called = True
+
+    fake_upsert.called = False  # type: ignore[attr-defined]
+
+    monkeypatch.setattr(curriculum_engine, "generate_step_text", fake_generate)
+    monkeypatch.setattr(
+        curriculum_engine.progress_service, "upsert_progress", fake_upsert
+    )
+
+    await start_lesson(1, "s")
+    text, completed = await next_step(1, lesson_id, {})
+    assert text == BUSY_MESSAGE
+    assert completed is False
+    assert fake_upsert.called is False
+
+    with db.SessionLocal() as session:
+        progress = (
+            session.query(LessonProgress)
+            .filter_by(user_id=1, lesson_id=lesson_id)
+            .one()
+        )
+        assert progress.current_step == 0
+
+
+@pytest.mark.asyncio()
+async def test_next_step_dynamic_exception_does_not_increment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    db.SessionLocal.configure(bind=engine)
+    db.Base.metadata.create_all(bind=engine)
+
+    with db.SessionLocal() as session:
+        session.add(db.User(telegram_id=1, thread_id="t1"))
+        lesson = Lesson(title="t", slug="s", content="", is_active=True)
+        session.add(lesson)
+        session.commit()
+        lesson_id = lesson.id
+
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    async def fail_generate(
+        profile: object, slug: str, step_idx: int, prev: object
+    ) -> str:
+        raise RuntimeError("boom")
+
+    async def fake_upsert(*args: object, **kwargs: object) -> None:
+        fake_upsert.called = True
+
+    fake_upsert.called = False  # type: ignore[attr-defined]
+
+    monkeypatch.setattr(curriculum_engine, "generate_step_text", fail_generate)
+    monkeypatch.setattr(
+        curriculum_engine.progress_service, "upsert_progress", fake_upsert
+    )
+
+    await start_lesson(1, "s")
+    text, completed = await next_step(1, lesson_id, {})
+    assert text == BUSY_MESSAGE
+    assert completed is False
+    assert fake_upsert.called is False
+
+    with db.SessionLocal() as session:
+        progress = (
+            session.query(LessonProgress)
+            .filter_by(user_id=1, lesson_id=lesson_id)
+            .one()
+        )
+        assert progress.current_step == 0
