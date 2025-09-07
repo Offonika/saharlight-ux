@@ -11,6 +11,7 @@ import httpx
 import pytest
 from openai import OpenAIError
 
+from services.api.app import config
 from services.api.app.diabetes.services import gpt_client
 from services.api.app.config import settings
 
@@ -369,9 +370,40 @@ async def test_create_chat_completion_retry(monkeypatch: pytest.MonkeyPatch) -> 
 async def test_create_chat_completion_without_api_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(settings, "openai_api_key", None)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setattr(gpt_client, "_async_client", None)
+    monkeypatch.setattr(config, "get_settings", lambda: SimpleNamespace(openai_api_key=None))
+
     completion = await gpt_client.create_chat_completion(model="m", messages=[])
     content = completion.choices[0].message.content or ""
     assert "OpenAI API key is not configured" in content
+
+
+@pytest.mark.asyncio
+async def test_create_chat_completion_uses_env_api_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "openai_api_key", None)
+    monkeypatch.setenv("OPENAI_API_KEY", "key")
+
+    fake_client = SimpleNamespace(
+        chat=SimpleNamespace(
+            completions=SimpleNamespace(
+                create=AsyncMock(
+                    return_value=SimpleNamespace(
+                        choices=[SimpleNamespace(message=SimpleNamespace(content="hi"))]
+                    )
+                )
+            )
+        )
+    )
+
+    async_client_mock = AsyncMock(return_value=fake_client)
+    monkeypatch.setattr(gpt_client, "_get_async_client", async_client_mock)
+
+    completion = await gpt_client.create_chat_completion(model="m", messages=[])
+    content = completion.choices[0].message.content or ""
+
+    assert content == "hi"
+    async_client_mock.assert_awaited_once()
 
