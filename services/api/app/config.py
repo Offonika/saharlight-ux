@@ -11,7 +11,9 @@ from pydantic import AliasChoices, Field, field_validator
 try:  # pragma: no cover - import guard
     from pydantic_settings import BaseSettings, SettingsConfigDict
 except ModuleNotFoundError as exc:  # pragma: no cover - executed at import time
-    raise ImportError("`pydantic-settings` is required. Install it with `pip install pydantic-settings`.") from exc
+    raise ImportError(
+        "`pydantic-settings` is required. Install it with `pip install pydantic-settings`."
+    ) from exc
 
 
 logger = logging.getLogger(__name__)
@@ -51,6 +53,8 @@ class Settings(BaseSettings):
     db_name: str = Field(default="diabetes_bot", alias="DB_NAME")
     db_user: str = Field(default="diabetes_user", alias="DB_USER")
     db_password: Optional[str] = Field(default=None, alias="DB_PASSWORD")
+    db_read_role: Optional[str] = Field(default=None, alias="DB_READ_ROLE")
+    db_write_role: Optional[str] = Field(default=None, alias="DB_WRITE_ROLE")
 
     # Logging and runtime
     log_level: int = Field(default=logging.INFO, alias="LOG_LEVEL")
@@ -62,15 +66,21 @@ class Settings(BaseSettings):
     api_url: Optional[str] = Field(default=None, alias="API_URL")
     subscription_url: Optional[str] = Field(default=None, alias="SUBSCRIPTION_URL")
     openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
-    openai_assistant_id: Optional[str] = Field(default=None, alias="OPENAI_ASSISTANT_ID")
-    openai_command_model: str = Field(default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL")
+    openai_assistant_id: Optional[str] = Field(
+        default=None, alias="OPENAI_ASSISTANT_ID"
+    )
+    openai_command_model: str = Field(
+        default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL"
+    )
     api_key_min_length: int = Field(default=32, alias="API_KEY_MIN_LENGTH")
     learning_mode_enabled: bool = Field(
         default=True,
         alias="LEARNING_MODE_ENABLED",
         validation_alias=AliasChoices("LEARNING_MODE_ENABLED", "LEARNING_ENABLED"),
     )
-    learning_model_default: str = Field(default="gpt-4o-mini", alias="LEARNING_MODEL_DEFAULT")
+    learning_model_default: str = Field(
+        default="gpt-4o-mini", alias="LEARNING_MODEL_DEFAULT"
+    )
     learning_prompt_cache: bool = Field(default=True, alias="LEARNING_PROMPT_CACHE")
     learning_prompt_cache_size: int = Field(
         default=128, alias="LEARNING_PROMPT_CACHE_SIZE"
@@ -85,17 +95,27 @@ class Settings(BaseSettings):
         default=True, alias="LEARNING_LOGGING_REQUIRED"
     )
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
-    learning_assistant_id: Optional[str] = Field(default=None, alias="LEARNING_ASSISTANT_ID")
-    learning_command_model: str = Field(default="gpt-4o-mini", alias="LEARNING_COMMAND_MODEL")
+    learning_assistant_id: Optional[str] = Field(
+        default=None, alias="LEARNING_ASSISTANT_ID"
+    )
+    learning_command_model: str = Field(
+        default="gpt-4o-mini", alias="LEARNING_COMMAND_MODEL"
+    )
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
-    onboarding_video_url: Optional[str] = Field(default=None, alias="ONBOARDING_VIDEO_URL")
+    onboarding_video_url: Optional[str] = Field(
+        default=None, alias="ONBOARDING_VIDEO_URL"
+    )
     telegram_token: Optional[str] = Field(default=None, alias="TELEGRAM_TOKEN")
-    telegram_payments_provider_token: Optional[str] = Field(default=None, alias="TELEGRAM_PAYMENTS_PROVIDER_TOKEN")
+    telegram_payments_provider_token: Optional[str] = Field(
+        default=None, alias="TELEGRAM_PAYMENTS_PROVIDER_TOKEN"
+    )
     admin_id: Optional[int] = Field(default=None, alias="ADMIN_ID")
 
     @field_validator("log_level", mode="before")
     @classmethod
-    def parse_log_level(cls, v: int | str | None) -> int:  # pragma: no cover - simple parsing
+    def parse_log_level(
+        cls, v: int | str | None
+    ) -> int:  # pragma: no cover - simple parsing
         if isinstance(v, str):
             v_lower = v.lower()
             level_map: dict[str, int] = {
@@ -155,6 +175,18 @@ def get_db_password() -> Optional[str]:
     return os.environ.get("DB_PASSWORD")
 
 
+def get_db_read_password() -> Optional[str]:
+    """Return the read-only database role password from the environment."""
+
+    return os.environ.get("DB_READ_PASSWORD")
+
+
+def get_db_write_password() -> Optional[str]:
+    """Return the write database role password from the environment."""
+
+    return os.environ.get("DB_WRITE_PASSWORD")
+
+
 def build_ui_url(path: str) -> str:
     """Return an absolute UI URL for ``path``.
 
@@ -179,5 +211,7 @@ __all__ = [
     "get_settings",
     "reload_settings",
     "get_db_password",
+    "get_db_read_password",
+    "get_db_write_password",
     "build_ui_url",
 ]

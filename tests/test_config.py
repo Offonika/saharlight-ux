@@ -27,3 +27,15 @@ def test_init_db_raises_when_no_password(monkeypatch: pytest.MonkeyPatch) -> Non
     with pytest.raises(ValueError):
         db.init_db()
     db.init_db = lambda: None
+
+
+def test_get_db_role_passwords(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DB_READ_PASSWORD", raising=False)
+    monkeypatch.delenv("DB_WRITE_PASSWORD", raising=False)
+    config = cast(Any, _reload("services.api.app.config"))
+    assert config.get_db_read_password() is None
+    assert config.get_db_write_password() is None
+    monkeypatch.setenv("DB_READ_PASSWORD", "rpass")
+    monkeypatch.setenv("DB_WRITE_PASSWORD", "wpass")
+    assert config.get_db_read_password() == "rpass"
+    assert config.get_db_write_password() == "wpass"
