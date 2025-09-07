@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 
 import pytest
 from telegram import Bot, Chat, Message, MessageEntity, ReplyKeyboardMarkup, Update, User
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.diabetes.handlers import learning_handlers as legacy_learning_handlers
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT, LEARN_BUTTON_OLD_TEXT
 
 
 class DummyBot(Bot):
@@ -95,5 +97,44 @@ async def test_keyboard_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
         LEARN_BUTTON_TEXT == button.text for row in first_markup.keyboard for button in row
     )
     assert isinstance(bot.markups[-1], ReplyKeyboardMarkup)
+
+    await app.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_old_button_invokes_learn(monkeypatch: pytest.MonkeyPatch) -> None:
+    called = {"v": False}
+
+    async def fake_learn(*_args: object, **_kwargs: object) -> None:
+        called["v"] = True
+
+    monkeypatch.setattr(legacy_learning_handlers, "learn_command", fake_learn)
+
+    bot = DummyBot()
+    app = Application.builder().bot(bot).build()
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT
+            & filters.Regex(
+                rf"^(?:{re.escape(LEARN_BUTTON_TEXT)}|{re.escape(LEARN_BUTTON_OLD_TEXT)})$"
+            ),
+            legacy_learning_handlers.on_learn_button,
+        )
+    )
+    await app.initialize()
+
+    user = User(id=1, is_bot=False, first_name="T")
+    chat = Chat(id=1, type="private")
+    msg = Message(
+        message_id=1,
+        date=datetime.now(),
+        chat=chat,
+        from_user=user,
+        text=LEARN_BUTTON_OLD_TEXT,
+    )
+    msg._bot = bot
+    await app.process_update(Update(update_id=1, message=msg))
+
+    assert called["v"] is True
 
     await app.shutdown()

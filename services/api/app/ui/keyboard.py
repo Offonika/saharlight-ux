@@ -3,6 +3,7 @@ from telegram import ReplyKeyboardMarkup, KeyboardButton
 from services.api.app.diabetes.utils.ui import menu_keyboard
 
 LEARN_BUTTON_TEXT = "🎓 Обучение"
+LEARN_BUTTON_OLD_TEXT = "🤖 Учебный режим"
 
 
 def build_main_keyboard() -> ReplyKeyboardMarkup:
@@ -19,4 +20,4 @@ def build_main_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
-__all__ = ["LEARN_BUTTON_TEXT", "build_main_keyboard"]
+__all__ = ["LEARN_BUTTON_TEXT", "LEARN_BUTTON_OLD_TEXT", "build_main_keyboard"]

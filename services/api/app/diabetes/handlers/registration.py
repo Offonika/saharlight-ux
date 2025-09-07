@@ -35,7 +35,7 @@ from ..utils.ui import (
     SOS_BUTTON_TEXT,
     SUBSCRIPTION_BUTTON_TEXT,
 )
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT, LEARN_BUTTON_OLD_TEXT
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +167,10 @@ def register_handlers(
     app.add_handler(CommandHandlerT("menu", learning_handlers.cmd_menu))
     app.add_handler(
         MessageHandlerT(
-            filters.TEXT & filters.Regex(rf"^{re.escape(LEARN_BUTTON_TEXT)}$"),
+            filters.TEXT
+            & filters.Regex(
+                rf"^(?:{re.escape(LEARN_BUTTON_TEXT)}|{re.escape(LEARN_BUTTON_OLD_TEXT)})$"
+            ),
             learning_handlers.on_learn_button,
         )
     )

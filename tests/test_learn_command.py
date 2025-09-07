@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 import json
+import re
 
 import pytest
 from sqlalchemy import create_engine
@@ -17,7 +18,7 @@ from services.api.app.config import Settings
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes.utils.ui import menu_keyboard
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT, LEARN_BUTTON_OLD_TEXT
 
 
 class DummyMessage:
@@ -188,6 +189,11 @@ async def test_cmd_menu_shows_keyboard() -> None:
     expected_layout = list(menu_keyboard().keyboard)
     expected_layout.append((KeyboardButton(LEARN_BUTTON_TEXT),))
     assert list(keyboard.keyboard) == expected_layout
+    assert all(
+        button.text != LEARN_BUTTON_OLD_TEXT
+        for row in keyboard.keyboard
+        for button in row
+    )
 
 
 @pytest.mark.asyncio
@@ -210,3 +216,10 @@ async def test_on_learn_button_calls_learn(monkeypatch: pytest.MonkeyPatch) -> N
     await handlers.on_learn_button(update, context)
 
     assert called["v"] is True
+
+
+def test_old_button_regex_matches() -> None:
+    pattern = re.compile(
+        rf"^(?:{re.escape(LEARN_BUTTON_TEXT)}|{re.escape(LEARN_BUTTON_OLD_TEXT)})$"
+    )
+    assert pattern.fullmatch(LEARN_BUTTON_OLD_TEXT)
