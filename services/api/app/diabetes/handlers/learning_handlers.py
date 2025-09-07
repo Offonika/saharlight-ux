@@ -21,6 +21,7 @@ from telegram.ext import (
 
 from services.api.app.config import settings
 from services.api.app.diabetes import curriculum_engine
+from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.learning_state import (
     LearnState,
     clear_state,
@@ -157,6 +158,8 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         state.step += 1
         state.awaiting_answer = False
         state.last_step_text = text
+        if not state.disclaimer_shown:
+            state.disclaimer_shown = True
         set_state(user_data, state)
     logger.info(
         "lesson_command_complete",
@@ -195,6 +198,14 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         _correct, feedback = await curriculum_engine.check_answer(
             user.id, lesson_id, {}, answer
         )
+        if state is None or not state.disclaimer_shown:
+            tail = disclaimer()
+            feedback = f"{feedback} {tail}" if feedback else tail
+            if state is None:
+                topic = cast(str | None, user_data.get("lesson_slug")) or ""
+                state = LearnState(topic=topic, step=0, awaiting_answer=False)
+            state.disclaimer_shown = True
+            set_state(user_data, state)
         await message.reply_text(feedback)
         question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
         if question is None and completed:
@@ -207,6 +218,8 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 state = LearnState(topic=topic, step=0, awaiting_answer=False)
             state.step += 1
             state.awaiting_answer = True
+            if not state.disclaimer_shown:
+                state.disclaimer_shown = True
             set_state(user_data, state)
         return
     question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
@@ -220,6 +233,8 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             state = LearnState(topic=topic, step=0, awaiting_answer=False)
         state.step += 1
         state.awaiting_answer = True
+        if not state.disclaimer_shown:
+            state.disclaimer_shown = True
         set_state(user_data, state)
 
 
@@ -250,6 +265,11 @@ async def quiz_answer_handler(
     _correct, feedback = await curriculum_engine.check_answer(
         user.id, lesson_id, {}, answer
     )
+    if not state.disclaimer_shown:
+        tail = disclaimer()
+        feedback = f"{feedback} {tail}" if feedback else tail
+        state.disclaimer_shown = True
+        set_state(user_data, state)
     await message.reply_text(feedback)
     question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
     if question is None and completed:
@@ -259,6 +279,8 @@ async def quiz_answer_handler(
         await message.reply_text(question)
         state.step += 1
         state.awaiting_answer = True
+        if not state.disclaimer_shown:
+            state.disclaimer_shown = True
         set_state(user_data, state)
     # Let calling code continue without forcing ApplicationHandlerStop.
     return

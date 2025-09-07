@@ -13,6 +13,7 @@ class LearnState:
     topic: str
     step: int
     awaiting_answer: bool
+    disclaimer_shown: bool = False
     last_step_text: str | None = None
     prev_summary: str | None = None
 
