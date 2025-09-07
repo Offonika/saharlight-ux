@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 import json
+import re
 
 import pytest
 from sqlalchemy import create_engine
@@ -13,6 +14,7 @@ from telegram import Update, KeyboardButton
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.handlers.learning_handlers as handlers
+from services.api.app.diabetes.handlers import registration
 from services.api.app.config import Settings
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
@@ -188,6 +190,11 @@ async def test_cmd_menu_shows_keyboard() -> None:
     expected_layout = list(menu_keyboard().keyboard)
     expected_layout.append((KeyboardButton(LEARN_BUTTON_TEXT),))
     assert list(keyboard.keyboard) == expected_layout
+    assert not any(
+        button.text == registration.OLD_LEARN_BUTTON_TEXT
+        for row in keyboard.keyboard
+        for button in row
+    )
 
 
 @pytest.mark.asyncio
@@ -210,3 +217,9 @@ async def test_on_learn_button_calls_learn(monkeypatch: pytest.MonkeyPatch) -> N
     await handlers.on_learn_button(update, context)
 
     assert called["v"] is True
+
+
+def test_old_learn_button_text_matches_pattern() -> None:
+    assert re.fullmatch(
+        registration.LEARN_BUTTON_PATTERN, registration.OLD_LEARN_BUTTON_TEXT
+    )
