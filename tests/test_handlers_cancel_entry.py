@@ -6,6 +6,7 @@ from typing import Any, cast
 import pytest
 from telegram import Chat, Message, Update
 from telegram.ext import CallbackContext
+import services.api.app.ui.keyboard as kb
 
 
 class DummyMessage(Message):
@@ -48,7 +49,6 @@ async def test_callback_router_cancel_entry_sends_menu(
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
-    from services.api.app.diabetes.handlers import common_handlers
 
     query = DummyQuery(DummyMessage(), "cancel_entry")
     update = cast(Update, SimpleNamespace(callback_query=query))
@@ -67,7 +67,7 @@ async def test_callback_router_cancel_entry_sends_menu(
     assert query.message.kwargs
     kwargs = query.message.kwargs[0]
     markup = kwargs.get("reply_markup")
-    assert markup and markup.keyboard == common_handlers.menu_keyboard().keyboard
+    assert markup and markup.keyboard == kb.build_main_keyboard().keyboard
     assert context.user_data is not None
     user_data = context.user_data
     assert "pending_entry" not in user_data

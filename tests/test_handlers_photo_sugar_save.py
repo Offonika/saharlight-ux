@@ -87,7 +87,7 @@ async def test_photo_flow_saves_entry(
         return {"action": "add_entry", "fields": {}, "entry_date": None, "time": None}
 
     monkeypatch.setattr(gpt_handlers, "confirm_keyboard", lambda: None)
-    monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
+    monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
 
     msg_start = DummyMessage("/dose")
     update_start = cast(
@@ -236,7 +236,7 @@ async def test_photo_flow_saves_entry(
 async def test_photo_handler_removes_file_on_failure(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
+    monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
 
     async def fake_get_file(file_id: str) -> Any:
         class File:

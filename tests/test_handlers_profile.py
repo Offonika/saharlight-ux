@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 from telegram import InlineKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
-from services.api.app.diabetes.utils.ui import menu_keyboard
+import services.api.app.ui.keyboard as kb
 
 from services.api.app.diabetes.services.db import Base, User, Profile, dispose_engine
 from tests.utils.profile_factory import make_profile
@@ -123,7 +123,7 @@ async def test_profile_command_and_view(
         await handlers.profile_view(update2, context2)
         dispose_engine(engine)
 
-    assert message.markups[0].keyboard == menu_keyboard().keyboard
+    assert message.markups[0].keyboard == kb.build_main_keyboard().keyboard
     assert f"• ИКХ: {expected_icr} г/ед." in message.texts[0]
     assert f"• КЧ: {expected_cf} ммоль/л" in message.texts[0]
     assert f"• Целевой сахар: {expected_target} ммоль/л" in message.texts[0]

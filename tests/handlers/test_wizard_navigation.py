@@ -140,7 +140,7 @@ async def test_variant_b_starts_with_timezone(
 async def test_profile_back_returns_menu(monkeypatch: pytest.MonkeyPatch) -> None:
     import services.api.app.diabetes.handlers.profile as profile
 
-    monkeypatch.setattr(profile, "menu_keyboard", lambda: "MK")
+    monkeypatch.setattr(profile, "build_main_keyboard", lambda: "MK")
     message = DummyMessage()
     query = DummyQuery(message, "profile_back")
     update = cast(Update, SimpleNamespace(callback_query=query))
@@ -169,7 +169,7 @@ async def test_onboarding_skip_sends_final(
 
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
     monkeypatch.setattr(onboarding, "commit", lambda s: None)
-    monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
+    monkeypatch.setattr(onboarding, "build_main_keyboard", lambda: "MK")
     async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         sessionmaker = kwargs.get("sessionmaker", TestSession)
         with sessionmaker() as session:
@@ -202,7 +202,7 @@ async def test_onboarding_skip_sends_final(
 async def test_profile_cancel_outputs_text(monkeypatch: pytest.MonkeyPatch) -> None:
     import services.api.app.diabetes.handlers.profile as profile
 
-    monkeypatch.setattr(profile, "menu_keyboard", lambda: "MK")
+    monkeypatch.setattr(profile, "build_main_keyboard", lambda: "MK")
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
     context = cast(
@@ -230,7 +230,7 @@ async def test_onboarding_completion_message(
 
     monkeypatch.setattr(onboarding, "SessionLocal", TestSession)
     monkeypatch.setattr(onboarding, "commit", lambda s: None)
-    monkeypatch.setattr(onboarding, "menu_keyboard", lambda: "MK")
+    monkeypatch.setattr(onboarding, "build_main_keyboard", lambda: "MK")
     async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         sessionmaker = kwargs.get("sessionmaker", TestSession)
         with sessionmaker() as session:

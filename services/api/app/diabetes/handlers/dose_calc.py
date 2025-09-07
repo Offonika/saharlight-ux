@@ -31,7 +31,6 @@ from services.api.app.diabetes.utils.functions import (
 from services.api.app.diabetes.utils.ui import (
     confirm_keyboard,
     dose_keyboard,
-    menu_keyboard,
     PHOTO_BUTTON_TEXT,
     SUGAR_BUTTON_TEXT,
     DOSE_BUTTON_TEXT,
@@ -40,6 +39,7 @@ from services.api.app.diabetes.utils.ui import (
     PROFILE_BUTTON_TEXT,
     BACK_BUTTON_TEXT,
 )
+from services.api.app.ui.keyboard import build_main_keyboard
 
 from . import EntryData, UserData
 from .alert_handlers import check_alert
@@ -220,7 +220,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if carbs_g is None and xe is None:
         await message.reply_text(
             "Не указаны углеводы или ХЕ. Расчёт невозможен.",
-            reply_markup=menu_keyboard(),
+            reply_markup=build_main_keyboard(),
         )
         user_data.pop("pending_entry", None)
         return END
@@ -241,7 +241,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if profile is None or profile.icr is None or profile.cf is None or profile.target_bg is None:
         await message.reply_text(
             "Профиль не настроен. Установите коэффициенты через /profile.",
-            reply_markup=menu_keyboard(),
+            reply_markup=build_main_keyboard(),
         )
         user_data.pop("pending_entry", None)
         return END
@@ -279,7 +279,7 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     message = update.message
     if message is None:
         return END
-    await message.reply_text("Отменено.", reply_markup=menu_keyboard())
+    await message.reply_text("Отменено.", reply_markup=build_main_keyboard())
     user_data.pop("pending_entry", None)
     user_data.pop("dose_method", None)
     chat_data = getattr(context, "chat_data", None)
@@ -326,7 +326,7 @@ async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         SessionLocal=SessionLocal,
         commit=commit,
         check_alert=check_alert,
-        menu_keyboard_markup=menu_keyboard(),
+        menu_keyboard_markup=build_main_keyboard(),
         smart_input=smart_input,
         parse_command=parse_command,
         send_report=send_report,

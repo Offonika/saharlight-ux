@@ -162,7 +162,7 @@ async def test_dose_sugar_profile_required(monkeypatch: pytest.MonkeyPatch) -> N
     context.user_data["pending_entry"] = {"carbs_g": 10}
 
     monkeypatch.setattr(dose_calc, "SessionLocal", lambda: DummySession(None))
-    monkeypatch.setattr(dose_calc, "menu_keyboard", lambda: "menu")
+    monkeypatch.setattr(dose_calc, "build_main_keyboard", lambda: "menu")
 
     result = await dose_calc.dose_sugar(
         cast(Update, update),

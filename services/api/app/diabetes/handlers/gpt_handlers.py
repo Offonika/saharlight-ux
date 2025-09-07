@@ -31,10 +31,8 @@ from services.api.app.diabetes.gpt_command_parser import (
     parse_command,
 )
 from services.api.app.diabetes.utils.constants import XE_GRAMS
-from services.api.app.diabetes.utils.ui import (
-    confirm_keyboard,
-    menu_keyboard as menu_keyboard_fn,
-)
+from services.api.app.diabetes.utils.ui import confirm_keyboard
+from services.api.app.ui.keyboard import build_main_keyboard
 
 from .alert_handlers import check_alert as _check_alert
 from .dose_validation import _sanitize
@@ -644,7 +642,7 @@ async def freeform_handler(
     SessionLocal = SessionLocal or globals()["SessionLocal"]
     commit = commit or globals()["commit"]
     check_alert = check_alert or globals()["check_alert"]
-    menu_keyboard_markup = menu_keyboard_markup or menu_keyboard_fn()
+    menu_keyboard_markup = menu_keyboard_markup or build_main_keyboard()
     assert SessionLocal is not None
     assert commit is not None
     assert check_alert is not None

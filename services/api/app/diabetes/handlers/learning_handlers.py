@@ -30,7 +30,6 @@ from services.api.app.diabetes.learning_state import (
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress
 from services.api.app.diabetes.services.db import SessionLocal, run_db
 from services.api.app.diabetes.services.repository import commit
-from services.api.app.diabetes.utils.ui import menu_keyboard
 from ...ui.keyboard import build_main_keyboard
 from ..learning_onboarding import ensure_overrides
 from ..dynamic_tutor import BUSY_MESSAGE
@@ -336,7 +335,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         await run_db(_complete, user.id, lesson_id, sessionmaker=SessionLocal)
 
-    await message.reply_text("Учебная сессия завершена.", reply_markup=menu_keyboard())
+    await message.reply_text("Учебная сессия завершена.", reply_markup=build_main_keyboard())
     logger.info(
         "exit_command_complete",
         extra={"user_id": user.id, "lesson_id": lesson_id},

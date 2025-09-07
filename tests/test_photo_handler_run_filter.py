@@ -105,7 +105,7 @@ async def test_photo_handler_ignores_previous_runs(
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: dummy_client)
     monkeypatch.setattr(photo_handlers, "extract_nutrition_info", fake_extract)
-    monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
+    monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
 
     await photo_handlers.photo_handler(update, context)
 

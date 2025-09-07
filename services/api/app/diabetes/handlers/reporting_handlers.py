@@ -42,7 +42,8 @@ from services.api.app.diabetes.services.reporting import (
     make_sugar_plot,
     generate_pdf_report,
 )
-from services.api.app.diabetes.utils.ui import menu_keyboard, BACK_BUTTON_TEXT
+from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT
+from services.api.app.ui.keyboard import build_main_keyboard
 from . import UserData
 
 logger = logging.getLogger(__name__)
@@ -224,7 +225,9 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
     if query.data == "report_back":
         await query.answer()
         await message.delete()
-        await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard())
+        await message.reply_text(
+            "📋 Выберите действие:", reply_markup=build_main_keyboard()
+        )
         return
     if ":" not in query.data:
         await query.answer("Некорректный формат данных", show_alert=True)

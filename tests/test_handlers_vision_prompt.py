@@ -88,7 +88,7 @@ async def test_photo_prompt_includes_dish_name(
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
-    monkeypatch.setattr(photo_handlers, "menu_keyboard", lambda: None)
+    monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
 
     msg_photo = DummyMessage(photo=[DummyPhoto()])
     update = cast(
