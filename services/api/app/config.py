@@ -84,6 +84,7 @@ class Settings(BaseSettings):
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")
     learning_assistant_id: Optional[str] = Field(default=None, alias="LEARNING_ASSISTANT_ID")
     learning_command_model: str = Field(default="gpt-4o-mini", alias="LEARNING_COMMAND_MODEL")
+    lesson_logs_enabled: bool = Field(default=True, alias="LESSON_LOGS_ENABLED")
     font_dir: Optional[str] = Field(default=None, alias="FONT_DIR")
     onboarding_video_url: Optional[str] = Field(default=None, alias="ONBOARDING_VIDEO_URL")
     telegram_token: Optional[str] = Field(default=None, alias="TELEGRAM_TOKEN")
