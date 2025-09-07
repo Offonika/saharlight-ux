@@ -69,9 +69,7 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     with client:
-        resp = client.post(
-            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
-        )
+        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
     assert resp.status_code == 200
     data = resp.json()
     assert set(data) == {"checkout_id"}
@@ -85,11 +83,7 @@ def test_subscribe_dummy_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     assert webhook.status_code == 200
 
     with session_local() as session:
-        sub = session.scalar(
-            select(Subscription).where(
-                Subscription.transaction_id == data["checkout_id"]
-            )
-        )
+        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == data["checkout_id"]))
         assert sub is not None
         assert sub.status == SubStatus.active
         assert sub.plan == SubscriptionPlan.PRO
@@ -99,32 +93,25 @@ def test_mock_webhook_requires_token(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     with client:
-        resp = client.post(
-            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
-        )
+        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
     assert resp.status_code == 200
     data = resp.json()
 
     with client:
-        webhook = client.post(
-            f"/api/billing/mock-webhook/{data['checkout_id']}"
-        )
+        webhook = client.post(f"/api/billing/mock-webhook/{data['checkout_id']}")
     assert webhook.status_code == 403
 
 
 def test_provider_gets_plan_str(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local = setup_db()
+
     async def fake_create_checkout(self, plan: str) -> dict[str, str]:  # pragma: no cover
         raise AssertionError("should not be called")
 
-    monkeypatch.setattr(
-        DummyBillingProvider, "create_checkout", fake_create_checkout, raising=False
-    )
+    monkeypatch.setattr(DummyBillingProvider, "create_checkout", fake_create_checkout, raising=False)
     client = make_client(monkeypatch, session_local)
     with client:
-        resp = client.post(
-            "/api/billing/subscribe", params={"user_id": 1, "plan": "pro"}
-        )
+        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
     assert resp.status_code == 200
 
 
@@ -137,7 +124,7 @@ def test_subscribe_duplicate(monkeypatch: pytest.MonkeyPatch) -> None:
     with client:
         second = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
     assert second.status_code == 409
-    assert second.json() == {"detail": "subscription already exists"}
+    assert second.json() == {"detail": "Подписка PRO уже активна"}
     with session_local() as session:
         subs = session.scalars(select(Subscription)).all()
         assert len(subs) == 1
@@ -164,4 +151,28 @@ def test_subscribe_conflict_with_existing_active(
     with client:
         resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
     assert resp.status_code == 409
-    assert resp.json() == {"detail": "subscription already exists"}
+    assert resp.json() == {"detail": "Подписка PRO уже активна"}
+
+
+def test_subscribe_conflict_with_existing_trial(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session_local = setup_db()
+    with session_local() as session:
+        session.add(
+            Subscription(
+                user_id=1,
+                plan=SubscriptionPlan.PRO,
+                status=SubStatus.trial,
+                provider="dummy",
+                transaction_id="trial",
+                start_date=datetime.now(timezone.utc),
+                end_date=None,
+            )
+        )
+        session.commit()
+    client = make_client(monkeypatch, session_local)
+    with client:
+        resp = client.post("/api/billing/subscribe", params={"user_id": 1, "plan": "pro"})
+    assert resp.status_code == 409
+    assert resp.json() == {"detail": "У вас уже активирован пробный период"}
