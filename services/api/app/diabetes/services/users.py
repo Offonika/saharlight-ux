@@ -33,5 +33,6 @@ async def ensure_user_exists(user_id: int) -> None:
 
     try:
         await run_db(_ensure, sessionmaker=SessionLocal)
-    except Exception:  # pragma: no cover - logging only
+    except Exception:
         logger.exception("Failed to ensure user %s exists", user_id)
+        raise
