@@ -38,20 +38,14 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(
-        engine, tables=[Subscription.__table__, BillingLog.__table__]
-    )
+    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
     return sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def make_client(
-    monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
-) -> TestClient:
+def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
     from services.api.app.billing.config import BillingSettings
 
-    async def run_db(
-        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
-    ):
+    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
@@ -60,13 +54,11 @@ def make_client(
 
     from services.api.app.main import app
 
-    app.dependency_overrides[billing._require_billing_enabled] = (
-        lambda: BillingSettings(
-            billing_enabled=True,
-            billing_test_mode=True,
-            billing_provider="dummy",
-            paywall_mode="soft",
-        )
+    app.dependency_overrides[billing._require_billing_enabled] = lambda: BillingSettings(
+        billing_enabled=True,
+        billing_test_mode=True,
+        billing_provider="dummy",
+        paywall_mode="soft",
     )
 
     return TestClient(app)
@@ -117,7 +109,7 @@ def test_trial_repeat_call(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resp1.status_code == 200
     data1 = resp1.json()
     assert resp2.status_code == 409
-    assert resp2.json()["detail"] == "Trial already active"
+    assert resp2.json()["detail"] == "Пробный период уже активен"
     assert data1["plan"] == "pro"
     assert data1["status"] == SubStatus.trial.value
     count_stmt = select(func.count()).select_from(Subscription)
@@ -155,7 +147,7 @@ def test_trial_conflicts_with_active_subscription(
     with client:
         resp = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp.status_code == 409
-    assert resp.json()["detail"] == "subscription already active"
+    assert resp.json()["detail"] == "Подписка уже активна"
 
 
 def test_trial_repeat_call_after_expiration(
@@ -178,16 +170,14 @@ def test_trial_repeat_call_after_expiration(
     with client:
         resp2 = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp2.status_code == 409
-    assert resp2.json()["detail"] == "Trial already active"
+    assert resp2.json()["detail"] == "Пробный период уже активен"
     count_stmt = select(func.count()).select_from(Subscription)
     with session_local() as session:
         count = session.scalar(count_stmt)
     assert count == 1
 
 
-def test_trial_integrity_error(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_trial_integrity_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     calls: dict[str, int] = {"n": 0}
@@ -207,7 +197,7 @@ def test_trial_integrity_error(
         with client:
             resp = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp.status_code == 409
-    assert resp.json()["detail"] == "Trial already active"
+    assert resp.json()["detail"] == "Пробный период уже активен"
     assert len(caplog.records) == 1
     record = caplog.records[0]
     assert record.user_id == 1
@@ -220,9 +210,7 @@ def test_trial_integrity_error(
     }
 
 
-def test_trial_invalid_enum(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_trial_invalid_enum(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     calls: dict[str, int] = {"n": 0}
@@ -238,7 +226,7 @@ def test_trial_invalid_enum(
         with client:
             resp = client.post("/api/billing/trial", params={"user_id": 1})
     assert resp.status_code == 400
-    assert resp.json()["detail"] == "invalid enum value"
+    assert resp.json()["detail"] == "Недопустимое значение перечисления"
     assert len(caplog.records) == 1
     record = caplog.records[0]
     assert record.user_id == 1
@@ -266,18 +254,14 @@ async def test_trial_parallel_requests(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(billing, "SessionLocal", session_local, raising=False)
     from services.api.app.main import app
 
-    app.dependency_overrides[billing._require_billing_enabled] = (
-        lambda: BillingSettings(
-            billing_enabled=True,
-            billing_test_mode=True,
-            billing_provider="dummy",
-            paywall_mode="soft",
-        )
+    app.dependency_overrides[billing._require_billing_enabled] = lambda: BillingSettings(
+        billing_enabled=True,
+        billing_test_mode=True,
+        billing_provider="dummy",
+        paywall_mode="soft",
     )
 
-    async with AsyncClient(
-        transport=ASGITransport(app=cast(Any, app)), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=cast(Any, app)), base_url="http://test") as ac:
         resp1, resp2 = await asyncio.gather(
             ac.post("/api/billing/trial", params={"user_id": 1}),
             ac.post("/api/billing/trial", params={"user_id": 1}),
