@@ -41,7 +41,11 @@ def transactional(session: Session) -> Iterator[Session]:
     try:
         yield session
         session.commit()
-    except Exception as exc:  # pragma: no cover - logging only
+    except SQLAlchemyError as exc:  # pragma: no cover - logging only
         session.rollback()
         logger.exception("DB transaction failed: %s", exc.__class__.__name__)
+        raise
+    except Exception:  # pragma: no cover - logging only
+        session.rollback()
+        logger.exception("Unexpected DB transaction error")
         raise
