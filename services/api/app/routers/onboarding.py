@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 PROFILE, TIMEZONE, REMINDERS = range(3)
 
-router = APIRouter(prefix="/api/onboarding")
+router = APIRouter(prefix="/onboarding")
 
 
 class EventPayload(BaseModel):
