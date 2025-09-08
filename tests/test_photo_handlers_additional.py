@@ -336,3 +336,195 @@ async def test_doc_handler_rejects_non_image(
     assert result == photo_handlers.END
     assert not photo_mock.called
     assert not bot.get_file.called
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_long_vision_text(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    long_text = "x" * (photo_handlers.MessageLimit.MAX_TEXT_LENGTH + 100)
+
+    class DummyMessage:
+        def __init__(self) -> None:
+            self.photo = (DummyPhoto(),)
+            self.texts: list[str] = []
+            self.docs: list[Any] = []
+            self.status = SimpleNamespace(delete=AsyncMock())
+
+        async def reply_text(self, text: str, **kwargs: Any) -> Any:
+            self.texts.append(text)
+            if text.startswith("🔍"):
+                return self.status
+            return None
+
+        async def reply_document(self, document: Any, **kwargs: Any) -> None:
+            self.docs.append(document)
+
+    class File:
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
+
+    bot = SimpleNamespace(
+        get_file=AsyncMock(return_value=File()),
+        send_chat_action=AsyncMock(),
+    )
+
+    async def fake_create_thread() -> str:
+        return "tid"
+
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, *args: Any) -> None:
+            pass
+
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return None
+
+        def add(self, obj: Any) -> None:
+            pass
+
+    async def fake_send_message(**kwargs: Any) -> Any:
+        class Run:
+            status = "completed"
+            thread_id = "tid"
+            id = "rid"
+
+        return Run()
+
+    class Messages:
+        data = [
+            SimpleNamespace(
+                role="assistant",
+                content=[SimpleNamespace(text=SimpleNamespace(value=long_text))],
+            )
+        ]
+
+    class DummyClient:
+        beta = SimpleNamespace(
+            threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages()))
+        )
+
+    monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
+    monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
+    monkeypatch.setattr(photo_handlers, "commit", lambda s: None)
+    monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda text: functions.NutritionInfo(carbs_g=10, xe=1),
+    )
+    monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
+
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(bot=bot, user_data={}),
+    )
+
+    monkeypatch.chdir(tmp_path)
+    result = await photo_handlers.photo_handler(update, context)
+
+    assert result == photo_handlers.PHOTO_SUGAR
+    assert message.docs
+    assert any("слишком длинный" in t for t in message.texts)
+    assert long_text not in message.texts[-1]
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_long_vision_text_parse_fail(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    long_text = "y" * (photo_handlers.MessageLimit.MAX_TEXT_LENGTH + 100)
+
+    class DummyMessage:
+        def __init__(self) -> None:
+            self.photo = (DummyPhoto(),)
+            self.texts: list[str] = []
+            self.kwargs: list[dict[str, Any]] = []
+            self.docs: list[Any] = []
+            self.status = SimpleNamespace(delete=AsyncMock())
+
+        async def reply_text(self, text: str, **kwargs: Any) -> Any:
+            self.texts.append(text)
+            self.kwargs.append(kwargs)
+            if text.startswith("🔍"):
+                return self.status
+            return None
+
+        async def reply_document(self, document: Any, **kwargs: Any) -> None:
+            self.docs.append(document)
+
+    class File:
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
+
+    bot = SimpleNamespace(
+        get_file=AsyncMock(return_value=File()),
+        send_chat_action=AsyncMock(),
+    )
+
+    async def fake_create_thread() -> str:
+        return "tid"
+
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, *args: Any) -> None:
+            pass
+
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return None
+
+        def add(self, obj: Any) -> None:
+            pass
+
+    async def fake_send_message(**kwargs: Any) -> Any:
+        class Run:
+            status = "completed"
+            thread_id = "tid"
+            id = "rid"
+
+        return Run()
+
+    class Messages:
+        data = [
+            SimpleNamespace(
+                role="assistant",
+                content=[SimpleNamespace(text=SimpleNamespace(value=long_text))],
+            )
+        ]
+
+    class DummyClient:
+        beta = SimpleNamespace(
+            threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages()))
+        )
+
+    monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
+    monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
+    monkeypatch.setattr(photo_handlers, "commit", lambda s: None)
+    monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda text: functions.NutritionInfo(),
+    )
+    monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
+
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(bot=bot, user_data={}),
+    )
+
+    monkeypatch.chdir(tmp_path)
+    result = await photo_handlers.photo_handler(update, context)
+
+    assert result == photo_handlers.END
+    assert message.docs
+    assert any("слишком длинный" in t for t in message.texts)
+    assert message.kwargs[-1].get("parse_mode") is None
