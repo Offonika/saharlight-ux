@@ -78,7 +78,7 @@ async def get_coords_and_link(
         return None, None
 
     content_type = resp.headers.get("Content-Type", "")
-    if content_type and "application/json" not in content_type:
+    if content_type and "application/json" not in content_type.lower():
         logger.warning("Unexpected content type: %s", content_type)
         return None, None
 
@@ -89,16 +89,20 @@ async def get_coords_and_link(
         return None, None
 
     loc = data.get("loc")
-    if loc:
+    if isinstance(loc, str):
         try:
-            lat, lon = loc.split(",")
+            lat, lon = (part.strip() for part in loc.split(","))
         except ValueError:
+            logger.warning("Invalid location format: %s", loc)
+            return None, None
+        if not lat or not lon:
             logger.warning("Invalid location format: %s", loc)
             return None, None
         coords = f"{lat},{lon}"
         link = f"https://maps.google.com/?q={lat},{lon}"
         return coords, link
-
+    if loc is not None:
+        logger.warning("Invalid location format: %s", loc)
     return None, None
 
 
