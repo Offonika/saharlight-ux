@@ -916,6 +916,14 @@ components:
           - type: string
           - type: 'null'
           title: Sos Contact
+        therapyType:
+          type: string
+          enum:
+          - insulin
+          - tablets
+          - none
+          - mixed
+          title: Therapy Type
         sosAlertsEnabled:
           type: boolean
           title: Sos Alerts Enabled

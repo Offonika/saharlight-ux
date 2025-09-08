@@ -1,5 +1,5 @@
 import { tgFetch, FetchError } from '@/lib/tgFetch';
-import type { Profile, PatchProfileDto, RapidInsulin } from './types';
+import type { Profile, PatchProfileDto, RapidInsulin, TherapyType } from './types';
 
 export async function getProfile(): Promise<Profile | null> {
   try {
@@ -48,7 +48,7 @@ export async function saveProfile({
   timezoneAuto?: boolean;
   sosContact?: string | null;
   sosAlertsEnabled?: boolean;
-  therapyType?: string | null;
+  therapyType?: TherapyType | null;
 }): Promise<unknown> {
   try {
     const body: Record<string, unknown> = {

@@ -17,9 +17,10 @@ import { Button } from '@/components/ui/button';
 import { HelpCircle, X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTranslation } from '@/i18n';
+import type { TherapyType } from '@/features/profile/types';
 
 interface ProfileHelpSheetProps {
-  therapyType?: 'insulin' | 'tablets' | 'none' | 'mixed';
+  therapyType?: TherapyType;
 }
 
 interface HelpItem {
