@@ -7,6 +7,8 @@ from typing import TypeAlias
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import CommandHandler, ContextTypes
 
+from services.api.app.diabetes.services.users import ensure_user_exists
+
 logger = logging.getLogger(__name__)
 
 CommandHandlerT: TypeAlias = CommandHandler[ContextTypes.DEFAULT_TYPE, object]
@@ -21,6 +23,9 @@ def build_start_handler() -> CommandHandlerT:
         ui_base_url = f"{public_origin.rstrip('/')}{ui_base_url}"
 
     async def _start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        user = getattr(update, "effective_user", None)
+        if user is not None:
+            await ensure_user_exists(user.id)
         profile_url = f"{ui_base_url.rstrip('/')}/profile?flow=onboarding&step=profile"
         reminders_url = f"{ui_base_url.rstrip('/')}/reminders?flow=onboarding&step=reminders"
 

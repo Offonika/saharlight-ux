@@ -6,10 +6,9 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import AliasChoices, BaseModel, Field
-from sqlalchemy.orm import Session
 
-from ..diabetes.services.db import User as UserDB, run_db
-from ..diabetes.services.repository import CommitError, commit
+from ..diabetes.services import db as db_module
+from ..diabetes.services.users import ensure_user_exists
 from ..schemas.role import RoleSchema
 from ..schemas.user import UserContext
 from ..services.user_roles import get_user_role, set_user_role
@@ -36,16 +35,10 @@ async def create_user(
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
 
-    def _create_user(session: Session) -> None:
-        db_user = session.get(UserDB, data.telegramId)
-        if db_user is None:
-            session.add(UserDB(telegram_id=data.telegramId, thread_id="webapp"))
-        try:
-            commit(session)
-        except CommitError:  # pragma: no cover - db error
-            raise HTTPException(status_code=500, detail="db commit failed")
-
-    await run_db(_create_user)
+    await ensure_user_exists(
+        data.telegramId, thread_id="webapp", session_factory=db_module.SessionLocal
+    )
+    logger.info("Ensured user %s via API", data.telegramId)
     return {"status": "ok"}
 
 
