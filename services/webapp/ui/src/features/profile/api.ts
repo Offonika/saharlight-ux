@@ -1,14 +1,23 @@
 import { api } from '@/api';
 import { HttpError } from '@/api/http';
-import type { Profile, PatchProfileDto, RapidInsulin, TherapyType } from './types';
+import type {
+  Profile,
+  PatchProfileDto,
+  RapidInsulin,
+  TherapyType,
+} from './types';
 
-export async function getProfile(): Promise<Profile | null> {
+export class ProfileNotRegisteredError extends Error {}
+
+export async function getProfile(): Promise<Profile> {
   try {
     return await api.get<Profile>('/profile');
   } catch (error) {
     if (error instanceof HttpError) {
-      if (error.status === 404) {
-        return null;
+      if (error.status === 404 || error.status === 422) {
+        throw new ProfileNotRegisteredError(
+          'User not registered—please complete onboarding.',
+        );
       }
       console.error('Failed to load profile:', error);
       throw new Error(`Не удалось получить профиль: ${error.message}`);
