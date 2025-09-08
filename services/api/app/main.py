@@ -54,7 +54,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         init_db()  # создаёт/инициализирует БД
     except (ValueError, SQLAlchemyError) as exc:
         logger.error("Failed to initialize the database: %s", exc)
-        raise RuntimeError("Database initialization failed. Please check your configuration and try again.") from exc
+        raise RuntimeError(
+            "Database initialization failed. Please check your configuration and try again."
+        ) from exc
     jq = cast(DefaultJobQueue | None, getattr(app.state, "job_queue", None))
     reminder_events.register_job_queue(jq)
     if settings.learning_logging_required:
@@ -94,7 +96,7 @@ async def value_error_handler(_: Request, exc: ValueError) -> JSONResponse:
 api_router = APIRouter()
 api_router.include_router(stats_router)
 api_router.include_router(legacy_router)
-api_router.include_router(metrics.router)
+api_router.include_router(metrics.router)  # metrics available under /api/metrics
 api_router.include_router(billing_router)
 api_router.include_router(profile_router)
 api_router.include_router(timezones_router)
@@ -104,7 +106,6 @@ api_router.include_router(history_router)
 
 # ────────── include router ──────────
 app.include_router(internal_reminders_router)
-app.include_router(metrics.router)
 app.include_router(onboarding_router)
 app.include_router(api_router, prefix="/api")
 app.include_router(webapp_router)

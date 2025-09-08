@@ -12,7 +12,7 @@ from services.api.app.diabetes.metrics import (
 
 
 def test_prometheus_metrics_endpoint() -> None:
-    """Prometheus metrics are exposed on /metrics."""
+    """Prometheus metrics are exposed on /api/metrics."""
 
     lessons_started.inc()
     lessons_completed.inc()
@@ -21,7 +21,7 @@ def test_prometheus_metrics_endpoint() -> None:
     from services.api.app.main import app
 
     with TestClient(app) as client:
-        resp = client.get("/metrics")
+        resp = client.get("/api/metrics")
 
     assert resp.status_code == 200
     assert resp.headers["content-type"] == CONTENT_TYPE_LATEST
