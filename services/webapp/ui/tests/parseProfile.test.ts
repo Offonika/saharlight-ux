@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseProfile, shouldWarnProfile } from "../src/pages/Profile";
+import { parseProfile, shouldWarnProfile } from "../src/features/profile/validation";
 import type { RapidInsulin } from "../src/features/profile/types";
 
 const makeProfile = (
