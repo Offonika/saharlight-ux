@@ -822,6 +822,12 @@ components:
         gramsPerXe:
           type: number
           title: Grams Per Xe
+        glucoseUnits:
+          type: string
+          enum:
+          - mmol/L
+          - mg/dL
+          title: Glucose Units
         therapyType:
           type: string
           enum:
@@ -870,6 +876,7 @@ components:
       - roundStep
       - carbUnits
       - gramsPerXe
+      - glucoseUnits
       - sosAlertsEnabled
       - therapyType
       - maxBolus

@@ -13,6 +13,7 @@ type ProfileForm = {
   roundStep: string;
   carbUnits: 'g' | 'xe';
   gramsPerXe: string;
+  glucoseUnits: 'mmol/L' | 'mg/dL';
   rapidInsulinType: RapidInsulin;
   maxBolus: string;
   afterMealMinutes: string;
@@ -33,6 +34,7 @@ type ParsedProfile = {
   roundStep?: number;
   carbUnits: 'g' | 'xe';
   gramsPerXe?: number;
+  glucoseUnits?: 'mmol/L' | 'mg/dL';
   rapidInsulinType?: RapidInsulin;
   maxBolus?: number;
   afterMealMinutes?: number;
@@ -107,6 +109,11 @@ export const parseProfile = (
     required: carbUnits === 'xe',
   });
 
+  const glucoseUnits = profile.glucoseUnits;
+  if (glucoseUnits !== 'mmol/L' && glucoseUnits !== 'mg/dL') {
+    errors.glucoseUnits = 'invalid';
+  }
+
   const rapidInsulinType = profile.rapidInsulinType;
   if (!isNonInsulin && !rapidInsulinType) {
     errors.rapidInsulinType = 'required';
@@ -142,6 +149,7 @@ export const parseProfile = (
       roundStep,
       carbUnits,
       gramsPerXe,
+      glucoseUnits,
       rapidInsulinType,
       maxBolus,
       afterMealMinutes,

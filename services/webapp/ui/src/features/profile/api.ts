@@ -35,6 +35,7 @@ export async function saveProfile({
   sosContact,
   sosAlertsEnabled,
   therapyType,
+  glucoseUnits,
 }: {
   telegramId: number;
   target: number;
@@ -49,6 +50,7 @@ export async function saveProfile({
   sosContact?: string | null;
   sosAlertsEnabled?: boolean;
   therapyType?: string | null;
+  glucoseUnits?: 'mmol/L' | 'mg/dL';
 }): Promise<unknown> {
   try {
     const body: Record<string, unknown> = {
@@ -92,6 +94,10 @@ export async function saveProfile({
 
     if (therapyType !== undefined) {
       body.therapyType = therapyType;
+    }
+
+    if (glucoseUnits !== undefined) {
+      body.glucoseUnits = glucoseUnits;
     }
 
     return await tgFetch('/profile', { method: 'POST', body });

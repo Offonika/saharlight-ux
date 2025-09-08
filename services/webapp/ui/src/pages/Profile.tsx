@@ -98,6 +98,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     roundStep: "",
     carbUnits: 'g',
     gramsPerXe: "",
+    glucoseUnits: 'mmol/L',
     rapidInsulinType: 'aspart',
     maxBolus: "",
     afterMealMinutes: "",
@@ -247,6 +248,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
           roundStep,
           carbUnits,
           gramsPerXe,
+          glucoseUnits: data.glucoseUnits === 'mg/dL' ? 'mg/dL' : 'mmol/L',
           rapidInsulinType,
           maxBolus,
           afterMealMinutes,
@@ -376,6 +378,8 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       parsed.gramsPerXe !== undefined
     )
       patch.gramsPerXe = parsed.gramsPerXe;
+    if (profile.glucoseUnits !== original.glucoseUnits && parsed.glucoseUnits)
+      patch.glucoseUnits = parsed.glucoseUnits;
     if (
       profile.rapidInsulinType !== original.rapidInsulinType &&
       parsed.rapidInsulinType !== undefined
@@ -413,6 +417,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         sosContact: string | null;
         sosAlertsEnabled: boolean;
         therapyType: TherapyType;
+        glucoseUnits: 'mmol/L' | 'mg/dL';
       } = {
         telegramId: data.telegramId,
         target: data.target!,
@@ -425,6 +430,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         sosContact: profile.sosContact,
         sosAlertsEnabled: profile.sosAlertsEnabled,
         therapyType: data.therapyType ?? originalTherapyType,
+        glucoseUnits: parsed.glucoseUnits!,
       };
 
       if (data.therapyType !== 'tablets' && data.therapyType !== 'none') {

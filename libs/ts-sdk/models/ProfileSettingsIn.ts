@@ -60,6 +60,12 @@ export interface ProfileSettingsIn {
      * @type {string}
      * @memberof ProfileSettingsIn
      */
+    glucoseUnits?: ProfileSettingsInGlucoseUnitsEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfileSettingsIn
+     */
     therapyType?: ProfileSettingsInTherapyTypeEnum;
     /**
      * 
@@ -112,6 +118,15 @@ export type ProfileSettingsInCarbUnitsEnum = typeof ProfileSettingsInCarbUnitsEn
 /**
  * @export
  */
+export const ProfileSettingsInGlucoseUnitsEnum = {
+    MmolL: 'mmol/L',
+    MgDL: 'mg/dL'
+} as const;
+export type ProfileSettingsInGlucoseUnitsEnum = typeof ProfileSettingsInGlucoseUnitsEnum[keyof typeof ProfileSettingsInGlucoseUnitsEnum];
+
+/**
+ * @export
+ */
 export const ProfileSettingsInTherapyTypeEnum = {
     Insulin: 'insulin',
     Tablets: 'tablets',
@@ -155,6 +170,7 @@ export function ProfileSettingsInFromJSONTyped(json: any, ignoreDiscriminator: b
         'roundStep': json['roundStep'] == null ? undefined : json['roundStep'],
         'carbUnits': json['carbUnits'] == null ? undefined : json['carbUnits'],
         'gramsPerXe': json['gramsPerXe'] == null ? undefined : json['gramsPerXe'],
+        'glucoseUnits': json['glucoseUnits'] == null ? undefined : json['glucoseUnits'],
         'therapyType': json['therapyType'] == null ? undefined : json['therapyType'],
         'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
         'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
@@ -182,6 +198,7 @@ export function ProfileSettingsInToJSONTyped(value?: ProfileSettingsIn | null, i
         'roundStep': value['roundStep'],
         'carbUnits': value['carbUnits'],
         'gramsPerXe': value['gramsPerXe'],
+        'glucoseUnits': value['glucoseUnits'],
         'therapyType': value['therapyType'],
         'sosContact': value['sosContact'],
         'sosAlertsEnabled': value['sosAlertsEnabled'],

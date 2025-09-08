@@ -23,6 +23,7 @@ export type PatchProfileDto = Partial<
     | "roundStep"
     | "carbUnits"
     | "gramsPerXe"
+    | "glucoseUnits"
     | "rapidInsulinType"
     | "maxBolus"
     | "afterMealMinutes"

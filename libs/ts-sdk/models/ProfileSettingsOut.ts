@@ -60,6 +60,12 @@ export interface ProfileSettingsOut {
      * @type {string}
      * @memberof ProfileSettingsOut
      */
+    glucoseUnits: ProfileSettingsOutGlucoseUnitsEnum;
+    /**
+     * 
+     * @type {string}
+     * @memberof ProfileSettingsOut
+     */
     therapyType: ProfileSettingsOutTherapyTypeEnum;
     /**
      * 
@@ -112,6 +118,15 @@ export type ProfileSettingsOutCarbUnitsEnum = typeof ProfileSettingsOutCarbUnits
 /**
  * @export
  */
+export const ProfileSettingsOutGlucoseUnitsEnum = {
+    MmolL: 'mmol/L',
+    MgDL: 'mg/dL'
+} as const;
+export type ProfileSettingsOutGlucoseUnitsEnum = typeof ProfileSettingsOutGlucoseUnitsEnum[keyof typeof ProfileSettingsOutGlucoseUnitsEnum];
+
+/**
+ * @export
+ */
 export const ProfileSettingsOutTherapyTypeEnum = {
     Insulin: 'insulin',
     Tablets: 'tablets',
@@ -142,6 +157,7 @@ export function instanceOfProfileSettingsOut(value: object): value is ProfileSet
     if (!('roundStep' in value) || value['roundStep'] === undefined) return false;
     if (!('carbUnits' in value) || value['carbUnits'] === undefined) return false;
     if (!('gramsPerXe' in value) || value['gramsPerXe'] === undefined) return false;
+    if (!('glucoseUnits' in value) || value['glucoseUnits'] === undefined) return false;
     if (!('therapyType' in value) || value['therapyType'] === undefined) return false;
     if (!('sosAlertsEnabled' in value) || value['sosAlertsEnabled'] === undefined) return false;
     if (!('maxBolus' in value) || value['maxBolus'] === undefined) return false;
@@ -166,6 +182,7 @@ export function ProfileSettingsOutFromJSONTyped(json: any, ignoreDiscriminator: 
         'roundStep': json['roundStep'],
         'carbUnits': json['carbUnits'],
         'gramsPerXe': json['gramsPerXe'],
+        'glucoseUnits': json['glucoseUnits'],
         'therapyType': json['therapyType'],
         'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
         'sosAlertsEnabled': json['sosAlertsEnabled'],
@@ -193,6 +210,7 @@ export function ProfileSettingsOutToJSONTyped(value?: ProfileSettingsOut | null,
         'roundStep': value['roundStep'],
         'carbUnits': value['carbUnits'],
         'gramsPerXe': value['gramsPerXe'],
+        'glucoseUnits': value['glucoseUnits'],
         'therapyType': value['therapyType'],
         'sosContact': value['sosContact'],
         'sosAlertsEnabled': value['sosAlertsEnabled'],
