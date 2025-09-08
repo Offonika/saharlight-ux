@@ -10,8 +10,9 @@ from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import sqlalchemy as sa
-from fastapi import HTTPException
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
+from fastapi import HTTPException
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -265,15 +266,20 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 )
                 return
             profile = None
-        except RuntimeError:
-            profile = None
-        except Exception:
+        except SQLAlchemyError:
             logger.exception("failed to fetch profile from DB for %s", user_id)
             await message.reply_text(
                 "⚠️ Не удалось загрузить профиль из локальной базы.",
                 reply_markup=build_main_keyboard(),
             )
             return
+        except RuntimeError:
+            profile = None
+        except Exception:
+            logger.exception(
+                "unexpected error while fetching profile from DB for %s", user_id
+            )
+            raise
         if profile is not None:
             setattr(profile, "target", getattr(profile, "target_bg", None))
             setattr(profile, "low", getattr(profile, "low_threshold", None))
