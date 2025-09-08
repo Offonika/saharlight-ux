@@ -81,7 +81,10 @@ async def _persist(
                 user_data["learning_plan_id"] = plan_id
             else:
                 await plans_repo.update_plan(plan_id, plan_json=plan)
-        except (SQLAlchemyError, RuntimeError) as exc:  # pragma: no cover - logging only
+        except (
+            SQLAlchemyError,
+            RuntimeError,
+        ) as exc:  # pragma: no cover - logging only
             logger.exception("persist plan failed: %s", exc)
             plan_id = None
     state = get_state(user_data)
@@ -96,22 +99,27 @@ async def _persist(
         progress[user_id] = data
         try:
             await progress_repo.upsert_progress(user_id, plan_id, data)
-        except (SQLAlchemyError, RuntimeError) as exc:  # pragma: no cover - logging only
+        except (
+            SQLAlchemyError,
+            RuntimeError,
+        ) as exc:  # pragma: no cover - logging only
             logger.exception("persist progress failed: %s", exc)
 
 
-async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     user = update.effective_user
     if user is None:
-        return
+        return True
     user_data = cast(MutableMapping[str, Any], context.user_data)
     if get_state(user_data) is not None:
-        return
+        return True
     if "learning_plan" in user_data and "learning_plan_index" in user_data:
-        return
+        return True
     bot_data = cast(MutableMapping[str, Any], context.bot_data)
     plans_map = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
-    progress_map = cast(dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {}))
+    progress_map = cast(
+        dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {})
+    )
     data = progress_map.get(user.id)
     raw_plan = plans_map.get(user.id)
     plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
@@ -121,19 +129,22 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         try:
             db_plan = await plans_repo.get_active_plan(user.id)
             if db_plan is None:
-                return
+                return True
             plan = db_plan.plan_json
             plan_id = db_plan.id
             db_progress = await progress_repo.get_progress(user.id, plan_id)
             if db_progress is None:
-                return
+                return True
             data = db_progress.progress_json
             plans_map[user.id] = plan
             progress_map[user.id] = data
             user_data["learning_plan_id"] = plan_id
-        except (SQLAlchemyError, RuntimeError) as exc:  # pragma: no cover - logging only
+        except (
+            SQLAlchemyError,
+            RuntimeError,
+        ) as exc:  # pragma: no cover - logging only
             logger.exception("hydrate failed: %s", exc)
-            return
+            return True
     topic = cast(str, data.get("topic", ""))
     module_idx = cast(int, data.get("module_idx", 0))
     step_idx = cast(int, data.get("step_idx", 0))
@@ -145,11 +156,21 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if snapshot is None:
         profile = _get_profile(user_data)
         snapshot = await generate_step_text(profile, topic, step_idx, prev_summary)
+        if snapshot == BUSY_MESSAGE:
+            message = update.effective_message
+            if message is not None:
+                await message.reply_text(
+                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
+                )
+            return False
         data["snapshot"] = snapshot
         progress_map[user.id] = data
         try:
             await progress_repo.upsert_progress(user.id, plan_id, data)
-        except (SQLAlchemyError, RuntimeError) as exc:  # pragma: no cover - logging only
+        except (
+            SQLAlchemyError,
+            RuntimeError,
+        ) as exc:  # pragma: no cover - logging only
             logger.exception("snapshot persist failed: %s", exc)
     state = LearnState(
         topic=topic,
@@ -159,6 +180,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         awaiting=True,
     )
     set_state(user_data, state)
+    return True
 
 
 async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -176,7 +198,10 @@ async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton(title, callback_data=f"lesson:{slug}")] for slug, title in TOPICS_RU.items()]
+        [
+            [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
+            for slug, title in TOPICS_RU.items()
+        ]
     )
     await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
@@ -197,14 +222,17 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if settings.learning_ui_show_topics:
         await topics_command(update, context)
         return
-    await _hydrate(update, context)
+    if not await _hydrate(update, context):
+        return
     user = update.effective_user
     if user is None:
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
     if state is not None and state.last_step_text:
-        await message.reply_text(state.last_step_text, reply_markup=build_main_keyboard())
+        await message.reply_text(
+            state.last_step_text, reply_markup=build_main_keyboard()
+        )
         return
     if not await ensure_overrides(update, context):
         return
@@ -251,7 +279,9 @@ async def _start_lesson(
     if from_user is None:
         return
     progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
-    text, _ = await curriculum_engine.next_step(from_user.id, progress.lesson_id, profile)
+    text, _ = await curriculum_engine.next_step(
+        from_user.id, progress.lesson_id, profile
+    )
     if text is None or text == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
@@ -308,7 +338,8 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await message.reply_text("Неизвестная тема")
         return
     profile = _get_profile(user_data)
-    await _hydrate(update, context)
+    if not await _hydrate(update, context):
+        return
     await _start_lesson(message, user_data, context.bot_data, profile, topic_slug)
 
 
@@ -341,11 +372,14 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await message.reply_text("Неизвестная тема")
         return
     profile = _get_profile(user_data)
-    await _hydrate(update, context)
+    if not await _hydrate(update, context):
+        return
     await _start_lesson(message, user_data, context.bot_data, profile, slug)
 
 
-async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def lesson_answer_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Process user's answer and move to the next step."""
 
     message = update.message
@@ -358,7 +392,8 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
     if settings.learning_content_mode == "static":
         await legacy_handlers.quiz_answer_handler(update, context)
         return
-    await _hydrate(update, context)
+    if not await _hydrate(update, context):
+        return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
     if state is None or not state.awaiting or user_data.get(BUSY_KEY):
@@ -390,9 +425,13 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
     set_state(user_data, state)
     try:
         if user_text.lower() == "не знаю":
-            feedback = await assistant_chat(profile, f"Объясни подробнее: {state.last_step_text}")
+            feedback = await assistant_chat(
+                profile, f"Объясни подробнее: {state.last_step_text}"
+            )
         else:
-            _correct, feedback = await check_user_answer(profile, state.topic, user_text, state.last_step_text or "")
+            _correct, feedback = await check_user_answer(
+                profile, state.topic, user_text, state.last_step_text or ""
+            )
         feedback = format_reply(feedback)
         await message.reply_text(feedback, reply_markup=build_main_keyboard())
         if feedback == BUSY_MESSAGE:
@@ -409,9 +448,13 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
                 )
             except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
                 logger.exception("lesson log failed: %s", exc)
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+                await message.reply_text(
+                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
+                )
                 return
-        next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
+        next_text = await generate_step_text(
+            profile, state.topic, state.step + 1, feedback
+        )
         if next_text == BUSY_MESSAGE:
             await message.reply_text(next_text, reply_markup=build_main_keyboard())
             return
@@ -429,7 +472,9 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
                 )
             except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
                 logger.exception("lesson log failed: %s", exc)
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+                await message.reply_text(
+                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
+                )
                 return
         state.step += 1
         state.last_step_text = next_text
@@ -471,7 +516,8 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
     if settings.learning_content_mode != "dynamic":
         return
-    await _hydrate(update, context)
+    if not await _hydrate(update, context):
+        return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
     if state is not None and state.awaiting and state.last_step_text:
@@ -496,7 +542,8 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if settings.learning_content_mode == "static":
         await legacy_handlers.exit_command(update, context)
         return
-    await _hydrate(update, context)
+    if not await _hydrate(update, context):
+        return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     clear_state(user_data)
     user = update.effective_user
@@ -513,7 +560,8 @@ async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message is None:
         return
-    await _hydrate(update, context)
+    if not await _hydrate(update, context):
+        return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     plan = cast(list[str] | None, user_data.get("learning_plan"))
     if not plan:
@@ -531,7 +579,8 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message is None:
         return
-    await _hydrate(update, context)
+    if not await _hydrate(update, context):
+        return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     plan = cast(list[str] | None, user_data.get("learning_plan"))
     if not plan:
