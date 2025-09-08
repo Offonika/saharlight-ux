@@ -42,6 +42,10 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
 
+    with SessionLocal() as session:
+        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.commit()
+
     async def run_db_wrapper(
         fn: Callable[..., Any], *args: Any, **kwargs: Any
     ) -> Any:

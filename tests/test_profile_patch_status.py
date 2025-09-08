@@ -15,6 +15,10 @@ def test_patch_profile_returns_status_ok(monkeypatch: pytest.MonkeyPatch) -> Non
     SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
 
+    with SessionLocal() as session:
+        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.commit()
+
     async def run_db_wrapper(fn, *args, **kwargs):
         return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 

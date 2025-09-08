@@ -46,11 +46,20 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> SessionMaker[SASession]:
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
     monkeypatch.setattr(db, "SessionLocal", SessionLocal, raising=False)
+    with SessionLocal() as session:
+        session.add_all(
+            [
+                db.User(telegram_id=1, thread_id="t"),
+                db.User(telegram_id=2, thread_id="t"),
+            ]
+        )
+        session.commit()
     return SessionLocal
 
 
 def test_history_auth_required(monkeypatch: pytest.MonkeyPatch) -> None:
     setup_db(monkeypatch)
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
     with TestClient(server.app) as client:
         rec = {"id": "1", "date": "2024-01-01", "time": "12:00", "type": "measurement"}
         assert client.post("/api/history", json=rec).status_code == 401
