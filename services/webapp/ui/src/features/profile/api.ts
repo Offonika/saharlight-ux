@@ -1,13 +1,12 @@
-import { tgFetch, FetchError } from '@/lib/tgFetch';
+import { api } from '@/api';
+import { HttpError } from '@/lib/http';
 import type { Profile, PatchProfileDto, RapidInsulin, TherapyType } from './types';
 
 export async function getProfile(): Promise<Profile | null> {
   try {
-    return await tgFetch<Profile>(
-      '/profile',
-    );
+    return await api.get<Profile>('/profile');
   } catch (error) {
-    if (error instanceof FetchError) {
+    if (error instanceof HttpError) {
       if (error.status === 404) {
         return null;
       }
@@ -94,7 +93,7 @@ export async function saveProfile({
       body.therapyType = therapyType;
     }
 
-    return await tgFetch('/profile', { method: 'POST', body });
+    return await api.post('/profile', body);
   } catch (error) {
     console.error('Failed to save profile:', error);
     if (error instanceof Error) {
@@ -119,7 +118,7 @@ export async function patchProfile(payload: PatchProfileDto) {
       body.sosAlertsEnabled = sosAlertsEnabled;
     }
 
-    return await tgFetch<unknown>('/profile', { method: 'PATCH', body });
+    return await api.patch<unknown>('/profile', body);
   } catch (error) {
     console.error('Failed to update profile:', error);
     if (error instanceof Error) {

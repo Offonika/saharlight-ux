@@ -1,8 +1,8 @@
-import { tgFetch } from '@/lib/tgFetch';
+import { api } from './index';
 
 export async function getTimezones(): Promise<string[]> {
   try {
-    const data = await tgFetch<unknown>('/timezones');
+    const data = await api.get<unknown>('/timezones');
     if (Array.isArray(data)) {
       return data as string[];
     }

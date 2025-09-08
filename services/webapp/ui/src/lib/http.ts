@@ -6,6 +6,15 @@ export interface RequestOptions extends RequestInit {
   telegramAuth?: boolean;
 }
 
+export class HttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
 export function buildHeaders(
   init: RequestInit,
   telegramAuth = false,
@@ -53,7 +62,7 @@ export async function handleResponse<T>(res: Response): Promise<T> {
         : typeof data === 'string'
           ? data
           : 'Request failed';
-    throw new Error(msg);
+    throw new HttpError(res.status, msg);
   }
 
   return data as T;
