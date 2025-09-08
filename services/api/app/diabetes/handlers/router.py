@@ -187,15 +187,18 @@ async def handle_edit_field(
     user_data = cast(UserData, user_data_raw)
     user_data["edit_id"] = edit_entry_id
     user_data["edit_field"] = field
-    user_data["edit_query"] = query
+    message = query.message
+    if not isinstance(message, Message):
+        return
+    user_data["edit_query"] = {
+        "chat_id": message.chat_id,
+        "message_id": message.message_id,
+    }
     prompt = {
         "sugar": "Введите уровень сахара (ммоль/л).",
         "xe": "Введите количество ХЕ.",
         "dose": "Введите дозу инсулина (ед.).",
     }.get(field, "Введите значение")
-    message = query.message
-    if not isinstance(message, Message):
-        return
     await message.reply_text(prompt, reply_markup=ForceReply(selective=True))
 
 
