@@ -177,3 +177,60 @@ async def test_dispose_http_client_resets_all(
     fake_async_client.aclose.assert_awaited_once()
     assert openai_utils._http_client is None
     assert openai_utils._async_http_client is None
+
+
+def test_openai_client_ctx_disposes(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_http_client = Mock()
+    http_client_mock = Mock(return_value=fake_http_client)
+    openai_mock = Mock()
+
+    fake_settings = SimpleNamespace(
+        openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
+    )
+    monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
+    monkeypatch.setattr(openai_utils, "_http_client", None)
+    monkeypatch.setattr(httpx, "Client", http_client_mock)
+    monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
+
+    with openai_utils.openai_client_ctx() as client:
+        assert client is openai_mock.return_value
+
+    fake_http_client.close.assert_called_once()
+    assert openai_utils._http_client is None
+
+
+@pytest.mark.asyncio
+async def test_async_openai_client_ctx_disposes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_async_client = Mock()
+    fake_async_client.aclose = AsyncMock()
+    async_client_mock = Mock(return_value=fake_async_client)
+    openai_mock = Mock()
+
+    fake_settings = SimpleNamespace(
+        openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
+    )
+    monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
+    monkeypatch.setattr(openai_utils, "_async_http_client", None)
+    monkeypatch.setattr(openai_utils, "_http_client", None)
+    monkeypatch.setattr(httpx, "AsyncClient", async_client_mock)
+    monkeypatch.setattr(openai_utils, "AsyncOpenAI", openai_mock)
+
+    async with openai_utils.async_openai_client_ctx() as client:
+        assert client is openai_mock.return_value
+
+    fake_async_client.aclose.assert_awaited_once()
+    assert openai_utils._async_http_client is None
+
+
+def test_dispose_http_client_sync(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_http_client = Mock()
+    monkeypatch.setattr(openai_utils, "_http_client", fake_http_client)
+    monkeypatch.setattr(openai_utils, "_async_http_client", None)
+
+    openai_utils._dispose_http_client_sync()
+
+    fake_http_client.close.assert_called_once()
+    assert openai_utils._http_client is None
+
