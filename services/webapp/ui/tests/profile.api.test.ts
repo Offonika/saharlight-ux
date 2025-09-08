@@ -1,14 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getProfile, saveProfile, patchProfile } from '../src/features/profile/api';
 
 vi.mock('@/lib/telegram-auth', () => ({
   getTelegramAuthHeaders: () => ({}),
 }));
+vi.mock('@/components/ui/use-toast', () => ({ toast: vi.fn() }));
+
+import { getProfile, saveProfile, patchProfile } from '../src/features/profile/api';
+import { toast } from '@/components/ui/use-toast';
 
 describe('profile api', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    toast.mockReset();
   });
 
   it('throws error when getProfile request fails', async () => {
@@ -31,7 +35,7 @@ describe('profile api', () => {
     );
   });
 
-  it('returns null when profile not found', async () => {
+  it('shows onboarding message when profile not found', async () => {
     const mockFetch = vi
       .fn()
       .mockResolvedValue(
@@ -47,6 +51,31 @@ describe('profile api', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profile',
       expect.any(Object),
+    );
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'User not registered—please complete onboarding.',
+      }),
+    );
+  });
+
+  it('redirects to onboarding on 422 response', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ detail: 'invalid' }), {
+          status: 422,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    vi.stubGlobal('fetch', mockFetch);
+
+    const result = await getProfile();
+    expect(result).toBeNull();
+    expect(toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'User not registered—please complete onboarding.',
+      }),
     );
   });
 

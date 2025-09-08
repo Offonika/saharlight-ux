@@ -1,13 +1,30 @@
 import { api } from '@/api';
 import { HttpError } from '@/lib/http';
-import type { Profile, PatchProfileDto, RapidInsulin, TherapyType } from './types';
+import { toast } from '@/components/ui/use-toast';
+import type {
+  Profile,
+  PatchProfileDto,
+  RapidInsulin,
+  TherapyType,
+} from './types';
 
 export async function getProfile(): Promise<Profile | null> {
   try {
     return await api.get<Profile>('/profile');
   } catch (error) {
     if (error instanceof HttpError) {
-      if (error.status === 404) {
+      if (error.status === 404 || error.status === 422) {
+        toast({
+          title: 'User not registered—please complete onboarding.',
+          description: 'Redirecting to onboarding...',
+        });
+        if (typeof window !== 'undefined') {
+          try {
+            window.location.href = '/profile?flow=onboarding';
+          } catch {
+            /* ignore navigation errors in non-browser environments */
+          }
+        }
         return null;
       }
       console.error('Failed to load profile:', error);
