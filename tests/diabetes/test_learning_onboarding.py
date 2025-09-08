@@ -251,10 +251,52 @@ async def test_ensure_overrides_normalizes_level() -> None:
 
 
 @pytest.mark.asyncio
+async def test_skip_diabetes_type_if_profile_has_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_get_profile(_: int, __: object) -> dict[str, object]:
+        return {"diabetes_type": "T1"}
+
+    monkeypatch.setattr(
+        onboarding_utils.profiles,
+        "get_profile_for_user",
+        fake_get_profile,
+    )
+    user = SimpleNamespace(id=1)
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    msg1 = DummyMessage()
+    upd1 = cast(
+        Update, SimpleNamespace(message=msg1, callback_query=None, effective_user=user)
+    )
+    assert not await onboarding_utils.ensure_overrides(upd1, context)
+    assert msg1.replies == [onboarding_utils.AGE_PROMPT]
+
+    overrides = cast(dict[str, str], context.user_data["learn_profile_overrides"])
+    overrides["age_group"] = "adult"
+    msg2 = DummyMessage()
+    upd2 = cast(
+        Update, SimpleNamespace(message=msg2, callback_query=None, effective_user=user)
+    )
+    assert not await onboarding_utils.ensure_overrides(upd2, context)
+    assert msg2.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
+    assert overrides["diabetes_type"] == "T1"
+
+
+@pytest.mark.asyncio
 async def test_lesson_command_requires_onboarding(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    async def fake_get_profile(_: int, __: object) -> dict[str, object]:
+        return {}
+    monkeypatch.setattr(
+        onboarding_utils.profiles,
+        "get_profile_for_user",
+        fake_get_profile,
+    )
     message = DummyMessage()
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))

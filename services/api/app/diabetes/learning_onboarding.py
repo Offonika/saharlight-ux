@@ -8,6 +8,7 @@ from typing import Callable, cast
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
 
+from services.api.app import profiles
 from services.api.app.assistant.repositories import plans
 
 logger = logging.getLogger(__name__)
@@ -147,6 +148,20 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     message: Message | None = update.message
     if message is None and update.callback_query is not None:
         message = cast("Message | None", update.callback_query.message)
+
+    user = update.effective_user
+    if user is not None:
+        try:
+            profile = await profiles.get_profile_for_user(user.id, context)
+        except Exception:
+            profile = {}
+        diabetes_type = profile.get("diabetes_type")
+        if (
+            isinstance(diabetes_type, str)
+            and diabetes_type != "unknown"
+            and "diabetes_type" not in overrides
+        ):
+            overrides["diabetes_type"] = diabetes_type
     for key, prompt, norm, keyboard in _ORDER:
         raw = overrides.get(key)
         if raw is not None:
