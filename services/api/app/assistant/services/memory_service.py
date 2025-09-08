@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from ...diabetes.services.db import SessionLocal, run_db
@@ -82,15 +83,31 @@ async def record_turn(
         summary_text = summary_text[:1024]
 
     def _save(session: Session) -> None:
-        existing = repo_get_memory(session, user_id)
-        prev_count = 0 if existing is None else existing.turn_count
-        repo_upsert_memory(
-            session,
-            user_id=user_id,
-            turn_count=prev_count + 1,
-            last_turn_at=now,
-            summary_text=summary_text,
+        values: dict[str, object] = {
+            "turn_count": AssistantMemory.turn_count + 1,
+            "last_turn_at": now,
+        }
+        if summary_text is not None:
+            values["summary_text"] = summary_text
+
+        stmt = (
+            sa.update(AssistantMemory)
+            .where(AssistantMemory.user_id == user_id)
+            .values(**values)
+            .returning(AssistantMemory.turn_count)
         )
+
+        result = session.execute(stmt).scalar_one_or_none()
+        if result is None:
+            repo_upsert_memory(
+                session,
+                user_id=user_id,
+                turn_count=1,
+                last_turn_at=now,
+                summary_text=summary_text,
+            )
+        else:
+            commit(session)
 
     await run_db(_save, sessionmaker=SessionLocal)
 
