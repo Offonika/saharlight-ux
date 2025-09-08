@@ -567,40 +567,43 @@ def init_db() -> None:
                 read_password = get_db_read_password()
                 if read_password:
                     connection.execute(
-                        sa.text(
-                            f"ALTER ROLE {settings.db_read_role} WITH PASSWORD :pwd"
+                        sa.text("ALTER ROLE :role WITH PASSWORD :pwd").bindparams(
+                            sa.bindparam("role", literal_execute=True),
+                            sa.bindparam("pwd"),
                         ),
-                        {"pwd": read_password},
+                        {"role": settings.db_read_role, "pwd": read_password},
                     )
                 connection.execute(
                     sa.text(
-                        f"GRANT SELECT ON ALL TABLES IN SCHEMA public TO {settings.db_read_role}"
-                    )
+                        "GRANT SELECT ON ALL TABLES IN SCHEMA public TO :role"
+                    ).bindparams(sa.bindparam("role", literal_execute=True)),
+                    {"role": settings.db_read_role},
                 )
                 connection.execute(
                     sa.text(
-                        "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO "
-                        f"{settings.db_read_role}"
-                    )
+                        "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO :role"
+                    ).bindparams(sa.bindparam("role", literal_execute=True)),
+                    {"role": settings.db_read_role},
                 )
             if settings.db_write_role:
                 write_password = get_db_write_password()
                 if write_password:
                     connection.execute(
-                        sa.text(
-                            f"ALTER ROLE {settings.db_write_role} WITH PASSWORD :pwd"
+                        sa.text("ALTER ROLE :role WITH PASSWORD :pwd").bindparams(
+                            sa.bindparam("role", literal_execute=True),
+                            sa.bindparam("pwd"),
                         ),
-                        {"pwd": write_password},
+                        {"role": settings.db_write_role, "pwd": write_password},
                     )
                 connection.execute(
                     sa.text(
-                        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public "
-                        f"TO {settings.db_write_role}"
-                    )
+                        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO :role"
+                    ).bindparams(sa.bindparam("role", literal_execute=True)),
+                    {"role": settings.db_write_role},
                 )
                 connection.execute(
                     sa.text(
-                        "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "
-                        f"{settings.db_write_role}"
-                    )
+                        "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO :role"
+                    ).bindparams(sa.bindparam("role", literal_execute=True)),
+                    {"role": settings.db_write_role},
                 )
