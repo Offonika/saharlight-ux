@@ -96,6 +96,18 @@ const profileHelp = {
     unit: 'мин',
     range: '0–180',
   },
+  sosContact: {
+    title: 'SOS контакт',
+    definition: 'Номер телефона для SOS-оповещений',
+    unit: '—',
+    range: '—',
+  },
+  sosAlertsEnabled: {
+    title: 'SOS оповещения',
+    definition: 'Отправлять уведомления на SOS контакт',
+    unit: '—',
+    range: '—',
+  },
   timezone: {
     title: 'Часовой пояс',
     definition: 'Часовой пояс по стандарту IANA',

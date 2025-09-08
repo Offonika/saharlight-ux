@@ -332,6 +332,13 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       }));
       return;
     }
+    if (field === "sosContact") {
+      setProfile((prev) => ({
+        ...prev,
+        sosContact: value.trim() === "" ? null : value,
+      }));
+      return;
+    }
     if (/^\d*(?:[.,]\d*)?$/.test(value)) {
       setProfile((prev) => ({ ...prev, [field]: value }));
     }
@@ -388,6 +395,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       parsed.afterMealMinutes !== undefined
     )
       patch.afterMealMinutes = parsed.afterMealMinutes;
+    if (profile.sosContact !== original.sosContact)
+      patch.sosContact = profile.sosContact;
+    if (profile.sosAlertsEnabled !== original.sosAlertsEnabled)
+      patch.sosAlertsEnabled = profile.sosAlertsEnabled;
     return patch;
   };
 
@@ -1015,6 +1026,56 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
                     {t(`profile.errors.${fieldErrors.afterMealMinutes}`)}
                   </p>
                 )}
+              </div>
+            </div>
+
+            {/* SOS contact and alerts */}
+            <div>
+              <label
+                htmlFor="sosContact"
+                className="flex items-center gap-2 text-sm font-medium text-foreground mb-2"
+              >
+                {t('profileHelp.sosContact.title')}
+                <HelpHint label="profileHelp.sosContact.title">
+                  {t('profileHelp.sosContact.definition')}
+                </HelpHint>
+              </label>
+              <input
+                id="sosContact"
+                type="text"
+                inputMode="numeric"
+                pattern="^\\d*$"
+                value={profile.sosContact ?? ''}
+                onChange={(e) => handleInputChange('sosContact', e.target.value)}
+                className={`medical-input ${fieldErrors.sosContact ? 'border-destructive' : ''}`}
+                placeholder="112"
+                aria-invalid={!!fieldErrors.sosContact}
+              />
+              {fieldErrors.sosContact && (
+                <p className="text-sm text-destructive mt-1">
+                  {t(`profile.errors.${fieldErrors.sosContact}`)}
+                </p>
+              )}
+              <div className="mt-2 flex items-center gap-2">
+                <Checkbox
+                  id="sos-alerts-enabled"
+                  checked={profile.sosAlertsEnabled}
+                  onCheckedChange={(checked) =>
+                    setProfile((prev) => ({
+                      ...prev,
+                      sosAlertsEnabled: Boolean(checked),
+                    }))
+                  }
+                />
+                <label
+                  htmlFor="sos-alerts-enabled"
+                  className="text-sm text-foreground"
+                >
+                  {t('profileHelp.sosAlertsEnabled.title')}
+                  <HelpHint label="profileHelp.sosAlertsEnabled.title">
+                    {t('profileHelp.sosAlertsEnabled.definition')}
+                  </HelpHint>
+                </label>
               </div>
             </div>
 

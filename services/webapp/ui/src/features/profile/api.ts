@@ -106,10 +106,18 @@ export async function saveProfile({
 
 export async function patchProfile(payload: PatchProfileDto) {
   try {
-    // Preserve explicit `null` values to clear fields, but drop `undefined`.
+    const { sosContact, sosAlertsEnabled, ...rest } = payload;
     const body = Object.fromEntries(
-      Object.entries(payload).filter(([, value]) => value !== undefined),
+      Object.entries(rest).filter(([, value]) => value !== undefined),
     ) as Record<string, unknown>;
+
+    if (sosContact !== undefined) {
+      body.sosContact = sosContact;
+    }
+
+    if (sosAlertsEnabled !== undefined) {
+      body.sosAlertsEnabled = sosAlertsEnabled;
+    }
 
     return await tgFetch<unknown>('/profile', { method: 'PATCH', body });
   } catch (error) {

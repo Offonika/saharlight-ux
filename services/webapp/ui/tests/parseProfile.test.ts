@@ -3,7 +3,7 @@ import { parseProfile, shouldWarnProfile } from "../src/features/profile/validat
 import type { RapidInsulin } from "../src/features/profile/types";
 
 const makeProfile = (
-  overrides: Record<string, string | boolean | RapidInsulin> = {},
+  overrides: Record<string, string | boolean | RapidInsulin | null> = {},
 ) => ({
   icr: "1",
   cf: "2",
@@ -20,6 +20,10 @@ const makeProfile = (
   rapidInsulinType: "lispro" as RapidInsulin,
   maxBolus: "20",
   afterMealMinutes: "60",
+  quietStart: "23:00",
+  quietEnd: "07:00",
+  sosContact: null,
+  sosAlertsEnabled: true,
   ...overrides,
 });
 
@@ -85,6 +89,11 @@ describe("parseProfile", () => {
   it("validates target range", () => {
     const result = parseProfile(makeProfile({ target: "12" }));
     expect(result.errors.target).toBe("out_of_range");
+  });
+
+  it("validates sosContact format", () => {
+    const result = parseProfile(makeProfile({ sosContact: "abc" }));
+    expect(result.errors.sosContact).toBe("invalid");
   });
 
   it("parses tablet therapy profile skipping insulin fields", () => {
