@@ -301,7 +301,15 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
             )
             raise HTTPException(status_code=500, detail="db commit failed") from exc
 
-    await db.run_db(_save, sessionmaker=db.SessionLocal)
+    try:
+        await db.run_db(_save, sessionmaker=db.SessionLocal)
+    except HTTPException as exc:
+        if exc.status_code == 500:
+            logger.exception("save_profile failed for %s", data.telegramId)
+            raise HTTPException(
+                status_code=503, detail="временные проблемы с БД"
+            ) from exc
+        raise
 
 
 async def get_profile(telegram_id: int) -> Profile:
