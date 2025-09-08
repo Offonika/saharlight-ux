@@ -192,6 +192,84 @@ async def test_get_coords_and_link_custom_source(
     assert link == "https://maps.google.com/?q=1,2"
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "content_type",
+    ["application/json", "Application/Json", "APPLICATION/JSON"],
+)
+async def test_get_coords_and_link_content_type_case(
+    monkeypatch: pytest.MonkeyPatch, content_type: str
+) -> None:
+    async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
+        class Resp:
+            status_code = 200
+            headers = {"Content-Type": content_type}
+
+            def raise_for_status(self) -> None:  # pragma: no cover - dummy
+                pass
+
+            def json(self) -> dict[str, str]:
+                return {"loc": "1,2"}
+
+        return Resp()
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+
+    coords, link = await utils.get_coords_and_link()
+    assert coords == "1,2"
+    assert link == "https://maps.google.com/?q=1,2"
+
+
+@pytest.mark.asyncio
+async def test_get_coords_and_link_strips_coords(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
+        class Resp:
+            status_code = 200
+            headers = {"Content-Type": "application/json"}
+
+            def raise_for_status(self) -> None:  # pragma: no cover - dummy
+                pass
+
+            def json(self) -> dict[str, str]:
+                return {"loc": " 1 , 2 "}
+
+        return Resp()
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+
+    coords, link = await utils.get_coords_and_link()
+    assert coords == "1,2"
+    assert link == "https://maps.google.com/?q=1,2"
+
+
+@pytest.mark.asyncio
+async def test_get_coords_and_link_non_str_loc(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
+        class Resp:
+            status_code = 200
+            headers = {"Content-Type": "application/json"}
+
+            def raise_for_status(self) -> None:  # pragma: no cover - dummy
+                pass
+
+            def json(self) -> dict[str, Any]:
+                return {"loc": ["1", "2"]}
+
+        return Resp()
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+
+    with caplog.at_level(logging.WARNING):
+        coords, link = await utils.get_coords_and_link()
+
+    assert coords is None and link is None
+    assert any("Invalid location format" in msg for msg in caplog.messages)
+
+
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
