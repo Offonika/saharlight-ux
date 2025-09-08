@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
-from fastapi import HTTPException
+from collections.abc import Callable
 from typing import cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from fastapi import HTTPException
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -34,12 +35,18 @@ __all__ = [
 ]
 
 
-async def set_timezone(telegram_id: int, tz: str) -> None:  # pragma: no cover
+async def set_timezone(
+    telegram_id: int,
+    tz: str,
+    *,
+    sessionmaker: Callable[[], Session] | None = None,
+) -> None:  # pragma: no cover
     """Backward-compatible helper to update only timezone."""
 
     await patch_user_settings(
         telegram_id,
         ProfileSettingsIn(timezone=tz),
+        sessionmaker=sessionmaker,
     )
 
 
@@ -47,6 +54,7 @@ async def patch_user_settings(
     telegram_id: int,
     data: ProfileSettingsIn,
     device_tz: str | None = None,
+    sessionmaker: Callable[[], Session] | None = None,
 ) -> ProfileSchema:
     """Persist user settings, updating only provided fields."""
 
@@ -59,7 +67,9 @@ async def patch_user_settings(
         try:
             ZoneInfo(device_tz)
         except ZoneInfoNotFoundError as exc:  # pragma: no cover - validation
-            raise HTTPException(status_code=400, detail="invalid device timezone") from exc
+            raise HTTPException(
+                status_code=400, detail="invalid device timezone"
+            ) from exc
 
     def _patch(session: SessionProtocol) -> ProfileSchema:
         user = cast(User | None, session.get(User, telegram_id))
@@ -114,7 +124,12 @@ async def patch_user_settings(
         if data.afterMealMinutes is not None:
             profile.postmeal_check_min = data.afterMealMinutes
 
-        if profile.timezone_auto and device_tz and data.timezone is None and profile.timezone != device_tz:
+        if (
+            profile.timezone_auto
+            and device_tz
+            and data.timezone is None
+            and profile.timezone != device_tz
+        ):
             profile.timezone = device_tz
 
         try:
@@ -142,18 +157,25 @@ async def patch_user_settings(
             carbUnits=CarbUnits(profile.carb_units),
             gramsPerXe=profile.grams_per_xe,
             glucoseUnits=GlucoseUnits(profile.glucose_units),
-            rapidInsulinType=(RapidInsulinType(profile.insulin_type) if profile.insulin_type else None),
+            rapidInsulinType=(
+                RapidInsulinType(profile.insulin_type) if profile.insulin_type else None
+            ),
             maxBolus=profile.max_bolus,
             preBolus=profile.prebolus_min,
             afterMealMinutes=profile.postmeal_check_min,
         )
 
-    return await db.run_db(_patch, sessionmaker=db.SessionLocal)
+    if sessionmaker is None:
+        sessionmaker = db.SessionLocal
+    return await db.run_db(_patch, sessionmaker=sessionmaker)
 
 
-async def get_profile_settings(telegram_id: int) -> ProfileSchema:
+async def get_profile_settings(
+    telegram_id: int,
+    sessionmaker: Callable[[], Session] | None = None,
+) -> ProfileSchema:
     """Return current profile settings for ``telegram_id``."""
-    profile = await get_profile(telegram_id)
+    profile = await get_profile(telegram_id, sessionmaker=sessionmaker)
 
     return ProfileSchema(
         telegramId=profile.telegram_id,
@@ -174,20 +196,29 @@ async def get_profile_settings(telegram_id: int) -> ProfileSchema:
         carbUnits=CarbUnits(profile.carb_units),
         gramsPerXe=profile.grams_per_xe,
         glucoseUnits=GlucoseUnits(profile.glucose_units),
-        rapidInsulinType=(RapidInsulinType(profile.insulin_type) if profile.insulin_type else None),
+        rapidInsulinType=(
+            RapidInsulinType(profile.insulin_type) if profile.insulin_type else None
+        ),
         maxBolus=profile.max_bolus,
         preBolus=profile.prebolus_min,
         afterMealMinutes=profile.postmeal_check_min,
     )
 
 
-async def save_timezone(telegram_id: int, tz: str, *, auto: bool) -> bool:
+async def save_timezone(
+    telegram_id: int,
+    tz: str,
+    *,
+    auto: bool,
+    sessionmaker: Callable[[], Session] | None = None,
+) -> bool:
     """Persist only timezone and its auto-detection flag."""
 
     try:
         await patch_user_settings(
             telegram_id,
             ProfileSettingsIn(timezone=tz, timezoneAuto=auto),
+            sessionmaker=sessionmaker,
         )
     except HTTPException:
         return False
@@ -223,7 +254,10 @@ def _validate_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
     # quiet times are validated by Pydantic; no additional checks required
 
 
-async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
+async def save_profile(
+    data: ProfileUpdateSchema | ProfileSchema,
+    sessionmaker: Callable[[], Session] | None = None,
+) -> None:
     _validate_profile(data)
 
     def _save(session: SessionProtocol) -> None:
@@ -263,7 +297,11 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
                 profile_data[column] = value
 
         stmt = insert(Profile).values(**profile_data)
-        update_values = {key: getattr(stmt.excluded, key) for key in profile_data.keys() if key != "telegram_id"}
+        update_values = {
+            key: getattr(stmt.excluded, key)
+            for key in profile_data.keys()
+            if key != "telegram_id"
+        }
         session.execute(
             stmt.on_conflict_do_update(
                 index_elements=[Profile.telegram_id],
@@ -284,15 +322,22 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
             raise HTTPException(status_code=500, detail="db commit failed") from exc
 
     try:
-        await db.run_db(_save, sessionmaker=db.SessionLocal)
+        if sessionmaker is None:
+            sessionmaker = db.SessionLocal
+        await db.run_db(_save, sessionmaker=sessionmaker)
     except HTTPException as exc:
         if exc.status_code == 500:
             logger.exception("save_profile failed for %s", data.telegramId)
-            raise HTTPException(status_code=503, detail="временные проблемы с БД") from exc
+            raise HTTPException(
+                status_code=503, detail="временные проблемы с БД"
+            ) from exc
         raise
 
 
-async def get_profile(telegram_id: int) -> Profile:
+async def get_profile(
+    telegram_id: int,
+    sessionmaker: Callable[[], Session] | None = None,
+) -> Profile:
     if telegram_id <= 0:
         raise HTTPException(status_code=422, detail="telegramId must be positive")
 
@@ -300,10 +345,14 @@ async def get_profile(telegram_id: int) -> Profile:
         return cast(Profile | None, session.get(Profile, telegram_id))
 
     try:
-        profile = await db.run_db(_get, sessionmaker=db.SessionLocal)
+        if sessionmaker is None:
+            sessionmaker = db.SessionLocal
+        profile = await db.run_db(_get, sessionmaker=sessionmaker)
     except (OperationalError, ConnectionError) as exc:
         logger.exception("failed to fetch profile %s", telegram_id)
-        raise HTTPException(status_code=503, detail="database temporarily unavailable") from exc
+        raise HTTPException(
+            status_code=503, detail="database temporarily unavailable"
+        ) from exc
     except SQLAlchemyError as exc:
         logger.exception("sqlalchemy error while fetching profile %s", telegram_id)
         raise HTTPException(status_code=500, detail="database error") from exc
