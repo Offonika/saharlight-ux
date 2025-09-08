@@ -112,6 +112,7 @@ class Settings(BaseSettings):
     onboarding_video_url: Optional[str] = Field(default=None, alias="ONBOARDING_VIDEO_URL")
     telegram_token: Optional[str] = Field(default=None, alias="TELEGRAM_TOKEN")
     telegram_payments_provider_token: Optional[str] = Field(default=None, alias="TELEGRAM_PAYMENTS_PROVIDER_TOKEN")
+    internal_api_key: Optional[str] = Field(default=None, alias="INTERNAL_API_KEY")
     admin_id: Optional[int] = Field(default=None, alias="ADMIN_ID")
 
     @field_validator("log_level", mode="before")
