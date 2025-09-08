@@ -48,7 +48,7 @@ describe('billing auth', () => {
       );
     vi.stubGlobal('fetch', fetchMock);
     const { getBillingStatus } = await import('./billing');
-      await expect(getBillingStatus('1')).rejects.toThrow('unauthorized');
-    });
+    await expect(getBillingStatus('1')).rejects.toThrow('unauthorized');
   });
+});
 
