@@ -371,6 +371,11 @@ def register_handlers(app: App) -> None:
     app.add_handler(CommandHandler("exit", exit_command))
     app.add_handler(CommandHandler("learn_reset", onboarding.learn_reset))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding.onboarding_reply))
+    app.add_handler(
+        CallbackQueryHandler(
+            onboarding.onboarding_callback, pattern=f"^{onboarding.CB_PREFIX}"
+        )
+    )
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False))
     app.add_handler(CallbackQueryHandler(lesson_callback, pattern="^lesson:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False))

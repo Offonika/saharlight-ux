@@ -18,6 +18,7 @@ from telegram.ext import (
 from ..learning_onboarding import CB_PREFIX, ensure_overrides, learn_reset
 
 __all__ = [
+    "CB_PREFIX",
     "onboarding_reply",
     "onboarding_callback",
     "register_handlers",
