@@ -5,6 +5,7 @@ import type {
 } from "@sdk";
 
 export type RapidInsulin = "aspart" | "lispro" | "glulisine" | "regular";
+export type TherapyType = "insulin" | "tablets" | "none" | "mixed";
 
 export type Profile = ProfileSchema & ProfileSettingsOut;
 

@@ -49,7 +49,7 @@ export async function saveProfile({
   sosContact?: string | null;
   sosAlertsEnabled?: boolean;
   therapyType?: string | null;
-}): Promise<void> {
+}): Promise<unknown> {
   try {
     const body: Record<string, unknown> = {
       telegramId,
@@ -94,7 +94,7 @@ export async function saveProfile({
       body.therapyType = therapyType;
     }
 
-    await tgFetch('/profile', { method: 'POST', body });
+    return await tgFetch('/profile', { method: 'POST', body });
   } catch (error) {
     console.error('Failed to save profile:', error);
     if (error instanceof Error) {
