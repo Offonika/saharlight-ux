@@ -75,6 +75,12 @@ export interface ProfileSchema {
     sosContact?: string | null;
     /**
      * 
+     * @type {string}
+     * @memberof ProfileSchema
+     */
+    therapyType?: ProfileSchemaTherapyTypeEnum;
+    /**
+     * 
      * @type {boolean}
      * @memberof ProfileSchema
      */
@@ -98,6 +104,19 @@ export interface ProfileSchema {
      */
     orgId?: number | null;
 }
+
+
+/**
+ * @export
+ */
+export const ProfileSchemaTherapyTypeEnum = {
+    Insulin: 'insulin',
+    Tablets: 'tablets',
+    None: 'none',
+    Mixed: 'mixed'
+} as const;
+export type ProfileSchemaTherapyTypeEnum = typeof ProfileSchemaTherapyTypeEnum[keyof typeof ProfileSchemaTherapyTypeEnum];
+
 
 /**
  * Check if a given object implements the ProfileSchema interface.
@@ -129,6 +148,7 @@ export function ProfileSchemaFromJSONTyped(json: any, ignoreDiscriminator: boole
         'quietStart': json['quietStart'] == null ? undefined : json['quietStart'],
         'quietEnd': json['quietEnd'] == null ? undefined : json['quietEnd'],
         'sosContact': json['sosContact'] == null ? undefined : json['sosContact'],
+        'therapyType': json['therapyType'] == null ? undefined : json['therapyType'],
         'sosAlertsEnabled': json['sosAlertsEnabled'] == null ? undefined : json['sosAlertsEnabled'],
         'timezone': json['timezone'] == null ? undefined : json['timezone'],
         'timezoneAuto': json['timezoneAuto'] == null ? undefined : json['timezoneAuto'],
@@ -156,6 +176,7 @@ export function ProfileSchemaToJSONTyped(value?: ProfileSchema | null, ignoreDis
         'quietStart': value['quietStart'],
         'quietEnd': value['quietEnd'],
         'sosContact': value['sosContact'],
+        'therapyType': value['therapyType'],
         'sosAlertsEnabled': value['sosAlertsEnabled'],
         'timezone': value['timezone'],
         'timezoneAuto': value['timezoneAuto'],
