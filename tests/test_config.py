@@ -21,6 +21,7 @@ def test_import_config_without_db_password(monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_init_db_raises_when_no_password(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DB_PASSWORD", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
     config = cast(Any, _reload("services.api.app.config"))
     db = cast(Any, _reload("services.api.app.diabetes.services.db"))
     assert config.get_db_password() is None
