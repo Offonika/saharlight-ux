@@ -22,6 +22,7 @@ __all__ = [
     "onboarding_callback",
     "register_handlers",
     "learn_reset",
+    "CB_PREFIX",
 ]
 
 logger = logging.getLogger(__name__)
