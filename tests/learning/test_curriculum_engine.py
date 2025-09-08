@@ -304,21 +304,12 @@ async def test_next_step_dynamic_busy_does_not_increment(
     ) -> str:
         return BUSY_MESSAGE
 
-    async def fake_upsert(*args: object, **kwargs: object) -> None:
-        fake_upsert.called = True
-
-    fake_upsert.called = False  # type: ignore[attr-defined]
-
     monkeypatch.setattr(curriculum_engine, "generate_step_text", fake_generate)
-    monkeypatch.setattr(
-        curriculum_engine.progress_service, "upsert_progress", fake_upsert
-    )
 
     await start_lesson(1, "s")
     text, completed = await next_step(1, lesson_id, {})
     assert text == BUSY_MESSAGE
     assert completed is False
-    assert fake_upsert.called is False
 
     with db.SessionLocal() as session:
         progress = (
@@ -355,21 +346,12 @@ async def test_next_step_dynamic_exception_does_not_increment(
     ) -> str:
         raise RuntimeError("boom")
 
-    async def fake_upsert(*args: object, **kwargs: object) -> None:
-        fake_upsert.called = True
-
-    fake_upsert.called = False  # type: ignore[attr-defined]
-
     monkeypatch.setattr(curriculum_engine, "generate_step_text", fail_generate)
-    monkeypatch.setattr(
-        curriculum_engine.progress_service, "upsert_progress", fake_upsert
-    )
 
     await start_lesson(1, "s")
     text, completed = await next_step(1, lesson_id, {})
     assert text == BUSY_MESSAGE
     assert completed is False
-    assert fake_upsert.called is False
 
     with db.SessionLocal() as session:
         progress = (

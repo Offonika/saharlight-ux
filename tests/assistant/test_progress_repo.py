@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from services.api.app.assistant.repositories import progress
+from services.api.app.assistant.services import progress_service as progress
 from services.api.app.diabetes.models_learning import LearningPlan
 from services.api.app.diabetes.services import db
 

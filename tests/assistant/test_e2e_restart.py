@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.assistant.repositories import plans as plans_repo
-from services.api.app.assistant.repositories import progress as progress_repo
+from services.api.app.assistant.services import progress_service as progress_repo
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.models_learning import LearningProgress

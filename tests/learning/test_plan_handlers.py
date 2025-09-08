@@ -129,7 +129,7 @@ async def test_plan_command_respects_existing_plan(
         learning_handlers.plans_repo, "get_active_plan", fail_get_active_plan
     )
     monkeypatch.setattr(
-        learning_handlers.progress_repo, "get_progress", fail_get_progress
+        learning_handlers.progress_service, "get_progress", fail_get_progress
     )
 
     await learning_handlers.plan_command(update, context)

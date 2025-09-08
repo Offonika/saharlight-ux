@@ -7,7 +7,6 @@ from collections.abc import Mapping
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from ..assistant.services import progress_service
 from ..config import settings
 from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
 from .learning_prompts import (
@@ -109,7 +108,6 @@ async def next_step(
             commit(session)
 
         await db.run_db(_advance)
-        await progress_service.upsert_progress(user_id, slug, step_idx)
         if step_idx == 1:
             return f"{disclaimer()}\n\n{text}", False
         return text, False
@@ -168,7 +166,6 @@ async def next_step(
         slug,
     ) = await db.run_db(_advance_static)
     if step_content is not None and step_idx is not None:
-        await progress_service.upsert_progress(user_id, slug, step_idx)
         start = time.monotonic()
         try:
             text = await gpt_client.create_learning_chat_completion(
