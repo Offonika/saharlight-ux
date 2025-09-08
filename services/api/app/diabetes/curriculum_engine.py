@@ -24,13 +24,23 @@ from .services.repository import commit
 logger = logging.getLogger(__name__)
 
 
+class LessonNotFoundError(Exception):
+    """Raised when a lesson with a given slug does not exist."""
+
+    def __init__(self, slug: str) -> None:
+        super().__init__(f"lesson not found: {slug}")
+        self.slug = slug
+
+
 async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
     """Start or reset a lesson for a user and return progress."""
 
     def _start(session: Session) -> LessonProgress:
         lesson = session.execute(
             sa.select(Lesson).filter_by(slug=lesson_slug)
-        ).scalar_one()
+        ).scalar_one_or_none()
+        if lesson is None:
+            raise LessonNotFoundError(lesson_slug)
         progress = session.execute(
             sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson.id)
         ).scalar_one_or_none()

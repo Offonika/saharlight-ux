@@ -13,6 +13,7 @@ from telegram.ext import ApplicationHandlerStop, ContextTypes
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
 from . import curriculum_engine
+from .curriculum_engine import LessonNotFoundError
 from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
 from .handlers import learning_handlers as legacy_handlers
 from ..ui.keyboard import LEARN_BUTTON_TEXT
@@ -38,6 +39,8 @@ BUSY_KEY = "learn_busy"
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
+
+LESSON_NOT_FOUND_MESSAGE = "Учебные материалы недоступны, обратитесь в поддержку."
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
@@ -243,6 +246,11 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         text, _ = await curriculum_engine.next_step(
             user.id, progress.lesson_id, profile
         )
+    except LessonNotFoundError:
+        await message.reply_text(
+            LESSON_NOT_FOUND_MESSAGE, reply_markup=build_main_keyboard()
+        )
+        return
     except (
         SQLAlchemyError,
         OpenAIError,
@@ -295,6 +303,11 @@ async def _start_lesson(
         text, _ = await curriculum_engine.next_step(
             from_user.id, progress.lesson_id, profile
         )
+    except LessonNotFoundError:
+        await message.reply_text(
+            LESSON_NOT_FOUND_MESSAGE, reply_markup=build_main_keyboard()
+        )
+        return
     except (
         SQLAlchemyError,
         OpenAIError,
