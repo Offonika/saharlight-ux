@@ -1,5 +1,5 @@
 import { api } from '@/api';
-import { HttpError } from '@/lib/http';
+import { HttpError } from '@/api/http';
 import type { Profile, PatchProfileDto, RapidInsulin, TherapyType } from './types';
 
 export async function getProfile(): Promise<Profile | null> {
