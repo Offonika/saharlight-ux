@@ -43,7 +43,10 @@ async def create_user(
 
 
 @router.get("/user/{user_id}/role")
-async def get_role(user_id: int) -> RoleSchema:
+async def get_role(
+    user_id: int,
+    _: UserContext = Depends(require_tg_user),
+) -> RoleSchema:
     """Return user role."""
 
     role = await get_user_role(user_id)
@@ -51,8 +54,16 @@ async def get_role(user_id: int) -> RoleSchema:
 
 
 @router.put("/user/{user_id}/role")
-async def put_role(user_id: int, data: RoleSchema) -> RoleSchema:
+async def put_role(
+    user_id: int,
+    data: RoleSchema,
+    user: UserContext = Depends(require_tg_user),
+) -> RoleSchema:
     """Set user role."""
+
+    caller_role = await get_user_role(user["id"])
+    if caller_role != "superadmin":
+        raise HTTPException(status_code=403, detail="forbidden")
 
     await set_user_role(user_id, data.role)
     return RoleSchema(role=data.role)
