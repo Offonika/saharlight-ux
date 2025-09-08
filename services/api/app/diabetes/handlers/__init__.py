@@ -7,8 +7,6 @@ try:
 except ImportError:  # Python <3.12
     from typing_extensions import TypedDict
 
-from telegram import CallbackQuery
-
 
 class EntryData(TypedDict, total=False):
     """Data used to create or update an :class:`Entry`."""
@@ -26,6 +24,13 @@ class EntryData(TypedDict, total=False):
     photo_path: str | None
 
 
+class EditMessageMeta(TypedDict):
+    """Metadata about the message being edited."""
+
+    chat_id: int
+    message_id: int
+
+
 class UserData(TypedDict, total=False):
     """Mutable mapping used to store per-user state in handlers."""
 
@@ -37,7 +42,7 @@ class UserData(TypedDict, total=False):
     edit_id: int | None
     edit_entry: dict[str, object]
     edit_field: str
-    edit_query: CallbackQuery | None
+    edit_query: EditMessageMeta
     profile_icr: float
     profile_cf: float
     profile_target: float
@@ -49,4 +54,4 @@ class UserData(TypedDict, total=False):
 
 from .dose_calc import _cancel_then  # noqa: E402
 
-__all__ = ["_cancel_then", "EntryData", "UserData"]
+__all__ = ["_cancel_then", "EntryData", "EditMessageMeta", "UserData"]

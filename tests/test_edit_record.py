@@ -62,7 +62,6 @@ class DummyBot:
 
 @pytest.mark.asyncio
 async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
-    gpt_handlers.CallbackQuery = DummyQuery  # type: ignore[assignment, attr-defined]
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
     import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
@@ -125,7 +124,6 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
         assert entry_db.dose == 5.0
         day_str = entry_db.event_time.strftime("%d.%m %H:%M")
 
-    assert field_query.answer_texts[-1] == "Изменено"
     edited_text, chat_id, message_id, kwargs = context.bot.edited[0]
     assert chat_id == 42 and message_id == 24
     assert f"<b>{day_str}</b>" in edited_text
@@ -134,7 +132,6 @@ async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_edit_dose_commit_failure() -> None:
-    gpt_handlers.CallbackQuery = DummyQuery  # type: ignore[assignment, attr-defined]
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -151,14 +148,13 @@ async def test_edit_dose_commit_failure() -> None:
         entry_id = entry.id
 
     message = DummyMessage(text="5", chat_id=42, message_id=24)
-    edit_query = DummyQuery(message, f"edit_field:{entry_id}:dose")
     user_data = cast(
         UserData,
         {
             "edit_id": entry_id,
             "edit_field": "dose",
             "edit_entry": {"chat_id": 42, "message_id": 24},
-            "edit_query": edit_query,
+            "edit_query": {"chat_id": 42, "message_id": 24},
         },
     )
     context = cast(
@@ -178,7 +174,6 @@ async def test_edit_dose_commit_failure() -> None:
         commit=commit_fail,
     )
     assert result is True
-    assert edit_query.answer_texts[-1] == "Не удалось"
     assert message.replies[-1] == "⚠️ Не удалось сохранить запись."
     with TestSession() as session:
         entry_obj = session.get(Entry, entry_id)
