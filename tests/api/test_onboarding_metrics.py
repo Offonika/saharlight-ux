@@ -9,7 +9,10 @@ from sqlalchemy import Column, Date, Integer, MetaData, String, Table, create_en
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from services.api.app.config import settings
 from services.api.app.routers import metrics
+from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
+from tests.test_telegram_auth import TOKEN, build_init_data
 
 T = TypeVar("T")
 
@@ -72,12 +75,16 @@ def test_onboarding_metrics_by_day(monkeypatch: pytest.MonkeyPatch) -> None:
     session_local, d1, d2 = setup_db()
     patch_run_db(monkeypatch, session_local)
 
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data = build_init_data()
+
     from services.api.app.main import app
 
     with TestClient(app) as client:
         resp = client.get(
             "/api/metrics/onboarding",
             params={"from": d1.isoformat(), "to": d2.isoformat()},
+            headers={TG_INIT_DATA_HEADER: init_data},
         )
     assert resp.status_code == 200
     assert resp.json() == {
@@ -95,12 +102,16 @@ def test_onboarding_metrics_variant_filter(monkeypatch: pytest.MonkeyPatch) -> N
     session_local, d1, d2 = setup_db()
     patch_run_db(monkeypatch, session_local)
 
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data = build_init_data()
+
     from services.api.app.main import app
 
     with TestClient(app) as client:
         resp = client.get(
             "/api/metrics/onboarding",
             params={"from": d1.isoformat(), "to": d2.isoformat(), "variant": "A"},
+            headers={TG_INIT_DATA_HEADER: init_data},
         )
     assert resp.status_code == 200
     assert resp.json() == {
@@ -111,3 +122,53 @@ def test_onboarding_metrics_variant_filter(monkeypatch: pytest.MonkeyPatch) -> N
             "A": {"step1": 0.6, "step2": 0.0, "step3": 0.0, "completed": 0.4},
         },
     }
+
+
+def test_onboarding_metrics_requires_auth(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local, d1, d2 = setup_db()
+    patch_run_db(monkeypatch, session_local)
+
+    from services.api.app.main import app
+
+    with TestClient(app) as client:
+        resp = client.get(
+            "/api/metrics/onboarding",
+            params={"from": d1.isoformat(), "to": d2.isoformat()},
+        )
+    assert resp.status_code == 401
+
+
+def test_onboarding_metrics_invalid_dates(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local, d1, d2 = setup_db()
+    patch_run_db(monkeypatch, session_local)
+
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data = build_init_data()
+
+    from services.api.app.main import app
+
+    with TestClient(app) as client:
+        resp = client.get(
+            "/api/metrics/onboarding",
+            params={"from": d2.isoformat(), "to": d1.isoformat()},
+            headers={TG_INIT_DATA_HEADER: init_data},
+        )
+    assert resp.status_code == 422
+
+
+def test_onboarding_metrics_invalid_variant(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local, d1, d2 = setup_db()
+    patch_run_db(monkeypatch, session_local)
+
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data = build_init_data()
+
+    from services.api.app.main import app
+
+    with TestClient(app) as client:
+        resp = client.get(
+            "/api/metrics/onboarding",
+            params={"from": d1.isoformat(), "to": d2.isoformat(), "variant": "bad!"},
+            headers={TG_INIT_DATA_HEADER: init_data},
+        )
+    assert resp.status_code == 422

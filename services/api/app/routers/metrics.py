@@ -2,12 +2,14 @@ import logging
 from datetime import date
 from typing import cast
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from ..diabetes.services.db import SessionLocal, run_db
+from ..schemas.user import UserContext
+from ..telegram_auth import require_tg_user
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,7 @@ router = APIRouter()
 
 
 @router.get("/metrics")
-def get_metrics() -> Response:
+def get_metrics(_user: UserContext = Depends(require_tg_user)) -> Response:
     """Return Prometheus metrics."""
 
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
@@ -25,9 +27,18 @@ def get_metrics() -> Response:
 async def get_onboarding_metrics(
     from_: date = Query(alias="from"),
     to: date = Query(alias="to"),
-    variant: str | None = None,
+    variant: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=32,
+        pattern=r"^[A-Za-z0-9_-]+$",
+    ),
+    _user: UserContext = Depends(require_tg_user),
 ) -> dict[str, dict[str, dict[str, float]]]:
     """Return onboarding conversion metrics by day and variant."""
+
+    if from_ > to:
+        raise HTTPException(status_code=422, detail="from must be before to")
 
     def _query(session: Session) -> dict[str, dict[str, dict[str, float]]]:
         query = """
