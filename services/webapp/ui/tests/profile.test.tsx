@@ -564,6 +564,31 @@ describe('Profile page', () => {
     });
   });
 
+  it('sends sos settings when changed', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (saveProfile as vi.Mock).mockResolvedValue(undefined);
+    const { getByText, getByLabelText } = renderWithClient(<Profile />);
+    await waitFor(() => {
+      expect(getByText('Сохранить настройки')).toBeDefined();
+    });
+    const { t } = useTranslation();
+    const sosInput = getByLabelText(t('profileHelp.sosContact.title'), {
+      selector: 'input',
+    }) as HTMLInputElement;
+    fireEvent.change(sosInput, { target: { value: '112' } });
+    const sosToggle = getByLabelText(t('profileHelp.sosAlertsEnabled.title'));
+    fireEvent.click(sosToggle);
+
+    fireEvent.click(getByText('Сохранить настройки'));
+
+    await waitFor(() => {
+      expect(patchProfile).toHaveBeenCalledWith({
+        sosContact: '112',
+        sosAlertsEnabled: false,
+      });
+    });
+  });
+
   it('auto updates timezone on mount when timezoneAuto is true', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     (getProfile as vi.Mock).mockResolvedValue({

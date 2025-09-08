@@ -26,6 +26,8 @@ export type PatchProfileDto = Partial<
     | "rapidInsulinType"
     | "maxBolus"
     | "afterMealMinutes"
+    | "sosContact"
+    | "sosAlertsEnabled"
     | "therapyType"
   >
 >;

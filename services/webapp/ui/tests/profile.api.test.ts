@@ -172,4 +172,25 @@ describe('profile api', () => {
       expect.objectContaining({ method: 'PATCH' }),
     );
   });
+
+  it('sends sos fields in patchProfile', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response('{}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    vi.stubGlobal('fetch', mockFetch);
+
+    await patchProfile({ sosContact: '112', sosAlertsEnabled: false });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/profile',
+      expect.objectContaining({ method: 'PATCH' }),
+    );
+    const body = JSON.parse(mockFetch.mock.calls[0][1]!.body as string);
+    expect(body).toEqual({ sosContact: '112', sosAlertsEnabled: false });
+  });
 });

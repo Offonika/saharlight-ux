@@ -120,6 +120,14 @@ export const parseProfile = (
   );
 
   if (
+    profile.sosContact !== null &&
+    profile.sosContact !== '' &&
+    !/^\d+$/.test(profile.sosContact)
+  ) {
+    errors.sosContact = 'invalid';
+  }
+
+  if (
     low !== undefined &&
     high !== undefined &&
     target !== undefined &&
