@@ -192,6 +192,38 @@ async def test_get_coords_and_link_custom_source(
     assert link == "https://maps.google.com/?q=1,2"
 
 
+@pytest.mark.asyncio
+async def test_get_coords_and_link_env_change(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    urls: list[str] = []
+
+    async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
+        urls.append(url)
+
+        class Resp:
+            status_code = 200
+            headers = {"Content-Type": "application/json"}
+
+            def raise_for_status(self) -> None:  # pragma: no cover - dummy
+                pass
+
+            def json(self) -> dict[str, str]:
+                return {"loc": "1,2"}
+
+        return Resp()
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+
+    monkeypatch.setenv("GEO_DATA_URL", "http://first")
+    await utils.get_coords_and_link()
+
+    monkeypatch.setenv("GEO_DATA_URL", "http://second")
+    await utils.get_coords_and_link()
+
+    assert urls == ["http://first", "http://second"]
+
+
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
