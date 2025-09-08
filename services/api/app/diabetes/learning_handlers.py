@@ -238,8 +238,20 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
-    progress = await curriculum_engine.start_lesson(user.id, slug)
-    text, _ = await curriculum_engine.next_step(user.id, progress.lesson_id, profile)
+    try:
+        progress = await curriculum_engine.start_lesson(user.id, slug)
+        text, _ = await curriculum_engine.next_step(
+            user.id, progress.lesson_id, profile
+        )
+    except (
+        SQLAlchemyError,
+        OpenAIError,
+        httpx.HTTPError,
+        RuntimeError,
+    ) as exc:
+        logger.exception("lesson start failed: %s", exc)
+        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+        return
     if text is None or text == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
@@ -278,10 +290,20 @@ async def _start_lesson(
     from_user = getattr(message, "from_user", None)
     if from_user is None:
         return
-    progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
-    text, _ = await curriculum_engine.next_step(
-        from_user.id, progress.lesson_id, profile
-    )
+    try:
+        progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
+        text, _ = await curriculum_engine.next_step(
+            from_user.id, progress.lesson_id, profile
+        )
+    except (
+        SQLAlchemyError,
+        OpenAIError,
+        httpx.HTTPError,
+        RuntimeError,
+    ) as exc:
+        logger.exception("lesson start failed: %s", exc)
+        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+        return
     if text is None or text == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
