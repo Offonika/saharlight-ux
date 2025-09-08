@@ -40,19 +40,28 @@ export function buildHeaders(
 }
 
 export async function handleResponse<T>(res: Response): Promise<T> {
-  const isJson = res.headers
-    .get('content-type')
-    ?.includes('application/json');
+  const contentType = res.headers.get('content-type') ?? '';
+
+  if (!contentType.includes('application/json')) {
+    const text = await res.text().catch(() => '');
+    const message =
+      text ||
+      `Expected application/json response, got ${
+        contentType || 'unknown content-type'
+      }`;
+
+    if (!res.ok) {
+      throw new HttpError(res.status, message);
+    }
+
+    throw new Error(message);
+  }
 
   let data: unknown;
-  if (isJson) {
-    try {
-      data = await res.json();
-    } catch {
-      throw new Error('Некорректный ответ сервера');
-    }
-  } else {
-    data = await res.text();
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error('Некорректный ответ сервера');
   }
 
   if (!res.ok) {
@@ -101,3 +110,7 @@ export const httpClient = {
 };
 
 export type HttpClient = typeof httpClient;
+
+// Backward-compatible alias for tests
+export { httpRequest as request };
+

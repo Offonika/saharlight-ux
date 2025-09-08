@@ -1,4 +1,4 @@
-import { httpClient, RequestOptions } from '@/lib/http';
+import { httpClient, RequestOptions } from './http';
 
 export const api = {
   get: <T>(path: string, opts?: RequestOptions) =>
