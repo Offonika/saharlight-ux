@@ -57,6 +57,9 @@ def test_profile_post_saves_profile(
     monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
 ) -> None:
     SessionLocal = setup_db(monkeypatch)
+    with SessionLocal() as session:
+        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.commit()
     payload = {
         "telegramId": 1,
         "icr": 1.0,
@@ -83,7 +86,10 @@ def test_profile_post_saves_profile(
 def test_profile_post_invalid_icr_returns_422(
     monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
 ) -> None:
-    setup_db(monkeypatch)
+    SessionLocal = setup_db(monkeypatch)
+    with SessionLocal() as session:
+        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.commit()
     payload = {
         "telegramId": 1,
         "icr": 0,
@@ -97,3 +103,22 @@ def test_profile_post_invalid_icr_returns_422(
         resp = client.post("/api/profile", json=payload, headers=auth_headers)
     assert resp.status_code == 422
     assert resp.json() == {"detail": "icr must be greater than 0"}
+
+
+def test_profile_post_user_missing_returns_404(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    setup_db(monkeypatch)
+    payload = {
+        "telegramId": 1,
+        "icr": 1.0,
+        "cf": 1.0,
+        "target": 5.0,
+        "low": 4.0,
+        "high": 6.0,
+        "therapyType": "insulin",
+    }
+    with TestClient(server.app) as client:
+        resp = client.post("/api/profile", json=payload, headers=auth_headers)
+    assert resp.status_code == 404
+    assert resp.json() == {"detail": "user not found"}

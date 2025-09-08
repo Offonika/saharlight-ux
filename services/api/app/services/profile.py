@@ -66,8 +66,7 @@ async def patch_user_settings(
     def _patch(session: SessionProtocol) -> ProfileSchema:
         user = cast(User | None, session.get(User, telegram_id))
         if user is None:
-            user = User(telegram_id=telegram_id, thread_id="api")
-            cast(Session, session).add(user)
+            raise HTTPException(status_code=404, detail="user not found")
 
         profile = cast(Profile | None, session.get(Profile, telegram_id))
         if profile is None:
@@ -239,10 +238,8 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
     _validate_profile(data)
 
     def _save(session: SessionProtocol) -> None:
-        user = cast(User | None, session.get(User, data.telegramId))
-        if user is None:
-            user = User(telegram_id=data.telegramId, thread_id="api")
-            cast(Session, session).add(user)
+        if session.get(User, data.telegramId) is None:
+            raise HTTPException(status_code=404, detail="user not found")
 
         profile = cast(Profile | None, session.get(Profile, data.telegramId))
 

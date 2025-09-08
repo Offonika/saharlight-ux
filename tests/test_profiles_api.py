@@ -89,7 +89,7 @@ def test_profiles_get_db_connection_error_returns_503(
     assert resp.json() == {"detail": "database temporarily unavailable"}
 
 
-def test_profiles_post_creates_user_for_missing_telegram_id(
+def test_profiles_post_user_missing_returns_404(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     app = FastAPI()
@@ -114,7 +114,7 @@ def test_profiles_post_creates_user_for_missing_telegram_id(
     }
     with TestClient(app) as client:
         resp = client.post("/api/profiles", json=payload)
-    assert resp.status_code == 200
+    assert resp.status_code == 404
     engine.dispose()
 
 
@@ -222,6 +222,10 @@ def test_profiles_post_updates_existing_profile(
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(db, "SessionLocal", TestSession)
 
+    with TestSession() as session:
+        session.add(db.User(telegram_id=777, thread_id="t"))
+        session.commit()
+
     with TestClient(app) as client:
         payload = {
             "telegramId": 777,
@@ -268,6 +272,10 @@ def test_profiles_post_preserves_unspecified_fields(
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(db, "SessionLocal", TestSession)
+
+    with TestSession() as session:
+        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.commit()
 
     with TestClient(app) as client:
         payload = {
@@ -325,6 +333,10 @@ def test_profiles_post_partial_update_multiple_fields(
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(db, "SessionLocal", TestSession)
 
+    with TestSession() as session:
+        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.commit()
+
     with TestClient(app) as client:
         base_payload = {
             "telegramId": 1,
@@ -369,6 +381,9 @@ def test_profiles_post_call_order_idempotent(
         Base.metadata.create_all(engine)
         TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
         monkeypatch.setattr(db, "SessionLocal", TestSession)
+        with TestSession() as session:
+            session.add(db.User(telegram_id=1, thread_id="t"))
+            session.commit()
         client = TestClient(app)
         return client, engine
 
