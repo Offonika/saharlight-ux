@@ -31,7 +31,7 @@ def test_ping_down(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fail_run_db(
         *args: object, **kwargs: object
     ) -> None:  # pragma: no cover - used in test
-        raise RuntimeError("fail")
+        raise sa.exc.SQLAlchemyError("fail")
 
     monkeypatch.setattr(health, "run_db", fail_run_db, raising=False)
     with TestClient(server.app) as client:

@@ -5,13 +5,13 @@ import time
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+
+from services.api.app import config
 from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
 from openai import OpenAIError
-
-from services.api.app import config
 from services.api.app.diabetes.services import gpt_client
 from services.api.app.config import settings
 
@@ -249,7 +249,7 @@ async def test_send_message_run_timeout(
 
 
 @pytest.mark.asyncio
-async def test_upload_image_file(tmp_path: Path) -> None:
+async def test_upload_image_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 
@@ -258,8 +258,11 @@ async def test_upload_image_file(tmp_path: Path) -> None:
         assert file.read() == b"data"
         return SimpleNamespace(id="f1")
 
+    monkeypatch.setattr(
+        config, "get_settings", lambda: SimpleNamespace(photos_dir=str(tmp_path))
+    )
     fake_client = SimpleNamespace(files=SimpleNamespace(create=fake_files_create))
-    file = await gpt_client._upload_image_file(fake_client, str(img))
+    file = await gpt_client._upload_image_file(fake_client, "img.jpg")
     assert file.id == "f1"
 
 
@@ -409,7 +412,9 @@ async def test_create_chat_completion_uses_env_api_key(
 
 
 def test_validate_image_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    monkeypatch.setattr(settings, "photos_dir", str(tmp_path))
+    monkeypatch.setattr(
+        config, "get_settings", lambda: SimpleNamespace(photos_dir=str(tmp_path))
+    )
     (tmp_path / "img.jpg").write_bytes(b"data")
     resolved = gpt_client._validate_image_path("img.jpg")
     assert resolved == str((tmp_path / "img.jpg").resolve())

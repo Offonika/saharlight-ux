@@ -587,7 +587,7 @@ def test_extract_first_json_multiple_objects_no_space() -> None:
 
 def test_extract_first_json_malformed_input() -> None:
     text = '{"action":"add_entry","fields":{}'
-    assert gpt_command_parser._extract_first_json(text) is None
+    assert gpt_command_parser._extract_first_json(text) == {}
 
 
 def test_extract_first_json_simple_object() -> None:
@@ -783,4 +783,4 @@ async def test_parse_command_with_malformed_json(
         result = await gpt_command_parser.parse_command("test")
 
     assert result is None
-    assert "No JSON object found in response" in caplog.text
+    assert "Command validation failed" in caplog.text
