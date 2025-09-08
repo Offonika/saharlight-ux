@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -63,3 +64,19 @@ async def test_record_turn_updates_summary(
     )
     mem = await memory_service.get_memory(1)
     assert mem.summary_text == "bye"
+
+
+@pytest.mark.asyncio
+async def test_record_turn_concurrent(
+    setup_db: sessionmaker[Session],
+) -> None:
+    now = datetime.now(tz=timezone.utc)
+
+    async def call(i: int) -> None:
+        await memory_service.record_turn(1, now=now + timedelta(minutes=i))
+
+    await asyncio.gather(*(call(i) for i in range(10)))
+
+    mem = await memory_service.get_memory(1)
+    assert mem is not None
+    assert mem.turn_count == 10
