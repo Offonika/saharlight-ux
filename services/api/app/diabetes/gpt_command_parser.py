@@ -64,6 +64,8 @@ API_KEY_RE = re.compile(
     rf"[A-Za-z0-9_-]{{{API_KEY_MIN_LENGTH},}}\b"
 )
 
+ACTIONS_REQUIRE_FIELDS: set[str] = {"add_entry", "update_entry"}
+
 
 def _sanitize_sensitive_data(text: str) -> str:
     """Mask potentially sensitive tokens in *text* before logging."""
@@ -242,7 +244,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
         logger.exception("Command validation failed for action=%s", action)
         return None
     cmd_dict = cmd.model_dump(exclude_none=True)
-    if cmd.action != "get_day_summary" and "fields" not in cmd_dict:
+    if cmd.action in ACTIONS_REQUIRE_FIELDS and "fields" not in cmd_dict:
         logger.error("Missing fields for action=%s", cmd.action)
         return None
     return cmd_dict
