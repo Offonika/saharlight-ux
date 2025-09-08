@@ -1,64 +1,56 @@
+"""Service for storing user learning progress."""
+
 from __future__ import annotations
 
-import logging
-from datetime import datetime
-from typing import cast
+from typing import Any, cast
 
 import sqlalchemy as sa
-from sqlalchemy import BigInteger, Integer, String, TIMESTAMP, func
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Mapped, Session, mapped_column
+from sqlalchemy.orm import Session
 
-from ...diabetes.services.db import Base, SessionLocal, run_db
+from ...diabetes.models_learning import LearningProgress
+from ...diabetes.services.db import SessionLocal, run_db
 from ...diabetes.services.repository import commit
 from ...types import SessionProtocol
 
-logger = logging.getLogger(__name__)
+__all__ = ["LearningProgress", "get_progress", "upsert_progress"]
 
 
-class Progress(Base):
-    """Store learning progress for a user and a lesson."""
+async def get_progress(user_id: int, plan_id: int) -> LearningProgress | None:
+    """Return progress for a user and plan if present."""
 
-    __tablename__ = "assistant_progress"
-
-    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    lesson: Mapped[str] = mapped_column(String, primary_key=True)
-    step: Mapped[int] = mapped_column(Integer, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=func.now(), nullable=False
-    )
-
-
-__all__ = ["Progress", "get_progress", "upsert_progress"]
-
-
-async def get_progress(user_id: int, lesson: str) -> Progress | None:
-    """Return stored progress for ``user_id`` and ``lesson`` if any."""
-
-    def _get(session: SessionProtocol) -> Progress | None:
-        stmt = sa.select(Progress).where(
-            Progress.user_id == user_id, Progress.lesson == lesson
+    def _get(session: SessionProtocol) -> LearningProgress | None:
+        stmt = sa.select(LearningProgress).where(
+            LearningProgress.user_id == user_id,
+            LearningProgress.plan_id == plan_id,
         )
-        result = session.execute(stmt).scalar_one_or_none()
-        return cast(Progress | None, result)
+        sess = cast(Session, session)
+        return cast(LearningProgress | None, sess.scalar(stmt))
 
     return await run_db(_get, sessionmaker=SessionLocal)
 
 
-async def upsert_progress(user_id: int, lesson: str, step: int) -> None:
-    """Insert or update progress ensuring idempotency."""
+async def upsert_progress(
+    user_id: int, plan_id: int, progress_json: dict[str, Any]
+) -> LearningProgress:
+    """Insert or update learning progress for a user and plan."""
 
-    def _upsert(session: SessionProtocol) -> None:
-        stmt = insert(Progress).values(user_id=user_id, lesson=lesson, step=step)
-        session.execute(
-            stmt.on_conflict_do_update(
-                index_elements=[Progress.user_id, Progress.lesson],
-                set_={
-                    "step": sa.func.max(Progress.step, stmt.excluded.step),
-                    "updated_at": func.now(),
-                },
-            )
+    def _upsert(session: SessionProtocol) -> LearningProgress:
+        stmt = sa.select(LearningProgress).where(
+            LearningProgress.user_id == user_id,
+            LearningProgress.plan_id == plan_id,
         )
-        commit(cast(Session, session))
+        sess = cast(Session, session)
+        progress = cast(LearningProgress | None, sess.scalar(stmt))
+        if progress is None:
+            progress = LearningProgress(
+                user_id=user_id, plan_id=plan_id, progress_json=progress_json
+            )
+            sess.add(progress)
+        else:
+            progress.progress_json = progress_json
+        commit(sess)
+        sess.refresh(progress)
+        return progress
 
-    await run_db(_upsert, sessionmaker=SessionLocal)
+    return await run_db(_upsert, sessionmaker=SessionLocal)
+

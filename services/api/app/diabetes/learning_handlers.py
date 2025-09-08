@@ -27,7 +27,7 @@ from .services.gpt_client import (
 )
 from services.api.app.assistant.repositories.logs import add_lesson_log
 from services.api.app.assistant.repositories import plans as plans_repo
-from services.api.app.assistant.repositories import progress as progress_repo
+from services.api.app.assistant.services import progress_service
 from .planner import generate_learning_plan, pretty_plan
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ async def _persist(
         }
         progress[user_id] = data
         try:
-            await progress_repo.upsert_progress(user_id, plan_id, data)
+            await progress_service.upsert_progress(user_id, plan_id, data)
         except (
             SQLAlchemyError,
             RuntimeError,
@@ -132,7 +132,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
                 return True
             plan = db_plan.plan_json
             plan_id = db_plan.id
-            db_progress = await progress_repo.get_progress(user.id, plan_id)
+            db_progress = await progress_service.get_progress(user.id, plan_id)
             if db_progress is None:
                 return True
             data = db_progress.progress_json
@@ -166,7 +166,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         data["snapshot"] = snapshot
         progress_map[user.id] = data
         try:
-            await progress_repo.upsert_progress(user.id, plan_id, data)
+            await progress_service.upsert_progress(user.id, plan_id, data)
         except (
             SQLAlchemyError,
             RuntimeError,
