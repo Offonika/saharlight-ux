@@ -690,6 +690,37 @@ def test_extract_first_json_braces_and_quotes_inside_string_field() -> None:
     }
 
 
+def test_extract_first_json_deep_nested_arrays() -> None:
+    text = (
+        'start {"action":"add_entry","fields":{"matrix":[[1,2],[3,{"v":[4,5]}]]}}'
+        " end"
+    )
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {"matrix": [[1, 2], [3, {"v": [4, 5]}]]},
+    }
+
+
+def test_extract_first_json_quotes_inside_value() -> None:
+    text = '{"action":"add_entry","fields":{"note":"He said \\"Hello\\""}}'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {"note": 'He said "Hello"'},
+    }
+
+
+def test_extract_first_json_three_objects_in_row() -> None:
+    text = (
+        '{"action":"add_entry","fields":{}}'
+        '{"action":"delete_entry","fields":{}}'
+        '{"action":"update_entry","fields":{}}'
+    )
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
 @pytest.mark.asyncio
 async def test_parse_command_with_multiple_jsons(
     monkeypatch: pytest.MonkeyPatch,

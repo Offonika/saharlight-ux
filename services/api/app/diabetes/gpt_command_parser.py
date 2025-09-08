@@ -75,15 +75,15 @@ def _sanitize_sensitive_data(text: str) -> str:
 def _extract_first_json(text: str) -> dict[str, object] | None:
     """Return the first complete JSON object found in *text*.
 
-    The function iterates over *text* character by character keeping track of
-    string literals and escape sequences.  This allows it to correctly ignore
-    braces that appear inside quoted strings and extract the first JSON object
-    or a single dictionary within a top-level array.  Other structures are
-    skipped.
+    The function scans *text* while skipping characters inside string literals
+    and uses :func:`json.JSONDecoder.raw_decode` to parse potential JSON
+    segments.  It returns the first dictionary found or, for a top-level array,
+    the first element when the array contains exactly one dictionary.
     """
 
-    length = len(text)
+    decoder = json.JSONDecoder()
     i = 0
+    length = len(text)
     in_str = False
     escape = False
     quote = ""
@@ -107,54 +107,18 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
         if ch not in "{[":
             i += 1
             continue
-        if i > 0 and text[i - 1] not in " \t\r\n,[":
-            i += 1
-            continue
 
-        start = i
-        stack: list[str] = [ch]
-        i += 1
-        inner_in_str = False
-        inner_escape = False
-        inner_quote = ""
-
-        while i < length and stack:
-            c = text[i]
-            if inner_in_str:
-                if inner_escape:
-                    inner_escape = False
-                elif c == "\\":
-                    inner_escape = True
-                elif c == inner_quote:
-                    inner_in_str = False
-            else:
-                if c in {'"', "'"}:
-                    inner_in_str = True
-                    inner_quote = c
-                elif c in "{[":
-                    stack.append(c)
-                elif c == "}" and stack[-1] == "{":
-                    stack.pop()
-                elif c == "]" and stack[-1] == "[":
-                    stack.pop()
-            i += 1
-
-        if stack:
-            i = start + 1
-            continue
-
-        candidate = text[start:i]
         try:
-            obj = cast(object, json.loads(candidate))
+            obj, end = decoder.raw_decode(text, i)
         except json.JSONDecodeError:
-            i = start + 1
+            i += 1
             continue
+
+        i = end
         if isinstance(obj, dict):
             return obj
-        if isinstance(obj, list):
-            if len(obj) == 1 and isinstance(obj[0], dict):
-                return obj[0]
-            continue
+        if isinstance(obj, list) and len(obj) == 1 and isinstance(obj[0], dict):
+            return obj[0]
 
     return None
 
