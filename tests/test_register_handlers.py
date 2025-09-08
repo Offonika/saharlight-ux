@@ -151,6 +151,8 @@ def test_register_handlers_attaches_expected_handlers(
     assert any(
         isinstance(h, CallbackQueryHandler)
         and h.callback is learning_onboarding.onboarding_callback
+        and h.pattern
+        and h.pattern.pattern == f"^{learning_onboarding.CB_PREFIX}"
         for h in handlers
     )
     assert any(
