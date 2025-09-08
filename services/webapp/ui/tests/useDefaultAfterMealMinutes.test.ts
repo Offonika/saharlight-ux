@@ -29,8 +29,8 @@ describe('useDefaultAfterMealMinutes', () => {
     });
   });
 
-  it('returns default when profile is null', async () => {
-    (getProfile as vi.Mock).mockResolvedValue(null);
+  it('returns default when profile is missing', async () => {
+    (getProfile as vi.Mock).mockRejectedValue(new Error('missing'));
     const { result } = renderHook(() => useDefaultAfterMealMinutes(1));
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalled();

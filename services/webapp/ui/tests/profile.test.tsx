@@ -6,11 +6,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 const toast = vi.fn();
 let searchParams = new URLSearchParams();
 
-vi.mock('../src/features/profile/api', () => ({
-  saveProfile: vi.fn(),
-  getProfile: vi.fn(),
-  patchProfile: vi.fn(),
-}));
+vi.mock('../src/features/profile/api', async () => {
+  const actual = await vi.importActual<
+    typeof import('../src/features/profile/api')
+  >('../src/features/profile/api');
+  return {
+    ...actual,
+    saveProfile: vi.fn(),
+    getProfile: vi.fn(),
+    patchProfile: vi.fn(),
+  };
+});
 
 vi.mock('../src/hooks/use-toast', () => ({
   useToast: () => ({ toast }),
@@ -38,7 +44,12 @@ vi.mock('../src/pages/resolveTelegramId', () => ({
 }));
 
 import Profile from '../src/pages/Profile';
-import { saveProfile, getProfile, patchProfile } from '../src/features/profile/api';
+import {
+  saveProfile,
+  getProfile,
+  patchProfile,
+  ProfileNotRegisteredError,
+} from '../src/features/profile/api';
 
 const renderWithClient = (ui: React.ReactElement) =>
   render(
@@ -859,15 +870,17 @@ describe('Profile page', () => {
     expect(patchProfile).not.toHaveBeenCalled();
   });
 
-  it('renders empty form when profile is missing', async () => {
+  it('shows toast when profile is missing', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
-    (getProfile as vi.Mock).mockResolvedValue(null);
+    (getProfile as vi.Mock).mockRejectedValue(
+      new ProfileNotRegisteredError('missing'),
+    );
 
     const { getByPlaceholderText } = renderWithClient(<Profile />);
     await waitFor(() => {
       expect(getProfile).toHaveBeenCalled();
     });
-    expect(toast).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenCalled();
     expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('');
   });
 

@@ -13,7 +13,12 @@ import HelpHint from "@/components/HelpHint";
 import ProfileHelpSheet from "@/components/ProfileHelpSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTranslation } from "@/i18n";
-import { saveProfile, getProfile, patchProfile } from "@/features/profile/api";
+import {
+  saveProfile,
+  getProfile,
+  patchProfile,
+  ProfileNotRegisteredError,
+} from "@/features/profile/api";
 import type {
   PatchProfileDto,
   RapidInsulin,
@@ -169,10 +174,6 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     getProfile()
       .then((data) => {
         if (cancelled) return;
-        if (!data) {
-          setLoaded(true);
-          return;
-        }
 
         const icr =
           typeof data.icr === "number" && data.icr > 0
@@ -300,6 +301,19 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       })
       .catch((error: unknown) => {
         if (cancelled) return;
+        if (error instanceof ProfileNotRegisteredError) {
+          if (!isOnboardingFlow) {
+            toast({
+              title: 'Registration required',
+              description:
+                'User not registered—please complete onboarding.',
+              variant: 'destructive',
+            });
+            navigate('/profile?flow=onboarding&step=profile');
+          }
+          setLoaded(true);
+          return;
+        }
         const message = error instanceof Error ? error.message : String(error);
         toast({
           title: t('profile.error'),

@@ -40,7 +40,11 @@ vi.mock('../src/features/profile/api', async () => {
     ...actual,
     saveProfile: vi.fn(),
     patchProfile: vi.fn(),
-    getProfile: vi.fn().mockResolvedValue(null),
+    getProfile: vi
+      .fn()
+      .mockRejectedValue(
+        new actual.ProfileNotRegisteredError('missing'),
+      ),
   };
 });
 
@@ -114,8 +118,7 @@ describe('Profile onboarding', () => {
     });
   });
 
-  it('renders empty form when profile is missing (404)', async () => {
-    (getProfile as vi.Mock).mockResolvedValueOnce(null);
+  it('shows toast when profile is missing (404)', async () => {
     const { getByPlaceholderText } = render(
       <QueryClientProvider client={new QueryClient()}>
         <Profile />
@@ -123,7 +126,7 @@ describe('Profile onboarding', () => {
     );
 
     await waitFor(() => {
-      expect(toast).not.toHaveBeenCalled();
+      expect(toast).toHaveBeenCalled();
     });
 
     expect((getByPlaceholderText('6.0') as HTMLInputElement).value).toBe('');

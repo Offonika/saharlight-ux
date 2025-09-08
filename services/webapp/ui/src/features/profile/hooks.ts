@@ -14,7 +14,7 @@ export function useDefaultAfterMealMinutes(
     getProfile()
       .then((profile) => {
         if (cancelled) return;
-        const minutes = profile?.afterMealMinutes;
+        const minutes = profile.afterMealMinutes;
         setValue(
           typeof minutes === "number"
             ? minutes

@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getProfile, saveProfile, patchProfile } from '../src/features/profile/api';
+import {
+  getProfile,
+  saveProfile,
+  patchProfile,
+  ProfileNotRegisteredError,
+} from '../src/features/profile/api';
 
 vi.mock('@/lib/telegram-auth', () => ({
   getTelegramAuthHeaders: () => ({}),
@@ -31,7 +36,7 @@ describe('profile api', () => {
     );
   });
 
-  it('returns null when profile not found', async () => {
+  it('throws ProfileNotRegisteredError when profile not found', async () => {
     const mockFetch = vi
       .fn()
       .mockResolvedValue(
@@ -42,8 +47,29 @@ describe('profile api', () => {
       );
     vi.stubGlobal('fetch', mockFetch);
 
-    const result = await getProfile();
-    expect(result).toBeNull();
+    await expect(getProfile()).rejects.toBeInstanceOf(
+      ProfileNotRegisteredError,
+    );
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/profile',
+      expect.any(Object),
+    );
+  });
+
+  it('throws ProfileNotRegisteredError on 422 response', async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ detail: 'bad' }), {
+          status: 422,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+    vi.stubGlobal('fetch', mockFetch);
+
+    await expect(getProfile()).rejects.toBeInstanceOf(
+      ProfileNotRegisteredError,
+    );
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profile',
       expect.any(Object),
