@@ -3,12 +3,13 @@ from __future__ import annotations
 import asyncio
 import datetime
 import html
+import io
 import logging
 from typing import cast
 
 from openai import OpenAIError
 from telegram import Message, Update
-from telegram.constants import ChatAction
+from telegram.constants import ChatAction, MessageLimit
 from telegram.error import TelegramError
 from telegram.ext import ContextTypes, ConversationHandler
 
@@ -265,11 +266,26 @@ async def photo_handler(
                 vision_text,
                 user_id,
             )
-            await message.reply_text(
+            text = (
                 "⚠️ Не смог разобрать углеводы на фото.\n\n"
                 f"Вот полный ответ Vision:\n<pre>{html.escape(vision_text)}</pre>\n"
-                "Введите /dose и укажите их вручную.",
-                parse_mode="HTML",
+                "Введите /dose и укажите их вручную."
+            )
+            parse_mode: str | None = "HTML"
+            if len(text) > MessageLimit.MAX_TEXT_LENGTH:
+                await message.reply_document(
+                    document=io.BytesIO(vision_text.encode("utf-8")),
+                    filename="vision.txt",
+                )
+                text = (
+                    "⚠️ Не смог разобрать углеводы на фото.\n\n"
+                    "⚠️ Ответ Vision слишком длинный, полный текст во вложении.\n"
+                    "Введите /dose и укажите их вручную."
+                )
+                parse_mode = None
+            await message.reply_text(
+                text,
+                parse_mode=parse_mode,
                 reply_markup=build_main_keyboard(),
             )
             user_data.pop("pending_entry", None)
@@ -309,10 +325,28 @@ async def photo_handler(
                     exc,
                 )
                 raise
-        await message.reply_text(
-            f"🍽️ На фото:\n{vision_text}\n\nВведите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина.",
-            reply_markup=build_main_keyboard(),
-        )
+        prefix = "🍽️ На фото:\n"
+        suffix = "Введите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина."
+        text = f"{prefix}{vision_text}\n\n{suffix}"
+        if len(text) > MessageLimit.MAX_TEXT_LENGTH:
+            notice = "⚠️ Ответ Vision слишком длинный, полный текст во вложении."
+            max_len = max(
+                0,
+                MessageLimit.MAX_TEXT_LENGTH
+                - len(prefix)
+                - len("\n\n")
+                - len(notice)
+                - len("\n\n")
+                - len(suffix)
+                - 3,
+            )
+            truncated = vision_text[:max_len] + "..."
+            await message.reply_document(
+                document=io.BytesIO(vision_text.encode("utf-8")),
+                filename="vision.txt",
+            )
+            text = f"{prefix}{truncated}\n\n{notice}\n\n{suffix}"
+        await message.reply_text(text, reply_markup=build_main_keyboard())
         return PHOTO_SUGAR
 
     except OSError as exc:
