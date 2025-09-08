@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from sqlalchemy import create_engine
@@ -65,7 +65,9 @@ async def test_hydration_restores_state(monkeypatch: pytest.MonkeyPatch) -> None
         session.add(db.User(telegram_id=1, thread_id=""))
         session.commit()
     plan_id = await plans_repo.create_plan(1, version=1, plan_json=["p1"])
-    await progress_repo.upsert_progress(1, plan_id, {"topic": "t1", "module_idx": 2, "step_idx": 3})
+    await progress_repo.upsert_progress(
+        1, plan_id, {"topic": "t1", "module_idx": 2, "step_idx": 3}
+    )
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
@@ -85,8 +87,12 @@ async def test_hydration_restores_state(monkeypatch: pytest.MonkeyPatch) -> None
         state = learning_handlers.get_state(context.user_data)
         called["state"] = state
 
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
-    monkeypatch.setattr(learning_handlers, "lesson_answer_handler", fake_lesson_answer_handler)
+    monkeypatch.setattr(
+        learning_handlers, "generate_step_text", fake_generate_step_text
+    )
+    monkeypatch.setattr(
+        learning_handlers, "lesson_answer_handler", fake_lesson_answer_handler
+    )
     monkeypatch.setattr(learning_handlers.settings, "learning_mode_enabled", True)
     monkeypatch.setattr(learning_handlers.settings, "learning_content_mode", "dynamic")
 
@@ -112,5 +118,76 @@ async def test_hydration_restores_state(monkeypatch: pytest.MonkeyPatch) -> None
     assert data["learning_module_idx"] == 2
     assert data["learning_plan_index"] == 2
     assert data["learning_plan"] == ["p1"]
+
+    await app.shutdown()
+
+
+@pytest.mark.asyncio()
+async def test_hydration_busy_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    session_local = sessionmaker(bind=engine, class_=Session)
+    db.Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(plans_repo, "SessionLocal", session_local)
+    monkeypatch.setattr(progress_repo, "SessionLocal", session_local)
+
+    with session_local() as session:
+        session.add(db.User(telegram_id=1, thread_id=""))
+        session.commit()
+    plan_id = await plans_repo.create_plan(1, version=1, plan_json=["p1"])
+    await progress_repo.upsert_progress(
+        1, plan_id, {"topic": "t1", "module_idx": 2, "step_idx": 3}
+    )
+
+    bot = DummyBot()
+    app = Application.builder().bot(bot).build()
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, learning_handlers.on_any_text)
+    )
+    await app.initialize()
+
+    async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
+        return learning_handlers.BUSY_MESSAGE
+
+    called: dict[str, Any] = {}
+
+    async def fake_upsert_progress(*args: object, **kwargs: object) -> None:
+        called["upsert"] = True
+
+    async def fake_lesson_answer_handler(update: Update, context: Any) -> None:
+        called["lesson"] = True
+
+    monkeypatch.setattr(
+        learning_handlers, "generate_step_text", fake_generate_step_text
+    )
+    monkeypatch.setattr(progress_repo, "upsert_progress", fake_upsert_progress)
+    monkeypatch.setattr(
+        learning_handlers, "lesson_answer_handler", fake_lesson_answer_handler
+    )
+    monkeypatch.setattr(learning_handlers.settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(learning_handlers.settings, "learning_content_mode", "dynamic")
+
+    user = User(id=1, is_bot=False, first_name="T")
+    chat = Chat(id=1, type="private")
+    msg = Message(
+        message_id=1,
+        date=datetime.now(),
+        chat=chat,
+        from_user=user,
+        text="answer",
+    )
+    msg._bot = bot
+
+    await app.process_update(Update(update_id=1, message=msg))
+
+    assert bot.sent == [learning_handlers.BUSY_MESSAGE]
+    assert "upsert" not in called
+    assert "lesson" not in called
+    assert learning_handlers.get_state(app.user_data[1]) is None
+    progress_map = cast(dict[int, Any], app.bot_data[learning_handlers.PROGRESS_KEY])
+    assert "snapshot" not in progress_map[1]
 
     await app.shutdown()
