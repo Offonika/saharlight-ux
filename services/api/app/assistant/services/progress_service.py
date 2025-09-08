@@ -54,7 +54,7 @@ async def upsert_progress(user_id: int, lesson: str, step: int) -> None:
             stmt.on_conflict_do_update(
                 index_elements=[Progress.user_id, Progress.lesson],
                 set_={
-                    "step": sa.func.max(Progress.step, stmt.excluded.step),
+                    "step": sa.func.greatest(Progress.step, stmt.excluded.step),
                     "updated_at": func.now(),
                 },
             )

@@ -20,6 +20,9 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> None:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+    conn = engine.raw_connection()
+    conn.create_function("greatest", 2, lambda a, b: max(a, b))
+    conn.close()
     SessionLocal = sessionmaker(bind=engine, class_=Session)
     monkeypatch.setattr(db, "SessionLocal", SessionLocal, raising=False)
     monkeypatch.setattr(progress_service, "SessionLocal", SessionLocal, raising=False)
@@ -51,7 +54,9 @@ async def test_upsert_updates_timestamp() -> None:
 
 
 @pytest.mark.asyncio
-async def test_upsert_progress_concurrent(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_upsert_progress_concurrent_keeps_max_step(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     step_ctx: contextvars.ContextVar[int] = contextvars.ContextVar("step")
 
     original_commit = progress_service.commit
@@ -71,7 +76,7 @@ async def test_upsert_progress_concurrent(monkeypatch: pytest.MonkeyPatch) -> No
         finally:
             step_ctx.reset(token)
 
-    await asyncio.gather(upsert(1), upsert(2))
+    await asyncio.gather(*(upsert(s) for s in (1, 2, 3)))
     progress = await progress_service.get_progress(1, "intro")
     assert progress is not None
-    assert progress.step == 2
+    assert progress.step == 3
