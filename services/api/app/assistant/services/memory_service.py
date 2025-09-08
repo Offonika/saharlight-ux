@@ -108,7 +108,7 @@ async def cleanup_old_memory(ttl: timedelta | None = None) -> None:
         deleted = (
             session.query(AssistantMemory)
             .where(AssistantMemory.last_turn_at < cutoff)
-            .delete()
+            .delete(synchronize_session=False)
         )
         commit(session)
         return deleted
