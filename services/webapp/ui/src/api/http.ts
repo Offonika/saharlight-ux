@@ -30,10 +30,14 @@ export async function request<T>(
       return null;
     }
 
-    // Check if response is HTML (backend not available) - do this BEFORE parsing JSON
+    // Validate content type before parsing
     const contentType = res.headers.get('content-type');
     if (contentType?.includes('text/html')) {
       throw new Error('Backend returned HTML instead of JSON');
+    }
+    if (!contentType?.includes('application/json')) {
+      const type = contentType ?? 'unknown';
+      throw new Error(`Unexpected content-type: ${type}`);
     }
 
     const data = (await res.json()) as Record<string, unknown>;
