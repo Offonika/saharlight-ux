@@ -8,6 +8,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 import sqlalchemy as sa
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from services.api.app.diabetes.services.db import SessionLocal, run_db
@@ -34,7 +35,7 @@ async def ping() -> JSONResponse:
 
     try:
         await run_db(_ping, sessionmaker=SessionLocal)
-    except Exception:
+    except SQLAlchemyError:
         logger.exception("Database ping failed")
         return JSONResponse({"status": "down"}, status_code=503)
 
