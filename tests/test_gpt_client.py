@@ -407,3 +407,26 @@ async def test_create_chat_completion_uses_env_api_key(
     assert content == "hi"
     async_client_mock.assert_awaited_once()
 
+
+def test_validate_image_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(settings, "photos_dir", str(tmp_path))
+    (tmp_path / "img.jpg").write_bytes(b"data")
+    resolved = gpt_client._validate_image_path("img.jpg")
+    assert resolved == str((tmp_path / "img.jpg").resolve())
+
+
+def test_validate_image_path_rejects_absolute(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(settings, "photos_dir", str(tmp_path))
+    with pytest.raises(ValueError):
+        gpt_client._validate_image_path("/etc/passwd")
+
+
+def test_validate_image_path_rejects_parent(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(settings, "photos_dir", str(tmp_path))
+    with pytest.raises(ValueError):
+        gpt_client._validate_image_path("../img.jpg")
+

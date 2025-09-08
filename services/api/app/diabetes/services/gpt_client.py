@@ -8,6 +8,7 @@ import re
 import threading
 import time
 from collections import OrderedDict
+from pathlib import Path
 from typing import Iterable, Mapping, cast
 
 import httpx
@@ -280,26 +281,63 @@ async def create_thread() -> str:
     return thread.id
 
 
+def _validate_image_path(image_path: str) -> str:
+    """Return absolute path within ``settings.photos_dir`` if valid.
+
+    The function rejects absolute paths and any path containing ``..`` to
+    prevent directory traversal.  The returned path is resolved against the
+    ``photos_dir`` configured in application settings.
+
+    Parameters
+    ----------
+    image_path:
+        User-supplied relative path to the image file.
+
+    Returns
+    -------
+    str
+        Absolute path of the image within the allowed directory.
+
+    Raises
+    ------
+    ValueError
+        If the path is absolute, contains ``..`` components or resolves
+        outside of ``settings.photos_dir``.
+    """
+
+    path_obj = Path(image_path)
+    if path_obj.is_absolute() or image_path.startswith("~") or ".." in path_obj.parts:
+        raise ValueError("Invalid image path")
+
+    settings = config.get_settings()
+    root_dir = Path(settings.photos_dir).resolve()
+    abs_path = (root_dir / path_obj).resolve()
+    if not str(abs_path).startswith(str(root_dir) + os.sep):
+        raise ValueError("Image path outside of allowed directory")
+    return str(abs_path)
+
+
 async def _upload_image_file(client: OpenAI, image_path: str) -> FileObject:
     """Upload an image from filesystem and return the created file object."""
+    safe_path = _validate_image_path(image_path)
     try:
 
         def _upload() -> FileObject:
-            with open(image_path, "rb") as f:
+            with open(safe_path, "rb") as f:
                 return client.files.create(file=f, purpose="vision")
 
         file = await asyncio.wait_for(asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT)
     except asyncio.TimeoutError:
-        logger.exception("[OpenAI] Timeout while uploading %s", image_path)
+        logger.exception("[OpenAI] Timeout while uploading %s", safe_path)
         raise RuntimeError("Timed out while uploading image")
     except OSError as exc:
-        logger.exception("[OpenAI] Failed to read %s: %s", image_path, exc)
+        logger.exception("[OpenAI] Failed to read %s: %s", safe_path, exc)
         raise
     except OpenAIError as exc:
-        logger.exception("[OpenAI] Failed to upload %s: %s", image_path, exc)
+        logger.exception("[OpenAI] Failed to upload %s: %s", safe_path, exc)
         raise
     else:
-        logger.info("[OpenAI] Uploaded image %s, file_id=%s", image_path, file.id)
+        logger.info("[OpenAI] Uploaded image %s, file_id=%s", safe_path, file.id)
         return file
 
 
@@ -338,9 +376,12 @@ async def send_message(
     content: str | None
         Text message to send.  Must be provided if no image is supplied.
     image_path: str | None
-        Path to an image to upload alongside the text.
+        Relative path under ``settings.photos_dir`` to an image to upload
+        alongside the text. Absolute paths or ``..`` components are rejected.
+        Prefer ``image_bytes`` when possible.
     image_bytes: bytes | None
-        Raw image bytes to upload instead of a file path.
+        Raw image bytes to upload instead of a file path. Recommended
+        approach to avoid filesystem path issues.
 
     Returns
     -------
