@@ -19,6 +19,7 @@ from services.api.app.diabetes.services.db import (
 from services.api.app.billing.log import BillingEvent, BillingLog
 from services.api.app.routers import billing
 from services.api.app.main import app
+from services.api.app.telegram_auth import require_tg_user
 
 
 def setup_db() -> sessionmaker[Session]:
@@ -27,7 +28,9 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
+    Base.metadata.create_all(
+        engine, tables=[Subscription.__table__, BillingLog.__table__]
+    )
     return sessionmaker(bind=engine)
 
 
@@ -36,7 +39,9 @@ def make_client(
     session_local: sessionmaker[Session],
     **settings_kwargs: object,
 ) -> TestClient:
-    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
+    async def run_db(
+        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
+    ):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
@@ -52,6 +57,18 @@ def make_client(
     )
     client = TestClient(app)
     client.app.dependency_overrides[billing._require_billing_enabled] = lambda: settings
+    client.app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    orig_exit = client.__exit__
+
+    def _exit(
+        exc_type: object, exc: object, tb: object
+    ) -> bool:  # pragma: no cover - cleanup
+        try:
+            return orig_exit(exc_type, exc, tb)
+        finally:
+            client.app.dependency_overrides.clear()
+
+    client.__exit__ = _exit  # type: ignore[method-assign]
     return client
 
 
@@ -66,7 +83,9 @@ def _sign(secret: str, event_id: str, transaction_id: str, plan: str) -> str:
     return hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
 
 
-def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_webhook_activates_subscription(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session_local = setup_db()
     secret = "testsecret"
     monkeypatch.setenv("BILLING_WEBHOOK_IPS", "")
@@ -86,11 +105,15 @@ def test_webhook_activates_subscription(monkeypatch: pytest.MonkeyPatch, caplog:
     }
     caplog.set_level(logging.INFO)
     with client:
-        resp = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig})
+        resp = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig}
+        )
     assert resp.status_code == 200
     assert resp.json() == {"status": "processed"}
     with session_local() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
+        sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout_id)
+        )
         assert sub is not None
         assert sub.status == SubStatus.active
         assert sub.plan == SubscriptionPlan.PRO
@@ -124,15 +147,21 @@ def test_webhook_duplicate_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
         "signature": sig,
     }
     with client:
-        first = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig})
+        first = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig}
+        )
     assert first.status_code == 200
     with session_local() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
+        sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout_id)
+        )
         assert sub is not None
         first_end = sub.end_date
 
     with client:
-        dup = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig})
+        dup = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": sig}
+        )
     assert dup.status_code == 200
     assert dup.json() == {"status": "ignored"}
     with session_local() as session:
@@ -155,10 +184,14 @@ def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
         "signature": bad_sig,
     }
     with client:
-        resp = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": bad_sig})
+        resp = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": bad_sig}
+        )
     assert resp.status_code == 400
     with session_local() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
+        sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout_id)
+        )
         assert sub is not None
         assert sub.status == SubStatus.active
         assert sub.end_date is None
@@ -185,7 +218,9 @@ def test_webhook_plan_tampering(monkeypatch: pytest.MonkeyPatch) -> None:
         )
     assert resp.status_code == 400
     with session_local() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
+        sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout_id)
+        )
         assert sub is not None
         assert sub.status == SubStatus.active
         assert sub.end_date is None
@@ -205,10 +240,14 @@ def test_webhook_signature_header_mismatch(monkeypatch: pytest.MonkeyPatch) -> N
         "signature": sig,
     }
     with client:
-        resp = client.post("/api/billing/webhook", json=event, headers={"X-Webhook-Signature": "wrong"})
+        resp = client.post(
+            "/api/billing/webhook", json=event, headers={"X-Webhook-Signature": "wrong"}
+        )
     assert resp.status_code == 400
     with session_local() as session:
-        sub = session.scalar(select(Subscription).where(Subscription.transaction_id == checkout_id))
+        sub = session.scalar(
+            select(Subscription).where(Subscription.transaction_id == checkout_id)
+        )
         assert sub is not None
         assert sub.status == SubStatus.active
         assert sub.end_date is None

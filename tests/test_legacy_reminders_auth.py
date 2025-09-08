@@ -45,6 +45,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     monkeypatch.setattr(reminders, "SessionLocal", TestSession)
+
     async def _noop(action: str, rid: int) -> None:  # pragma: no cover - simple stub
         return None
 
@@ -54,7 +55,11 @@ def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]
         session.commit()
     try:
         with TestClient(server.app) as test_client:
-            yield test_client
+            test_client.app.dependency_overrides.clear()
+            try:
+                yield test_client
+            finally:
+                test_client.app.dependency_overrides.clear()
     finally:
         engine.dispose()
 
@@ -99,9 +104,7 @@ def test_reminders_mismatched_id(
 ) -> None:
     init_data = build_init_data()
     request_id = "req-1"
-    with caplog.at_level(
-        logging.WARNING, logger="services.api.app.routers.reminders"
-    ):
+    with caplog.at_level(logging.WARNING, logger="services.api.app.routers.reminders"):
         resp = client.get(
             "/api/reminders",
             params={"telegramId": 2},

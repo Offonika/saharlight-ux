@@ -23,6 +23,7 @@ from services.api.app.diabetes.services.db import (
     SubStatus,
 )
 from services.api.app.billing.log import BillingEvent, BillingLog
+from services.api.app.telegram_auth import require_tg_user
 
 
 def parse_iso(dt: str) -> datetime:
@@ -38,14 +39,20 @@ def setup_db() -> sessionmaker[Session]:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    Base.metadata.create_all(engine, tables=[Subscription.__table__, BillingLog.__table__])
+    Base.metadata.create_all(
+        engine, tables=[Subscription.__table__, BillingLog.__table__]
+    )
     return sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
+def make_client(
+    monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
+) -> TestClient:
     from services.api.app.billing.config import BillingSettings
 
-    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
+    async def run_db(
+        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
+    ):
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
@@ -54,14 +61,30 @@ def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Ses
 
     from services.api.app.main import app
 
-    app.dependency_overrides[billing._require_billing_enabled] = lambda: BillingSettings(
-        billing_enabled=True,
-        billing_test_mode=True,
-        billing_provider="dummy",
-        paywall_mode="soft",
+    app.dependency_overrides[billing._require_billing_enabled] = (
+        lambda: BillingSettings(
+            billing_enabled=True,
+            billing_test_mode=True,
+            billing_provider="dummy",
+            paywall_mode="soft",
+        )
     )
 
-    return TestClient(app)
+    app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+
+    client = TestClient(app)
+    orig_exit = client.__exit__
+
+    def _exit(
+        exc_type: object, exc: object, tb: object
+    ) -> bool:  # pragma: no cover - cleanup
+        try:
+            return orig_exit(exc_type, exc, tb)
+        finally:
+            client.app.dependency_overrides.clear()
+
+    client.__exit__ = _exit  # type: ignore[method-assign]
+    return client
 
 
 # --- tests --------------------------------------------------------------------
@@ -177,7 +200,9 @@ def test_trial_repeat_call_after_expiration(
     assert count == 1
 
 
-def test_trial_integrity_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_trial_integrity_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     calls: dict[str, int] = {"n": 0}
@@ -210,7 +235,9 @@ def test_trial_integrity_error(monkeypatch: pytest.MonkeyPatch, caplog: pytest.L
     }
 
 
-def test_trial_invalid_enum(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_trial_invalid_enum(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session_local = setup_db()
     client = make_client(monkeypatch, session_local)
     calls: dict[str, int] = {"n": 0}
@@ -254,14 +281,18 @@ async def test_trial_parallel_requests(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(billing, "SessionLocal", session_local, raising=False)
     from services.api.app.main import app
 
-    app.dependency_overrides[billing._require_billing_enabled] = lambda: BillingSettings(
-        billing_enabled=True,
-        billing_test_mode=True,
-        billing_provider="dummy",
-        paywall_mode="soft",
+    app.dependency_overrides[billing._require_billing_enabled] = (
+        lambda: BillingSettings(
+            billing_enabled=True,
+            billing_test_mode=True,
+            billing_provider="dummy",
+            paywall_mode="soft",
+        )
     )
 
-    async with AsyncClient(transport=ASGITransport(app=cast(Any, app)), base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=ASGITransport(app=cast(Any, app)), base_url="http://test"
+    ) as ac:
         resp1, resp2 = await asyncio.gather(
             ac.post("/api/billing/trial", params={"user_id": 1}),
             ac.post("/api/billing/trial", params={"user_id": 1}),
