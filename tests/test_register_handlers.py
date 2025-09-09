@@ -146,6 +146,7 @@ def test_register_handlers_attaches_expected_handlers(
     assert any(
         isinstance(h, MessageHandler)
         and h.callback is learning_onboarding.onboarding_reply
+        and h.block is False
         for h in handlers
     )
     assert any(
@@ -371,6 +372,7 @@ def test_register_learning_onboarding_handlers() -> None:
     assert any(
         isinstance(h, MessageHandler)
         and h.callback is learning_onboarding.onboarding_reply
+        and h.block is False
         for h in handlers
     )
 

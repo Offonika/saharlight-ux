@@ -4,7 +4,6 @@ import pytest
 
 from services.api.app.diabetes.learning_onboarding import (
     _norm_age_group,
-    _norm_diabetes_type,
     _norm_level,
 )
 
@@ -19,11 +18,6 @@ def test_norm_age_group_numeric() -> None:
 )
 def test_norm_age_group_russian(text: str, code: str) -> None:
     assert _norm_age_group(text) == code
-
-
-def test_norm_diabetes_type_numeric() -> None:
-    assert _norm_diabetes_type("2") == "T2"
-
 
 def test_norm_level_numeric() -> None:
     assert _norm_level("0") == "novice"

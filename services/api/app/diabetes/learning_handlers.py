@@ -184,8 +184,8 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = step_idx - 1 if step_idx > 0 else 0
     if snapshot is None:
-        profile = _get_profile(user_data)
-        snapshot = await generate_step_text(profile, topic, step_idx, prev_summary)
+        profile_map = _get_profile(user_data)
+        snapshot = await generate_step_text(profile_map, topic, step_idx, prev_summary)
         if snapshot == BUSY_MESSAGE:
             message = update.effective_message
             if message is not None:
@@ -266,21 +266,14 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         profile_db = {}
     overrides = cast(dict[str, str], user_data.get("learn_profile_overrides", {}))
     has_age = "age_group" in overrides or not needs_age(profile_db)
-    dtype_val = overrides.get("diabetes_type") or profile_db.get("diabetes_type")
-    has_dtype = isinstance(dtype_val, str) and dtype_val not in ("", "unknown")
     has_level = "learning_level" in overrides or not needs_level(profile_db)
-    asked = (
-        "age"
-        if not has_age
-        else "level" if has_age and has_dtype and not has_level else "none"
-    )
+    asked = "age" if not has_age else "level" if has_age and not has_level else "none"
     logger.info(
         "learn_command",
         extra={
             "user_id": user.id,
             "has_age": has_age,
             "has_level": has_level,
-            "has_dtype": has_dtype,
             "asked": asked,
         },
     )

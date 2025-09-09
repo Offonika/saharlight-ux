@@ -88,6 +88,10 @@ async def onboarding_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 def register_handlers(app: App) -> None:
     """Register learning onboarding handlers on the application."""
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_reply))
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND, onboarding_reply, block=False
+        )
+    )
     app.add_handler(CallbackQueryHandler(onboarding_callback, pattern=f"^{CB_PREFIX}"))
     app.add_handler(CommandHandler("learn_reset", learn_reset))
