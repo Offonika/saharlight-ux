@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 
 import httpx
+from pydantic import ValidationError
 from telegram import Message, Update
 from telegram.ext import ContextTypes
 
@@ -192,8 +193,8 @@ async def subscription_button(
         return
     try:
         status = BillingStatusResponse.model_validate(data)
-    except Exception:
-        logger.exception("invalid billing status payload")
+    except ValidationError as exc:
+        logger.exception("invalid billing status payload: %s", exc.errors())
         logger.info(
             "billing_action=user_id:%s action=status result=bad_payload", user.id
         )
