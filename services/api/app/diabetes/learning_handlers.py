@@ -155,7 +155,11 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     prev_summary = cast(str | None, data.get("prev_summary"))
     user_data["learning_module_idx"] = module_idx
     user_data["learning_plan"] = plan
-    user_data["learning_plan_index"] = step_idx - 1 if step_idx > 0 else 0
+    if plan is None or not 0 <= step_idx < len(plan):
+        step_idx = 0
+        user_data["learning_plan_index"] = 0
+    else:
+        user_data["learning_plan_index"] = step_idx - 1 if step_idx > 0 else 0
     if snapshot is None:
         profile = _get_profile(user_data)
         snapshot = await generate_step_text(profile, topic, step_idx, prev_summary)

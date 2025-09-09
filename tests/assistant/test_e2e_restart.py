@@ -68,7 +68,7 @@ async def test_restart_restores_step(
 
     await learning_handlers.plan_command(update, context)
 
-    assert context.user_data.get("learning_plan_index") == 1
+    assert context.user_data.get("learning_plan_index") == 0
     assert update.message.sent
     assert "Шаг 2" in update.message.sent[0]
 
@@ -155,7 +155,7 @@ async def test_hydrate_generates_snapshot_and_persists(
     await learning_handlers.lesson_answer_handler(upd_ans, context)
     assert msg_ans.sent == ["feedback", "Шаг 2"]
     assert len(calls) == 2
-    assert gen_calls == [2]
+    assert gen_calls == [1, 2]
 
     with setup_db() as session:  # type: ignore[misc]
         progress = session.query(LearningProgress).one()
@@ -170,7 +170,7 @@ async def test_hydrate_generates_snapshot_and_persists(
 
     assert context2.user_data.get("learning_plan_index") == 1
     assert len(calls) == 3
-    assert gen_calls == [2, 2]
+    assert gen_calls == [1, 2, 2]
 
     msg_learn2 = DummyMessage(text="/learn")
     upd_learn2 = SimpleNamespace(
