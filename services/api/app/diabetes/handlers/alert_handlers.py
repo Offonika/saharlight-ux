@@ -20,12 +20,11 @@ from services.api.app.diabetes.services.repository import CommitError, commit as
 from services.api.app.diabetes.utils.helpers import get_coords_and_link
 from services.api.app.diabetes.utils.jobs import schedule_once
 
-run_db: Callable[..., Awaitable[object]] | None
+run_db: Callable[..., Awaitable[object]]
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
-except ImportError:  # pragma: no cover - optional db runner
-    logging.getLogger(__name__).info("run_db is unavailable; proceeding without async DB runner")
-    run_db = None
+except ImportError as exc:  # pragma: no cover - required db runner
+    raise RuntimeError("run_db is required for alert handlers") from exc
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
 
@@ -236,14 +235,12 @@ async def evaluate_sugar(
                 return False, None
             return True, {"action": "remove", "notify": False}
 
-    if run_db is None:
-        with SessionLocal() as session:
-            ok, result = db_eval(session)
-    else:
-        ok, result = cast(
-            tuple[bool, dict[str, object] | None],
-            await run_db(db_eval, sessionmaker=SessionLocal),
-        )
+    if run_db is None:  # pragma: no cover - guard for tests
+        raise RuntimeError("run_db is unavailable")
+    ok, result = cast(
+        tuple[bool, dict[str, object] | None],
+        await run_db(db_eval, sessionmaker=SessionLocal),
+    )
     if not ok or result is None:
         return
     action = result["action"]
@@ -318,14 +315,21 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     count: int = data.get("count", 1)
     profile: dict[str, object] = data.get("profile", {})
     first_name = data.get("first_name", "")
-    with SessionLocal() as session:
-        active = session.scalars(sa.select(Alert).filter_by(user_id=user_id, resolved=False)).first()
-        if not active:
-            job.schedule_removal()
-            return
+
+    def has_active_alert(session: Session) -> bool:
+        return session.scalars(sa.select(Alert).filter_by(user_id=user_id, resolved=False)).first() is not None
+
+    active = cast(
+        bool,
+        await run_db(has_active_alert, sessionmaker=SessionLocal),
+    )
+    if not active:
+        job.schedule_removal()
+        return
     await _send_alert_message(user_id, sugar, profile, context, first_name)
     if count >= MAX_REPEATS:
-        with SessionLocal() as session:
+
+        def resolve_alerts(session: Session) -> None:
             alerts = session.scalars(sa.select(Alert).filter_by(user_id=user_id, resolved=False)).all()
             for a in alerts:
                 a.resolved = True
@@ -333,6 +337,8 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
                 commit(session)
             except CommitError:
                 logger.error("Failed to commit resolved alerts for user %s", user_id)
+
+        await run_db(resolve_alerts, sessionmaker=SessionLocal)
         job.schedule_removal()
         return
     job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
@@ -358,8 +364,13 @@ async def alert_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     now = datetime.datetime.now(tz=datetime.timezone.utc)
     week_ago = now - datetime.timedelta(days=7)
 
-    with SessionLocal() as session:
-        alerts = session.scalars(sa.select(Alert).where(Alert.user_id == user_id, Alert.ts >= week_ago)).all()
+    def fetch_alerts(session: Session) -> list[Alert]:
+        return session.scalars(sa.select(Alert).where(Alert.user_id == user_id, Alert.ts >= week_ago)).all()
+
+    alerts = cast(
+        list[Alert],
+        await run_db(fetch_alerts, sessionmaker=SessionLocal),
+    )
 
     hypo = sum(1 for a in alerts if a.type == "hypo")
     hyper = sum(1 for a in alerts if a.type == "hyper")
