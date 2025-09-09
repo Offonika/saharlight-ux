@@ -126,6 +126,28 @@ async def test_dispose_openai_clients_resets_all_async(
     assert gpt_client._async_client is None
 
 
+def test_dispose_openai_clients_after_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_client = Mock()
+    fake_async_client = Mock()
+    fake_async_client.close = AsyncMock()
+
+    monkeypatch.setattr(gpt_client, "_client", fake_client)
+    monkeypatch.setattr(gpt_client, "_async_client", fake_async_client)
+
+    async def create_lock() -> None:
+        gpt_client._async_client_lock = asyncio.Lock()
+
+    asyncio.run(create_lock())
+
+    asyncio.run(gpt_client.dispose_openai_clients())
+
+    fake_client.close.assert_called_once()
+    fake_async_client.close.assert_awaited_once()
+    assert gpt_client._client is None
+    assert gpt_client._async_client is None
+    assert gpt_client._async_client_lock is None
+
+
 @pytest.mark.asyncio
 async def test_send_message_upload_error(monkeypatch: pytest.MonkeyPatch) -> None:
     def raise_upload(*_: Any, **__: Any) -> None:

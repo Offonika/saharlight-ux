@@ -78,7 +78,14 @@ async def _get_async_client() -> AsyncOpenAI:
     if _async_client is None:
         global _async_client_lock
         if _async_client_lock is None:
-            _async_client_lock = asyncio.Lock()
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                pass
+            else:
+                _async_client_lock = asyncio.Lock()
+        if _async_client_lock is None:
+            raise RuntimeError("No running event loop")
         async with _async_client_lock:
             if _async_client is None:
                 _async_client = get_async_openai_client()
@@ -93,12 +100,25 @@ async def dispose_openai_clients() -> None:
             _client.close()
             _client = None
     global _async_client_lock
-    if _async_client_lock is None:
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop is None:
+        if _async_client is not None:
+            asyncio.run(_async_client.close())
+            _async_client = None
+        _async_client_lock = None
+        return
+
+    if _async_client_lock is None or getattr(_async_client_lock, "_loop", None) is not loop:
         _async_client_lock = asyncio.Lock()
     async with _async_client_lock:
         if _async_client is not None:
             await _async_client.close()
             _async_client = None
+    _async_client_lock = None
 
 
 def format_reply(text: str, *, max_len: int = 800) -> str:
