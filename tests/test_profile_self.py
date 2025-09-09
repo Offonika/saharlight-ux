@@ -3,6 +3,7 @@ import hmac
 import json
 import time
 import urllib.parse
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -25,10 +26,25 @@ def build_init_data(user_id: int = 1) -> str:
 
 def test_profile_self_valid_header(monkeypatch: pytest.MonkeyPatch, in_memory_db: sessionmaker[Session]) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
-    from services.api.app.diabetes.services import db as db_module
+    from services.api.app import main as main_module
+    from services.api.app.routers import profile as profile_router
 
-    db_module.engine = in_memory_db.kw["bind"]
-    import services.api.app.diabetes.models_learning  # noqa: F401
+    from types import SimpleNamespace
+
+    async def _fake_get_learning_profile(user_id: int) -> Any:
+        return SimpleNamespace(
+            id=user_id,
+            age_group=None,
+            learning_level=None,
+            diabetes_type=None,
+        )
+
+    monkeypatch.setattr(profile_router, "get_learning_profile", _fake_get_learning_profile)
+
+    monkeypatch.setattr(main_module, "init_db", lambda: None)
+    async def _fake_run_db(*args: Any, **kwargs: Any) -> int:
+        return 0
+    monkeypatch.setattr(main_module, "run_db", _fake_run_db)
 
     init_data = build_init_data(42)
     with TestClient(app) as client:

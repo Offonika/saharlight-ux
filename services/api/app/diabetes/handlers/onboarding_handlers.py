@@ -14,6 +14,7 @@ from typing import Any, Iterable, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from datetime import time as time_cls
 
+import telegram.error
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -175,8 +176,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     if video_url:
         try:
             await message.reply_video(video_url)
-        except Exception:  # pragma: no cover - fallback
+        except telegram.error.TelegramError:  # pragma: no cover - fallback
             await message.reply_text(video_url)
+        except Exception:  # pragma: no cover - unexpected
+            logger.exception("Failed to send onboarding video")
+            raise
     user_id = user.id
     await ensure_user_exists(user_id)
     user_data = cast(dict[str, Any], context.user_data)
@@ -493,8 +497,11 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     bot = cast(ExtBot[None], message.get_bot())
     try:
         await bot.set_my_commands(bot_main.commands)
-    except Exception as e:  # pragma: no cover - network errors
+    except telegram.error.TelegramError as e:  # pragma: no cover - network errors
         logger.warning("set_my_commands failed: %s", e)
+    except Exception:  # pragma: no cover - unexpected
+        logger.exception("set_my_commands failed")
+        raise
     await message.reply_text(ONBOARDING_HINT)
     return ConversationHandler.END
 
@@ -560,8 +567,11 @@ async def _finish(
     bot = cast(ExtBot[None], message.get_bot())
     try:
         await bot.set_my_commands(bot_main.commands)
-    except Exception as e:  # pragma: no cover - network errors
+    except telegram.error.TelegramError as e:  # pragma: no cover - network errors
         logger.warning("set_my_commands failed: %s", e)
+    except Exception:  # pragma: no cover - unexpected
+        logger.exception("set_my_commands failed")
+        raise
     await message.reply_text(ONBOARDING_HINT)
     return ConversationHandler.END
 
