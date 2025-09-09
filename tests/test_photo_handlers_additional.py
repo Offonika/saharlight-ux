@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from types import SimpleNamespace
@@ -25,7 +26,7 @@ class DummyPhoto:
 
 @pytest.mark.asyncio
 async def test_photo_handler_commit_failure(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     class DummyMessage:
         def __init__(self) -> None:
@@ -80,7 +81,8 @@ async def test_photo_handler_commit_failure(
     )
 
     monkeypatch.chdir(tmp_path)
-    result = await photo_handlers.photo_handler(update, context)
+    with caplog.at_level(logging.ERROR):
+        result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
     assert message.texts == ["⚠️ Не удалось сохранить данные пользователя."]
@@ -88,6 +90,10 @@ async def test_photo_handler_commit_failure(
     assert user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
     assert not send_message_mock.called
+    assert any(
+        "[PHOTO] Failed to commit user 1" in r.getMessage()
+        for r in caplog.records
+    )
 
 
 @pytest.mark.asyncio

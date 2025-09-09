@@ -122,6 +122,9 @@ async def photo_handler(
                     try:
                         commit(session)
                     except CommitError:
+                        logger.exception(
+                            "[PHOTO] Failed to commit user %s", user_id
+                        )
                         await message.reply_text(
                             "⚠️ Не удалось сохранить данные пользователя."
                         )
