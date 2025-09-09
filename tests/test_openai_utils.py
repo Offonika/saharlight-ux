@@ -255,6 +255,27 @@ async def test_async_openai_client_ctx_disposes(
     assert openai_utils._async_http_client == {}
 
 
+@pytest.mark.asyncio
+async def test_async_openai_client_ctx_logs_dispose_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    fake_client = object()
+    monkeypatch.setattr(
+        openai_utils, "get_async_openai_client", Mock(return_value=fake_client)
+    )
+    dispose_mock = AsyncMock(side_effect=RuntimeError("boom"))
+    monkeypatch.setattr(openai_utils, "dispose_http_client", dispose_mock)
+
+    with caplog.at_level(logging.ERROR):
+        async with openai_utils.async_openai_client_ctx() as client:
+            assert client is fake_client
+
+    dispose_mock.assert_awaited_once()
+    assert any(
+        "Failed to dispose HTTP client" in record.message for record in caplog.records
+    )
+
+
 def test_dispose_http_client_sync(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_http_client = Mock()
     monkeypatch.setattr(openai_utils, "_http_client", {"p": fake_http_client})

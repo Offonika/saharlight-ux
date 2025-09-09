@@ -146,7 +146,10 @@ async def async_openai_client_ctx() -> AsyncIterator[AsyncOpenAI]:
     try:
         yield client
     finally:
-        await dispose_http_client()
+        try:
+            await dispose_http_client()
+        except Exception:  # pragma: no cover - best effort on shutdown
+            logger.exception("[OpenAI] Failed to dispose HTTP client")
 
 
 def _dispose_http_client_sync() -> None:
