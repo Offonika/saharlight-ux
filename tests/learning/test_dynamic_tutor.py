@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from services.api.app.diabetes import dynamic_tutor
@@ -33,7 +35,9 @@ async def test_runtimeerror_returns_fallback(
     async def raise_runtime_error(**kwargs: object) -> str:
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(dynamic_tutor, "create_learning_chat_completion", raise_runtime_error)
+    monkeypatch.setattr(
+        dynamic_tutor, "create_learning_chat_completion", raise_runtime_error
+    )
 
     step = await dynamic_tutor.generate_step_text({}, "topic", 1, None)
     correct, feedback = await dynamic_tutor.check_user_answer({}, "topic", "42", "step")
@@ -41,3 +45,18 @@ async def test_runtimeerror_returns_fallback(
     assert step == dynamic_tutor.BUSY_MESSAGE
     assert correct is False
     assert feedback == dynamic_tutor.BUSY_MESSAGE
+
+
+@pytest.mark.asyncio
+async def test_cancellation_not_suppressed(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def raise_cancelled(**kwargs: object) -> str:
+        raise asyncio.CancelledError()
+
+    monkeypatch.setattr(
+        dynamic_tutor, "create_learning_chat_completion", raise_cancelled
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        await dynamic_tutor.generate_step_text({}, "topic", 1, None)
+    with pytest.raises(asyncio.CancelledError):
+        await dynamic_tutor.check_user_answer({}, "topic", "42", "step")
