@@ -36,6 +36,27 @@ def test_validate_tokens_env_not_declared(monkeypatch: pytest.MonkeyPatch) -> No
     config.validate_tokens(["UNDECLARED_TOKEN"])
 
 
+def test_validate_tokens_reload_settings_on_any_variable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Any required variable triggers a settings reload."""
+
+    monkeypatch.setenv("UNDECLARED_TOKEN", "secret")
+    config = _reload("config")
+
+    called = False
+
+    def fake_reload_settings() -> None:
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(config, "reload_settings", fake_reload_settings)
+
+    config.validate_tokens(["UNDECLARED_TOKEN"])
+
+    assert called
+
+
 def test_validate_tokens_reflects_runtime_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """``validate_tokens`` checks the current ``TELEGRAM_TOKEN`` value."""
 

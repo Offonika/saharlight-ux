@@ -35,6 +35,9 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 def validate_tokens(required: Iterable[str] | None = None) -> None:
     """Validate that the given environment variables are present.
 
+    Providing a non-empty ``required`` list also refreshes the application
+    settings so that subsequent checks see the latest environment values.
+
     Parameters
     ----------
     required:
@@ -51,14 +54,11 @@ def validate_tokens(required: Iterable[str] | None = None) -> None:
     required_vars = list(required or [])
     missing = []
 
-    if "TELEGRAM_TOKEN" in required_vars:
+    if required_vars:
         reload_settings()
 
     for var in required_vars:
-        if var == "TELEGRAM_TOKEN":
-            if not os.getenv("TELEGRAM_TOKEN"):
-                missing.append(var)
-        elif not os.getenv(var):
+        if not os.getenv(var):
             missing.append(var)
     if missing:
         raise RuntimeError(
