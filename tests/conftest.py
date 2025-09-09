@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
+import os
 import sqlite3
 import subprocess
 from typing import Any, Callable, cast
@@ -11,6 +12,9 @@ from types import ModuleType
 import pytest
 import sqlalchemy
 from sqlalchemy.orm import Session, sessionmaker
+
+os.environ.setdefault("OPENAI_API_KEY", "dummy-key")
+os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_dummy")
 
 from services.api.app.diabetes import curriculum_engine
 from services.api.app.diabetes import learning_handlers as _dynamic_learning_handlers
@@ -242,6 +246,42 @@ def _dispose_engine_per_module() -> Iterator[None]:
 
     yield
     dispose_engine()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _stub_openai_clients() -> Iterator[None]:
+    """Stub OpenAI clients to avoid real network calls."""
+    from _pytest.monkeypatch import MonkeyPatch
+
+    mp = MonkeyPatch()
+    mp.setenv("OPENAI_API_KEY", "dummy-key")
+    mp.setenv("OPENAI_ASSISTANT_ID", "asst_dummy")
+
+    from services.api.app.diabetes.utils import openai_utils
+    from services.api.app.diabetes.services import gpt_client
+
+    class _SyncClient:
+        def close(self) -> None:  # pragma: no cover - trivial
+            return None
+
+    class _AsyncClient:
+        async def close(self) -> None:  # pragma: no cover - trivial
+            return None
+
+    def _get_sync() -> _SyncClient:
+        return _SyncClient()
+
+    def _get_async() -> _AsyncClient:
+        return _AsyncClient()
+
+    mp.setattr(openai_utils, "get_openai_client", _get_sync)
+    mp.setattr(openai_utils, "get_async_openai_client", _get_async)
+    mp.setattr(gpt_client, "get_openai_client", _get_sync)
+    mp.setattr(gpt_client, "get_async_openai_client", _get_async)
+    try:
+        yield
+    finally:
+        mp.undo()
 
 
 @pytest.fixture(autouse=True)
