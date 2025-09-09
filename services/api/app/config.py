@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
 from typing import Literal, Optional
 
 from pydantic import AliasChoices, Field, field_validator
@@ -15,6 +16,8 @@ except ModuleNotFoundError as exc:  # pragma: no cover - executed at import time
 
 
 logger = logging.getLogger(__name__)
+
+_settings_lock: threading.Lock = threading.Lock()
 
 TOPICS_RU: dict[str, str] = {
     "xe_basics": "Хлебные единицы",
@@ -158,11 +161,15 @@ def get_settings() -> Settings:
 
 
 def reload_settings() -> Settings:
-    """Reload settings from the environment and return them."""
+    """Reload settings from the environment and return them.
+
+    Thread-safe: a module-level lock guards reinitialization of ``settings``.
+    """
 
     global settings
-    settings = Settings()
-    return settings
+    with _settings_lock:
+        settings = Settings()
+        return settings
 
 
 def get_db_password() -> Optional[str]:
