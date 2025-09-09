@@ -5,6 +5,8 @@ import time
 from collections.abc import Mapping
 
 import sqlalchemy as sa
+from openai import OpenAIError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -36,9 +38,7 @@ class ProgressNotFoundError(Exception):
     """Raised when a user's lesson progress is missing."""
 
     def __init__(self, user_id: int, lesson_id: int) -> None:
-        super().__init__(
-            f"progress not found: user_id={user_id}, lesson_id={lesson_id}"
-        )
+        super().__init__(f"progress not found: user_id={user_id}, lesson_id={lesson_id}")
         self.user_id = user_id
         self.lesson_id = lesson_id
 
@@ -47,9 +47,7 @@ async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
     """Start or reset a lesson for a user and return progress."""
 
     def _start(session: Session) -> LessonProgress:
-        lesson = session.execute(
-            sa.select(Lesson).filter_by(slug=lesson_slug)
-        ).scalar_one_or_none()
+        lesson = session.execute(sa.select(Lesson).filter_by(slug=lesson_slug)).scalar_one_or_none()
         if lesson is None:
             raise LessonNotFoundError(lesson_slug)
         progress = session.execute(
@@ -97,15 +95,11 @@ async def next_step(
 
         def _get_progress(session: Session) -> tuple[int, str]:
             progress = session.execute(
-                sa.select(LessonProgress).filter_by(
-                    user_id=user_id, lesson_id=lesson_id
-                )
+                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
             ).scalar_one_or_none()
             if progress is None:
                 raise ProgressNotFoundError(user_id, lesson_id)
-            lesson = session.execute(
-                sa.select(Lesson).filter_by(id=lesson_id)
-            ).scalar_one_or_none()
+            lesson = session.execute(sa.select(Lesson).filter_by(id=lesson_id)).scalar_one_or_none()
             if lesson is None:
                 raise LessonNotFoundError(str(lesson_id))
             return progress.current_step, lesson.slug
@@ -114,20 +108,24 @@ async def next_step(
         step_idx = current_step + 1
         try:
             text = await generate_step_text(profile, slug, step_idx, prev_summary)
-        except Exception:
+        except OpenAIError:
             logger.exception(
-                "failed to generate dynamic step",
+                "openai error during dynamic step generation",
                 extra={"lesson": slug, "step": step_idx},
             )
             return BUSY_MESSAGE, False
+        except SQLAlchemyError:
+            logger.exception(
+                "database error during dynamic step generation",
+                extra={"lesson": slug, "step": step_idx},
+            )
+            raise
         if text == BUSY_MESSAGE:
             return BUSY_MESSAGE, False
 
         def _advance(session: Session) -> None:
             progress = session.execute(
-                sa.select(LessonProgress).filter_by(
-                    user_id=user_id, lesson_id=lesson_id
-                )
+                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
             ).scalar_one()
             progress.current_step = step_idx
             commit(session)
@@ -145,9 +143,7 @@ async def next_step(
         ).scalar_one()
         lesson = session.execute(sa.select(Lesson).filter_by(id=lesson_id)).scalar_one()
         steps = session.scalars(
-            sa.select(LessonStep)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(LessonStep.step_order)
+            sa.select(LessonStep).filter_by(lesson_id=lesson_id).order_by(LessonStep.step_order)
         ).all()
         if progress.current_step < len(steps):
             step = steps[progress.current_step]
@@ -157,16 +153,12 @@ async def next_step(
             commit(session)
             return step.content, None, first_step, False, step_idx, False, lesson.slug
         questions = session.scalars(
-            sa.select(QuizQuestion)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(QuizQuestion.id)
+            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
         ).all()
         if progress.current_question < len(questions):
             q = questions[progress.current_question]
             first_question = progress.current_question == 0
-            opts = "\n".join(
-                f"{idx}. {opt}" for idx, opt in enumerate(q.options, start=1)
-            )
+            opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(q.options, start=1))
             return (
                 None,
                 f"{q.question}\n{opts}",
@@ -200,9 +192,9 @@ async def next_step(
                     {"role": "user", "content": build_explain_step(step_content)},
                 ],
             )
-        except Exception:
+        except OpenAIError:
             logger.exception(
-                "failed to create learning chat completion",
+                "openai error during learning chat completion",
                 extra={
                     "user_id": user_id,
                     "lesson_id": lesson_id,
@@ -210,6 +202,16 @@ async def next_step(
                 },
             )
             return BUSY_MESSAGE, completed
+        except SQLAlchemyError:
+            logger.exception(
+                "database error during learning chat completion",
+                extra={
+                    "user_id": user_id,
+                    "lesson_id": lesson_id,
+                    "step": step_idx,
+                },
+            )
+            raise
         latency = time.monotonic() - start
         logger.info(
             "lesson_step",
@@ -242,15 +244,11 @@ async def check_answer(
     if settings.learning_content_mode == "dynamic":
 
         def _get_slug(session: Session) -> str:
-            lesson = session.execute(
-                sa.select(Lesson).filter_by(id=lesson_id)
-            ).scalar_one()
+            lesson = session.execute(sa.select(Lesson).filter_by(id=lesson_id)).scalar_one()
             return lesson.slug
 
         slug = await db.run_db(_get_slug)
-        correct, feedback = await check_user_answer(
-            profile, slug, str(answer), last_step_text or ""
-        )
+        correct, feedback = await check_user_answer(profile, slug, str(answer), last_step_text or "")
         feedback = feedback.strip()
         return correct, feedback
 
@@ -264,9 +262,7 @@ async def check_answer(
             sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
         ).scalar_one()
         questions = session.scalars(
-            sa.select(QuizQuestion)
-            .filter_by(lesson_id=lesson_id)
-            .order_by(QuizQuestion.id)
+            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
         ).all()
         question = questions[progress.current_question]
         correct = answer_index == question.correct_option
