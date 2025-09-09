@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from services.api.app.config import settings
 from services.api.app.assistant.models import LessonLog
 from services.api.app.diabetes.metrics import lesson_log_failures
-from services.api.app.diabetes.services.db import SessionLocal, run_db
+from services.api.app.diabetes.services.db import SessionLocal, run_db, User
 from services.api.app.diabetes.services.repository import commit
 
 logger = logging.getLogger(__name__)
@@ -50,24 +50,33 @@ async def flush_pending_logs() -> None:
         queued = pending_logs.copy()
         pending_logs.clear()
 
-    entries = [LessonLog(**asdict(log)) for log in queued]
-
-    def _flush(session: Session) -> None:
-        session.add_all(entries)
-        commit(session)
+    def _flush(session: Session) -> list[_PendingLog]:
+        missing: list[_PendingLog] = []
+        entries: list[LessonLog] = []
+        for log in queued:
+            if session.get(User, log.user_id) is None:
+                missing.append(log)
+                continue
+            entries.append(LessonLog(**asdict(log)))
+        if entries:
+            session.add_all(entries)
+            commit(session)
+        return missing
 
     try:
-        await run_db(_flush, sessionmaker=SessionLocal)
+        missing = await run_db(_flush, sessionmaker=SessionLocal)
     except Exception as exc:  # pragma: no cover - logging only
-        logger.warning(
-            "Failed to flush %s lesson logs", len(entries), exc_info=exc
-        )
-        lesson_log_failures.inc(len(entries))
+        logger.warning("Failed to flush %s lesson logs", len(queued), exc_info=exc)
+        lesson_log_failures.inc(len(queued))
         if settings.learning_logging_required:
             raise
         async with pending_logs_lock:
             pending_logs.extend(queued)
         return
+
+    if missing:
+        async with pending_logs_lock:
+            pending_logs.extend(missing)
 
 
 async def add_lesson_log(

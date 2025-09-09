@@ -72,6 +72,33 @@ async def test_add_and_flush_logs(
 
 
 @pytest.mark.asyncio
+async def test_flush_skips_missing_user(
+    session_factory: sessionmaker[Session],
+) -> None:
+    logs.pending_logs.clear()
+
+    await add_lesson_log(1, 1, 0, 1, "assistant", "a")
+
+    assert len(logs.pending_logs) == 1
+
+    with session_factory() as session:
+        assert session.query(LessonLog).count() == 0
+        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.add(
+            LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1)
+        )
+        session.commit()
+
+    await flush_pending_logs()
+
+    with session_factory() as session:
+        entries = session.query(LessonLog).all()
+        assert [e.content for e in entries] == ["a"]
+
+    assert not logs.pending_logs
+
+
+@pytest.mark.asyncio
 async def test_cleanup_old_logs(session_factory: sessionmaker[Session]) -> None:
     now = datetime.now(timezone.utc)
     with session_factory() as session:

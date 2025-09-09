@@ -32,7 +32,9 @@ async def test_add_lesson_log_warns_when_not_required(
 
 
 @pytest.mark.asyncio
-async def test_add_lesson_log_raises_when_required(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_add_lesson_log_raises_when_required(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Errors should bubble up when logging is required."""
 
     monkeypatch.setattr(settings, "learning_logging_required", True)
@@ -70,7 +72,12 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
         def add_all(self, objs: list[LessonLog]) -> None:
             inserted.extend(objs)
 
-    async def ok_run_db(fn: Callable[[DummySession], None], *args: object, **kwargs: object) -> None:
+        def get(self, *args: object, **kwargs: object) -> object | None:
+            return object()
+
+    async def ok_run_db(
+        fn: Callable[[DummySession], None], *args: object, **kwargs: object
+    ) -> None:
         fn(DummySession())
 
     monkeypatch.setattr(logs, "run_db", ok_run_db)
@@ -96,6 +103,9 @@ async def test_flush_does_not_block_new_logs(
         def add_all(self, objs: list[LessonLog]) -> None:
             inserted.extend(objs)
 
+        def get(self, *args: object, **kwargs: object) -> object | None:
+            return object()
+
     flush_started = asyncio.Event()
     continue_flush = asyncio.Event()
     calls = 0
@@ -113,9 +123,7 @@ async def test_flush_does_not_block_new_logs(
     monkeypatch.setattr(logs, "run_db", slow_run_db)
     monkeypatch.setattr(logs, "commit", lambda _: None)
 
-    first = asyncio.create_task(
-        add_lesson_log(1, 1, 0, 1, "assistant", "hi")
-    )
+    first = asyncio.create_task(add_lesson_log(1, 1, 0, 1, "assistant", "hi"))
     await flush_started.wait()
 
     assert not first.done()
