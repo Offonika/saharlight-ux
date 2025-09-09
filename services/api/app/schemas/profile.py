@@ -10,6 +10,7 @@ from ..diabetes.schemas.profile import (
     CarbUnits,
     GlucoseUnits,
     RapidInsulinType,
+    TherapyType,
 )
 
 
@@ -44,7 +45,7 @@ class _ProfileBase(BaseModel):
         alias="sosContact",
         validation_alias=AliasChoices("sosContact", "sos_contact"),
     )
-    therapyType: str | None = Field(
+    therapyType: TherapyType | None = Field(
         default=None,
         alias="therapyType",
         validation_alias=AliasChoices("therapyType", "therapy_type"),
