@@ -10,10 +10,11 @@ Implements three steps with navigation and progress hints:
 from __future__ import annotations
 
 import logging
+from datetime import time as time_cls
 from typing import Any, Iterable, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-from datetime import time as time_cls
 
+import telegram
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -55,8 +56,7 @@ logger = logging.getLogger(__name__)
 
 # Hint shown after onboarding is finished or skipped.
 ONBOARDING_HINT = (
-    "Попробуйте /learn — учебный режим, /topics — список тем, "
-    "/menu — показать меню."
+    "Попробуйте /learn — учебный режим, /topics — список тем, " "/menu — показать меню."
 )
 
 # Conversation states
@@ -160,8 +160,11 @@ async def _log_event(user_id: int, name: str, step: int, variant: str | None) ->
 
     try:
         await run_db(_log, sessionmaker=SessionLocal)
-    except Exception:  # pragma: no cover - logging only
+    except telegram.error.TelegramError:  # pragma: no cover - logging only
         logger.exception("Failed to log onboarding event")
+    except Exception:
+        logger.exception("Unexpected error logging onboarding event")
+        raise
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -175,8 +178,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     if video_url:
         try:
             await message.reply_video(video_url)
-        except Exception:  # pragma: no cover - fallback
+        except telegram.error.TelegramError:  # pragma: no cover - fallback
             await message.reply_text(video_url)
+        except Exception:
+            logger.exception("Unexpected error sending onboarding video")
+            raise
     user_id = user.id
     await ensure_user_exists(user_id)
     user_data = cast(dict[str, Any], context.user_data)
@@ -493,8 +499,11 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     bot = cast(ExtBot[None], message.get_bot())
     try:
         await bot.set_my_commands(bot_main.commands)
-    except Exception as e:  # pragma: no cover - network errors
-        logger.warning("set_my_commands failed: %s", e)
+    except telegram.error.TelegramError as exc:  # pragma: no cover - network errors
+        logger.warning("set_my_commands failed: %s", exc)
+    except Exception:
+        logger.exception("Unexpected error setting bot commands")
+        raise
     await message.reply_text(ONBOARDING_HINT)
     return ConversationHandler.END
 
@@ -560,8 +569,11 @@ async def _finish(
     bot = cast(ExtBot[None], message.get_bot())
     try:
         await bot.set_my_commands(bot_main.commands)
-    except Exception as e:  # pragma: no cover - network errors
-        logger.warning("set_my_commands failed: %s", e)
+    except telegram.error.TelegramError as exc:  # pragma: no cover - network errors
+        logger.warning("set_my_commands failed: %s", exc)
+    except Exception:
+        logger.exception("Unexpected error setting bot commands")
+        raise
     await message.reply_text(ONBOARDING_HINT)
     return ConversationHandler.END
 
@@ -651,9 +663,7 @@ onboarding_conv = ConversationHandler(
         ],
         REMINDERS: [CallbackQueryNoWarnHandler(reminders_chosen)],
     },
-    fallbacks=[
-        MessageHandler(filters.Regex(PHOTO_BUTTON_PATTERN), _photo_fallback)
-    ],
+    fallbacks=[MessageHandler(filters.Regex(PHOTO_BUTTON_PATTERN), _photo_fallback)],
     # Subsequent steps rely on ``MessageHandler`` for text input, so enabling
     # ``per_message=True`` would reset the conversation on each reply. Keep
     # per-chat tracking to allow callback queries across messages.
