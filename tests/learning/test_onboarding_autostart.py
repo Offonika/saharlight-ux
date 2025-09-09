@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Mapping
+from types import SimpleNamespace
 
 import pytest
 from telegram import Bot, Chat, Message, MessageEntity, Update, User
@@ -60,11 +61,21 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
     from services.api.app.diabetes import learning_onboarding as onboarding_utils
 
     monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_get_profile_for_user)
+    monkeypatch.setattr(
+        learning_handlers.profiles, "get_profile_for_user", fake_get_profile_for_user
+    )
 
-    async def fake_generate_step_text(*_a: object, **_k: object) -> str:
-        return "first"
+    async def fake_next_step(
+        user_id: int,
+        lesson_id: int,
+        profile: Mapping[str, str | None],
+        prev_summary: str | None = None,
+    ) -> tuple[str, bool]:
+        return "first", False
 
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
     monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
 
@@ -78,8 +89,8 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(learning_handlers.plans_repo, "create_plan", _noop)
     monkeypatch.setattr(learning_handlers.plans_repo, "update_plan", _noop)
     monkeypatch.setattr(learning_handlers.progress_service, "upsert_progress", _noop)
-    async def _start(*args: object, **kwargs: object) -> None:
-        return None
+    async def _start(*args: object, **kwargs: object) -> SimpleNamespace:
+        return SimpleNamespace(lesson_id=1)
 
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "start_lesson", _start

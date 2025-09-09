@@ -94,7 +94,7 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
         profile: Mapping[str, str | None],
         prev_summary: str | None = None,
     ) -> tuple[str, bool]:
-        return "step1?", False
+        return f"{disclaimer()}\n\nstep1?", False
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -133,19 +133,11 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
 async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fake_generate_step_text(
-        profile: object, topic: str, step_idx: int, prev: object
-    ) -> str:
-        return f"step{step_idx}?"
-
     async def fake_check_user_answer(
         profile: object, topic: str, answer: str, last: str
     ) -> tuple[bool, str]:
         return True, "feedback"
 
-    monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
-    )
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
@@ -162,13 +154,18 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
 
+    steps_iter = iter(["step1?", "step2?"])
+
     async def fake_next_step(
         user_id: int,
         lesson_id: int,
         profile: Mapping[str, str | None],
         prev_summary: str | None = None,
     ) -> tuple[str, bool]:
-        return "step1?", False
+        text = next(steps_iter)
+        if prev_summary is None and text == "step1?":
+            return f"{disclaimer()}\n\n{text}", False
+        return text, False
 
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson

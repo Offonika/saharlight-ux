@@ -94,6 +94,7 @@ async def test_learn_command_start_lesson_exception(
     assert msg.replies == [BUSY_MESSAGE]
     assert get_state(context.user_data) is None
     assert any("lesson start failed" in r.message for r in caplog.records)
+    assert context.user_data.get("lesson_id") is None
 
 
 @pytest.mark.asyncio
@@ -152,6 +153,7 @@ async def test_learn_command_next_step_exception(
     assert msg.replies == [BUSY_MESSAGE]
     assert get_state(context.user_data) is None
     assert any("lesson start failed" in r.message for r in caplog.records)
+    assert context.user_data.get("lesson_id") is None
 
 
 @pytest.mark.asyncio
@@ -190,6 +192,7 @@ async def test_lesson_command_start_lesson_exception(
     assert msg.replies == [BUSY_MESSAGE]
     assert get_state(context.user_data) is None
     assert any("lesson start failed" in r.message for r in caplog.records)
+    assert context.user_data.get("lesson_id") is None
 
 
 @pytest.mark.asyncio
@@ -244,3 +247,4 @@ async def test_lesson_command_next_step_exception(
     assert msg.replies == [BUSY_MESSAGE]
     assert get_state(context.user_data) is None
     assert any("lesson start failed" in r.message for r in caplog.records)
+    assert context.user_data.get("lesson_id") is None

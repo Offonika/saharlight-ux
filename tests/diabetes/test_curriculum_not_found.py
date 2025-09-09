@@ -127,11 +127,9 @@ async def test_learn_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -
 
     await dynamic_handlers.learn_command(update, context)
 
-    assert msg.replies == [
-        "Не нашёл учебные записи, пробую динамический режим…",
-        "step1",
-    ]
+    assert msg.replies == ["step1"]
     assert get_state(context.user_data) is not None
+    assert context.user_data.get("lesson_id") is None
 
 
 @pytest.mark.asyncio
@@ -206,11 +204,9 @@ async def test_lesson_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) 
 
     await dynamic_handlers.lesson_command(update, context)
 
-    assert msg.replies == [
-        "Не нашёл учебные записи, пробую динамический режим…",
-        "step1",
-    ]
+    assert msg.replies == ["step1"]
     assert get_state(context.user_data) is not None
+    assert context.user_data.get("lesson_id") is None
 
 
 @pytest.mark.asyncio

@@ -67,13 +67,9 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_ui_show_topics", True)
     steps = iter(["step1", "step2"])
 
-    async def fake_generate_step_text(*args: object, **kwargs: object) -> str:
-        return next(steps)
-
     async def fake_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
         return True, "feedback"
 
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -83,8 +79,10 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_start_lesson(user_id: int, topic_slug: str) -> object:
         return SimpleNamespace(lesson_id=1)
 
-    async def fake_next_step(user_id: int, lesson_id: int, profile: object) -> tuple[str, object | None]:
-        return next(steps), None
+    async def fake_next_step(
+        user_id: int, lesson_id: int, profile: object, prev_summary: str | None = None
+    ) -> tuple[str, bool]:
+        return next(steps), False
 
     monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
     monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)

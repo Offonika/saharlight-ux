@@ -59,15 +59,15 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
 
     captured_profile: Mapping[str, str | None] = {}
 
-    async def fake_generate_step_text(
+    async def fake_next_step(
+        user_id: int,
+        lesson_id: int,
         profile: Mapping[str, str | None],
-        slug: str,
-        step_idx: int,
-        prev_summary: str | None,
-    ) -> str:
+        prev_summary: str | None = None,
+    ) -> tuple[str, bool]:
         nonlocal captured_profile
         captured_profile = profile
-        return "шаг1"
+        return "шаг1", False
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -76,7 +76,7 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
     )
     monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 

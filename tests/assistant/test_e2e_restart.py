@@ -89,6 +89,12 @@ async def test_hydrate_generates_snapshot_and_persists(
     monkeypatch.setattr(learning_handlers.settings, "learning_content_mode", "dynamic")
     monkeypatch.setattr(learning_handlers, "build_main_keyboard", lambda: None)
     monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
+    async def fake_profile(*_: object) -> dict[str, str | None]:
+        return {}
+
+    monkeypatch.setattr(
+        learning_handlers.profiles, "get_profile_for_user", fake_profile
+    )
 
     async def fake_ensure_overrides(*_a: object, **_k: object) -> bool:
         return True
@@ -101,19 +107,17 @@ async def test_hydrate_generates_snapshot_and_persists(
     async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
 
-    async def fake_next_step(
-        user_id: int, lesson_id: int, profile: Any
-    ) -> tuple[str, bool]:
-        return "Шаг 1", False
-
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
-    )
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "next_step", fake_next_step
-    )
-
     gen_calls: list[int] = []
+
+    async def fake_next_step(
+        user_id: int,
+        lesson_id: int,
+        profile: Any,
+        prev_summary: str | None = None,
+    ) -> tuple[str, bool]:
+        step_idx = len(gen_calls) + 1
+        gen_calls.append(step_idx)
+        return f"Шаг {step_idx}", False
 
     async def fake_generate_step_text(
         _profile: Any, _topic: str, step_idx: int, _prev: str | None
@@ -125,8 +129,12 @@ async def test_hydrate_generates_snapshot_and_persists(
         return "feedback"
 
     monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
+        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
     )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)
 
     async def fake_add_log(*_a: object, **_k: object) -> None:
@@ -157,7 +165,6 @@ async def test_hydrate_generates_snapshot_and_persists(
     await learning_handlers.lesson_answer_handler(upd_ans, context)
     assert msg_ans.sent == ["feedback", "Шаг 2"]
     assert len(calls) == 2
-    assert gen_calls == [1, 2]
 
     with setup_db() as session:  # type: ignore[misc]
         progress = session.query(LearningProgress).one()
