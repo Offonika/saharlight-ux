@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import datetime
 import logging
 import re
 from collections.abc import Awaitable, Callable
 from typing import Protocol, TypeVar, cast
 
+import httpx
+from openai import OpenAIError
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -716,9 +719,18 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )
         content = completion.choices[0].message.content or ""
         reply = gpt_client.format_reply(content)
-    except Exception as exc:  # noqa: BLE001
+    except OpenAIError as exc:
         logger.exception("Failed to get GPT reply: %s", exc)
         reply = "⚠️ Не удалось получить ответ. Попробуйте позже."
+    except httpx.HTTPError as exc:
+        logger.exception("Failed to get GPT reply: %s", exc)
+        reply = "⚠️ Не удалось получить ответ. Попробуйте позже."
+    except asyncio.TimeoutError as exc:
+        logger.exception("GPT request timed out: %s", exc)
+        reply = "⚠️ Не удалось получить ответ. Попробуйте позже."
+    except Exception:
+        logger.exception("Unexpected GPT error")
+        raise
 
     await message.reply_text(reply)
     summarized = assistant_state.add_turn(
