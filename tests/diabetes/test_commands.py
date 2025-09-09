@@ -13,6 +13,7 @@ from telegram.ext import CallbackContext
 
 from services.api.app.diabetes import commands
 from services.api.app.diabetes.onboarding_state import OnboardingStateStore
+from tests.utils.warn_ctx import warn_or_not
 
 
 class DummyMessage:
@@ -53,7 +54,9 @@ async def test_reset_onboarding_warns_and_resets(
     user = SimpleNamespace(id=1)
     update = cast(
         Update,
-        SimpleNamespace(effective_message=message, message=message, effective_user=user),
+        SimpleNamespace(
+            effective_message=message, message=message, effective_user=user
+        ),
     )
     app = DummyApp()
     context = cast(
@@ -66,7 +69,9 @@ async def test_reset_onboarding_warns_and_resets(
 
     async def dummy_reset(update: Update, context: CallbackContext) -> int:
         store.reset(user.id)
-        await message.reply_text("Онбординг сброшен. Отправьте /start, чтобы начать заново.")
+        await message.reply_text(
+            "Онбординг сброшен. Отправьте /start, чтобы начать заново."
+        )
         return 0
 
     monkeypatch.setattr(commands, "_reset_onboarding", dummy_reset)
@@ -87,7 +92,9 @@ async def test_reset_onboarding_timeout(monkeypatch: pytest.MonkeyPatch) -> None
     user = SimpleNamespace(id=1)
     update = cast(
         Update,
-        SimpleNamespace(effective_message=message, message=message, effective_user=user),
+        SimpleNamespace(
+            effective_message=message, message=message, effective_user=user
+        ),
     )
     app = DummyApp()
     context = cast(
@@ -130,7 +137,9 @@ async def test_reset_onboarding_timeout_telegram_error(
     user = SimpleNamespace(id=1)
     update = cast(
         Update,
-        SimpleNamespace(effective_message=message, message=message, effective_user=user),
+        SimpleNamespace(
+            effective_message=message, message=message, effective_user=user
+        ),
     )
     app = DummyApp()
     context = cast(
@@ -157,3 +166,56 @@ async def test_reset_onboarding_timeout_telegram_error(
     assert len(message.replies) == 1
     assert "_onb_reset_confirm" not in context.user_data
     assert "_onb_reset_task" not in context.user_data
+
+
+@pytest.mark.asyncio
+async def test_reset_onboarding_consume_cancelled_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ensure timeout task is awaited when onboarding reset is confirmed."""
+
+    message = DummyMessage()
+    user = SimpleNamespace(id=1)
+    update = cast(
+        Update,
+        SimpleNamespace(
+            effective_message=message, message=message, effective_user=user
+        ),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={"_onb_reset_confirm": True}),
+    )
+
+    async def dummy_reset(
+        update: Update, context: CallbackContext
+    ) -> int:  # noqa: ARG001
+        return 0
+
+    monkeypatch.setattr(commands, "_reset_onboarding", dummy_reset)
+
+    class DummyTask(asyncio.Task):
+        def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
+            async def sleeper() -> None:
+                await asyncio.sleep(3600)
+
+            super().__init__(sleeper(), loop=loop)
+            self.cancel_called = False
+            self.awaited = False
+
+        def cancel(self) -> bool:  # type: ignore[override]
+            self.cancel_called = True
+            return super().cancel()
+
+        def __await__(self):  # type: ignore[override]
+            self.awaited = True
+            return super().__await__()
+
+    task = DummyTask(asyncio.get_running_loop())
+    context.user_data["_onb_reset_task"] = task
+
+    with warn_or_not(None):
+        await commands.reset_onboarding(update, context)
+
+    assert task.cancel_called
+    assert task.awaited
