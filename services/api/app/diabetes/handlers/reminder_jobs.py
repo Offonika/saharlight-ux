@@ -77,7 +77,8 @@ def schedule_reminder(
             kind = ScheduleKind.at_time
     elif isinstance(kind, str):
         kind = ScheduleKind(kind)
-    assert kind is not None
+    if kind is None:
+        raise RuntimeError("reminder kind is missing")
 
     name = f"{base_name}_after" if kind == ScheduleKind.after_event else base_name
 
