@@ -25,7 +25,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/reminders")
     async def reminders(request: Request) -> dict[str, str]:
-        if request.headers.get(TG_INIT_DATA_HEADER) or request.state.role == "doctor":
+        if request.headers.get("Authorization") or request.state.role == "doctor":
             return {"status": "ok"}
         raise HTTPException(status_code=403)
 
@@ -119,14 +119,17 @@ def test_telegram_init_data_header(monkeypatch: pytest.MonkeyPatch) -> None:
         assert response.json() == {"user_id": 123, "role": "patient"}
 
 
-def test_reminders_with_init_data(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_reminders_with_auth_header(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    async def fake_get_user_role(_user_id: int) -> str | None:
+        return None
+    monkeypatch.setattr(auth_module, "get_user_role", fake_get_user_role)
     app = create_app()
     init_data = build_init_data(1)
     with TestClient(app) as client:
         response = client.get(
             "/api/reminders",
-            headers={TG_INIT_DATA_HEADER: init_data},
+            headers={"Authorization": f"tg {init_data}", "X-User-Id": "1"},
         )
         assert response.status_code in (200, 204)
 

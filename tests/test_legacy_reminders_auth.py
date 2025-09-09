@@ -64,7 +64,7 @@ def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
     resp_post = client.post(
         "/api/reminders",
         json={"telegramId": 1, "type": "sugar"},
-        headers={"X-Telegram-Init-Data": init_data},
+        headers={"Authorization": f"tg {init_data}"},
     )
     assert resp_post.status_code == 200
     reminder_id = resp_post.json()["id"]
@@ -72,7 +72,7 @@ def test_post_and_get_reminders_with_auth(client: TestClient) -> None:
     resp_get = client.get(
         "/api/reminders",
         params={"telegramId": 1},
-        headers={"X-Telegram-Init-Data": init_data},
+        headers={"Authorization": f"tg {init_data}"},
     )
     assert resp_get.status_code == 200
     assert any(r["id"] == reminder_id for r in resp_get.json())
@@ -88,7 +88,7 @@ def test_reminders_matching_id(client: TestClient) -> None:
     resp = client.get(
         "/api/reminders",
         params={"telegramId": 1},
-        headers={"X-Telegram-Init-Data": init_data},
+        headers={"Authorization": f"tg {init_data}"},
     )
     assert resp.status_code == 200
     assert resp.json() == []
@@ -103,12 +103,12 @@ def test_reminders_mismatched_id(
         logging.WARNING, logger="services.api.app.routers.reminders"
     ):
         resp = client.get(
-            "/api/reminders",
-            params={"telegramId": 2},
-            headers={
-                "X-Telegram-Init-Data": init_data,
-                "X-Request-ID": request_id,
-            },
+        "/api/reminders",
+        params={"telegramId": 2},
+        headers={
+            "Authorization": f"tg {init_data}",
+            "X-Request-ID": request_id,
+        },
         )
     assert resp.status_code == 404
     assert resp.json() == {"detail": "reminder not found"}
@@ -122,7 +122,7 @@ def test_reminders_invalid_telegram_id(client: TestClient) -> None:
     resp = client.get(
         "/api/reminders",
         params={"telegramId": 999},
-        headers={"X-Telegram-Init-Data": init_data},
+        headers={"Authorization": f"tg {init_data}"},
     )
     assert resp.status_code == 200
     assert resp.json() == []

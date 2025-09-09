@@ -14,7 +14,7 @@ from ..services.reminders import (
     save_reminder,
 )
 from ..services.audit import log_patient_access
-from ..telegram_auth import require_tg_user
+from ..telegram_auth import check_token
 
 
 class ReminderError(Exception):
@@ -69,7 +69,7 @@ async def get_reminders(
     request: Request,
     telegramId: int | None = Query(None),
     telegram_id: int | None = Query(None, alias="telegram_id"),
-    user: UserContext = Depends(require_tg_user),
+    user: UserContext = Depends(check_token),
 ) -> list[dict[str, object]]:
     tid = telegramId or telegram_id
     if tid is None:
@@ -120,7 +120,7 @@ async def get_reminder(
     id: int,
     telegramId: int | None = Query(None),
     telegram_id: int | None = Query(None, alias="telegram_id"),
-    user: UserContext = Depends(require_tg_user),
+    user: UserContext = Depends(check_token),
 ) -> dict[str, object]:
     tid = telegramId or telegram_id
     if tid is None:
@@ -166,7 +166,7 @@ async def get_reminder(
 @router.post("/reminders")
 async def post_reminder(
     data: ReminderSchema,
-    user: UserContext = Depends(require_tg_user),
+    user: UserContext = Depends(check_token),
 ) -> dict[str, object]:
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="forbidden")
@@ -178,7 +178,7 @@ async def post_reminder(
 @router.patch("/reminders")
 async def patch_reminder(
     data: ReminderSchema,
-    user: UserContext = Depends(require_tg_user),
+    user: UserContext = Depends(check_token),
 ) -> dict[str, object]:
     if data.id is None:
         raise HTTPException(status_code=422, detail="id is required")
@@ -195,7 +195,7 @@ async def delete_reminder(
     telegramId: int | None = Query(None),
     telegram_id: int | None = Query(None, alias="telegram_id"),
     id: int | None = None,
-    user: UserContext = Depends(require_tg_user),
+    user: UserContext = Depends(check_token),
 ) -> dict[str, str]:
     tid = telegramId or telegram_id
     if tid is None or id is None:
