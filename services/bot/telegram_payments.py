@@ -15,8 +15,6 @@ from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
-    ExtBot,
-    JobQueue,
     MessageHandler,
     PreCheckoutQueryHandler,
     filters,
@@ -29,14 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    App: TypeAlias = Application[
-        ExtBot[None],
-        ContextTypes.DEFAULT_TYPE,
-        dict[str, object],
-        dict[str, object],
-        dict[str, object],
-        JobQueue[ContextTypes.DEFAULT_TYPE],
-    ]
+    App: TypeAlias = Application[ContextTypes.DEFAULT_TYPE]  # type: ignore[type-arg]
 else:
     App = Application
 
