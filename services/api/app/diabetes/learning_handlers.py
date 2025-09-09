@@ -12,8 +12,6 @@ from telegram.ext import ApplicationHandlerStop, ContextTypes
 
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
-from . import curriculum_engine
-from .curriculum_engine import LessonNotFoundError
 from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
 from .handlers import learning_handlers as legacy_handlers
 from ..ui.keyboard import LEARN_BUTTON_TEXT
@@ -241,26 +239,11 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
-    try:
-        progress = await curriculum_engine.start_lesson(user.id, slug)
-        text, _ = await curriculum_engine.next_step(
-            user.id, progress.lesson_id, profile
-        )
-    except LessonNotFoundError:
-        await message.reply_text(
-            LESSON_NOT_FOUND_MESSAGE, reply_markup=build_main_keyboard()
-        )
-        return
-    except (
-        SQLAlchemyError,
-        OpenAIError,
-        httpx.HTTPError,
-        RuntimeError,
-    ) as exc:
-        logger.exception("lesson start failed: %s", exc)
-        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-        return
-    if text is None or text == BUSY_MESSAGE:
+    logger.info(
+        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
+    )
+    text = await generate_step_text(profile, slug, 1, None)
+    if text == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
     plan = generate_learning_plan(text)
@@ -298,26 +281,11 @@ async def _start_lesson(
     from_user = getattr(message, "from_user", None)
     if from_user is None:
         return
-    try:
-        progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
-        text, _ = await curriculum_engine.next_step(
-            from_user.id, progress.lesson_id, profile
-        )
-    except LessonNotFoundError:
-        await message.reply_text(
-            LESSON_NOT_FOUND_MESSAGE, reply_markup=build_main_keyboard()
-        )
-        return
-    except (
-        SQLAlchemyError,
-        OpenAIError,
-        httpx.HTTPError,
-        RuntimeError,
-    ) as exc:
-        logger.exception("lesson start failed: %s", exc)
-        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-        return
-    if text is None or text == BUSY_MESSAGE:
+    logger.info(
+        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
+    )
+    text = await generate_step_text(profile, topic_slug, 1, None)
+    if text == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
     if not text.startswith(disclaimer()):
