@@ -49,3 +49,17 @@ def test_validate_tokens_reflects_runtime_env(monkeypatch: pytest.MonkeyPatch) -
 
     monkeypatch.setenv("TELEGRAM_TOKEN", "updated")
     config.validate_tokens(["TELEGRAM_TOKEN"])
+
+
+def test_validate_tokens_missing_telegram_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Deleting ``TELEGRAM_TOKEN`` causes validation to fail."""
+
+    monkeypatch.setenv("TELEGRAM_TOKEN", "present")
+    config = _reload("config")
+    config.validate_tokens(["TELEGRAM_TOKEN"])
+
+    monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
+    with pytest.raises(RuntimeError):
+        config.validate_tokens(["TELEGRAM_TOKEN"])
