@@ -43,6 +43,32 @@ def test_get_client_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
     assert all(r is fake_client for r in results)
 
 
+def test_get_async_client_multiple_loops(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_client = object()
+    call_count = 0
+
+    def fake_get_async_openai_client() -> object:
+        nonlocal call_count
+        call_count += 1
+        return fake_client
+
+    monkeypatch.setattr(gpt_client, "get_async_openai_client", fake_get_async_openai_client)
+    monkeypatch.setattr(gpt_client, "_async_client", None)
+    monkeypatch.setattr(gpt_client, "_async_client_lock", None)
+
+    async def run() -> object:
+        return await gpt_client._get_async_client()
+
+    asyncio.run(run())
+    first_lock = gpt_client._async_client_lock
+    gpt_client._async_client = None
+    asyncio.run(run())
+    second_lock = gpt_client._async_client_lock
+
+    assert call_count == 2
+    assert second_lock is not first_lock
+
+
 @pytest.mark.asyncio
 async def test_send_message_openaierror(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture

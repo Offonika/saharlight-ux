@@ -75,17 +75,11 @@ def _get_client() -> OpenAI:
 async def _get_async_client() -> AsyncOpenAI:
     """Return cached AsyncOpenAI client, creating it once in an async-safe manner."""
     global _async_client
+    loop = asyncio.get_running_loop()
+    global _async_client_lock
+    if _async_client_lock is None or getattr(_async_client_lock, "_loop", None) is not loop:
+        _async_client_lock = asyncio.Lock()
     if _async_client is None:
-        global _async_client_lock
-        if _async_client_lock is None:
-            try:
-                asyncio.get_running_loop()
-            except RuntimeError:
-                pass
-            else:
-                _async_client_lock = asyncio.Lock()
-        if _async_client_lock is None:
-            raise RuntimeError("No running event loop")
         async with _async_client_lock:
             if _async_client is None:
                 _async_client = get_async_openai_client()
