@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import Any, cast
 
 from telegram import Update
 from telegram.ext import (
@@ -13,7 +14,7 @@ from telegram.ext import (
     filters,
 )
 
-from services.api.app.diabetes.services.db import SessionLocal, Profile
+from services.api.app.diabetes.services.db import SessionLocal, Profile, User
 
 from services.api.app.diabetes.utils.ui import (
     BACK_BUTTON_TEXT,
@@ -25,12 +26,10 @@ from services.api.app.diabetes.services.repository import CommitError, commit
 
 from . import dose_calc, _cancel_then
 
-SOS_CONTACT, = range(1)
+(SOS_CONTACT,) = range(1)
 
 
-async def sos_contact_start(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def sos_contact_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user to enter emergency contact."""
     message = update.message
     if message is None:
@@ -50,9 +49,7 @@ def _is_valid_contact(text: str) -> bool:
     return bool(username or chat_id)
 
 
-async def sos_contact_save(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def sos_contact_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Save provided contact to profile."""
     message = update.message
     if message is None:
@@ -72,9 +69,19 @@ async def sos_contact_save(
     user = update.effective_user
     if user is None:
         return ConversationHandler.END
-    assert user is not None
     user_id = user.id
+    user_data = cast(dict[str, Any], context.user_data)
     with SessionLocal() as session:
+        db_user = session.get(User, user_id)
+        if db_user is None:
+            thread_id = cast(str | None, user_data.get("thread_id"))
+            if thread_id is None:
+                await message.reply_text(
+                    "⚠️ Не удалось сохранить контакт.",
+                    reply_markup=build_main_keyboard(),
+                )
+                return ConversationHandler.END
+            session.add(User(telegram_id=user_id, thread_id=thread_id))
         profile = session.get(Profile, user_id)
         if not profile:
             profile = Profile(telegram_id=user_id)
@@ -96,9 +103,7 @@ async def sos_contact_save(
     return ConversationHandler.END
 
 
-async def sos_contact_cancel(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
+async def sos_contact_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel SOS contact input."""
     message = update.message
     if message is None:
@@ -110,7 +115,9 @@ async def sos_contact_cancel(
 
 sos_contact_conv = ConversationHandler(
     entry_points=[CommandHandler("soscontact", sos_contact_start)],
-    states={SOS_CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, sos_contact_save)]},
+    states={
+        SOS_CONTACT: [MessageHandler(filters.TEXT & ~filters.COMMAND, sos_contact_save)]
+    },
     fallbacks=[
         MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), sos_contact_cancel),
         CommandHandler("cancel", sos_contact_cancel),
