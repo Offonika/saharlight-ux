@@ -18,6 +18,7 @@ from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
+
 # Re-export the curriculum engine so tests and callers can patch it easily.
 # Including it in ``__all__`` below marks the import as used for the linter.
 from . import curriculum_engine as curriculum_engine
@@ -30,6 +31,9 @@ from .services.gpt_client import (
 )
 from services.api.app.assistant.repositories.logs import add_lesson_log
 from services.api.app.assistant.repositories import plans as plans_repo
+from services.api.app.assistant.repositories.learning_profile import (
+    get_learning_profile,
+)
 from services.api.app.assistant.services import progress_service
 from .planner import generate_learning_plan, pretty_plan
 
@@ -114,6 +118,27 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     if user is None:
         return True
     user_data = cast(MutableMapping[str, Any], context.user_data)
+    try:
+        profile = await get_learning_profile(user.id)
+    except (
+        SQLAlchemyError,
+        RuntimeError,
+    ) as exc:  # pragma: no cover - logging only
+        logger.exception("profile hydrate failed: %s", exc)
+        profile = None
+    if profile is not None:
+        overrides = cast(
+            MutableMapping[str, str],
+            user_data.setdefault("learn_profile_overrides", {}),
+        )
+        if profile.age_group is not None:
+            overrides["age_group"] = profile.age_group
+        if profile.learning_level is not None:
+            overrides["learning_level"] = profile.learning_level
+        if profile.diabetes_type is not None:
+            overrides["diabetes_type"] = profile.diabetes_type
+        if profile.age_group and profile.learning_level:
+            user_data["learning_onboarded"] = True
     if get_state(user_data) is not None:
         return True
     if "learning_plan" in user_data and "learning_plan_index" in user_data:
@@ -241,9 +266,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
-    logger.info(
-        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
-    )
+    logger.info("learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"})
     try:
         await curriculum_engine.start_lesson(user.id, slug)
     except LessonNotFoundError:
@@ -294,9 +317,7 @@ async def _start_lesson(
     from_user = getattr(message, "from_user", None)
     if from_user is None:
         return
-    logger.info(
-        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
-    )
+    logger.info("learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"})
     try:
         await curriculum_engine.start_lesson(from_user.id, topic_slug)
     except LessonNotFoundError:
