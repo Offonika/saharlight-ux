@@ -90,16 +90,11 @@ async def test_photo_handler_commit_failure(
     assert user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
     assert not send_message_mock.called
-    assert any(
-        "[PHOTO] Failed to commit user 1" in r.getMessage()
-        for r in caplog.records
-    )
+    assert any("[PHOTO] Failed to commit user 1" in r.getMessage() for r in caplog.records)
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_run_failure(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_photo_handler_run_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     class StatusMessage:
         def __init__(self) -> None:
             self.edits: list[str] = []
@@ -144,9 +139,7 @@ async def test_photo_handler_run_failure(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(
-            bot=SimpleNamespace(get_file=fake_get_file), user_data={"thread_id": "tid"}
-        ),
+        SimpleNamespace(bot=SimpleNamespace(get_file=fake_get_file), user_data={"thread_id": "tid"}),
     )
 
     monkeypatch.chdir(tmp_path)
@@ -154,16 +147,14 @@ async def test_photo_handler_run_failure(
 
     assert result == photo_handlers.END
     assert message.status is not None
-    assert message.status.edits == ["⚠️ Vision не смог обработать фото."]
+    assert message.status.edits == ["⚠️ Vision не смог обработать фото. Попробуйте ещё раз."]
     user_data = context.user_data
     assert user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_unparsed_response(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_photo_handler_unparsed_response(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     class DummyMessage:
         def __init__(self) -> None:
             self.photo = (DummyPhoto(),)
@@ -199,11 +190,7 @@ async def test_photo_handler_unparsed_response(
         ]
 
     class DummyClient:
-        beta = SimpleNamespace(
-            threads=SimpleNamespace(
-                messages=SimpleNamespace(list=lambda thread_id: Messages())
-            )
-        )
+        beta = SimpleNamespace(threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages())))
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
@@ -220,9 +207,7 @@ async def test_photo_handler_unparsed_response(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(
-            bot=SimpleNamespace(get_file=fake_get_file), user_data={"thread_id": "tid"}
-        ),
+        SimpleNamespace(bot=SimpleNamespace(get_file=fake_get_file), user_data={"thread_id": "tid"}),
     )
 
     monkeypatch.chdir(tmp_path)
@@ -275,11 +260,7 @@ async def test_photo_handler_unparsed_response_clears_pending_entry(
         ]
 
     class DummyClient:
-        beta = SimpleNamespace(
-            threads=SimpleNamespace(
-                messages=SimpleNamespace(list=lambda thread_id: Messages())
-            )
-        )
+        beta = SimpleNamespace(threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages())))
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
@@ -315,9 +296,7 @@ async def test_photo_handler_unparsed_response_clears_pending_entry(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mime", [None, "text/plain"])
-async def test_doc_handler_rejects_non_image(
-    monkeypatch: pytest.MonkeyPatch, mime: str | None
-) -> None:
+async def test_doc_handler_rejects_non_image(monkeypatch: pytest.MonkeyPatch, mime: str | None) -> None:
     document = SimpleNamespace(
         mime_type=mime,
         file_name="f.txt",
@@ -406,9 +385,7 @@ async def test_photo_handler_long_vision_text(monkeypatch: pytest.MonkeyPatch, t
         ]
 
     class DummyClient:
-        beta = SimpleNamespace(
-            threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages()))
-        )
+        beta = SimpleNamespace(threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages())))
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
     monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
@@ -439,9 +416,7 @@ async def test_photo_handler_long_vision_text(monkeypatch: pytest.MonkeyPatch, t
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_long_vision_text_parse_fail(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_photo_handler_long_vision_text_parse_fail(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     long_text = "y" * (photo_handlers.MessageLimit.MAX_TEXT_LENGTH + 100)
 
     class DummyMessage:
@@ -504,9 +479,7 @@ async def test_photo_handler_long_vision_text_parse_fail(
         ]
 
     class DummyClient:
-        beta = SimpleNamespace(
-            threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages()))
-        )
+        beta = SimpleNamespace(threads=SimpleNamespace(messages=SimpleNamespace(list=lambda thread_id: Messages())))
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
     monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
