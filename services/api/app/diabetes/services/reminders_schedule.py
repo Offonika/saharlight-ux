@@ -2,10 +2,25 @@
 # filename: services/api/app/diabetes/services/reminders_schedule.py
 from __future__ import annotations
 
-from datetime import datetime, timedelta, time, timezone
+from datetime import date, datetime, timedelta, time, timezone
 from zoneinfo import ZoneInfo
 
 from .db import Reminder
+
+
+def _safe_combine(day: date, t: time, tz: ZoneInfo) -> datetime:
+    """Создать ``datetime`` с повтором при ``nonexistent time``.
+
+    Если ``datetime.combine`` выбрасывает ``ValueError`` (например, при переходе
+    на летнее время), сдвигаем время на час вперёд и повторяем попытку.
+    """
+
+    while True:
+        try:
+            return datetime.combine(day, t, tzinfo=tz)
+        except ValueError:
+            dt = datetime.combine(day, t) + timedelta(hours=1)
+            t = dt.time()
 
 
 def _apply_quiet_window(dt: datetime, tz: ZoneInfo, start: str, end: str) -> datetime:
@@ -20,8 +35,8 @@ def _apply_quiet_window(dt: datetime, tz: ZoneInfo, start: str, end: str) -> dat
 
     start_time = time.fromisoformat(start)
     end_time = time.fromisoformat(end)
-    start_dt = datetime.combine(local_dt.date(), start_time, tzinfo=tz)
-    end_dt = datetime.combine(local_dt.date(), end_time, tzinfo=tz)
+    start_dt = _safe_combine(local_dt.date(), start_time, tz)
+    end_dt = _safe_combine(local_dt.date(), end_time, tz)
 
     if start_time <= end_time:
         # Обычное окно в пределах дня: [start, end)
