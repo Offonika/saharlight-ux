@@ -98,3 +98,9 @@ async def test_create_plan_deactivates_previous_active(
     second = await plans.get_plan(second_id)
     assert first is not None and first.is_active is False
     assert second is not None and second.is_active is True
+
+
+@pytest.mark.asyncio
+async def test_create_plan_without_user(session_local: sessionmaker[Session]) -> None:
+    with pytest.raises(RuntimeError, match="not registered"):
+        await plans.create_plan(5, version=1, plan_json=[])

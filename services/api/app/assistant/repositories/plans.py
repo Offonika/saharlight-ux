@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from ...diabetes.models_learning import LearningPlan
-from ...diabetes.services.db import SessionLocal, run_db
+from ...diabetes.services.db import SessionLocal, run_db, User
 from ...diabetes.services.repository import commit
 from ...types import SessionProtocol
 
@@ -20,6 +20,8 @@ async def create_plan(
 ) -> int:
     def _create(session: SessionProtocol) -> int:
         sess = cast(Session, session)
+        if sess.get(User, user_id) is None:
+            raise RuntimeError("User is not registered. Please register.")
         if is_active:
             stmt = (
                 sa.update(LearningPlan)
