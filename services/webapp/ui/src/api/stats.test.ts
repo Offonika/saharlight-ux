@@ -18,6 +18,7 @@ vi.mock('@sdk/apis', () => ({
 
 vi.mock('@/lib/telegram-auth', () => ({
   getTelegramAuthHeaders: vi.fn(() => ({ Authorization: 'tg test' })),
+  setTelegramInitData: vi.fn(),
 }));
 
 import { fetchAnalytics, fetchDayStats } from './stats';

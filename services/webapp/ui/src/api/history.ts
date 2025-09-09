@@ -1,12 +1,13 @@
 import { Configuration } from '@sdk/runtime.ts';
 import { HistoryApi } from '@sdk/apis';
 import type { HistoryRecordSchemaInput, HistoryRecordSchemaOutput } from '@sdk/models';
-import { getTelegramAuthHeaders } from '@/lib/telegram-auth';
+import { buildHeaders } from './http';
 
 function makeApi(): HistoryApi {
+  const hdrs = buildHeaders({ headers: {} }, true);
   const cfg = new Configuration({
     basePath: '/api',
-    headers: getTelegramAuthHeaders(),
+    headers: Object.fromEntries(hdrs.entries()),
   });
   return new HistoryApi(cfg);
 }

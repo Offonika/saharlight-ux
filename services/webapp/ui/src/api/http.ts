@@ -1,4 +1,4 @@
-import { getTelegramAuthHeaders } from '@/lib/telegram-auth';
+import { getTelegramAuthHeaders, setTelegramInitData } from '@/lib/telegram-auth';
 
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? '/api';
 
@@ -30,7 +30,44 @@ export function buildHeaders(
   }
 
   if (telegramAuth) {
-    const authHeaders = getTelegramAuthHeaders();
+    const ensureAuth = (): Record<string, string> => {
+      let auth = getTelegramAuthHeaders();
+      if (auth.Authorization) {
+        return auth;
+      }
+      try {
+        const globalData = (window as any)?.Telegram?.WebApp?.initData;
+        if (globalData) {
+          setTelegramInitData(globalData);
+          auth = getTelegramAuthHeaders();
+          if (auth.Authorization) return auth;
+        } else {
+          const hash = window.location.hash.startsWith('#')
+            ? window.location.hash.slice(1)
+            : window.location.hash;
+          const tgWebAppData = new URLSearchParams(hash).get(
+            'tgWebAppData',
+          );
+          if (tgWebAppData) {
+            setTelegramInitData(tgWebAppData);
+            auth = getTelegramAuthHeaders();
+            if (auth.Authorization) return auth;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+      if (typeof window !== 'undefined') {
+        const tg = (window as any)?.Telegram?.WebApp;
+        if (tg?.openTelegramLink) {
+          tg.openTelegramLink(window.location.href);
+        } else {
+          window.location.href = window.location.href;
+        }
+      }
+      throw new Error('Telegram authorization required');
+    };
+    const authHeaders = ensureAuth();
     Object.entries(authHeaders).forEach(([key, value]) =>
       headers.set(key, value),
     );
