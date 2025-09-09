@@ -334,8 +334,10 @@ def _validate_image_path(image_path: str) -> str:
     settings = config.get_settings()
     root_dir = Path(settings.photos_dir).resolve()
     abs_path = (root_dir / path_obj).resolve()
-    if not str(abs_path).startswith(str(root_dir) + os.sep):
-        raise ValueError("Image path outside of allowed directory")
+    try:
+        abs_path.relative_to(root_dir)
+    except ValueError as exc:
+        raise ValueError("Image path outside of allowed directory") from exc
     return str(abs_path)
 
 
