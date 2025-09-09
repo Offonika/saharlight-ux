@@ -57,25 +57,26 @@ def build_system_prompt(p: Mapping[str, str | None]) -> str:
         "adult": "ясно и по делу",
         "60+": "очень простыми фразами, поддерживающе",
     }.get(p.get("age_group") or "", "ясно и просто")
+    diabetes_type = p.get("diabetes_type") or "unknown"
     prompt = dedent(
         f"""
         Ты — персональный тьютор по диабету. Подстраивайся под пользователя.
-        Профиль: тип диабета={p.get('diabetes_type', 'unknown')},
-        терапия={p.get('therapyType', 'unknown')},
-        уровень={p.get('learning_level', 'novice')},
-        углеводы={p.get('carbUnits', 'XE')}. Тон: {tone}.
+        Профиль: тип диабета={diabetes_type},
+        терапия={p.get("therapyType", "unknown")},
+        уровень={p.get("learning_level", "novice")},
+        углеводы={p.get("carbUnits", "XE")}. Тон: {tone}.
         Пиши коротко (2–4 предложения). Каждый шаг заканчивай ОДНИМ
         вопросом-проверкой.
         Не назначай лечение/дозировки; при сомнениях — советуй обсудить
         с врачом.
         """
     ).strip()
+    if diabetes_type == "unknown":
+        prompt += " Тип диабета не определён — избегай тип-специфичных рекомендаций."
     return _trim(prompt)
 
 
-def build_user_prompt_step(
-    topic_slug: str, step_idx: int, prev_summary: str | None
-) -> str:
+def build_user_prompt_step(topic_slug: str, step_idx: int, prev_summary: str | None) -> str:
     """Build a user-level prompt for a learning step."""
 
     goals = {
