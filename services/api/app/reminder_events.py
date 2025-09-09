@@ -6,6 +6,7 @@ import re
 from datetime import timedelta
 
 import sqlalchemy as sa
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker, selectinload
 from telegram.ext import ContextTypes
 
@@ -43,7 +44,11 @@ async def _reminders_gc(_context: ContextTypes.DEFAULT_TYPE) -> None:
                 ).all()
             )
 
-    reminders = await asyncio.to_thread(load_active)
+    try:
+        reminders = await asyncio.to_thread(load_active)
+    except SQLAlchemyError as exc:
+        logger.exception("Failed to load active reminders", exc_info=exc)
+        return
     active_ids = {rem.id for rem in reminders}
 
     for rem in reminders:
