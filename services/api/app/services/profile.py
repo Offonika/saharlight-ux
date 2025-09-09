@@ -60,7 +60,9 @@ async def patch_user_settings(
         try:
             ZoneInfo(device_tz)
         except ZoneInfoNotFoundError as exc:  # pragma: no cover - validation
-            raise HTTPException(status_code=400, detail="invalid device timezone") from exc
+            raise HTTPException(
+                status_code=400, detail="invalid device timezone"
+            ) from exc
 
     def _patch(session: SessionProtocol) -> ProfileSchema:
         user = cast(User | None, session.get(User, telegram_id))
@@ -115,7 +117,12 @@ async def patch_user_settings(
         if data.afterMealMinutes is not None:
             profile.postmeal_check_min = data.afterMealMinutes
 
-        if profile.timezone_auto and device_tz and data.timezone is None and profile.timezone != device_tz:
+        if (
+            profile.timezone_auto
+            and device_tz
+            and data.timezone is None
+            and profile.timezone != device_tz
+        ):
             profile.timezone = device_tz
 
         try:
@@ -137,13 +144,17 @@ async def patch_user_settings(
             sosAlertsEnabled=profile.sos_alerts_enabled,
             timezone=profile.timezone,
             timezoneAuto=profile.timezone_auto,
-            therapyType=(TherapyType(profile.therapy_type) if profile.therapy_type else None),
+            therapyType=(
+                TherapyType(profile.therapy_type) if profile.therapy_type else None
+            ),
             dia=profile.dia,
             roundStep=profile.round_step,
             carbUnits=CarbUnits(profile.carb_units),
             gramsPerXe=profile.grams_per_xe,
             glucoseUnits=GlucoseUnits(profile.glucose_units),
-            rapidInsulinType=(RapidInsulinType(profile.insulin_type) if profile.insulin_type else None),
+            rapidInsulinType=(
+                RapidInsulinType(profile.insulin_type) if profile.insulin_type else None
+            ),
             maxBolus=profile.max_bolus,
             preBolus=profile.prebolus_min,
             afterMealMinutes=profile.postmeal_check_min,
@@ -169,13 +180,17 @@ async def get_profile_settings(telegram_id: int) -> ProfileSchema:
         sosAlertsEnabled=profile.sos_alerts_enabled,
         timezone=profile.timezone,
         timezoneAuto=profile.timezone_auto,
-        therapyType=(TherapyType(profile.therapy_type) if profile.therapy_type else None),
+        therapyType=(
+            TherapyType(profile.therapy_type) if profile.therapy_type else None
+        ),
         dia=profile.dia,
         roundStep=profile.round_step,
         carbUnits=CarbUnits(profile.carb_units),
         gramsPerXe=profile.grams_per_xe,
         glucoseUnits=GlucoseUnits(profile.glucose_units),
-        rapidInsulinType=(RapidInsulinType(profile.insulin_type) if profile.insulin_type else None),
+        rapidInsulinType=(
+            RapidInsulinType(profile.insulin_type) if profile.insulin_type else None
+        ),
         maxBolus=profile.max_bolus,
         preBolus=profile.prebolus_min,
         afterMealMinutes=profile.postmeal_check_min,
@@ -267,7 +282,11 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
                     profile_data[column] = value
 
         stmt = insert(Profile).values(**profile_data)
-        update_values = {key: getattr(stmt.excluded, key) for key in profile_data.keys() if key != "telegram_id"}
+        update_values = {
+            key: getattr(stmt.excluded, key)
+            for key in profile_data.keys()
+            if key != "telegram_id"
+        }
         session.execute(
             stmt.on_conflict_do_update(
                 index_elements=[Profile.telegram_id],
@@ -292,7 +311,9 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
     except HTTPException as exc:
         if exc.status_code == 500:
             logger.exception("save_profile failed for %s", data.telegramId)
-            raise HTTPException(status_code=503, detail="временные проблемы с БД") from exc
+            raise HTTPException(
+                status_code=503, detail="временные проблемы с БД"
+            ) from exc
         raise
 
 
@@ -307,7 +328,9 @@ async def get_profile(telegram_id: int) -> Profile:
         profile = await db.run_db(_get, sessionmaker=db.SessionLocal)
     except (OperationalError, ConnectionError) as exc:
         logger.exception("failed to fetch profile %s", telegram_id)
-        raise HTTPException(status_code=503, detail="database temporarily unavailable") from exc
+        raise HTTPException(
+            status_code=503, detail="database temporarily unavailable"
+        ) from exc
     except SQLAlchemyError as exc:
         logger.exception("sqlalchemy error while fetching profile %s", telegram_id)
         raise HTTPException(status_code=500, detail="database error") from exc
