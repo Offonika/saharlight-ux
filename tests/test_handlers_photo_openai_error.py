@@ -59,13 +59,7 @@ async def test_photo_handler_success(monkeypatch: pytest.MonkeyPatch, tmp_path: 
                         data=[
                             SimpleNamespace(
                                 role="assistant",
-                                content=[
-                                    SimpleNamespace(
-                                        text=SimpleNamespace(
-                                            value="Суп\nУглеводы: 10 г\nХЕ: 1"
-                                        )
-                                    )
-                                ],
+                                content=[SimpleNamespace(text=SimpleNamespace(value="Суп\nУглеводы: 10 г\nХЕ: 1"))],
                             )
                         ]
                     )
@@ -118,4 +112,59 @@ async def test_photo_handler_openai_error(monkeypatch: pytest.MonkeyPatch, tmp_p
 
     assert result == photo_handlers.END
     assert msg.replies[-1] == "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
+    assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_run_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Photo handler informs user when Vision run fails."""
+    monkeypatch.chdir(tmp_path)
+
+    async def fake_send_chat_action(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    class Run:
+        status = "failed"
+        thread_id = "tid"
+        id = "runid"
+
+    async def fake_send_message(**kwargs: Any) -> Run:
+        return Run()
+
+    class DummyStatusMessage:
+        def __init__(self) -> None:
+            self.edits: list[str] = []
+
+        async def edit_text(self, text: str) -> None:
+            self.edits.append(text)
+
+    class DummyMessage:
+        def __init__(self) -> None:
+            self.photo = (DummyPhoto(),)
+            self.replies: list[str] = []
+            self.status: DummyStatusMessage | None = None
+
+        async def reply_text(self, text: str, **kwargs: Any) -> Any:
+            if text.startswith("🔍"):
+                self.status = DummyStatusMessage()
+                return self.status
+            self.replies.append(text)
+            return None
+
+    msg = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=msg, effective_user=SimpleNamespace(id=1)))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            bot=SimpleNamespace(get_file=_fake_get_file, send_chat_action=fake_send_chat_action),
+            user_data={"thread_id": "tid"},
+        ),
+    )
+    monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
+
+    result = await photo_handlers.photo_handler(update, context)
+
+    assert result == photo_handlers.END
+    assert msg.status is not None
+    assert msg.status.edits[-1] == "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
     assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
