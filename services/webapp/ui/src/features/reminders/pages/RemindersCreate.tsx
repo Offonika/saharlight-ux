@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRemindersApi } from "../api/reminders"; // ваш хук, возвращающий DefaultApi
 import { DayOfWeekPicker } from "../components/DayOfWeekPicker";
@@ -8,6 +8,7 @@ import { buildReminderPayload } from "../api/buildPayload";
 import type { ReminderDto, ScheduleKind, ReminderType } from "../types";
 import { validate, hasErrors } from "../logic/validate";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
+import { setTelegramInitData } from "@/lib/telegram-auth";
 import { useTelegram } from "../../../hooks/useTelegram";
 import { getTelegramUserId } from "../../../shared/telegram";
 import { useToast } from "../../../shared/toast";
@@ -34,6 +35,11 @@ const KIND_OPTIONS: { value: ScheduleKind; label: string }[] = [
 export default function RemindersCreate() {
   const api = useRemindersApi();
   const initData = useTelegramInitData();
+  useEffect(() => {
+    if (initData) {
+      setTelegramInitData(initData);
+    }
+  }, [initData]);
   const { sendData, user } = useTelegram();
   const telegramId = useMemo(
     () => getTelegramUserId(initData) || user?.id || 0,

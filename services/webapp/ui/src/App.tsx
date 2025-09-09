@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { useTelegram } from "@/hooks/useTelegram"
+import { useTelegramInitData } from "@/hooks/useTelegramInitData"
 import { ThemeProvider } from "next-themes"
 import { ToastProvider } from "./shared/toast"
 
@@ -24,6 +25,7 @@ import PaywallGuard from "./features/paywall/PaywallGuard"
 const queryClient = new QueryClient()
 
 const AppContent = () => {
+  useTelegramInitData();
   const { isReady } = useTelegram()
 
   if (!isReady) {

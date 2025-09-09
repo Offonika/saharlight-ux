@@ -8,6 +8,7 @@ export function useTelegramInitData(): string | null {
   try {
     const globalData = (window as any)?.Telegram?.WebApp?.initData;
     if (globalData) {
+      setTelegramInitData(globalData);
       return globalData;
     }
 
@@ -31,6 +32,7 @@ export function useTelegramInitData(): string | null {
       const saved = localStorage.getItem(TELEGRAM_INIT_DATA_KEY);
       if (saved) {
         if (isInitDataFresh(saved)) {
+          setTelegramInitData(saved);
           return saved;
         }
         localStorage.removeItem(TELEGRAM_INIT_DATA_KEY);

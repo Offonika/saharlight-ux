@@ -33,6 +33,7 @@ import {
 import { getTimezones } from "@/api/timezones";
 import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
+import { setTelegramInitData } from "@/lib/telegram-auth";
 import { resolveTelegramId } from "./resolveTelegramId";
 import { postOnboardingEvent } from "@/shared/api/onboarding";
 
@@ -81,6 +82,11 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   const { toast } = useToast();
   const { user } = useTelegram();
   const initData = useTelegramInitData();
+  useEffect(() => {
+    if (initData) {
+      setTelegramInitData(initData);
+    }
+  }, [initData]);
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const patchProfileMutation = useMutation({
