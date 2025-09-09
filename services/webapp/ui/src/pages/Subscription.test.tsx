@@ -1,9 +1,15 @@
-import { render, screen, cleanup } from '@testing-library/react';
+import {
+  render,
+  screen,
+  cleanup,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, vi, beforeEach, expect, afterEach } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import Subscription from './Subscription';
-import { getBillingStatus } from '@/api/billing';
+import { getBillingStatus, subscribePlan } from '@/api/billing';
 
 vi.mock('@/components/ThemeToggle', () => ({ default: () => <div /> }));
 vi.mock('@/api/billing', () => ({
@@ -27,6 +33,7 @@ import { useTelegramInitData } from '@/hooks/useTelegramInitData';
 const mockedStatus = getBillingStatus as unknown as vi.Mock;
 const mockedResolveTelegramId = resolveTelegramId as unknown as vi.Mock;
 const mockedInitData = useTelegramInitData as unknown as vi.Mock;
+const mockedSubscribePlan = subscribePlan as unknown as vi.Mock;
 
 describe('Subscription states', () => {
   beforeEach(() => {
@@ -110,5 +117,53 @@ describe('Subscription states', () => {
       },
     });
     expect(screen.getByTestId('current-status')).toHaveTextContent('expired');
+  });
+});
+
+describe('Subscription security', () => {
+  beforeEach(() => {
+    mockedStatus.mockReset();
+    mockedResolveTelegramId.mockReset();
+    mockedResolveTelegramId.mockReturnValue(123);
+    mockedInitData.mockReturnValue(null);
+    mockedSubscribePlan.mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('opens link without giving access to opener', async () => {
+    mockedStatus.mockResolvedValue({
+      featureFlags: {
+        billingEnabled: true,
+        paywallMode: 'soft',
+        testMode: false,
+      },
+      subscription: null,
+    });
+    mockedSubscribePlan.mockResolvedValue({ url: 'https://example.com' });
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(
+      (_url, _target, features) => ({
+        opener: features?.includes('noopener') ? null : window,
+      }) as any,
+    );
+    render(
+      <MemoryRouter>
+        <Subscription />
+      </MemoryRouter>,
+    );
+    await screen.findByTestId('status-card');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Оформить' })[0]);
+    await waitFor(() =>
+      expect(openSpy).toHaveBeenCalledWith(
+        'https://example.com',
+        '_blank',
+        'noopener,noreferrer',
+      ),
+    );
+    const opened = openSpy.mock.results[0]?.value as any;
+    expect(opened.opener).toBeNull();
+    openSpy.mockRestore();
   });
 });
