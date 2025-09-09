@@ -86,6 +86,24 @@ describe("parseProfile", () => {
     expect(result.data.icr).toBeUndefined();
   });
 
+  it("requires target, low and high values", () => {
+    const result = parseProfile(
+      makeProfile({ target: "", low: "", high: "" }),
+    );
+    expect(result.errors.target).toBe("required");
+    expect(result.errors.low).toBe("required");
+    expect(result.errors.high).toBe("required");
+  });
+
+  it("requires icr and cf for mixed therapy", () => {
+    const result = parseProfile(
+      makeProfile({ icr: "", cf: "" }),
+      "mixed",
+    );
+    expect(result.errors.icr).toBe("required");
+    expect(result.errors.cf).toBe("required");
+  });
+
   it("validates target range", () => {
     const result = parseProfile(makeProfile({ target: "12" }));
     expect(result.errors.target).toBe("out_of_range");

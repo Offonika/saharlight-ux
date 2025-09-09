@@ -219,6 +219,24 @@ describe('Profile page', () => {
     expect(getByText('Обязательное поле')).toBeTruthy();
   });
 
+  it('requires target, low and high values', () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    const { getByText, getByPlaceholderText, getAllByText } =
+      renderWithClient(<Profile />);
+    const targetInput = getByPlaceholderText('6.0');
+    const lowInput = getByPlaceholderText('4.0');
+    const highInput = getByPlaceholderText('10.0');
+    fireEvent.change(targetInput, { target: { value: '' } });
+    fireEvent.change(lowInput, { target: { value: '' } });
+    fireEvent.change(highInput, { target: { value: '' } });
+    fireEvent.click(getByText('Сохранить настройки'));
+    expect(saveProfile).not.toHaveBeenCalled();
+    expect(targetInput).toHaveAttribute('aria-invalid', 'true');
+    expect(lowInput).toHaveAttribute('aria-invalid', 'true');
+    expect(highInput).toHaveAttribute('aria-invalid', 'true');
+    expect(getAllByText('Обязательное поле')).toHaveLength(3);
+  });
+
   it('toggles grams per XE input with carb unit', async () => {
     (resolveTelegramId as vi.Mock).mockReturnValue(123);
     const { queryByLabelText, getByDisplayValue } = renderWithClient(<Profile />);
