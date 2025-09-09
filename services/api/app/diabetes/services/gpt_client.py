@@ -11,6 +11,7 @@ from asyncio import AbstractEventLoop
 from collections import OrderedDict
 from pathlib import Path
 from typing import Iterable, Mapping, cast
+from weakref import WeakKeyDictionary
 
 import httpx
 from openai import AsyncOpenAI, OpenAI, OpenAIError
@@ -48,7 +49,9 @@ _client: OpenAI | None = None
 _client_lock = threading.Lock()
 
 _async_client: AsyncOpenAI | None = None
-_async_client_locks: dict[AbstractEventLoop, asyncio.Lock] = {}
+_async_client_locks: WeakKeyDictionary[AbstractEventLoop, asyncio.Lock] = (
+    WeakKeyDictionary()
+)
 
 _learning_router = LLMRouter()
 

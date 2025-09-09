@@ -1,4 +1,5 @@
 import asyncio
+import gc
 import logging
 import threading
 import time
@@ -234,6 +235,29 @@ def test_dispose_openai_clients_after_loop(monkeypatch: pytest.MonkeyPatch) -> N
     fake_async_client.close.assert_awaited_once()
     assert gpt_client._client is None
     assert gpt_client._async_client is None
+    assert not gpt_client._async_client_locks
+
+
+def test_async_client_lock_removed_after_loop_gc(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class DummyAsyncClient:
+        async def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(
+        gpt_client, "get_async_openai_client", lambda: DummyAsyncClient()
+    )
+    monkeypatch.setattr(gpt_client, "_async_client", None)
+    gpt_client._async_client_locks.clear()
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(gpt_client._get_async_client())
+    assert len(gpt_client._async_client_locks) == 1
+    loop.close()
+    del loop
+    gc.collect()
+
     assert not gpt_client._async_client_locks
 
 
