@@ -21,31 +21,19 @@ describe('useTelegramInitData tgWebAppData parsing', () => {
   });
 
   it('falls back to localStorage when URL parsing fails', () => {
-    const saved = 'from-ls';
+    const saved = new URLSearchParams({
+      auth_date: String(Math.floor(Date.now() / 1000)),
+    }).toString();
     localStorage.setItem('tg_init_data', saved);
 
-    class ThrowingURLSearchParams {
-      constructor(_: string) {
+    vi.stubGlobal('location', {
+      get hash() {
         throw new Error('boom');
-      }
-      get(): string | null {
-        return null;
-      }
-    }
-    const original = URLSearchParams;
-    Object.defineProperty(globalThis, 'URLSearchParams', {
-      value: ThrowingURLSearchParams,
-      configurable: true,
-    });
-    vi.stubGlobal('location', { hash: '#tgWebAppData=broken' } as any);
+      },
+    } as any);
 
     const { result } = renderHook(() => useTelegramInitData());
 
     expect(result.current).toBe(saved);
-
-    Object.defineProperty(globalThis, 'URLSearchParams', {
-      value: original,
-      configurable: true,
-    });
   });
 });

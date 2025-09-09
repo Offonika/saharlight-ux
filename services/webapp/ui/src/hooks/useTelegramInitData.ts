@@ -1,4 +1,8 @@
-import { setTelegramInitData } from '@/lib/telegram-auth';
+import {
+  setTelegramInitData,
+  TELEGRAM_INIT_DATA_KEY,
+  isInitDataFresh,
+} from '@/lib/telegram-auth';
 
 export function useTelegramInitData(): string | null {
   try {
@@ -23,7 +27,19 @@ export function useTelegramInitData(): string | null {
       return tgWebAppData;
     }
 
-    return localStorage.getItem('tg_init_data');
+    try {
+      const saved = localStorage.getItem(TELEGRAM_INIT_DATA_KEY);
+      if (saved) {
+        if (isInitDataFresh(saved)) {
+          return saved;
+        }
+        localStorage.removeItem(TELEGRAM_INIT_DATA_KEY);
+      }
+    } catch {
+      /* ignore */
+    }
+
+    return null;
   } catch {
     return null;
   }
