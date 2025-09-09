@@ -82,3 +82,14 @@ def test_calc_bolus_iob_and_dia() -> None:
         dia=8.0,
     )
     assert dose_with_dia == pytest.approx(dose_no_iob - 0.5)
+
+
+def test_calc_bolus_negative_max_bolus() -> None:
+    profile = PatientProfile(icr=10, cf=2, target_bg=6)
+    with pytest.raises(ValueError, match="max_bolus must be non-negative"):
+        calc_bolus(
+            carbs=10,
+            current_bg=7,
+            profile=profile,
+            max_bolus=-1.0,
+        )

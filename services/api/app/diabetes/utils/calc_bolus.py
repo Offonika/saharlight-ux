@@ -117,6 +117,8 @@ def calc_bolus(
 
     total_f = float(total)
     if max_bolus is not None:
+        if max_bolus < 0:
+            raise ValueError("max_bolus must be non-negative")
         total_f = min(total_f, max_bolus)
 
     return _round_bolus(total_f, bolus_round_step)
