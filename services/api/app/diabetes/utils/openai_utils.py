@@ -118,7 +118,15 @@ def openai_client_ctx() -> Iterator[OpenAI]:
     try:
         yield client
     finally:
-        asyncio.run(dispose_http_client())
+        try:
+            loop: asyncio.AbstractEventLoop | None = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is None:
+            asyncio.run(dispose_http_client())
+        else:
+            loop.create_task(dispose_http_client())
 
 
 @asynccontextmanager
@@ -138,7 +146,7 @@ def _dispose_http_client_sync() -> None:
     try:
         asyncio.run(dispose_http_client())
     except Exception:  # pragma: no cover - best effort on shutdown
-        pass
+        logger.exception("[OpenAI] Failed to dispose HTTP client")
 
 
 atexit.register(_dispose_http_client_sync)
