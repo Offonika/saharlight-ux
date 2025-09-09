@@ -56,7 +56,9 @@ def test_get_async_client_multiple_loops(monkeypatch: pytest.MonkeyPatch) -> Non
         call_count += 1
         return fake_client
 
-    monkeypatch.setattr(gpt_client, "get_async_openai_client", fake_get_async_openai_client)
+    monkeypatch.setattr(
+        gpt_client, "get_async_openai_client", fake_get_async_openai_client
+    )
 
     async def run() -> object:
         return await gpt_client._get_async_client()
@@ -164,7 +166,9 @@ def test_dispose_openai_clients_after_loop(monkeypatch: pytest.MonkeyPatch) -> N
     async def create_lock() -> None:
         await gpt_client._get_async_client()
 
-    monkeypatch.setattr(gpt_client, "get_async_openai_client", lambda: fake_async_client)
+    monkeypatch.setattr(
+        gpt_client, "get_async_openai_client", lambda: fake_async_client
+    )
     asyncio.run(create_lock())
 
     asyncio.run(gpt_client.dispose_openai_clients())
@@ -299,7 +303,9 @@ async def test_send_message_run_timeout(
 
 
 @pytest.mark.asyncio
-async def test_upload_image_file(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+async def test_upload_image_file(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     img = tmp_path / "img.jpg"
     img.write_bytes(b"data")
 
@@ -425,7 +431,9 @@ async def test_create_chat_completion_without_api_key(
 ) -> None:
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setattr(gpt_client, "_async_client", None)
-    monkeypatch.setattr(config, "get_settings", lambda: SimpleNamespace(openai_api_key=None))
+    monkeypatch.setattr(
+        config, "get_settings", lambda: SimpleNamespace(openai_api_key=None)
+    )
 
     completion = await gpt_client.create_chat_completion(model="m", messages=[])
     content = completion.choices[0].message.content or ""
@@ -461,6 +469,31 @@ async def test_create_chat_completion_uses_env_api_key(
     async_client_mock.assert_awaited_once()
 
 
+@pytest.mark.asyncio
+async def test_create_chat_completion_without_chat(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setattr(
+        config, "get_settings", lambda: SimpleNamespace(openai_api_key="key")
+    )
+    monkeypatch.setattr(gpt_client, "_async_client", None)
+
+    class DummyClient:
+        pass
+
+    async def fake_get_async_client() -> DummyClient:
+        return DummyClient()
+
+    monkeypatch.setattr(gpt_client, "_get_async_client", fake_get_async_client)
+
+    with caplog.at_level(logging.WARNING):
+        completion = await gpt_client.create_chat_completion(model="m", messages=[])
+
+    content = completion.choices[0].message.content or ""
+    assert "OpenAI API key is not configured" in content
+    assert any("has no attribute 'chat'" in r.message for r in caplog.records)
+
+
 def test_validate_image_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(
         config, "get_settings", lambda: SimpleNamespace(photos_dir=str(tmp_path))
@@ -493,4 +526,3 @@ def test_validate_image_path_rejects_similar_prefix(
     monkeypatch.setattr(settings, "photos_dir", str(root))
     with pytest.raises(ValueError):
         gpt_client._validate_image_path(str(tmp_path / "photos2" / "img.jpg"))
-

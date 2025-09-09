@@ -127,7 +127,11 @@ def format_reply(text: str, *, max_len: int = 800) -> str:
     str
         Formatted text with paragraphs truncated and separated by blank lines.
     """
-    paragraphs = [part.strip()[:max_len] for part in re.split(r"\n\s*\n", text.strip()) if part.strip()]
+    paragraphs = [
+        part.strip()[:max_len]
+        for part in re.split(r"\n\s*\n", text.strip())
+        if part.strip()
+    ]
     return "\n\n".join(paragraphs)
 
 
@@ -190,6 +194,9 @@ async def create_chat_completion(
                 timeout=timeout_param,
                 stream=False,
             )
+        except AttributeError as exc:
+            logger.warning("[OpenAI] %s", exc)
+            return _static_completion(model)
         except httpx.TimeoutException as exc:
             message = "Chat completion request timed out"
             logger.exception("[OpenAI] %s", message)
@@ -198,7 +205,10 @@ async def create_chat_completion(
             status_code = getattr(exc, "status_code", None)
             if isinstance(exc, httpx.HTTPStatusError):
                 status_code = exc.response.status_code
-            if status_code in {429, 500, 502, 503, 504} and attempt < CHAT_COMPLETION_MAX_RETRIES:
+            if (
+                status_code in {429, 500, 502, 503, 504}
+                and attempt < CHAT_COMPLETION_MAX_RETRIES
+            ):
                 backoff = 2**attempt
                 logger.warning(
                     "[OpenAI] transient error (status %s), retrying in %s s",
@@ -262,9 +272,7 @@ async def create_learning_chat_completion(
     message = getattr(first_choice, "message", None)
     raw_content = getattr(message, "content", None)
     if not raw_content:
-        logger.error(
-            "[OpenAI] completion choice has empty content: %s", first_choice
-        )
+        logger.error("[OpenAI] completion choice has empty content: %s", first_choice)
         raise ValueError("OpenAI completion choice has empty content")
     content = cast(str, raw_content)
     reply = format_reply(content)
@@ -350,7 +358,9 @@ async def _upload_image_file(client: OpenAI, image_path: str) -> FileObject:
             with open(safe_path, "rb") as f:
                 return client.files.create(file=f, purpose="vision")
 
-        file = await asyncio.wait_for(asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT)
+        file = await asyncio.wait_for(
+            asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT
+        )
     except asyncio.TimeoutError:
         logger.exception("[OpenAI] Timeout while uploading %s", safe_path)
         raise RuntimeError("Timed out while uploading image")
@@ -373,7 +383,9 @@ async def _upload_image_bytes(client: OpenAI, image_bytes: bytes) -> FileObject:
             with io.BytesIO(image_bytes) as buffer:
                 return client.files.create(file=("image.jpg", buffer), purpose="vision")
 
-        file = await asyncio.wait_for(asyncio.to_thread(_upload_bytes), timeout=FILE_UPLOAD_TIMEOUT)
+        file = await asyncio.wait_for(
+            asyncio.to_thread(_upload_bytes), timeout=FILE_UPLOAD_TIMEOUT
+        )
     except asyncio.TimeoutError:
         logger.exception("[OpenAI] Timeout while uploading bytes")
         raise RuntimeError("Timed out while uploading image")
@@ -436,7 +448,9 @@ async def send_message(
         "type": "text",
         "text": content if content is not None else "Что изображено на фото?",
     }
-    message_content: Iterable[ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam]
+    message_content: Iterable[
+        ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam
+    ]
     if image_path:
         file = await _upload_image_file(client, image_path)
         image_block: ImageFileContentBlockParam = {
