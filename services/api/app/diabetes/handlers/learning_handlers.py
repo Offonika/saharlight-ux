@@ -100,10 +100,13 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     lessons = await run_db(_list, sessionmaker=SessionLocal)
     if not lessons:
-        await message.reply_text(
-            "Уроки не найдены. Загрузите уроки: make load-lessons",
-            reply_markup=build_main_keyboard(),
+        from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
+
+        logger.info(
+            "learn_fallback",
+            extra={"content_mode": "static", "branch": "dynamic"},
         )
+        await dynamic_learning_handlers.learn_command(update, context)
         return
 
     titles = "\n".join(f"/lesson {slug} — {title}" for title, slug in lessons)

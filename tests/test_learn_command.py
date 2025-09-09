@@ -74,7 +74,7 @@ async def test_learn_command_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_learn_command_no_lessons(monkeypatch: pytest.MonkeyPatch) -> None:
-    """When no lessons loaded the user gets a hint."""
+    """If lessons missing, static handler falls back to dynamic learn command."""
 
     SessionLocal = setup_db()
     monkeypatch.setattr(handlers, "SessionLocal", SessionLocal)
@@ -104,9 +104,22 @@ async def test_learn_command_no_lessons(monkeypatch: pytest.MonkeyPatch) -> None
         ),
     )
 
+    from services.api.app.diabetes import learning_handlers as dynamic_handlers
+
+    called = False
+
+    async def fake_dynamic(update: Update, ctx: object) -> None:
+        nonlocal called
+        called = True
+        if update.message:
+            await update.message.reply_text("dynamic")
+
+    monkeypatch.setattr(dynamic_handlers, "learn_command", fake_dynamic)
+
     await handlers.learn_command(update, context)
 
-    assert message.replies == ["Уроки не найдены. Загрузите уроки: make load-lessons"]
+    assert called is True
+    assert message.replies == ["dynamic"]
 
 
 @pytest.mark.asyncio
