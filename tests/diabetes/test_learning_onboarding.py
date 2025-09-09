@@ -5,6 +5,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
+import logging
+
+import httpx
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
@@ -290,8 +293,10 @@ async def test_lesson_command_requires_onboarding(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+
     async def fake_get_profile(_: int, __: object) -> dict[str, object]:
         return {}
+
     monkeypatch.setattr(
         onboarding_utils.profiles,
         "get_profile_for_user",
@@ -334,3 +339,54 @@ async def test_learn_reset_deactivates_plan(
         assert plan is not None and plan.is_active is False
     finally:
         engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_ensure_overrides_logs_http_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_get_profile(_: int, __: object) -> dict[str, object]:
+        raise httpx.HTTPError("boom")
+
+    monkeypatch.setattr(
+        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
+    )
+    user = SimpleNamespace(id=1)
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, callback_query=None, effective_user=user),
+    )
+    with caplog.at_level(logging.ERROR):
+        result = await onboarding_utils.ensure_overrides(update, context)
+    assert result is False
+    assert message.replies == [onboarding_utils.AGE_PROMPT]
+    assert any("Failed to get profile" in record.message for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_ensure_overrides_propagates_unexpected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_get_profile(_: int, __: object) -> dict[str, object]:
+        raise ValueError("bad")
+
+    monkeypatch.setattr(
+        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
+    )
+    user = SimpleNamespace(id=1)
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, callback_query=None, effective_user=user),
+    )
+    with pytest.raises(ValueError):
+        await onboarding_utils.ensure_overrides(update, context)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Callable, cast
 
+import httpx
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
 
@@ -153,7 +154,8 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if user is not None:
         try:
             profile = await profiles.get_profile_for_user(user.id, context)
-        except Exception:
+        except (httpx.HTTPError, RuntimeError):
+            logger.exception("Failed to get profile for user %s", user.id)
             profile = {}
         diabetes_type = profile.get("diabetes_type")
         if (
