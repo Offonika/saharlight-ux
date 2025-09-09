@@ -7,7 +7,6 @@ import hmac
 import logging
 from dataclasses import dataclass
 from functools import partial
-from typing import Any
 
 import httpx
 from telegram import LabeledPrice, Update
@@ -126,7 +125,7 @@ class TelegramPaymentsAdapter:
 
 
 def register_billing_handlers(
-    app: Application[Any, Any, Any, Any, Any, Any],
+    app: Application,
     adapter: TelegramPaymentsAdapter | None = None,
 ) -> None:
     """Register Telegram Payments handlers with the application."""
