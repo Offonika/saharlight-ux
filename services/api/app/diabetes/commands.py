@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import cast
 
@@ -7,9 +8,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from .learning_handlers import learn_command, topics_command
-from .handlers.onboarding_handlers import (
-    reset_onboarding as _reset_onboarding,
-)
+from .handlers.onboarding_handlers import reset_onboarding as _reset_onboarding
 from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .assistant_state import reset as _reset_assistant
 from ..assistant.services.memory_service import clear_memory as _clear_memory
@@ -49,14 +48,29 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
 
     user_data = cast(dict[str, object], context.user_data)
+    task = user_data.pop("_onb_reset_task", None)
     if user_data.pop("_onb_reset_confirm", False):
+        if isinstance(task, asyncio.Task):
+            task.cancel()
         await _reset_onboarding(update, context)
         return
 
+    async def _reset_timeout() -> None:
+        await asyncio.sleep(45)
+        user_data.pop("_onb_reset_confirm", None)
+        user_data.pop("_onb_reset_task", None)
+        try:
+            await message.reply_text(
+                "⏱ Сброс онбординга не подтверждён. Отправьте /reset_onboarding снова.",
+            )
+        except Exception:
+            pass
+
     user_data["_onb_reset_confirm"] = True
+    user_data["_onb_reset_task"] = asyncio.create_task(_reset_timeout())
     await message.reply_text(
         "⚠️ Это сбросит прогресс онбординга. Профиль и напоминания не затронутся.\n"
-        "Отправьте /reset_onboarding ещё раз для подтверждения."
+        "Отправьте /reset_onboarding ещё раз для подтверждения.",
     )
 
 
