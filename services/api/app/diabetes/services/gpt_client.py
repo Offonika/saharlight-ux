@@ -264,7 +264,18 @@ async def create_learning_chat_completion(
         max_tokens=max_tokens,
         timeout=timeout,
     )
-    content = completion.choices[0].message.content or ""
+    if not getattr(completion, "choices", None):
+        logger.error("[OpenAI] completion has no choices: %s", completion)
+        raise ValueError("OpenAI completion has no choices")
+    first_choice = completion.choices[0]
+    message = getattr(first_choice, "message", None)
+    raw_content = getattr(message, "content", None)
+    if not raw_content:
+        logger.error(
+            "[OpenAI] completion choice has empty content: %s", first_choice
+        )
+        raise ValueError("OpenAI completion choice has empty content")
+    content = cast(str, raw_content)
     reply = format_reply(content)
     if settings.learning_prompt_cache:
         with _learning_cache_lock:
