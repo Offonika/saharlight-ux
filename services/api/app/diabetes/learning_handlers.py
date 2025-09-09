@@ -32,6 +32,9 @@ from .services.gpt_client import (
 )
 from services.api.app.assistant.repositories.logs import add_lesson_log
 from services.api.app.assistant.repositories import plans as plans_repo
+from services.api.app.assistant.repositories.learning_profile import (
+    get_learning_profile,
+)
 from services.api.app.assistant.services import progress_service
 from .planner import generate_learning_plan, pretty_plan
 
@@ -117,6 +120,27 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     if user is None:
         return True
     user_data = cast(MutableMapping[str, Any], context.user_data)
+    try:
+        profile = await get_learning_profile(user.id)
+    except (
+        SQLAlchemyError,
+        RuntimeError,
+    ) as exc:  # pragma: no cover - logging only
+        logger.exception("profile hydrate failed: %s", exc)
+        profile = None
+    if profile is not None:
+        overrides = cast(
+            MutableMapping[str, str],
+            user_data.setdefault("learn_profile_overrides", {}),
+        )
+        if profile.age_group is not None:
+            overrides["age_group"] = profile.age_group
+        if profile.learning_level is not None:
+            overrides["learning_level"] = profile.learning_level
+        if profile.diabetes_type is not None:
+            overrides["diabetes_type"] = profile.diabetes_type
+        if profile.age_group and profile.learning_level:
+            user_data["learning_onboarded"] = True
     if get_state(user_data) is not None:
         return True
     if "learning_plan" in user_data and "learning_plan_index" in user_data:
