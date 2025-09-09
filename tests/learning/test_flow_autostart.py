@@ -11,6 +11,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.handlers import learning_onboarding
+from services.api.app.diabetes import learning_onboarding as onboarding_utils
 
 
 class DummyBot(Bot):
@@ -79,13 +80,23 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    async def fake_get_profile(user_id: int, ctx: object) -> Mapping[str, str | None]:
+        return {}
+    monkeypatch.setattr(
+        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
+    )
+    async def fake_get_active_plan(user_id: int) -> None:
+        return None
+    monkeypatch.setattr(learning_handlers.plans_repo, "get_active_plan", fake_get_active_plan)
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
     app.add_handler(CommandHandler("learn", learning_handlers.learn_command))
     app.add_handler(
         MessageHandler(
-            filters.TEXT & ~filters.COMMAND, learning_onboarding.onboarding_reply
+            filters.TEXT & ~filters.COMMAND,
+            learning_onboarding.onboarding_reply,
+            block=False,
         )
     )
     await app.initialize()
@@ -115,8 +126,7 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         )
     )
     await app.process_update(Update(update_id=2, message=_msg(2, "49")))
-    await app.process_update(Update(update_id=3, message=_msg(3, "2")))
-    await app.process_update(Update(update_id=4, message=_msg(4, "0")))
+    await app.process_update(Update(update_id=3, message=_msg(3, "0")))
 
     assert bot.sent[-1] == "шаг1"
     assert all(
@@ -127,7 +137,6 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     assert captured_profile == {
         "age_group": "adult",
-        "diabetes_type": "T2",
         "learning_level": "novice",
     }
 

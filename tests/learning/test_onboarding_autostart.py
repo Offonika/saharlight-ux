@@ -93,7 +93,11 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
             await learning_handlers.plan_command(update, context)
 
     app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, autoplan_reply)
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            autoplan_reply,
+            block=False,
+        )
     )
     await app.initialize()
 
@@ -114,8 +118,7 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
 
     await app.process_update(Update(update_id=1, message=_msg(1, "/learn", entities=[MessageEntity("bot_command", 0, 6)])))
     await app.process_update(Update(update_id=2, message=_msg(2, "49")))
-    await app.process_update(Update(update_id=3, message=_msg(3, "2")))
-    await app.process_update(Update(update_id=4, message=_msg(4, "0")))
+    await app.process_update(Update(update_id=3, message=_msg(3, "0")))
 
     plan = fake_generate_learning_plan("first")
     expected_plan = pretty_plan(plan)
