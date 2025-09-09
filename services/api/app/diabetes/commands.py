@@ -53,6 +53,10 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if user_data.pop("_onb_reset_confirm", False):
         if isinstance(task, asyncio.Task):
             task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
         await _reset_onboarding(update, context)
         return
 
