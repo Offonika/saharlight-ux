@@ -44,7 +44,11 @@ def test_get_client_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_get_async_client_multiple_loops(monkeypatch: pytest.MonkeyPatch) -> None:
-    fake_client = object()
+    class DummyAsyncClient:
+        async def close(self) -> None:
+            return None
+
+    fake_client = DummyAsyncClient()
     call_count = 0
 
     def fake_get_async_openai_client() -> object:
@@ -53,20 +57,17 @@ def test_get_async_client_multiple_loops(monkeypatch: pytest.MonkeyPatch) -> Non
         return fake_client
 
     monkeypatch.setattr(gpt_client, "get_async_openai_client", fake_get_async_openai_client)
-    monkeypatch.setattr(gpt_client, "_async_client", None)
-    monkeypatch.setattr(gpt_client, "_async_client_lock", None)
 
     async def run() -> object:
         return await gpt_client._get_async_client()
 
-    asyncio.run(run())
-    first_lock = gpt_client._async_client_lock
-    gpt_client._async_client = None
-    asyncio.run(run())
-    second_lock = gpt_client._async_client_lock
+    asyncio.run(gpt_client.dispose_openai_clients())
+    assert asyncio.run(run()) is fake_client
+    asyncio.run(gpt_client.dispose_openai_clients())
+    assert asyncio.run(run()) is fake_client
+    asyncio.run(gpt_client.dispose_openai_clients())
 
     assert call_count == 2
-    assert second_lock is not first_lock
 
 
 @pytest.mark.asyncio
@@ -161,8 +162,9 @@ def test_dispose_openai_clients_after_loop(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(gpt_client, "_async_client", fake_async_client)
 
     async def create_lock() -> None:
-        gpt_client._async_client_lock = asyncio.Lock()
+        await gpt_client._get_async_client()
 
+    monkeypatch.setattr(gpt_client, "get_async_openai_client", lambda: fake_async_client)
     asyncio.run(create_lock())
 
     asyncio.run(gpt_client.dispose_openai_clients())
@@ -171,7 +173,7 @@ def test_dispose_openai_clients_after_loop(monkeypatch: pytest.MonkeyPatch) -> N
     fake_async_client.close.assert_awaited_once()
     assert gpt_client._client is None
     assert gpt_client._async_client is None
-    assert gpt_client._async_client_lock is None
+    assert not gpt_client._async_client_locks
 
 
 @pytest.mark.asyncio
