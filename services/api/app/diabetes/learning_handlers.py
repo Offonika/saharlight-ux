@@ -133,9 +133,8 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         overrides = cast(
             Mapping[str, str | None], user_data.get("learn_profile_overrides", {})
         )
-        if (
-            not user_data.get("learning_profile_backfilled")
-            and (overrides.get("age_group") or overrides.get("learning_level"))
+        if not user_data.get("learning_profile_backfilled") and (
+            overrides.get("age_group") or overrides.get("learning_level")
         ):
             try:
                 await upsert_learning_profile(
@@ -318,9 +317,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         progress = await curriculum_engine.start_lesson(user.id, slug)
         lesson_id = progress.lesson_id
         user_data["lesson_id"] = lesson_id
-        text, _ = await curriculum_engine.next_step(
-            user.id, lesson_id, profile, None
-        )
+        text, _ = await curriculum_engine.next_step(user.id, lesson_id, profile, None)
     except LessonNotFoundError:
         logger.warning(
             "no_static_lessons; run dynamic",
@@ -345,7 +342,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = 0
     await message.reply_text(
-        f"\U0001F5FA План обучения\n{pretty_plan(plan)}",
+        f"\U0001f5fa План обучения\n{pretty_plan(plan)}",
         reply_markup=build_main_keyboard(),
     )
     text = format_reply(plan[0])
@@ -417,7 +414,7 @@ async def _start_lesson(
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = 0
     await message.reply_text(
-        f"\U0001F5FA План обучения\n{pretty_plan(plan)}",
+        f"\U0001f5fa План обучения\n{pretty_plan(plan)}",
         reply_markup=build_main_keyboard(),
     )
     text = format_reply(plan[0])
@@ -754,9 +751,10 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         return
     idx = cast(int, user_data.get("learning_plan_index", 0)) + 1
     if idx >= len(plan):
+        user_data["learning_plan_index"] = len(plan) - 1
         await message.reply_text("План завершён.", reply_markup=build_main_keyboard())
-    else:
-        await message.reply_text(plan[idx], reply_markup=build_main_keyboard())
+        return
+    await message.reply_text(plan[idx], reply_markup=build_main_keyboard())
     user_data["learning_plan_index"] = idx
     user = update.effective_user
     if user is not None:

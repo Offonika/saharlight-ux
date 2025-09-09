@@ -86,7 +86,9 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert context.user_data["learning_plan_index"] == 0
     assert context.user_data["learning_plan"][0] == "step1"
-    plan_text = f"\U0001F5FA План обучения\n{pretty_plan(context.user_data['learning_plan'])}"
+    plan_text = (
+        f"\U0001f5fa План обучения\n{pretty_plan(context.user_data['learning_plan'])}"
+    )
     assert message.replies == [plan_text, "step1"]
 
 
@@ -107,7 +109,7 @@ async def test_plan_and_skip_commands() -> None:
 
     await learning_handlers.skip_command(update, context)
     assert message.replies[-1] == "План завершён."
-    assert user_data["learning_plan_index"] == 2
+    assert user_data["learning_plan_index"] == 1
 
 
 @pytest.mark.asyncio
@@ -137,4 +139,21 @@ async def test_plan_command_respects_existing_plan(
 
     assert message.replies == [pretty_plan(plan)]
     assert user_data["learning_plan"] == plan
+    assert user_data["learning_plan_index"] == 0
+
+
+@pytest.mark.asyncio
+async def test_skip_after_completion_does_not_grow_index() -> None:
+    plan = ["step1"]
+    user_data = {"learning_plan": plan, "learning_plan_index": 0}
+    message = DummyMessage()
+    update = make_update(message=message)
+    context = make_context(user_data=user_data)
+
+    await learning_handlers.skip_command(update, context)
+    assert message.replies[-1] == "План завершён."
+    assert user_data["learning_plan_index"] == 0
+
+    await learning_handlers.skip_command(update, context)
+    assert message.replies[-1] == "План завершён."
     assert user_data["learning_plan_index"] == 0
