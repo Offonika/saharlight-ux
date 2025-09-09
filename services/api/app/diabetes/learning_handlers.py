@@ -130,12 +130,9 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         logger.exception("profile hydrate failed: %s", exc)
         profile = None
     if profile is None:
-        overrides = cast(
-            Mapping[str, str | None], user_data.get("learn_profile_overrides", {})
-        )
-        if (
-            not user_data.get("learning_profile_backfilled")
-            and (overrides.get("age_group") or overrides.get("learning_level"))
+        overrides = cast(Mapping[str, str | None], user_data.get("learn_profile_overrides", {}))
+        if not user_data.get("learning_profile_backfilled") and (
+            overrides.get("age_group") or overrides.get("learning_level")
         ):
             try:
                 await upsert_learning_profile(
@@ -169,9 +166,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         return True
     bot_data = cast(MutableMapping[str, Any], context.bot_data)
     plans_map = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
-    progress_map = cast(
-        dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {})
-    )
+    progress_map = cast(dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {}))
     data = progress_map.get(user.id)
     raw_plan = plans_map.get(user.id)
     plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
@@ -211,9 +206,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         if snapshot == BUSY_MESSAGE:
             message = update.effective_message
             if message is not None:
-                await message.reply_text(
-                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
-                )
+                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
             return False
         data["snapshot"] = snapshot
         progress_map[user.id] = data
@@ -251,10 +244,7 @@ async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
-            for slug, title in TOPICS_RU.items()
-        ]
+        [[InlineKeyboardButton(title, callback_data=f"lesson:{slug}")] for slug, title in TOPICS_RU.items()]
     )
     await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
@@ -301,9 +291,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     )
     state = get_state(user_data)
     if state is not None and state.last_step_text:
-        await message.reply_text(
-            state.last_step_text, reply_markup=build_main_keyboard()
-        )
+        await message.reply_text(state.last_step_text, reply_markup=build_main_keyboard())
         state.awaiting = True
         state.last_step_at = time.monotonic()
         set_state(user_data, state)
@@ -318,9 +306,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         progress = await curriculum_engine.start_lesson(user.id, slug)
         lesson_id = progress.lesson_id
         user_data["lesson_id"] = lesson_id
-        text, _ = await curriculum_engine.next_step(
-            user.id, lesson_id, profile, None
-        )
+        text, _ = await curriculum_engine.next_step(user.id, lesson_id, profile, None)
     except LessonNotFoundError:
         logger.warning(
             "no_static_lessons; run dynamic",
@@ -345,7 +331,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = 0
     await message.reply_text(
-        f"\U0001F5FA План обучения\n{pretty_plan(plan)}",
+        f"\U0001f5fa План обучения\n{pretty_plan(plan)}",
         reply_markup=build_main_keyboard(),
     )
     text = format_reply(plan[0])
@@ -388,15 +374,17 @@ async def _start_lesson(
         progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
         lesson_id = progress.lesson_id
         user_data["lesson_id"] = lesson_id
-        text, _ = await curriculum_engine.next_step(
-            from_user.id, lesson_id, profile, None
-        )
+        text, _ = await curriculum_engine.next_step(from_user.id, lesson_id, profile, None)
     except LessonNotFoundError:
         logger.warning(
             "no_static_lessons; run dynamic",
             extra={"hint": "make load-lessons"},
         )
         text = await generate_step_text(profile, topic_slug, 1, None)
+        if text == BUSY_MESSAGE or not text:
+            user_data.pop("lesson_id", None)
+            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+            return
         if not text.startswith(disclaimer()):
             text = f"{disclaimer()}\n\n{text}"
     except (
@@ -417,7 +405,7 @@ async def _start_lesson(
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = 0
     await message.reply_text(
-        f"\U0001F5FA План обучения\n{pretty_plan(plan)}",
+        f"\U0001f5fa План обучения\n{pretty_plan(plan)}",
         reply_markup=build_main_keyboard(),
     )
     text = format_reply(plan[0])
@@ -462,9 +450,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     topic_slug = context.args[0] if context.args else None
     if topic_slug is None:
-        await message.reply_text(
-            f"Сначала выберите тему — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn"
-        )
+        await message.reply_text(f"Сначала выберите тему — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn")
         return
     if topic_slug not in TOPICS_RU:
         await message.reply_text("Неизвестная тема")
@@ -509,9 +495,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _start_lesson(message, user_data, context.bot_data, profile, slug)
 
 
-async def lesson_answer_handler(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Process user's answer and move to the next step."""
 
     message = update.message
@@ -560,13 +544,9 @@ async def lesson_answer_handler(
     set_state(user_data, state)
     try:
         if user_text.lower() == "не знаю":
-            feedback = await assistant_chat(
-                profile, f"Объясни подробнее: {state.last_step_text}"
-            )
+            feedback = await assistant_chat(profile, f"Объясни подробнее: {state.last_step_text}")
         else:
-            _correct, feedback = await check_user_answer(
-                profile, state.topic, user_text, state.last_step_text or ""
-            )
+            _correct, feedback = await check_user_answer(profile, state.topic, user_text, state.last_step_text or "")
         feedback = format_reply(feedback)
         await message.reply_text(feedback, reply_markup=build_main_keyboard())
         if feedback == BUSY_MESSAGE:
@@ -583,9 +563,7 @@ async def lesson_answer_handler(
                 )
             except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
                 logger.exception("lesson log failed: %s", exc)
-                await message.reply_text(
-                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
-                )
+                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
                 return
         lesson_id = user_data.get("lesson_id")
         try:
@@ -597,9 +575,7 @@ async def lesson_answer_handler(
                     feedback,
                 )
             else:
-                next_text = await generate_step_text(
-                    profile, state.topic, state.step + 1, feedback
-                )
+                next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
         except (
             LessonNotFoundError,
             ProgressNotFoundError,
@@ -629,9 +605,7 @@ async def lesson_answer_handler(
                 )
             except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
                 logger.exception("lesson log failed: %s", exc)
-                await message.reply_text(
-                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
-                )
+                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
                 return
         state.step += 1
         state.last_step_text = next_text
@@ -679,11 +653,7 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
     now = time.monotonic()
-    if (
-        state is not None
-        and state.last_step_text
-        and (state.awaiting or now - state.last_step_at <= STEP_GRACE_PERIOD)
-    ):
+    if state is not None and state.last_step_text and (state.awaiting or now - state.last_step_at <= STEP_GRACE_PERIOD):
         await lesson_answer_handler(update, context)
         raise ApplicationHandlerStop
     profile = _get_profile(user_data)
@@ -712,9 +682,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     if user is not None:
         await _persist(user.id, user_data, context.bot_data)
-    await message.reply_text(
-        f"Сессия {LEARN_BUTTON_TEXT} завершена.", reply_markup=build_main_keyboard()
-    )
+    await message.reply_text(f"Сессия {LEARN_BUTTON_TEXT} завершена.", reply_markup=build_main_keyboard())
 
 
 async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
