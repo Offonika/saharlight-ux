@@ -1,5 +1,5 @@
-import atexit
 import asyncio
+import atexit
 import logging
 import threading
 from collections.abc import AsyncIterator, Iterator
