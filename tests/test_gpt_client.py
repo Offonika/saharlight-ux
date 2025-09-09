@@ -54,19 +54,17 @@ def test_get_async_client_multiple_loops(monkeypatch: pytest.MonkeyPatch) -> Non
 
     monkeypatch.setattr(gpt_client, "get_async_openai_client", fake_get_async_openai_client)
     monkeypatch.setattr(gpt_client, "_async_client", None)
-    monkeypatch.setattr(gpt_client, "_async_client_lock", None)
+    monkeypatch.setattr(gpt_client, "_async_client_locks", {})
 
     async def run() -> object:
         return await gpt_client._get_async_client()
 
-    asyncio.run(run())
-    first_lock = gpt_client._async_client_lock
-    gpt_client._async_client = None
-    asyncio.run(run())
-    second_lock = gpt_client._async_client_lock
+    first = asyncio.run(run())
+    second = asyncio.run(run())
 
-    assert call_count == 2
-    assert second_lock is not first_lock
+    assert call_count == 1
+    assert first is fake_client
+    assert second is fake_client
 
 
 @pytest.mark.asyncio
@@ -161,7 +159,8 @@ def test_dispose_openai_clients_after_loop(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr(gpt_client, "_async_client", fake_async_client)
 
     async def create_lock() -> None:
-        gpt_client._async_client_lock = asyncio.Lock()
+        loop = asyncio.get_running_loop()
+        gpt_client._async_client_locks[loop] = asyncio.Lock()
 
     asyncio.run(create_lock())
 
@@ -171,7 +170,7 @@ def test_dispose_openai_clients_after_loop(monkeypatch: pytest.MonkeyPatch) -> N
     fake_async_client.close.assert_awaited_once()
     assert gpt_client._client is None
     assert gpt_client._async_client is None
-    assert gpt_client._async_client_lock is None
+    assert not gpt_client._async_client_locks
 
 
 @pytest.mark.asyncio
