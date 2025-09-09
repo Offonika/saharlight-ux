@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
-import os
 import sqlite3
 import subprocess
 from typing import Any, Callable, cast
@@ -12,9 +11,6 @@ from types import ModuleType
 import pytest
 import sqlalchemy
 from sqlalchemy.orm import Session, sessionmaker
-
-os.environ.setdefault("OPENAI_API_KEY", "dummy-key")
-os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_dummy")
 
 from services.api.app.diabetes import curriculum_engine
 from services.api.app.diabetes import learning_handlers as _dynamic_learning_handlers
