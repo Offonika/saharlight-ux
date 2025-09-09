@@ -15,6 +15,7 @@ from services.api.app.diabetes.utils.functions import smart_input
         ("5 ммоль/л", {"sugar": 5.0, "xe": None, "dose": None}),
         ("5 XE", {"sugar": None, "xe": 5.0, "dose": None}),
         ("4 units", {"sugar": None, "xe": None, "dose": 4.0}),
+        ("sugar=2.5", {"sugar": 2.5, "xe": None, "dose": None}),
     ],
 )
 def test_smart_input_valid_cases(message: Any, expected: Any) -> None:
@@ -32,7 +33,12 @@ def test_smart_input_rejects_garbage(message: str) -> None:
         smart_input(message)
 
 
-@pytest.mark.parametrize("message", ["5", " 7 "])
+@pytest.mark.parametrize("message", ["5", " 7 ", "2."])
 def test_smart_input_plain_number(message: str) -> None:
     with pytest.raises(ValueError):
         smart_input(message)
+
+
+def test_smart_input_invalid_decimal() -> None:
+    with pytest.raises(ValueError):
+        smart_input("sugar=2.")
