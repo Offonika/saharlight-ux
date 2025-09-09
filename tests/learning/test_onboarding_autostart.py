@@ -10,6 +10,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
+from services.api.app.diabetes.planner import pretty_plan
 from services.api.app.diabetes.handlers import learning_onboarding
 
 
@@ -128,6 +129,7 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
 
     plan = fake_generate_learning_plan("first")
     assert app.user_data[1]["learning_plan"] == plan
+    assert bot.sent[-2] == f"\U0001F5FA План обучения\n{pretty_plan(plan)}"
     assert bot.sent[-1] == "first"
 
     await app.shutdown()

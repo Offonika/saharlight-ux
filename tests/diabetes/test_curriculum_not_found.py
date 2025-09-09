@@ -126,8 +126,10 @@ async def test_learn_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -
     context = make_context(user_data={})
 
     await dynamic_handlers.learn_command(update, context)
-
-    assert msg.replies == ["step1"]
+    assert msg.replies == [
+        "\U0001F5FA План обучения\n1. step1",
+        "step1",
+    ]
     assert get_state(context.user_data) is not None
     assert context.user_data.get("lesson_id") is None
 
@@ -203,8 +205,10 @@ async def test_lesson_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) 
     context = make_context(user_data={}, args=["slug"])
 
     await dynamic_handlers.lesson_command(update, context)
-
-    assert msg.replies == ["step1"]
+    assert msg.replies == [
+        "\U0001F5FA План обучения\n1. step1",
+        "step1",
+    ]
     assert get_state(context.user_data) is not None
     assert context.user_data.get("lesson_id") is None
 

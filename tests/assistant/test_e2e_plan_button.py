@@ -12,6 +12,7 @@ from services.api.app.assistant.repositories import plans as plans_repo
 from services.api.app.assistant.services import progress_service as progress_repo
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.services import db
+from services.api.app.diabetes.planner import generate_learning_plan, pretty_plan
 
 
 class DummyMessage:
@@ -100,7 +101,8 @@ async def test_plan_button_flow(
     )
     context = SimpleNamespace(user_data={}, bot_data={})
     await learning_handlers.learn_command(update_learn, context)
-    assert msg_learn.sent == ["Шаг 1"]
+    plan = generate_learning_plan("Шаг 1")
+    assert msg_learn.sent == [f"\U0001F5FA План обучения\n{pretty_plan(plan)}", "Шаг 1"]
 
     msg_ans = DummyMessage(text="Не знаю")
     update_ans = SimpleNamespace(

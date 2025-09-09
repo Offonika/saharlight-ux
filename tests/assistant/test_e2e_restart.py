@@ -12,6 +12,7 @@ from services.api.app.assistant.repositories import plans as plans_repo
 from services.api.app.assistant.services import progress_service as progress_repo
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes import learning_handlers
+from services.api.app.diabetes.planner import generate_learning_plan, pretty_plan
 from services.api.app.diabetes.models_learning import LearningProgress
 
 
@@ -157,7 +158,8 @@ async def test_hydrate_generates_snapshot_and_persists(
     update = SimpleNamespace(message=msg_learn, effective_user=msg_learn.from_user)
     context = SimpleNamespace(user_data={}, bot_data={})
     await learning_handlers.learn_command(update, context)
-    assert msg_learn.sent == ["Шаг 1"]
+    plan = generate_learning_plan("Шаг 1")
+    assert msg_learn.sent == [f"\U0001F5FA План обучения\n{pretty_plan(plan)}", "Шаг 1"]
     assert len(calls) == 1
 
     msg_ans = DummyMessage(text="Не знаю")

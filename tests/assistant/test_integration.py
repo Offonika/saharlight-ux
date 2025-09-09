@@ -87,7 +87,11 @@ async def test_flow_idk_with_log_error(monkeypatch: pytest.MonkeyPatch) -> None:
     await learning_handlers.lesson_command(update_start, context)
     state = get_state(context.user_data)
     assert state is not None and state.step == 1 and state.awaiting
-    assert msg_start.replies == ["step1?"]
+    plan = learning_handlers.generate_learning_plan("step1?")
+    assert msg_start.replies == [
+        f"\U0001F5FA План обучения\n{learning_handlers.pretty_plan(plan)}",
+        "step1?",
+    ]
 
     msg_next = DummyMessage("ans1")
     await learning_handlers.lesson_answer_handler(

@@ -86,7 +86,8 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert context.user_data["learning_plan_index"] == 0
     assert context.user_data["learning_plan"][0] == "step1"
-    assert message.replies == ["step1"]
+    plan_text = f"\U0001F5FA План обучения\n{pretty_plan(context.user_data['learning_plan'])}"
+    assert message.replies == [plan_text, "step1"]
 
 
 @pytest.mark.asyncio

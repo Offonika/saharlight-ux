@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from ..assistant.repositories.learning_profile import (
     get_learning_profile,
@@ -36,11 +36,12 @@ async def learning_profile_patch(
     data: LearningProfileSchema,
     user: UserContext = Depends(check_token),
 ) -> LearningProfileSchema:
+    if data.diabetes_type is not None:
+        raise HTTPException(status_code=400, detail="diabetes_type is read-only")
     await upsert_learning_profile(
         user["id"],
         age_group=data.age_group,
         learning_level=data.learning_level,
-        diabetes_type=data.diabetes_type,
     )
     profile = await get_learning_profile(user["id"])
     if profile is None:

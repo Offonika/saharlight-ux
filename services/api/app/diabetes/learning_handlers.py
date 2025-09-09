@@ -34,6 +34,7 @@ from services.api.app.assistant.repositories.logs import add_lesson_log
 from services.api.app.assistant.repositories import plans as plans_repo
 from services.api.app.assistant.repositories.learning_profile import (
     get_learning_profile,
+    upsert_learning_profile,
 )
 from services.api.app.assistant.services import progress_service
 from .planner import generate_learning_plan, pretty_plan
@@ -128,7 +129,28 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     ) as exc:  # pragma: no cover - logging only
         logger.exception("profile hydrate failed: %s", exc)
         profile = None
-    if profile is not None:
+    if profile is None:
+        overrides = cast(
+            Mapping[str, str | None], user_data.get("learn_profile_overrides", {})
+        )
+        if (
+            not user_data.get("learning_profile_backfilled")
+            and (overrides.get("age_group") or overrides.get("learning_level"))
+        ):
+            try:
+                await upsert_learning_profile(
+                    user.id,
+                    age_group=overrides.get("age_group"),
+                    learning_level=overrides.get("learning_level"),
+                )
+                user_data["learning_profile_backfilled"] = True
+                logger.info("learning_profile backfilled user_id=%s", user.id)
+            except (
+                SQLAlchemyError,
+                RuntimeError,
+            ) as exc:  # pragma: no cover - logging only
+                logger.exception("profile backfill failed: %s", exc)
+    else:
         overrides = cast(
             MutableMapping[str, str],
             user_data.setdefault("learn_profile_overrides", {}),
@@ -322,6 +344,10 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     plan = generate_learning_plan(text)
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = 0
+    await message.reply_text(
+        f"\U0001F5FA План обучения\n{pretty_plan(plan)}",
+        reply_markup=build_main_keyboard(),
+    )
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
     await add_lesson_log(
@@ -390,6 +416,10 @@ async def _start_lesson(
     plan = generate_learning_plan(text)
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = 0
+    await message.reply_text(
+        f"\U0001F5FA План обучения\n{pretty_plan(plan)}",
+        reply_markup=build_main_keyboard(),
+    )
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
     await add_lesson_log(

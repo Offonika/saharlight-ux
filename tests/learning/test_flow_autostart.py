@@ -11,6 +11,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.handlers import learning_onboarding
+from services.api.app.diabetes.planner import generate_learning_plan, pretty_plan
 
 
 class DummyBot(Bot):
@@ -116,6 +117,8 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     await app.process_update(Update(update_id=2, message=_msg(2, "49")))
     await app.process_update(Update(update_id=3, message=_msg(3, "0")))
+    expected_plan = generate_learning_plan("шаг1")
+    assert bot.sent[-2] == f"\U0001F5FA План обучения\n{pretty_plan(expected_plan)}"
     assert bot.sent[-1] == "шаг1"
     assert all(
         title not in s and "Выберите тему" not in s and "Доступные темы" not in s
