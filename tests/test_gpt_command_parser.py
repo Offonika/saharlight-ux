@@ -229,11 +229,7 @@ async def test_parse_command_get_stats_without_fields(
             type(
                 "Choice",
                 (),
-                {
-                    "message": type(
-                        "Msg", (), {"content": '{"action":"get_stats"}'}
-                    )()
-                },
+                {"message": type("Msg", (), {"content": '{"action":"get_stats"}'})()},
             )
         ]
 
@@ -542,7 +538,26 @@ def test_extract_first_json_multi_object_array() -> None:
     text = (
         '[{"action":"add_entry","fields":{}},' '{"action":"delete_entry","fields":{}}]'
     )
-    assert gpt_command_parser._extract_first_json(text) is None
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
+def test_extract_first_json_nested_object_wrapper() -> None:
+    text = '{"wrapper":{"action":"add_entry","fields":{}}}'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
+def test_extract_first_json_nested_array_wrapper() -> None:
+    text = '[["noise"], [{"action":"add_entry","fields":{}}]]'
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
 
 
 def test_extract_first_json_multiple_objects() -> None:
