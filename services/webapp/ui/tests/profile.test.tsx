@@ -32,6 +32,7 @@ vi.mock('../src/hooks/useTelegramInitData', () => ({
 
 vi.mock('@/shared/api/onboarding', () => ({
   postOnboardingEvent: vi.fn().mockResolvedValue(undefined),
+  isValidOnboardingStep: (step: string | null) => step !== null,
 }));
 
 vi.mock('react-router-dom', () => ({

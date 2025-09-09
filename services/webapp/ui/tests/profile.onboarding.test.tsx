@@ -19,6 +19,7 @@ vi.mock('../src/hooks/useTelegramInitData', () => ({
 
 vi.mock('@/shared/api/onboarding', () => ({
   postOnboardingEvent: vi.fn().mockResolvedValue(undefined),
+  isValidOnboardingStep: (step: string | null) => step !== null,
 }));
 
 let searchParams = new URLSearchParams();
@@ -40,11 +41,9 @@ vi.mock('../src/features/profile/api', async () => {
     ...actual,
     saveProfile: vi.fn(),
     patchProfile: vi.fn(),
-    getProfile: vi
-      .fn()
-      .mockRejectedValue(
-        new actual.ProfileNotRegisteredError('missing'),
-      ),
+    getProfile: vi.fn(
+      () => Promise.reject(new actual.ProfileNotRegisteredError('missing')),
+    ),
   };
 });
 
@@ -85,7 +84,7 @@ describe('Profile onboarding', () => {
   });
 
   it('posts onboarding_started when telegram data is valid', async () => {
-    searchParams = new URLSearchParams('flow=onboarding&step=1');
+    searchParams = new URLSearchParams('flow=onboarding&step=profile');
     (useTelegramInitData as vi.Mock).mockReturnValue('init');
 
     render(
@@ -97,7 +96,7 @@ describe('Profile onboarding', () => {
     await waitFor(() => {
       expect(postOnboardingEvent).toHaveBeenCalledWith(
         'onboarding_started',
-        '1',
+        'profile',
       );
     });
   });

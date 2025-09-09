@@ -1,6 +1,20 @@
 import { setTelegramInitData } from '@/lib/telegram-auth';
 import { buildHeaders } from '@/api/http';
 
+const STEP_MAP = {
+  profile: 0,
+  timezone: 1,
+  reminders: 2,
+} as const;
+
+export type OnboardingStep = keyof typeof STEP_MAP;
+
+export function isValidOnboardingStep(
+  step: string | null,
+): step is OnboardingStep {
+  return Boolean(step && step in STEP_MAP);
+}
+
 export function getInitDataRaw(): string | null {
   const initData =
     (window as unknown as { Telegram?: { WebApp?: { initData?: string } } })
@@ -20,14 +34,15 @@ export function getInitDataRaw(): string | null {
 
 export async function postOnboardingEvent(
   event: string,
-  step?: string,
+  step?: OnboardingStep,
   meta?: any,
 ) {
   const rawInitData = getInitDataRaw();
   if (rawInitData) {
     setTelegramInitData(rawInitData);
   }
-  const body = JSON.stringify({ event, step, meta });
+  const stepNumber = step ? STEP_MAP[step] : null;
+  const body = JSON.stringify({ event, step: stepNumber, meta });
   const headers = buildHeaders({ headers: {}, body }, true);
   const res = await fetch('/api/onboarding/events', {
     method: 'POST',
