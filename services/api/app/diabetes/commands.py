@@ -77,10 +77,26 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
     user_data["_onb_reset_confirm"] = True
     user_data["_onb_reset_task"] = asyncio.create_task(_reset_timeout())
-    await message.reply_text(
-        "⚠️ Это сбросит прогресс онбординга. Профиль и напоминания не затронутся.\n"
-        "Отправьте /reset_onboarding ещё раз для подтверждения.",
-    )
+    try:
+        await message.reply_text(
+            "⚠️ Это сбросит прогресс онбординга. Профиль и напоминания не"
+            " затронутся.\n"
+            "Отправьте /reset_onboarding ещё раз для подтверждения.",
+        )
+    except telegram.error.TelegramError as exc:
+        logger.exception("Failed to send onboarding reset warning: %s", exc)
+        try:
+            await context.bot.send_message(
+                chat_id=message.chat_id,
+                text=(
+                    "Не удалось отправить предупреждение о сбросе. " "Попробуйте снова."
+                ),
+            )
+        except telegram.error.TelegramError as exc2:
+            logger.exception(
+                "Failed to notify user about onboarding reset warning failure: %s",
+                exc2,
+            )
 
 
 async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
